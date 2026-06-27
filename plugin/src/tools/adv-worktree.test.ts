@@ -40,7 +40,10 @@ vi.mock("./worktree/triage", () => triageMock);
 vi.mock("../utils/workspace-warp", () => workspaceWarpMock);
 vi.mock("./target-project", () => targetProjectMock);
 
-import { advWorktreeTools } from "./adv-worktree";
+import {
+  advWorktreeTools,
+  WORKTREE_TOOL_SAFE_TIMEOUT_MS,
+} from "./adv-worktree";
 import type { Store } from "../storage/store-types";
 import type { OpencodeClient } from "../utils/opencode-types";
 
@@ -547,8 +550,14 @@ describe("advWorktreeTools", () => {
     expect(worktreeMock.advWorktreeDelete).toHaveBeenCalledWith(
       "change/x",
       { force: false },
-      expect.objectContaining({ projectRoot: "/repo", database }),
+      expect.objectContaining({
+        projectRoot: "/repo",
+        database,
+        operationTimeoutMs: expect.any(Number),
+      }),
     );
+    const [, , deps] = worktreeMock.advWorktreeDelete.mock.calls.at(-1)!;
+    expect(deps.operationTimeoutMs).toBeLessThan(WORKTREE_TOOL_SAFE_TIMEOUT_MS);
     expect(out).toContain('"ok":true');
   });
 
@@ -795,6 +804,31 @@ describe("advWorktreeTools", () => {
     // Should succeed and report the default effective timeout
     expect(out).toContain('"success":true');
     expect(out).toContain("effectiveTimeoutMs");
+  });
+
+  it("adv_worktree_cleanup passes an internal cleanup item timeout below the wrapper budget", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockResolvedValue({
+      removed: 0,
+      retained: 1,
+    });
+
+    await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "bounded internal cleanup" },
+      store,
+    );
+
+    expect(worktreeMock.advWorktreeCleanup).toHaveBeenCalledWith(
+      "bounded internal cleanup",
+      expect.objectContaining({
+        cleanupItemTimeoutMs: expect.any(Number),
+      }),
+    );
+    const [, deps] = worktreeMock.advWorktreeCleanup.mock.calls.at(-1)!;
+    expect(deps.cleanupItemTimeoutMs).toBeLessThan(
+      WORKTREE_TOOL_SAFE_TIMEOUT_MS,
+    );
   });
 
   // rq-worktreeBoundedCleanup02 AC1: delete tool also uses safe budget

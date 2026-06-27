@@ -90,6 +90,21 @@ export interface Worktree {
 }
 
 /** Pending delete shape. Back-compat wrapper around PendingWorktreeDelete. */
+export interface PendingDeleteAuthority {
+  changeId?: string;
+  terminalStatus?: "archived" | "closed";
+  terminalProof?:
+    | "store"
+    | "registry_snapshot"
+    | "archive_repair_archived_list"
+    | "manual_pr_recovery";
+  mergeProof?: {
+    kind: string;
+    [key: string]: string | number | boolean | undefined;
+  };
+  recordedAt: string;
+}
+
 export interface PendingDelete {
   branch: string;
   path: string;
@@ -98,6 +113,7 @@ export interface PendingDelete {
   attempts: number;
   lastError?: string;
   lastErrorClass?: string;
+  authority?: PendingDeleteAuthority;
 }
 
 export interface PendingDeleteSummary {
@@ -286,7 +302,9 @@ function isPendingDelete(value: unknown): value is PendingDelete {
     record.attempts >= 0 &&
     (record.lastError === undefined || typeof record.lastError === "string") &&
     (record.lastErrorClass === undefined ||
-      typeof record.lastErrorClass === "string")
+      typeof record.lastErrorClass === "string") &&
+    (record.authority === undefined ||
+      (typeof record.authority === "object" && record.authority !== null))
   );
 }
 
@@ -418,6 +436,7 @@ export async function setPendingDelete(
   path: string,
   reason: string,
   now?: string,
+  authority?: PendingDeleteAuthority,
 ): Promise<void> {
   await withPendingDeleteLock(access, async () => {
     const pendingDeletes = await readPendingDeletes(access);
@@ -430,6 +449,7 @@ export async function setPendingDelete(
       attempts: existing?.attempts ?? 0,
       lastError: existing?.lastError,
       lastErrorClass: existing?.lastErrorClass,
+      authority: authority ?? existing?.authority,
     };
     await writePendingDeletes(access, [
       ...pendingDeletes.filter((entry) => entry.branch !== branch),

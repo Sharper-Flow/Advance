@@ -139,6 +139,26 @@ type WorktreeSignalResult = { ok: true } | { ok: false; warning: string };
  * rq-worktreeBoundedCleanup02 AC5.
  */
 const DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS = 5_000;
+const DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS = 1_500;
+const DEFAULT_DELETE_OPERATION_TIMEOUT_MS = 7_500;
+
+function getDeleteOperationTimeoutMs(deps: {
+  operationTimeoutMs?: number;
+}): number {
+  return Math.max(
+    1,
+    deps.operationTimeoutMs ?? DEFAULT_DELETE_OPERATION_TIMEOUT_MS,
+  );
+}
+
+function getRemainingDeleteOperationMs(
+  startedAt: number,
+  timeoutMs: number,
+): number {
+  return Math.max(0, timeoutMs - (Date.now() - startedAt));
+}
+
+const PENDING_DELETE_RETURN_RESERVE_MS = 100;
 
 async function fireWorktreeSignal(
   projectDir: string,
@@ -192,6 +212,40 @@ async function fireWorktreeSignal(
         : `Worktree notification failed: ${err instanceof Error ? err.message : String(err)}`;
     appendDebugLog("worktree", warning);
     return { ok: false, warning };
+  }
+}
+
+async function readChangeStatusWithCleanupTimeout(
+  store: Store,
+  changeId: string,
+  timeoutMs = DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
+): Promise<
+  | { ok: true; status: string | undefined }
+  | {
+      ok: false;
+      reason: "temporal_read_timeout" | "temporal_read_failed";
+      error: unknown;
+    }
+> {
+  try {
+    const loaded = await withTimeout(
+      store.changes.get(changeId),
+      timeoutMs,
+      `Timed out reading change status for ${changeId}`,
+    );
+    return {
+      ok: true,
+      status: loaded.success && loaded.data ? loaded.data.status : undefined,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reason:
+        error instanceof TimeoutError
+          ? "temporal_read_timeout"
+          : "temporal_read_failed",
+      error,
+    };
   }
 }
 
@@ -399,6 +453,7 @@ async function gitWorktreeRemove(
   repoRoot: string,
   worktreePath: string,
   force?: boolean,
+  timeoutMs: number = GIT_WORKTREE_REMOVE_TIMEOUT_MS,
 ): Promise<Result<void, string>> {
   return new Promise((resolve) => {
     const args = ["worktree", "remove", worktreePath];
@@ -407,7 +462,10 @@ async function gitWorktreeRemove(
       args,
       {
         cwd: repoRoot,
-        timeout: GIT_WORKTREE_REMOVE_TIMEOUT_MS,
+        timeout: Math.max(
+          1,
+          Math.min(timeoutMs, GIT_WORKTREE_REMOVE_TIMEOUT_MS),
+        ),
         killSignal: "SIGKILL",
       },
       (error, _stdout, stderr) => {
@@ -1353,6 +1411,14 @@ export interface AdvWorktreeDeleteDeps {
    * Primarily a test seam; defaults to 10s in production.
    */
   signalTimeoutMs?: number;
+  /**
+   * Cleanup-local budget for the whole delete path. Production callers set
+   * this below the tool wrapper budget so delete returns typed retained state
+   * before the SDK timeout instead of continuing destructive work silently.
+   */
+  operationTimeoutMs?: number;
+  /** Optional timeout for live GitHub PR evidence lookup. */
+  prEvidenceTimeoutMs?: number;
   worktreePath?: string;
   hooks?: { preDelete: string[] };
   integrationCheck?: typeof verifyBranchIntegration;
@@ -1379,6 +1445,14 @@ export type AdvWorktreeDeleteResult =
     }
   | { ok: false; error: "INVALID_BRANCH"; reason: string }
   | { ok: false; error: "WORKTREE_NOT_FOUND"; branch: string }
+  | {
+      ok: false;
+      error: "TIME_BUDGET_EXHAUSTED";
+      branch: string;
+      path: string;
+      reason: "time_budget_exhausted";
+      hint: string;
+    }
   | {
       ok: false;
       error: "WORKTREE_IN_USE";
@@ -1534,6 +1608,7 @@ async function getPrMergedBranchIntegration(
       "number,state,mergedAt,headRefOid,url",
     ],
     deps.projectRoot,
+    deps.prEvidenceTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
   );
   if (prList.exitCode !== 0) {
     return {
@@ -1704,10 +1779,21 @@ async function verifyMissingRegistryChangeBranchIntegration(
     };
   }
 
+  const loadedStatus = await readChangeStatusWithCleanupTimeout(
+    deps.store,
+    changeId,
+    deps.signalTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
+  );
+  if (!loadedStatus.ok) {
+    return {
+      ok: false,
+      reason: loadedStatus.reason,
+      hint: `Failed to verify terminal state for change ${changeId}: ${loadedStatus.reason}. Retaining worktree for retry.`,
+    };
+  }
+
   try {
-    const loaded = await deps.store.changes.get(changeId);
-    const status =
-      loaded.success && loaded.data ? loaded.data.status : undefined;
+    const status = loadedStatus.status;
     if (status !== "archived" && status !== "closed") {
       const prIntegration = await verifyPrMergedChangeBranchIntegration(
         branch,
@@ -1756,11 +1842,80 @@ async function maybeRemoveMissingFromDiskRegistryEntry(
   return { ok: true, branch, path: worktreePath };
 }
 
+async function retainDeleteForTimeBudget(
+  branch: string,
+  worktreePath: string,
+  deps: AdvWorktreeDeleteDeps,
+  stage: string,
+): Promise<AdvWorktreeDeleteResult> {
+  await setPendingDelete(
+    deps.database,
+    branch,
+    worktreePath,
+    `delete time budget exhausted before ${stage}`,
+  );
+  return {
+    ok: false,
+    error: "TIME_BUDGET_EXHAUSTED",
+    branch,
+    path: worktreePath,
+    reason: "time_budget_exhausted",
+    hint: `Delete time budget exhausted before ${stage}; queued a pending delete. Retry with adv_worktree_cleanup after the blocking operation resolves.`,
+  };
+}
+
+async function withDeleteOperationBudget<T>(
+  branch: string,
+  worktreePath: string,
+  deps: AdvWorktreeDeleteDeps,
+  startedAt: number,
+  timeoutMs: number,
+  stage: string,
+  operation: () => Promise<T>,
+): Promise<
+  { ok: true; value: T } | { ok: false; result: AdvWorktreeDeleteResult }
+> {
+  const remainingMs = getRemainingDeleteOperationMs(startedAt, timeoutMs);
+  if (remainingMs <= 0) {
+    return {
+      ok: false,
+      result: await retainDeleteForTimeBudget(
+        branch,
+        worktreePath,
+        deps,
+        stage,
+      ),
+    };
+  }
+
+  try {
+    return {
+      ok: true,
+      value: await withTimeout(operation(), remainingMs, `${stage} timed out`),
+    };
+  } catch (err) {
+    if (err instanceof TimeoutError) {
+      return {
+        ok: false,
+        result: await retainDeleteForTimeBudget(
+          branch,
+          worktreePath,
+          deps,
+          stage,
+        ),
+      };
+    }
+    throw err;
+  }
+}
+
 export async function advWorktreeDelete(
   branch: string,
   opts: { force?: boolean; dryRun?: boolean } = {},
   deps: AdvWorktreeDeleteDeps,
 ): Promise<AdvWorktreeDeleteResult> {
+  const deleteStartedAt = Date.now();
+  const deleteTimeoutMs = getDeleteOperationTimeoutMs(deps);
   const branchValidation = validateBranchNameInput(branch);
   if (!branchValidation.ok) {
     return {
@@ -1842,7 +1997,17 @@ export async function advWorktreeDelete(
   // this preserves P32 trunk-is-prod by refusing to delete unmerged work.
   const inferredChangeId = inferChangeIdFromBranch(branch);
   if (registryEntry && !registryEntry.changeId) {
-    const integration = await verifyNonAdvBranchIntegration(branch, deps);
+    const integrationResult = await withDeleteOperationBudget(
+      branch,
+      worktreePath,
+      deps,
+      deleteStartedAt,
+      deleteTimeoutMs,
+      "branch integration check",
+      () => verifyNonAdvBranchIntegration(branch, deps),
+    );
+    if (!integrationResult.ok) return integrationResult.result;
+    const integration = integrationResult.value;
     if (!integration.ok) {
       return {
         ok: false,
@@ -1854,11 +2019,22 @@ export async function advWorktreeDelete(
   } else if (!registryEntry && inferredChangeId) {
     // Registry drift recovery for ADV change branches. The registry is
     // bookkeeping; archived state from Store/Temporal is the structural gate.
-    const integration = await verifyMissingRegistryChangeBranchIntegration(
+    const integrationResult = await withDeleteOperationBudget(
       branch,
-      inferredChangeId,
+      worktreePath,
       deps,
+      deleteStartedAt,
+      deleteTimeoutMs,
+      "branch integration check",
+      () =>
+        verifyMissingRegistryChangeBranchIntegration(
+          branch,
+          inferredChangeId,
+          deps,
+        ),
     );
+    if (!integrationResult.ok) return integrationResult.result;
+    const integration = integrationResult.value;
     if (!integration.ok) {
       return {
         ok: false,
@@ -1876,7 +2052,17 @@ export async function advWorktreeDelete(
     // deleted with `force: true` provided they are already merged into the
     // default branch. This unblocks /adv-triage-style workflows that
     // create+merge+delete worktree branches without registering them.
-    const integration = await verifyNonAdvBranchIntegration(branch, deps);
+    const integrationResult = await withDeleteOperationBudget(
+      branch,
+      worktreePath,
+      deps,
+      deleteStartedAt,
+      deleteTimeoutMs,
+      "branch integration check",
+      () => verifyNonAdvBranchIntegration(branch, deps),
+    );
+    if (!integrationResult.ok) return integrationResult.result;
+    const integration = integrationResult.value;
     if (!integration.ok) {
       return {
         ok: false,
@@ -1891,13 +2077,49 @@ export async function advWorktreeDelete(
     );
   } else {
     const integrationFn = deps.integrationCheck ?? verifyBranchIntegration;
-    const integration = await integrationFn(branch, deps.projectRoot);
+    const remainingMs = getRemainingDeleteOperationMs(
+      deleteStartedAt,
+      deleteTimeoutMs,
+    );
+    if (remainingMs <= 0) {
+      return retainDeleteForTimeBudget(
+        branch,
+        worktreePath,
+        deps,
+        "branch integration check",
+      );
+    }
+    let integration: Awaited<ReturnType<typeof verifyBranchIntegration>>;
+    try {
+      integration = await withTimeout(
+        integrationFn(branch, deps.projectRoot),
+        remainingMs,
+        "Worktree branch integration check timed out",
+      );
+    } catch (err) {
+      if (err instanceof TimeoutError) {
+        return retainDeleteForTimeBudget(
+          branch,
+          worktreePath,
+          deps,
+          "branch integration check",
+        );
+      }
+      throw err;
+    }
     if (!integration.ok) {
       if (integration.reason === "branch_not_merged") {
-        const prIntegration = await verifyPrMergedChangeBranchIntegration(
+        const prIntegrationResult = await withDeleteOperationBudget(
           branch,
+          worktreePath,
           deps,
+          deleteStartedAt,
+          deleteTimeoutMs,
+          "PR merge evidence check",
+          () => verifyPrMergedChangeBranchIntegration(branch, deps),
         );
+        if (!prIntegrationResult.ok) return prIntegrationResult.result;
+        const prIntegration = prIntegrationResult.value;
         if (prIntegration.ok) {
           appendDebugLog(
             "worktree-delete",
@@ -1968,9 +2190,35 @@ export async function advWorktreeDelete(
   const hooks =
     deps.hooks ?? (await loadWorktreeConfig(deps.projectRoot, deps.log)).hooks;
   if (hooks.preDelete.length > 0) {
+    const remainingMs = getRemainingDeleteOperationMs(
+      deleteStartedAt,
+      deleteTimeoutMs,
+    );
+    if (remainingMs <= 0) {
+      return retainDeleteForTimeBudget(
+        branch,
+        worktreePath,
+        deps,
+        "preDelete hooks",
+      );
+    }
     try {
-      await runHooksWithSafety("preDelete", worktreePath, hooks.preDelete);
+      await withTimeout(
+        runHooksWithSafety("preDelete", worktreePath, hooks.preDelete, {
+          timeoutMs: remainingMs,
+        }),
+        remainingMs,
+        "preDelete hooks timed out",
+      );
     } catch (err) {
+      if (err instanceof TimeoutError) {
+        return retainDeleteForTimeBudget(
+          branch,
+          worktreePath,
+          deps,
+          "preDelete hooks",
+        );
+      }
       if (err instanceof HookFailedError) {
         return { ok: false, error: "HOOK_FAILED", details: err.results };
       }
@@ -2006,15 +2254,50 @@ export async function advWorktreeDelete(
       `force-removing ${branch} at ${worktreePath} (uncommitted=${!preHookStatus.clean})`,
     );
   }
-  const workspaceCleanupWarning = await cleanupOpenCodeWorkspaceForWorktree(
-    worktreePath,
-    branch,
-    deps,
+  let remainingMs = getRemainingDeleteOperationMs(
+    deleteStartedAt,
+    deleteTimeoutMs,
   );
+  if (remainingMs <= 0) {
+    return retainDeleteForTimeBudget(
+      branch,
+      worktreePath,
+      deps,
+      "worktree removal",
+    );
+  }
+  let workspaceCleanupWarning: string | null = null;
+  try {
+    workspaceCleanupWarning = await withTimeout(
+      cleanupOpenCodeWorkspaceForWorktree(worktreePath, branch, deps),
+      remainingMs,
+      "OpenCode workspace cleanup timed out",
+    );
+  } catch (err) {
+    if (err instanceof TimeoutError) {
+      return retainDeleteForTimeBudget(
+        branch,
+        worktreePath,
+        deps,
+        "OpenCode workspace cleanup",
+      );
+    }
+    throw err;
+  }
+  remainingMs = getRemainingDeleteOperationMs(deleteStartedAt, deleteTimeoutMs);
+  if (remainingMs <= 0) {
+    return retainDeleteForTimeBudget(
+      branch,
+      worktreePath,
+      deps,
+      "worktree removal",
+    );
+  }
   const removeResult = await gitWorktreeRemove(
     deps.projectRoot,
     worktreePath,
     opts.force,
+    remainingMs,
   );
   if (!removeResult.ok) {
     return { ok: false, error: "REMOVE_FAILED", reason: removeResult.error };
@@ -2303,7 +2586,10 @@ async function resolveEffectiveWorktreeMode(
 // =============================================================================
 
 /** Default timeout for each pending-delete item during cleanup (ms). */
-const DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS = 30_000;
+const DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS = 7_500;
+
+/** Minimum budget needed before starting a mutating delete attempt. */
+const MIN_PENDING_DELETE_START_BUDGET_MS = 500;
 
 export interface AdvWorktreeCleanupDeps {
   projectRoot: string;
@@ -2316,7 +2602,7 @@ export interface AdvWorktreeCleanupDeps {
   forceAttempts?: boolean;
   /** Startup/session.deleted pass false by calling drainPendingDeletes directly. */
   discover?: boolean;
-  /** Optional per-item timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
+  /** Optional cleanup drain timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
   cleanupItemTimeoutMs?: number;
   /** Injection seam for testing. Defaults to {@link advWorktreeDelete}. */
   deleteWorktree?: typeof advWorktreeDelete;
@@ -2331,7 +2617,7 @@ export interface DrainPendingDeletesOptions {
   forceAttempts?: boolean;
   /** Preview pending-delete handling without mutating attempts or deleting. */
   dryRun?: boolean;
-  /** Optional per-item timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
+  /** Optional cleanup drain timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
   cleanupItemTimeoutMs?: number;
   /** Injection seam for testing. Defaults to {@link advWorktreeDelete}. */
   deleteWorktree?: typeof advWorktreeDelete;
@@ -2374,8 +2660,18 @@ async function discoverTerminalCleanupCandidates(
 
     let status: string | undefined;
     try {
-      const loaded = await deps.store.changes.get(changeId);
-      status = loaded.success && loaded.data ? loaded.data.status : undefined;
+      const loaded = await readChangeStatusWithCleanupTimeout(
+        deps.store,
+        changeId,
+        deps.signalTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
+      );
+      if (loaded.ok) {
+        status = loaded.status;
+      } else {
+        deps.log.warn(
+          `[worktree] Skipping terminal cleanup discovery for ${branch} during ${trigger} — change state unavailable: ${loaded.reason}`,
+        );
+      }
     } catch (error) {
       deps.log.warn(
         `[worktree] Skipping terminal cleanup discovery for ${branch} during ${trigger} — change state unavailable: ${error instanceof Error ? error.message : String(error)}`,
@@ -2460,6 +2756,7 @@ export async function drainPendingDeletes(
   let removed = 0;
   let retained = 0;
   const worktreeInUseFn = deps.isWorktreeInUse ?? isWorktreeInUse;
+  const cleanupStartedAt = Date.now();
 
   for (const pendingDelete of pendingDeletes) {
     const { path: worktreePath, branch } = pendingDelete;
@@ -2500,19 +2797,41 @@ export async function drainPendingDeletes(
     const deleteFn = options.deleteWorktree ?? advWorktreeDelete;
     const timeoutMs =
       options.cleanupItemTimeoutMs ?? DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS;
+    const remainingBudgetMs = Math.max(
+      0,
+      timeoutMs - (Date.now() - cleanupStartedAt),
+    );
+    const deleteTimeoutMs = Math.min(timeoutMs, remainingBudgetMs);
+    if (deleteTimeoutMs < MIN_PENDING_DELETE_START_BUDGET_MS) {
+      deps.log.warn(
+        `[worktree] Pending delete for ${branch} skipped during ${trigger} — remaining cleanup budget ${deleteTimeoutMs}ms is below destructive-operation minimum ${MIN_PENDING_DELETE_START_BUDGET_MS}ms`,
+      );
+      await recordPendingDeleteFailure(
+        deps.database,
+        branch,
+        "TIME_BUDGET_EXHAUSTED",
+        "time_budget_exhausted",
+      );
+      retained++;
+      continue;
+    }
     const deletePromise = deleteFn(
       branch,
       { force: false },
       {
         ...deps,
         worktreePath,
+        operationTimeoutMs: Math.max(
+          1,
+          deleteTimeoutMs - PENDING_DELETE_RETURN_RESERVE_MS,
+        ),
       },
     );
 
     try {
       const result = await withTimeout(
         deletePromise,
-        timeoutMs,
+        deleteTimeoutMs,
         `Pending delete for ${branch} timed out`,
       );
 
@@ -2540,7 +2859,7 @@ export async function drainPendingDeletes(
       // the agent — that creates ambiguous late side-effects the agent
       // cannot reason about.
       deps.log.warn(
-        `[worktree] Pending delete for ${branch} timed out after ${timeoutMs}ms — retaining for retry`,
+        `[worktree] Pending delete for ${branch} timed out after ${deleteTimeoutMs}ms — retaining for retry`,
       );
       await recordPendingDeleteFailure(
         deps.database,

@@ -1,0 +1,1287 @@
+{
+  "id": "fixWedgedWorktreeCleanup",
+  "title": "Fix wedged worktree cleanup",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-25T14:51:15.661Z",
+  "tasks": [
+    {
+      "id": "tk-86283eaac8bd",
+      "title": "Implement cleanup deadline core and drain budget ownership",
+      "type": "code",
+      "section": "Deadline core",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-27T18:44:58.909Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC5",
+          "C4",
+          "DONT4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T18:52:14.051Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/adv-worktree.test.ts failed as expected for missing cleanupItemTimeoutMs (run tr_mqwpx246_1eeb3fb0). GREEN: bin/oc-test targeted -- src/tools/adv-worktree.test.ts passed (run tr_mqwpykm2_b4554481). VERIFY: bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts src/tools/adv-worktree.test.ts passed (run tr_mqwq0g98_619cb029).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added wrapper-to-cleanup internal item budget below the 8000ms safe tool budget, lowered default pending-delete item budget to 7500ms, and added low-budget retention behavior that records TIME_BUDGET_EXHAUSTED/time_budget_exhausted before starting mutating delete work. Updated tests to assert cleanup passes an internal item timeout and low-budget pending deletes retain without starting late mutation.",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "5c889a63ec47e2dcf145167517761adb185784bc",
+      "completedAt": "2026-06-27T18:56:32.033Z",
+      "completed_at": "2026-06-27T18:56:32.033Z",
+      "notes": "Completed deadline core checkpoint 5c889a63ec47e2dcf145167517761adb185784bc. Red run tr_mqwpx246_1eeb3fb0 failed on missing cleanupItemTimeoutMs. Green run tr_mqwpykm2_b4554481 passed adv-worktree wrapper tests. Verify run tr_mqwq0g98_619cb029 passed adv-worktree + worktree delete tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "New red test showed adv_worktree_cleanup did not pass cleanupItemTimeoutMs into advWorktreeCleanup.",
+            "diagnosis": "Wrapper owned only an outer Promise.race; inner cleanup retained its 30s item timeout.",
+            "fix_tried": "Added cleanupItemTimeoutForToolBudget and passed cleanupItemTimeoutMs; added low-budget retention in drainPendingDeletes.",
+            "strategy_label": "deadline budget plumbing",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-27T18:56:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-27T18:56:54.117Z"
+    },
+    {
+      "id": "tk-32105ded638a",
+      "title": "Add bounded terminal proof and pending-delete authority handling",
+      "type": "code",
+      "section": "Terminal proof",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-27T18:45:22.626Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-86283eaac8bd"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC4",
+          "SC2",
+          "SC3"
+        ],
+        "verifies": [
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T18:57:18.211Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts failed with the new missing-registry terminal read timeout test timing out (run tr_mqwq3hej_42702578). GREEN: bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts passed after bounded status reads (run tr_mqwq519d_16ecd69c). VERIFY: bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts src/tools/worktree/state-session-lifecycle.test.ts passed (run tr_mqwq67fz_04e4416d).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added bounded cleanup-local change status reads for terminal cleanup discovery and missing-registry ADV branch verification, returning temporal_read_timeout/temporal_read_failed blockers instead of hanging. Added optional PendingDeleteAuthority metadata to pending-delete records with backward-compatible parsing/preservation. Added regression coverage for missing-registry terminal read timeout.",
+      "filesTouched": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "checkpointSha": "5c04d4f7df461a6106d32b823bf5af0cea53400d",
+      "completedAt": "2026-06-27T19:00:57.457Z",
+      "completed_at": "2026-06-27T19:00:57.457Z",
+      "notes": "Completed terminal proof checkpoint 5c04d4f7df461a6106d32b823bf5af0cea53400d. Red run tr_mqwq3hej_42702578 reproduced hanging missing-registry terminal status read. Green run tr_mqwq519d_16ecd69c passed after bounded read. Verify run tr_mqwq67fz_04e4416d passed delete + state lifecycle tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Missing-registry terminal state test timed out because deps.store.changes.get(changeId) had no cleanup-local bound.",
+            "diagnosis": "verifyMissingRegistryChangeBranchIntegration awaited terminal workflow read directly; cleanup discovery had same pattern.",
+            "fix_tried": "Added readChangeStatusWithCleanupTimeout and used it in missing-registry verification and terminal cleanup discovery; added optional pending-delete authority metadata.",
+            "strategy_label": "bounded terminal status read",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-27T19:02:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-27T19:01:17.964Z"
+    },
+    {
+      "id": "tk-c2422b013df2",
+      "title": "Bound PR/git evidence and archive-repair cleanup_merged partial results",
+      "type": "code",
+      "section": "Archive repair",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-27T18:45:46.758Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-86283eaac8bd"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "SC4",
+          "C2",
+          "C4"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C5",
+          "DONT2",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T19:01:39.189Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/change.archive-repair.test.ts failed after adding per-branch deletion-throw regression (run tr_mqwq90fs_68c40ea0). GREEN: bin/oc-test targeted -- src/tools/change.archive-repair.test.ts passed (run tr_mqwq9o5x_d52da084). VERIFY: bin/oc-test targeted -- src/tools/change.archive-repair.test.ts src/tools/worktree/index-delete.test.ts passed (run tr_mqwq9yej_b0fc4662).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Made adv_archive_repair cleanup_merged resilient to per-branch delete failures by catching deleteChangeBranch exceptions and returning structured blocked results with localDeleted:false/remoteDeleted:false while continuing later candidates. Added regression coverage for a thrown deletion followed by a successful candidate.",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-repair.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-repair.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "73bc22fe41c44ddea9989df3445c815cad20772d",
+      "completedAt": "2026-06-27T19:03:52.247Z",
+      "completed_at": "2026-06-27T19:03:52.247Z",
+      "notes": "Completed archive repair checkpoint 73bc22fe41c44ddea9989df3445c815cad20772d. Red run tr_mqwq90fs_68c40ea0 failed on per-branch deletion exception. Green run tr_mqwq9o5x_d52da084 passed. Verify run tr_mqwq9yej_b0fc4662 passed archive-repair + worktree delete tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Archive-repair cleanup_merged aborted or leaked mock state when a per-branch delete threw.",
+            "diagnosis": "Wet-run deletion loop used candidates.map without per-branch error isolation.",
+            "fix_tried": "Wrapped deleteChangeBranch per candidate and emitted structured blocked DELETE_FAILED result.",
+            "strategy_label": "per-branch archive cleanup isolation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-27T19:04:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-27T19:04:12.277Z"
+    },
+    {
+      "id": "tk-554bb2d7ff22",
+      "title": "Run contract verification sweep and update specs only if public behavior changed",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-27T18:46:11.170Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-32105ded638a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c2422b013df2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T19:04:47.454Z",
+      "verification": "Harden attempt 2 found and fixed remaining integration-budget gaps. Verified targeted tests passed tr_mqwsznr3_513e0cfa, typecheck passed tr_mqwszlg0_bb2170a1, touched-file prettier check passed tr_mqwszhee_b1822eff. Reviewer harden attempt 2 verdict READY.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "55f9008318784fd15e63baddf9a91045d607b287",
+      "completedAt": "2026-06-27T20:19:40.055Z",
+      "completed_at": "2026-06-27T20:19:40.055Z",
+      "notes": "Review remediation appended in checkpoint ea54e2723b740696d0f15f3666913c958b334e3f. Reviewer found shared cleanup budget bug across multiple pending deletes; fixed elapsed-budget calculation and added regression. Post-remediation verification passed: index-delete tests run tr_mqwqs58a_72877e7d, typecheck run tr_mqwqsgxv_d7c23cd5.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T19:18:21.396Z"
+    },
+    {
+      "id": "tk-c16ffd72c76f",
+      "title": "Record runtime restart and pokeedge live validation handoff",
+      "type": "verification",
+      "section": "Live validation handoff",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-27T18:46:30.607Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-554bb2d7ff22"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7",
+          "SC6"
+        ],
+        "verifies": [
+          "AC7",
+          "SC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T19:07:02.393Z",
+      "verification": "Source verification complete in current session: targeted tests passed (tr_mqwqc7h9_b3062b5b) and typecheck passed (tr_mqwqcm19_336c6f6e). Live ADV tool validation requires fresh host-loaded runtime after `pnpm run build`, `./scripts/deploy-local.sh --fix`, and OpenCode/plugin host restart. Then validate from pokeedge by retrying cleanup for change/fixStagingDigestResolution via adv_worktree_cleanup/adv_worktree_delete without manual git removal.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Recorded runtime validation boundary: source tests passed in this session, but live ADV tool code is host-loaded and requires `pnpm run build`, `./scripts/deploy-local.sh --fix`, and OpenCode/plugin host restart before re-testing pokeedge cleanup. This satisfies the AC7/SC6 handoff without substituting manual git cleanup for the structural fix.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "73bc22fe41c44ddea9989df3445c815cad20772d",
+      "completedAt": "2026-06-27T19:07:18.518Z",
+      "completed_at": "2026-06-27T19:07:18.518Z",
+      "notes": "Live validation handoff recorded. Do not manually delete pokeedge worktree. After source branch is built/deployed and OpenCode/plugin host is restarted, validate in `/home/jon/dev/pokeedge` by retrying terminal cleanup for `fixStagingDigestResolution` using ADV tools (`adv_worktree_cleanup` and/or `adv_worktree_delete`), expecting bounded typed success/retained output rather than SDK ToolExecutionTimeout.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T19:07:38.521Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorktreeCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — bounded worktree cleanup/delete/archive-repair",
+      "sources": [
+        {
+          "label": "wrapper Promise.race (delete + cleanup)",
+          "locator": "plugin/src/tools/adv-worktree.ts:180-269",
+          "summary": "Both wrappers race work vs 8000ms timer. On timeout return typed timedOut output but DO NOT abort underlying advWorktreeDelete/advWorktreeCleanup — background mutation can continue (AC1/AC5 risk)."
+        },
+        {
+          "label": "withTimeout no-abort semantics",
+          "locator": "plugin/src/utils/with-timeout.ts:30-31,58-86",
+          "summary": "Docstring: 'This does NOT abort the underlying promise - it continues running in the background.' index.ts:170/181/2513 wrap with withTimeout, so timed-out work leaks."
+        },
+        {
+          "label": "pending-delete budget mismatch",
+          "locator": "plugin/src/tools/worktree/index.ts:2306,2501-2502",
+          "summary": "DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS=30000 per item, above the 8000ms wrapper budget; cleanup can start a 30s item then wrapper times out (draft claim confirmed)."
+        },
+        {
+          "label": "Temporal terminal-workflow read",
+          "locator": "plugin/src/tools/worktree/index.ts:1708,2377",
+          "summary": "deps.store.changes.get(changeId) is the only substep with NO process-level kill and NO withTimeout wrap — the genuine unbounded hang suspect on completed/retention-expired workflows."
+        },
+        {
+          "label": "git/gh substeps are process-killed, not leaked",
+          "locator": "plugin/src/tools/worktree/index.ts:783; plugin/src/integrations/gh-cli.ts:18,56-104",
+          "summary": "git() uses execFile timeout:30000; execGh default 30000ms — both KILL the child and return timedOut, so they over-budget but do NOT leak. Draft's 'unbounded' framing for git/gh is over-stated: they are over-budget-but-bounded, not unbounded."
+        },
+        {
+          "label": "prMergeEvidence DI seam exists",
+          "locator": "plugin/src/tools/worktree/index.ts:1366,1509-1511,2326,2575; index-delete.test.ts:863-1330",
+          "summary": "AdvWorktreeDeleteDeps.prMergeEvidence injectable and already exercised in tests — reusable seam for AC4 PR-evidence regression tests without network."
+        },
+        {
+          "label": "no-late-mutation test already exists",
+          "locator": "plugin/src/tools/worktree/index-delete.test.ts:1211-1248",
+          "summary": "rq-worktreeBoundedCleanup02 AC3/DONT2 already asserts pending-delete timeout retains state and 'resolved after timeout' warning must NOT appear — AC5 partially pre-covered for the drain path."
+        }
+      ],
+      "architecture_assessment": "Draft design is directionally correct and contract-grounded. Source verification refines it on two points: (1) The leak surface is narrower than 'all substeps unbounded' — git/gh already self-kill via execFile timeout (bounded-but-over-budget); the only true unbounded/leaky await is the Temporal store.changes.get terminal-workflow read plus the withTimeout-wrapped delete (which by design does not abort). DeadlineContext should prioritize bounding/replacing the Temporal read and replacing the wrapper's non-aborting Promise.race/withTimeout with a kill-or-skip model. (2) The DI seam (prMergeEvidence) and an existing no-late-mutation drain test mean several AC4/AC5 obligations are reachable with low new-test cost. The core architecture (DeadlineContext threaded into discovery/drain/delete; outer race as last-resort net only) is sound and should not be rewritten.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No blocker. Caution: design prose should correct the 'unbounded git/gh' characterization to 'over-budget but process-killed' so implementation budgets the cumulative count rather than re-wrapping already-bounded calls. The genuinely unbounded/leaky paths (Temporal terminal read; withTimeout/Promise.race wrappers) are the priority targets."
+      },
+      "recommendation": "Adopt 5 leverage points: (1) thread DeadlineContext but scope the abort fix to the Temporal read + wrapper, not git/gh which already self-kill [adopt_now]; (2) reuse prMergeEvidence DI seam for AC4 PR/squash regression tests — no network needed [adopt_now]; (3) prefer registry snapshot + recorded release evidence (mergeCommitSha/prNumber from release gate) over store.changes.get for archived changes, making the Temporal read a bounded fallback only [adopt_now]; (4) extend the existing index-delete.test.ts no-late-mutation drain test rather than authoring AC5 from scratch [design_around]; (5) consolidate the three budget constants (8000 wrapper / 30000 pending-item / 5000 signal) into one DeadlineContext-derived reserve so drain stops before starting an item it cannot finish [adopt_now]. All five are contract-tied and low risk → auto-adopt; none require surfacing to user.",
+      "follow_ups": [
+        "Implementation should confirm via live timing whether store.changes.get on the pokeedge fixStagingDigestResolution terminal workflow is the dominant hang (root-cause A) vs cumulative 30s git/gh (root-cause B) before finalizing the Temporal-decouple priority.",
+        "Verify execFileGitCb (index.ts:774) actually honors execFile timeout as a SIGKILL on this Node/Bun runtime; if Bun execFile ignores timeout, git substeps become a leak surface and re-enter scope."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorktreeCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — fixWedgedWorktreeCleanup",
+      "sources": [
+        {
+          "label": "Spec law rq-worktreeBoundedCleanup02 (Tool-Facing Timeout Safety Budget)",
+          "locator": ".adv/specs/worktree-lifecycle/spec.json:547-622",
+          "summary": "Spec already mandates internal ops (git remove, workspace fetch/delete, workflow signal) each bounded BELOW the 8s tool budget, typed timeout response, no late mutation, and drainPendingDeletes not attaching late-success handlers. Design KD1/KD3/KD5/DDC4 implement exactly this; current 30s default item timeout violates it."
+        },
+        {
+          "label": "DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS = 30_000",
+          "locator": "plugin/src/tools/worktree/index.ts:2306",
+          "summary": "Inner per-item delete timeout (30s) is ~4x the 8s wrapper budget — confirms the wedge diagnosis."
+        },
+        {
+          "label": "executeWorktreeCleanup omits cleanupItemTimeoutMs",
+          "locator": "plugin/src/tools/adv-worktree.ts:236-243",
+          "summary": "Wrapper calls advWorktreeCleanup WITHOUT passing cleanupItemTimeoutMs, so inner drain falls back to the 30s default; Promise.race(8s) is the only guard. Plumbing for cleanupItemTimeoutMs already exists end-to-end (deps->drain->withTimeout) but is never set below 30s. This is the precise root-cause seam KD1 targets."
+        },
+        {
+          "label": "withTimeout is explicitly non-aborting",
+          "locator": "plugin/src/utils/with-timeout.ts:30-31",
+          "summary": "Docstring: 'This does NOT abort the underlying promise - it continues running in the background.' Confirms KD3 diagnosis that a timed-out advWorktreeDelete can continue background work."
+        },
+        {
+          "label": "verifyBranchIntegration re-reads registry snapshot; has injectable seams",
+          "locator": "plugin/src/utils/branch-integration.ts:44-52, 77-94, 131-141",
+          "summary": "Integration gate re-reads getWorktreeRegistrySnapshot (Temporal-backed, can be unavailable/slow on poisoned workflows) and already exposes BranchIntegrationDeps.changeStatusReader and .registry seams. KD4 (pass resolved registry/bounded reader instead of re-entering) and KD7 (reuse existing seams) are grounded."
+        },
+        {
+          "label": "archive_repair cleanup_merged unbounded candidate loop",
+          "locator": "plugin/src/tools/change.ts:4953-4961",
+          "summary": "candidates.map() runs deleteChangeBranch (git + gh per candidate) with no per-loop deadline. For large N this can exceed the 10s tool ceiling. KD6 (bounded partial results) is grounded; spec rq-worktreeBoundedCleanup01 prohibits unbounded batch deletion."
+        },
+        {
+          "label": "Existing timeout-retain path already implemented",
+          "locator": "plugin/src/tools/worktree/index.ts:2534-2552",
+          "summary": "drainPendingDeletes already retains pending-delete records on TimeoutError without late-success handlers, satisfying spec 02.3 and design DDC4. The fix narrows to reducing the item budget + persisting authority, not rebuilding this path."
+        }
+      ],
+      "architecture_assessment": "Design correctly localizes the bug to deadline ownership + proof persistence rather than a generically slow command. Diagnosis is verified against source: the 8s wrapper budget races a 30s inner item timeout via a non-aborting withTimeout, and the cleanup wrapper does not pass cleanupItemTimeoutMs, so the inner default dominates. KD1/KD3/KD5 are directly compelled by existing spec law rq-worktreeBoundedCleanup02 ('internal operations must each be bounded below the tool budget'), so the design is remedial-to-spec, not in conflict. KD4/KD7 leverage already-present injectable seams (changeStatusReader, registry, deleteWorktree, prMergeEvidence) — low structural risk. KD6 addresses a genuinely unbounded candidate loop in archive_repair cleanup_merged. Centralized deletion authority via advWorktreeDelete (C1) and the no-late-mutation invariant (C4/DONT4) are preserved. Two cautions: (a) KD2 'persist terminal cleanup authority in pending-delete state before destructive work' must remain advisory-then-reverified — spec rq-terminalCleanupSafety01.2 says census/eligibility is NOT sufficient deletion authority, so persisted authority must not bypass advWorktreeDelete's clean/merged/in-use re-checks; (b) a materially simpler subset (just set cleanupItemTimeoutMs from the wrapper + sub-budget the store.changes.get fallback) fixes the dominant wedge without new PendingDelete schema fields — the authority-persistence work (KD2) should be justified by the missing-registry/poisoned-workflow case, not the common path.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED with minor cautions. No spec conflict: rq-worktreeBoundedCleanup02 already requires internal ops bounded below the tool budget, which the current 30s default violates and this design corrects. Cautions: (1) KD2 persisted authority must reverify via advWorktreeDelete safety gates, never bypass them (rq-terminalCleanupSafety01.2); (2) consider a smaller correctness core (wire cleanupItemTimeoutMs + sub-budget store fallback) before introducing new PendingDelete authority fields, reserving KD2 for the missing-registry/poisoned-workflow path; (3) verify DDC5 backward-readability is covered by a test that loads pre-existing PendingDelete records lacking new authority metadata."
+      },
+      "recommendation": "Proceed. The design's diagnosis and key decisions are source- and spec-verified, and KD1/KD3/KD5 are compelled by existing spec law rq-worktreeBoundedCleanup02. Before planning, tighten two points: (a) make KD2 explicit that persisted terminal cleanup authority is reverified through advWorktreeDelete's clean/merged/terminal/in-use gates and never used as standalone deletion authority (rq-terminalCleanupSafety01.2, constraint C1/C5); (b) sequence the work so the minimal correctness fix (wrapper passes a sub-8s cleanupItemTimeoutMs and the missing-registry/discovery store.changes.get awaits gain a cleanup-local sub-budget) lands and is regression-tested first, with the PendingDelete authority-metadata extension (KD2) scoped specifically to the missing-registry/poisoned-workflow case where the live registry no longer contains the change. Add a DDC5 regression test asserting old PendingDelete records without authority metadata remain readable and retryable.",
+      "follow_ups": [
+        "Confirm a regression test exists for archive_repair cleanup_merged returning bounded partial results when candidate count is large (KD6 / rq-worktreeBoundedCleanup01).",
+        "Confirm pokeedge live validation is recorded after rebuild/deploy/restart per AC (source-vs-dist reload gotcha applies to live tool behavior)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorktreeCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorktreeCleanup",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 4951,
+          "what": "archive_repair cleanup_merged now returns per-branch DELETE_FAILED records instead of aborting the whole cleanup pass",
+          "why": "Matches AC3 structured cleanup semantics and preserves progress across branch-specific delete failures",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/worktree/index.ts",
+          "line": 1738,
+          "what": "missing-registry terminal-state verification is bounded and returns typed temporal_read_timeout/temporal_read_failed blockers",
+          "why": "Matches AC2 bounded terminal read requirement and avoids unbounded poisoned-workflow waits",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/worktree/index.ts",
+          "summary": "Fixed review-discovered late-mutation gap: pending-delete cleanup now treats cleanupItemTimeoutMs as a shared drain budget, subtracts elapsed time before each destructive delete attempt, and records TIME_BUDGET_EXHAUSTED instead of starting later deletes when return-safe budget is nearly exhausted.",
+          "verification": "bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts passed (50 tests); pnpm run typecheck passed; touched-file Prettier check passed."
+        },
+        {
+          "file": "plugin/src/tools/worktree/index-delete.test.ts",
+          "summary": "Added regression coverage proving a slow first pending delete prevents a second delete from starting once the shared cleanup budget falls below the destructive-operation minimum.",
+          "verification": "bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts passed (50 tests)."
+        },
+        {
+          "file": "plugin/src/tools/adv-worktree.test.ts",
+          "summary": "Formatted changed import after Prettier surfaced touched-file style drift.",
+          "verification": "pnpm exec prettier --check touched files passed."
+        },
+        {
+          "file": "plugin/src/tools/change.ts",
+          "summary": "Formatted touched code after Prettier surfaced touched-file style drift; no behavior change.",
+          "verification": "pnpm run typecheck passed; pnpm exec prettier --check touched files passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Timeout wrappers built on Promise.race do not cancel underlying work. Cleanup code that performs multiple destructive operations must budget the whole drain, not only each item, or later operations can continue mutating state after the tool has returned."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight for listed files: all OK",
+          "git diff --find-renames --find-copies trunk...HEAD -- listed files",
+          "bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts (initial failure exposed missing local variable during remediation)",
+          "bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts (final pass: 50 tests)",
+          "pnpm run typecheck (pass)",
+          "pnpm exec prettier --check src/tools/adv-worktree.test.ts src/tools/adv-worktree.ts src/tools/change.archive-repair.test.ts src/tools/change.ts src/tools/worktree/index-delete.test.ts src/tools/worktree/index.ts src/tools/worktree/state.ts (pass)",
+          "git diff --check (pass)",
+          "grep for git branch --merged / --merged in plugin/src/tools (reviewed usages; PR-aware fallback present in touched delete path)"
+        ],
+        "results": "pass",
+        "evidence": "12 dimensions assessed: contract fit, deletion authority, timeout bounds, no late mutation, typed errors, dirty/unmerged/in-use rejection, squash merge authority, source verification, regression coverage, formatting/type safety, target-path/workdir discipline, and release handoff risk. Scoped remediation applied for the shared-budget late-mutation risk; targeted tests/typecheck/touched-format checks pass. Repo-wide pnpm run format:check still reports unrelated pre-existing formatting in src/cli-bridge-contract.test.ts, which is outside this change diff."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Runtime live pokeedge cleanup intentionally not run per OUT_OF_SCOPE; AC7 still needs fresh-session rebuild/deploy/pokeedge handoff validation by orchestrator/operator.",
+        "Repo-wide pnpm run format:check currently fails on unrelated src/cli-bridge-contract.test.ts, not modified by this change; touched files are Prettier-clean."
+      ],
+      "required_main_agent_actions": [
+        "Carry forward AC7 handoff: after build/deploy/restart, validate live cleanup behavior in pokeedge or equivalent target; source review only did not run live cleanup.",
+        "If release gate requires repo-wide format:check, decide whether to format unrelated plugin/src/cli-bridge-contract.test.ts separately before release."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorktreeCleanup",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorktreeCleanup",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "production-readiness-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/adv-worktree.ts",
+          "line": 202,
+          "what": "`adv_worktree_delete` wrapper returns a typed timeout by racing `advWorktreeDelete`, but the underlying delete promise is not cancelled and no durable continuation marker is recorded before response.",
+          "why": "Agreement/acceptance requires no silent late mutation after timeout, and durable state must record continuation before response. If `advWorktreeDelete` later progresses past pre-delete checks after the wrapper timeout, it can still remove the worktree/registry and signal workflow after the agent already received a timeout response, creating unobservable late mutation.",
+          "fix": "Add an internal deadline/continuation contract for direct delete before using outer timeout: either bound pre-delete operations so destructive removal is never started when remaining budget is below a safe minimum, or durably queue/record the delete continuation before returning timeout. Add regression proving delayed `advWorktreeDelete` cannot mutate silently after `adv_worktree_delete` timeout."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "maintainability-1",
+          "label": "suggestion",
+          "file": "plugin/src/tools/worktree/index.ts",
+          "line": 1,
+          "what": "`plugin/src/tools/worktree/index.ts` remains a large multi-responsibility module (~3110 lines) with delete, cleanup, discovery, state reconciliation, and plugin wiring in one file.",
+          "why": "Current release fix is source-tested and localized, but future timeout/deletion invariants will be easier to review if delete/cleanup/deadline logic moves into focused modules.",
+          "fix": "Non-blocking follow-up: extract worktree delete/cleanup/deadline helpers into cohesive modules after release, preserving current tests as characterization coverage."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A wrapper-level Promise.race can prevent SDK timeout while still allowing the underlying async deletion to continue and mutate state after the agent receives a timeout response; release-safe cleanup needs cancellation, internal deadlines, or a durable continuation marker before returning."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/worktree/index-delete.test.ts src/tools/change.archive-repair.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Targeted harden sweep passed: 3 test files, 91 tests. git status --short returned no output after tests. Source audit still found blocker in adv_worktree_delete timeout semantics at plugin/src/tools/adv-worktree.ts:202. Requested scope key harden:release-readiness was normalized to allowed schema key harden:release."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live pokeedge validation remains deferred until plugin runtime build/deploy/restart per accepted plan.",
+        "Source tests cover cleanup pending-delete no-late-mutation, but direct delete wrapper timeout still lacks structural no-late-mutation proof."
+      ],
+      "required_main_agent_actions": [
+        "Block release gate until direct `adv_worktree_delete` timeout path records continuation durably or prevents late destructive mutation structurally.",
+        "Add regression coverage for delayed direct delete timeout semantics, then rerun targeted worktree/archive-repair tests and typecheck.",
+        "After source fix and build/deploy/restart, perform deferred live pokeedge validation for `fixStagingDigestResolution`."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWedgedWorktreeCleanup",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWedgedWorktreeCleanup",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/worktree/index.ts",
+          "summary": "Closed remaining timeout-safety gap: branch integration checks for non-ADV, missing-registry change, force-unregistered, and PR-evidence fallback paths now run under advWorktreeDelete operation budget and retain pending-delete state on budget exhaustion. Pending-delete drain now passes a child operationTimeoutMs below its own per-item timeout so outer timeout cannot beat inner delete budget.",
+          "verification": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/worktree/index-delete.test.ts src/tools/change.archive-repair.test.ts passed (94 tests); pnpm run typecheck passed; pnpm exec prettier --check src/tools/worktree/index.ts src/tools/worktree/index-delete.test.ts passed."
+        },
+        {
+          "file": "plugin/src/tools/worktree/index-delete.test.ts",
+          "summary": "Added regressions for a hanging non-ADV integration check retaining pending-delete state before removal, and for pending-delete drain propagating a below-wrapper delete operation budget.",
+          "verification": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/worktree/index-delete.test.ts src/tools/change.archive-repair.test.ts passed (94 tests)."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "For timeout-safe destructive operations, every nested Promise.race/withTimeout must pass a shorter operation budget into the callee; equal or missing child budgets can recreate late background mutation even when the outer wrapper is bounded."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/worktree/index-delete.test.ts",
+          "pnpm exec prettier --check src/tools/worktree/index.ts src/tools/worktree/index-delete.test.ts",
+          "pnpm run typecheck",
+          "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/worktree/index-delete.test.ts src/tools/change.archive-repair.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Initial focused test passed: src/tools/worktree/index-delete.test.ts 53 tests. Formatting passed after applying Prettier. Typecheck passed: tsc --noEmit. Final targeted suite passed: 3 files, 94 tests."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Source changes are not committed by this reviewer report; orchestrator should inspect/commit if accepted.",
+        "Live OpenCode plugin behavior still requires normal build/deploy/restart path before validating through already-loaded ADV tools."
+      ],
+      "required_main_agent_actions": [
+        "Review and commit the two source changes if accepted.",
+        "Run any broader release gate required by the parent workflow before archive/release."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:12:57.135Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal framing via chat reply: \"approve\". Proposal updated with explicit Scope, Out of Scope, Must Not, and Discovery Agenda before gate completion.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "41bfb044e04441f284b0f7b387fa8d5d9cec9d9bc304935b9052abf06ea53ce8",
+        "non_whitespace_chars": 4517,
+        "checked_at": "2026-06-25T14:51:15.804Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:30:50.650Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved discovery criteria/agreement via chat reply: \"approve\". agreement.md persisted and ChangeContract minted with 24 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "non_whitespace_chars": 4727,
+        "checked_at": "2026-06-25T14:51:15.805Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:43:10.164Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Mandatory leverage scout attempted via adv-researcher; independent design validator returned VALIDATED with cautions that were adopted into design.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "b9d9f0761bd25e373167d5f33920d142f32d6118f556af4fc241f0af6fffce44",
+        "non_whitespace_chars": 9478,
+        "checked_at": "2026-06-25T14:51:15.806Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-27T18:51:32.493Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision/task graph via chat reply: \"approve\". Five-task graph created with contract refs, TDD intents, dependencies, and verification task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-27T19:08:13.012Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks completed. Targeted tests passed (tr_mqwqc7h9_b3062b5b), typecheck passed (tr_mqwqcm19_336c6f6e), change validation passed with NO_DELTAS warning only. Worktree clean at HEAD 73bc22fe41c44ddea9989df3445c815cad20772d."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-27T19:49:26.091Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via chat reply: \"approve\". Review verdict READY; contract review matrix 24/24 pass/respected; executive summary persisted; preview URL not_applicable; tests/typecheck passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "9d2650180c5665d56a84d2bfa9bcf587ddf2ad82dd6479764c5e8f581e607e4f",
+        "non_whitespace_chars": 2184,
+        "checked_at": "2026-06-25T14:51:15.807Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "linked_at": "2026-06-25T14:51:15.380Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+      "approvedAt": "2026-06-27T18:30:44.011Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Safe terminal ADV worktree cleanup succeeds or returns typed retained state within the tool budget; no opaque `ToolExecutionTimeout` is exposed to the agent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Archived or closed squash-merged `change/*` cleanup does not require a live per-change workflow mutation/query when durable evidence is sufficient to establish terminal ownership and merge proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Registry, pending-delete state, and filesystem state converge after successful deletion; retained candidates remain retryable and visible through cleanup/triage surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Archive-repair cleanup returns bounded, structured deleted/skipped/blocked results for archived branch cleanup scans.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Late or best-effort cleanup behavior is explicit and durable before the tool response; no silent untracked mutation occurs after a timeout response.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Live validation plan includes pokeedge `fixStagingDigestResolution` after source tests pass and plugin runtime rebuild/restart is available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_worktree_cleanup` against retained terminal cleanup candidates returns within 8000ms with either removed count or typed retained blocker, never SDK `ToolExecutionTimeout`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_worktree_cleanup"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv_worktree_delete` for archived/closed `change/*` worktrees with durable merge evidence completes or returns typed blocker within 8000ms; missing-registry path does not hang on terminal workflow reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_worktree_delete"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`adv_archive_repair action: cleanup_merged` returns within 10000ms for archived branch cleanup scans and reports deleted/skipped/blocked branches structurally.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_archive_repair"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Regression tests cover archived + squash-merged + missing-registry terminal worktree cleanup without orphaning registry or pending-delete state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Timeout tests prove no silent, unobservable late state mutation; if best-effort cleanup can continue after a timeout, durable state records that continuation before response.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Source verification passes for targeted worktree cleanup/delete/archive-repair tests and any touched type/lint surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Live validation plan records that pokeedge `fixStagingDigestResolution` should be retried after source tests pass and plugin runtime rebuild/restart is available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "`advWorktreeDelete` remains the sole deletion authority for worktree removal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Cleanup must not use `git branch --merged` as sole authority for squash-merged ADV branches.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Cleanup must not edit ADV state files directly; ADV/Temporal state and typed tools remain source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Cleanup must not perform unbounded Temporal, GitHub CLI, or git waits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Cleanup safety gates must continue to reject dirty, unmerged, non-terminal, and in-use worktrees.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Visual surface: false. Change affects tool/runtime behavior only; no browser-visible or visual output expected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not manually clean the pokeedge worktree as a substitute for the source fix.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not broaden into pokeedge release-pipeline repair or general release-gate recovery redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not rely on chat/log string parsing as correctness authority for cleanup state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not introduce silent background mutation after a timeout response unless continuation was durably recorded before the response.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not bypass registry/filesystem reconciliation when deletion succeeds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-27T19:19:48.422Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; cleanup wrapper passes cleanupItemTimeoutMs below 8000ms; tests tr_mqwqc7h9_b3062b5b and post-review tr_mqwqs58a_72877e7d passed.",
+          "notes": "Typed retained state via TIME_BUDGET_EXHAUSTED/time_budget_exhausted."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "readChangeStatusWithCleanupTimeout bounds terminal reads; missing-registry timeout regression tr_mqwq519d_16ecd69c passed.",
+          "notes": "Durable proof path no longer hangs on unbounded terminal workflow read."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Pending deletes retained with typed classes; deletion success clears queue; index-delete regression suite passed tr_mqwqc7h9_b3062b5b.",
+          "notes": "Registry/filesystem convergence and retry visibility verified in tests."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "archive_repair cleanup_merged catches per-branch delete failure and continues; test tr_mqwq9o5x_d52da084 and sweep tr_mqwqc7h9_b3062b5b passed.",
+          "notes": "Structured deleted/skipped/blocked results present."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Low-budget drain tests verify deleteWorktree is not called and pending delete is retained before response; post-review shared-budget regression passed tr_mqwqs58a_72877e7d.",
+          "notes": "No silent late mutation for exhausted budget path."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Task tk-c16ffd72c76f records rebuild/deploy/restart and pokeedge fixStagingDigestResolution retry handoff.",
+          "notes": "Live validation deferred until host-loaded plugin runtime restart."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-worktree wrapper test and combined sweep passed: tr_mqwpykm2_b4554481, tr_mqwqc7h9_b3062b5b.",
+          "notes": "Internal item timeout below wrapper budget; no SDK timeout reliance in normal path."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Missing-registry terminal read timeout RED/GREEN: tr_mqwq3hej_42702578 → tr_mqwq519d_16ecd69c; verify tr_mqwq67fz_04e4416d.",
+          "notes": "Returns INTEGRATION_REQUIRED reason temporal_read_timeout."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive-repair per-branch blocked-result regression RED/GREEN: tr_mqwq90fs_68c40ea0 → tr_mqwq9o5x_d52da084; verify tr_mqwq9yej_b0fc4662.",
+          "notes": "Structured blocked result with DELETE_FAILED."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "index-delete suite covers archived-clean, squash exact/ancestor/post-pr/no-pr, missing-registry timeout, pending-delete retention; tr_mqwqc7h9_b3062b5b passed.",
+          "notes": "No orphaning regressions in targeted tests."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Low-budget no-late-mutation tests and shared-budget post-review regression passed: tr_mqwq0g98_619cb029, tr_mqwqs58a_72877e7d.",
+          "notes": "Continuation is stopped/retained unless enough budget remains."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted sweep tr_mqwqc7h9_b3062b5b passed; typecheck tr_mqwqcm19_336c6f6e and post-review tr_mqwqsgxv_d7c23cd5 passed.",
+          "notes": "Format issue noted by reviewer only unrelated repo-wide format:check on src/cli-bridge-contract.test.ts."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-c16ffd72c76f notes exact sequence: pnpm run build, ./scripts/deploy-local.sh --fix, restart OpenCode/plugin host, retry pokeedge cleanup with ADV tools.",
+          "notes": "Handoff durable in task evidence; no manual git cleanup performed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static scan: production git worktree remove remains centralized at worktree/index.ts gitWorktreeRemove; no new direct removal caller added.",
+          "notes": "advWorktreeDelete remains deletion authority."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static scan: verifyNonAdvBranchIntegration still falls through to verifyPrMergedChangeBranchIntegration/prMergeEvidence for squash branches.",
+          "notes": "git branch --merged not sole authority."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation only edits source/test files; ADV state mutations performed through ADV tools; no ADV state files read/edited directly.",
+          "notes": "State remained tool-mediated."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS is 7500; wrapper passes cleanupItemTimeoutMs; readChangeStatusWithCleanupTimeout bounds store.changes.get(changeId).",
+          "notes": "gh/git defaults still bounded by child_process timeouts; cleanup status read bounded."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Existing index-delete tests for dirty, unmerged, non-terminal, in-use all passed in tr_mqwqc7h9_b3062b5b.",
+          "notes": "Safety gates preserved."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Preview URL: not_applicable; implementation changed TypeScript tool/runtime and tests only, no UI/browser-visible output.",
+          "notes": "visual_surface=false honored."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No live/manual pokeedge cleanup executed; handoff explicitly forbids manual deletion as substitute.",
+          "notes": "Structural source fix only."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Changes limited to worktree cleanup/delete/archive-repair behavior; no pokeedge release pipeline or broad release-gate recovery redesign.",
+          "notes": "Scope contained."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Correctness uses typed results/reasons and tests, not chat/log parsing.",
+          "notes": "Reviewer READY."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Budget-exhausted paths record pending-delete failure before return and avoid starting delete; tests verify deleteWorktree not called.",
+          "notes": "Post-review shared-budget fix strengthens this."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Successful deletion path still clears session/pending delete and reaps empty parents; retained paths preserve retry state.",
+          "notes": "No reconciliation bypass added."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_worktree_cleanup` against retained terminal cleanup candidates returns within 8000ms with either removed count or typed retained blocker, never SDK `ToolExecutionTimeout`.",
+    "`adv_worktree_delete` for archived/closed `change/*` worktrees with durable merge evidence completes or returns typed blocker within 8000ms; missing-registry path does not hang on terminal workflow reads.",
+    "`adv_archive_repair action: cleanup_merged` returns within 10000ms for archived branch cleanup scans and reports deleted/skipped/blocked branches structurally.",
+    "Regression tests cover archived + squash-merged + missing-registry terminal worktree cleanup without orphaning registry or pending-delete state.",
+    "Timeout tests prove no silent, unobservable late state mutation; if best-effort cleanup can continue after a timeout, durable state records that continuation before response.",
+    "Source verification passes for targeted worktree cleanup/delete/archive-repair tests and any touched type/lint surfaces.",
+    "Live validation plan records that pokeedge `fixStagingDigestResolution` should be retried after source tests pass and plugin runtime rebuild/restart is available."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **pokeedge**.\n\n| Field | Value |\n|-------|-------|\n| Source project | pokeedge |\n| Source path | `/home/jon/dev/pokeedge` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n## Why\n\nADV worktree-retirement tools time out (8-10s) and cannot clean up a fully merged, archived change's worktree even when Temporal is otherwise healthy. This leaves inert worktrees and registry debt, and manual git cleanup is unsafe because it can orphan ADV registry entries.\n\n## Proposed direction\n\nMake worktree retirement for a fully merged/archived change succeed reliably within the tool budget by avoiding dependence on a live/again-signalable change workflow after the owning change is terminal. Use durable ADV registry/release evidence plus git safety checks as the structural deletion authority for archived terminal worktrees.\n\n## User Outcomes\n\n- Operators can retire safe terminal ADV worktrees without generic tool timeouts.\n- Archived squash-merged changes do not require a live change workflow to clean up their worktrees.\n- Cleanup failures return structured, actionable blockers instead of unclassified timeout messages.\n- Registry state and filesystem state stay reconciled after cleanup attempts.\n\n## Scope\n\n### In Scope\n\n- Identify the exact blocking await in `adv_worktree_cleanup`, `adv_worktree_delete`, and/or `adv_archive_repair action: cleanup_merged`.\n- Confirm whether the observed timeout is caused by terminal change-workflow queries/signals, slow live PR/git evidence calls, or both.\n- Implement a workflow-independent cleanup path for archived terminal worktrees when durable release/merge evidence already exists.\n- Add bounded sub-step timeout/classification so wedged or slow cleanup returns structured state.\n- Preserve safety checks: terminal owning change status, branch integration evidence, clean worktree state, no live process CWD, and registry/filesystem consistency.\n- Add regression tests for archived/squash-merged/terminal cleanup completing within budget without orphaning registry entries.\n\n### Out of Scope\n\n- Manual cleanup of the specific pokeedge `fixStagingDigestResolution` worktree as a substitute for the structural Advance fix.\n- Fixing pokeedge release pipeline issues or unrelated release-gate recovery divergence.\n- Broad redesign of Temporal workflow lifetime, archive recovery, or all terminal workflow mutation behavior beyond the worktree cleanup path.\n\n### Must Not\n\n- Must not run `git worktree remove` directly from terminal cleanup callers; deletion authority remains centralized through the worktree deletion path/safety gate.\n- Must not treat advisory census cleanup eligibility as sufficient deletion authority.\n- Must not rely on `git branch --merged` alone for squash-merged ADV branches.\n- Must not leave a registry entry materialized when the filesystem worktree was removed successfully.\n- Must not perform unbounded network, git, or Temporal waits inside cleanup tools.\n\n## Affected Code\n\nLikely affected areas:\n\n- `plugin/src/tools/adv-worktree.ts`\n- `plugin/src/tools/worktree/index.ts`\n- archive repair cleanup-merged path\n- worktree registry/reaper tests under `plugin/src/tools/**` and Temporal/worktree helpers\n- `worktree-lifecycle` spec if behavior contract changes\n\n## Related Repositories\n\n- Current repo: `advance` — owns plugin/tool implementation.\n- Originating repo: `pokeedge` — supplied live reproduction and later live validation target.\n\n## Constraints\n\n- ADV state and registry must remain source of truth; do not edit ADV state files directly.\n- Worktree deletion must remain safety-gated and branch-aware.\n- Fix should be structural and machine-checkable: typed classifications, deterministic guards, and regression tests over heuristic timeout interpretation.\n- Live ADV tool behavior requires rebuild/deploy/restart before in-session tool-code changes take effect.\n\n## Impact\n\n- Reduces orphaned terminal worktrees across projects.\n- Improves cleanup diagnostics for poisoned/terminal workflow and slow network evidence paths.\n- Supports safer archive/cleanup recovery for squash-merged ADV changes.\n\n## Context\n\nSurfaced while shipping pokeedge `fixStagingDigestResolution`. That change was squash-merged through PR #598 and archived, but `adv_worktree_cleanup`, `adv_archive_repair action: cleanup_merged`, and `adv_worktree_delete` all exceeded 8-10s while Temporal diagnostics showed the worker healthy.\n\n## Discovery Agenda\n\n1. Instrument or inspect cleanup/delete/archive-repair cleanup awaits to identify the timeout point.\n2. Determine whether archived cleanup currently queries/signals a terminal change workflow and whether that can hang or retry past budget.\n3. Determine how much timeout risk comes from live `gh pr list`, `git fetch refs/pull/*`, or branch-integration re-derivation in squash-merge cases.\n4. Verify whether release-gate/archive evidence (`prNumber`, `prUrl`, `mergeCommitSha`, route) is durable and sufficient for archived cleanup safety.\n5. Confirm needed updates to `worktree-lifecycle` spec and tests.\n6. Plan live validation against pokeedge after source tests pass and plugin runtime is rebuilt/restarted.",
+    "problemStatement": "## Problem\n\nADV worktree-retirement tools time out (8-10s) and cannot clean up a fully-merged, archived change's worktree — even though the Temporal worker is healthy. This silently accumulates orphaned worktrees and feeds repeated \"cleanup-blocked\" agenda debt across projects.\n\n### Reproduction (2026-06-25, pokeedge project)\nChange `fixStagingDigestResolution` was fully shipped: PR #598 squash-merged to main (`d3aad0ed8`), all 7 gates done, release gate recorded. Its worktree `~/.local/share/opencode/worktree/4d6b589871e3687c746bf043301cfb4ac98ea049/change/fixStagingDigestResolution` is inert (merged, no uncommitted work) but could NOT be retired:\n- `adv_worktree_cleanup` → timeout 8000ms (\"Cleanup likely blocked on a poisoned workflow or stuck I/O\")\n- `adv_archive_repair action:cleanup_merged` → ToolExecutionTimeout >10000ms\n- `adv_worktree_delete` → timeout 8000ms (\"blocked on a stuck git operation or poisoned workflow signal\")\n- Meanwhile `adv_temporal_diagnose` reports serverReachable + workerAlive + stslInitialized + serverServiceable all true, changeWorkflow.reachable true (\"Temporal is healthy\").\n\nSo the worker is healthy but the worktree-mutation signal path specifically hangs. This is the same symptom class tracked by pokeedge agenda ag-hPCDXY4z (\"Repair archived release-gate wedge blocking merged worktree cleanup\") and ag-0g6ydRpO.\n\n### Why it matters\n- Orphaned worktrees pile up; manual `git worktree remove` is unsafe because it orphans the ADV worktree-registry entry (creating MORE drift the wedged tools can't reconcile).\n- Cross-project: the failure was observed driving the pokeedge project, but the tool code is in this repo (advance plugin: plugin/src/tools/worktree*.ts, archive_repair, and the underlying Temporal signal path).\n\n### Suspected area (discovery to confirm)\n- plugin/src/tools/adv-worktree.ts / worktree-auto-manage.ts cleanup+delete paths\n- archive_repair cleanup_merged path\n- The Temporal signal/activity these tools await — likely awaiting a signal on a completed/archived change workflow that never returns (consistent with the broader \"change workflow completes before acceptance/release; mutations return WorkflowNotFoundError\" wedge, pokeedge ag-iLqB-lpH).\n\n### Out of scope\n- Repairing already-orphaned worktrees by hand (a recovery action, not the structural fix).\n- The pokeedge release-pipeline issues (separate change fixCdReleasePipeline).",
+    "design": "# Design\n\n## Architecture Overview\n\nThe cleanup bug is a deadline-ownership and proof-verification problem, not only a slow command problem.\n\nCurrent wrappers for `adv_worktree_cleanup` and `adv_worktree_delete` race the whole operation against an 8000ms tool budget, but the underlying cleanup pipeline can still start work whose own budget is longer than the wrapper:\n\n- `DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS` is 30000ms, while the wrapper budget is 8000ms.\n- `withTimeout()` explicitly does not abort the wrapped promise; a timed-out `advWorktreeDelete` can still continue in the background.\n- Registered ADV branch deletion re-enters `verifyBranchIntegration()` without passing the already-resolved registry entry or a bounded terminal-status reader, so terminal/archived changes can be misclassified when the active workflow registry no longer contains them.\n- Missing-registry and discovery paths await `store.changes.get(changeId)` with no cleanup-local timeout.\n- `gh` and git commands already have exec timeouts, but their defaults are over the cleanup wrapper budget and therefore must be given cleanup-local sub-budgets.\n\nDesign target: cleanup owns a shared deadline and verifies deletion authority before destructive work starts. The outer Promise.race remains only a last-resort guard, not the correctness mechanism.\n\n## Key Decisions\n\n### KD1 — Add cleanup deadline context\n\nIntroduce a small `WorktreeCleanupDeadline` helper for worktree cleanup/delete/archive-repair paths. It exposes remaining budget and substep timeout calculation, with a return reserve so tool output is produced before the SDK timeout.\n\n### KD2 — Persist terminal cleanup authority narrowly\n\nExtend `PendingDelete` with optional structured proof fields only where needed for missing-registry/poisoned-terminal workflow cleanup. Existing pending-delete JSON without authority remains valid.\n\nPersisted authority is not standalone deletion permission. It is an input to `advWorktreeDelete`, which must still re-check terminal, merge/squash proof, clean state, not-in-use state, hooks, and registry/filesystem reconciliation.\n\n### KD3 — Replace non-aborting delete timeout with internally bounded delete steps\n\n`drainPendingDeletes` must stop using `withTimeout(deletePromise, ...)` around `advWorktreeDelete`. It should check the shared deadline before each pending item, retain with typed `TIME_BUDGET_EXHAUSTED` when too little time remains, and call only internally-bounded delete steps.\n\n### KD4 — Use proof before live terminal workflow reads\n\nDeletion authority order for ADV `change/*` branches:\n\n1. Pending-delete authority when present, then reverify safety gates.\n2. Already-resolved registry entry plus bounded terminal status reader.\n3. Bounded `store.changes.get(changeId)` fallback.\n4. Typed retained blocker if terminal proof cannot be established within budget.\n\nPR evidence proves merge/squash integration. It must not by itself prove terminal status unless the caller also supplies terminal authority, e.g. `archive_repair` has already loaded archived change IDs.\n\n### KD5 — Bound GitHub and git proof substeps under cleanup deadline\n\nKeep existing child-process protections, but pass cleanup-local sub-budgets to `execGh` and git helper calls used in cleanup. Classify timeout distinctly from not-merged/not-terminal.\n\n### KD6 — Archive-repair cleanup gets bounded partial results\n\n`adv_archive_repair action: cleanup_merged` remains branch-cleanup focused. Add a deadline and partial-result response so budget exhaustion returns deleted/skipped/blocked state rather than SDK timeout.\n\n### KD7 — Sequence minimal correctness core first\n\nImplementation should land the smallest correctness core before optional authority metadata breadth:\n\n1. Pass sub-8s cleanup item budget/deadline from wrapper into drain/delete.\n2. Bound `store.changes.get` in discovery and missing-registry paths.\n3. Remove non-aborting mutating timeout around `advWorktreeDelete`.\n4. Then add narrowly-scoped pending-delete authority for terminal/missing-registry recovery.\n\n## ADR Drafts\n\nNone. The decision is localized to ADV worktree cleanup internals.\n\n## Implementation Strategy\n\n1. Add deadline helper and typed cleanup timeout classifications near `plugin/src/tools/worktree/index.ts` or a local `worktree/deadline.ts` module.\n2. Wire `executeWorktreeCleanup` / `executeWorktreeDelete` to pass a deadline and cleanup item timeout below the 8000ms wrapper budget.\n3. Bound `store.changes.get` awaits in `discoverTerminalCleanupCandidates` and `verifyMissingRegistryChangeBranchIntegration`; return typed blockers on timeout.\n4. Update `drainPendingDeletes` to use the deadline directly and remove non-aborting `withTimeout(deletePromise)` around `advWorktreeDelete`.\n5. Update ADV branch integration checks to use resolved registry entry / bounded terminal reader before live workflow fallback.\n6. Add optional pending-delete authority metadata for terminal cleanup recovery; keep it backward-compatible and reverified by `advWorktreeDelete` gates.\n7. Update PR/git proof helpers to accept deadline-derived substep timeouts and classify timeout separately from non-merged/non-terminal.\n8. Update `adv_archive_repair action: cleanup_merged` with its own deadline and partial-result response shape.\n9. Add/extend tests:\n   - cleanup wrapper does not expose SDK `ToolExecutionTimeout` for slow pending deletes,\n   - cleanup item budget is below wrapper budget,\n   - pending-delete authority avoids unbounded terminal workflow read but does not bypass safety gates,\n   - existing pending-delete records without authority remain readable/retryable,\n   - missing-registry bounded store timeout returns typed retained blocker,\n   - PR evidence `gh`/git timeout returns typed blocker,\n   - archive-repair cleanup returns partial structured result on budget exhaustion,\n   - existing no-late-mutation drain test proves no silent untracked mutation.\n10. Run targeted tests through `adv_run_test` or `bin/oc-test targeted -- ...`; full validation through `bin/oc-test smoke/full` as appropriate.\n11. After source verification, record live validation requirement: rebuild/deploy/restart plugin runtime before retrying pokeedge `fixStagingDigestResolution` cleanup.\n\n## LBP Analysis\n\nPreferred long-term practice is deadline-owned, typed, stateful cleanup:\n\n- Structural: deadline object + typed retained blockers + reverified authority, not string parsing or heuristic timeout messages.\n- Safe: deletion authority stays centralized in `advWorktreeDelete`; terminal, merged, clean, and in-use gates remain intact.\n- Operationally bounded: every live Temporal/gh/git substep receives a budget below the tool ceiling.\n- Backward-compatible: old pending-delete entries without authority remain readable and get bounded fallback verification.\n\nRejected alternatives:\n\n- Increase wrapper timeout: rejected because SDK limit remains ~10000ms and it does not fix non-aborted late mutation.\n- Direct `git worktree remove` in cleanup callers: rejected by C1 and existing spec law.\n- Trust PR evidence alone for terminal state: rejected because merge proof is not terminal ownership proof.\n- Manual pokeedge cleanup first: rejected because it would hide the structural bug.\n\n## Affected Components\n\n- `plugin/src/tools/adv-worktree.ts` — deadline creation and wrapper fallback.\n- `plugin/src/tools/worktree/index.ts` — cleanup discovery, drain, delete, PR/git evidence, typed blockers.\n- `plugin/src/tools/worktree/state.ts` — optional pending-delete authority metadata and guards.\n- `plugin/src/tools/worktree/triage.ts` — retained authority/blocker visibility.\n- `plugin/src/tools/change.ts` — `adv_archive_repair action: cleanup_merged` deadline and partial-result handling.\n- Tests under `plugin/src/tools/worktree/index-delete.test.ts`, `plugin/src/tools/adv-worktree.test.ts`, and `plugin/src/tools/change.archive-repair.test.ts`.\n\n## Design-Derived Criteria\n\nDDC1: Worktree cleanup/delete wrappers keep `effectiveTimeoutMs` below SDK timeout and reserve at least 500ms for formatting/tool return.\n\nDDC2: `drainPendingDeletes` must not start a destructive delete when remaining deadline is below the configured destructive-operation minimum.\n\nDDC3: A timed-out or budget-exhausted pending-delete item must be retained with a typed class (`time_budget_exhausted`, `temporal_read_timeout`, `gh_timeout`, `git_timeout`, or existing blocker class).\n\nDDC4: Any best-effort continuation after timeout must be represented durably before the response; otherwise the operation must stop and retain.\n\nDDC5: Existing pending-delete records without authority metadata remain readable and retryable.\n\nDDC6: Persisted terminal cleanup authority must be reverified through `advWorktreeDelete` safety gates and never used as standalone deletion permission.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Pending-delete metadata migration breaks old retained items | Make new authority fields optional; add backward-compat tests. |\n| Persisted authority accidentally bypasses safety checks | Route it only as input to `advWorktreeDelete`; add tests for dirty/unmerged/in-use rejection with authority present. |\n| Deadline propagation creates many parameter changes | Keep helper local to cleanup/delete/archive-repair paths. |\n| Terminal proof is confused with PR merge proof | Model terminal proof and merge proof as separate typed fields. |\n| Too-small substep budgets cause false retained blockers | Use remaining-budget math with clear retained state; manual retry remains possible. |\n| Live behavior cannot be validated in same OpenCode session after source edits | Record rebuild/deploy/restart requirement and perform source-level tests first. |\n\n## Design Leverage Scout\n\nScout attempted with `adv-researcher` on 2026-06-27.\n\nAuto-adopted findings:\n\n- Narrow primary leak target to non-aborting wrapper + Temporal reads. Git/gh commands are over-budget but already child-process bounded.\n- Reuse existing `prMergeEvidence` seam for PR/squash tests.\n- Trust registry + recorded terminal/release authority before bounded Temporal fallback.\n- Consolidate cleanup budgets through one DeadlineContext.\n\nDesign-around finding:\n\n- Extend the existing no-late-mutation drain test rather than creating an unrelated duplicate test.\n\nSurfaced-to-user findings: none.\n\n## Validator Result\n\nVALIDATED with two cautions adopted into this design.\n\n- Source-verified root cause: wrapper budget 8000ms races inner pending-delete timeout 30000ms, and `withTimeout` does not abort underlying mutation.\n- Spec-law compliance: design remediates existing `rq-worktreeBoundedCleanup02` expectations for bounded internal operations and no late mutation.\n- Adopted caution: persisted authority must not bypass `advWorktreeDelete` safety gates.\n- Adopted caution: sequence minimal core first; keep pending-delete authority metadata narrow and backward-compatible.",
+    "agreement": "# Agreement\n\n## Objectives\n\n- Make safe terminal ADV worktree cleanup return within the tool budget with typed success or typed retained-state output.\n- Decouple archived/squash-merged worktree cleanup from live per-change workflow mutation/query when durable ADV registry/release evidence is sufficient.\n- Keep worktree deletion authority centralized through `advWorktreeDelete` and preserve clean/merged/not-in-use safety gates.\n- Bring `adv_archive_repair action: cleanup_merged` into the same bounded, structurally observable cleanup model.\n- Preserve registry/filesystem convergence after successful cleanup and durable retry visibility after retained cleanup.\n\n## Success Criteria\n\n- SC1: Safe terminal ADV worktree cleanup succeeds or returns typed retained state within the tool budget; no opaque `ToolExecutionTimeout` is exposed to the agent.\n- SC2: Archived or closed squash-merged `change/*` cleanup does not require a live per-change workflow mutation/query when durable evidence is sufficient to establish terminal ownership and merge proof.\n- SC3: Registry, pending-delete state, and filesystem state converge after successful deletion; retained candidates remain retryable and visible through cleanup/triage surfaces.\n- SC4: Archive-repair cleanup returns bounded, structured deleted/skipped/blocked results for archived branch cleanup scans.\n- SC5: Late or best-effort cleanup behavior is explicit and durable before the tool response; no silent untracked mutation occurs after a timeout response.\n- SC6: Live validation plan includes pokeedge `fixStagingDigestResolution` after source tests pass and plugin runtime rebuild/restart is available.\n\n## Acceptance Criteria\n\n- AC1: `adv_worktree_cleanup` against retained terminal cleanup candidates returns within 8000ms with either removed count or typed retained blocker, never SDK `ToolExecutionTimeout`. [warrant: tool:adv_worktree_cleanup]\n- AC2: `adv_worktree_delete` for archived/closed `change/*` worktrees with durable merge evidence completes or returns typed blocker within 8000ms; missing-registry path does not hang on terminal workflow reads. [warrant: tool:adv_worktree_delete]\n- AC3: `adv_archive_repair action: cleanup_merged` returns within 10000ms for archived branch cleanup scans and reports deleted/skipped/blocked branches structurally. [warrant: tool:adv_archive_repair]\n- AC4: Regression tests cover archived + squash-merged + missing-registry terminal worktree cleanup without orphaning registry or pending-delete state.\n- AC5: Timeout tests prove no silent, unobservable late state mutation; if best-effort cleanup can continue after a timeout, durable state records that continuation before response.\n- AC6: Source verification passes for targeted worktree cleanup/delete/archive-repair tests and any touched type/lint surfaces.\n- AC7: Live validation plan records that pokeedge `fixStagingDigestResolution` should be retried after source tests pass and plugin runtime rebuild/restart is available.\n\n## Constraints\n\n- C1: `advWorktreeDelete` remains the sole deletion authority for worktree removal.\n- C2: Cleanup must not use `git branch --merged` as sole authority for squash-merged ADV branches.\n- C3: Cleanup must not edit ADV state files directly; ADV/Temporal state and typed tools remain source of truth.\n- C4: Cleanup must not perform unbounded Temporal, GitHub CLI, or git waits.\n- C5: Cleanup safety gates must continue to reject dirty, unmerged, non-terminal, and in-use worktrees.\n- C6: Visual surface: false. Change affects tool/runtime behavior only; no browser-visible or visual output expected.\n\n## Avoidances\n\n- DONT1: Do not manually clean the pokeedge worktree as a substitute for the source fix.\n- DONT2: Do not broaden into pokeedge release-pipeline repair or general release-gate recovery redesign.\n- DONT3: Do not rely on chat/log string parsing as correctness authority for cleanup state.\n- DONT4: Do not introduce silent background mutation after a timeout response unless continuation was durably recorded before the response.\n- DONT5: Do not bypass registry/filesystem reconciliation when deletion succeeds.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects ADV cleanup tools, Temporal/worktree registry interactions, git/gh bounded behavior, and tests. No UI or visual output is in scope.\n\n## Decisions\n\n### User Decisions\n\n- Origin validation: user confirmed pokeedge `fixStagingDigestResolution` remains the live validation target after source tests pass.\n- Tool boundary: user confirmed `adv_archive_repair action: cleanup_merged` is in scope.\n- Timeout behavior: user prefers best-effort completion, with the agreement constraint that any continuation/late behavior must be explicit and durable rather than silent.\n\n### Agent Decisions (LBP)\n\n- Treat typed bounded cleanup and durable state transitions as the structural correctness mechanism; timeout message heuristics are insufficient.\n- Keep `advWorktreeDelete` as the single deletion authority instead of adding direct `git worktree remove` paths.\n- Design should explicitly separate discovery/classification timeouts from destructive deletion authority and define typed classifications consumed by tests.\n- Design should inspect both store-backed terminal status paths and live PR/git evidence paths because both can exceed the wrapper budget.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved by user via chat reply: `approve` on 2026-06-27.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nDelivered bounded, typed cleanup behavior for terminal ADV worktrees and archive-repair branch cleanup so safe cleanup returns structured success or retained blockers instead of generic SDK timeouts. Worktree deletion authority remains centralized through `advWorktreeDelete`; registry/pending-delete state remains durable and retryable.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Cleanup deadline ownership: `adv_worktree_cleanup` now passes an internal item budget below the 8000ms wrapper budget; low-budget paths retain pending deletes with `TIME_BUDGET_EXHAUSTED` / `time_budget_exhausted` before destructive work starts.\n2. Bounded terminal proof: terminal change status reads are cleanup-local bounded and return typed `temporal_read_timeout` / `temporal_read_failed` blockers instead of hanging.\n3. Pending-delete authority metadata: pending-delete records preserve optional authority context with backward-compatible parsing.\n4. Archive-repair resilience: `adv_archive_repair action: cleanup_merged` catches per-branch delete failures and continues later candidates with structured `DELETE_FAILED` blocked results.\n5. Shared cleanup budget remediation: drain logic subtracts elapsed time across multiple pending-delete entries so one slow candidate cannot start a later destructive delete after the shared budget is exhausted.\n6. Runtime validation handoff: source verification passed; live pokeedge validation is explicitly deferred until build/deploy/restart loads the new plugin runtime.\n\n## What Was Verified\n\n- Verdict: APPROVED; review subagent verdict `READY`; no blockers/issues remaining.\n- Tests: targeted cleanup/delete/archive-repair sweep passed (`tr_mqwqc7h9_b3062b5b`); post-review index-delete regression passed (`tr_mqwqs58a_72877e7d`); typecheck passed (`tr_mqwqcm19_336c6f6e`, post-review `tr_mqwqsgxv_d7c23cd5`).\n- Worktree: clean at `ea54e2723b740696d0f15f3666913c958b334e3f`.\n- Validation: `adv_change_validate strict:true` passed with warning only `NO_DELTAS`.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; implementation affects TypeScript tool/runtime behavior only.\n- Contract matrix: 24/24 rows passed or respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\n- Live ADV tool validation against pokeedge `fixStagingDigestResolution` requires `pnpm run build`, `./scripts/deploy-local.sh --fix`, and OpenCode/plugin host restart before retrying cleanup via ADV tools.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-27T19:19:48.422Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Safe terminal ADV worktree cleanup succeeds or returns typed retained state within the tool budget; no opaque `ToolExecutionTimeout` is exposed to the agent. | pass | Reviewer READY; cleanup wrapper passes cleanupItemTimeoutMs below 8000ms; tests tr_mqwqc7h9_b3062b5b and post-review tr_mqwqs58a_72877e7d passed. |\n| SC2 | success_criterion | Archived or closed squash-merged `change/*` cleanup does not require a live per-change workflow mutation/query when durable evidence is sufficient to establish terminal ownership and merge proof. | pass | readChangeStatusWithCleanupTimeout bounds terminal reads; missing-registry timeout regression tr_mqwq519d_16ecd69c passed. |\n| SC3 | success_criterion | Registry, pending-delete state, and filesystem state converge after successful deletion; retained candidates remain retryable and visible through cleanup/triage surfaces. | pass | Pending deletes retained with typed classes; deletion success clears queue; index-delete regression suite passed tr_mqwqc7h9_b3062b5b. |\n| SC4 | success_criterion | Archive-repair cleanup returns bounded, structured deleted/skipped/blocked results for archived branch cleanup scans. | pass | archive_repair cleanup_merged catches per-branch delete failure and continues; test tr_mqwq9o5x_d52da084 and sweep tr_mqwqc7h9_b3062b5b passed. |\n| SC5 | success_criterion | Late or best-effort cleanup behavior is explicit and durable before the tool response; no silent untracked mutation occurs after a timeout response. | pass | Low-budget drain tests verify deleteWorktree is not called and pending delete is retained before response; post-review shared-budget regression passed tr_mqwqs58a_72877e7d. |\n| SC6 | success_criterion | Live validation plan includes pokeedge `fixStagingDigestResolution` after source tests pass and plugin runtime rebuild/restart is available. | pass | Task tk-c16ffd72c76f records rebuild/deploy/restart and pokeedge fixStagingDigestResolution retry handoff. |\n| AC1 | acceptance_criterion | `adv_worktree_cleanup` against retained terminal cleanup candidates returns within 8000ms with either removed count or typed retained blocker, never SDK `ToolExecutionTimeout`. | pass | adv-worktree wrapper test and combined sweep passed: tr_mqwpykm2_b4554481, tr_mqwqc7h9_b3062b5b. |\n| AC2 | acceptance_criterion | `adv_worktree_delete` for archived/closed `change/*` worktrees with durable merge evidence completes or returns typed blocker within 8000ms; missing-registry path does not hang on terminal workflow reads. | pass | Missing-registry terminal read timeout RED/GREEN: tr_mqwq3hej_42702578 → tr_mqwq519d_16ecd69c; verify tr_mqwq67fz_04e4416d. |\n| AC3 | acceptance_criterion | `adv_archive_repair action: cleanup_merged` returns within 10000ms for archived branch cleanup scans and reports deleted/skipped/blocked branches structurally. | pass | archive-repair per-branch blocked-result regression RED/GREEN: tr_mqwq90fs_68c40ea0 → tr_mqwq9o5x_d52da084; verify tr_mqwq9yej_b0fc4662. |\n| AC4 | acceptance_criterion | Regression tests cover archived + squash-merged + missing-registry terminal worktree cleanup without orphaning registry or pending-delete state. | pass | index-delete suite covers archived-clean, squash exact/ancestor/post-pr/no-pr, missing-registry timeout, pending-delete retention; tr_mqwqc7h9_b3062b5b passed. |\n| AC5 | acceptance_criterion | Timeout tests prove no silent, unobservable late state mutation; if best-effort cleanup can continue after a timeout, durable state records that continuation before response. | pass | Low-budget no-late-mutation tests and shared-budget post-review regression passed: tr_mqwq0g98_619cb029, tr_mqwqs58a_72877e7d. |\n| AC6 | acceptance_criterion | Source verification passes for targeted worktree cleanup/delete/archive-repair tests and any touched type/lint surfaces. | pass | Targeted sweep tr_mqwqc7h9_b3062b5b passed; typecheck tr_mqwqcm19_336c6f6e and post-review tr_mqwqsgxv_d7c23cd5 passed. |\n| AC7 | acceptance_criterion | Live validation plan records that pokeedge `fixStagingDigestResolution` should be retried after source tests pass and plugin runtime rebuild/restart is available. | pass | tk-c16ffd72c76f notes exact sequence: pnpm run build, ./scripts/deploy-local.sh --fix, restart OpenCode/plugin host, retry pokeedge cleanup with ADV tools. |\n| C1 | constraint | `advWorktreeDelete` remains the sole deletion authority for worktree removal. | respected | Static scan: production git worktree remove remains centralized at worktree/index.ts gitWorktreeRemove; no new direct removal caller added. |\n| C2 | constraint | Cleanup must not use `git branch --merged` as sole authority for squash-merged ADV branches. | respected | Static scan: verifyNonAdvBranchIntegration still falls through to verifyPrMergedChangeBranchIntegration/prMergeEvidence for squash branches. |\n| C3 | constraint | Cleanup must not edit ADV state files directly; ADV/Temporal state and typed tools remain source of truth. | respected | Implementation only edits source/test files; ADV state mutations performed through ADV tools; no ADV state files read/edited directly. |\n| C4 | constraint | Cleanup must not perform unbounded Temporal, GitHub CLI, or git waits. | respected | DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS is 7500; wrapper passes cleanupItemTimeoutMs; readChangeStatusWithCleanupTimeout bounds store.changes.get(changeId). |\n| C5 | constraint | Cleanup safety gates must continue to reject dirty, unmerged, non-terminal, and in-use worktrees. | respected | Existing index-delete tests for dirty, unmerged, non-terminal, in-use all passed in tr_mqwqc7h9_b3062b5b. |\n| C6 | constraint | Visual surface: false. Change affects tool/runtime behavior only; no browser-visible or visual output expected. | respected | Preview URL: not_applicable; implementation changed TypeScript tool/runtime and tests only, no UI/browser-visible output. |\n| DONT1 | avoidance | Do not manually clean the pokeedge worktree as a substitute for the source fix. | respected | No live/manual pokeedge cleanup executed; handoff explicitly forbids manual deletion as substitute. |\n| DONT2 | avoidance | Do not broaden into pokeedge release-pipeline repair or general release-gate recovery redesign. | respected | Changes limited to worktree cleanup/delete/archive-repair behavior; no pokeedge release pipeline or broad release-gate recovery redesign. |\n| DONT3 | avoidance | Do not rely on chat/log string parsing as correctness authority for cleanup state. | respected | Correctness uses typed results/reasons and tests, not chat/log parsing. |\n| DONT4 | avoidance | Do not introduce silent background mutation after a timeout response unless continuation was durably recorded before the response. | respected | Budget-exhausted paths record pending-delete failure before return and avoid starting delete; tests verify deleteWorktree not called. |\n| DONT5 | avoidance | Do not bypass registry/filesystem reconciliation when deletion succeeds. | respected | Successful deletion path still clears session/pending delete and reaps empty parents; retained paths preserve retry state. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-27T18:12:50.058Z",
+      "contentHash": "41bfb044e04441f284b0f7b387fa8d5d9cec9d9bc304935b9052abf06ea53ce8",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-25T14:51:15.834Z",
+      "contentHash": "0dffd93f6d553ccf29338c250389ea68a497e2c628293c4e634947b186eaaae8",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-27T18:43:01.550Z",
+      "contentHash": "b9d9f0761bd25e373167d5f33920d142f32d6118f556af4fc241f0af6fffce44",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-27T18:30:35.731Z",
+      "contentHash": "6449ad59bcaf53c3aaa1dffab29b116520ec23a5a0635dc58e9953ee31b6c73b",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-27T19:22:34.894Z",
+      "contentHash": "9d2650180c5665d56a84d2bfa9bcf587ddf2ad82dd6479764c5e8f581e607e4f",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-27T20:19:40.055Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-06-27T18:09:16.325Z",
+      "resolved": true,
+      "resolved_at": "2026-06-27T18:13:44.092Z"
+    }
+  ]
+}
