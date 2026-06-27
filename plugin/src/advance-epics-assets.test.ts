@@ -96,8 +96,12 @@ describe("/adv-coordinate command contract", () => {
     expect(content).toContain("adv_epic_list");
     expect(content).toContain("adv_epic_show");
     expect(content).toMatch(/read-first|inventory/i);
+    expect(content).toMatch(/ownership/i);
+    expect(content).toMatch(/narrative/i);
+    expect(content).toMatch(/dependenc/i);
     expect(content).toMatch(/alignment/i);
     expect(content).toMatch(/sequencing/i);
+    expect(content).toMatch(/capstone/i);
     expect(content).toMatch(/membership health|health/i);
   });
 
