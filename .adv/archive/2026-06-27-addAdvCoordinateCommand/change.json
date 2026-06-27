@@ -1,0 +1,1269 @@
+{
+  "id": "addAdvCoordinateCommand",
+  "title": "Add adv-coordinate command",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-27T20:39:02.840Z",
+  "tasks": [
+    {
+      "id": "tk-676d64cc5925",
+      "title": "Add RED contract tests for /adv-coordinate surfaces",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-27T21:10:57.476Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T21:20:10.299Z",
+      "verification": "RED verification run: bin/oc-test targeted -- src/manifest.test.ts src/advance-epics-assets.test.ts failed as expected due to missing adv-coordinate manifest/spec/command surfaces.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated manifest tests to require 28 commands including adv-coordinate and allow Audit as a strong verb. Extended advance-epics asset tests to require rq-epicCoordinateCommand01 and new adv-coordinate command contract assertions. RED run failed as expected on missing implementation/spec/command surfaces.",
+      "filesTouched": [
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/manifest.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/manifest.test.ts"
+      ],
+      "checkpointSha": "689243f157761ba2d5baf8420053a03720d4a119",
+      "completedAt": "2026-06-27T21:21:27.166Z",
+      "completed_at": "2026-06-27T21:21:27.166Z",
+      "notes": "Added RED contract tests and captured expected failing verification.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T21:21:40.449Z"
+    },
+    {
+      "id": "tk-6807c9ead3bc",
+      "title": "Implement advance-epics spec law for /adv-coordinate",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-27T21:11:51.544Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-676d64cc5925"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T21:22:16.546Z",
+      "verification": "Static check passed: advance-epics spec JSON parses successfully after adding rq-epicCoordinateCommand01 and version 1.5.0 mirror update.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added rq-epicCoordinateCommand01 to advance-epics spec JSON with four scenarios covering read-first report, advisory order, approval-gated typed mutations, and no new planning primitive. Bumped spec/docs mirror version to 1.5.0 and mirrored requirement in docs/specs/advance-epics.md. Verified spec JSON parses.",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        "docs/specs/advance-epics.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        "docs/specs/advance-epics.md"
+      ],
+      "checkpointSha": "2f3e0b203a1cf8592894b8a50ab4ce9788d47c1e",
+      "completedAt": "2026-06-27T21:24:16.923Z",
+      "completed_at": "2026-06-27T21:24:16.923Z",
+      "notes": "Implemented advance-epics spec law for /adv-coordinate.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T21:24:29.060Z"
+    },
+    {
+      "id": "tk-749748efe6bf",
+      "title": "Add /adv-coordinate command contract asset",
+      "type": "docs",
+      "section": "Command contract",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-27T21:11:51.783Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-676d64cc5925"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC6",
+          "AC7",
+          "AC9",
+          "AC10"
+        ],
+        "verifies": [],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T21:22:16.563Z",
+      "verification": "Artifact created: .opencode/command/adv-coordinate.md with typed Epic reads, approval-gated actions, advisory order, optional membership, target_unreachable health, expected_version and evidence handling.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Created .opencode/command/adv-coordinate.md with frontmatter, manifest comment, boundary, read-first inventory, alignment/sequencing/health audits, approval grammar, and typed-tool apply phase. Contract preserves optional membership, advisory order, target trust, expected_version/evidence handling, no direct state filesystem access, and no CLI mutation verbs.",
+      "filesTouched": [
+        ".opencode/command/adv-coordinate.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-coordinate.md"
+      ],
+      "checkpointSha": "7aea99d153f817294de49485faa296e6cc4ea953",
+      "completedAt": "2026-06-27T21:26:06.662Z",
+      "completed_at": "2026-06-27T21:26:06.662Z",
+      "notes": "Added /adv-coordinate command contract asset.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T21:26:23.179Z"
+    },
+    {
+      "id": "tk-c81687fc7e5e",
+      "title": "Register manifest and synchronize command docs",
+      "type": "code",
+      "section": "Manifest and docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-27T21:11:51.784Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-676d64cc5925"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC8"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T21:22:16.567Z",
+      "verification": "Green verification passed: bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts (59 tests passed).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added adv-coordinate manifest entry, strong-verb support for Audit via manifest test allowlist, updated manifest expected command count/list to 29, synchronized README/ADV_INSTRUCTIONS/SETUP command tables, and added cli-surface-matrix agent-workflow-only row. Green verification passed for manifest, doc drift, and CLI matrix tests.",
+      "filesTouched": [
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "SETUP.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "SETUP.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "a4760e60c3323290c782a078015316d0d05a3b36",
+      "completedAt": "2026-06-27T21:35:41.582Z",
+      "completed_at": "2026-06-27T21:35:41.582Z",
+      "notes": "Registered manifest and synchronized command docs. Corrected command count to 29 after approved contract correction.",
+      "error_recovery": {
+        "last_error": "Initial green run failed because actual manifest count was 29, not AC3's approved 28. User approved correction; gates/artifacts/contract were re-entered and corrected.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Continue with corrected contract count 29.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "manifest.test.ts expected 28 commands but COMMAND_MANIFEST had 29 after adding adv-coordinate.",
+            "diagnosis": "Pre-existing manifest had 28 commands before this change; approved AC3 count was factually wrong.",
+            "fix_tried": "Asked user to approve AC3 correction 28 -> 29, re-entered discovery/design/planning, updated agreement/design/contract and test expectation.",
+            "strategy_label": "contract-correction-reentry",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-27T21:32:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-27T21:35:59.566Z"
+    },
+    {
+      "id": "tk-68586c037c92",
+      "title": "Run targeted verification and close readiness gaps",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-27T21:12:16.022Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6807c9ead3bc"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-749748efe6bf"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c81687fc7e5e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T21:36:20.652Z",
+      "verification": "Acceptance review remediation added explicit AC6 asset assertions. Reviewer reran targeted verification: bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/advance-epics-assets.test.ts (110 tests passed).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "checkpointSha": "c9d4826d44ff99edbb8d3baae7f4dda89e8d8d18",
+      "completedAt": "2026-06-27T22:48:51.812Z",
+      "completed_at": "2026-06-27T22:48:51.812Z",
+      "notes": "Final targeted verification passed.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T21:37:12.397Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvCoordinateCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:add-adv-coordinate-command"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate /adv-coordinate as read-first ADV command (doc+manifest+docs/tests), not a new MCP tool or CLI mutation verb",
+      "sources": [
+        {
+          "label": "COMMAND_MANIFEST shape + non-gate exemplars (adv-cleanup, adv-triage, adv-epic)",
+          "locator": "/home/jon/dev/advance/plugin/src/manifest.ts L37-64,164-177,380-447",
+          "summary": "CommandDef requires name/description/phase/requiresChangeId/prerequisites/successors. scope/gate/phaseGoal/args_hint optional. adv-cleanup uses phase:'advanced', adv-triage/adv-epic use utility/pre-impl with no gate, no phaseGoal. /adv-coordinate fits this non-gate, non-workflow shape exactly. Existing 27th index lives here."
+        },
+        {
+          "label": "manifest.test.ts hardcoded list + count + voice rules",
+          "locator": "/home/jon/dev/advance/plugin/src/manifest.test.ts L28-65,177-248",
+          "summary": "expectedCommands[] array and toHaveLength(27) must update to 28 and add 'adv-coordinate'. Description must start with strong verb (allowlist L188-210 — 'Coordinate' is NOT in current STRONG_VERBS list), be 5-14 words, no banned phrases. Non-workflow command MUST NOT have phaseGoal (L421-433)."
+        },
+        {
+          "label": "manifest-doc-drift.test.ts: doc+README+ADV_INSTRUCTIONS table drift",
+          "locator": "/home/jon/dev/advance/plugin/src/manifest-doc-drift.test.ts L98-246",
+          "summary": "Enforces: every manifest cmd has a doc; every doc has manifest entry; frontmatter description EXACTLY equals manifest; README.md AND ADV_INSTRUCTIONS.md command tables contain every manifest command with exact-match description. Single-line YAML scalar only. New command auto-pulled into all four checks."
+        },
+        {
+          "label": "docs/command-voice-standard.md voice canon",
+          "locator": "/home/jon/dev/advance/docs/command-voice-standard.md L17-31,765-768",
+          "summary": "manifest.ts is single source of truth; descriptions verb-first, 5-14 words, mention primary output/gate effect, no undefined jargon. Enforcement tests named. Banned-phrase + verb-first asserted in manifest.test.ts."
+        },
+        {
+          "label": "adv-cleanup.md / adv-triage.md read-first + dry-run-by-default + Tier B approval pattern",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-cleanup.md L1-141; adv-triage.md L1-157",
+          "summary": "Canonical reference architecture for the proposed command: Markdown prompt; frontmatter name+description; manifest comment block; scan/categorize/present-findings phases; mutations only after explicit Tier B inline whitelist approval (rq-inlineApproval01.4); 'Runs inline; no sub-agents'; Coexistence + Key Tools tables. adv-coordinate should mirror this exactly."
+        },
+        {
+          "label": "adv-epic.md goal-first Epic command + Command Boundary block",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-epic.md L17-31,92-102",
+          "summary": "Command Boundary 'Produces/MUST NOT/Gate' pattern. Explicit MUST NOT: add CLI mutation verbs, make membership mandatory, treat Epic order as blocking, add Jira-like assignees/estimates/sprints/boards. Mutations route through typed Epic tools only (adv_epic_update/reorder/repair_membership). adv-coordinate must reuse these exact typed tools, not add new ones."
+        },
+        {
+          "label": "advance-epics spec (law): advisory order, optional membership, typed audited mutation, no Jira clone",
+          "locator": "adv_spec advance-epics rq-epicOrderAdvisory01 / rq-epicOptionalMembership01 / rq-epicMembershipRepair01 / rq-epicNoJiraClone01 / rq-epicMutableScope01",
+          "summary": "Order MUST be advisory (display+next-work only, never hard-block). Membership MUST be optional. Link/unlink/move/repair MUST require audit evidence + dryRun-capable + typed status (projection_pending/stale/target_unreachable). update/reorder require expected_version (optimistic concurrency). rq-epicNoJiraClone01: v1 MUST NOT add assignments/estimates/boards/sprints/ownership workflows — 'Epic ordering, next-work recommendation, and compact context are the only planning primitives added in v1.' A coordination/audit READ + approval-gated typed-mutation command is consistent IF it adds no new primitive and runs every mutation through existing audited tools."
+        },
+        {
+          "label": "advance-epics-assets.test.ts contract-asset enforcement",
+          "locator": "/home/jon/dev/advance/plugin/src/advance-epics-assets.test.ts L27-70,322-353",
+          "summary": "Epic spec/doc/ADR contract tests assert spec doc forbids project-management field clones and states membership optional + order advisory. A coordinate command that 'hard-gates on Epic order' or 'mandates membership' would contradict these — proposal correctly lists those as out-of-scope."
+        },
+        {
+          "label": "OpenCode official commands doc — directory convention discrepancy",
+          "locator": "https://opencode.ai/docs/commands",
+          "summary": "Official docs: markdown command files live under '.opencode/commands/' (PLURAL) or via config 'command'. Frontmatter supports description/agent/model/subtask; $ARGUMENTS + $1.. + !`cmd` + @file. THIS REPO uses '.opencode/command/' (SINGULAR) consistently and deploy-local.sh syncs it — follow the repo's established singular convention; do not introduce plural."
+        },
+        {
+          "label": "Drift surfaces beyond proposal scope (4 extra files)",
+          "locator": "README.md L401/419-420; ADV_INSTRUCTIONS.md L35,124,158-159; SETUP.md L1343,1363; docs/cli-surface-matrix.md L27-37",
+          "summary": "Proposal lists README + ADV_INSTRUCTIONS. Discovered 3 MORE surfaces carrying per-command rows: (1) ADV_INSTRUCTIONS.md L35 collaboration-mode table (separate from L124 command table), (2) SETUP.md command table (L1343/1363 — NOT drift-tested but user-facing), (3) docs/cli-surface-matrix.md classifies each /adv-* as 'agent-workflow-only' vs CLI. adv-coordinate should land 'agent-workflow-only' there to assert it adds no CLI mutation verb."
+        }
+      ],
+      "architecture_assessment": "SOUND. The proposal is a textbook boring-technology fit. /adv-coordinate as (a) a Markdown command prompt under .opencode/command/, (b) a CommandDef registered in COMMAND_MANIFEST, (c) drift-doc + count-test updates, and (d) consistency tests is the exact, proven pattern already used by adv-cleanup, adv-triage, and adv-epic. No new MCP tool, Zod schema, Temporal signal, or CLI verb is needed: every durable Epic mutation already has a typed, audited, dryRun-capable, optimistic-concurrency tool (adv_epic_list/show/update/reorder/repair_membership/move_change/unlink_change). The command is a read-first orchestration prompt over those tools — strictly simpler than any alternative that introduces a coordination engine, a new aggregate tool, or a CLI mutation verb. Reference 'by-the-book' architecture for this stack is precisely: manifest entry + markdown doc + drift tests, mutations via existing typed tools with Tier B inline approval and dry-run default (mirroring adv-cleanup). Deviation from that reference: NONE in mechanism. Spec-law alignment: the coordination workflow stays inside advance-epics avoidances as long as it (1) keeps Epic order ADVISORY (report inversions, never hard-block — rq-epicOrderAdvisory01), (2) keeps membership OPTIONAL (rq-epicOptionalMembership01), (3) routes mutations through audited typed tools with expected_version + evidence (rq-epicMembershipRepair01/rq-epicMutableScope01), and (4) adds NO new planning primitive beyond ordering/next-work/compact-context (rq-epicNoJiraClone01). All four are already in the proposal's out-of-scope list, so the design is self-consistent with the law.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED with required corrections (non-blocking but must-do for green tests). 1) manifest.test.ts: bump toHaveLength(27)->28 and add 'adv-coordinate' to expectedCommands[]; this is hardcoded, not derived. 2) Voice gate: 'Coordinate' is NOT in STRONG_VERBS allowlist (manifest.test.ts L188-210) — either start the description with an existing strong verb (e.g. 'Audit', 'Analyze', 'Review', 'Scan', 'Triage') OR add 'Coordinate' to the allowlist in the same change; a description literally starting with 'Coordinate' fails today. 3) Keep manifest description 5-14 words, verb-first, no banned phrases, mention primary output. 4) Non-workflow command: do NOT set phaseGoal (manifest.test.ts L421-433 fails if present). 5) Frontmatter description must be a single-line YAML scalar that EXACTLY equals manifest. 6) Update BOTH README.md and ADV_INSTRUCTIONS.md command tables (drift-tested) AND consider SETUP.md L~1363, ADV_INSTRUCTIONS.md L35 collaboration-mode table, and docs/cli-surface-matrix.md (classify 'agent-workflow-only'). 7) Spec coverage: existing advance-epics spec covers Epic data-model + advisory order + audited mutation but has NO requirement for a coordination/audit *workflow command* analogous to rq-epicCreateCommand01. A MINOR spec delta (e.g. rq-epicCoordinateCommand01: read-first inventory, advisory findings, mutations only via audited typed tools after explicit approval, no new primitive) is the by-the-book way to make this command's contract law and is the cleanest place to encode the out-of-scope avoidances; recommend adding it during design rather than relying on prose alone."
+      },
+      "recommendation": "PROCEED to discovery/design with these concrete corrections. (A) Model the command file on adv-cleanup.md: dry-run/report-first default, Command Boundary block ('Produces / × MUST NOT / Gate: None'), explicit MUST NOT list (new Epic mutation tools, mandatory membership, auto-enrollment, hard-gating on Epic order, CLI mutation verbs), Tier B inline whitelist approval before any durable Epic mutation, 'Runs inline; no sub-agents'. (B) Reuse ONLY existing typed Epic tools for mutation (adv_epic_update/reorder/repair_membership/move_change/unlink_change) — all already require expected_version/audit evidence and support dryRun; do NOT add a new aggregate or coordinate tool. (C) Fix the voice gate first: pick a description verb that is in STRONG_VERBS (Audit/Analyze/Review/Triage/Scan) or extend the allowlist; e.g. 'Audit Epic alignment, sequencing, and membership health'. (D) Update manifest count 27->28 + expectedCommands[] + all four+ doc surfaces. (E) Add a MINOR advance-epics spec delta (rq-epicCoordinateCommand01) capturing the read-first + advisory-order + audited-mutation + no-new-primitive contract so the avoidances are law, not just prose, and write the asset test to assert it (pattern: advance-epics-assets.test.ts). This keeps correctness structural (P33) rather than prose-only. No anti-patterns detected; this is the simplest viable architecture.",
+      "follow_ups": [
+        "Confirm during design whether a spec delta lands in advance-epics (recommended) vs a separate workflow spec; advance-epics is the natural home given the command operates entirely on Epic state.",
+        "Verify deploy-local.sh / overlay sync picks up a new .opencode/command/adv-coordinate.md automatically (it globs adv-*.md) — likely no script change needed, but confirm in design.",
+        "Decide the exact strong verb for the manifest description before writing tests, since the verb-first gate and 5-14 word gate are both hard-failing.",
+        "Decide whether SETUP.md and docs/cli-surface-matrix.md rows are in-scope for this change (not drift-tested, but user-facing/governance surfaces — recommend including to avoid stale docs)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvCoordinateCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-coordinate-command"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design-mode leverage scout for /adv-coordinate command addition: contract/test design and command-suite consistency",
+      "sources": [
+        {
+          "label": "manifest-doc-drift.test.ts (CI-enforced)",
+          "locator": "plugin/src/manifest-doc-drift.test.ts:101-245",
+          "summary": "Already enforces (a) every manifest command has a .opencode/command/*.md doc, (b) frontmatter description == manifest description exactly, (c) README.md + ADV_INSTRUCTIONS.md command tables contain every manifest command with matching description. README/ADV_INSTRUCTIONS doc-sync is NOT optional polish — it is an existing hard gate the moment the manifest entry lands."
+        },
+        {
+          "label": "cli-surface-matrix.test.ts (CI-enforced, OMITTED from draft verification)",
+          "locator": "plugin/src/cli-surface-matrix.test.ts:42-60",
+          "summary": "Iterates every .opencode/command/adv-*.md and fails if no matrix row with a valid command disposition exists. Adding adv-coordinate.md WITHOUT a docs/cli-surface-matrix.md row breaks CI. Draft verification command does NOT include this test file — a real verification gap."
+        },
+        {
+          "label": "advance-epics-assets.test.ts hardcoded req-ID list",
+          "locator": "plugin/src/advance-epics-assets.test.ts:31-44, 49-69",
+          "summary": "Spec-mirror test iterates a HARDCODED req-ID array against docs/specs/advance-epics.md, and separately asserts specific req IDs exist in .adv/specs/advance-epics/spec.json. New rq-epicCoordinateCommand01 will only be covered if explicitly added to both spec sources AND a test assertion. Existing /adv-epic contract tests (lines 72-126) are the exact reusable template for the new command-contract test block."
+        },
+        {
+          "label": "manifest.test.ts command count + voice gates",
+          "locator": "plugin/src/manifest.test.ts:28-65, 212-247",
+          "summary": "Hardcodes 'contains all 27 ADV commands' + toHaveLength(27) + expectedCommands array; must become 28 with adv-coordinate added. Voice tests already enforce: strong-verb start (allowlist includes 'Audit' implicitly? NO — see risk), 5-14 words, no banned phrases. Draft description 'Audit Epic alignment, sequencing, and membership health' must pass these."
+        },
+        {
+          "label": "STRONG_VERBS allowlist (voice gate)",
+          "locator": "plugin/src/manifest.test.ts:188-210",
+          "summary": "STRONG_VERBS array does NOT currently contain 'Audit'. Draft description starts with 'Audit'. The 'every description starts with a strong verb' test (line 212) will FAIL unless 'Audit' is added to STRONG_VERBS or the description verb is changed to an existing one (e.g. 'Analyze', 'Scan', 'Review', 'Detect')."
+        },
+        {
+          "label": "advance-epics spec.json version + structure",
+          "locator": ".adv/specs/advance-epics/spec.json:6 (version 1.4.0), :8-651 requirements[]",
+          "summary": "Spec is at 1.4.0. Adding rq-epicCoordinateCommand01 requires a version bump and a typed requirement object with scenarios, mirrored as prose in docs/specs/advance-epics.md. rq-epicCliList01.4 already establishes the 'CLI namespace remains read-only / no mutation verbs' precedent the new req can cite for the no-CLI-mutation avoidance."
+        },
+        {
+          "label": "adv-cleanup.md approval-gate template",
+          "locator": ".opencode/command/adv-cleanup.md:8-117",
+          "summary": "adv-cleanup is the canonical read-first / dry-run-default / per-bucket Tier B approval / atomic-apply template. Its Phase 1 scan -> Phase 2 categorize -> Phase 3 report -> Phase 4 approval -> Phase 5 apply structure maps 1:1 onto coordinate's inventory->alignment->sequencing->health->report->approval-gated-actions flow. Reuse verbatim structure; only swap adv_change_* tools for adv_epic_* tools."
+        },
+        {
+          "label": "Available typed Epic tools (reuse mandate)",
+          "locator": "tool schema: adv_epic_list, adv_epic_show, adv_epic_update (expected_version), adv_epic_reorder (expected_version), adv_epic_repair_membership, adv_epic_move_change, adv_epic_link_change",
+          "summary": "adv_epic_show returns version for optimistic concurrency; adv_epic_update + adv_epic_reorder both REQUIRE expected_version. The 'current expected_version' constraint is structurally enforced by the tools themselves — command just must read-then-mutate. adv_epic_repair_membership supports dryRun + evidence. No new tools needed."
+        }
+      ],
+      "architecture_assessment": "The change is a pure asset/contract/doc addition with zero runtime code — leverage comes entirely from reusing existing enforced harnesses rather than writing new ones. The dominant risk is UNDER-counting the CI gates the new command file trips, not design complexity. Four CI-enforced harnesses react automatically to a new command/spec: manifest.test.ts (count 27->28 + voice), manifest-doc-drift.test.ts (frontmatter + README + ADV_INSTRUCTIONS tables), cli-surface-matrix.test.ts (matrix row), advance-epics-assets.test.ts (spec mirror). The draft design's verification command covers only 3 of the relevant test files and OMITS cli-surface-matrix.test.ts, and the draft description 'Audit ...' trips the STRONG_VERBS allowlist which lacks 'Audit'. adv-cleanup.md is a near-perfect approval-gate structural template, and the typed Epic tools already enforce expected_version + dryRun + evidence, so the 'no direct state edit / current expected_version / audit evidence' constraints are largely structural-by-reuse rather than requiring new prose enforcement.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No architectural blocker. Two verification gaps and one voice-gate collision must be closed in design before apply, or apply will hit red CI: (1) add cli-surface-matrix row + test file to verification; (2) resolve 'Audit' verb vs STRONG_VERBS allowlist; (3) wire rq-epicCoordinateCommand01 into BOTH spec sources + an explicit assets-test assertion (the hardcoded req-ID list will not auto-cover it)."
+      },
+      "recommendation": "Adopt 5 leverage/scope-risk fixes before independent design validation: (1) EXPAND verification command to include src/cli-surface-matrix.test.ts and add the docs/cli-surface-matrix.md row (disposition agent-workflow-only, mirroring /adv-cleanup and /adv-epic rows) — this is a hard CI gate the draft omitted. (2) RESOLVE the description verb: either add 'Audit' to STRONG_VERBS in manifest.test.ts, or change the verb to an existing allowlisted one (recommend 'Audit' addition since AC text says 'Audit Epic alignment, sequencing, and membership health' — but flag this as a tiny test-harness edit that must accompany the manifest entry). (3) REUSE adv-cleanup.md verbatim as the phase skeleton (scan->categorize->report->Tier-B-approval->atomic-apply) swapping adv_change_* for adv_epic_*; do not invent a new approval pattern. (4) LEAN on tool-enforced expected_version/dryRun/evidence rather than writing new prose guards — the 'current expected_version' + 'audit evidence' constraints are already structural in adv_epic_update/reorder/repair_membership. (5) ADD rq-epicCoordinateCommand01 to BOTH .adv/specs/advance-epics/spec.json (bump version 1.4.0->1.5.0) and the docs/specs/advance-epics.md mirror, AND add an explicit assets-test assertion — the existing hardcoded req-ID array (advance-epics-assets.test.ts:31-44) will NOT auto-validate the new req.",
+      "follow_ups": [
+        "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were not provided in standard block form; proceeded with embedded TASK + prompt scope. No identity anchors inferred.",
+        "Verify whether adv-coordinate should appear in any command's manifest successors/prerequisites arrays (manifest.test.ts:115-133 validates successor/prereq names resolve) — draft leaves it islanded (prereq []/successors []), which is valid but worth a conscious design decision.",
+        "Confirm whether README.md groups commands by phase; adv-coordinate placed in phase 'advanced' should be slotted alongside /adv-cleanup and /adv-refactor rows in every doc table for consistency, not appended at end."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvCoordinateCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — /adv-coordinate Epic-coordination command",
+      "sources": [
+        {
+          "label": "advance-epics spec (capability law)",
+          "locator": "adv_spec action=show capability=advance-epics v1.4.0",
+          "summary": "rq-epicOrderAdvisory01 (order advisory, must not hard-block), rq-epicOptionalMembership01 (membership optional), rq-epicCreateCommand01 (typed tools not direct state edits), rq-epicMembershipRepair01/.3 (audit evidence + dry-run repair, target_unreachable), rq-epicMutableScope01 (expected_version optimistic concurrency). Design honors all; rq-epicCoordinateCommand01 is a consistent additive requirement."
+        },
+        {
+          "label": "manifest.test.ts strong-verb + count + description-length gates",
+          "locator": "plugin/src/manifest.test.ts:64,188-210,224",
+          "summary": "Line 64 asserts COMMAND_MANIFEST length 27 today (design's 28 = 27+1 is correct). STRONG_VERBS allowlist (lines 188-210) does NOT include 'Audit' — design D2 correctly requires adding it. Description rule 5-14 words: chosen description is 8 words, passes."
+        },
+        {
+          "label": "docs/cli-surface-matrix.md command matrix + test enforcement",
+          "locator": "docs/cli-surface-matrix.md:5,28,37",
+          "summary": "File header states cli-surface-matrix.test.ts fails CI on command additions without a matching row. adv-cleanup (line 28) and adv-epic (line 37) are precedent agent-workflow-only rows; design AC4/AC8 correctly add an agent-workflow-only row for /adv-coordinate."
+        },
+        {
+          "label": "adv-cleanup command skeleton (cited model)",
+          "locator": ".opencode/command/adv-cleanup.md:1-50",
+          "summary": "Report-first, dry-run-default, approval-gated active-state triage workflow with manifest comment, Command Boundary, phased reads. Sound boring precedent for /adv-coordinate's read-first-then-approval-gated structure."
+        },
+        {
+          "label": "approved ChangeContract (agreement-derived)",
+          "locator": "adv_change_show contract items AC1-AC11,C1-C4,DONT1-DONT6",
+          "summary": "Standard-rigor contract with 11 ACs, 4 constraints, 6 avoidances. Design decisions D1-D6 and design-derived criteria map 1:1 onto every contract item; no contract item is unaddressed."
+        }
+      ],
+      "architecture_assessment": "Design is a boring, additive, spec-aligned extension. It introduces NO new MCP tool, Temporal workflow, persistent coordination state, or CLI mutation verb — it composes existing typed Epic tools (adv_epic_list/show for reads; adv_epic_update/reorder/repair_membership for approval-gated writes) behind a Markdown command contract, exactly mirroring the established adv-cleanup and adv-epic patterns. The reuse of existing structural safeguards (expected_version optimistic concurrency for update/reorder; evidence+dryRun for membership repair; target-path trust) means correctness stays machine-checkable rather than prose-only, satisfying P33. Internal consistency is sound: the 27→28 command count, the required 'Audit' strong-verb allowlist addition, the agent-workflow-only CLI classification, and the rq-epicCoordinateCommand01 spec requirement are all individually verified against current source. No simpler viable approach exists that still delivers a first-class command surface — a pure ad-hoc agent instruction would skip the manifest/doc/test/spec gates the codebase enforces for every /adv-* command. No spec contradiction found; the advisory-order and optional-membership invariants are explicitly preserved.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All four validation dimensions clear. CORRECTNESS: design addresses every contract item AC1-AC11/C1-C4/DONT1-DONT6 with no logical gap; the only verification-sensitive numeric (command count 28) is confirmed as current-27+1. SIMPLICITY: this IS the boring path — no new runtime primitive; composes existing typed tools. SPEC-LAW: aligns with advance-epics rq-epicOrderAdvisory01/OptionalMembership01/CreateCommand01/MembershipRepair01/MutableScope01; no contradiction. ALTERNATIVES: an aggregate coordination MCP tool was correctly rejected in discovery (C1) as over-scoped with no structural gap forcing it. Minor advisory (non-blocking): implementers must add 'Audit' to STRONG_VERBS in manifest.test.ts in the same change or the strong-verb test fails — design D2 already calls this out, so it is covered, not a defect."
+      },
+      "recommendation": "VALIDATED — proceed to planning. The design is correct, materially simple (no new tool/workflow/state/CLI verb), and spec-compliant. It faithfully reuses the adv-cleanup report-first/approval-gated skeleton and the existing typed Epic tool safeguards (expected_version, evidence, dryRun, target trust). Every approved contract item maps to a concrete design decision. Two execution-time reminders already embedded in the design and worth re-confirming during prep: (1) add 'Audit' to the STRONG_VERBS allowlist in manifest.test.ts (line 188-210) alongside the manifest entry, since the description verb is otherwise rejected; (2) bump the manifest length assertion at manifest.test.ts:64 from 27 to 28. Both are anticipated by AC2/AC3/D2 — no design change required.",
+      "follow_ups": [
+        "At prep, ensure the red-test task explicitly covers the STRONG_VERBS allowlist addition ('Audit') and the manifest length 27→28 bump so AC2/AC3 fail-first before implementation.",
+        "Confirm cli-surface-matrix.test.ts is included in the targeted verification command (design already lists it) so the new agent-workflow-only row is enforced (AC8)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvCoordinateCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvCoordinateCommand",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": ".opencode/command/adv-coordinate.md",
+          "line": 43,
+          "what": "Command workflow is read-first and approval-gated with typed Epic tools only.",
+          "why": "Inventory uses adv_epic_list/adv_epic_show before proposals, approval phase separates durable actions, stale expected_version handling is explicit, and Epic order remains advisory.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": ".adv/specs/advance-epics/spec.json",
+          "line": 117,
+          "what": "Spec law captures coordination boundary without adding new planning primitives.",
+          "why": "rq-epicCoordinateCommand01 covers read-first reporting, advisory order, approval-gated typed mutation, and forbids mandatory membership, auto-enrollment, Jira-like workflow, direct state edits, and CLI mutation verbs.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/advance-epics-assets.test.ts",
+          "summary": "Strengthened /adv-coordinate asset test so AC6 explicitly covers ownership, narrative, dependency, and capstone report dimensions in addition to typed reads, alignment, sequencing, and membership health.",
+          "verification": "bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/advance-epics-assets.test.ts passed: 4 files, 110 tests."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/advance-epics-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Targeted acceptance suite passed after review fix: manifest.test.ts 40, manifest-doc-drift.test.ts 17, cli-surface-matrix.test.ts 2, advance-epics-assets.test.ts 51; total 110 passed. Additional source checks: agreement artifact read via adv_change_show; affected path preflight OK; manifest count verified as 29; docs/spec command rows and CLI matrix inspected. Requested scope_key review:addAdvCoordinateCommand was rejected by current report schema; submitted with schema-accepted review:acceptance."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Review reran targeted acceptance suite only; full pnpm check/full suite not rerun in this review pass.",
+        "Report transport currently accepts only review:acceptance for independent review scope keys; requested review:addAdvCoordinateCommand was rejected by schema."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "adv_subagent_report_submit rejected requested scope_key review:addAdvCoordinateCommand; report submitted with schema-accepted review:acceptance."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvCoordinateCommand",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvCoordinateCommand",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-test-coverage-1",
+          "label": "praise",
+          "file": "plugin/src/advance-epics-assets.test.ts",
+          "line": 78,
+          "what": "Release hardening evidence covers the new /adv-coordinate command contract, Epic avoidances, docs mirrors, and CLI/manifest surfaces.",
+          "why": "Targeted suite passed 110 tests across manifest, manifest-doc drift, CLI matrix, and Advance Epics asset tests.",
+          "fix": "n/a"
+        },
+        {
+          "id": "harden-doc-hygiene-1",
+          "label": "praise",
+          "file": "docs/specs/advance-epics.md",
+          "line": 138,
+          "what": "Spec mirror, command doc, manifest, README, SETUP, ADV_INSTRUCTIONS, and CLI matrix agree on /adv-coordinate as read-first, approval-gated, and agent-workflow-only.",
+          "why": "Reviewed affected docs show no contradiction about optional Epic membership, advisory Epic order, typed-tool-only mutation, or no CLI mutation verbs.",
+          "fix": "n/a"
+        },
+        {
+          "id": "harden-deployment-1",
+          "label": "praise",
+          "file": "docs/cli-surface-matrix.md",
+          "line": 29,
+          "what": "Deployment readiness is N/A for infra: change adds command/docs/spec/test surface only.",
+          "why": "No environment variables, migrations, external services, infra, or CI/CD workflow changes are present in affected scope; CLI matrix explicitly keeps /adv-coordinate agent-workflow-only.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "path preflight for all affected files using test -e",
+          "git diff --check origin/trunk...HEAD",
+          "bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/advance-epics-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight returned OK for all listed affected files. git diff --check against origin/trunk produced no whitespace errors. Targeted harden suite passed: 4 files, 110 tests, exit 0. Git diff stat shows expected 10-file change set; worktree status was clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "This harden pass reran the targeted release suite, not full `bin/oc-test full`, `pnpm run check`, or `pnpm run build`; rely on orchestrator/CI for full pre-release coverage if required."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with release/archive if orchestrator accepts targeted hardening evidence and existing acceptance approval.",
+        "No unresolved review findings, agenda items, deployment steps, migrations, or infra follow-ups found in this harden scope."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-EUOH_i",
+      "type": "gotcha",
+      "content": "Manifest command count was already stale relative to wording: before adding adv-coordinate, COMMAND_MANIFEST had 28 entries while manifest.test.ts label/count expected 27. When adding a command, verify actual Object.keys(COMMAND_MANIFEST).length before hardcoding count-based AC/tests; be ready to correct approved criteria if source evidence contradicts discovery assumptions.",
+      "source_task": "tk-68586c037c92",
+      "recorded_at": "2026-06-27T21:37:24.196Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-27T20:48:25.172Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed problem statement and approved proposal continuation by invoking adv-research workflow after proposal handoff.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "00435bd099906a3b15cc0514b3098d4e2eedb22c5e1ed12d467425fee1110d82",
+        "non_whitespace_chars": 6264,
+        "checked_at": "2026-06-27T20:39:02.867Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-27T21:34:48.758Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry discovery correction complete. User approved AC3 factual correction from 28 to 29 via question tool.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "non_whitespace_chars": 3470,
+        "checked_at": "2026-06-27T20:39:02.870Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-27T21:35:02.345Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry design correction complete. Design updated to command count 29; validator result remains VALIDATED for the command workflow design.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "c34dde38a08c2af570d8946a2e2819967079e0abe0e625ebc4f180289d7eefbe",
+        "non_whitespace_chars": 4137,
+        "checked_at": "2026-06-27T20:39:02.871Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-27T21:35:15.678Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry planning restored. User approved corrected AC3 count from 28 to 29; task graph remains valid and validation passes with expected NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-27T21:37:52.893Z",
+      "completed_by": "agent",
+      "approval_evidence": "All five implementation/verification tasks completed. Targeted verification passed: bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/advance-epics-assets.test.ts (110 tests passed)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-27T22:47:15.783Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved acceptance via inline reply: `approve`. Review verdict APPROVED/READY; contract matrix persisted with 21 rows and 0 failing/unknown; executive summary persisted; targeted verification passed (110 tests).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "bb6be7e62321831fdc5ba0620646e5dfa3ee4fa94074357b8cfe9796f2ce8859",
+        "non_whitespace_chars": 1520,
+        "checked_at": "2026-06-27T20:39:02.872Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Correct factual command-count acceptance criterion discovered during apply: current manifest had 28 commands before adv-coordinate, so AC3 expected count must be 29.",
+      "scope_delta": "No scope expansion. Correct AC3/design/test expectation from 28 commands to 29 commands.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-06-27T21:32:45.050Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "linked_at": "2026-06-27T20:39:01.891Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+      "approvedAt": "2026-06-27T21:34:48.794Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**Command asset exists:** `.opencode/command/adv-coordinate.md` exists with frontmatter name `adv-coordinate`, manifest comment, Command Boundary, read-first phases, report output, and approval-gated apply phase.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**Manifest registered:** `plugin/src/manifest.ts` contains `adv-coordinate` with description `Audit Epic alignment, sequencing, and membership health`, `requiresChangeId: false`, no gate, and no `phaseGoal`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**Command count updated:** `plugin/src/manifest.test.ts` expected command list includes `adv-coordinate` and count is 29.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**Docs synchronized:** README, ADV_INSTRUCTIONS, SETUP, and `docs/cli-surface-matrix.md` contain the new command with matching description/classification where applicable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**Spec law updated:** `advance-epics` includes `rq-epicCoordinateCommand01` covering read-first report, advisory order, approval-gated typed mutation, and no new planning primitive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**Asset tests prove command contract:** Tests assert `/adv-coordinate` uses `adv_epic_list`/`adv_epic_show`, reports ownership/narrative/dependency/sequencing/health findings, and references `adv_epic_update`, `adv_epic_reorder`, and `adv_epic_repair_membership` only as approval-gated actions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**No direct state edits:** Tests or static checks prove the command does not instruct direct ADV state-file reads/edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**No CLI mutation surface:** CLI-surface docs classify `/adv-coordinate` as `agent-workflow-only`, and no `bin/adv` mutation command is added.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**Advisory order preserved:** Command text and tests state Epic order recommendations never block gates, tasks, promotion, or change progress.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "**Optional membership preserved:** Command text and tests state Epic membership remains optional and no auto-enrollment occurs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "**Verification passes:** Targeted tests covering manifest/doc drift and Epic command assets pass through `bin/oc-test targeted -- ...` or equivalent repo-approved test route.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Reuse existing typed Epic tools; do not add a new aggregate coordination MCP tool unless a structural gap is proven.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Durable Epic mutation requires explicit approval, current `expected_version` when required, and audit evidence where tool contracts require it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Product-spanning and target-path behavior must follow existing target trust rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep command prose terse and consistent with `docs/command-voice-standard.md`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No mandatory Epic membership.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No auto-enrollment of changes into Epics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No hard-blocking based on Epic order.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "No Jira-like assignments, estimates, sprints, boards, or ownership workflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "No CLI mutation verbs for coordination.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "No silent durable edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-27T17:46:06-04:00",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed: `bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/advance-epics-assets.test.ts` (110 tests). `advance-epics-assets.test.ts` asserts `.opencode/command/adv-coordinate.md` frontmatter, manifest comment, command boundary, read-first phases, report output, approval-gated apply phase.",
+          "notes": "Command asset exists and contract snippets are test-backed."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed (110 tests). `manifest.test.ts` covers `adv-coordinate` manifest registration: description `Audit Epic alignment, sequencing, and membership health`, no gate, `requiresChangeId: false`, and no `phaseGoal`.",
+          "notes": "Manifest registered with agreed shape."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed (110 tests). `manifest.test.ts` expected command list includes `adv-coordinate` and corrected count 29. Correction from 28 to 29 was user-approved after source evidence.",
+          "notes": "Approved count correction verified."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed (110 tests). `manifest-doc-drift.test.ts` validates command/docs synchronization; docs touched: README, ADV_INSTRUCTIONS, SETUP, docs/cli-surface-matrix.md.",
+          "notes": "Docs synchronized by drift coverage."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed (110 tests). Spec task added `rq-epicCoordinateCommand01` to `.adv/specs/advance-epics/spec.json`, mirrored in `docs/specs/advance-epics.md`, and JSON parse/static check passed.",
+          "notes": "Spec law updated and mirrored."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed (110 tests). Reviewer fixed scoped test gap by adding explicit AC6 assertions for ownership, narrative, dependency, sequencing/health/capstone report dimensions and approval-gated typed action references.",
+          "notes": "Command contract proved by asset tests."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed (110 tests). Asset tests assert command does not instruct direct ADV state-file reads/edits; review found no direct state-file access guidance.",
+          "notes": "No direct ADV state edit path."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed (110 tests). CLI-surface matrix classifies `/adv-coordinate` as `agent-workflow-only`; no `bin/adv` mutation verb was added.",
+          "notes": "No CLI mutation surface."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed (110 tests). Command text and asset tests state Epic order recommendations are advisory and never block gates, tasks, promotion, or change progress.",
+          "notes": "Advisory order preserved."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed (110 tests). Command text and asset tests state Epic membership remains optional and no auto-enrollment occurs.",
+          "notes": "Optional membership preserved."
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Final targeted verification passed: `bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/advance-epics-assets.test.ts` (4 files, 110 tests). Reviewer reran same suite after adding AC6 assertions; still passed.",
+          "notes": "Repo-approved targeted route used."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review verified implementation is command asset + manifest/docs/tests only. No new aggregate MCP tool, Temporal workflow, or persistent coordination state added; durable actions reuse `adv_epic_*` tools.",
+          "notes": "Existing typed Epic tools reused."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract requires explicit approval before durable actions, uses `expected_version` for update/reorder, and includes evidence requirements for typed repair/update operations. Asset tests assert approval-gated action references.",
+          "notes": "Mutation safeguards documented."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command contract preserves target-path trust by routing cross-project/product-spanning actions through existing typed Epic tools and their target confirmation/evidence rules; no bypass path introduced.",
+          "notes": "Target trust preserved."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Docs and command prose updated in terse command style; manifest/doc drift coverage passed. Reviewer reported READY with no blocking prose/style findings.",
+          "notes": "Command voice consistent enough for acceptance."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY. Command text/tests state Epic membership remains optional; no mandatory membership language added.",
+          "notes": "No mandatory Epic membership."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY. Command text/tests state no auto-enrollment; no tool or workflow was added to auto-link changes to Epics.",
+          "notes": "No auto-enrollment."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY. Command text/tests state advisory order recommendations never block gates, tasks, promotion, or change progress.",
+          "notes": "No hard-blocking order semantics."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY. Command adds Epic coordination report/action workflow only; no assignments, estimates, sprints, boards, or ownership workflow were added.",
+          "notes": "No Jira-like workflow."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY and CLI matrix test passed. `/adv-coordinate` is `agent-workflow-only`; no `bin/adv` mutation command added.",
+          "notes": "No CLI mutation verbs."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer verdict READY. Command requires explicit approval before durable edits and routes them through typed tools with evidence/version fields; no silent durable edit path introduced.",
+          "notes": "No silent durable edits."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**Command asset exists:** `.opencode/command/adv-coordinate.md` exists with frontmatter name `adv-coordinate`, manifest comment, Command Boundary, read-first phases, report output, and approval-gated apply phase.",
+    "**Manifest registered:** `plugin/src/manifest.ts` contains `adv-coordinate` with description `Audit Epic alignment, sequencing, and membership health`, `requiresChangeId: false`, no gate, and no `phaseGoal`.",
+    "**Command count updated:** `plugin/src/manifest.test.ts` expected command list includes `adv-coordinate` and count is 29.",
+    "**Docs synchronized:** README, ADV_INSTRUCTIONS, SETUP, and `docs/cli-surface-matrix.md` contain the new command with matching description/classification where applicable.",
+    "**Spec law updated:** `advance-epics` includes `rq-epicCoordinateCommand01` covering read-first report, advisory order, approval-gated typed mutation, and no new planning primitive.",
+    "**Asset tests prove command contract:** Tests assert `/adv-coordinate` uses `adv_epic_list`/`adv_epic_show`, reports ownership/narrative/dependency/sequencing/health findings, and references `adv_epic_update`, `adv_epic_reorder`, and `adv_epic_repair_membership` only as approval-gated actions.",
+    "**No direct state edits:** Tests or static checks prove the command does not instruct direct ADV state-file reads/edits.",
+    "**No CLI mutation surface:** CLI-surface docs classify `/adv-coordinate` as `agent-workflow-only`, and no `bin/adv` mutation command is added.",
+    "**Advisory order preserved:** Command text and tests state Epic order recommendations never block gates, tasks, promotion, or change progress.",
+    "**Optional membership preserved:** Command text and tests state Epic membership remains optional and no auto-enrollment occurs.",
+    "**Verification passes:** Targeted tests covering manifest/doc drift and Epic command assets pass through `bin/oc-test targeted -- ...` or equivalent repo-approved test route."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **pokeedge**.\n\n| Field | Value |\n|-------|-------|\n| Source project | pokeedge |\n| Source path | `/home/jon/dev/pokeedge` |\n\n> Origin context: pokeedge surfaced a need for ADV to coordinate multiple Epics as a set after a real Epic alignment/sequencing pass.\n\n# Add `/adv-coordinate` command\n\n## Why\n\nADV lacks a first-class coordination workflow across active Epics. Multi-Epic projects can drift: narratives go stale, work can be tracked in the wrong Epic, cross-Epic prerequisites stay implicit, advisory order can stop matching dependencies, and membership projections can become unhealthy. Today ADV handles this ad hoc. The desired outcome is a read-first `/adv-coordinate` command that inventories Epics, reports alignment/sequencing/health findings, and applies durable Epic updates only after explicit user approval.\n\n## What Changes\n\nAdd `/adv-coordinate` as an ADV command entry point for Epic-set coordination. The command should instruct ADV to:\n\n- inventory active Epics and their entries through typed Epic/change tools;\n- audit ownership boundaries, narrative accuracy, cross-Epic dependencies, advisory sequence, capstone placement, and membership health;\n- separate evidence-backed findings from judgment calls;\n- present a coordination report before any durable mutation;\n- apply Epic narrative updates, reorders, and membership repairs only after user approval through typed tools.\n\n## User Outcomes\n\n- Users can ask ADV for one coordination pass across all active Epics instead of relying on ad hoc reasoning.\n- Users see which Epic owns each piece of work and where cross-Epic dependencies should be made explicit.\n- Users get recommended advisory reorders when current Epic order conflicts with prerequisite/capstone flow.\n- Users can approve or reject durable Epic edits with the rationale visible before state changes.\n- Users get health guidance for stale or unreachable Epic membership projections without hidden mutations.\n\n## Scope\n\n### In Scope\n\n- New `.opencode/command/adv-coordinate.md` command contract.\n- `plugin/src/manifest.ts` command registration for `adv-coordinate`.\n- Manifest/doc drift updates where command tables or command-count tests require the new command.\n- Command-suite documentation updates in `README.md`, `ADV_INSTRUCTIONS.md`, `SETUP.md`, and `docs/cli-surface-matrix.md` where required by existing tests or docs consistency.\n- Spec-law update or amendment if discovery determines a durable command-suite or Epic workflow requirement is missing.\n- Tests that prove command asset, manifest, and documentation consistency for the new command.\n\n### Out of Scope\n\n- Creating new Epic mutation tools.\n- Making Epic membership mandatory.\n- Auto-enrolling existing changes into Epics.\n- Treating Epic order as a hard gate or blocker.\n- Implementing CLI mutation verbs for Epic coordination.\n- Running an actual coordination pass over this or another product as part of this change.\n\n### Must Not\n\n- Must not directly read or edit ADV state files.\n- Must not silently mutate Epic narratives, entry order, or membership projection state.\n- Must not present heuristic ownership/sequencing conclusions as authoritative when typed/source evidence is available.\n- Must not collapse distinct Epic work solely for cosmetic simplicity.\n- Must not add Jira-like assignments, estimates, sprints, boards, or ownership workflow.\n\n## Affected Code\n\nQuick checks identified likely affected surfaces:\n\n- `.opencode/command/` — existing command contracts live here; `adv-epic.md` and `adv-cleanup.md` show nearby read-first/approval-gated patterns.\n- `plugin/src/manifest.ts` — type-safe command manifest; new command needs phase, scope, prerequisites, and successors.\n- `plugin/src/manifest.test.ts` — explicit command list/count currently covers 27 commands and will need update if a command is added; strong-verb checks constrain the manifest description.\n- `plugin/src/manifest-doc-drift.test.ts` — requires every command doc to have a manifest entry and matching descriptions in docs tables.\n- `README.md`, `ADV_INSTRUCTIONS.md`, `SETUP.md`, and `docs/cli-surface-matrix.md` — command reference and CLI-surface documentation should be updated for consistency.\n- `plugin/src/advance-epics-assets.test.ts` or a neighboring asset test — likely place to assert the new coordination command contract if a spec delta is added.\n\n## Related Repositories\n\n- Current implementation target: `advance`.\n- Originating context: `pokeedge` follow-up. No code mutation expected in `pokeedge` for this change.\n\n## Constraints\n\n- Specs remain law; any durable Epic/command behavior not already specified must be handled as a spec delta during discovery/design.\n- Epic order remains advisory only.\n- Epic membership remains optional.\n- Product-spanning Epic state must respect typed target-path trust rules.\n- Durable mutations in the command workflow require explicit approval and typed tools.\n- Structural correctness (P33) applies: typed reads/tools own correctness; heuristics may rank and triage only.\n\n## Impact\n\n- Gives users a named workflow for cross-Epic coordination.\n- Reduces repeated ad hoc agent behavior for alignment/sequencing reviews.\n- Increases command-suite surface area by one command and requires manifest/doc/test consistency.\n- Likely requires adding a small `advance-epics` requirement around Epic coordination so avoidances and approval gates become spec law.\n\n## Context\n\nRelevant existing spec context:\n\n- `advance-epics` defines typed Epic records, optional membership, advisory order, membership repair, scope metadata, and typed Epic tools.\n- `advance-workflow` defines the seven-gate workflow, approval boundaries, and command/gate behavior.\n- `advance-meta` includes command bridge and diagnostics patterns that constrain command-suite behavior.\n\nRelevant existing code/test context:\n\n- Command docs are Markdown files under `.opencode/command/`.\n- `COMMAND_MANIFEST` is the canonical command registry.\n- Drift tests require manifest entries, command docs, frontmatter descriptions, and command tables to stay synchronized.\n\n## Research Validation\n\n>>> SYNTHESIS COMPLETE <<<\n\n# Architecture Research: `adv-coordinate`\n\n## Summary\n\nValidation result: **VALIDATED**. Adding `/adv-coordinate` as a read-first command document plus manifest/docs/tests is architecturally sound. It should not be a new MCP tool and should not add CLI mutation verbs. Existing typed Epic tools already provide the durable mutation surface; the command should orchestrate reads, report findings, and require approval before invoking those tools.\n\n## Architecture Health Assessment\n\n### Classification: SOUND\n\n| Area | Existing | Reference | Deviation | Impact |\n|---|---|---|---|---|\n| Command entry point | Markdown prompt in `.opencode/command/` plus `COMMAND_MANIFEST` entry | Existing `/adv-cleanup` and `/adv-epic` command patterns | NONE | Low-risk addition if drift surfaces updated |\n| Mutation authority | Typed Epic tools own updates/reorders/repairs | `adv_epic_update`, `adv_epic_reorder`, `adv_epic_repair_membership` | NONE | No new mutation tool needed |\n| Approval model | Durable state changes require explicit approval/audit evidence | `/adv-cleanup` Tier B and Epic tool audit/expected-version contracts | NONE | Command must be report-first and approval-gated |\n| Epic semantics | Optional membership, advisory order, typed repairs | `advance-epics` spec law | NONE | Avoidances align with spec law |\n| Docs/tests | Manifest is single source of truth; drift tests enforce tables | `manifest-doc-drift.test.ts`, `manifest.test.ts` | MINOR docs/count work | Must update all command tables and count tests |\n\n## Validated Decisions\n\n- Use command workflow, not MCP tool: existing command architecture is the right layer for agent judgment, HITL, and multi-step synthesis.\n- Reuse existing Epic tools: narrative update, reorder, and repair already have typed tool contracts, expected-version/audit/dry-run safeguards.\n- Model workflow on `/adv-cleanup`: dry-run/report-first, command boundary, explicit mutation approval, no hidden state edits.\n- Keep `adv-coordinate` non-gate and non-workflow in manifest: no `gate`, no `phaseGoal`, no task graph ownership.\n- Classify as `agent-workflow-only` in CLI-surface docs: coordination requires agent judgment and HITL approval.\n\n## Simplification Opportunities\n\n| Current | Simpler Alternative | Effort | Recommendation |\n|---|---|---|---|\n| Build aggregate coordination MCP tool | Markdown command orchestrating existing typed tools | Low | Use command only |\n| Add CLI mutation verb | Keep CLI read-only/status-like surfaces separate | Low | Do not add CLI mutation |\n| Add new approval mechanism | Reuse existing Tier B inline / typed audit patterns | Low | Reuse existing approval voice |\n| Treat ordering as enforcement | Keep advisory reorder recommendations | Low | Warn/recommend only |\n\n## Concerns\n\n- Manifest description must start with an allowed strong verb. `Coordinate ...` will fail current `manifest.test.ts`; use e.g. `Audit Epic alignment, sequencing, and membership health` unless discovery chooses to extend the verb allowlist.\n- `manifest.test.ts` hardcodes 27 commands. Adding this command requires updating expected list and count to 28.\n- Documentation drift surfaces extend beyond initial proposal: `SETUP.md` and `docs/cli-surface-matrix.md` should be included alongside `README.md` and `ADV_INSTRUCTIONS.md`.\n- A small `advance-epics` spec delta is recommended so coordination avoidances are capability law, not prompt-only convention.\n\n## Anti-Patterns Detected\n\nNone in proposed architecture. Anti-patterns to avoid during design:\n\n- New aggregate tool that duplicates existing Epic tool authority.\n- Silent durable edits after report generation.\n- Hard-blocking changes based on Epic order.\n- Mandatory Epic enrollment.\n- CLI mutation path for coordination.\n\n## Over-Engineering Flags\n\n- New workflow state for coordination is unnecessary in v1.\n- New schema for dependency graph may be premature; command can derive report structure from current Epic entries and typed tool outputs.\n- Cross-product source probing should stay bounded and trust-rule aware; do not build broad project crawler behavior into v1.\n\n## Action Items\n\n1. Add `adv-coordinate` manifest entry with allowed strong-verb description, likely `Audit Epic alignment, sequencing, and membership health`.\n2. Add `.opencode/command/adv-coordinate.md`, modeled on `adv-cleanup.md` + `adv-epic.md`.\n3. Update `manifest.test.ts` expected command list/count.\n4. Update `README.md`, `ADV_INSTRUCTIONS.md`, `SETUP.md`, and `docs/cli-surface-matrix.md` command tables/classification.\n5. Add or extend asset tests for command contract: read-first inventory, alignment/sequencing/health report, approval-gated `adv_epic_update`/`adv_epic_reorder`/`adv_epic_repair_membership`, advisory order, optional membership, no direct ADV state reads.\n6. Add `advance-epics` spec requirement if discovery confirms coordination is durable capability law.\n\n## Confidence\n\nHigh: existing repo architecture has clear command/manifest/drift-test pattern, and Epic tools/specs already cover the durable mutation boundary.\n\nMedium: exact user-facing approval grammar and dry-run/execute flags should be finalized in discovery/design against current command voice rules.\n\n## Sources\n\n- `plugin/src/manifest.ts` — `CommandDef` shape and command registry.\n- `plugin/src/manifest.test.ts` — 27-command count/list and strong-verb description tests.\n- `plugin/src/manifest-doc-drift.test.ts` — manifest/doc/frontmatter/table drift enforcement.\n- `docs/command-voice-standard.md` — manifest description and command-doc contract.\n- `.opencode/command/adv-cleanup.md` — report-first, approval-gated command pattern.\n- `.opencode/command/adv-epic.md` — typed Epic creation/update command pattern.\n- `plugin/src/tools/epic.ts` — typed Epic read/update/reorder/repair tools.\n- `plugin/src/advance-epics-assets.test.ts` — Epic command/spec instruction asset tests.\n- `advance-epics` spec via `adv_spec` — optional membership, advisory order, typed/audited repairs.\n- OpenCode command docs: `https://opencode.ai/docs/commands` — Markdown commands, frontmatter, `$ARGUMENTS`.\n\n## Discovery Agenda\n\nCodebase unknowns to resolve in discovery:\n\n- Exact manifest phase/scope for `adv-coordinate`: likely `advanced`, reads over `epics`, `changes`, and `specs`; modifies should likely be empty unless existing command definitions require listing possible typed-tool mutations.\n- Whether to update strong-verb allowlist or choose existing verb; research recommends choosing existing verb.\n- Whether a new command-specific asset test is warranted or `advance-epics-assets.test.ts` should be extended.\n- Whether `docs/command-voice-standard.md` needs any command-specific approval guidance; research suggests existing approval voice is enough.\n\nSpec unknowns to resolve in discovery:\n\n- Exact text for a new `advance-epics` requirement, likely `rq-epicCoordinateCommand01`.\n- Whether command coordination belongs only in `advance-epics`, or also needs a cross-link from `advance-workflow`.\n\nDomain/user unknowns to resolve in discovery:\n\n- Default breadth: all active Epics by default, with optional filters later, or filtered command arguments in v1.\n- Whether v1 should expose `--dry-run` / `--execute` flags, or remain report-first with inline approval only.\n\nIntegration unknowns to resolve in discovery:\n\n- Exact target-path wording for product-spanning Epics when targets are unreachable.\n- Evidence citation format for cross-project findings without leaking untrusted target details.\n",
+    "agreement": "# Agreement — Add `/adv-coordinate` command\n\n## Lineage\n\n- Cross-project origin: `pokeedge` at `/home/jon/dev/pokeedge`.\n- Source path validated as an existing project checkout.\n- Source change ID: not provided in origin metadata.\n\n## Correction\n\nDuring apply, the current manifest was found to already contain 28 commands before adding `adv-coordinate`. User approved correcting the count criterion from 28 to 29 via question tool: `Approve correction`.\n\n## Objective\n\nAdd a first-class `/adv-coordinate` command that audits active Epics as a set, reports alignment/sequencing/membership-health findings, and applies durable Epic updates only through existing typed tools after explicit user approval.\n\n## Discovery Findings\n\n- Research validation: `SOUND` / `VALIDATED`.\n- Main finding: `/adv-coordinate` should be a Markdown command + manifest/docs/tests change, not a new MCP tool or CLI mutation verb.\n- Active change scan found no direct owner conflict.\n- `adv_change_validate` passed pre-prep with expected warnings only.\n- Adjacent agenda items (`Fix Epic cross-project guidance`, `Fix Epic tool warrant surface`) should inform wording but do not block.\n- Best pattern: model on `/adv-cleanup` read-first/report-first/approval-gated flow and `/adv-epic` typed Epic mutation boundaries.\n\n## Acceptance Criteria\n\n1. **Command asset exists:** `.opencode/command/adv-coordinate.md` exists with frontmatter name `adv-coordinate`, manifest comment, Command Boundary, read-first phases, report output, and approval-gated apply phase.\n2. **Manifest registered:** `plugin/src/manifest.ts` contains `adv-coordinate` with description `Audit Epic alignment, sequencing, and membership health`, `requiresChangeId: false`, no gate, and no `phaseGoal`.\n3. **Command count updated:** `plugin/src/manifest.test.ts` expected command list includes `adv-coordinate` and count is 29.\n4. **Docs synchronized:** README, ADV_INSTRUCTIONS, SETUP, and `docs/cli-surface-matrix.md` contain the new command with matching description/classification where applicable.\n5. **Spec law updated:** `advance-epics` includes `rq-epicCoordinateCommand01` covering read-first report, advisory order, approval-gated typed mutation, and no new planning primitive.\n6. **Asset tests prove command contract:** Tests assert `/adv-coordinate` uses `adv_epic_list`/`adv_epic_show`, reports ownership/narrative/dependency/sequencing/health findings, and references `adv_epic_update`, `adv_epic_reorder`, and `adv_epic_repair_membership` only as approval-gated actions.\n7. **No direct state edits:** Tests or static checks prove the command does not instruct direct ADV state-file reads/edits.\n8. **No CLI mutation surface:** CLI-surface docs classify `/adv-coordinate` as `agent-workflow-only`, and no `bin/adv` mutation command is added.\n9. **Advisory order preserved:** Command text and tests state Epic order recommendations never block gates, tasks, promotion, or change progress.\n10. **Optional membership preserved:** Command text and tests state Epic membership remains optional and no auto-enrollment occurs.\n11. **Verification passes:** Targeted tests covering manifest/doc drift and Epic command assets pass through `bin/oc-test targeted -- ...` or equivalent repo-approved test route.\n\n## Constraints\n\n- Reuse existing typed Epic tools; do not add a new aggregate coordination MCP tool unless a structural gap is proven.\n- Durable Epic mutation requires explicit approval, current `expected_version` when required, and audit evidence where tool contracts require it.\n- Product-spanning and target-path behavior must follow existing target trust rules.\n- Keep command prose terse and consistent with `docs/command-voice-standard.md`.\n\n## Avoidances\n\n- No mandatory Epic membership.\n- No auto-enrollment of changes into Epics.\n- No hard-blocking based on Epic order.\n- No Jira-like assignments, estimates, sprints, boards, or ownership workflow.\n- No CLI mutation verbs for coordination.\n- No silent durable edits.\n",
+    "problemStatement": "ADV lacks a first-class coordination workflow across active Epics. Multi-Epic projects can drift: narratives go stale, work can be tracked in the wrong Epic, cross-Epic prerequisites stay implicit, advisory order can stop matching dependencies, and membership projections can become unhealthy. Today ADV handles this ad hoc. The desired outcome is a read-first `/adv-coordinate` command that inventories Epics, reports alignment/sequencing/health findings, and applies durable Epic updates only after explicit user approval.",
+    "design": "# Design\n\n## Architecture Overview\n\nAdd `/adv-coordinate` as an agent-workflow command over existing Epic tools. The command remains a Markdown workflow contract under `.opencode/command/`, registered in `COMMAND_MANIFEST`, documented in command tables, and covered by asset/drift tests. It does not add a new MCP tool, Temporal workflow, persistent coordination state, or CLI mutation verb.\n\nRuntime behavior is read-first:\n\n1. Inventory active Epics with `adv_epic_list` and `adv_epic_show view:\"full\"`.\n2. Analyze alignment, narrative accuracy, cross-Epic dependencies, advisory sequencing, capstone placement, and membership health.\n3. Present a coordination report.\n4. Apply durable Epic actions only after explicit approval, using existing typed tools.\n\nDurable actions reuse existing structural safeguards:\n\n- `adv_epic_update` for title/narrative updates with `expected_version`.\n- `adv_epic_reorder` for advisory order changes with `expected_version`.\n- `adv_epic_repair_membership` for projection repair with `evidence`, `dryRun`, and target-path trust support.\n\n## Key Decisions\n\n### D1 — Command workflow, not new tool\n\nUse `.opencode/command/adv-coordinate.md` plus manifest/docs/tests. Coordination involves judgment, report synthesis, and HITL approval, matching existing command workflows such as `/adv-cleanup` and `/adv-epic`. A new MCP tool would duplicate authority already owned by typed Epic tools.\n\n### D2 — Manifest entry shape\n\nAdd `adv-coordinate` to `plugin/src/manifest.ts`:\n\n- `phase: \"advanced\"`\n- `requiresChangeId: false`\n- `prerequisites: []`\n- `successors: []`\n- no `gate`\n- no `phaseGoal`\n- scope reads `specs`, `epics`, and `changes`; modifies remains empty because durable mutation authority is approval-gated through typed tools.\n\nDescription: `Audit Epic alignment, sequencing, and membership health`.\n\nAdd `Audit` to the strong-verb allowlist in `plugin/src/manifest.test.ts`.\n\n### D3 — Command contract skeleton\n\nModel `.opencode/command/adv-coordinate.md` on `/adv-cleanup`:\n\n- Command Boundary: produces report + approved action results; Gate: None.\n- Default mode: read-only/report-first.\n- Phases: parse arguments, inventory, alignment audit, sequencing audit, health audit, present report, approval, apply approved actions.\n- Durable actions require explicit approval; no LLM fallback for mutation approval.\n- Stale `expected_version` forces re-read and re-present.\n\n### D4 — Spec-law update\n\nAdd `rq-epicCoordinateCommand01` to `.adv/specs/advance-epics/spec.json` and mirror in `docs/specs/advance-epics.md`. Bump `advance-epics` version from `1.4.0` to `1.5.0`.\n\n### D5 — Test strategy\n\nUse existing structural tests:\n\n- `plugin/src/manifest.test.ts`: add `adv-coordinate`, update count to 29, add `Audit` strong verb.\n- `plugin/src/manifest-doc-drift.test.ts`: existing command/doc/table drift coverage.\n- `plugin/src/cli-surface-matrix.test.ts`: add `adv-coordinate` as `agent-workflow-only`.\n- `plugin/src/advance-epics-assets.test.ts`: assert spec ID and command contract snippets.\n\n## Affected Components\n\n- `.opencode/command/adv-coordinate.md`\n- `plugin/src/manifest.ts`\n- `plugin/src/manifest.test.ts`\n- `plugin/src/advance-epics-assets.test.ts`\n- `.adv/specs/advance-epics/spec.json`\n- `docs/specs/advance-epics.md`\n- `README.md`\n- `ADV_INSTRUCTIONS.md`\n- `SETUP.md`\n- `docs/cli-surface-matrix.md`\n\n## Design-Derived Criteria\n\n- Command manifest description must be exactly `Audit Epic alignment, sequencing, and membership health` across manifest, command frontmatter, README, and ADV_INSTRUCTIONS drift-tested tables.\n- `Audit` must be accepted by manifest description tests.\n- The command must be `agent-workflow-only` in CLI matrix.\n- Spec mirror and JSON spec must both include `rq-epicCoordinateCommand01`.\n- Targeted verification must include `src/cli-surface-matrix.test.ts`.\n- Command contract must instruct re-read/re-present on stale `expected_version`.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Manifest/doc drift red CI | Update manifest, command frontmatter, README, ADV_INSTRUCTIONS together; rely on drift test. |\n| Missing CLI matrix row | Include `src/cli-surface-matrix.test.ts` and add row. |\n| Spec/document mirror drift | Update JSON spec, docs mirror, and asset tests together. |\n| Hidden mutation semantics | Command text says report-first and typed tools only; tests assert typed tool names and no direct state edits. |\n| Over-scoped coordination engine | Keep v1 as command prompt over existing tools; no new persistent graph/state. |\n\n## Independent Design Validation\n\nValidator result: `VALIDATED`.\n\nCorrection: apply-time evidence changed command count criterion from 28 to 29. User approved correction. Design remains otherwise unchanged.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nDelivered a read-first `/adv-coordinate` workflow command for Epic coordination. The change adds command, manifest, docs, spec-law, and test coverage without adding new MCP tools, Temporal workflows, persistent coordination state, or CLI mutation verbs.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added RED contract tests for `/adv-coordinate` manifest/spec/command surfaces and captured expected failing evidence before implementation.\n2. Updated `advance-epics` spec law with `rq-epicCoordinateCommand01`, version `1.5.0`, and docs mirror coverage.\n3. Added `.opencode/command/adv-coordinate.md` with read-first Epic inventory/audit/report flow and approval-gated typed action phase.\n4. Registered `adv-coordinate` in `COMMAND_MANIFEST`, synchronized README/ADV_INSTRUCTIONS/SETUP/CLI matrix docs, and classified it as `agent-workflow-only`.\n5. Ran final targeted verification and closed the AC6 test gap found during review.\n\n## What Was Verified\n\n- Verdict: APPROVED / READY. Acceptance review found 0 blockers and 0 issues; reviewer added scoped AC6 asset assertions and reran verification.\n- Tests: `bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/advance-epics-assets.test.ts` passed: 4 files, 110 tests.\n- Preview URL: not_applicable — change is command/docs/spec/test workflow work, with no frontend, browser-visible, or visual-output surface.\n- Contract matrix: 21 required rows persisted; 11 acceptance criteria passed; 4 constraints respected; 6 avoidances respected; 0 fail/violated/unknown rows.\n\n## Remaining Concerns\n\n- Full `pnpm run check` not rerun in acceptance; targeted suite passed and matches agreed verification scope.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-27T17:46:06-04:00\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **Command asset exists:** `.opencode/command/adv-coordinate.md` exists with frontmatter name `adv-coordinate`, manifest comment, Command Boundary, read-first phases, report output, and approval-gated apply phase. | pass | Targeted verification passed: `bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/advance-epics-assets.test.ts` (110 tests). `advance-epics-assets.test.ts` asserts `.opencode/command/adv-coordinate.md` frontmatter, manifest comment, command boundary, read-first phases, report output, approval-gated apply phase. |\n| AC2 | acceptance_criterion | **Manifest registered:** `plugin/src/manifest.ts` contains `adv-coordinate` with description `Audit Epic alignment, sequencing, and membership health`, `requiresChangeId: false`, no gate, and no `phaseGoal`. | pass | Targeted verification passed (110 tests). `manifest.test.ts` covers `adv-coordinate` manifest registration: description `Audit Epic alignment, sequencing, and membership health`, no gate, `requiresChangeId: false`, and no `phaseGoal`. |\n| AC3 | acceptance_criterion | **Command count updated:** `plugin/src/manifest.test.ts` expected command list includes `adv-coordinate` and count is 29. | pass | Targeted verification passed (110 tests). `manifest.test.ts` expected command list includes `adv-coordinate` and corrected count 29. Correction from 28 to 29 was user-approved after source evidence. |\n| AC4 | acceptance_criterion | **Docs synchronized:** README, ADV_INSTRUCTIONS, SETUP, and `docs/cli-surface-matrix.md` contain the new command with matching description/classification where applicable. | pass | Targeted verification passed (110 tests). `manifest-doc-drift.test.ts` validates command/docs synchronization; docs touched: README, ADV_INSTRUCTIONS, SETUP, docs/cli-surface-matrix.md. |\n| AC5 | acceptance_criterion | **Spec law updated:** `advance-epics` includes `rq-epicCoordinateCommand01` covering read-first report, advisory order, approval-gated typed mutation, and no new planning primitive. | pass | Targeted verification passed (110 tests). Spec task added `rq-epicCoordinateCommand01` to `.adv/specs/advance-epics/spec.json`, mirrored in `docs/specs/advance-epics.md`, and JSON parse/static check passed. |\n| AC6 | acceptance_criterion | **Asset tests prove command contract:** Tests assert `/adv-coordinate` uses `adv_epic_list`/`adv_epic_show`, reports ownership/narrative/dependency/sequencing/health findings, and references `adv_epic_update`, `adv_epic_reorder`, and `adv_epic_repair_membership` only as approval-gated actions. | pass | Targeted verification passed (110 tests). Reviewer fixed scoped test gap by adding explicit AC6 assertions for ownership, narrative, dependency, sequencing/health/capstone report dimensions and approval-gated typed action references. |\n| AC7 | acceptance_criterion | **No direct state edits:** Tests or static checks prove the command does not instruct direct ADV state-file reads/edits. | pass | Targeted verification passed (110 tests). Asset tests assert command does not instruct direct ADV state-file reads/edits; review found no direct state-file access guidance. |\n| AC8 | acceptance_criterion | **No CLI mutation surface:** CLI-surface docs classify `/adv-coordinate` as `agent-workflow-only`, and no `bin/adv` mutation command is added. | pass | Targeted verification passed (110 tests). CLI-surface matrix classifies `/adv-coordinate` as `agent-workflow-only`; no `bin/adv` mutation verb was added. |\n| AC9 | acceptance_criterion | **Advisory order preserved:** Command text and tests state Epic order recommendations never block gates, tasks, promotion, or change progress. | pass | Targeted verification passed (110 tests). Command text and asset tests state Epic order recommendations are advisory and never block gates, tasks, promotion, or change progress. |\n| AC10 | acceptance_criterion | **Optional membership preserved:** Command text and tests state Epic membership remains optional and no auto-enrollment occurs. | pass | Targeted verification passed (110 tests). Command text and asset tests state Epic membership remains optional and no auto-enrollment occurs. |\n| AC11 | acceptance_criterion | **Verification passes:** Targeted tests covering manifest/doc drift and Epic command assets pass through `bin/oc-test targeted -- ...` or equivalent repo-approved test route. | pass | Final targeted verification passed: `bin/oc-test targeted -- src/manifest.test.ts src/manifest-doc-drift.test.ts src/cli-surface-matrix.test.ts src/advance-epics-assets.test.ts` (4 files, 110 tests). Reviewer reran same suite after adding AC6 assertions; still passed. |\n| C1 | constraint | Reuse existing typed Epic tools; do not add a new aggregate coordination MCP tool unless a structural gap is proven. | respected | Review verified implementation is command asset + manifest/docs/tests only. No new aggregate MCP tool, Temporal workflow, or persistent coordination state added; durable actions reuse `adv_epic_*` tools. |\n| C2 | constraint | Durable Epic mutation requires explicit approval, current `expected_version` when required, and audit evidence where tool contracts require it. | respected | Command contract requires explicit approval before durable actions, uses `expected_version` for update/reorder, and includes evidence requirements for typed repair/update operations. Asset tests assert approval-gated action references. |\n| C3 | constraint | Product-spanning and target-path behavior must follow existing target trust rules. | respected | Command contract preserves target-path trust by routing cross-project/product-spanning actions through existing typed Epic tools and their target confirmation/evidence rules; no bypass path introduced. |\n| C4 | constraint | Keep command prose terse and consistent with `docs/command-voice-standard.md`. | respected | Docs and command prose updated in terse command style; manifest/doc drift coverage passed. Reviewer reported READY with no blocking prose/style findings. |\n| DONT1 | avoidance | No mandatory Epic membership. | respected | Reviewer verdict READY. Command text/tests state Epic membership remains optional; no mandatory membership language added. |\n| DONT2 | avoidance | No auto-enrollment of changes into Epics. | respected | Reviewer verdict READY. Command text/tests state no auto-enrollment; no tool or workflow was added to auto-link changes to Epics. |\n| DONT3 | avoidance | No hard-blocking based on Epic order. | respected | Reviewer verdict READY. Command text/tests state advisory order recommendations never block gates, tasks, promotion, or change progress. |\n| DONT4 | avoidance | No Jira-like assignments, estimates, sprints, boards, or ownership workflow. | respected | Reviewer verdict READY. Command adds Epic coordination report/action workflow only; no assignments, estimates, sprints, boards, or ownership workflow were added. |\n| DONT5 | avoidance | No CLI mutation verbs for coordination. | respected | Reviewer verdict READY and CLI matrix test passed. `/adv-coordinate` is `agent-workflow-only`; no `bin/adv` mutation command added. |\n| DONT6 | avoidance | No silent durable edits. | respected | Reviewer verdict READY. Command requires explicit approval before durable edits and routes them through typed tools with evidence/version fields; no silent durable edit path introduced. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-27T20:54:40.607Z",
+      "contentHash": "b0b05b6fd520b4d0473e336bf4903959e33b086a3538c8919922eeb8eede5e38",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-27T21:34:32.716Z",
+      "contentHash": "33a944d7f59503ad99f13e4715822915d5716e6fc199db396c1bc3d1ded57613",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-27T20:45:24.419Z",
+      "contentHash": "422106e64fc48389452422eed869f89c1f3524336d9f9f75e8951309d2193861",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-27T21:34:32.716Z",
+      "contentHash": "c34dde38a08c2af570d8946a2e2819967079e0abe0e625ebc4f180289d7eefbe",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-27T21:47:35.636Z",
+      "contentHash": "bb6be7e62321831fdc5ba0620646e5dfa3ee4fa94074357b8cfe9796f2ce8859",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-27T22:52:50.834Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-06-27T20:40:55.245Z",
+      "resolved": true,
+      "resolved_at": "2026-06-27T20:48:10.848Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-27T20:48:10.848Z"
+    }
+  ]
+}

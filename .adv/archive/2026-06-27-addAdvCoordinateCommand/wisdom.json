@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-EUOH_i",
+      "type": "gotcha",
+      "content": "Manifest command count was already stale relative to wording: before adding adv-coordinate, COMMAND_MANIFEST had 28 entries while manifest.test.ts label/count expected 27. When adding a command, verify actual Object.keys(COMMAND_MANIFEST).length before hardcoding count-based AC/tests; be ready to correct approved criteria if source evidence contradicts discovery assumptions.",
+      "source_task": "tk-68586c037c92",
+      "recorded_at": "2026-06-27T21:37:24.196Z"
+    }
+  ],
+  "count": 1
+}
