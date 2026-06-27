@@ -733,6 +733,60 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 
 ---
 
+### Release Repair Recovery Requires Typed Audited Projection
+
+**ID:** `rq-releaseRepairRecovery01` | **Priority:** **[MUST]**
+
+Release-repair recovery for completed or poisoned change workflows MUST be explicit, typed, audited, and invariant-preserving. A recovery-capable release-repair tool MAY write the disk projection only when normal workflow signaling cannot record the missing release-repair state and the caller provides precise completed-workflow or poisoned-history evidence plus a non-empty recovery reason. Recovery MUST record only the missing typed state through an audited recovery writer, MUST return explicit recovery metadata or a reconciliation warning, and MUST preserve normal active-workflow signal/readiness behavior. Blank, imprecise, or generic signal failures MUST fail closed without projection mutation. No release-repair recovery path may weaken design-quality blockers, release finalization proof, archive status proof, target-project trust, or accepted disposition vocabularies.
+
+**Tags:** `workflow`, `release`, `repair`, `recovery`, `audit`
+
+#### Scenarios
+
+**Completed or poisoned workflow recovery records typed audited state** (`rq-releaseRepairRecovery01.1`)
+
+**Given:**
+- A release-repair tool must record missing typed state for a change workflow
+- Normal workflow signaling fails because the workflow is completed or poisoned
+- The caller provides precise completed-workflow or poisoned-history evidence and a non-empty recovery reason
+
+**When:** The recovery-capable release-repair tool runs in explicit recovery mode
+
+**Then:**
+- The tool writes only the missing typed release-repair state through an audited recovery writer
+- The write records recovery reason, evidence, and recovery timestamp with the repaired state
+- The response includes explicit recovery metadata or a reconciliation warning
+- Normal active-workflow signal and readiness behavior remains unchanged
+
+**Generic or imprecise recovery evidence fails closed** (`rq-releaseRepairRecovery01.2`)
+
+**Given:**
+- A release-repair tool receives a generic signal failure, blank recovery reason, blank recovery evidence, or imprecise recovery evidence
+- Completed-workflow or poisoned-history evidence has not been structurally established
+
+**When:** The tool evaluates whether to run disk-projection recovery
+
+**Then:**
+- No disk projection mutation occurs
+- The tool returns an error or propagates the original signal failure
+- The response does not report successful recovery
+
+**Release repair recovery preserves structural blockers** (`rq-releaseRepairRecovery01.3`)
+
+**Given:**
+- A release-repair recovery path is requested
+- A design-quality blocker, release-finalization proof, archive status proof, target-project trust check, or typed disposition vocabulary would be bypassed by the requested mutation
+
+**When:** The recovery path evaluates invariants
+
+**Then:**
+- The blocker or invariant remains enforced
+- The tool does not introduce accepted-debt disposition semantics
+- The tool does not treat untrusted target-project mutation as approved
+- Recovery records missing state only after the same structural invariant is satisfied
+
+---
+
 ### Archive Deploy and Reflection Visibility Without Noise
 
 **ID:** `rq-archiveVisibility01` | **Priority:** **[MUST]**

@@ -676,6 +676,60 @@
       ]
     },
     {
+      "id": "rq-releaseRepairRecovery01",
+      "title": "Release Repair Recovery Requires Typed Audited Projection",
+      "body": "Release-repair recovery for completed or poisoned change workflows MUST be explicit, typed, audited, and invariant-preserving. A recovery-capable release-repair tool MAY write the disk projection only when normal workflow signaling cannot record the missing release-repair state and the caller provides precise completed-workflow or poisoned-history evidence plus a non-empty recovery reason. Recovery MUST record only the missing typed state through an audited recovery writer, MUST return explicit recovery metadata or a reconciliation warning, and MUST preserve normal active-workflow signal/readiness behavior. Blank, imprecise, or generic signal failures MUST fail closed without projection mutation. No release-repair recovery path may weaken design-quality blockers, release finalization proof, archive status proof, target-project trust, or accepted disposition vocabularies.",
+      "priority": "must",
+      "tags": ["workflow", "release", "repair", "recovery", "audit"],
+      "scenarios": [
+        {
+          "id": "rq-releaseRepairRecovery01.1",
+          "title": "Completed or poisoned workflow recovery records typed audited state",
+          "given": [
+            "A release-repair tool must record missing typed state for a change workflow",
+            "Normal workflow signaling fails because the workflow is completed or poisoned",
+            "The caller provides precise completed-workflow or poisoned-history evidence and a non-empty recovery reason"
+          ],
+          "when": "The recovery-capable release-repair tool runs in explicit recovery mode",
+          "then": [
+            "The tool writes only the missing typed release-repair state through an audited recovery writer",
+            "The write records recovery reason, evidence, and recovery timestamp with the repaired state",
+            "The response includes explicit recovery metadata or a reconciliation warning",
+            "Normal active-workflow signal and readiness behavior remains unchanged"
+          ]
+        },
+        {
+          "id": "rq-releaseRepairRecovery01.2",
+          "title": "Generic or imprecise recovery evidence fails closed",
+          "given": [
+            "A release-repair tool receives a generic signal failure, blank recovery reason, blank recovery evidence, or imprecise recovery evidence",
+            "Completed-workflow or poisoned-history evidence has not been structurally established"
+          ],
+          "when": "The tool evaluates whether to run disk-projection recovery",
+          "then": [
+            "No disk projection mutation occurs",
+            "The tool returns an error or propagates the original signal failure",
+            "The response does not report successful recovery"
+          ]
+        },
+        {
+          "id": "rq-releaseRepairRecovery01.3",
+          "title": "Release repair recovery preserves structural blockers",
+          "given": [
+            "A release-repair recovery path is requested",
+            "A design-quality blocker, release-finalization proof, archive status proof, target-project trust check, or typed disposition vocabulary would be bypassed by the requested mutation"
+          ],
+          "when": "The recovery path evaluates invariants",
+          "then": [
+            "The blocker or invariant remains enforced",
+            "The tool does not introduce accepted-debt disposition semantics",
+            "The tool does not treat untrusted target-project mutation as approved",
+            "Recovery records missing state only after the same structural invariant is satisfied"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-archiveVisibility01",
       "title": "Archive Deploy and Reflection Visibility Without Noise",
       "body": "/adv-archive terminal output MUST keep deploy and reflection status visible and prominent while treating deploy/reflection failures as nonblocking advisories unless they reveal a structural release-safety failure already governed by contract proof, conformance, merge reachability, push safety, release projection durability, or dirty-main safety checks. /adv-reflect MUST provide an archive-visible summary and rerun guidance. This policy MUST NOT absorb separate active-change scope such as archive cleanup scanner behavior or first-class executive-summary ownership; those remain coordinated boundaries, not duplicate implementation in this slice.",
