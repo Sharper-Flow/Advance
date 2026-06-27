@@ -186,6 +186,11 @@ describe("adv_design_concern_disposition", () => {
 
     expect(output.success).toBe(true);
     expect(output._recoveryMutation).toBe(true);
+    expect(output.recovered).toBe(true);
+    expect(output.recoveryMode).toBe("poisoned_history");
+    expect(output.reconciliationWarning).toContain(
+      "Poisoned-history recovery wrote the disk projection only",
+    );
     expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledWith({
       store,
       change: expect.objectContaining({ id: "change-1" }),
@@ -241,6 +246,25 @@ describe("adv_design_concern_disposition", () => {
     );
 
     expect(output.error).toContain("precise poisoned-history");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("requires recovery reason before recovery", async () => {
+    const store = storeFor(change());
+    const output = parse(
+      await designConcernTools.adv_design_concern_disposition.execute(
+        {
+          ...validArgs,
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+          recoveryReason: "   ",
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("requires recoveryReason");
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 });

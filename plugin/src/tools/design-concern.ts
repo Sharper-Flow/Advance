@@ -177,6 +177,8 @@ async function executeDisposition(
           changeId: args.changeId,
           disposition,
           _recoveryMutation: true,
+          recovered: true,
+          recoveryMode: args.recoveryMode,
           reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
           ...proj,
         });
