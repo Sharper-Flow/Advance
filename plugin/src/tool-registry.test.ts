@@ -413,6 +413,12 @@ describe("adv_snapshot_health registration", () => {
   test("includes adv_snapshot_health in ADV_TOOL_NAMES", () => {
     expect(ADV_TOOL_NAMES).toContain("adv_snapshot_health");
   });
+
+  test("registers adv_reflection_list in createToolMap and ADV_TOOL_NAMES", async () => {
+    const map = createToolMap(store, tempDir, store.paths.agenda);
+    expect(map.adv_reflection_list).toBeDefined();
+    expect(ADV_TOOL_NAMES).toContain("adv_reflection_list");
+  });
 });
 
 describe("safeExecute timeout overrides for slow-subprocess tools", () => {

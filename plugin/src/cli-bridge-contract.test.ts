@@ -182,6 +182,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_temporal_reconnect",
       "adv_temporal_worker_restart",
       "adv_task_checkpoint",
+      "adv_reflection_list",
       "adv_reflect",
       "adv_conformance",
       "adv_worktree_create",

@@ -155,6 +155,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_run_test: (args) => execute(`Run test${suffix(args, "command")}`),
   adv_task_checkpoint: (args) =>
     execute(`Checkpoint task${suffix(args, "taskId")}`),
+  adv_reflection_list: (args) =>
+    read(`List reflections${suffix(args, "changeId", "target_path")}`),
   adv_reflect: (args) => write(`Reflect on change${suffix(args, "changeId")}`),
   adv_conformance: (args) =>
     operator(`Run conformance${suffix(args, "action")}`),

@@ -685,6 +685,11 @@ export function createToolMap(
     ),
 
     // Reflection Tool
+    adv_reflection_list: bindTool(
+      reflectionTools.adv_reflection_list,
+      "adv_reflection_list",
+      store,
+    ),
     adv_reflect: bindTool(reflectionTools.adv_reflect, "adv_reflect", store),
 
     // Conformance Tool — adv_conformance takes (args, store).
@@ -898,6 +903,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_temporal_reconnect",
   "adv_temporal_worker_restart",
   "adv_task_checkpoint",
+  "adv_reflection_list",
   "adv_reflect",
   "adv_conformance",
   "adv_worktree_create",
