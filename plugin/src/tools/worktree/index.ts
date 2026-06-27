@@ -2303,7 +2303,10 @@ async function resolveEffectiveWorktreeMode(
 // =============================================================================
 
 /** Default timeout for each pending-delete item during cleanup (ms). */
-const DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS = 30_000;
+const DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS = 7_500;
+
+/** Minimum budget needed before starting a mutating delete attempt. */
+const MIN_PENDING_DELETE_START_BUDGET_MS = 500;
 
 export interface AdvWorktreeCleanupDeps {
   projectRoot: string;
@@ -2500,6 +2503,19 @@ export async function drainPendingDeletes(
     const deleteFn = options.deleteWorktree ?? advWorktreeDelete;
     const timeoutMs =
       options.cleanupItemTimeoutMs ?? DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS;
+    if (timeoutMs < MIN_PENDING_DELETE_START_BUDGET_MS) {
+      deps.log.warn(
+        `[worktree] Pending delete for ${branch} skipped during ${trigger} — remaining cleanup budget ${timeoutMs}ms is below destructive-operation minimum ${MIN_PENDING_DELETE_START_BUDGET_MS}ms`,
+      );
+      await recordPendingDeleteFailure(
+        deps.database,
+        branch,
+        "TIME_BUDGET_EXHAUSTED",
+        "time_budget_exhausted",
+      );
+      retained++;
+      continue;
+    }
     const deletePromise = deleteFn(
       branch,
       { force: false },

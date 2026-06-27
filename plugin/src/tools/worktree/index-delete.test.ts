@@ -1150,7 +1150,7 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     ]);
   });
 
-  it("retains timed-out pending deletes and continues to later items", async () => {
+  it("retains pending deletes without starting mutation when cleanup budget is too small", async () => {
     const firstBranch = "change/timeout-first";
     const secondBranch = "change/timeout-second";
     const firstPath = join(repoRoot, "worktrees", "change", "timeout-first");
@@ -1161,16 +1161,11 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     await setPendingDelete(deps.database, firstBranch, firstPath, "timeout");
     await setPendingDelete(deps.database, secondBranch, secondPath, "second");
 
-    let callCount = 0;
-    const deleteWorktree = vi.fn(async () => {
-      callCount++;
-      if (callCount === 1) {
-        return new Promise(() => {
-          /* intentionally never resolves */
-        });
-      }
-      return { ok: true as const, branch: secondBranch, path: secondPath };
-    });
+    const deleteWorktree = vi.fn(async () => ({
+      ok: true as const,
+      branch: secondBranch,
+      path: secondPath,
+    }));
 
     const result = await drainPendingDeletes("worktree_cleanup", deps, {
       forceAttempts: true,
@@ -1178,14 +1173,20 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
       deleteWorktree,
     });
 
-    expect(result).toEqual({ removed: 1, retained: 1 });
-    expect(deleteWorktree).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ removed: 0, retained: 2 });
+    expect(deleteWorktree).not.toHaveBeenCalled();
     await expect(getPendingDeletes(deps.database)).resolves.toEqual([
       expect.objectContaining({
         branch: firstBranch,
         attempts: 1,
-        lastError: "TIMEOUT",
-        lastErrorClass: "timeout",
+        lastError: "TIME_BUDGET_EXHAUSTED",
+        lastErrorClass: "time_budget_exhausted",
+      }),
+      expect.objectContaining({
+        branch: secondBranch,
+        attempts: 1,
+        lastError: "TIME_BUDGET_EXHAUSTED",
+        lastErrorClass: "time_budget_exhausted",
       }),
     ]);
   });
@@ -1211,7 +1212,7 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
   // rq-worktreeBoundedCleanup02 AC3/DONT2: after timeout, the pending
   // delete must be retained — no late background mutation clearing state
   // after the tool has already reported the timeout to the agent.
-  it("retains a timed-out pending delete even when the late delete succeeds (no late mutation)", async () => {
+  it("retains a low-budget pending delete without starting late mutation", async () => {
     const branch = "change/late";
     const pendingPath = join(repoRoot, "worktrees", "change", "late");
     mkdirSync(pendingPath, { recursive: true });
@@ -1235,6 +1236,7 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     });
 
     expect(result).toEqual({ removed: 0, retained: 1 });
+    expect(deleteWorktree).not.toHaveBeenCalled();
 
     // Wait a bit for any late-resolution to occur (it should NOT)
     await new Promise((resolve) => setTimeout(resolve, 200));

@@ -48,6 +48,13 @@ import {
  */
 export const WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8_000;
 
+/** Reserve time for formatting and SDK handoff before the 10s tool ceiling. */
+const WORKTREE_TOOL_RETURN_RESERVE_MS = 500;
+
+function cleanupItemTimeoutForToolBudget(effectiveTimeoutMs: number): number {
+  return Math.max(1, effectiveTimeoutMs - WORKTREE_TOOL_RETURN_RESERVE_MS);
+}
+
 /**
  * Clamp a caller-supplied timeout to the safe tool budget.
  *
@@ -240,6 +247,7 @@ async function executeWorktreeCleanup(
     dryRun: args.dryRun,
     store,
     warpDeps,
+    cleanupItemTimeoutMs: cleanupItemTimeoutForToolBudget(effectiveTimeoutMs),
   });
 
   let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
