@@ -105,4 +105,20 @@ describe("createProbeCache", () => {
       "Probe cache fetch failed for cold-probe[cold]: network down",
     );
   });
+
+  test("bounds cold non-cancellable probe timeout without cached authority", async () => {
+    const cache = createProbeCache<number>({
+      name: "non-cancellable-probe",
+      ttlMs: 1_000,
+      timeoutMs: 5,
+      fetch: async () => {
+        await new Promise(() => undefined);
+        return 9;
+      },
+    });
+
+    await expect(cache.fetch("cold")).rejects.toThrow(
+      "Probe cache fetch failed for non-cancellable-probe[cold]",
+    );
+  });
 });

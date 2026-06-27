@@ -318,34 +318,49 @@ export function buildTemporalWorkerProcessSpec(input: {
 async function canReachAddress(
   address: string,
   timeoutMs = 500,
+  options: { signal?: AbortSignal } = {},
 ): Promise<boolean> {
   const [host, port] = splitAddress(address);
   return await new Promise<boolean>((resolve) => {
+    if (options.signal?.aborted) {
+      resolve(false);
+      return;
+    }
+
     const socket = net.createConnection({ host, port: Number(port) });
+    let settled = false;
 
     const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      options.signal?.removeEventListener("abort", onAbort);
       socket.removeAllListeners();
       socket.destroy();
       resolve(result);
     };
+
+    const onAbort = () => finish(false);
+    const timeout = setTimeout(() => {
+      finish(false);
+    }, timeoutMs);
+    timeout.unref();
 
     socket.unref();
     socket.setTimeout(timeoutMs);
     socket.once("connect", () => finish(true));
     socket.once("timeout", () => finish(false));
     socket.once("error", () => finish(false));
-
-    setTimeout(() => {
-      finish(false);
-    }, timeoutMs).unref();
+    options.signal?.addEventListener("abort", onAbort, { once: true });
   });
 }
 
 export async function canReachTemporalAddress(
   address: string,
   timeoutMs = 250,
+  options: { signal?: AbortSignal } = {},
 ): Promise<boolean> {
-  return canReachAddress(address, timeoutMs);
+  return canReachAddress(address, timeoutMs, options);
 }
 
 export async function waitForTemporalRuntime(

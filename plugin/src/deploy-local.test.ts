@@ -703,6 +703,12 @@ describe("deploy-local.sh", () => {
       const probeCache = parsed.requirements.find(
         (rq) => rq.id === "rq-statusProbeCache01",
       );
+      const statusSummary = parsed.requirements.find(
+        (rq) => rq.id === "rq-statusSummaryLazy01",
+      );
+      const latencyBench = parsed.requirements.find(
+        (rq) => rq.id === "rq-advLatencyBench01",
+      );
 
       expect(
         advConfig?.scenarios
@@ -716,11 +722,30 @@ describe("deploy-local.sh", () => {
       ).toContain("worktree_guard_enforce defaults true");
       expect(probeCache).toBeDefined();
       expect(probeCache?.body).toContain("_freshness");
+      expect(probeCache?.body).toContain("AbortSignal");
       expect(probeCache?.scenarios?.map((s) => s.id)).toEqual(
         expect.arrayContaining([
           "rq-statusProbeCache01.1",
           "rq-statusProbeCache01.2",
+          "rq-statusProbeCache01.3",
         ]),
+      );
+      expect(statusSummary).toBeDefined();
+      expect(statusSummary?.body).toContain("summary-specific read plan");
+      expect(statusSummary?.scenarios?.map((s) => s.id)).toEqual(
+        expect.arrayContaining([
+          "rq-statusSummaryLazy01.1",
+          "rq-statusSummaryLazy01.2",
+          "rq-statusSummaryLazy01.3",
+        ]),
+      );
+      expect(latencyBench).toBeDefined();
+      expect(latencyBench?.body).toContain("p95");
+      expect(latencyBench?.body).toContain(
+        "MUST NOT fabricate a TemporalClientBundle",
+      );
+      expect(latencyBench?.scenarios?.map((s) => s.id)).toContain(
+        "rq-advLatencyBench01.3",
       );
     });
 

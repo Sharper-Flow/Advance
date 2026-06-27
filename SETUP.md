@@ -66,13 +66,13 @@ temporal server start-dev
 
 The default `temporal server start-dev` invocation runs the embedded SQLite
 backend in **ephemeral mode** — when you stop the server, its database is
-discarded. ADV registers custom search attributes (`AdvProjectId`,
-`AdvChangeId`, `AdvChangeStatus`, `AdvActiveGate`, `AdvDoomLoopActive`) on
-each session start; on an ephemeral server those registrations are lost on
-every restart, and partial-failure states can accumulate as wrong-type
-attribute leftovers across sessions. Persisting the dev-server SQLite file
-keeps the registrations stable across restarts and avoids re-registration
-churn.
+discarded. ADV registers custom search attributes such as `AdvChangeId`,
+`AdvChangeStatus`, `AdvLifecycleState`, `AdvAffectedProjects`, and worktree/
+backlog/Epic Visibility attributes on each session start; on an ephemeral
+server those registrations are lost on every restart, and partial-failure
+states can accumulate as wrong-type attribute leftovers across sessions.
+Persisting the dev-server SQLite file keeps the registrations stable across
+restarts and avoids re-registration churn.
 
 Recommended path (cross-platform):
 

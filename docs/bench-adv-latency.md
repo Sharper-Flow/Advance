@@ -37,9 +37,11 @@ stable substrate.
 
 ### `--mode temporal` (real Temporal worker — opt-in)
 
-The script intentionally refuses to fabricate a Temporal bundle. To run
-the authoritative number, start Temporal locally and invoke the bench
-with the real bundle plumbed in:
+The script intentionally refuses to fabricate a Temporal bundle. `--mode
+temporal` fails closed with remediation text unless a future operator-owned
+wrapper supplies a real `TemporalClientBundle`; it never silently substitutes
+disk numbers. To run the authoritative number, start Temporal locally and
+invoke the bench with the real bundle plumbed in:
 
 ```bash
 systemctl --user status temporal-dev    # confirm dev server alive
@@ -68,9 +70,10 @@ Output is Markdown on stdout and written to `--out` when provided.
 
 - `--repo-root` defaults to `..` relative to `plugin/`. Pass the repo
   root that holds the `.adv/` you want to measure against.
-- `--change-id` must reference a change that exists on disk (the harness
-  uses it for `adv_change_show` and finds a task for the `adv_run_test`
-  samples).
+- `--change-id` is requested first. In isolated disk mode, when the change or
+  a task is missing, the harness creates a synthetic fixture in its temporary
+  `XDG_DATA_HOME` so `adv_change_show` and `adv_run_test` samples exercise real
+  non-error paths.
 - The harness writes its own `XDG_DATA_HOME` temp dir during the run so
   it cannot pollute real ADV state.
 
@@ -78,9 +81,9 @@ Output is Markdown on stdout and written to `--out` when provided.
 
 A Markdown report with two sections:
 
-1. `## Metadata` — repo root, change id, mode, substitute, iterations,
-   warmup, task id used (or note when `adv_run_test` samples were
-   skipped), `ADV_PROFILE` flag.
+1. `## Metadata` — repo root, requested/used change ids, mode, substitute,
+   fixture source, iterations, warmup, task id used, runtime/platform labels,
+   isolated `XDG_DATA_HOME`, Temporal setup label, and `ADV_PROFILE` flag.
 2. `## Operations` — `Operation | Samples | min | p50 | p95 | max | avg`
    table for each timed surface.
 

@@ -89,31 +89,82 @@ function parseArgs(argv: string[]): Args {
   return args;
 }
 
-async function buildStore(mode: BenchMode, repoRoot: string): Promise<Store> {
+async function buildStore(
+  mode: BenchMode,
+  repoRoot: string,
+  externalRoot: string,
+): Promise<Store> {
   if (mode === "temporal") {
-    throw new Error(
-      "[bench] --mode temporal requires a running Temporal worker. " +
-        "Start `temporal server start-dev`, then pipe a real " +
-        "TemporalClientBundle into createStore() yourself. The bench " +
-        "intentionally refuses to fake a Temporal bundle so results are " +
-        "never silently substituted.",
-    );
+    throw temporalModeFailure();
   }
   // Documented disk substitute: same Store interface as the Temporal
   // backend without requiring a live worker. Surfaces under test
   // (adv_status views, adv_change_list, adv_change_show, adv_run_test)
   // exercise the same code paths the agent hits in production.
-  return createDiskStore(repoRoot);
+  return createDiskStore(repoRoot, { externalRoot });
+}
+
+async function ensureBenchmarkFixture(
+  store: Store,
+  changeId: string,
+): Promise<{ changeId: string; taskId: string; source: string }> {
+  // Disk mode runs under an isolated XDG_DATA_HOME, so fixture creation cannot
+  // mutate real ADV state. Ensure adv_change_show and adv_run_test measure real
+  // non-error tool paths instead of silently skipping missing task evidence.
+  try {
+    const existing = await store.changes.get(changeId);
+    if (existing.success && existing.data) {
+      const tasks = await store.tasks.list(changeId);
+      if (tasks.length > 0) {
+        return { changeId, taskId: tasks[0].id, source: "existing" };
+      }
+      const task = await store.tasks.add(
+        changeId,
+        "Latency benchmark fixture",
+        {
+          type: "verification",
+          metadata: { tdd_intent: "not_applicable" },
+        },
+      );
+      return { changeId, taskId: task.id, source: "created_task" };
+    }
+  } catch {
+    /* create an isolated fixture below */
+  }
+
+  const created = await store.changes.create("Add latency benchmark fixture", {
+    artifacts: {
+      proposal: "# Proposal\n\nSynthetic fixture for ADV latency benchmark.",
+    },
+  });
+  const task = await store.tasks.add(
+    created.changeId,
+    "Latency benchmark fixture",
+    {
+      type: "verification",
+      metadata: { tdd_intent: "not_applicable" },
+    },
+  );
+  return {
+    changeId: created.changeId,
+    taskId: task.id,
+    source: "created_change",
+  };
+}
+
+function temporalModeFailure(): Error {
+  return new Error(
+    "[bench] --mode temporal requires a running Temporal worker and a real TemporalClientBundle. " +
+      "Remediation: start `temporal server start-dev`, start the ADV worker, " +
+      "then run an operator-owned wrapper that constructs createStore() with the live bundle. " +
+      "No disk substitute was used.",
+  );
 }
 
 async function maybeCreateDummyTask(
   store: Store,
   changeId: string,
 ): Promise<string | null> {
-  // Try to find an existing task so adv_run_test has a real task to
-  // record against. Bench should not mutate ADV state; if no task is
-  // available, fall back to a synthetic one that the disk store will
-  // accept for read purposes only.
   try {
     const tasks = await store.tasks.list(changeId);
     if (tasks.length > 0) {
@@ -131,13 +182,25 @@ async function main(): Promise<void> {
   const originalXdg = process.env.XDG_DATA_HOME;
   process.env.XDG_DATA_HOME = tempBenchHome;
 
-  const store = await buildStore(args.mode, args.repoRoot);
+  const store = await buildStore(
+    args.mode,
+    args.repoRoot,
+    join(tempBenchHome, "state"),
+  );
   const initStartedAt = performance.now();
   await store.init();
   const initMs = performance.now() - initStartedAt;
 
   try {
-    const taskId = await maybeCreateDummyTask(store, args.changeId);
+    const fixture =
+      args.mode === "disk"
+        ? await ensureBenchmarkFixture(store, args.changeId)
+        : {
+            changeId: args.changeId,
+            taskId: await maybeCreateDummyTask(store, args.changeId),
+            source: "existing",
+          };
+    const taskId = fixture.taskId;
     const operations: LatencyMeasurement[] = [];
 
     operations.push({
@@ -190,7 +253,7 @@ async function main(): Promise<void> {
         "adv_change_show",
         async () => {
           await changeTools.adv_change_show.execute(
-            { changeId: args.changeId },
+            { changeId: fixture.changeId },
             store,
           );
         },
@@ -204,7 +267,7 @@ async function main(): Promise<void> {
         await runTimedSamples(
           "store.tasks.list (disk)",
           async () => {
-            await store.tasks.list(args.changeId);
+            await store.tasks.list(fixture.changeId);
           },
           args.iterations,
           args.warmup,
@@ -254,12 +317,18 @@ async function main(): Promise<void> {
       title: "ADV Latency Report",
       metadata: {
         repo_root: args.repoRoot,
-        change_id: args.changeId,
+        requested_change_id: args.changeId,
+        change_id_used: fixture.changeId,
         iterations: args.iterations,
         warmup: args.warmup,
         mode: args.mode,
         substitute: args.mode === "disk" ? "createDiskStore" : "createStore",
+        fixture_source: fixture.source,
         task_id_used: taskId ?? "(no task — adv_run_test samples skipped)",
+        runtime: `node ${process.version}`,
+        platform: `${process.platform}/${process.arch}`,
+        xdg_data_home_isolated: true,
+        temporal_setup: args.mode === "disk" ? "not_required" : "live_required",
         adv_profile: process.env.ADV_PROFILE === "1",
       },
       operations,

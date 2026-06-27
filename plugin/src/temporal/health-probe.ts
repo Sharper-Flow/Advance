@@ -75,11 +75,12 @@ const POLLER_PROBE_TTL_MS = 30_000;
 
 export async function getTemporalHealth(
   _projectId?: string,
+  options: { signal?: AbortSignal } = {},
 ): Promise<TemporalHealth> {
   const address = getTemporalAddress(process.env);
-  const server_alive = await canReachTemporalAddress(address, 250).catch(
-    () => false,
-  );
+  const server_alive = await canReachTemporalAddress(address, 250, {
+    signal: options.signal,
+  }).catch(() => false);
   const registered_queues = getRegisteredTemporalWorkerQueues();
   const worker_process_alive = getTemporalWorkerAliveness();
   const telemetry = overrideTelemetry ?? getTemporalRetryTelemetry();

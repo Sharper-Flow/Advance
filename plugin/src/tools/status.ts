@@ -197,8 +197,10 @@ const statusTemporalHealthProbeCache = createProbeCache<
   name: "status.temporal_health",
   ttlMs: STATUS_PROBE_TTL_MS,
   timeoutMs: STATUS_PROBE_TIMEOUT_MS,
-  fetch: async (key) =>
-    getTemporalHealth(key === MISSING_PROJECT_ID_CACHE_KEY ? undefined : key),
+  fetch: async (key, { signal }) =>
+    getTemporalHealth(key === MISSING_PROJECT_ID_CACHE_KEY ? undefined : key, {
+      signal,
+    }),
 });
 
 const statusWorktreeCensusProbeCache = createProbeCache<
@@ -208,7 +210,7 @@ const statusWorktreeCensusProbeCache = createProbeCache<
   name: "status.worktree_census",
   ttlMs: STATUS_PROBE_TTL_MS,
   timeoutMs: STATUS_PROBE_TIMEOUT_MS,
-  fetch: async (root) => getWorktreeCensus(root),
+  fetch: async (root, { signal }) => getWorktreeCensus(root, { signal }),
 });
 
 const statusSearchAttributesProbeCache = createProbeCache<
@@ -1032,7 +1034,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         peerSessions: false,
         pluginRuntime: false,
         projectMetadata: false,
-        archivedBranchHygiene: true,
+        archivedBranchHygiene: false,
       };
     case "health":
       return {

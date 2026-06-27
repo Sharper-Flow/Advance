@@ -900,6 +900,19 @@ Vague in-flight work.
       );
     });
 
+    test("status probe fetches forward AbortSignal to cancellable providers", async () => {
+      await statusTools.adv_status.execute({ view: "health" }, store);
+
+      expect(mockGetTemporalHealth).toHaveBeenCalledWith(
+        undefined,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+      expect(mockGetWorktreeCensus).toHaveBeenCalledWith(
+        store.paths.root,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    });
+
     test("does not emit debt recommendation for live-only blank rows", async () => {
       mockScanOpenCodeSessionDebt.mockResolvedValueOnce({
         available: true,
@@ -1525,7 +1538,7 @@ Vague in-flight work.
       });
     });
     describe("archived branch hygiene (KD6)", () => {
-      test("summary view includes recommendation line when archived merged branches detected", async () => {
+      test("summary view skips archived branch hygiene inspection", async () => {
         store.changes.list = vi.fn(async () => ({
           changes: [
             {
@@ -1572,18 +1585,16 @@ Vague in-flight work.
         );
         const parsed = parseToolOutput(result);
 
-        expect(parsed.recommendations).toEqual(
-          expect.arrayContaining([
-            expect.stringMatching(
-              /cleanup-ready: 2 archived-change local branch/,
-            ),
-          ]),
+        expect(store.changes.list).not.toHaveBeenCalledWith(
+          expect.objectContaining({ status: "archived" }),
         );
-        expect(parsed.recommendation_groups).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ kind: "cleanup", total: 1 }),
-          ]),
-        );
+        expect(mockDetectArchivedMergedBranches).not.toHaveBeenCalled();
+        expect(parsed.archived_branch_hygiene).toBeUndefined();
+        expect(
+          (parsed.recommendations as string[] | undefined)?.find((r: string) =>
+            /cleanup-ready:/.test(r),
+          ),
+        ).toBeUndefined();
       });
 
       test("summary view omits recommendation when no archived changes", async () => {

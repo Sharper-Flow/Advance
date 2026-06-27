@@ -31,11 +31,19 @@ export const EPIC_WORKFLOW_NAME = "epicWorkflow";
 export const EPIC_WORKFLOW_PREFIX = "adv/epic/";
 
 export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {
-  projectId: "AdvProjectId",
   changeId: "AdvChangeId",
   changeStatus: "AdvChangeStatus",
-  activeGate: "AdvActiveGate",
-  doomLoop: "AdvDoomLoopActive",
+  lifecycleState: "AdvLifecycleState",
+  changeTitle: "AdvChangeTitle",
+  affectedProjects: "AdvAffectedProjects",
+  currentGate: "AdvCurrentGate",
+  currentBucket: "AdvCurrentBucket",
+  lastSignalAt: "AdvLastSignalAt",
+  createdAt: "AdvCreatedAt",
+  worktreeBranches: "AdvWorktreeBranches",
+  worktreePaths: "AdvWorktreePaths",
+  backlogIssueNumber: "AdvBacklogIssueNumber",
+  epicId: "AdvEpicId",
 } as const;
 
 export const CHANGE_WORKFLOW_QUERY_NAMES = {

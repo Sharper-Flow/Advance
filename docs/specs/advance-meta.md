@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.19.0
-> **Updated:** 2026-06-25
+> **Version:** 1.20.0
+> **Updated:** 2026-06-27
 
 ## Purpose
 
@@ -353,7 +353,7 @@ The default /adv-roadmap slash command must be a thin OpenCode shell-output brid
 
 **ID:** `rq-statusProbeCache01` | **Priority:** **[MUST]**
 
-ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, and optional error. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, or archive decisions.
+ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, and optional error. Probe fetchers that receive an AbortSignal must either forward it into cancellable underlying work or explicitly classify the operation as bounded/non-cancellable at the nearest owned adapter. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, or archive decisions.
 
 **Tags:** `diagnostics`, `temporal`, `cache`, `health`
 
@@ -383,6 +383,64 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 - The stale value may be returned with _freshness.stale=true and an error summary
 - The stale value must not be treated as proof of worker serviceability
 - The stale value must not authorize worker-lock reclaim, restart success, override, unlock, or archive decisions
+
+**Probe timeout bounds underlying work or reports non-cancellable classification** (`rq-statusProbeCache01.3`)
+
+**Given:**
+- A cached status probe fetch receives an AbortSignal from the probe cache timeout path
+
+**When:** The probe implementation invokes its underlying operation
+
+**Then:**
+- The AbortSignal is forwarded into cancellable underlying work when the underlying operation accepts cancellation
+- Non-cancellable operations are explicitly bounded elsewhere or classified as non-cancellable diagnostic work
+- Non-cancellable expensive probes are not required for adv_status view: "summary" unless independently bounded and covered by tests
+
+---
+
+### Lean adv_status Summary Execution
+
+**ID:** `rq-statusSummaryLazy01` | **Priority:** **[MUST]**
+
+adv_status view: "summary" must execute a summary-specific read plan instead of paying for health/hygiene-only diagnostics and cleanup work before projection. The summary plan must preserve active/recent orientation, bounded recommendations, and explicit degraded/freshness markers. Detailed health, hygiene, archived/closed leak archaeology, snapshot-health scanning, worktree cleanup retry/discovery, and similar expensive diagnostics belong in explicit health/hygiene views or dedicated tools unless proven bounded and required for summary orientation. Summary/cache/Visibility data must not authorize gate completion, archive, recovery, repair, task mutation, contract proof, unlock, override, or other safety-critical decisions.
+
+**Tags:** `status`, `latency`, `diagnostics`
+
+#### Scenarios
+
+**Summary skips health and hygiene-only providers by default** (`rq-statusSummaryLazy01.1`)
+
+**Given:**
+- adv_status is called with view: "summary"
+
+**When:** The status read plan executes
+
+**Then:**
+- Snapshot-health scanning, archived/closed leak archaeology, and worktree cleanup retry/discovery are not executed by the default summary plan
+- The response still includes active/recent orientation, bounded recommendations, and any degraded/freshness markers for data that was actually consulted
+- The response points operators to view: "health" or view: "hygiene" for omitted diagnostic detail
+
+**Detailed views retain diagnostics omitted by summary** (`rq-statusSummaryLazy01.2`)
+
+**Given:**
+- adv_status is called with view: "health" or view: "hygiene"
+
+**When:** The status read plan executes
+
+**Then:**
+- Detailed diagnostics that were omitted from summary remain available in the appropriate explicit view
+- Existing freshness metadata and legacy health fields remain present for consumers of detailed views
+
+**Summary projections remain advisory** (`rq-statusSummaryLazy01.3`)
+
+**Given:**
+- adv_status view: "summary" uses summary, cached, or Visibility-derived data
+
+**When:** A safety-critical mutation, gate, archive, recovery, repair, unlock, override, or contract proof decision is evaluated
+
+**Then:**
+- The decision does not rely on the summary projection as authority
+- Authoritative workflow state is queried through the owning full-state path
 
 ---
 
@@ -2017,7 +2075,7 @@ ADV tool execution MUST record duration telemetry to an in-memory rollup surface
 
 **ID:** `rq-advLatencyBench01` | **Priority:** **[MUST]**
 
-`plugin/scripts/bench-adv-latency.ts` MUST initialize under the Temporal-only store contract. Default mode (`--mode disk`) MUST use a documented isolated substitute backed by `createDiskStore` so the harness runs without a live Temporal worker; samples MUST include `adv_status view: "summary"`, `adv_status view: "health"`, `adv_change_list`, `adv_change_show`, a disk-store task list fallback, and `adv_run_test` echo/no-op. `--mode temporal` MUST refuse to fabricate a TemporalClientBundle so manual operators cannot silently confuse substitute and authoritative numbers. The bench MUST document command, fixture shape, and output location.
+`plugin/scripts/bench-adv-latency.ts` MUST initialize under the Temporal-only store contract. Default mode (`--mode disk`) MUST use a documented isolated substitute backed by `createDiskStore` so the harness runs without a live Temporal worker; samples MUST include `adv_status view: "summary"`, `adv_status view: "health"`, `adv_change_list`, `adv_change_show`, a disk-store task list fallback, and `adv_run_test` echo/no-op. `--mode temporal` MUST require a real Temporal-backed setup or fail closed with remediation; it MUST NOT fabricate a TemporalClientBundle or silently substitute disk numbers. Every report MUST label mode and runtime context and include operation name, iterations, warmup, min, p50, p95, max, and avg so disk-substitute results cannot be confused with live Temporal latency evidence.
 
 **Tags:** `benchmark`, `latency`
 
@@ -2044,6 +2102,19 @@ ADV tool execution MUST record duration telemetry to an in-memory rollup surface
 
 **Then:**
 - The script exits non-zero with an explicit refusal message
+- The script does not emit disk-substitute measurements under a temporal-mode label
+
+**Reports label mode and latency statistics** (`rq-advLatencyBench01.3`)
+
+**Given:**
+- A latency benchmark run completes in disk or temporal mode
+
+**When:** The report is rendered
+
+**Then:**
+- The report includes mode, runtime context, change id, iterations, and warmup metadata
+- Each operation row includes min, p50, p95, max, and avg statistics
+- Disk-substitute measurements are not compared against live Temporal thresholds
 
 ---
 
@@ -2084,7 +2155,7 @@ Project-scope Visibility queries used by ADV listing paths MUST filter on a regi
 
 **ID:** `rq-advRunTestLatency01` | **Priority:** **[MUST]**
 
-`adv_run_test` latency improvements MUST preserve the existing tool contract: task validation, shell-command execution semantics, timeout/max-buffer classification, exit-code reporting, and output shaping. Every invocation MUST execute the supplied command fresh; the tool MUST NOT cache, skip, or fabricate command results. The public result contract MUST include typed fields `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, `executionMode`, and compact `evidence.schema_version='adv_run_test.v1'` while legacy fields remain available. Telemetry MUST record duration for substeps `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping` so operators can diagnose hot-path overhead without changing the tool contract. Subprocess implementation changes are allowed only when compatibility tests cover shell metacharacters/pipelines/redirects, timeout/kill classification, max-buffer classification, stdout/stderr capture, non-zero exit reporting, and output shaping.
+`adv_run_test` latency improvements MUST preserve the existing tool contract: task validation, shell-command execution semantics, timeout/max-buffer classification, exit-code reporting, and output shaping. Every invocation MUST execute the supplied command fresh; the tool MUST NOT cache, skip, or fabricate command results. The public result contract MUST include typed fields `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, `executionMode`, a typed evidence-recording status, and compact `evidence.schema_version='adv_run_test.v1'` while legacy fields remain available. Telemetry MUST record duration for substeps `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping` so operators can diagnose hot-path overhead without changing the tool contract. Subprocess implementation changes are allowed only when compatibility tests cover shell metacharacters/pipelines/redirects, timeout/kill classification, max-buffer classification, stdout/stderr capture, non-zero exit reporting, and output shaping.
 
 **Tags:** `adv_run_test`, `latency`, `tdd`
 
@@ -2124,6 +2195,19 @@ Project-scope Visibility queries used by ADV listing paths MUST filter on a regi
 - Typed fields include `passed`, `classification`, `durationMs`, `outputBytesSeen`, `outputBytesRetained`, `outputTruncated`, and `executionMode`
 - The compact evidence block uses schema_version `adv_run_test.v1`
 - The legacy fields remain available: `success`, `exitCode`, `output`, `command`, `timedOut`, `maxBufferExceeded`, and `timeoutMs` when applicable
+
+**Evidence recording degradation is explicit and bounded** (`rq-advRunTestLatency01.4`)
+
+**Given:**
+- adv_run_test has completed the supplied shell command
+- The best-effort testRunRecordedSignal cannot be recorded before the bounded recording wait expires or fails
+
+**When:** The tool response is returned
+
+**Then:**
+- The command result fields still report the actual command execution result
+- A typed evidence-recording status reports recorded, degraded, or not_applicable
+- Recording failure is not swallowed silently and does not fabricate a successful durable record
 
 ---
 
