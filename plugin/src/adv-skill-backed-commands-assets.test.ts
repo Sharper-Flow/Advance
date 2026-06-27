@@ -559,18 +559,6 @@ describe("thin-command shape enforcement", () => {
       join(REPO_ROOT, ".opencode/command/adv-review.md"),
       "utf8",
     );
-    const apply = readFileSync(
-      join(REPO_ROOT, ".opencode/command/adv-apply.md"),
-      "utf8",
-    );
-    const reviewer = readFileSync(
-      join(REPO_ROOT, ".opencode/agents/adv-reviewer.md"),
-      "utf8",
-    );
-    const designer = readFileSync(
-      join(REPO_ROOT, ".opencode/agents/adv-designer.md"),
-      "utf8",
-    );
 
     expect(review).toContain("Pre-Acceptance Contract Preflight");
     expect(review).toContain("change.contract");
@@ -638,7 +626,9 @@ describe("thin-command shape enforcement", () => {
     expect(review).toContain("reachability evidence");
     expect(review).toContain("contract.reviewMatrix");
     expect(review).toContain("`live` | `visual_surface: true`");
-    expect(review).toContain("exact-route/state/hydration/viewport/freshness proof");
+    expect(review).toContain(
+      "exact-route/state/hydration/viewport/freshness proof",
+    );
     expect(review).toContain("URL-source-only evidence");
     expect(review).toContain("fixture/mock presented as live");
     expect(review).toContain("stale/error/cached preview");

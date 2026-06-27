@@ -2266,7 +2266,7 @@ export async function advWorktreeDelete(
       "worktree removal",
     );
   }
-  let workspaceCleanupWarning: string | null = null;
+  let workspaceCleanupWarning: string | null;
   try {
     workspaceCleanupWarning = await withTimeout(
       cleanupOpenCodeWorkspaceForWorktree(worktreePath, branch, deps),
