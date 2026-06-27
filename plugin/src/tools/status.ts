@@ -1034,7 +1034,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         peerSessions: false,
         pluginRuntime: false,
         projectMetadata: false,
-        archivedBranchHygiene: true,
+        archivedBranchHygiene: false,
       };
     case "health":
       return {
