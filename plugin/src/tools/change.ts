@@ -4580,11 +4580,13 @@ export const changeTools = {
           change.status = "archived";
           try {
             await store.changes.save(change);
-            const epicProjection = await projectEpicTerminalSummaryAfterArchive({
-              store,
-              change,
-              completedAt: archivedAt,
-            });
+            const epicProjection = await projectEpicTerminalSummaryAfterArchive(
+              {
+                store,
+                change,
+                completedAt: archivedAt,
+              },
+            );
             if (epicProjection.status === "warning") {
               archiveResult.errors.push(
                 `Epic terminal projection warning: failed to update ${epicProjection.epicId}/${epicProjection.entryId}: ${epicProjection.error}`,

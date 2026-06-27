@@ -326,7 +326,9 @@ describe("STATUS LIVE DEFAULT GUARDS (AC8/AC9/AC10)", () => {
       priority: "must",
     });
     expect(requirement?.body).toContain("/api/state");
-    expect(requirement?.body).toContain("per-change `getState` workflow queries");
+    expect(requirement?.body).toContain(
+      "per-change `getState` workflow queries",
+    );
     expect(requirement?.scenarios?.map((s) => s.id)).toEqual([
       "rq-dashboardWorkerFree01.1",
       "rq-dashboardWorkerFree01.2",
