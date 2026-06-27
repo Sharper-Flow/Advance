@@ -547,6 +547,38 @@ describe("Status Tools", () => {
       ).not.toContain("another agent");
     });
 
+    test("recency recommendations emit structural kinds for grouping", async () => {
+      const { _test } = await import("./status");
+      const status = { recommendations: [] as string[] };
+
+      _test.appendRecencyRecommendation(
+        status,
+        {
+          id: "staleChange",
+          title: "Stale change",
+          status: "active",
+          completedTasks: 1,
+          taskCount: 3,
+          lastActivityAt: new Date().toISOString(),
+          minutesSinceActivity: 240,
+        } as any,
+        "staleChange",
+        undefined,
+        "execution",
+      );
+
+      expect(status.recommendations[0]).toContain("Stale change");
+      expect(status.recommendation_items).toEqual([
+        expect.objectContaining({
+          kind: "stale",
+          source: "recency",
+          priority: "medium",
+          changeId: "staleChange",
+          gateId: "execution",
+        }),
+      ]);
+    });
+
     test("suppresses clarify recommendation when all gates complete", async () => {
       // Vague proposal that triggers ≥2 clarify-readiness findings:
       // missing Scope section plus vague/assumption-heavy content.

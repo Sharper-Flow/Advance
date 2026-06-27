@@ -83,6 +83,10 @@ import {
   summarizePendingDeletes,
   type PendingDeleteSummary,
 } from "./worktree/state";
+import {
+  statusRecommendationToString,
+  type StatusRecommendationItem,
+} from "./status-recommendations";
 
 // =============================================================================
 // Health Snapshot Cache
@@ -155,6 +159,27 @@ const STATUS_SUMMARY_RECOMMENDATION_LIMIT = 10;
 interface StatusSummaryOmissions {
   recentChanges: number;
   recommendations: number;
+}
+
+interface StatusRecommendationCarrier {
+  recommendations: string[];
+  recommendation_items?: StatusRecommendationItem[];
+}
+
+type RecommendationTarget = string[] | StatusRecommendationCarrier;
+
+function recommendationArray(target: RecommendationTarget): string[] {
+  return Array.isArray(target) ? target : target.recommendations;
+}
+
+function pushStatusRecommendation(
+  target: RecommendationTarget,
+  item: StatusRecommendationItem,
+): void {
+  recommendationArray(target).push(statusRecommendationToString(item));
+  if (!Array.isArray(target)) {
+    target.recommendation_items = [...(target.recommendation_items ?? []), item];
+  }
 }
 
 const statusTemporalHealthProbeCache = createProbeCache<
@@ -615,7 +640,7 @@ async function getFastFollowParentContext(
 
 async function enrichRecentChangeStatus(
   rc: ChangeRecency,
-  status: { recommendations: string[] },
+  status: StatusRecommendationCarrier,
   store: Store,
   clarifyMode: string,
   isPrimary: boolean,
@@ -672,18 +697,35 @@ async function enrichRecentChangeStatus(
       changeId,
       parentContext,
     );
-    if (rec) status.recommendations.push(rec);
+    if (rec) {
+      const cmds = getCommandsByGate(nextGate as GateId);
+      const cmd = cmds[0];
+      pushStatusRecommendation(status, {
+        kind: "next_gate",
+        priority: nextGate === "release" ? "high" : "medium",
+        changeId,
+        gateId: nextGate as GateId,
+        title: parentContext
+          ? `Change \`${changeId}\` (fast-follow of \`${parentContext}\`)`
+          : `Change \`${changeId}\``,
+        detail: `next gate is \`${nextGate}\``,
+        action: cmd ? `run \`/${cmd.name} ${changeId}\`` : "review gate status",
+        source: "gate",
+        minutesSinceActivity: rc.minutesSinceActivity,
+        message: rec,
+      });
+    }
   }
 
   appendClarifyRecommendation(
-    status.recommendations,
+    status,
     clarifyMode,
     changeResult.data,
     proposalText,
     changeId,
   );
   appendRecencyRecommendation(
-    status.recommendations,
+    status,
     rc,
     changeId,
     undefined,
@@ -692,7 +734,7 @@ async function enrichRecentChangeStatus(
 }
 
 function appendClarifyRecommendation(
-  recommendations: string[],
+  recommendations: RecommendationTarget,
   clarifyMode: string,
   change: Parameters<typeof runClarifyReadinessChecks>[0],
   proposalText: string,
@@ -710,13 +752,21 @@ function appendClarifyRecommendation(
   const clarifyResult = runClarifyReadinessChecks(change, proposalText);
   if (clarifyResult.findings.length === 0) return;
 
-  recommendations.push(
-    `⚠️ Change \`${resolvedChangeId}\` has ${clarifyResult.findings.length} ambiguity finding(s) — run \`/adv-clarify ${resolvedChangeId}\` to resolve`,
-  );
+  const message = `⚠️ Change \`${resolvedChangeId}\` has ${clarifyResult.findings.length} ambiguity finding(s) — run \`/adv-clarify ${resolvedChangeId}\` to resolve`;
+  pushStatusRecommendation(recommendations, {
+    kind: "clarify",
+    priority: "high",
+    changeId: resolvedChangeId,
+    title: `Change \`${resolvedChangeId}\` has ambiguity finding(s)`,
+    detail: `${clarifyResult.findings.length} finding(s)`,
+    action: `run \`/adv-clarify ${resolvedChangeId}\``,
+    source: "clarify",
+    message,
+  });
 }
 
 function appendRecencyRecommendation(
-  recommendations: string[],
+  recommendations: RecommendationTarget,
   rc: ChangeRecency & { workerSessionId?: string },
   changeId: string,
   currentSessionId?: string,
@@ -727,22 +777,44 @@ function appendRecencyRecommendation(
     const hours = Math.floor(minutesSinceActivity / 60);
     const label =
       hours >= 24 ? `${Math.floor(hours / 24)}d ago` : `${hours}h ago`;
-    recommendations.push(
-      nextGate
+    const message = nextGate
         ? `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — resume from listed \`${nextGate}\` gate action`
-        : `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — review current gate status before resuming`,
-    );
+        : `⏰ Stale change \`${changeId}\` (last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done) — review current gate status before resuming`;
+    pushStatusRecommendation(recommendations, {
+      kind: "stale",
+      priority: "medium",
+      changeId,
+      gateId: nextGate,
+      title: `Stale change \`${changeId}\``,
+      detail: `last activity ${label}, ${rc.completedTasks}/${rc.taskCount} tasks done`,
+      action: nextGate
+        ? `resume from listed \`${nextGate}\` gate action`
+        : "review current gate status before resuming",
+      source: "recency",
+      minutesSinceActivity,
+      message,
+    });
     return;
   }
 
   if (minutesSinceActivity <= 60) {
     const isSelfOwned =
       Boolean(currentSessionId) && rc.workerSessionId === currentSessionId;
-    recommendations.push(
-      isSelfOwned
+    const message = isSelfOwned
         ? `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — you are the active worker`
-        : `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — likely in-flight by another agent`,
-    );
+        : `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — likely in-flight by another agent`;
+    pushStatusRecommendation(recommendations, {
+      kind: "next_gate",
+      priority: "low",
+      changeId,
+      gateId: nextGate,
+      title: `Hot change \`${changeId}\``,
+      detail: `active ${minutesSinceActivity}m ago`,
+      action: isSelfOwned ? "continue active work" : "coordinate with peer worker",
+      source: "recency",
+      minutesSinceActivity,
+      message,
+    });
   }
 }
 
@@ -1226,7 +1298,7 @@ function buildTemporalHealthFallback(err: unknown): TemporalHealthSnapshot {
  * relative to the other probes is preserved exactly.
  */
 function pushQueueServiceabilityRecommendations(input: {
-  status: { recommendations: string[] };
+  status: StatusRecommendationCarrier;
   temporalHealth: TemporalHealthSnapshot;
   queueServiceability: StatusQueueServiceabilitySnapshot | null | undefined;
 }): void {
@@ -1238,18 +1310,33 @@ function pushQueueServiceabilityRecommendations(input: {
         : null;
     for (const sq of temporalHealth.stale_queues) {
       if (sq.queue === serviceableQueue) continue;
-      status.recommendations.push(
-        `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale \`adv/change/*\` and \`adv/project/*\` workflows".`,
-      );
+      const message = `⚠️ Stale Temporal queue \`${sq.queue}\` has ${sq.running_count} Running workflows older than 5 min with no local poller. See docs/temporal-recovery.md § "Stale \`adv/change/*\` and \`adv/project/*\` workflows".`;
+      pushStatusRecommendation(status, {
+        kind: "health",
+        priority: "high",
+        title: `Stale Temporal queue \`${sq.queue}\``,
+        detail: `${sq.running_count} Running workflow(s) older than 5 min with no local poller`,
+        action: 'See docs/temporal-recovery.md § "Stale `adv/change/*` and `adv/project/*` workflows"',
+        source: "health",
+        message,
+      });
     }
   }
   if (
     queueServiceability?.serviceability.status !== "serviceable" &&
     temporalHealth.worker_lock?.schema_version === 1
   ) {
-    status.recommendations.push(
-      "⚠️ Suspect live legacy v1 worker.lock with unproven queue serviceability — explicit approval is required for reclaim, or restart the owning OpenCode session.",
-    );
+    const message =
+      "⚠️ Suspect live legacy v1 worker.lock with unproven queue serviceability — explicit approval is required for reclaim, or restart the owning OpenCode session.";
+    pushStatusRecommendation(status, {
+      kind: "health",
+      priority: "high",
+      title: "Suspect legacy worker.lock",
+      detail: "queue serviceability is unproven",
+      action: "explicit approval is required for reclaim, or restart the owning OpenCode session",
+      source: "health",
+      message,
+    });
   }
 }
 
@@ -1258,8 +1345,7 @@ function pushQueueServiceabilityRecommendations(input: {
  * into the default branch. Advisory only — no destructive action.
  */
 async function appendArchivedBranchHygieneRecommendations(
-  status: {
-    recommendations: string[];
+  status: StatusRecommendationCarrier & {
     archived_branch_hygiene?: ArchivedBranchHygieneSection;
   },
   store: Store,
@@ -1317,7 +1403,15 @@ async function appendArchivedBranchHygieneRecommendations(
     `  Preview: adv_archive_repair action=cleanup_merged dryRun=true\n` +
     `  Delete:  adv_archive_repair action=cleanup_merged`;
 
-  status.recommendations.push(recommendation);
+  pushStatusRecommendation(status, {
+    kind: "cleanup",
+    priority: "medium",
+    title: "Archived branch cleanup ready",
+    detail: `${count} archived-change local branch(es) safely deletable`,
+    action: "adv_archive_repair action=cleanup_merged dryRun=true",
+    source: "branch_hygiene",
+    message: recommendation,
+  });
   status.archived_branch_hygiene = {
     count,
     branches: cleanupReadyBranches.map((b) => ({
@@ -1457,10 +1551,19 @@ export const statusTools = {
             probeFreshness.search_attributes = searchAttributesProbe.freshness;
 
             if (!searchAttributes.ok) {
-              status.recommendations.push(
+              const message =
                 "⚠️ Temporal search attributes not verified — " +
-                  "run `adv_temporal_register_search_attributes` to register missing search attributes.",
-              );
+                "run `adv_temporal_register_search_attributes` to register missing search attributes.";
+              pushStatusRecommendation(status, {
+                kind: "health",
+                priority: "high",
+                title: "Temporal search attributes not verified",
+                detail: "required search attributes may be missing",
+                action:
+                  "run `adv_temporal_register_search_attributes` to register missing search attributes",
+                source: "health",
+                message,
+              });
             }
           }
 
@@ -1632,9 +1735,17 @@ export const statusTools = {
               (opencodeDebtCounts.orphanGhost > 0 ||
                 opencodeDebtCounts.repairableToolPart > 0)
             ) {
-              status.recommendations.push(
-                `[doctor] OpenCode blank assistant session debt detected (${opencodeDebtCounts.orphanGhost} orphan ghost blank assistant row(s), ${opencodeDebtCounts.repairableToolPart} repairable stale tool part row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`,
-              );
+              const message = `[doctor] OpenCode blank assistant session debt detected (${opencodeDebtCounts.orphanGhost} orphan ghost blank assistant row(s), ${opencodeDebtCounts.repairableToolPart} repairable stale tool part row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`;
+              pushStatusRecommendation(status, {
+                kind: "cleanup",
+                priority: "medium",
+                title: "OpenCode session debt detected",
+                detail: `${opencodeDebtCounts.orphanGhost} orphan ghost row(s), ${opencodeDebtCounts.repairableToolPart} stale tool part row(s)`,
+                action:
+                  "run `bun scripts/opencode-session-doctor.ts --dry-run` to classify live vs orphan rows",
+                source: "session_debt",
+                message,
+              });
             }
           }
 
@@ -1647,9 +1758,16 @@ export const statusTools = {
             );
             if (healthSnapshot.closed_to_active_ratio > 5) {
               const ratio = healthSnapshot.closed_to_active_ratio;
-              status.recommendations.push(
-                `⚠️  Closed-change disk leak detected (ratio ${ratio}:1). Run \`adv_cleanup\` to inspect stale changes.`,
-              );
+              const message = `⚠️  Closed-change disk leak detected (ratio ${ratio}:1). Run \`adv_cleanup\` to inspect stale changes.`;
+              pushStatusRecommendation(status, {
+                kind: "cleanup",
+                priority: "medium",
+                title: "Closed-change disk leak detected",
+                detail: `ratio ${ratio}:1`,
+                action: "Run `adv_cleanup` to inspect stale changes",
+                source: "session_debt",
+                message,
+              });
             }
           }
 

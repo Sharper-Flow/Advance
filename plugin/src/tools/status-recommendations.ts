@@ -32,6 +32,7 @@ export interface StatusRecommendationItem {
   title: string;
   detail: string;
   action: string;
+  message?: string;
   source: StatusRecommendationSource;
   minutesSinceActivity?: number;
 }
@@ -100,6 +101,7 @@ function compareRecommendationItems(
 export function statusRecommendationToString(
   item: StatusRecommendationItem,
 ): string {
+  if (item.message) return item.message;
   return `${item.title} — ${item.detail} — ${item.action}`;
 }
 
