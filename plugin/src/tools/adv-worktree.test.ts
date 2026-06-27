@@ -550,8 +550,14 @@ describe("advWorktreeTools", () => {
     expect(worktreeMock.advWorktreeDelete).toHaveBeenCalledWith(
       "change/x",
       { force: false },
-      expect.objectContaining({ projectRoot: "/repo", database }),
+      expect.objectContaining({
+        projectRoot: "/repo",
+        database,
+        operationTimeoutMs: expect.any(Number),
+      }),
     );
+    const [, , deps] = worktreeMock.advWorktreeDelete.mock.calls.at(-1)!;
+    expect(deps.operationTimeoutMs).toBeLessThan(WORKTREE_TOOL_SAFE_TIMEOUT_MS);
     expect(out).toContain('"ok":true');
   });
 

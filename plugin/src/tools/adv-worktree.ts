@@ -188,7 +188,14 @@ async function executeWorktreeDelete(
   const deletePromise = advWorktreeDelete(
     args.branch,
     { force: args.force, dryRun: args.dryRun },
-    { projectRoot, database, log, store, warpDeps },
+    {
+      projectRoot,
+      database,
+      log,
+      store,
+      warpDeps,
+      operationTimeoutMs: cleanupItemTimeoutForToolBudget(effectiveTimeoutMs),
+    },
   );
 
   let timeoutHandle: ReturnType<typeof setTimeout> | undefined;

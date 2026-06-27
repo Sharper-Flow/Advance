@@ -524,6 +524,37 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).not.toContain(branch);
   });
 
+  it("retains pending delete when operation budget expires before destructive removal", async () => {
+    const branch = "change/delete-budget";
+    const wtPath = addWorktree(repoRoot, branch);
+
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [{ branch, path: wtPath, changeId: "delete-budget" }];
+    deps.hooks = { preDelete: ["sleep forever"] };
+    deps.operationTimeoutMs = 100;
+    vi.mocked(runHooksWithSafety).mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "TIME_BUDGET_EXHAUSTED",
+      reason: "time_budget_exhausted",
+      branch,
+      path: wtPath,
+    });
+    expect(existsSync(wtPath)).toBe(true);
+    const pending = await getPendingDeletes(deps.database);
+    expect(pending).toEqual([
+      expect.objectContaining({
+        branch,
+        reason: expect.stringContaining("preDelete hooks"),
+      }),
+    ]);
+  });
+
   it("force-with-approval — removes worktree with uncommitted changes and logs audit", async () => {
     const branch = "change/force";
     const wtPath = addWorktree(repoRoot, branch);
