@@ -3,7 +3,7 @@
   "name": "advance-epics",
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "updated_at": "2026-06-26T00:00:00.000Z",
   "requirements": [
     {
@@ -109,6 +109,59 @@
           "then": [
             "The Epic may be created with zero initial roadmap entries",
             "Shell and linked-change additions remain available through typed Epic tools"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicCoordinateCommand01",
+      "title": "Epic Coordination Command Is Read-First and Approval-Gated",
+      "body": "The `/adv-coordinate` command MUST inventory active Epics through typed reads before proposing durable mutations. It MUST report ownership-boundary, narrative accuracy, cross-Epic dependency, advisory sequencing, capstone placement, and membership-health findings while distinguishing evidence-backed facts from judgment calls. Epic order findings MUST remain advisory and MUST NOT block gates, tasks, promotion, or change progress. Narrative updates, reorders, and membership repairs MUST use typed Epic tools and require explicit user approval before mutation. The command MUST NOT introduce mandatory Epic membership, auto-enrollment, Jira-like planning primitives, direct ADV state edits, or CLI mutation verbs.",
+      "priority": "must",
+      "tags": ["epics", "command", "coordination", "approval"],
+      "scenarios": [
+        {
+          "id": "rq-epicCoordinateCommand01.1",
+          "title": "Coordination report reads before mutation",
+          "given": ["One or more active Epics exist"],
+          "when": "`/adv-coordinate` prepares a coordination report",
+          "then": [
+            "Epics are inventoried through typed Epic reads before any mutation is proposed",
+            "The report covers alignment, narrative accuracy, dependencies, sequencing, capstone placement, and membership health",
+            "Evidence-backed facts are separated from judgment calls"
+          ]
+        },
+        {
+          "id": "rq-epicCoordinateCommand01.2",
+          "title": "Order findings remain advisory",
+          "given": ["A sequencing inversion is detected"],
+          "when": "The coordination report recommends a reorder",
+          "then": [
+            "The reorder is presented as advisory",
+            "No gate, task, promotion, or change progress is blocked solely due to Epic order"
+          ]
+        },
+        {
+          "id": "rq-epicCoordinateCommand01.3",
+          "title": "Durable actions require approval and typed tools",
+          "given": ["Narrative edits, reorders, or membership repairs are proposed"],
+          "when": "The user has not explicitly approved the proposed durable action",
+          "then": [
+            "No Epic mutation tool is executed",
+            "Approved mutations use typed Epic tools such as adv_epic_update, adv_epic_reorder, or adv_epic_repair_membership",
+            "Required expected_version and audit evidence fields are preserved"
+          ]
+        },
+        {
+          "id": "rq-epicCoordinateCommand01.4",
+          "title": "Coordination adds no new planning primitive",
+          "given": ["The `/adv-coordinate` command is implemented"],
+          "when": "Command assets and CLI surfaces are inspected",
+          "then": [
+            "Epic membership remains optional and no change is auto-enrolled",
+            "Jira-like assignments, estimates, sprints, boards, and ownership workflows are absent",
+            "No CLI mutation verb is introduced for coordination",
+            "The command does not instruct agents to directly read or edit ADV state files"
           ]
         }
       ]

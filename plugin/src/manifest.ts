@@ -387,6 +387,20 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     successors: [],
     args_hint: "[--execute] [--bucket <name>] [--age-threshold <duration>]",
   },
+  "adv-coordinate": {
+    name: "adv-coordinate",
+    description: "Audit Epic alignment, sequencing, and membership health",
+    phase: "advanced",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: [],
+    scope: {
+      creates: [],
+      reads: ["specs", "epics", "changes"],
+      modifies: [],
+      gates: [],
+    },
+  },
 
   // ---- Utility ----
   "adv-improve": {

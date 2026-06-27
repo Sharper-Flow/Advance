@@ -417,6 +417,7 @@ This also enables model comparison: run the same change on two models and compar
 | `/adv-comp-scan` | Scan competitor capabilities against this project for competitive intelligence                       |
 | `/adv-refactor`  | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                           |
 | `/adv-cleanup`   | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
+| `/adv-coordinate` | Audit Epic alignment, sequencing, and membership health                                             |
 | `/adv-triage`    | Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md                          |
 | `/adv-improve`   | Suggest targeted improvements to existing specs or implementation                                    |
 | `/adv-tron`      | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |
