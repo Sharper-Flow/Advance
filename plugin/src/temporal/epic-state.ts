@@ -477,11 +477,23 @@ export function applyChangeRetargetedToState(
   // original retarget audit instead of rewriting retargeted_from_change_id to
   // the current child ID on same-target retries.
   if (currentChangeId === payload.toChangeId) {
+    if (!hasIdempotencyKey(state, payload.idempotencyKey)) {
+      recordIdempotency(
+        state,
+        payload.idempotencyKey,
+        payload.retargetedAt,
+        "idempotent",
+      );
+      setLastSignalAt(state, payload.retargetedAt);
+    }
     return {
       ok: true,
       value: { entryId: entry.entry_id, changeId: payload.toChangeId },
     };
   }
+
+  const idempotency = checkIdempotency(state, payload.idempotencyKey);
+  if (idempotency) return idempotency;
 
   if (currentChangeId !== payload.fromChangeId) {
     return {

@@ -337,7 +337,7 @@ In v1, each ADV change MAY belong to zero or one Epic. The change schema MUST re
 
 **ID:** `rq-epicMembershipRepair01` | **Priority:** **[MUST]**
 
-Existing ADV changes MAY be linked into an Epic after creation, unlinked, or moved between Epics through typed tools only. Link, unlink, move, and repair operations MUST require audit evidence, MUST preserve `fast_follow_of` as creation lineage, and MUST update the child change's compact `epic_membership` projection when the child project is reachable. Cross-project membership mutations MUST follow target-path trust rules. Partial failures MUST surface deterministic membership status such as `projection_pending`, `projection_stale`, or `target_unreachable`, with an explicit repair path.
+Existing ADV changes MAY be linked into an Epic after creation, unlinked, moved between Epics, removed from a stale parent entry, or retargeted from a stale parent entry through typed tools only. Link, unlink, move, and repair operations MUST require audit evidence, MUST preserve `fast_follow_of` as creation lineage, and MUST update the child change's compact `epic_membership` projection when the child project is reachable. Cross-project membership mutations MUST follow target-path trust rules. Partial failures MUST surface deterministic membership status such as `projection_pending`, `projection_stale`, or `target_unreachable`, with explicit repair paths for projection sync, parent-only removal, and audited retarget.
 
 **Tags:** `epics`, `membership`, `repair`, `audit`, `cross-project`
 
@@ -378,6 +378,43 @@ Existing ADV changes MAY be linked into an Epic after creation, unlinked, or mov
 - The Epic remains readable
 - The member reports `target_unreachable` or another typed repair status
 - A repair operation can dry-run before mutating state
+
+**Missing child entry can be removed from parent only** (`rq-epicMembershipRepair01.4`)
+
+**Given:**
+- An Epic entry references a missing child workflow
+
+**When:** An operator runs audited parent-only stale-entry removal
+
+**Then:**
+- The parent Epic entry is removed through a typed Epic mutation
+- The missing child workflow is not loaded or mutated
+- Blank or omitted audit evidence is rejected
+
+**Missing child entry can be retargeted to reachable child** (`rq-epicMembershipRepair01.5`)
+
+**Given:**
+- An Epic parent entry references missing child A
+- Reachable child B is supplied with audit evidence
+
+**When:** An operator runs audited stale-entry retarget
+
+**Then:**
+- The parent Epic entry is atomically retargeted to child B
+- Entry ID, order, and title are preserved where possible
+- Child B receives or refreshes the compact `epic_membership` projection when reachable
+
+**Retarget refuses conflicting child membership** (`rq-epicMembershipRepair01.6`)
+
+**Given:**
+- The proposed target child already belongs to a different Epic or entry
+
+**When:** An operator attempts stale-entry retarget
+
+**Then:**
+- The repair returns a typed membership mismatch
+- The parent Epic entry is not mutated
+- No second simultaneous Epic membership is created
 
 ---
 

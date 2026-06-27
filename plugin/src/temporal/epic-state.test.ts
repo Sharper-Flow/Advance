@@ -1135,6 +1135,55 @@ describe("epic-state", () => {
       expect(entry.kind === "change" && entry.retarget_evidence).toBe(
         "Original retarget evidence.",
       );
+      expect(state.idempotencyLedger["retarget-b-b"]?.outcome).toBe(
+        "idempotent",
+      );
+    });
+
+    it("rejects a superseded retry by idempotency key", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-a",
+        title: "Original",
+        membershipStatus: "linked",
+        linkedBy: "agent",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+
+      const originalPayload = {
+        entryId: "entry-1",
+        fromChangeId: "change-a",
+        toChangeId: "change-b",
+        membershipStatus: "projection_pending" as const,
+        retargetedBy: "agent",
+        retargetEvidence: "Original retarget evidence.",
+        idempotencyKey: "retarget-a-b",
+        retargetedAt: "2026-06-24T00:02:00.000Z",
+      };
+      applyChangeRetargetedToState(state, originalPayload);
+      applyChangeRetargetedToState(state, {
+        entryId: "entry-1",
+        fromChangeId: "change-b",
+        toChangeId: "change-c",
+        membershipStatus: "projection_pending",
+        retargetedBy: "agent",
+        retargetEvidence: "Second retarget evidence.",
+        idempotencyKey: "retarget-b-c",
+        retargetedAt: "2026-06-24T00:03:00.000Z",
+      });
+
+      const result = applyChangeRetargetedToState(state, originalPayload);
+
+      expect(result).toMatchObject({
+        ok: false,
+        code: "duplicate_idempotency_key",
+      });
+      expect(
+        state.epic.entries[0].kind === "change" &&
+          state.epic.entries[0].change_id,
+      ).toBe("change-c");
     });
   });
 
