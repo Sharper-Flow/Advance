@@ -4,6 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { reflectionTools } from "./reflection";
 import type { Store } from "../storage/store";
+import { appendReflection, type ReflectionEntry } from "../storage/reflection";
 
 describe("reflection tool", () => {
   let tempDir: string;
@@ -14,6 +15,129 @@ describe("reflection tool", () => {
 
   afterEach(() => {
     rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  const makeReflection = (
+    overrides: Partial<ReflectionEntry>,
+  ): ReflectionEntry => ({
+    id: "rf-fixture",
+    change_id: "change-fixture",
+    created_at: "2026-01-01T00:00:00.000Z",
+    plane1: {
+      efficiency: {
+        task_count: 1,
+        tasks_done: 1,
+        tasks_cancelled: 0,
+        retry_total: 0,
+        retry_density: 0,
+        elapsed_ms: 1000,
+        per_gate_ms: {},
+      },
+      quality: { tdd_compliance: 1 },
+      process: {
+        gate_completion_rate: 1,
+        tdd_intent_distribution: { inline: 1 },
+        delegation_count: 0,
+        drift_triggers: 0,
+      },
+      wisdom: {
+        entries_captured: 0,
+        entries_promoted: 0,
+        wisdom_reuse_hits: 0,
+      },
+    },
+    plane2: {
+      friction_items: [],
+      highlights: [],
+      improvement_suggestions: [],
+    },
+    ...overrides,
+  });
+
+  test("lists bounded reflection summaries with category and suggestion counts", async () => {
+    const reflectionsPath = join(tempDir, "reflections.jsonl");
+    await appendReflection(
+      tempDir,
+      makeReflection({
+        id: "rf-old",
+        change_id: "old-change",
+        created_at: "2026-01-01T00:00:00.000Z",
+        plane2: {
+          friction_items: [
+            { category: "tool_gap", description: "manual retry needed" },
+          ],
+          highlights: ["Old highlight"],
+          improvement_suggestions: ["Add a reader"],
+        },
+      }),
+      reflectionsPath,
+    );
+    await appendReflection(
+      tempDir,
+      makeReflection({
+        id: "rf-new",
+        change_id: "new-change",
+        created_at: "2026-01-02T00:00:00.000Z",
+        plane2: {
+          friction_items: [
+            { category: "docs_gap", description: "missing usage docs" },
+            { category: "tool_gap", description: "manual sampling needed" },
+          ],
+          highlights: ["New highlight"],
+          improvement_suggestions: ["Add a reader", "Document it"],
+        },
+      }),
+      reflectionsPath,
+    );
+
+    const store = {
+      paths: { root: tempDir, external: tempDir, reflections: reflectionsPath },
+    } as unknown as Store;
+
+    const output = await reflectionTools.adv_reflection_list.execute(
+      { maxEntries: 1 },
+      store,
+    );
+    const parsed = JSON.parse(output);
+
+    expect(parsed.total).toBe(2);
+    expect(parsed.count).toBe(1);
+    expect(parsed.omitted).toBe(1);
+    expect(parsed.entries[0]).toMatchObject({
+      id: "rf-new",
+      change_id: "new-change",
+      friction_items: [
+        expect.objectContaining({ category: "docs_gap" }),
+        expect.objectContaining({ category: "tool_gap" }),
+      ],
+    });
+    expect(parsed.byFrictionCategory).toEqual({ docs_gap: 1, tool_gap: 2 });
+    expect(parsed.bySuggestion).toMatchObject({
+      "Add a reader": 2,
+      "Document it": 1,
+    });
+  });
+
+  test("reflection list returns explicit empty state for missing file", async () => {
+    const store = {
+      paths: {
+        root: tempDir,
+        external: tempDir,
+        reflections: join(tempDir, "missing-reflections.jsonl"),
+      },
+    } as unknown as Store;
+
+    const output = await reflectionTools.adv_reflection_list.execute({}, store);
+    const parsed = JSON.parse(output);
+
+    expect(parsed).toMatchObject({
+      entries: [],
+      count: 0,
+      total: 0,
+      omitted: 0,
+      byFrictionCategory: {},
+      bySuggestion: {},
+    });
   });
 
   test("persists task-derived work-time metrics in plane1 efficiency", async () => {

@@ -1,0 +1,1051 @@
+{
+  "id": "addReflectionReader",
+  "title": "Add reflection reader",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-27T18:14:11.454Z",
+  "tasks": [
+    {
+      "id": "tk-a1641f71fd6a",
+      "title": "Add bounded reflection list reader",
+      "type": "code",
+      "section": "Reflection reader",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-27T20:17:47.409Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "SC1",
+          "SC3",
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T20:20:10.020Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/reflection.test.ts -t \"lists bounded reflection summaries\" failed because adv_reflection_list did not exist. GREEN: same test passed after implementing bounded reader and summaries.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added read-only `adv_reflection_list` with bounded source-backed summaries, `count`/`total`/`omitted`, `byFrictionCategory`, exact `bySuggestion`, missing-file empty state, category/change/scope/max filters, and compact per-entry plane/friction/highlight/suggestion summaries. Tests cover bounded summaries and empty state.",
+      "filesTouched": [
+        "plugin/src/tools/reflection.test.ts",
+        "plugin/src/tools/reflection.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/reflection.test.ts",
+        "plugin/src/tools/reflection.ts"
+      ],
+      "checkpointSha": "ccc209d47c1f68dc9ee6b9608d88fa88a8314dc1",
+      "completedAt": "2026-06-27T20:23:36.865Z",
+      "completed_at": "2026-06-27T20:23:36.865Z",
+      "notes": "Bounded reflection list reader checkpointed at ccc209d47c1f68dc9ee6b9608d88fa88a8314dc1.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T20:23:52.155Z"
+    },
+    {
+      "id": "tk-74c805806488",
+      "title": "Add target_path routing for reflection list",
+      "type": "code",
+      "section": "Reflection reader",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-27T20:18:03.480Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a1641f71fd6a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC3",
+          "AC8"
+        ],
+        "respects": [
+          "SC1",
+          "SC2",
+          "C1",
+          "C2",
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T20:24:49.153Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/reflection-target.test.ts failed because target-path test file did not exist. GREEN: same command passed after adding target_path routing test for adv_reflection_list.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added target-path test for `adv_reflection_list` verifying it routes through `withOptionalTargetPathStore`, reads target store reflection paths, returns target entries, and includes untrusted read-only `_projectContext`. The reader implementation already uses target snapshot routing from the bounded reader task.",
+      "filesTouched": [
+        "plugin/src/tools/reflection-target.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/reflection-target.test.ts"
+      ],
+      "checkpointSha": "2cafecca8802d75615cd8f7a288ac1f3493568fb",
+      "completedAt": "2026-06-27T20:26:06.918Z",
+      "completed_at": "2026-06-27T20:26:06.918Z",
+      "notes": "Reflection target_path routing coverage checkpointed at 2cafecca8802d75615cd8f7a288ac1f3493568fb.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T20:26:21.603Z"
+    },
+    {
+      "id": "tk-a149671e0349",
+      "title": "Extend wisdom readers with target_path",
+      "type": "code",
+      "section": "Wisdom target reads",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-27T20:18:23.681Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "SC1",
+          "SC2",
+          "C1",
+          "C2",
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T20:26:35.635Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/wisdom-target.test.ts failed because target-path test file did not exist. GREEN: same command passed after adding target_path support and tests for wisdom readers.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added optional `target_path` to `adv_wisdom_list` and `adv_project_wisdom_list`. Both readers now wrap read execution in `withOptionalTargetPathStore`, use `activeStore` for wisdom reads, project wisdom paths, product filtering, and append `_projectContext` for target reads while preserving existing output shapes. Added tests for target project wisdom and aggregate wisdom reads.",
+      "filesTouched": [
+        "plugin/src/tools/wisdom-target.test.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/wisdom-target.test.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "checkpointSha": "5af449a7413a38c78d58c12350dab7952745bc63",
+      "completedAt": "2026-06-27T20:29:48.497Z",
+      "completed_at": "2026-06-27T20:29:48.497Z",
+      "notes": "Wisdom target_path reader support checkpointed at 5af449a7413a38c78d58c12350dab7952745bc63.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T20:30:03.391Z"
+    },
+    {
+      "id": "tk-88c071fadee9",
+      "title": "Register reflection reader public tool surfaces",
+      "type": "code",
+      "section": "Tool registration",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-27T20:18:37.207Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a1641f71fd6a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "verifies": [
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "SC1",
+          "C1"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T20:30:34.434Z",
+      "verification": "RED: bin/oc-test targeted -- src/tool-registry.test.ts -t \"registers adv_reflection_list\" failed because createToolMap lacked adv_reflection_list. GREEN: registry/frozen-list/CLI-surface targeted tests passed after public registration.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Registered `adv_reflection_list` in `createToolMap`, added it to `ADV_TOOL_NAMES`, frozen CLI bridge list, CLI surface matrix, and tool title mapping. Added registry regression proving the tool is present in `createToolMap` and `ADV_TOOL_NAMES`. Targeted registry/CLI contract tests pass.",
+      "filesTouched": [
+        "docs/cli-surface-matrix.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "touched_files": [
+        "docs/cli-surface-matrix.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "88cb85d2d4700747f5c5cea79975a462cb448f7a",
+      "completedAt": "2026-06-27T20:33:18.402Z",
+      "completed_at": "2026-06-27T20:33:18.402Z",
+      "notes": "Reflection reader public registration checkpointed at 88cb85d2d4700747f5c5cea79975a462cb448f7a.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T20:33:31.966Z"
+    },
+    {
+      "id": "tk-3e2d14c9a6ca",
+      "title": "Verify reflection and wisdom reader compatibility",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-06-27T20:18:54.164Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-74c805806488"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a149671e0349"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-88c071fadee9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC8",
+          "AC9",
+          "AC10",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T20:33:47.015Z",
+      "verification": "Acceptance reviewer remediation: adv_wisdom_list with target_path + changeId now stays on disk-snapshot store without live Temporal lookup; regression added. Reviewer verification passed wisdom-target tests, scoped reflection/wisdom/registry/CLI tests, and pnpm run check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Verified reflection and wisdom reader compatibility. Targeted reflection/wisdom/storage/target-project/registry/CLI/title tests passed (97 tests across 10 files). `pnpm run check` passed after formatting. Acceptance reviewer then fixed one issue: `adv_wisdom_list` with `target_path + changeId` now stays on disk-snapshot store without live Temporal lookup; regression added. Reviewer verification passed wisdom-target tests, scoped reflection/wisdom/registry/CLI tests, and `pnpm run check`.",
+      "filesTouched": [
+        "plugin/src/tools/wisdom-target.test.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/wisdom-target.test.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "checkpointSha": "a1895786c25003ead5854f133b1f4ba0d864e44a",
+      "completedAt": "2026-06-27T20:43:29.851Z",
+      "completed_at": "2026-06-27T20:43:29.851Z",
+      "notes": "Verification complete, plus acceptance reviewer remediation checkpointed at a1895786c25003ead5854f133b1f4ba0d864e44a.",
+      "error_recovery": {
+        "last_error": "`pnpm run check` failed on Prettier format:check for src/tools/reflection.ts and src/tools/wisdom.ts.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Formatting completed; reviewer remediation verified.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "format:check failed for src/tools/reflection.ts and src/tools/wisdom.ts",
+            "diagnosis": "Behavior tests passed; check failure was formatting-only after implementation edits.",
+            "fix_tried": "Ran Prettier on touched implementation/test/registration files and reran check.",
+            "strategy_label": "format-and-rerun",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-27T20:35:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-27T20:43:50.713Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addReflectionReader",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:reflection-reader-design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: adv_reflection_list + target_path on wisdom readers",
+      "sources": [
+        {
+          "label": "plugin/src/storage/reflection.ts:307-347",
+          "locator": "/home/jon/dev/advance/plugin/src/storage/reflection.ts",
+          "summary": "listReflections(projectDir, options) already exists, read-only, returns recency-sorted entries, supports reflectionsPath override + product/repo scope filters, returns [] for missing file, skips malformed/invalid lines via parseReflectionEntries with appendDebugLog degradation. Reader can reuse as-is."
+        },
+        {
+          "label": "plugin/src/tools/target-project.ts:371-388",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/target-project.ts",
+          "summary": "withOptionalTargetPathStore short-circuits to current store when no target_path, else routes through snapshot-ok (createLegacyStore, read-only) and passes formatTargetProjectContext(context) as second arg. Exactly the read-only target routing the design assumes."
+        },
+        {
+          "label": "plugin/src/tools/status.ts:1523-1525",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/status.ts",
+          "summary": "Canonical read-tool usage: execute(args, store) wraps body in withOptionalTargetPathStore({store, target_path}, async (activeStore, projectContext) => ...). Reflection reader should mirror this."
+        },
+        {
+          "label": "plugin/src/tools/wisdom.ts:226-414",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/wisdom.ts",
+          "summary": "adv_wisdom_list and adv_project_wisdom_list currently take (args, store) with NO target_path arg and NO withOptionalTargetPathStore wrapping. They read store.wisdom.* and listProjectWisdom(store.paths.root,...) plus product filtering via isWisdomVisibleForProductScope / productContextOutput. Adding target_path requires wrapping body and routing all reads through activeStore + emitting projectContext."
+        },
+        {
+          "label": "plugin/src/tool-registry.ts:688,839-911",
+          "locator": "/home/jon/dev/advance/plugin/src/tool-registry.ts",
+          "summary": "adv_reflect bound via bindTool(reflectionTools.adv_reflect,...). ADV_TOOL_NAMES is a frozen readonly allowlist; createDegradedToolMap iterates it so a new name is auto-stubbed there."
+        },
+        {
+          "label": "plugin/src/cli-bridge-contract.test.ts:122-196",
+          "locator": "/home/jon/dev/advance/plugin/src/cli-bridge-contract.test.ts",
+          "summary": "Hard contract: ADV_TOOL_NAMES must .toEqual(frozen) — a literal frozen array. Adding adv_reflection_list to ADV_TOOL_NAMES WITHOUT updating this frozen list fails the test. Both must change together."
+        },
+        {
+          "label": "plugin/src/tool-registry.test.ts:66-103,514-525 + cli-surface-matrix.test.ts:26-28",
+          "locator": "/home/jon/dev/advance/plugin/src/tool-registry.test.ts",
+          "summary": "Drift guards: ADV_TOOL_NAMES must exactly match createToolMap keys; every name needs a non-empty args object; cli-surface-matrix requires a matrix row/disposition for every ADV_TOOL_NAMES entry. New tool must be registered in all three surfaces."
+        },
+        {
+          "label": "plugin/src/storage/json.ts:138,173,189",
+          "locator": "/home/jon/dev/advance/plugin/src/storage/json.ts",
+          "summary": "store.paths.reflections is set for both external state (ext/reflections.jsonl) and in-repo (.adv/reflections.jsonl). reflection.ts write tool passes store.paths.external ?? store.paths.root + store.paths.reflections to appendReflection; reader should pass the same projectDir + reflectionsPath override for parity."
+        }
+      ],
+      "architecture_assessment": "Design is feasible and aligns with existing, proven patterns. listReflections already provides the read-only, bounded-friendly, malformed-tolerant, empty-safe primitive (returns [] for missing file; skips bad lines). withOptionalTargetPathStore is the established read-only snapshot routing used by adv_status/gate/task/change and is exactly fit for a new reflection reader and for retrofitting the two wisdom readers. The aggregate fields (count/total/omitted/byFrictionCategory/bySuggestion) are pure in-tool shaping over ReflectionEntry.plane2 (friction_items[].category and improvement_suggestions) — net-new derived output, no storage change. Biggest non-obvious surface is the tool-registration contract: a frozen ADV_TOOL_NAMES snapshot test plus createToolMap/degraded-map/cli-surface-matrix/args drift guards. Wisdom readers currently take (args, store) with no target_path and read store.* + store.paths.root directly, so retrofitting target_path means wrapping the whole body in withOptionalTargetPathStore and threading activeStore through every read (store.wisdom.search/listAll/list and listProjectWisdom) plus emitting _projectContext — preserving the existing product-scope filtering on the active store.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No architectural conflicts. Design respects read-only/storage-owned-degradation boundaries and reuses canonical target routing. Corrections below are completeness/contract obligations, not design flaws."
+      },
+      "recommendation": "Proceed to design gate as READY with required corrections folded into the design: (1) Explicitly enumerate ALL tool-registration surfaces the new adv_reflection_list must touch — createToolMap binding (bindTool like adv_reflect), ADV_TOOL_NAMES, the frozen array in cli-bridge-contract.test.ts (.toEqual(frozen)), a cli-surface-matrix row/disposition, a non-empty args object, and a tool-title.ts read(...) entry. Missing any breaks an existing contract/drift test. (2) For the wisdom retrofit, specify that the entire execute body is wrapped in withOptionalTargetPathStore and every read goes through activeStore (store.wisdom.search/listAll/list + listProjectWisdom(activeStore.paths.root, {wisdomPath: activeStore.paths.wisdom})), with _projectContext appended only when target_path is set, and product-scope filtering applied against the active store — guaranteeing output shape is unchanged when target_path is absent. (3) Reader should call listReflections(store.paths.external ?? store.paths.root, {reflectionsPath: store.paths.reflections, ...scope}) to match the write-tool path resolution and resolveReadableReflectionsPath legacy fallback.",
+      "follow_ups": [
+        "Design must define exact bounding semantics for count vs total vs omitted (total = full listReflections length pre-truncation; count = returned slice; omitted = total - count) so the reader is deterministic and testable.",
+        "Confirm byFrictionCategory keys are constrained to the FrictionItemSchema enum (tool_gap|workaround|missing_capability|docs_gap|ux_friction|provider_specific) and bySuggestion shape (count of improvement_suggestions vs grouping) in the design to avoid ambiguous test expectations.",
+        "When wisdom readers gain target_path, add the targetPathSchema-style arg (target_path optional only; no target_confirmed needed for read-only snapshot) and ensure schemas:generate / schemas:check stays green if these tools have public JSON schemas."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addReflectionReader",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addReflectionReader",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/wisdom.ts",
+          "summary": "Fixed change-specific adv_wisdom_list target_path reads to stay on the read-only disk-snapshot target store instead of attempting a live Temporal workflow query; added regression coverage in plugin/src/tools/wisdom-target.test.ts.",
+          "verification": "bin/oc-test targeted -- src/tools/wisdom-target.test.ts passed (3 tests); scoped registry/reflection/wisdom/CLI tests passed (54 tests); pnpm run check passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "target_path reader paths that use withOptionalTargetPathStore must avoid helper calls that can re-enter live Temporal workflows; change-specific read branches need an explicit projectContext/snapshot guard when current-project reads normally prefer workflow state."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/wisdom-target.test.ts",
+          "bin/oc-test targeted -- src/tools/reflection.test.ts src/tools/reflection-target.test.ts src/tools/wisdom-target.test.ts src/tool-registry.test.ts src/cli-bridge-contract.test.ts",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight found all scoped files. Review found one target_path snapshot-safety gap and remediated it. Targeted wisdom regression passed: 1 file, 3 tests. Scoped reflection/wisdom/registry/CLI tests passed: 5 files, 54 tests. pnpm run check passed: schemas:check, typecheck, test-isolation check, lockfile policy, eslint, prettier. An earlier mis-targeted wrapper invocation used plugin/src-prefixed paths and ran a broader suite; it failed on unrelated pre-existing spec citation invariant items rq-epicScopeDerivation01 and rq-epicMutableScope01, not on this scoped change."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full suite was not made green in this review turn; one accidental broad-suite run surfaced unrelated spec citation invariant failures outside addReflectionReader scope.",
+        "Live deployed OpenCode plugin behavior still requires rebuild/deploy/restart per repo gotcha before validating through live adv_* tools."
+      ],
+      "required_main_agent_actions": [
+        "Consider promoting the target_path snapshot/Temporal lookup gotcha as project wisdom.",
+        "If acceptance requires full-suite green, handle unrelated rq-epicScopeDerivation01/rq-epicMutableScope01 citation invariant failures in their owning scope before release."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-H0fmKZ",
+      "type": "pattern",
+      "content": "For read-only target_path tools, wrap the reader body in `withOptionalTargetPathStore`, use the active target store for all storage reads and product filtering, and append `_projectContext` only when target context exists. Do not add target confirmation fields for snapshot-only reads.",
+      "source_task": "tk-a149671e0349",
+      "recorded_at": "2026-06-27T20:35:52.998Z"
+    },
+    {
+      "id": "ws-VPLn8W",
+      "type": "gotcha",
+      "content": "For target_path snapshot readers with changeId filters, avoid live Temporal workflow lookup against the target project unless the target store is known live/current. Snapshot reads should stay on disk/store fallback so untrusted target reads remain read-only and service-independent.",
+      "source_task": "tk-3e2d14c9a6ca",
+      "recorded_at": "2026-06-27T20:44:06.176Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-27T20:08:52.558Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User confirmed continuing next proposal via chat reply: `yes` after optimizeStatusWip archive and next-in-order handoff. Proposal artifact persisted; proceeding to discovery for addReflectionReader.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "0ef394f5560b6bf88e9869140fb4eda0d174bfb68a64b3abaa257b6b4b9f3464",
+        "non_whitespace_chars": 3465,
+        "checked_at": "2026-06-27T18:14:11.485Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-27T20:13:23.732Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved agreement via chat reply: `approve`. Contract minted (24 items: SC1-SC4, AC1-AC10, C1-C5, OOS1-OOS5). Proceeding to design.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "non_whitespace_chars": 4283,
+        "checked_at": "2026-06-27T18:14:11.486Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-27T20:17:27.431Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete and independently validated. adv-researcher verdict READY/VALIDATED; no conflicts. Incorporated required corrections: registration surfaces, activeStore wisdom routing, reflection path parity, deterministic total/count/omitted/bySuggestion semantics.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "0ff2a1624e217a868e385bd97c3a5a2a8f44a928f90d5855553d448f97bb9c0c",
+        "non_whitespace_chars": 5774,
+        "checked_at": "2026-06-27T18:14:11.487Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-27T20:19:25.516Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved prep via chat reply: `approve`. 5-task graph approved; auto-continuing to execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-27T20:36:17.315Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: all 5 tasks done. Implemented bounded read-only adv_reflection_list, target_path routing for reflection and wisdom readers, public tool registration, and verification. Evidence: targeted reflection/wisdom/storage/target-project/registry/CLI/title tests passed (97 tests); `pnpm run check` passed after formatting."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-27T20:48:12.832Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved acceptance via chat reply: `approve`. Contract matrix set with 24/24 pass/respected/not-applicable; reviewer verdict READY; verification passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "efc099fc013e33a58a8454095ce8fa20f8aeadbcd1360de3ca7155d3233ae63d",
+        "non_whitespace_chars": 1172,
+        "checked_at": "2026-06-27T18:14:11.488Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-jt_U1E-f"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+      "approvedAt": "2026-06-27T20:13:10.023Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Agents can list and summarize reflections for current and target projects without direct ADV state-file reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Agents can list project wisdom from target projects using the same read-only target snapshot semantics as `adv_status`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Outputs are bounded, source-backed, and include counts/omitted counts/drill-down enough for cross-project usage reviews.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Existing `adv_reflect` write behavior and wisdom reader behavior remain backward-compatible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "A new read-only reflection reader (`adv_reflection_list` or equivalent) returns reflection entries sorted newest-first with bounded `entries`, `count`, `byFrictionCategory`, `bySuggestion`, and `omitted` metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "The reflection reader supports filters for `changeId`, `scope` (`repo`/`product`), `category`, `maxEntries`, and `target_path` where practical; missing optional filters default to safe bounded current-project reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "When `target_path` is supplied, the reflection reader uses existing target-project snapshot semantics and returns `_projectContext`; untrusted target paths remain read-only and require no mutation confirmation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`adv_project_wisdom_list` supports `target_path` read-only snapshots and returns `_projectContext` for target reads while preserving current output shape (`entries`, `count`, `byType`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv_wisdom_list` supports `target_path` for aggregate/query/change-specific reads where current logic allows, using target store reads instead of current store reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Missing reflection/wisdom files return explicit empty states with counts of 0, not unhandled errors.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Malformed reflection lines continue to be skipped/degraded by storage parser; reader returns valid entries and source-backed summaries only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Tests cover current-project and target-path reads for reflection and wisdom surfaces, including untrusted target `_projectContext` behavior without target confirmation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Tests prove existing `adv_reflect`, current-project `adv_project_wisdom_list`, and current-project `adv_wisdom_list` behavior remain backward-compatible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Validation passes with targeted reflection/wisdom/target-project tests and `pnpm run check`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No direct ADV state-file reads by agents; implementation may use storage APIs and store paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No mutation during reader calls, including target project reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No LLM-only synthesis as source of truth; summaries must be deterministic counts/excerpts sourced from persisted reflection/wisdom entries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve product-linked visibility filtering for wisdom and reflections.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep output bounded with explicit omitted counts rather than truncating mid-entry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Changing `adv_reflect` report generation semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Editing or deleting reflection reports.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Auto-promoting reflections/wisdom into roadmap changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Building a dashboard or cross-product analytics service.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Rewriting reflection storage format.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-27T20:45:08.408Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Implemented read-only `adv_reflection_list` and target_path wisdom readers; agents can list reflection/wisdom learnings through tools rather than direct ADV state-file reads.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv_reflection_list target_path`, `adv_project_wisdom_list target_path`, and `adv_wisdom_list target_path` tests return `_projectContext` and target entries using snapshot routing.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reflection list tests assert bounded entries, `total`/`count`/`omitted`, `byFrictionCategory`, exact `bySuggestion`, and source-backed compact entry summaries.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing `adv_reflect`, current-project wisdom list behavior, and public registration tests pass; output changes for wisdom are additive only when target_path is supplied.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv_reflection_list` returns newest-first bounded summaries with `entries`, `count`, `total`, `omitted`, `byFrictionCategory`, and `bySuggestion`; covered by `reflection.test.ts`.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Tool args include `changeId`, `category`, `scope`, `maxEntries`, and `target_path` with safe defaults and named max/default bounds.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`reflection-target.test.ts` proves `adv_reflection_list target_path` uses `withOptionalTargetPathStore`, reads target store paths, and returns untrusted read-only `_projectContext` without confirmation.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`wisdom-target.test.ts` proves `adv_project_wisdom_list target_path` reads target project wisdom via activeStore paths and returns `_projectContext` while preserving `entries`, `count`, `byType`.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`wisdom-target.test.ts` proves `adv_wisdom_list target_path` aggregate and change-specific paths use target store reads and return `_projectContext`; reviewer fixed changeId path to avoid live Temporal lookup under target snapshots.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reflection list missing-file test returns explicit empty state: `entries: []`, `count: 0`, `total: 0`, `omitted: 0`, empty summaries.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Storage reflection tests still cover malformed-line degradation; reader uses `listReflections`, so malformed entries are skipped by storage and valid entries remain source-backed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted tests cover current and target reads for reflection/wisdom surfaces, including untrusted `_projectContext` behavior without target confirmation.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing `adv_reflect`, current-project `adv_project_wisdom_list`, and current-project `adv_wisdom_list` tests pass; tool registry/CLI/title contract tests pass.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Verification passed: targeted reflection/wisdom/storage/target-project/registry/CLI/title tests; reviewer scoped tests; `pnpm run check`.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No agent direct state-file read path added; implementation uses storage APIs (`listReflections`, `listProjectWisdom`, `store.wisdom`).",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reader calls only list/search APIs and target snapshot routing; no write/signal/mutation occurs in `adv_reflection_list` or wisdom list readers.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Summaries are deterministic counts/excerpts from persisted entries; no LLM synthesis or semantic clustering used.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Wisdom product filtering now runs against activeStore; reflection list passes product/repo filters to `listReflections`, preserving legacy visible-missing-tags behavior.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Output uses named bounds and omitted counts for entries/details/suggestions; no mid-entry truncation authority.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "`adv_reflect` generation semantics unchanged except shared imports/helpers; no report-generation redesign.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "No reflection edit/delete behavior added.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "No auto-promotion from reflection/wisdom to roadmap changes implemented.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "No dashboard/cross-product analytics service implemented.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "Reflection storage format unchanged; reader reuses existing storage parser/list API.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "A new read-only reflection reader (`adv_reflection_list` or equivalent) returns reflection entries sorted newest-first with bounded `entries`, `count`, `byFrictionCategory`, `bySuggestion`, and `omitted` metadata.",
+    "The reflection reader supports filters for `changeId`, `scope` (`repo`/`product`), `category`, `maxEntries`, and `target_path` where practical; missing optional filters default to safe bounded current-project reads.",
+    "When `target_path` is supplied, the reflection reader uses existing target-project snapshot semantics and returns `_projectContext`; untrusted target paths remain read-only and require no mutation confirmation.",
+    "`adv_project_wisdom_list` supports `target_path` read-only snapshots and returns `_projectContext` for target reads while preserving current output shape (`entries`, `count`, `byType`).",
+    "`adv_wisdom_list` supports `target_path` for aggregate/query/change-specific reads where current logic allows, using target store reads instead of current store reads.",
+    "Missing reflection/wisdom files return explicit empty states with counts of 0, not unhandled errors.",
+    "Malformed reflection lines continue to be skipped/degraded by storage parser; reader returns valid entries and source-backed summaries only.",
+    "Tests cover current-project and target-path reads for reflection and wisdom surfaces, including untrusted target `_projectContext` behavior without target confirmation.",
+    "Tests prove existing `adv_reflect`, current-project `adv_project_wisdom_list`, and current-project `adv_wisdom_list` behavior remain backward-compatible.",
+    "Validation passes with targeted reflection/wisdom/target-project tests and `pnpm run check`."
+  ],
+  "documents": {
+    "proposal": "# Add cross-project reflection reader\n\n## Why\n\nCross-project ADV usage reviews need wisdom and reflection data from other projects, but current safe tool surfaces are incomplete. `adv_status` and `adv_change_show target_path` can inspect changes, tasks, and selected wisdom attached to sampled changes, but there is no bounded `target_path`-capable reader for project-level wisdom and archived reflection reports.\n\n## Problem Statement\n\nAgents need a read-only, bounded, target-project-safe way to inspect wisdom/reflection learnings across ADV projects without direct ADV state-file reads or manual sampling of individual changes.\n\n## What Changes\n\nAdd a safe reader surface for project wisdom and reflection summaries that supports current project and explicit `target_path` snapshots. The reader should summarize recurring friction, project execution learnings, system friction, and actionable follow-up themes with bounded output and drill-down.\n\n## User Outcomes\n\n- Users can ask \"what have we learned from ADV usage in project X?\" and get sourced, bounded summaries.\n- Agents can mine cross-project friction without violating ADV state access policy.\n- Reflections become actionable inputs to roadmap/improvement work rather than write-only logs.\n- High-volume projects remain readable through filters, limits, and summary grouping.\n\n## Scope\n\n### In Scope\n\n- Read-only tool/API surface for project-level wisdom and reflection summaries.\n- `target_path` support with existing trust/read-only semantics.\n- Filters for project/repo scope, change ID, date/recency, type/category, and top-N summaries if practical.\n- Bounded response shape with counts, omitted counts, and source references.\n- Tests proving no direct state-file reads by agents are needed and untrusted target mutation rules are not invoked for read-only access.\n- Documentation/command guidance updates where ADV workflows currently ask agents to inspect wisdom/reflections.\n\n### Out of Scope\n\n- Mutating reflection reports.\n- Auto-promoting wisdom to roadmap changes without user/agent decision.\n- LLM-only summarization as source of truth; grouping can assist, but returned data must cite structured entries or persisted reports.\n- Cross-product global analytics dashboards.\n\n### Must Not\n\n- Must not expose private session/workdir details beyond existing target-path read policy.\n- Must not require direct reads of ADV storage paths.\n- Must not collapse reflection evidence into unsourced prose.\n- Must not mutate target project state during read-only access.\n\n## Error Handling / Fallback\n\n- If target project reflection/wisdom storage is missing or unreadable, return a structured partial-result warning with project context; do not fail the whole request when other sections are readable.\n- If `target_path` is untrusted, preserve read-only snapshot behavior and refuse mutation-only fields rather than asking for target confirmation.\n- If result volume exceeds budget, return deterministic top-N summaries, omitted counts, and drill-down filters instead of truncating mid-entry.\n- If no reflections exist, return an explicit empty state and project wisdom counts, not an error.\n\n## Evidence\n\nObserved during PokeEdge/PokeEdge-Web review: change/task/status data was available through `target_path`, but wisdom/reflection mining required sampling individual changes (`adv_change_show include.subagentReports/wisdom`) and could not read reflection reports as a first-class bounded project view.\n\nCreated agenda: `ag-jt_U1E-f Add cross-project reflection reader`.\n\n## Discovery Agenda\n\n- Locate current reflection persistence/read code and project wisdom read paths.\n- Determine whether to extend `adv_wisdom_list`, add `target_path` to it, add `adv_reflection_list`, or introduce a combined insights reader.\n- Define bounded response schema for reflection plane 1/plane 2 summaries and wisdom categories.\n- Validate privacy/trust behavior for `target_path` read snapshots.\n- Add tests with multiple archived changes/reflections and project wisdom entries.",
+    "problemStatement": "ADV reflections and project wisdom are hard to mine across projects because there is no bounded target_path-capable reader. Agents must manually sample changes or risk direct state-file reads, making reflection output less actionable.",
+    "agreement": "# Agreement — Add cross-project reflection reader\n\n## Discovery Findings\n\n- Reflection storage already has a typed `ReflectionEntry` model and `listReflections(projectDir, options)` read API that returns newest-first entries, supports `changeId`, product/repo filters, malformed-line degradation, and external-state `reflectionsPath` override.\n- Current agent-facing reflection tool surface is write-only: `adv_reflect` creates/persists a report for an archived change but there is no `adv_reflection_list` / reader tool.\n- Project wisdom has two reader tools: `adv_wisdom_list` and `adv_project_wisdom_list`. They are safe readers but currently have no `target_path` argument, while `adv_status`, `adv_change_show`, gates, and tasks already use `withOptionalTargetPathStore` for read-only target snapshots.\n- Target-path read semantics already exist: `withOptionalTargetPathStore(... stateRequirement: \"snapshot-ok\")` returns `_projectContext` with an untrusted read-only warning and does not require target confirmation.\n- Reflection reports are stored outside repo state (`store.paths.reflections`) and must be read through storage/tool APIs, never direct file reads by agents.\n\n## Success Criteria\n\n- Agents can list and summarize reflections for current and target projects without direct ADV state-file reads.\n- Agents can list project wisdom from target projects using the same read-only target snapshot semantics as `adv_status`.\n- Outputs are bounded, source-backed, and include counts/omitted counts/drill-down enough for cross-project usage reviews.\n- Existing `adv_reflect` write behavior and wisdom reader behavior remain backward-compatible.\n\n## Acceptance Criteria\n\n- AC1: A new read-only reflection reader (`adv_reflection_list` or equivalent) returns reflection entries sorted newest-first with bounded `entries`, `count`, `byFrictionCategory`, `bySuggestion`, and `omitted` metadata.\n- AC2: The reflection reader supports filters for `changeId`, `scope` (`repo`/`product`), `category`, `maxEntries`, and `target_path` where practical; missing optional filters default to safe bounded current-project reads.\n- AC3: When `target_path` is supplied, the reflection reader uses existing target-project snapshot semantics and returns `_projectContext`; untrusted target paths remain read-only and require no mutation confirmation.\n- AC4: `adv_project_wisdom_list` supports `target_path` read-only snapshots and returns `_projectContext` for target reads while preserving current output shape (`entries`, `count`, `byType`).\n- AC5: `adv_wisdom_list` supports `target_path` for aggregate/query/change-specific reads where current logic allows, using target store reads instead of current store reads.\n- AC6: Missing reflection/wisdom files return explicit empty states with counts of 0, not unhandled errors.\n- AC7: Malformed reflection lines continue to be skipped/degraded by storage parser; reader returns valid entries and source-backed summaries only.\n- AC8: Tests cover current-project and target-path reads for reflection and wisdom surfaces, including untrusted target `_projectContext` behavior without target confirmation.\n- AC9: Tests prove existing `adv_reflect`, current-project `adv_project_wisdom_list`, and current-project `adv_wisdom_list` behavior remain backward-compatible.\n- AC10: Validation passes with targeted reflection/wisdom/target-project tests and `pnpm run check`.\n\n## Constraints\n\n- No direct ADV state-file reads by agents; implementation may use storage APIs and store paths.\n- No mutation during reader calls, including target project reads.\n- No LLM-only synthesis as source of truth; summaries must be deterministic counts/excerpts sourced from persisted reflection/wisdom entries.\n- Preserve product-linked visibility filtering for wisdom and reflections.\n- Keep output bounded with explicit omitted counts rather than truncating mid-entry.\n\n## Out of Scope\n\n- Changing `adv_reflect` report generation semantics.\n- Editing or deleting reflection reports.\n- Auto-promoting reflections/wisdom into roadmap changes.\n- Building a dashboard or cross-product analytics service.\n- Rewriting reflection storage format.\n\n## Risks / Design Questions\n\n- Best tool shape: add `adv_reflection_list` and extend wisdom tools, versus a single combined `adv_insights` reader. Discovery favors smaller additive tools first because wisdom readers already exist and reflection storage already exposes `listReflections`.\n- `adv_wisdom_list` change-specific target reads may query target workflow handles; design must verify target store handle lookup works under snapshot target stores or choose disk/store fallback safely.\n- Category summary should count reflection `plane2.friction_items[].category`; suggestion grouping should remain deterministic and bounded, not semantic clustering.\n- CLI/schema/tool-registry exposure must stay aligned if adding a new public tool.",
+    "design": "# Design — Add cross-project reflection reader\n\n## Design Summary\n\nAdd a small read-only reflection reader tool and extend existing wisdom readers with `target_path` support. Reuse existing storage APIs (`listReflections`, project wisdom readers, `store.wisdom`) and existing target-project snapshot routing (`withOptionalTargetPathStore`) so agents can mine cross-project learnings without direct ADV state-file reads.\n\nIndependent validator verdict: **READY**. Required registration/path/wisdom-routing corrections are incorporated below.\n\n## Key Decisions\n\n### D1 — Add `adv_reflection_list` beside `adv_reflect`\n\nKeep `adv_reflect` as the write/generation tool. Add a new read-only tool in `plugin/src/tools/reflection.ts`:\n\n```ts\nadv_reflection_list({\n  changeId?: string,\n  category?: ReflectionFrictionCategory,\n  scope?: \"repo\" | \"product\",\n  maxEntries?: number,\n  target_path?: string,\n})\n```\n\nThe tool reads via:\n\n```ts\nlistReflections(activeStore.paths.external ?? activeStore.paths.root, {\n  changeId,\n  scope,\n  productId,\n  originRepoId,\n  reflectionsPath: activeStore.paths.reflections,\n})\n```\n\nThis preserves write-path parity and legacy fallback behavior. `target_path` uses `withOptionalTargetPathStore({ store, target_path }, ...)` with `snapshot-ok` semantics. It is read-only and does not require `target_confirmed`.\n\n### D2 — Return bounded source-backed summaries\n\nReturn shape:\n\n```ts\n{\n  entries: ReflectionEntrySummary[],\n  count: number,      // returned bounded entries\n  total: number,      // filtered entries before truncation\n  omitted: number,    // total - count\n  byFrictionCategory: Record<ReflectionFrictionCategory, number>,\n  bySuggestion: Record<string, number>,\n  _projectContext?: TargetProjectOutputContext\n}\n```\n\n`entries` are bounded by named constants (`DEFAULT_REFLECTION_LIST_LIMIT`, `MAX_REFLECTION_LIST_LIMIT`) and include stable source fields: `id`, `change_id`, `created_at`, optional product/repo origin tags, compact plane1 metrics, bounded `friction_items`, bounded `highlights`, and bounded `improvement_suggestions`.\n\n`byFrictionCategory` counts known `ReflectionEntry` friction category enum values from all filtered entries before entry bounding. `bySuggestion` is exact string counting over `plane2.improvement_suggestions` after trim, sorted by count desc then key asc, and capped with a named top-N constant. No semantic clustering.\n\n### D3 — Extend wisdom readers with target-path routing\n\nAdd optional `target_path` to:\n\n- `adv_project_wisdom_list`\n- `adv_wisdom_list`\n\nWrap the whole existing execution body in `withOptionalTargetPathStore`. Thread `activeStore` through every read:\n\n- `activeStore.wisdom.search/listAll/list`\n- `listProjectWisdom(activeStore.paths.root, { wisdomPath: activeStore.paths.wisdom })`\n- product filtering via `activeStore`, not the caller store\n\nFor target reads, return `_projectContext`. Preserve existing output shapes when `target_path` is omitted:\n\n- `adv_project_wisdom_list`: `entries`, `count`, `byType`\n- `adv_wisdom_list`: `wisdom`, `count`, `byType`\n\nFor `adv_wisdom_list changeId` target reads, prefer the same current logic against the target store. If workflow handle lookup is unavailable under a snapshot target, fall back to `activeStore.wisdom.list(changeId)` as current code already does when no handle exists.\n\n### D4 — Empty/malformed behavior remains storage-owned\n\nReflection storage already returns `[]` when no file exists and skips malformed lines via `parseReflectionEntries` debug logging. The tool should surface explicit empty counts (`count: 0`, `total: 0`, `omitted: 0`, empty summaries), not convert empty state into errors.\n\n### D5 — Register public tool consistently\n\nExpose `adv_reflection_list` through all public/tool surfaces:\n\n- `reflectionTools` export\n- `tool-registry.ts` binding via `createToolMap`\n- `ADV_TOOL_NAMES`\n- frozen `cli-bridge-contract.test.ts` list\n- `cli-surface-matrix` row if applicable\n- non-empty args-object tests\n- `utils/tool-title.ts` using `read(...)`\n- any schema registry/tool asset contract that enumerates public tools\n\n## Implementation Strategy\n\n1. Add reflection list summarization helpers and tests in/near `tools/reflection.ts`.\n2. Add `adv_reflection_list` tool with `target_path` support and path parity: `activeStore.paths.external ?? activeStore.paths.root` plus `reflectionsPath` override.\n3. Extend `adv_wisdom_list` and `adv_project_wisdom_list` args/execution with `withOptionalTargetPathStore`, using `activeStore` throughout.\n4. Register new tool in `tool-registry.ts`, `ADV_TOOL_NAMES`, CLI/title/asset contract surfaces.\n5. Add current-project and target-path tests for reflection and wisdom readers.\n6. Add regression tests for empty reflection file, malformed reflection degradation, bounded output, and backward compatibility for existing `adv_reflect`/wisdom readers.\n\n## Testing Plan\n\n- RED tests:\n  - `adv_reflection_list` returns bounded summaries and `byFrictionCategory` from multiple persisted reflection entries.\n  - `adv_reflection_list target_path` returns `_projectContext` and reads target store paths without target confirmation.\n  - Missing reflection file returns empty state.\n  - Malformed reflection JSONL line is skipped while valid entries remain.\n  - `adv_project_wisdom_list target_path` returns target project wisdom and `_projectContext` while current-project shape remains unchanged.\n  - `adv_wisdom_list target_path` works for aggregate/query/change-specific reads where possible.\n  - Tool registration tests cover `adv_reflection_list` in frozen/allowlist/title surfaces.\n- GREEN validation:\n  - `bin/oc-test targeted -- src/tools/reflection.test.ts src/storage/reflection.test.ts src/tools/wisdom.test.ts src/tools/target-project.test.ts src/tool-registry.test.ts src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts`\n  - `pnpm run check`\n\n## Compatibility Plan\n\n- `adv_reflect` unchanged except shared helpers if any.\n- Existing wisdom reader output fields preserved; `target_path` and `_projectContext` are additive.\n- Reflection storage format unchanged.\n- Target reads use existing read-only snapshot semantics; no target confirmation required.\n\n## Risks\n\n- Tool registration/asset drift: mitigate with explicit registration task and contract tests.\n- Product-linked reflection filtering may have edge cases when origin tags are missing. Keep current storage behavior: missing product/repo tags remain visible rather than dropping legacy entries.\n- `bySuggestion` can become noisy because suggestions are prose. Keep it exact/source-backed and bounded; do not infer semantic clusters.",
+    "executiveSummary": "# Executive Summary — Add reflection reader\n\n## Outcome\n\nADV now has a safe read path for reflection reports and cross-project wisdom mining. Agents can inspect current-project or `target_path` project learnings without direct ADV state-file reads.\n\n## What shipped\n\n- Added read-only `adv_reflection_list` with bounded source-backed summaries.\n- Reflection list output includes `entries`, `count`, `total`, `omitted`, `byFrictionCategory`, and exact `bySuggestion` counts.\n- Added reflection filters for `changeId`, friction `category`, `scope`, `maxEntries`, and `target_path`.\n- Added `target_path` support to `adv_project_wisdom_list` and `adv_wisdom_list` using read-only snapshot routing.\n- Registered `adv_reflection_list` across public tool surfaces, frozen tool list, CLI matrix, and tool-title mapping.\n- Reviewer remediation: `adv_wisdom_list target_path + changeId` stays on disk snapshot reads instead of live Temporal lookup.\n\n## Verification\n\n- Targeted reflection/wisdom/storage/target-project/registry/CLI/title tests passed: 97 tests across 10 files.\n- Reviewer verification passed: wisdom-target regression, scoped reflection/wisdom/registry/CLI tests, and `pnpm run check`.\n- `pnpm run check` passed.\n\n## Remaining concerns\n\n- None blocking. `bySuggestion` is exact string counting, intentionally not semantic clustering.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-27T20:45:08.408Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Agents can list and summarize reflections for current and target projects without direct ADV state-file reads. | pass | Implemented read-only `adv_reflection_list` and target_path wisdom readers; agents can list reflection/wisdom learnings through tools rather than direct ADV state-file reads. |\n| SC2 | success_criterion | Agents can list project wisdom from target projects using the same read-only target snapshot semantics as `adv_status`. | pass | `adv_reflection_list target_path`, `adv_project_wisdom_list target_path`, and `adv_wisdom_list target_path` tests return `_projectContext` and target entries using snapshot routing. |\n| SC3 | success_criterion | Outputs are bounded, source-backed, and include counts/omitted counts/drill-down enough for cross-project usage reviews. | pass | Reflection list tests assert bounded entries, `total`/`count`/`omitted`, `byFrictionCategory`, exact `bySuggestion`, and source-backed compact entry summaries. |\n| SC4 | success_criterion | Existing `adv_reflect` write behavior and wisdom reader behavior remain backward-compatible. | pass | Existing `adv_reflect`, current-project wisdom list behavior, and public registration tests pass; output changes for wisdom are additive only when target_path is supplied. |\n| AC1 | acceptance_criterion | A new read-only reflection reader (`adv_reflection_list` or equivalent) returns reflection entries sorted newest-first with bounded `entries`, `count`, `byFrictionCategory`, `bySuggestion`, and `omitted` metadata. | pass | `adv_reflection_list` returns newest-first bounded summaries with `entries`, `count`, `total`, `omitted`, `byFrictionCategory`, and `bySuggestion`; covered by `reflection.test.ts`. |\n| AC2 | acceptance_criterion | The reflection reader supports filters for `changeId`, `scope` (`repo`/`product`), `category`, `maxEntries`, and `target_path` where practical; missing optional filters default to safe bounded current-project reads. | pass | Tool args include `changeId`, `category`, `scope`, `maxEntries`, and `target_path` with safe defaults and named max/default bounds. |\n| AC3 | acceptance_criterion | When `target_path` is supplied, the reflection reader uses existing target-project snapshot semantics and returns `_projectContext`; untrusted target paths remain read-only and require no mutation confirmation. | pass | `reflection-target.test.ts` proves `adv_reflection_list target_path` uses `withOptionalTargetPathStore`, reads target store paths, and returns untrusted read-only `_projectContext` without confirmation. |\n| AC4 | acceptance_criterion | `adv_project_wisdom_list` supports `target_path` read-only snapshots and returns `_projectContext` for target reads while preserving current output shape (`entries`, `count`, `byType`). | pass | `wisdom-target.test.ts` proves `adv_project_wisdom_list target_path` reads target project wisdom via activeStore paths and returns `_projectContext` while preserving `entries`, `count`, `byType`. |\n| AC5 | acceptance_criterion | `adv_wisdom_list` supports `target_path` for aggregate/query/change-specific reads where current logic allows, using target store reads instead of current store reads. | pass | `wisdom-target.test.ts` proves `adv_wisdom_list target_path` aggregate and change-specific paths use target store reads and return `_projectContext`; reviewer fixed changeId path to avoid live Temporal lookup under target snapshots. |\n| AC6 | acceptance_criterion | Missing reflection/wisdom files return explicit empty states with counts of 0, not unhandled errors. | pass | Reflection list missing-file test returns explicit empty state: `entries: []`, `count: 0`, `total: 0`, `omitted: 0`, empty summaries. |\n| AC7 | acceptance_criterion | Malformed reflection lines continue to be skipped/degraded by storage parser; reader returns valid entries and source-backed summaries only. | pass | Storage reflection tests still cover malformed-line degradation; reader uses `listReflections`, so malformed entries are skipped by storage and valid entries remain source-backed. |\n| AC8 | acceptance_criterion | Tests cover current-project and target-path reads for reflection and wisdom surfaces, including untrusted target `_projectContext` behavior without target confirmation. | pass | Targeted tests cover current and target reads for reflection/wisdom surfaces, including untrusted `_projectContext` behavior without target confirmation. |\n| AC9 | acceptance_criterion | Tests prove existing `adv_reflect`, current-project `adv_project_wisdom_list`, and current-project `adv_wisdom_list` behavior remain backward-compatible. | pass | Existing `adv_reflect`, current-project `adv_project_wisdom_list`, and current-project `adv_wisdom_list` tests pass; tool registry/CLI/title contract tests pass. |\n| AC10 | acceptance_criterion | Validation passes with targeted reflection/wisdom/target-project tests and `pnpm run check`. | pass | Verification passed: targeted reflection/wisdom/storage/target-project/registry/CLI/title tests; reviewer scoped tests; `pnpm run check`. |\n| C1 | constraint | No direct ADV state-file reads by agents; implementation may use storage APIs and store paths. | respected | No agent direct state-file read path added; implementation uses storage APIs (`listReflections`, `listProjectWisdom`, `store.wisdom`). |\n| C2 | constraint | No mutation during reader calls, including target project reads. | respected | Reader calls only list/search APIs and target snapshot routing; no write/signal/mutation occurs in `adv_reflection_list` or wisdom list readers. |\n| C3 | constraint | No LLM-only synthesis as source of truth; summaries must be deterministic counts/excerpts sourced from persisted reflection/wisdom entries. | respected | Summaries are deterministic counts/excerpts from persisted entries; no LLM synthesis or semantic clustering used. |\n| C4 | constraint | Preserve product-linked visibility filtering for wisdom and reflections. | respected | Wisdom product filtering now runs against activeStore; reflection list passes product/repo filters to `listReflections`, preserving legacy visible-missing-tags behavior. |\n| C5 | constraint | Keep output bounded with explicit omitted counts rather than truncating mid-entry. | respected | Output uses named bounds and omitted counts for entries/details/suggestions; no mid-entry truncation authority. |\n| OOS1 | out_of_scope | Changing `adv_reflect` report generation semantics. | not_applicable | `adv_reflect` generation semantics unchanged except shared imports/helpers; no report-generation redesign. |\n| OOS2 | out_of_scope | Editing or deleting reflection reports. | not_applicable | No reflection edit/delete behavior added. |\n| OOS3 | out_of_scope | Auto-promoting reflections/wisdom into roadmap changes. | not_applicable | No auto-promotion from reflection/wisdom to roadmap changes implemented. |\n| OOS4 | out_of_scope | Building a dashboard or cross-product analytics service. | not_applicable | No dashboard/cross-product analytics service implemented. |\n| OOS5 | out_of_scope | Rewriting reflection storage format. | not_applicable | Reflection storage format unchanged; reader reuses existing storage parser/list API. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-27T18:15:43.670Z",
+      "contentHash": "0ef394f5560b6bf88e9869140fb4eda0d174bfb68a64b3abaa257b6b4b9f3464",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-27T18:14:11.487Z",
+      "contentHash": "cb8c79bdd30b7c15a9fed74231464adc7169ca3d200e32e3a0512d50d89b4fbf",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-27T20:11:24.628Z",
+      "contentHash": "db55188c3c2488727d9c4ad4416595444fbe6b300f15fc94cc44c6152ff4e9cd",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-27T20:17:19.266Z",
+      "contentHash": "0ff2a1624e217a868e385bd97c3a5a2a8f44a928f90d5855553d448f97bb9c0c",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-27T20:45:29.805Z",
+      "contentHash": "efc099fc013e33a58a8454095ce8fa20f8aeadbcd1360de3ca7155d3233ae63d",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-27T20:48:12.832Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

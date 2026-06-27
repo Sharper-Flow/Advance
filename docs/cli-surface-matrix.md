@@ -74,6 +74,7 @@
 | `adv_project_context` | `keep-mcp-only` | Agent context read |
 | `adv_project_metadata` | `keep-mcp-only` | Agent context read |
 | `adv_wip_state` | `keep-mcp-only` | Temporal/session-dependent aggregation |
+| `adv_reflection_list` | `keep-mcp-only` | Agent knowledge surface |
 | `adv_reflect` | `keep-mcp-only` | Workflow-bound reflection tool |
 | `adv_run_test` | `keep-mcp-only` | Workflow-bound test evidence tool |
 | `adv_task_checkpoint` | `keep-mcp-only` | Workflow-bound checkpoint tool |

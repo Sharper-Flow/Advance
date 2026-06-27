@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-H0fmKZ",
+      "type": "pattern",
+      "content": "For read-only target_path tools, wrap the reader body in `withOptionalTargetPathStore`, use the active target store for all storage reads and product filtering, and append `_projectContext` only when target context exists. Do not add target confirmation fields for snapshot-only reads.",
+      "source_task": "tk-a149671e0349",
+      "recorded_at": "2026-06-27T20:35:52.998Z"
+    },
+    {
+      "id": "ws-VPLn8W",
+      "type": "gotcha",
+      "content": "For target_path snapshot readers with changeId filters, avoid live Temporal workflow lookup against the target project unless the target store is known live/current. Snapshot reads should stay on disk/store fallback so untrusted target reads remain read-only and service-independent.",
+      "source_task": "tk-3e2d14c9a6ca",
+      "recorded_at": "2026-06-27T20:44:06.176Z"
+    }
+  ],
+  "count": 2
+}
