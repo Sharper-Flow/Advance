@@ -202,7 +202,11 @@ async function readChangeStatusWithCleanupTimeout(
   timeoutMs = DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
 ): Promise<
   | { ok: true; status: string | undefined }
-  | { ok: false; reason: "temporal_read_timeout" | "temporal_read_failed"; error: unknown }
+  | {
+      ok: false;
+      reason: "temporal_read_timeout" | "temporal_read_failed";
+      error: unknown;
+    }
 > {
   try {
     const loaded = await withTimeout(
@@ -2361,7 +2365,7 @@ export interface AdvWorktreeCleanupDeps {
   forceAttempts?: boolean;
   /** Startup/session.deleted pass false by calling drainPendingDeletes directly. */
   discover?: boolean;
-  /** Optional per-item timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
+  /** Optional cleanup drain timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
   cleanupItemTimeoutMs?: number;
   /** Injection seam for testing. Defaults to {@link advWorktreeDelete}. */
   deleteWorktree?: typeof advWorktreeDelete;
@@ -2376,7 +2380,7 @@ export interface DrainPendingDeletesOptions {
   forceAttempts?: boolean;
   /** Preview pending-delete handling without mutating attempts or deleting. */
   dryRun?: boolean;
-  /** Optional per-item timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
+  /** Optional cleanup drain timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
   cleanupItemTimeoutMs?: number;
   /** Injection seam for testing. Defaults to {@link advWorktreeDelete}. */
   deleteWorktree?: typeof advWorktreeDelete;
@@ -2515,6 +2519,7 @@ export async function drainPendingDeletes(
   let removed = 0;
   let retained = 0;
   const worktreeInUseFn = deps.isWorktreeInUse ?? isWorktreeInUse;
+  const cleanupStartedAt = Date.now();
 
   for (const pendingDelete of pendingDeletes) {
     const { path: worktreePath, branch } = pendingDelete;
@@ -2555,9 +2560,14 @@ export async function drainPendingDeletes(
     const deleteFn = options.deleteWorktree ?? advWorktreeDelete;
     const timeoutMs =
       options.cleanupItemTimeoutMs ?? DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS;
-    if (timeoutMs < MIN_PENDING_DELETE_START_BUDGET_MS) {
+    const remainingBudgetMs = Math.max(
+      0,
+      timeoutMs - (Date.now() - cleanupStartedAt),
+    );
+    const deleteTimeoutMs = Math.min(timeoutMs, remainingBudgetMs);
+    if (deleteTimeoutMs < MIN_PENDING_DELETE_START_BUDGET_MS) {
       deps.log.warn(
-        `[worktree] Pending delete for ${branch} skipped during ${trigger} — remaining cleanup budget ${timeoutMs}ms is below destructive-operation minimum ${MIN_PENDING_DELETE_START_BUDGET_MS}ms`,
+        `[worktree] Pending delete for ${branch} skipped during ${trigger} — remaining cleanup budget ${deleteTimeoutMs}ms is below destructive-operation minimum ${MIN_PENDING_DELETE_START_BUDGET_MS}ms`,
       );
       await recordPendingDeleteFailure(
         deps.database,
@@ -2580,7 +2590,7 @@ export async function drainPendingDeletes(
     try {
       const result = await withTimeout(
         deletePromise,
-        timeoutMs,
+        deleteTimeoutMs,
         `Pending delete for ${branch} timed out`,
       );
 
@@ -2608,7 +2618,7 @@ export async function drainPendingDeletes(
       // the agent — that creates ambiguous late side-effects the agent
       // cannot reason about.
       deps.log.warn(
-        `[worktree] Pending delete for ${branch} timed out after ${timeoutMs}ms — retaining for retry`,
+        `[worktree] Pending delete for ${branch} timed out after ${deleteTimeoutMs}ms — retaining for retry`,
       );
       await recordPendingDeleteFailure(
         deps.database,

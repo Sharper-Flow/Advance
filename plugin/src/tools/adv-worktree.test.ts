@@ -40,7 +40,10 @@ vi.mock("./worktree/triage", () => triageMock);
 vi.mock("../utils/workspace-warp", () => workspaceWarpMock);
 vi.mock("./target-project", () => targetProjectMock);
 
-import { advWorktreeTools, WORKTREE_TOOL_SAFE_TIMEOUT_MS } from "./adv-worktree";
+import {
+  advWorktreeTools,
+  WORKTREE_TOOL_SAFE_TIMEOUT_MS,
+} from "./adv-worktree";
 import type { Store } from "../storage/store-types";
 import type { OpencodeClient } from "../utils/opencode-types";
 

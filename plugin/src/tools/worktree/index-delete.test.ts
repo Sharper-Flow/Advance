@@ -1191,6 +1191,50 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     ]);
   });
 
+  it("stops starting later pending deletes when the shared cleanup budget is nearly exhausted", async () => {
+    const firstBranch = "change/slow-first";
+    const secondBranch = "change/budget-retained";
+    const firstPath = join(repoRoot, "worktrees", "change", "slow-first");
+    const secondPath = join(repoRoot, "worktrees", "change", "budget-retained");
+    mkdirSync(firstPath, { recursive: true });
+    mkdirSync(secondPath, { recursive: true });
+    const deps = createDrainDeps(firstPath);
+    await setPendingDelete(deps.database, firstBranch, firstPath, "slow first");
+    await setPendingDelete(deps.database, secondBranch, secondPath, "second");
+
+    const deleteWorktree = vi.fn(
+      async (
+        branch: string,
+        _opts: unknown,
+        callDeps: { worktreePath: string },
+      ) => {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        return {
+          ok: true as const,
+          branch,
+          path: callDeps.worktreePath,
+        };
+      },
+    );
+
+    const result = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+      cleanupItemTimeoutMs: 600,
+      deleteWorktree,
+    });
+
+    expect(result).toEqual({ removed: 1, retained: 1 });
+    expect(deleteWorktree).toHaveBeenCalledTimes(1);
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({
+        branch: secondBranch,
+        attempts: 1,
+        lastError: "TIME_BUDGET_EXHAUSTED",
+        lastErrorClass: "time_budget_exhausted",
+      }),
+    ]);
+  });
+
   it("does not consume retry attempts while the worktree is still in use", async () => {
     const branch = "change/in-use-skip";
     const pendingPath = join(repoRoot, "worktrees", "change", "in-use-skip");
