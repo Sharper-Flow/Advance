@@ -650,7 +650,7 @@ Suggested structure:
 
 - **User Decisions** — questions user answered, each with the question, user's choice, and why it matters
 - **Agent Decisions (LBP)** — technical questions resolved autonomously
-- **Preview Applicability** — mandatory `visual_surface: true|false|unknown` value plus rationale. `visual_surface: unknown` is allowed only when uncertainty is explicit and MUST be treated as blocking during `/adv-review` before acceptance.
+- **Preview Applicability** — mandatory `visual_surface: true|false|unknown` value plus rationale, plus `preview_expectation` fields for `exact_route_required`, `data_state_expectation`, `viewport_expectation`, and rationale. `visual_surface: unknown` is allowed only when uncertainty is explicit and MUST be treated as blocking during `/adv-review` before acceptance.
 - **Deferred Questions** — only questions user explicitly chose to defer
 - × Do NOT include a generic "Open Questions" section
 

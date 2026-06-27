@@ -621,6 +621,9 @@ describe("thin-command shape enforcement", () => {
     expect(discover).toContain("exact_route_required");
     expect(discover).toContain("data_state_expectation");
     expect(discover).toContain("viewport_expectation");
+    expect(discover).toContain(
+      "mandatory `visual_surface: true|false|unknown` value plus rationale, plus `preview_expectation` fields",
+    );
 
     expect(review).toContain("Preview URL");
     expect(review).toContain("reachability evidence");
