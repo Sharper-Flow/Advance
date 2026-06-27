@@ -33,6 +33,7 @@ import { getChangeHandle } from "./_adapters";
 export const DEFAULT_TEST_TIMEOUT_MS = 30_000;
 export const DEFAULT_TEST_MAX_BUFFER = 10 * 1024 * 1024;
 const DEFAULT_OUTPUT_MAX_LENGTH = 2000;
+const TEST_RUN_RECORDING_TIMEOUT_MS = 1000;
 const TRUNCATION_SUFFIX = "... (truncated)";
 const ADV_RUN_TEST_PHASES = ["red", "green", "verify"] as const;
 type AdvRunTestPhase = (typeof ADV_RUN_TEST_PHASES)[number];
@@ -48,6 +49,26 @@ type TestClassification =
   | "timed_out"
   | "output_limit"
   | "spawn_error";
+
+type EvidenceRecordingStatus =
+  | {
+      status: "recorded";
+      runId: string;
+    }
+  | {
+      status: "degraded";
+      reason: "signal_failed" | "timeout";
+      message: string;
+      runId: string;
+    }
+  | {
+      status: "not_applicable";
+      reason:
+        | "no_change_for_task"
+        | "temporal_service_unavailable"
+        | "project_id_unavailable";
+      runId: string;
+    };
 
 interface TestAdvisory {
   kind: string;
@@ -154,6 +175,30 @@ const classifyRun = (run: ExecResult): TestClassification => {
   if (run.timedOut) return "timed_out";
   if (run.maxBufferExceeded) return "output_limit";
   return run.exitCode === 0 ? "passed" : "failed";
+};
+
+const formatRecordingError = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+const withRecordingTimeout = async (
+  recording: Promise<EvidenceRecordingStatus>,
+  runId: string,
+): Promise<EvidenceRecordingStatus> => {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const timeoutResult = new Promise<EvidenceRecordingStatus>((resolve) => {
+    timeout = setTimeout(() => {
+      resolve({
+        status: "degraded",
+        reason: "timeout",
+        message: `testRunRecordedSignal timed out after ${TEST_RUN_RECORDING_TIMEOUT_MS}ms`,
+        runId,
+      });
+    }, TEST_RUN_RECORDING_TIMEOUT_MS);
+  });
+
+  const result = await Promise.race([recording, timeoutResult]);
+  if (timeout) clearTimeout(timeout);
+  return result;
 };
 
 const findRepoLocalTestWrapper = (cwd: string): string | undefined => {
@@ -438,8 +483,14 @@ export const testTools = {
       });
 
       // rq-TDD009seq: fire testRunRecordedSignal for ordering enforcement.
-      // Best-effort: signal fire failure is non-fatal; test result still returned.
+      // Best-effort: signal fire failure is non-fatal, but degradation is
+      // explicit in the response so callers do not infer durable evidence.
       const runId = `tr_${Date.now().toString(36)}_${randomBytes(4).toString("hex")}`;
+      let evidenceRecording: EvidenceRecordingStatus = {
+        status: "not_applicable",
+        reason: "no_change_for_task",
+        runId,
+      };
       try {
         const taskInfo = await store.tasks.show(args.taskId);
         if (taskInfo?.changeId) {
@@ -454,26 +505,59 @@ export const testTools = {
               );
               // rq-cacheRefresh01-exempt: adv_run_test returns command output
               // directly; does not read change state after firing
-              await handle.signal(testRunRecordedSignal, {
-                taskId: args.taskId,
+              const recording = handle
+                .signal(testRunRecordedSignal, {
+                  taskId: args.taskId,
+                  runId,
+                  ...(args.phase && { phase: args.phase }),
+                  exitCode,
+                  classification,
+                  command: args.command,
+                  durationMs,
+                  ...(qualitySignals && {
+                    assertionDensity: qualitySignals.assertionDensity,
+                    mockSurface: qualitySignals.mockSurface,
+                    behaviorSurface: qualitySignals.behaviorSurface,
+                  }),
+                  recordedAt: new Date().toISOString(),
+                })
+                .then(
+                  (): EvidenceRecordingStatus => ({
+                    status: "recorded",
+                    runId,
+                  }),
+                )
+                .catch(
+                  (error: unknown): EvidenceRecordingStatus => ({
+                    status: "degraded",
+                    reason: "signal_failed",
+                    message: formatRecordingError(error),
+                    runId,
+                  }),
+                );
+              evidenceRecording = await withRecordingTimeout(recording, runId);
+            } else {
+              evidenceRecording = {
+                status: "not_applicable",
+                reason: "project_id_unavailable",
                 runId,
-                ...(args.phase && { phase: args.phase }),
-                exitCode,
-                classification,
-                command: args.command,
-                durationMs,
-                ...(qualitySignals && {
-                  assertionDensity: qualitySignals.assertionDensity,
-                  mockSurface: qualitySignals.mockSurface,
-                  behaviorSurface: qualitySignals.behaviorSurface,
-                }),
-                recordedAt: new Date().toISOString(),
-              });
+              };
             }
+          } else {
+            evidenceRecording = {
+              status: "not_applicable",
+              reason: "temporal_service_unavailable",
+              runId,
+            };
           }
         }
-      } catch {
-        // Best-effort: non-fatal if signal fire fails
+      } catch (error) {
+        evidenceRecording = {
+          status: "degraded",
+          reason: "signal_failed",
+          message: formatRecordingError(error),
+          runId,
+        };
       }
 
       let rawOutput = `${stdout}\n${stderr}`.trim();
@@ -534,6 +618,7 @@ export const testTools = {
             behaviorSurface: qualitySignals.behaviorSurface,
           }),
         },
+        evidenceRecording,
         runId,
         ...(timedOut && { timeoutMs: effective.timeoutMs }),
       });

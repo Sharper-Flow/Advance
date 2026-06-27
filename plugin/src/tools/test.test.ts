@@ -12,6 +12,26 @@ import { join } from "node:path";
 import { shapeCommandOutput, testTools } from "./test";
 import type { Store } from "../storage/store";
 
+const { mockGetService, mockGetChangeHandle, mockSignal, mockGetProjectId } =
+  vi.hoisted(() => ({
+    mockGetService: vi.fn(),
+    mockGetChangeHandle: vi.fn(),
+    mockSignal: vi.fn(),
+    mockGetProjectId: vi.fn(),
+  }));
+
+vi.mock("../temporal/service", () => ({
+  getService: mockGetService,
+}));
+
+vi.mock("./_adapters", () => ({
+  getChangeHandle: mockGetChangeHandle,
+}));
+
+vi.mock("../utils/project-id", () => ({
+  getProjectId: mockGetProjectId,
+}));
+
 function createMockStore(): Store {
   return {
     paths: { root: "/tmp/test" } as Store["paths"],
@@ -54,6 +74,10 @@ function createMockStore(): Store {
 describe("test tools — simplified adv_run_test", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetService.mockReturnValue(null);
+    mockGetChangeHandle.mockReturnValue({ signal: mockSignal });
+    mockSignal.mockResolvedValue(undefined);
+    mockGetProjectId.mockResolvedValue("proj-test");
   });
 
   test("runs command and returns result with optional descriptive phase", async () => {
@@ -117,6 +141,90 @@ describe("test tools — simplified adv_run_test", () => {
       classification: "passed",
     });
     expect(parsed.evidence.durationMs).toBe(parsed.durationMs);
+    expect(parsed.evidenceRecording).toMatchObject({
+      status: "not_applicable",
+      reason: "no_change_for_task",
+    });
+  });
+
+  test("reports recorded evidence status when testRunRecordedSignal succeeds", async () => {
+    const store = createMockStore();
+    vi.mocked(store.tasks.show).mockResolvedValue({
+      changeId: "change-a",
+    } as Awaited<ReturnType<Store["tasks"]["show"]>>);
+    mockGetService.mockReturnValue({ client: {}, namespace: "default" });
+
+    const result = await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "printf recorded",
+      },
+      store,
+      "/tmp",
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.passed).toBe(true);
+    expect(parsed.evidenceRecording).toMatchObject({
+      status: "recorded",
+      runId: parsed.runId,
+    });
+    expect(mockSignal).toHaveBeenCalledOnce();
+  });
+
+  test("reports degraded evidence status when recording signal fails", async () => {
+    const store = createMockStore();
+    vi.mocked(store.tasks.show).mockResolvedValue({
+      changeId: "change-a",
+    } as Awaited<ReturnType<Store["tasks"]["show"]>>);
+    mockGetService.mockReturnValue({ client: {}, namespace: "default" });
+    mockSignal.mockRejectedValue(new Error("signal failed"));
+
+    const result = await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "printf command-still-succeeds",
+      },
+      store,
+      "/tmp",
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.passed).toBe(true);
+    expect(parsed.output).toContain("command-still-succeeds");
+    expect(parsed.evidenceRecording).toMatchObject({
+      status: "degraded",
+      reason: "signal_failed",
+      message: expect.stringContaining("signal failed"),
+    });
+  });
+
+  test("bounds evidence recording wait when signal hangs", async () => {
+    const store = createMockStore();
+    vi.mocked(store.tasks.show).mockResolvedValue({
+      changeId: "change-a",
+    } as Awaited<ReturnType<Store["tasks"]["show"]>>);
+    mockGetService.mockReturnValue({ client: {}, namespace: "default" });
+    mockSignal.mockReturnValue(new Promise(() => undefined));
+
+    const startedAt = performance.now();
+    const result = await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "printf bounded-recording",
+      },
+      store,
+      "/tmp",
+    );
+
+    const parsed = JSON.parse(result);
+    expect(performance.now() - startedAt).toBeLessThan(1_500);
+    expect(parsed.passed).toBe(true);
+    expect(parsed.evidenceRecording).toMatchObject({
+      status: "degraded",
+      reason: "timeout",
+      message: expect.stringContaining("timed out"),
+    });
   });
 
   test("returns typed result contract for non-zero command", async () => {
