@@ -348,7 +348,9 @@ export const wisdomTools = {
           } catch (error) {
             return formatToolOutput({
               error:
-                error instanceof Error ? error.message : "Failed to list wisdom",
+                error instanceof Error
+                  ? error.message
+                  : "Failed to list wisdom",
             });
           }
         },

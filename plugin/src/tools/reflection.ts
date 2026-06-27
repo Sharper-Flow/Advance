@@ -499,7 +499,9 @@ function summarizeReflectionEntry(entry: ReflectionEntry) {
     ...(entry.origin_repo_project_id
       ? { origin_repo_project_id: entry.origin_repo_project_id }
       : {}),
-    ...(entry.origin_repo_path ? { origin_repo_path: entry.origin_repo_path } : {}),
+    ...(entry.origin_repo_path
+      ? { origin_repo_path: entry.origin_repo_path }
+      : {}),
     plane1: {
       efficiency: entry.plane1.efficiency,
       quality: entry.plane1.quality,
