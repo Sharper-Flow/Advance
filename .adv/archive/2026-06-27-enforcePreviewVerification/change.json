@@ -1,0 +1,1055 @@
+{
+  "id": "enforcePreviewVerification",
+  "title": "Enforce preview verification",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-27T18:15:04.568Z",
+  "tasks": [
+    {
+      "id": "tk-70659007ffb8",
+      "title": "Strengthen preview URL spec contract",
+      "type": "code",
+      "section": "Spec contract",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-27T21:01:58.901Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC10"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC10"
+        ],
+        "respects": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T21:04:12.230Z",
+      "verification": "RED: targeted preview asset test failed because rq-acceptancePreviewUrl01 body lacked exact-route/hydration/375px/fixture/stale/URL-source-only language. GREEN: same targeted test passed after strengthening spec JSON and asset assertions.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated authoritative `rq-acceptancePreviewUrl01` spec JSON to require exact route/path, affected state/data source, hydration/readiness evidence, viewport context including 375px or project equivalent, fixture/mock labeling, stale/cache/error-page freshness handling, and URL-source-only insufficiency for visual preview proof. Extended asset test to pin these spec-body requirements while preserving non-visual behavior.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "7764f5b11050c05915aab83816ea486a9944ac80",
+      "completedAt": "2026-06-27T21:06:38.543Z",
+      "completed_at": "2026-06-27T21:06:38.543Z",
+      "notes": "Spec preview contract strengthened and checkpointed at 7764f5b11050c05915aab83816ea486a9944ac80.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T21:06:59.075Z"
+    },
+    {
+      "id": "tk-f68c98db6942",
+      "title": "Update discovery and review preview proof workflow",
+      "type": "code",
+      "section": "Workflow commands",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-27T21:02:19.424Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-70659007ffb8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7",
+          "AC9",
+          "AC10"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T21:07:13.388Z",
+      "verification": "RED: targeted preview asset test failed because discover/review lacked preview_expectation and exact-route proof workflow language. GREEN: same targeted test passed after updating discover preview expectations and review proof table/rules/summary language.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `/adv-discover` agreement guidance to record `preview_expectation` fields for exact route, data state, viewport, and rationale. Updated `/adv-review` Preview URL Proof table/rules/executive-summary text so live visual preview proof requires exact-route/state/hydration/viewport/freshness evidence, URL-source-only evidence is insufficient, fixture/mock-as-live and stale/error/cached previews block, and non-visual not_applicable remains valid. Extended asset assertions to pin these rules.",
+      "filesTouched": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "1c1a65ef7f0b586c257f9df1da99cd72ca578338",
+      "completedAt": "2026-06-27T21:10:03.053Z",
+      "completed_at": "2026-06-27T21:10:03.053Z",
+      "notes": "Discovery/review preview proof workflow updated and checkpointed at 1c1a65ef7f0b586c257f9df1da99cd72ca578338.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T21:10:25.942Z"
+    },
+    {
+      "id": "tk-683d515f5391",
+      "title": "Align apply/designer/reviewer visual evidence packets",
+      "type": "code",
+      "section": "Agent packets",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-27T21:02:36.268Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f68c98db6942"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8",
+          "AC9"
+        ],
+        "verifies": [
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "C1",
+          "C3",
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T21:10:40.920Z",
+      "verification": "RED: targeted preview asset test failed after adding apply/designer/reviewer assertions because packet guidance lacked exact affected route/state and post-hydration proof language. GREEN: same targeted test passed after aligning apply, reviewer, and designer guidance.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated apply Designer Context Packet evidence expectation and reviewer/designer browser evidence guidance to require exact affected route/state, post-hydration/readiness proof, viewport context, and fixture/mock labeling. Extended asset test to pin aligned apply/reviewer/designer guidance.",
+      "filesTouched": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-apply.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-apply.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "b37b5c4a157fb0636740989ef99984de3db61cdb",
+      "completedAt": "2026-06-27T21:13:25.508Z",
+      "completed_at": "2026-06-27T21:13:25.508Z",
+      "notes": "Apply/designer/reviewer visual evidence packets aligned and checkpointed at b37b5c4a157fb0636740989ef99984de3db61cdb.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-27T21:13:39.749Z"
+    },
+    {
+      "id": "tk-2346e406c737",
+      "title": "Verify preview enforcement contract alignment",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-06-27T21:02:52.012Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-683d515f5391"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC9",
+          "AC10",
+          "AC11",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-27T21:14:08.834Z",
+      "verification": "Acceptance reviewer remediation verified: spec JSON parse passed, targeted asset suites passed (179 tests), and `pnpm --dir plugin run check` passed per persisted adv-reviewer report. Diff limited to persisted discovery preview_expectation guidance and matching asset assertion.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-discover.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-discover.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "2a960be482d16278d35a48cb7639b5b5c8fe4fbb",
+      "completedAt": "2026-06-27T21:26:11.668Z",
+      "completed_at": "2026-06-27T21:26:11.668Z",
+      "notes": "Verification complete and checkpointed at da06947f02591db03a486c36091e3c21a40b148b.",
+      "error_recovery": {
+        "last_error": "`pnpm run check` initially failed on unused test variables, pre-existing `no-useless-assignment` in worktree cleanup, and Prettier formatting.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "All lint/format issues fixed; no further retry needed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm run check` failed: unused `apply`/`reviewer`/`designer` variables in adv-skill-backed-commands-assets.test.ts, `no-useless-assignment` in tools/worktree/index.ts, then Prettier format check.",
+            "diagnosis": "The unused variables came from an accidental insertion into the wrong test; worktree lint failure was pre-existing in the merged base but blocked required check; formatting was caused by test edits.",
+            "fix_tried": "Removed accidental unused variables, changed `workspaceCleanupWarning` declaration to avoid useless initial assignment, ran Prettier on the touched asset test, reran check.",
+            "strategy_label": "lint-format-and-rerun",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-27T21:16:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-27T21:18:05.597Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "enforcePreviewVerification",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for enforcePreviewVerification preview-proof strengthening",
+      "sources": [
+        {
+          "label": "Existing contract rq-acceptancePreviewUrl01 (spec.json)",
+          "locator": ".adv/specs/advance-workflow/spec.json:3141-3212",
+          "summary": "Existing MUST requirement already enforces visual_surface true/false/unknown, sanitized Preview URL, bounded reachability evidence, blocking on missing URL/evidence/drift, not_applicable for non-visual. 5 scenarios. Design D1 strengthens this in place — feasible, no new requirement needed."
+        },
+        {
+          "label": "/adv-review Preview URL Proof table + rules",
+          "locator": ".opencode/command/adv-review.md:524-601",
+          "summary": "Table has live/not_applicable/blocked rows; rules cover sanitize, bare-URL-insufficient, no-HTTP-probing, drift. Strengthening to exact-route/hydration/viewport/freshness is an additive prose/table edit — structurally feasible, no code change."
+        },
+        {
+          "label": "/adv-discover Preview applicability",
+          "locator": ".opencode/command/adv-discover.md:474",
+          "summary": "Records visual_surface true|false|unknown + rationale today. D4 adds preview_expectation sub-fields (exact_route_required, data_state_expectation, viewport_expectation). Additive to existing agreement section — feasible."
+        },
+        {
+          "label": "Apply/designer/reviewer packet anchors",
+          "locator": ".opencode/command/adv-apply.md:539-549; .opencode/agents/adv-designer.md:164-175; .opencode/agents/adv-reviewer.md:149-162",
+          "summary": "VISUAL_CONTEXT already carries viewport_targets + evidence_expectation; designer/reviewer already require viewport context + fallback rationale. D5 (add exact-route/post-hydration naming) is a text refinement on existing anchors — feasible, no schema change."
+        },
+        {
+          "label": "Asset test pinning the contract",
+          "locator": "plugin/src/adv-skill-backed-commands-assets.test.ts:573-618",
+          "summary": "Test substring-matches review.md including the literal `\\`live\\` | \\`visual_surface: true\\`` table-cell prefix (line 530) and only checks workflowDoc for the title 'Front-End Acceptance Preview URL', not the strengthened body. Rewriting the review table must preserve that exact substring or update the assertion in lockstep."
+        },
+        {
+          "label": "Spec doc generation model",
+          "locator": "plugin/src/archive/docs.ts:25,192-202; plugin/src/archive/archive.ts:439; plugin/src/__tests__/spec-citation-invariant.test.ts:1-18",
+          "summary": "docs/specs/advance-workflow.md is an AUTO-GENERATED mirror produced by generateSpecDocFile at ARCHIVE time only. No standalone regen script and not regenerated by `pnpm run check`. Manual markdown edits persist until next archive regenerates from spec.json. Design D6/step 3 'update markdown manually' works but is a mirror, not source of truth."
+        },
+        {
+          "label": "Structural frontend classifier",
+          "locator": "plugin/src/validator/prep-readiness.ts:358-377",
+          "summary": "isStructuredFrontendScope() backs visual_surface===true as structural; filename/title regex is advisory-only. Confirms agreement constraint 'classification structural not path-heuristic-only' is already satisfied — design does not regress it."
+        }
+      ],
+      "architecture_assessment": "Design is the boring, correct choice: strengthen the existing rq-acceptancePreviewUrl01 contract + command/agent prose + asset tests rather than build a browser-automation framework or new MCP tool. Every anchor the design touches exists today and the proposed edits are additive (spec body/scenarios, review table rows/rules, discover proof-expectation fields, packet text). Enforcement stays workflow-owned (/adv-review pre-acceptance + contract reviewMatrix), consistent with current architecture where preview proof is already prose+matrix-enforced, not parser-enforced. No layer-boundary, schema-registry, or worker-bundle impact. Two concrete drift hazards: (1) the asset test substring-matches the exact `\\`live\\` | \\`visual_surface: true\\`` table cell, so a table rewrite must preserve that prefix or co-update the test; (2) docs/specs/advance-workflow.md is an archive-time auto-generated mirror, so the design's 'update markdown manually' step lands edits that are not the source of truth and are NOT pinned for strengthened-body content by the current title-only doc assertion — the durable law lives in spec.json.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No hard conflicts. Two required corrections before/within implementation: (C1) Preserve the literal review.md substring `\\`live\\` | \\`visual_surface: true\\`` when rewriting the Preview URL Proof table, OR update the assertion at adv-skill-backed-commands-assets.test.ts:605 in the same change; otherwise the GREEN asset test breaks. (C2) Treat .adv/specs/advance-workflow/spec.json as the authoritative law for the strengthened body; the docs/specs/advance-workflow.md edit is a mirror only (archive-time generated). If the design wants the strengthened body pinned in tests, add a spec.json body assertion (e.g. expect requirement body to contain 'exact route' / '375' / 'hydration') rather than relying on the markdown mirror, since the current doc assertion only checks the title. Nonblocking: the 375px '(or project equivalent)' wording must stay parametric to honor the agreement constraint against overfitting one framework/provider."
+      },
+      "recommendation": "Proceed to design gate as READY-with-corrections (CAUTION). The strengthen-in-place approach is sound, source-feasible, and architecture-aligned. Before completing planning: (1) add the test-substring-preservation note to the implementation plan for the review.md table edit, (2) anchor strengthened-body assertions on spec.json (not the generated markdown mirror), and (3) keep viewport wording parametric (375px OR documented project equivalent). No new MCP tool / browser framework is needed or justified.",
+      "follow_ups": [
+        "Implementation: extend the asset test to pin strengthened spec.json body phrases (exact route, hydration/readiness, viewport/375, fixture/mock, stale/cache, URL-source-only insufficiency) AND a non-visual not_applicable assertion, per AC9/AC10.",
+        "Implementation: confirm whether any other asset test (e.g. adv-reviewer-asset.test.ts, subagent-reports-spec-assets.test.ts cited in the design Testing Plan) already references these anchors so RED assertions are added in the right file without duplication."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "enforcePreviewVerification",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/enforcePreviewVerification",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": ".opencode/command/adv-review.md",
+          "line": 524,
+          "what": "Preview proof enforcement is explicit before the acceptance checkpoint.",
+          "why": "The command now distinguishes live, not_applicable, and blocked states and blocks URL-source-only, stale/cache/error, fixture-as-live, missing route/state, missing hydration/readiness, missing viewport, and missing matrix evidence.",
+          "fix": "n/a"
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 3141,
+          "what": "Spec law captures strengthened visual preview proof requirements while preserving non-visual not_applicable compatibility.",
+          "why": "Requirement rq-acceptancePreviewUrl01 now includes preview_expectation fields, exact route/state, 375px/project-equivalent viewport context, fixture/mock labeling, freshness/cache context, URL-source-only insufficiency, and non-visual not_applicable allowance.",
+          "fix": "n/a"
+        }
+      ],
+      "changes_made": [
+        {
+          "file": ".opencode/command/adv-discover.md",
+          "summary": "Aligned the persisted Agreement structure guidance with the new discovery contract by requiring Preview Applicability to include preview_expectation fields, not just visual_surface and rationale.",
+          "verification": "node JSON parse passed; targeted asset suite passed; pnpm --dir plugin run check passed."
+        },
+        {
+          "file": "plugin/src/adv-skill-backed-commands-assets.test.ts",
+          "summary": "Added asset coverage ensuring /adv-discover's persisted Agreement guidance mentions mandatory preview_expectation fields alongside visual_surface.",
+          "verification": "bin/oc-test targeted -- src/adv-skill-backed-commands-assets.test.ts src/adv-reviewer-asset.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts passed (179 tests); pnpm --dir plugin run check passed."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "node -e \"JSON.parse(require('node:fs').readFileSync('.adv/specs/advance-workflow/spec.json','utf8')); console.log('spec json ok')\"",
+          "bin/oc-test targeted -- src/adv-skill-backed-commands-assets.test.ts src/adv-reviewer-asset.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "pass",
+        "evidence": "Spec JSON parsed successfully. Targeted asset suites passed: 4 files, 179 tests. pnpm --dir plugin run check passed: schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, and format:check all green. Existing token-budget line-ceiling warnings emitted by advisory test are warn-only and did not fail the suite."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Generated docs/specs/advance-workflow.md was only checked for existing requirement presence; this review did not regenerate spec docs because the scoped change and green check path target spec JSON plus command/agent assets.",
+        "Command line-ceiling advisory warnings remain pre-existing warn-only noise in the asset suite."
+      ],
+      "required_main_agent_actions": [],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-ynXBjc",
+      "type": "pattern",
+      "content": "For command/spec contract tightening, pin one cross-surface asset test that reads the authoritative spec JSON plus affected command/agent prompt files. This catches spec-law, workflow, and worker-packet drift without adding a runtime parser when enforcement is intentionally workflow-owned.",
+      "source_task": "tk-683d515f5391",
+      "recorded_at": "2026-06-27T21:13:52.856Z"
+    },
+    {
+      "id": "ws-HKNSus",
+      "type": "gotcha",
+      "content": "`docs/specs/*.md` may be an archive-time generated mirror while `.adv/specs/*/spec.json` is authoritative. Asset tests for strengthened spec body should anchor on `spec.json`; markdown docs can be updated for readability but may not be regenerated by `pnpm run check`.",
+      "source_task": "tk-2346e406c737",
+      "recorded_at": "2026-06-27T21:18:31.415Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-27T20:52:22.765Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User explicitly started this proposal via chat reply: `start enforcepreviewverification` after prior changes completed. Proposal/problem statement persisted; proceeding to discovery.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "5edb757d0fa2450d3bfea49aa88df1031aa9b42501cee44148c193fd70e05669",
+        "non_whitespace_chars": 3527,
+        "checked_at": "2026-06-27T18:15:04.591Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-27T20:56:25.878Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved agreement via chat reply: `approve`. Contract minted (26 items: SC1-SC4, AC1-AC11, C1-C6, OOS1-OOS5). Proceeding to design.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "non_whitespace_chars": 4644,
+        "checked_at": "2026-06-27T18:15:04.592Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-27T21:01:38.096Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete and independently validated. adv-researcher verdict CAUTION / READY-with-corrections; no blocking conflicts. Incorporated required corrections: preserve/co-update test-sensitive review table prefix and anchor strengthened spec body assertions on spec.json because docs markdown is archive-time generated mirror.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "38a90d65484ee6d04e4eea3b5027b6969eeb826b8b2cd06b1d976886999fc6a0",
+        "non_whitespace_chars": 6433,
+        "checked_at": "2026-06-27T18:15:04.593Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-27T21:03:50.890Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved prep via chat reply: `approve`. 4-task graph approved; auto-continuing to execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-27T21:18:56.990Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: all 4 tasks done. Strengthened preview URL spec contract, discovery/review workflow proof, apply/designer/reviewer packet guidance, and verification. Evidence: targeted asset suites passed (179 tests); `pnpm run check` passed after lint/format fixes."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-27T21:30:41.221Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved acceptance via chat reply: `approve`. Acceptance reviewer verdict READY; contract review matrix 26/26 pass/respected; targeted asset suites passed (179 tests); `pnpm --dir plugin run check` passed; worktree clean.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "f5bd5b2fb3719c1391a711fdc7cc41cda6b30da7e7cd69cdd524e9fbbe61667c",
+        "non_whitespace_chars": 934,
+        "checked_at": "2026-06-27T18:15:04.594Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-bD1iYfbo"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+      "approvedAt": "2026-06-27T20:56:17.383Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Visual changes cannot reach acceptance with only a bare, stale, fixture-only, or URL-assignment-only preview claim.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Acceptance proof for visual surfaces records exact route/state, verification method, hydration/readiness context, viewport coverage, timestamp/context, and fallback/blocker reason when proof is unavailable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Non-visual/backend-only changes are not blocked by browser requirements; they still record `Preview URL: not_applicable` rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Classification remains structural and evidence-backed, not path-heuristic-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`rq-acceptancePreviewUrl01` is strengthened so applicable visual work requires exact-route preview proof, not just generic URL reachability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Preview proof schema/contract records at minimum: sanitized URL, route/path, state/source of fixture/live data, verification method, hydration/readiness signal or fallback rationale, reviewed timestamp/context, and viewport(s) checked.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "For visual work with a runnable surface, at least one mobile viewport target of 375px width (or project-specific equivalent if documented) is required unless an explicit unavailable/fallback rationale is recorded.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Fixture/mock preview URLs are accepted only when explicitly labeled as fixture/mock evidence and not presented as user-facing live preview proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Stale/cached/error-page preview evidence must not pass acceptance; review docs require fresh session/cache-busting or equivalent freshness evidence when stale state is suspected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`adv-review` acceptance proof and executive-summary instructions include exact-route/post-hydration/viewport evidence and block acceptance when required proof is missing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`adv-discover` agreement guidance records `visual_surface` plus preview proof expectation (`exact_route_required`, viewport expectation, fixture/live expectation) when visual work is in scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Apply/designer/reviewer packet guidance remains aligned: designer/reviewer browser evidence must include the exact affected route/state and viewport context when runnable surfaces exist.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Tests assert command/spec/assets alignment for exact-route, hydration/readiness, viewport, stale/cache, and fixture/mock rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Existing non-visual preview-not-applicable behavior remains valid and tested; no browser evidence is required for non-visual changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Validation passes with targeted command/spec asset tests and `pnpm run check`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not build a browser automation framework.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not require preview URLs or browser proof for non-visual/backend-only changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not use file/path heuristics as sole correctness authority for visual applicability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not add brittle pixel-perfect or computed-style assertions as long-lived tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not allow arbitrary HTTP probing of untrusted URLs as a substitute for preview proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Keep generated acceptance artifacts projection-only; durable proof remains contract review matrix / executive summary evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Implementing Playwright MCP tooling itself.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Enforcing pixel-perfect screenshot comparison.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Changing human acceptance semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Creating deployment infrastructure or preview environments.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Rewriting designer report schema unless design proves a small additive field is required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-27T21:27:40.429Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Visual changes now require exact-route/state preview proof in strengthened rq-acceptancePreviewUrl01 and /adv-review rules; adv-reviewer verdict READY.",
+          "notes": "URL-source-only evidence is explicitly insufficient."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Preview proof contract requires method, hydration/readiness, viewport, timestamp/context, and fallback/blocker rationale; reviewer READY.",
+          "notes": "Fields pinned by asset tests."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Non-visual `Preview URL: not_applicable` remains asserted in plugin/src/adv-skill-backed-commands-assets.test.ts; targeted suite passed 179 tests.",
+          "notes": "No browser requirement for non-visual work."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Discovery/review/apply/designer/reviewer guidance aligns around structural visual-surface evidence; reviewer READY.",
+          "notes": "Classification remains evidence-backed workflow contract, not path-only heuristic."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`.adv/specs/advance-workflow/spec.json` strengthened; asset test asserts exact route/path and URL-source-only insufficiency; targeted suite passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec/test assert sanitized URL, route/path, data source, method, hydration/readiness, timestamp/context, viewport, freshness/fallback evidence.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec/test assert 375px width or documented project equivalent for runnable visual surfaces unless fallback rationale is recorded.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec/review guidance and tests require fixture/mock evidence be labeled and not presented as live user-facing proof.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec/review guidance and tests require stale/cached/error-page evidence to block until fresh/cache-busted or equivalent proof exists.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`/adv-review` acceptance proof and executive-summary guidance updated; asset tests assert exact-route, post-hydration, viewport, and blocking language.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`/adv-discover` now records `visual_surface` plus `preview_expectation` fields; acceptance reviewer added persisted-agreement guidance and matching test assertion.",
+          "notes": "Checkpoint 2a960be includes reviewer remediation."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Apply/designer/reviewer packet guidance aligned; asset tests assert exact affected route/state, post-hydration/readiness, viewport context, and fixture/mock labeling.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted asset suites passed: `bin/oc-test targeted -- src/adv-skill-backed-commands-assets.test.ts src/adv-reviewer-asset.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts` (179 tests).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing non-visual `Preview URL: not_applicable` behavior remains asserted and passed in asset tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`pnpm --dir plugin run check` passed: schemas, typecheck, isolation, lockfile, lint, format.",
+          "notes": "Reviewer reran after remediation."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No browser automation framework was added; changes are spec/command/agent/test guidance only.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Non-visual changes keep `Preview URL: not_applicable`; no browser proof required for backend/non-visual work.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Visual applicability guidance uses agreement/task/report evidence and blocks unknowns; no file/path heuristic is sole authority.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No pixel-perfect or computed-style assertions added; tests assert text contract alignment only.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No arbitrary HTTP probing or URL probing implementation added; proof remains human/agent review evidence.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Generated acceptance artifacts remain projection-only; durable proof captured in contract review matrix/executive summary evidence.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Playwright MCP tooling implemented.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No pixel-perfect screenshot comparison added.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Human acceptance semantics unchanged; acceptance still requires user confirmation.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No deployment infrastructure or preview environment creation added.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Designer report schema unchanged; no schema rewrite needed.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`rq-acceptancePreviewUrl01` is strengthened so applicable visual work requires exact-route preview proof, not just generic URL reachability.",
+    "Preview proof schema/contract records at minimum: sanitized URL, route/path, state/source of fixture/live data, verification method, hydration/readiness signal or fallback rationale, reviewed timestamp/context, and viewport(s) checked.",
+    "For visual work with a runnable surface, at least one mobile viewport target of 375px width (or project-specific equivalent if documented) is required unless an explicit unavailable/fallback rationale is recorded.",
+    "Fixture/mock preview URLs are accepted only when explicitly labeled as fixture/mock evidence and not presented as user-facing live preview proof.",
+    "Stale/cached/error-page preview evidence must not pass acceptance; review docs require fresh session/cache-busting or equivalent freshness evidence when stale state is suspected.",
+    "`adv-review` acceptance proof and executive-summary instructions include exact-route/post-hydration/viewport evidence and block acceptance when required proof is missing.",
+    "`adv-discover` agreement guidance records `visual_surface` plus preview proof expectation (`exact_route_required`, viewport expectation, fixture/live expectation) when visual work is in scope.",
+    "Apply/designer/reviewer packet guidance remains aligned: designer/reviewer browser evidence must include the exact affected route/state and viewport context when runnable surfaces exist.",
+    "Tests assert command/spec/assets alignment for exact-route, hydration/readiness, viewport, stale/cache, and fixture/mock rules.",
+    "Existing non-visual preview-not-applicable behavior remains valid and tested; no browser evidence is required for non-visual changes.",
+    "Validation passes with targeted command/spec asset tests and `pnpm run check`."
+  ],
+  "documents": {
+    "proposal": "# Enforce verified preview handoffs\n\n## Why\n\nUI changes can pass tests while the preview URL handed to the user is dead, stale, fixture-only, or not the actual affected state after hydration. PokeEdge-Web recorded wisdom from `improveVisualCoherence`: a fixture card URL was offered before verifying the exact user-facing route, and a representative sample missed real mobile card-detail table misalignment.\n\n## Problem Statement\n\nADV review/acceptance needs structural enforcement that user-facing preview handoffs for visible UI work are verified on the exact affected route/state and viewport before the user is asked to accept.\n\n## What Changes\n\nAdd workflow/tool/checklist support so preview URLs or visual handoff claims require explicit verification evidence: actual route, environment, viewport(s), hydration/readiness signal, and absence of known failure states. The enforcement should be lightweight for non-UI work and stronger for visible UI changes.\n\n## User Outcomes\n\n- Users receive preview links that were actually opened and verified.\n- Agents stop handing off fixture-only, stale, cached-error, or wrong-state URLs.\n- Visible UI acceptance focuses on the real affected route/state, not only synthetic samples or broad smoke tests.\n- Mobile viewport checks remain tied to actual affected pages when reachable.\n\n## Scope\n\n### In Scope\n\n- Review/acceptance guidance and/or validator support for preview URL handoff evidence.\n- A structural preview-verification record shape if current free-text evidence is insufficient.\n- Detection/classification of visible UI work that requires preview verification.\n- Browser-verification checklist updates for desktop and 375px mobile when visible UI changes exist.\n- Tests for validator/classifier behavior and command/agent prompt packet updates.\n- Documentation update capturing exact-route, post-hydration, cache-busting, and fixture-vs-live URL rules.\n\n### Out of Scope\n\n- Building a full browser automation framework.\n- Requiring preview URLs for non-UI/backend-only changes.\n- Pixel-perfect screenshot testing.\n- Replacing human acceptance; this only improves evidence before the checkpoint.\n\n### Must Not\n\n- Must not block non-visual changes on browser evidence.\n- Must not accept mocked fixture URLs as user-facing preview URLs unless the handoff explicitly says the environment is mocked.\n- Must not use path/name heuristics alone as correctness authority; visible-surface classification should be backed by task metadata, changed files, or explicit evidence.\n- Must not add brittle pixel/computed-style assertions as long-lived tests.\n\n## Error Handling / Fallback\n\n- If a real preview route is not reachable, the handoff must say so explicitly and include the failure mode; it must not present the URL as verified.\n- If verification requires credentials or live data the agent lacks, the workflow should surface a clear blocker or provide a verified lower-confidence artifact labeled as such.\n- If a stale failure page was opened, the workflow should require cache-busting or fresh session verification before acceptance handoff.\n\n## Evidence\n\nPokeEdge-Web wisdom from `improveVisualCoherence`:\n\n- `ws-m_SO8o`: preview URL handoffs must be verified in a real browser after hydration using the exact URL the user will open; do not offer fixture UUIDs unless mocked E2E routing is active.\n- `ws-OP0oDF`: visual verification must use actual affected route/state when reachable; a representative semantic-status sample missed real mobile card-detail pricing-table misalignment.\n\nAgenda: `ag-bD1iYfbo Enforce verified preview handoffs`.\n\n## Discovery Agenda\n\n- Inspect current review/harden/acceptance command contracts for visual verification and preview URL language.\n- Inspect existing visible-surface classifier work from `reduceAdvPromptSlop` to avoid duplicate/contradictory logic.\n- Decide whether enforcement belongs in task metadata, review matrix rows, subagent report schema, validator, or command checklist.\n- Define the minimal preview-verification evidence schema.\n- Add regression tests for UI vs non-UI changes and mocked vs live preview handoffs.",
+    "problemStatement": "ADV can hand users preview URLs that were not verified on the actual affected route/state after hydration. Visible UI acceptance needs structural evidence that user-facing preview handoffs are real, reachable, and viewport-checked when applicable.",
+    "agreement": "# Agreement — Enforce preview verification\n\n## Discovery Findings\n\n- ADV already has a preview URL acceptance contract (`rq-acceptancePreviewUrl01`) wired across spec, discovery, and review. It requires `visual_surface: true|false|unknown`, a sanitized Preview URL for visual work, reachability evidence, and review-matrix evidence before acceptance.\n- Current contract still allows broad reachability evidence such as observed dev-server output, CI/deploy URL assignment, or user-confirmed URL. That proves a URL exists, but not necessarily that the agent opened the exact user-facing route/state after hydration or checked relevant viewports.\n- PokeEdge-Web wisdom shows the gap: fixture/stale preview URLs and representative samples can miss actual affected route/state problems, especially mobile detail views.\n- Apply/designer packets already carry `VISUAL_CONTEXT.viewport_targets` and `evidence_expectation`, and reviewer/designer agents already mention browser/viewport proof. The missing piece is a durable, structural preview proof requirement at acceptance for visual surfaces.\n- Existing prep readiness has frontend applicability metadata (`metadata.frontend`, `frontend_required`, `frontend_scope`) and warnings for heuristic UI-looking tasks. This can help classification but must not be the sole authority.\n\n## Success Criteria\n\n- Visual changes cannot reach acceptance with only a bare, stale, fixture-only, or URL-assignment-only preview claim.\n- Acceptance proof for visual surfaces records exact route/state, verification method, hydration/readiness context, viewport coverage, timestamp/context, and fallback/blocker reason when proof is unavailable.\n- Non-visual/backend-only changes are not blocked by browser requirements; they still record `Preview URL: not_applicable` rationale.\n- Classification remains structural and evidence-backed, not path-heuristic-only.\n\n## Acceptance Criteria\n\n- AC1: `rq-acceptancePreviewUrl01` is strengthened so applicable visual work requires exact-route preview proof, not just generic URL reachability.\n- AC2: Preview proof schema/contract records at minimum: sanitized URL, route/path, state/source of fixture/live data, verification method, hydration/readiness signal or fallback rationale, reviewed timestamp/context, and viewport(s) checked.\n- AC3: For visual work with a runnable surface, at least one mobile viewport target of 375px width (or project-specific equivalent if documented) is required unless an explicit unavailable/fallback rationale is recorded.\n- AC4: Fixture/mock preview URLs are accepted only when explicitly labeled as fixture/mock evidence and not presented as user-facing live preview proof.\n- AC5: Stale/cached/error-page preview evidence must not pass acceptance; review docs require fresh session/cache-busting or equivalent freshness evidence when stale state is suspected.\n- AC6: `adv-review` acceptance proof and executive-summary instructions include exact-route/post-hydration/viewport evidence and block acceptance when required proof is missing.\n- AC7: `adv-discover` agreement guidance records `visual_surface` plus preview proof expectation (`exact_route_required`, viewport expectation, fixture/live expectation) when visual work is in scope.\n- AC8: Apply/designer/reviewer packet guidance remains aligned: designer/reviewer browser evidence must include the exact affected route/state and viewport context when runnable surfaces exist.\n- AC9: Tests assert command/spec/assets alignment for exact-route, hydration/readiness, viewport, stale/cache, and fixture/mock rules.\n- AC10: Existing non-visual preview-not-applicable behavior remains valid and tested; no browser evidence is required for non-visual changes.\n- AC11: Validation passes with targeted command/spec asset tests and `pnpm run check`.\n\n## Constraints\n\n- Do not build a browser automation framework.\n- Do not require preview URLs or browser proof for non-visual/backend-only changes.\n- Do not use file/path heuristics as sole correctness authority for visual applicability.\n- Do not add brittle pixel-perfect or computed-style assertions as long-lived tests.\n- Do not allow arbitrary HTTP probing of untrusted URLs as a substitute for preview proof.\n- Keep generated acceptance artifacts projection-only; durable proof remains contract review matrix / executive summary evidence.\n\n## Out of Scope\n\n- Implementing Playwright MCP tooling itself.\n- Enforcing pixel-perfect screenshot comparison.\n- Changing human acceptance semantics.\n- Creating deployment infrastructure or preview environments.\n- Rewriting designer report schema unless design proves a small additive field is required.\n\n## Risks / Design Questions\n\n- Best implementation may be spec+command/test only, not TypeScript validator code, because current preview proof is enforced by review workflow and contract matrix rather than a dedicated parser.\n- If adding a typed preview-proof schema to contract rows, design must avoid overfitting to one app framework or preview provider.\n- Existing broad reachability examples should remain allowed only as URL-source evidence, not sufficient proof for actual visual surface verification.\n- Live tool behavior requires rebuilt/deployed plugin only if TypeScript/tool schemas change; pure command/spec/docs changes still require asset sync/deploy for future sessions.",
+    "design": "# Design — Enforce preview verification\n\n## Design Summary\n\nStrengthen the existing preview URL acceptance contract (`rq-acceptancePreviewUrl01`) rather than introducing a new runtime browser framework. The implementation should update the authoritative spec JSON, review/discovery/apply/reviewer/designer command/agent contracts, and asset tests so visual work requires exact affected route/state preview proof with hydration/readiness, viewport, freshness, and fixture/live labeling before acceptance.\n\nIndependent validator verdict: **CAUTION / READY-with-corrections**. Required corrections C1-C2 are incorporated below.\n\n## Key Decisions\n\n### D1 — Strengthen existing `rq-acceptancePreviewUrl01`\n\nUse the existing `Front-End Acceptance Preview URL` requirement as the source of truth. Update `.adv/specs/advance-workflow/spec.json` so `live` preview proof for applicable visual work includes:\n\n- sanitized preview URL\n- exact route/path opened by the user\n- affected state/data source (live, fixture, mock, seeded, user-provided, or unavailable)\n- verification method\n- hydration/readiness signal or explicit fallback rationale\n- viewport(s) checked, including 375px width or documented project equivalent when runnable\n- reviewed timestamp/context\n- freshness/cache context when stale/cached/error-page state is suspected\n\nExisting broad URL-source evidence (dev-server output, CI/deploy URL assignment, user-confirmed URL) remains valid only as URL-source evidence. It is not sufficient by itself for visual-surface verification.\n\n`docs/specs/advance-workflow.md` is an archive-time generated mirror; do not rely on it as authoritative test source. Either leave it to archive generation or update it manually for readability, but RED/GREEN body assertions must anchor on `spec.json`.\n\n### D2 — Keep enforcement workflow-owned, not browser-framework-owned\n\nDo not add a new browser automation framework or runtime MCP tool. Enforcement remains in `/adv-review` pre-acceptance proof and contract review matrix evidence. This keeps the change small, structurally testable, and aligned with current architecture.\n\n### D3 — Explicit preview proof states\n\nRevise `/adv-review` Preview URL Proof table while preserving the existing literal prefix `` `live` | `visual_surface: true` `` unless tests are deliberately co-updated. New table semantics:\n\n- `live`: visual applicability true or visual-output implementation detected; evidence includes sanitized URL plus exact-route/state/hydration/viewport/freshness proof and matching `contract.reviewMatrix` row.\n- `not_applicable`: visual_surface false and no implementation evidence of visual output; rationale recorded in `contract.reviewMatrix`.\n- `blocked`: visual_surface unknown, drift, missing URL, URL-source-only evidence, missing exact-route proof, stale/error/cached preview, fixture/mock presented as live, missing hydration/readiness, missing required viewport, or missing matrix evidence.\n\n### D4 — Discovery records proof expectations, not implementation details\n\nExtend `/adv-discover` agreement guidance so preview applicability includes:\n\n```yaml\nvisual_surface: true|false|unknown\npreview_expectation:\n  exact_route_required: true|false\n  data_state_expectation: live|fixture_allowed|mock_allowed|not_applicable|unknown\n  viewport_expectation: 375px|required_project_equivalent|not_applicable|unknown\n  rationale: string\n```\n\nThis is agreement-level acceptance boundary. Design/apply can refine implementation route details, but cannot silently downgrade visual proof needs.\n\n### D5 — Align worker packets and browser-evidence instructions\n\nUpdate apply/designer/reviewer instructions so browser/design proof for runnable visual surfaces must name exact affected route/state and viewport context. Designer `VISUAL_CONTEXT.evidence_expectation` should mention exact-route + post-hydration verification when expected. Reviewer browser evidence guidance should reject fixture/mock as live unless explicitly labeled.\n\n### D6 — Tests are asset/contract tests first\n\nAdd/extend asset tests around current command/spec wiring:\n\n- `adv-skill-backed-commands-assets.test.ts` should assert exact-route, hydration/readiness, viewport/375px, fixture/mock labeling, stale/cache/error handling, URL-source-only insufficiency, and non-visual compatibility.\n- Strengthened spec-body assertions must read `.adv/specs/advance-workflow/spec.json` body/scenarios, not generated markdown.\n- Existing preview URL wiring test should be extended rather than duplicated where possible.\n- Preserve current review-table substring expectations unless co-updating tests in same patch.\n\n## Implementation Strategy\n\n1. Add RED asset assertions for exact-route/hydration/viewport/fixture/stale rules, anchored primarily on `spec.json` and relevant command/agent files.\n2. Update `.adv/specs/advance-workflow/spec.json` requirement body/scenarios.\n3. Update `docs/specs/advance-workflow.md` manually only if helpful for reviewed docs; do not depend on it for spec-body correctness.\n4. Update `.opencode/command/adv-discover.md` preview applicability section to include proof expectation fields.\n5. Update `.opencode/command/adv-review.md` Preview URL Proof table/rules/executive-summary text to require exact-route/state/hydration/viewport/freshness proof and block URL-source-only evidence while preserving test-sensitive table prefix.\n6. Update `.opencode/command/adv-apply.md`, `.opencode/agents/adv-reviewer.md`, and `.opencode/agents/adv-designer.md` packet/guidance text for exact route/state + viewport proof.\n7. Run targeted asset tests and `pnpm run check`.\n\n## Testing Plan\n\n- RED:\n  - Extend `acceptance preview URL contract is wired across discovery, review, and specs` to fail until new exact-route/hydration/viewport/fixture/stale language exists.\n  - Assert `spec.json` body/scenarios contain exact route/path, hydration/readiness, 375px or project equivalent, fixture/mock labels, stale/cache/error-page freshness, and URL-source-only insufficiency.\n  - Assert review/discover/apply/reviewer/designer command/agent files carry the aligned evidence language.\n  - Assert non-visual `Preview URL: not_applicable` remains present.\n- GREEN:\n  - `bin/oc-test targeted -- src/adv-skill-backed-commands-assets.test.ts src/adv-reviewer-asset.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts`\n  - `pnpm run check`\n\n## Compatibility Plan\n\n- No new MCP tool or runtime browser dependency.\n- Non-visual behavior remains compatible: `Preview URL: not_applicable` with rationale can still satisfy acceptance.\n- Existing broad reachability sources remain useful as URL provenance but no longer satisfy visual proof alone.\n- Future self-application of command/spec changes requires deploy/sync before live workflow behavior changes in new OpenCode sessions.\n\n## Risks\n\n- Instruction-only enforcement can drift if tests are too weak. Mitigation: pin exact key phrases across spec, commands, and agent packets.\n- Exact-route proof may be unavailable for some products. Mitigation: allow explicit unavailable/fallback rationale, but it must be recorded and may block acceptance when proof is required.\n- Fixture/mock flows are valid for some E2E contexts. Mitigation: allow them only when explicitly labeled and not presented as user-facing live proof.",
+    "executiveSummary": "# Executive Summary — Enforce preview verification\n\nADV now treats visual preview handoffs as verified evidence, not bare URL claims. The strengthened `rq-acceptancePreviewUrl01` contract requires exact affected route/state proof, hydration/readiness context, viewport evidence including 375px or documented equivalent, freshness/cache context when relevant, and fixture/mock labeling. URL-source-only evidence no longer satisfies visual acceptance.\n\nWorkflow guidance now aligns discovery, review, apply, designer, and reviewer surfaces around the same rule: non-visual work can still record `Preview URL: not_applicable`, while applicable visual work must provide exact-route/post-hydration/viewport proof or surface a blocker/fallback rationale.\n\nVerification passed:\n\n- Targeted asset suites: 179 tests passed.\n- `pnpm --dir plugin run check`: schemas, typecheck, isolation, lockfile, lint, and format passed.\n- Independent acceptance reviewer verdict: READY, with small in-scope remediation checkpointed.\n- Contract review matrix: 26/26 rows passing or respected.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-27T21:27:40.429Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Visual changes cannot reach acceptance with only a bare, stale, fixture-only, or URL-assignment-only preview claim. | pass | Visual changes now require exact-route/state preview proof in strengthened rq-acceptancePreviewUrl01 and /adv-review rules; adv-reviewer verdict READY. |\n| SC2 | success_criterion | Acceptance proof for visual surfaces records exact route/state, verification method, hydration/readiness context, viewport coverage, timestamp/context, and fallback/blocker reason when proof is unavailable. | pass | Preview proof contract requires method, hydration/readiness, viewport, timestamp/context, and fallback/blocker rationale; reviewer READY. |\n| SC3 | success_criterion | Non-visual/backend-only changes are not blocked by browser requirements; they still record `Preview URL: not_applicable` rationale. | pass | Non-visual `Preview URL: not_applicable` remains asserted in plugin/src/adv-skill-backed-commands-assets.test.ts; targeted suite passed 179 tests. |\n| SC4 | success_criterion | Classification remains structural and evidence-backed, not path-heuristic-only. | pass | Discovery/review/apply/designer/reviewer guidance aligns around structural visual-surface evidence; reviewer READY. |\n| AC1 | acceptance_criterion | `rq-acceptancePreviewUrl01` is strengthened so applicable visual work requires exact-route preview proof, not just generic URL reachability. | pass | `.adv/specs/advance-workflow/spec.json` strengthened; asset test asserts exact route/path and URL-source-only insufficiency; targeted suite passed. |\n| AC2 | acceptance_criterion | Preview proof schema/contract records at minimum: sanitized URL, route/path, state/source of fixture/live data, verification method, hydration/readiness signal or fallback rationale, reviewed timestamp/context, and viewport(s) checked. | pass | Spec/test assert sanitized URL, route/path, data source, method, hydration/readiness, timestamp/context, viewport, freshness/fallback evidence. |\n| AC3 | acceptance_criterion | For visual work with a runnable surface, at least one mobile viewport target of 375px width (or project-specific equivalent if documented) is required unless an explicit unavailable/fallback rationale is recorded. | pass | Spec/test assert 375px width or documented project equivalent for runnable visual surfaces unless fallback rationale is recorded. |\n| AC4 | acceptance_criterion | Fixture/mock preview URLs are accepted only when explicitly labeled as fixture/mock evidence and not presented as user-facing live preview proof. | pass | Spec/review guidance and tests require fixture/mock evidence be labeled and not presented as live user-facing proof. |\n| AC5 | acceptance_criterion | Stale/cached/error-page preview evidence must not pass acceptance; review docs require fresh session/cache-busting or equivalent freshness evidence when stale state is suspected. | pass | Spec/review guidance and tests require stale/cached/error-page evidence to block until fresh/cache-busted or equivalent proof exists. |\n| AC6 | acceptance_criterion | `adv-review` acceptance proof and executive-summary instructions include exact-route/post-hydration/viewport evidence and block acceptance when required proof is missing. | pass | `/adv-review` acceptance proof and executive-summary guidance updated; asset tests assert exact-route, post-hydration, viewport, and blocking language. |\n| AC7 | acceptance_criterion | `adv-discover` agreement guidance records `visual_surface` plus preview proof expectation (`exact_route_required`, viewport expectation, fixture/live expectation) when visual work is in scope. | pass | `/adv-discover` now records `visual_surface` plus `preview_expectation` fields; acceptance reviewer added persisted-agreement guidance and matching test assertion. |\n| AC8 | acceptance_criterion | Apply/designer/reviewer packet guidance remains aligned: designer/reviewer browser evidence must include the exact affected route/state and viewport context when runnable surfaces exist. | pass | Apply/designer/reviewer packet guidance aligned; asset tests assert exact affected route/state, post-hydration/readiness, viewport context, and fixture/mock labeling. |\n| AC9 | acceptance_criterion | Tests assert command/spec/assets alignment for exact-route, hydration/readiness, viewport, stale/cache, and fixture/mock rules. | pass | Targeted asset suites passed: `bin/oc-test targeted -- src/adv-skill-backed-commands-assets.test.ts src/adv-reviewer-asset.test.ts src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts` (179 tests). |\n| AC10 | acceptance_criterion | Existing non-visual preview-not-applicable behavior remains valid and tested; no browser evidence is required for non-visual changes. | pass | Existing non-visual `Preview URL: not_applicable` behavior remains asserted and passed in asset tests. |\n| AC11 | acceptance_criterion | Validation passes with targeted command/spec asset tests and `pnpm run check`. | pass | `pnpm --dir plugin run check` passed: schemas, typecheck, isolation, lockfile, lint, format. |\n| C1 | constraint | Do not build a browser automation framework. | respected | No browser automation framework was added; changes are spec/command/agent/test guidance only. |\n| C2 | constraint | Do not require preview URLs or browser proof for non-visual/backend-only changes. | respected | Non-visual changes keep `Preview URL: not_applicable`; no browser proof required for backend/non-visual work. |\n| C3 | constraint | Do not use file/path heuristics as sole correctness authority for visual applicability. | respected | Visual applicability guidance uses agreement/task/report evidence and blocks unknowns; no file/path heuristic is sole authority. |\n| C4 | constraint | Do not add brittle pixel-perfect or computed-style assertions as long-lived tests. | respected | No pixel-perfect or computed-style assertions added; tests assert text contract alignment only. |\n| C5 | constraint | Do not allow arbitrary HTTP probing of untrusted URLs as a substitute for preview proof. | respected | No arbitrary HTTP probing or URL probing implementation added; proof remains human/agent review evidence. |\n| C6 | constraint | Keep generated acceptance artifacts projection-only; durable proof remains contract review matrix / executive summary evidence. | respected | Generated acceptance artifacts remain projection-only; durable proof captured in contract review matrix/executive summary evidence. |\n| OOS1 | out_of_scope | Implementing Playwright MCP tooling itself. | respected | No Playwright MCP tooling implemented. |\n| OOS2 | out_of_scope | Enforcing pixel-perfect screenshot comparison. | respected | No pixel-perfect screenshot comparison added. |\n| OOS3 | out_of_scope | Changing human acceptance semantics. | respected | Human acceptance semantics unchanged; acceptance still requires user confirmation. |\n| OOS4 | out_of_scope | Creating deployment infrastructure or preview environments. | respected | No deployment infrastructure or preview environment creation added. |\n| OOS5 | out_of_scope | Rewriting designer report schema unless design proves a small additive field is required. | respected | Designer report schema unchanged; no schema rewrite needed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-27T18:15:04.633Z",
+      "contentHash": "5edb757d0fa2450d3bfea49aa88df1031aa9b42501cee44148c193fd70e05669",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-27T18:15:04.633Z",
+      "contentHash": "13be20ad4ffb136290244748f94151ce7553040bc1b338afe5d81ff4747cbdcc",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-27T20:54:41.185Z",
+      "contentHash": "a19959571c116711c88d22d56aa93491acc237b7f6482f7b8cd6511ef46d375c",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-27T21:01:28.708Z",
+      "contentHash": "38a90d65484ee6d04e4eea3b5027b6969eeb826b8b2cd06b1d976886999fc6a0",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-27T21:27:55.722Z",
+      "contentHash": "f5bd5b2fb3719c1391a711fdc7cc41cda6b30da7e7cd69cdd524e9fbbe61667c",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-27T21:30:41.221Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
