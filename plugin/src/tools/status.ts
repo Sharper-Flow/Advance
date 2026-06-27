@@ -1820,16 +1820,21 @@ export const statusTools = {
           if (plan.archivedBranchHygiene) {
             try {
               const mainCheckout = resolveMainCheckout(activeStore.paths.root);
-              const hygieneStatus: {
-                recommendations: string[];
+              const hygieneStatus: StatusRecommendationCarrier & {
                 archived_branch_hygiene?: ArchivedBranchHygieneSection;
-              } = { recommendations: status.recommendations };
+              } = {
+                recommendations: status.recommendations,
+                recommendation_items: (status as StatusRecommendationCarrier)
+                  .recommendation_items,
+              };
               await appendArchivedBranchHygieneRecommendations(
                 hygieneStatus,
                 activeStore,
                 mainCheckout,
               );
               status.recommendations = hygieneStatus.recommendations;
+              (status as StatusRecommendationCarrier).recommendation_items =
+                hygieneStatus.recommendation_items;
               archivedBranchHygiene = hygieneStatus.archived_branch_hygiene;
             } catch {
               // Archived branch hygiene is advisory and git-backed. Non-git

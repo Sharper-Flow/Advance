@@ -1579,6 +1579,11 @@ Vague in-flight work.
             ),
           ]),
         );
+        expect(parsed.recommendation_groups).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ kind: "cleanup", total: 1 }),
+          ]),
+        );
       });
 
       test("summary view omits recommendation when no archived changes", async () => {
