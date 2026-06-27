@@ -159,6 +159,8 @@ When the quality bar reveals neighboring UI inconsistencies, follow the Neighbor
 
 When UI/component scope benefits from browser-driven evidence, load `skill("playwright-mcp")` before using Playwright MCP tools. Use Playwright MCP for local app UI verification, accessibility snapshots, and interactive reproduction only — not for web research, docs lookup, or page scraping.
 
+For runnable visual surfaces, verification should name the exact affected route/state, confirm post-hydration/readiness when applicable, and record viewport context. If only fixture/mock evidence is available, label it as fixture/mock and do not present it as live user-facing proof.
+
 Before the first browser action, confirm the spawned session exposes `playwright_*` tools. If Playwright MCP or the `playwright-mcp` skill is unavailable, fall back to deterministic project checks and record the limitation in `DESIGNER_REPORT.verification` and `context_update_for_adv.what_ads_needs_to_know`.
 
 ## VISUAL_CONTEXT
@@ -170,7 +172,7 @@ When the Designer Apply Context Packet includes `VISUAL_CONTEXT`, consume it bef
 - `tokens_and_style_rules` — follow cited tokens/style constraints; must not fabricate style context when unavailable.
 - `viewport_targets` — use listed viewport or breakpoint expectations during verification; if unavailable, record fallback rationale.
 - `forbidden_patterns` — respect agreement avoidances, project avoidances, and explicit design anti-patterns.
-- `evidence_expectation` — produce browser/design proof with viewport context when expected, or record explicit fallback rationale when unavailable.
+- `evidence_expectation` — produce browser/design proof with exact affected route/state, post-hydration readiness, and viewport context when expected, or record explicit fallback rationale when unavailable.
 
 If any `VISUAL_CONTEXT` entry is `unavailable`, do not invent it. Continue with sourced code/project evidence when safe and record the unavailable context in `DESIGNER_REPORT.context_update_for_adv.what_ads_needs_to_know` or `verification`.
 

@@ -546,7 +546,7 @@ VISUAL_CONTEXT:
     - {viewport/breakpoint expectations, or unavailable: reason}
   forbidden_patterns:
     - {agreement avoidances, project avoidances, and design anti-patterns}
-  evidence_expectation: {browser/design proof expected with viewport context, or fallback rationale when unavailable}
+  evidence_expectation: {browser/design proof expected with exact affected route/state, post-hydration readiness, and viewport context, or fallback rationale when unavailable}
 DESIGN QUALITY BAR: component correctness, semantic HTML/accessibility, responsive behavior, visual polish, matching site design, finer details
 NEIGHBORING RECOMMENDATIONS: finish owned UI scope if safe; surface adjacent UI inconsistencies (e.g., unstyled neighboring buttons, inconsistent tokens) via `DESIGNER_REPORT.neighboring_recommendations[]` and `required_main_agent_actions` for orchestrator/user HITL. Do not silently broaden scope.
 BACKEND BOUNDARY: if the UI task requires changing storage, APIs, Temporal, or business logic, stop and report. Populate `scope_drift.recommendation: "stop_and_report"` and `required_main_agent_actions` with a handoff to `adv-engineer`. Do NOT edit backend files.

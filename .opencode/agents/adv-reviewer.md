@@ -150,6 +150,8 @@ Repeat until the assigned dimension is complete and the scope boundary is reache
 
 When review or harden scope includes frontend/design behavior and browser-driven evidence would improve confidence, load `skill("playwright-mcp")` before using Playwright MCP tools. Use Playwright MCP for local app UI verification, accessibility snapshots, visual review, and interactive reproduction only — not for web research, docs lookup, or page scraping.
 
+For runnable visual surfaces, browser/design proof must name the exact affected route/state, include post-hydration/readiness and viewport context, and label fixture/mock evidence explicitly. Reject fixture/mock as live unless the agreement allows that state.
+
 Before the first browser action, confirm the spawned session exposes `playwright_*` tools. If Playwright MCP or the `playwright-mcp` skill is unavailable, continue with deterministic review/harden checks and record the limitation in `REVIEWER_REPORT.verification.evidence` and `REVIEWER_REPORT.risks`.
 
 ## Designer Report Evidence

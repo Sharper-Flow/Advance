@@ -559,6 +559,18 @@ describe("thin-command shape enforcement", () => {
       join(REPO_ROOT, ".opencode/command/adv-review.md"),
       "utf8",
     );
+    const apply = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-apply.md"),
+      "utf8",
+    );
+    const reviewer = readFileSync(
+      join(REPO_ROOT, ".opencode/agents/adv-reviewer.md"),
+      "utf8",
+    );
+    const designer = readFileSync(
+      join(REPO_ROOT, ".opencode/agents/adv-designer.md"),
+      "utf8",
+    );
 
     expect(review).toContain("Pre-Acceptance Contract Preflight");
     expect(review).toContain("change.contract");
@@ -587,6 +599,18 @@ describe("thin-command shape enforcement", () => {
     );
     const review = readFileSync(
       join(REPO_ROOT, ".opencode/command/adv-review.md"),
+      "utf8",
+    );
+    const apply = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-apply.md"),
+      "utf8",
+    );
+    const reviewer = readFileSync(
+      join(REPO_ROOT, ".opencode/agents/adv-reviewer.md"),
+      "utf8",
+    );
+    const designer = readFileSync(
+      join(REPO_ROOT, ".opencode/agents/adv-designer.md"),
       "utf8",
     );
 
@@ -626,6 +650,13 @@ describe("thin-command shape enforcement", () => {
     expect(review).toContain("Sanitize URLs");
     expect(review).toContain("Do not perform arbitrary HTTP probing");
     expect(review).toContain("visual-surface drift");
+
+    expect(apply).toContain("exact affected route/state");
+    expect(apply).toContain("post-hydration");
+    expect(reviewer).toContain("fixture/mock as live");
+    expect(reviewer).toContain("exact affected route/state");
+    expect(designer).toContain("exact affected route/state");
+    expect(designer).toContain("post-hydration");
 
     const previewIdx = review.indexOf("Preview URL");
     const checkpointIdx = review.indexOf("Inline Approval prompt");
