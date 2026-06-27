@@ -1,0 +1,26 @@
+{
+  "entries": [
+    {
+      "id": "ws-3uDu6f",
+      "type": "pattern",
+      "content": "For status recommendation migrations, preserve legacy flat strings by storing an optional `message` on the typed item and deriving `recommendations` from the typed projection. This lets tests and existing JSON consumers keep exact strings while grouped status uses structural `kind/source/priority` fields.",
+      "source_task": "tk-f392b6a95067",
+      "recorded_at": "2026-06-27T18:40:18.414Z"
+    },
+    {
+      "id": "ws-xooqIa",
+      "type": "pattern",
+      "content": "For bounded status projections, compute grouped summaries from the full typed recommendation set before applying any flat-list caps. Otherwise omitted counts and grouped actionability inherit summary truncation and become wrong under high-WIP load.",
+      "source_task": "tk-40a120cedb10",
+      "recorded_at": "2026-06-27T18:43:35.938Z"
+    },
+    {
+      "id": "ws-a0JNDS",
+      "type": "gotcha",
+      "content": "`pnpm run check` can surface pre-existing Prettier drift outside touched scope after a narrow targeted edit. If format:check fails only on unrelated files, formatting them may be the least risky path to satisfy required check, but call it out in verification/summary as campsite formatting rather than feature scope.",
+      "source_task": "tk-46321dd30bff",
+      "recorded_at": "2026-06-27T18:49:40.687Z"
+    }
+  ],
+  "count": 3
+}
