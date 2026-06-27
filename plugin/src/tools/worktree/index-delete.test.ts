@@ -555,6 +555,37 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ]);
   });
 
+  it("retains pending delete when non-ADV integration check exceeds operation budget", async () => {
+    const branch = "feature/slow-integration";
+    const wtPath = addWorktree(repoRoot, branch);
+
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [{ branch, path: wtPath }];
+    deps.operationTimeoutMs = 100;
+    deps.mergedBranches = () =>
+      new Promise<string[]>(() => {
+        /* intentionally never resolves */
+      });
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "TIME_BUDGET_EXHAUSTED",
+      reason: "time_budget_exhausted",
+      branch,
+      path: wtPath,
+    });
+    expect(existsSync(wtPath)).toBe(true);
+    const pending = await getPendingDeletes(deps.database);
+    expect(pending).toEqual([
+      expect.objectContaining({
+        branch,
+        reason: expect.stringContaining("branch integration check"),
+      }),
+    ]);
+  });
+
   it("force-with-approval — removes worktree with uncommitted changes and logs audit", async () => {
     const branch = "change/force";
     const wtPath = addWorktree(repoRoot, branch);
@@ -1264,6 +1295,46 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
         lastErrorClass: "time_budget_exhausted",
       }),
     ]);
+  });
+
+  it("passes a delete operation budget below the pending-delete timeout", async () => {
+    const branch = "change/delete-budget-propagated";
+    const pendingPath = join(
+      repoRoot,
+      "worktrees",
+      "change",
+      "delete-budget-propagated",
+    );
+    mkdirSync(pendingPath, { recursive: true });
+    const deps = createDrainDeps(pendingPath);
+    await setPendingDelete(deps.database, branch, pendingPath, "budget");
+
+    const deleteWorktree = vi.fn(async () => ({
+      ok: true as const,
+      branch,
+      path: pendingPath,
+    }));
+
+    const result = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+      cleanupItemTimeoutMs: 1_000,
+      deleteWorktree,
+    });
+
+    expect(result).toEqual({ removed: 1, retained: 0 });
+    expect(deleteWorktree).toHaveBeenCalledWith(
+      branch,
+      { force: false },
+      expect.objectContaining({
+        worktreePath: pendingPath,
+        operationTimeoutMs: expect.any(Number),
+      }),
+    );
+    const callDeps = deleteWorktree.mock.calls[0]?.[2] as {
+      operationTimeoutMs: number;
+    };
+    expect(callDeps.operationTimeoutMs).toBeGreaterThanOrEqual(1);
+    expect(callDeps.operationTimeoutMs).toBeLessThan(1_000);
   });
 
   it("does not consume retry attempts while the worktree is still in use", async () => {

@@ -158,6 +158,8 @@ function getRemainingDeleteOperationMs(
   return Math.max(0, timeoutMs - (Date.now() - startedAt));
 }
 
+const PENDING_DELETE_RETURN_RESERVE_MS = 100;
+
 async function fireWorktreeSignal(
   projectDir: string,
   store: Store | undefined,
@@ -1862,6 +1864,51 @@ async function retainDeleteForTimeBudget(
   };
 }
 
+async function withDeleteOperationBudget<T>(
+  branch: string,
+  worktreePath: string,
+  deps: AdvWorktreeDeleteDeps,
+  startedAt: number,
+  timeoutMs: number,
+  stage: string,
+  operation: () => Promise<T>,
+): Promise<
+  { ok: true; value: T } | { ok: false; result: AdvWorktreeDeleteResult }
+> {
+  const remainingMs = getRemainingDeleteOperationMs(startedAt, timeoutMs);
+  if (remainingMs <= 0) {
+    return {
+      ok: false,
+      result: await retainDeleteForTimeBudget(
+        branch,
+        worktreePath,
+        deps,
+        stage,
+      ),
+    };
+  }
+
+  try {
+    return {
+      ok: true,
+      value: await withTimeout(operation(), remainingMs, `${stage} timed out`),
+    };
+  } catch (err) {
+    if (err instanceof TimeoutError) {
+      return {
+        ok: false,
+        result: await retainDeleteForTimeBudget(
+          branch,
+          worktreePath,
+          deps,
+          stage,
+        ),
+      };
+    }
+    throw err;
+  }
+}
+
 export async function advWorktreeDelete(
   branch: string,
   opts: { force?: boolean; dryRun?: boolean } = {},
@@ -1950,7 +1997,17 @@ export async function advWorktreeDelete(
   // this preserves P32 trunk-is-prod by refusing to delete unmerged work.
   const inferredChangeId = inferChangeIdFromBranch(branch);
   if (registryEntry && !registryEntry.changeId) {
-    const integration = await verifyNonAdvBranchIntegration(branch, deps);
+    const integrationResult = await withDeleteOperationBudget(
+      branch,
+      worktreePath,
+      deps,
+      deleteStartedAt,
+      deleteTimeoutMs,
+      "branch integration check",
+      () => verifyNonAdvBranchIntegration(branch, deps),
+    );
+    if (!integrationResult.ok) return integrationResult.result;
+    const integration = integrationResult.value;
     if (!integration.ok) {
       return {
         ok: false,
@@ -1962,11 +2019,22 @@ export async function advWorktreeDelete(
   } else if (!registryEntry && inferredChangeId) {
     // Registry drift recovery for ADV change branches. The registry is
     // bookkeeping; archived state from Store/Temporal is the structural gate.
-    const integration = await verifyMissingRegistryChangeBranchIntegration(
+    const integrationResult = await withDeleteOperationBudget(
       branch,
-      inferredChangeId,
+      worktreePath,
       deps,
+      deleteStartedAt,
+      deleteTimeoutMs,
+      "branch integration check",
+      () =>
+        verifyMissingRegistryChangeBranchIntegration(
+          branch,
+          inferredChangeId,
+          deps,
+        ),
     );
+    if (!integrationResult.ok) return integrationResult.result;
+    const integration = integrationResult.value;
     if (!integration.ok) {
       return {
         ok: false,
@@ -1984,7 +2052,17 @@ export async function advWorktreeDelete(
     // deleted with `force: true` provided they are already merged into the
     // default branch. This unblocks /adv-triage-style workflows that
     // create+merge+delete worktree branches without registering them.
-    const integration = await verifyNonAdvBranchIntegration(branch, deps);
+    const integrationResult = await withDeleteOperationBudget(
+      branch,
+      worktreePath,
+      deps,
+      deleteStartedAt,
+      deleteTimeoutMs,
+      "branch integration check",
+      () => verifyNonAdvBranchIntegration(branch, deps),
+    );
+    if (!integrationResult.ok) return integrationResult.result;
+    const integration = integrationResult.value;
     if (!integration.ok) {
       return {
         ok: false,
@@ -2031,10 +2109,17 @@ export async function advWorktreeDelete(
     }
     if (!integration.ok) {
       if (integration.reason === "branch_not_merged") {
-        const prIntegration = await verifyPrMergedChangeBranchIntegration(
+        const prIntegrationResult = await withDeleteOperationBudget(
           branch,
+          worktreePath,
           deps,
+          deleteStartedAt,
+          deleteTimeoutMs,
+          "PR merge evidence check",
+          () => verifyPrMergedChangeBranchIntegration(branch, deps),
         );
+        if (!prIntegrationResult.ok) return prIntegrationResult.result;
+        const prIntegration = prIntegrationResult.value;
         if (prIntegration.ok) {
           appendDebugLog(
             "worktree-delete",
@@ -2736,6 +2821,10 @@ export async function drainPendingDeletes(
       {
         ...deps,
         worktreePath,
+        operationTimeoutMs: Math.max(
+          1,
+          deleteTimeoutMs - PENDING_DELETE_RETURN_RESERVE_MS,
+        ),
       },
     );
 
