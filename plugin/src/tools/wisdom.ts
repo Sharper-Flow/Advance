@@ -25,6 +25,7 @@ import {
   querySignal,
   getChangeHandle,
 } from "./_adapters";
+import { withOptionalTargetPathStore } from "./target-project";
 
 async function getChangeHandleForChangeId(
   store: Store,
@@ -246,6 +247,12 @@ export const wisdomTools = {
         .describe(
           "For linked products: repo (default) filters to current repo plus promoted/global wisdom; product returns all product wisdom",
         ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. Reads a snapshot and returns _projectContext.",
+        ),
     },
     execute: async (
       {
@@ -253,88 +260,99 @@ export const wisdomTools = {
         type,
         query,
         scope,
+        target_path,
       }: {
         changeId?: string;
         type?: string;
         query?: string;
         scope?: "repo" | "product";
+        target_path?: string;
       },
       store: Store,
     ) => {
-      try {
-        let wisdom: unknown[];
-        const wisdomType = type as
-          | "pattern"
-          | "success"
-          | "failure"
-          | "gotcha"
-          | "convention"
-          | undefined;
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          try {
+            let wisdom: unknown[];
+            const wisdomType = type as
+              | "pattern"
+              | "success"
+              | "failure"
+              | "gotcha"
+              | "convention"
+              | undefined;
 
-        if (query) {
-          // FTS search path — route through store.wisdom.search
-          wisdom = await store.wisdom.search(query, {
-            changeId,
-            type: wisdomType,
-          });
-        } else if (!changeId) {
-          // Cross-change aggregation — route through store.wisdom.listAll
-          wisdom = await store.wisdom.listAll({ type: wisdomType });
-        } else {
-          // Change-specific path: query workflow state, fallback to disk
-          const handle = await getChangeHandleForChangeId(store, changeId);
-          if (handle) {
-            const state = await querySignal<{
-              wisdom: Array<{
-                id: string;
-                type: string;
-                content: string;
-                source_task?: string;
-                recorded_at: string;
-              }>;
-            }>(handle, changeStateQuery);
-            let entries = state.wisdom ?? [];
-            if (wisdomType) {
-              entries = entries.filter((e) => e.type === wisdomType);
+            if (query) {
+              // FTS search path — route through store.wisdom.search
+              wisdom = await activeStore.wisdom.search(query, {
+                changeId,
+                type: wisdomType,
+              });
+            } else if (!changeId) {
+              // Cross-change aggregation — route through store.wisdom.listAll
+              wisdom = await activeStore.wisdom.listAll({ type: wisdomType });
+            } else {
+              // Change-specific path: query workflow state, fallback to disk
+              const handle = await getChangeHandleForChangeId(
+                activeStore,
+                changeId,
+              );
+              if (handle) {
+                const state = await querySignal<{
+                  wisdom: Array<{
+                    id: string;
+                    type: string;
+                    content: string;
+                    source_task?: string;
+                    recorded_at: string;
+                  }>;
+                }>(handle, changeStateQuery);
+                let entries = state.wisdom ?? [];
+                if (wisdomType) {
+                  entries = entries.filter((e) => e.type === wisdomType);
+                }
+                wisdom = entries;
+              } else {
+                let entries = await activeStore.wisdom.list(changeId);
+                if (wisdomType) {
+                  entries = entries.filter((e) => e.type === wisdomType);
+                }
+                wisdom = entries;
+              }
             }
-            wisdom = entries;
-          } else {
-            let entries = await store.wisdom.list(changeId);
-            if (wisdomType) {
-              entries = entries.filter((e) => e.type === wisdomType);
+
+            wisdom = wisdom.filter((entry) =>
+              isWisdomVisibleForProductScope(
+                entry as ProductOriginTags & { scope?: string },
+                activeStore,
+                scope,
+              ),
+            );
+
+            // Calculate summary by type
+            const byType: Record<string, number> = {};
+            for (const entry of wisdom as { type: string }[]) {
+              byType[entry.type] = (byType[entry.type] || 0) + 1;
             }
-            wisdom = entries;
+
+            return formatToolOutput({
+              wisdom,
+              count: wisdom.length,
+              byType,
+              ...(productContextOutput(activeStore, scope)
+                ? { _productContext: productContextOutput(activeStore, scope) }
+                : {}),
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          } catch (error) {
+            return formatToolOutput({
+              error:
+                error instanceof Error ? error.message : "Failed to list wisdom",
+            });
           }
-        }
-
-        wisdom = wisdom.filter((entry) =>
-          isWisdomVisibleForProductScope(
-            entry as ProductOriginTags & { scope?: string },
-            store,
-            scope,
-          ),
-        );
-
-        // Calculate summary by type
-        const byType: Record<string, number> = {};
-        for (const entry of wisdom as { type: string }[]) {
-          byType[entry.type] = (byType[entry.type] || 0) + 1;
-        }
-
-        return formatToolOutput({
-          wisdom,
-          count: wisdom.length,
-          byType,
-          ...(productContextOutput(store, scope)
-            ? { _productContext: productContextOutput(store, scope) }
-            : {}),
-        });
-      } catch (error) {
-        return formatToolOutput({
-          error:
-            error instanceof Error ? error.message : "Failed to list wisdom",
-        });
-      }
+        },
+      );
     },
   },
 
@@ -355,61 +373,78 @@ export const wisdomTools = {
         .describe(
           "For linked products: repo (default) returns promoted/global entries relevant to this product; product returns all product wisdom",
         ),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. Reads a snapshot and returns _projectContext.",
+        ),
     },
     execute: async (
       {
         maxEntries,
         scope,
-      }: { maxEntries?: number; scope?: "repo" | "product" },
+        target_path,
+      }: {
+        maxEntries?: number;
+        scope?: "repo" | "product";
+        target_path?: string;
+      },
       store: Store,
     ) => {
-      try {
-        let entries: Array<{
-          id: string;
-          type: string;
-          content: string;
-          source_change?: string;
-          source_task?: string;
-          promoted_at?: string;
-          product_id?: string;
-          origin_repo_id?: string;
-          origin_repo_project_id?: string;
-          origin_repo_path?: string;
-          scope?: string;
-        }> = [];
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) => {
+          try {
+            let entries: Array<{
+              id: string;
+              type: string;
+              content: string;
+              source_change?: string;
+              source_task?: string;
+              promoted_at?: string;
+              product_id?: string;
+              origin_repo_id?: string;
+              origin_repo_project_id?: string;
+              origin_repo_path?: string;
+              scope?: string;
+            }> = [];
 
-        entries = await listProjectWisdom(store.paths.root, {
-          maxEntries,
-          wisdomPath: store.paths.wisdom,
-        });
-        entries = entries
-          .map((entry) => ({ ...entry, scope: "project" }))
-          .filter((entry) =>
-            isWisdomVisibleForProductScope(entry, store, scope),
-          );
+            entries = await listProjectWisdom(activeStore.paths.root, {
+              maxEntries,
+              wisdomPath: activeStore.paths.wisdom,
+            });
+            entries = entries
+              .map((entry) => ({ ...entry, scope: "project" }))
+              .filter((entry) =>
+                isWisdomVisibleForProductScope(entry, activeStore, scope),
+              );
 
-        // Build byType summary — mirrors adv_wisdom_list shape (KD1)
-        const byType: Record<string, number> = {};
-        for (const entry of entries) {
-          byType[entry.type] = (byType[entry.type] || 0) + 1;
-        }
+            // Build byType summary — mirrors adv_wisdom_list shape (KD1)
+            const byType: Record<string, number> = {};
+            for (const entry of entries) {
+              byType[entry.type] = (byType[entry.type] || 0) + 1;
+            }
 
-        return formatToolOutput({
-          entries,
-          count: entries.length,
-          byType,
-          ...(productContextOutput(store, scope)
-            ? { _productContext: productContextOutput(store, scope) }
-            : {}),
-        });
-      } catch (error) {
-        return formatToolOutput({
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to list project wisdom",
-        });
-      }
+            return formatToolOutput({
+              entries,
+              count: entries.length,
+              byType,
+              ...(productContextOutput(activeStore, scope)
+                ? { _productContext: productContextOutput(activeStore, scope) }
+                : {}),
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          } catch (error) {
+            return formatToolOutput({
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to list project wisdom",
+            });
+          }
+        },
+      );
     },
   },
 };
