@@ -486,6 +486,8 @@ const EpicRepairModeSchema = z.enum([
   "sync_child_projection",
   "clear_stale_projection",
   "mark_target_unreachable",
+  "remove_stale_entry",
+  "retarget_stale_entry",
 ]);
 
 const EpicMergeResolutionSchema = z.object({
@@ -1649,6 +1651,8 @@ export const epicTools = {
       mode: EpicRepairModeSchema,
       entry_id: z.string().min(1).optional(),
       change_id: z.string().min(1).optional(),
+      new_change_id: z.string().min(1).optional(),
+      new_title: z.string().min(1).optional(),
       evidence: z
         .string()
         .min(1)
@@ -1664,6 +1668,8 @@ export const epicTools = {
         mode,
         entry_id,
         change_id,
+        new_change_id,
+        new_title,
         evidence,
         target_path,
         target_confirmed,
@@ -1674,6 +1680,8 @@ export const epicTools = {
         mode: z.infer<typeof EpicRepairModeSchema>;
         entry_id?: string;
         change_id?: string;
+        new_change_id?: string;
+        new_title?: string;
         evidence: string;
         target_path?: string;
         target_confirmed?: true;
@@ -1683,6 +1691,12 @@ export const epicTools = {
       store: Store,
     ) => {
       try {
+        if (!evidence || evidence.trim() === "") {
+          return formatToolOutput({
+            error: "evidence is required for Epic membership repair.",
+            code: "MISSING_EVIDENCE",
+          });
+        }
         const epic = await loadEpic(store, epic_id);
         if (!epic) {
           if (mode === "clear_stale_projection") {
@@ -1714,6 +1728,146 @@ export const epicTools = {
             error: `Entry has no change reference: ${entry.entry_id}`,
             code: "PROJECTION_MISSING",
           });
+        }
+
+        if (mode === "remove_stale_entry") {
+          if (dryRun) {
+            return formatToolOutput({
+              success: true,
+              dryRun: true,
+              entry_id: entry.entry_id,
+              change_id: finalChangeId,
+              action: "remove_stale_entry",
+            });
+          }
+          await store.epics.unlinkChange(epic_id, entry.entry_id, evidence);
+          return formatToolOutput({
+            success: true,
+            repaired: true,
+            entry_id: entry.entry_id,
+            change_id: finalChangeId,
+            removed: true,
+          });
+        }
+
+        if (mode === "retarget_stale_entry") {
+          if (!new_change_id) {
+            return formatToolOutput({
+              error: "new_change_id is required for retarget_stale_entry",
+              code: "REPAIR_TARGET_REQUIRED",
+            });
+          }
+          if (dryRun) {
+            return formatToolOutput({
+              success: true,
+              dryRun: true,
+              entry_id: entry.entry_id,
+              change_id: finalChangeId,
+              new_change_id,
+              ...(new_title !== undefined ? { new_title } : {}),
+              action: "retarget_stale_entry",
+            });
+          }
+          const childStore = await resolveChildStore(store, {
+            target_path,
+            target_confirmed,
+            confirmationEvidence,
+          });
+          const targetChange = await loadChange(
+            childStore.store,
+            new_change_id,
+          );
+          if (!targetChange) {
+            return formatToolOutput({
+              error: `Change not found: ${new_change_id}`,
+              code: "CHANGE_NOT_FOUND",
+            });
+          }
+          if (
+            targetChange.epic_membership &&
+            (targetChange.epic_membership.epic_id !== epic_id ||
+              targetChange.epic_membership.entry_id !== entry.entry_id)
+          ) {
+            return formatToolOutput({
+              error: `Target change projection does not match Epic ${epic_id}`,
+              code: "PROJECTION_MISMATCH",
+              current_membership: targetChange.epic_membership,
+            });
+          }
+          const changeRef = childStore.context
+            ? {
+                change_id: new_change_id,
+                project_id: childStore.context.projectId,
+                target_path: childStore.context.root,
+              }
+            : undefined;
+          const retargetedEntry = requireChangeEntry(
+            await store.epics.retargetChange(epic_id, {
+              entryId: entry.entry_id,
+              fromChangeId: finalChangeId,
+              toChangeId: new_change_id,
+              ...(new_title !== undefined ? { title: new_title } : {}),
+              ...(changeRef ? { changeRef } : {}),
+              retargetEvidence: evidence,
+            }),
+          );
+          const terminalStatus = terminalSummaryStatusForChange(
+            targetChange.status,
+          );
+          if (terminalStatus) {
+            const completedAt = terminalSummaryCompletedAt(targetChange);
+            const terminalSummary = {
+              status: terminalStatus,
+              completed_at: completedAt,
+            };
+            const updatedEntry = requireChangeEntry(
+              await store.epics.setEntryTerminalSummary(epic_id, {
+                entryId: entry.entry_id,
+                status: terminalStatus,
+                completedAt,
+              }),
+            );
+            const output = formatToolOutput({
+              success: true,
+              repaired: true,
+              retargeted: true,
+              entry_id: entry.entry_id,
+              change_id: new_change_id,
+              terminal_summary_projected: true,
+              entry: mapEpicEntry(updatedEntry),
+              terminal_summary: terminalSummary,
+              member_status: memberStatusForEntry(updatedEntry),
+            });
+            return maybeAppendTargetContext(output, childStore.context);
+          }
+          const membership = membershipFromChangeEntry(
+            epic_id,
+            retargetedEntry,
+            retargetedEntry.title ?? targetChange.title,
+            "link_existing",
+          );
+          await childStore.store.changes.setEpicMembership(new_change_id, {
+            membership,
+            setAt: membership.linked_at,
+          });
+          const updatedEntry = requireChangeEntry(
+            await store.epics.setEntryMembershipStatus(epic_id, {
+              entryId: entry.entry_id,
+              membershipStatus: "linked",
+              evidence,
+            }),
+          );
+          const output = formatToolOutput({
+            success: true,
+            repaired: true,
+            retargeted: true,
+            entry_id: entry.entry_id,
+            change_id: new_change_id,
+            entry: mapEpicEntry(updatedEntry),
+            epic_membership: membership,
+            member_status: memberStatusForEntry(updatedEntry),
+          });
+          return maybeAppendTargetContext(output, childStore.context);
         }
 
         if (mode === "mark_target_unreachable") {
