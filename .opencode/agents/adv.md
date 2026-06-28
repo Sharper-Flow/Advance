@@ -96,6 +96,7 @@ tools:
   adv_snapshot_health: true
   # Reflection
   adv_reflect: true
+  adv_reflection_list: true
   adv_conformance: true
   # Project metadata
   adv_project_metadata: true
