@@ -14,6 +14,23 @@ const WORKFLOW_SPEC = join(
   "advance-workflow",
   "spec.json",
 );
+const ROUTINE_HANDOFF_BASELINE = [
+  "## Problem",
+  "{One-line restatement of the problem this change addresses.}",
+  "",
+  "## Chosen direction",
+  "{Per-stage anchor — see table below. One to three sentences max.}",
+  "",
+  "## Delivered",
+  "{What was produced in this stage. Bullet list. Concrete artifacts, not process.}",
+  "",
+  "---",
+  "",
+  "> **{change-id}**",
+  "> {gate} ✓ → {next-gate}",
+  ">",
+  "> → `/adv-{next-command} {change-id}`",
+].join("\n");
 
 function read(path: string): string {
   return readFileSync(path, "utf8");
@@ -28,6 +45,14 @@ function listAdvCommandDocs(): string[] {
     .filter((file) => file.startsWith("adv-") && file.endsWith(".md"))
     .map((file) => join(COMMANDS_DIR, file))
     .sort();
+}
+
+function extractCanonicalSpine(content: string): string {
+  const match = content.match(
+    /### Canonical spine[\s\S]*?```\n([\s\S]*?)\n```/,
+  );
+  expect(match, "Canonical spine code block must exist").toBeTruthy();
+  return match![1];
 }
 
 describe("decision rationale output contract assets", () => {
@@ -81,6 +106,14 @@ describe("decision rationale output contract assets", () => {
     expect(voice).toMatch(/\[source: spec:rq-handoffVoice01\]/);
     expect(voice).toMatch(/trigger_kind: date\|metric\|event\|state/);
     expect(voice).toMatch(/not a fourth spine heading/);
+  });
+
+  test("routine handoff spine remains byte-identical to baseline", () => {
+    const spine = extractCanonicalSpine(read(VOICE_STANDARD));
+
+    expect(spine).toBe(ROUTINE_HANDOFF_BASELINE);
+    expect(spine.length).toBeLessThanOrEqual(ROUTINE_HANDOFF_BASELINE.length);
+    expect(spine).not.toMatch(/Decision rationale/);
   });
 
   test("ADV output contract points major decisions to the voice standard", () => {

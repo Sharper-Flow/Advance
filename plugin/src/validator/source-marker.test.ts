@@ -31,6 +31,7 @@ describe("parseDecisionRationaleBlock", () => {
           text: "trigger_kind: event; when Gate Handoff Voice changes.",
           source: "contract:AC5",
           triggerKind: "event",
+          condition: "when Gate Handoff Voice changes.",
         },
       },
     });
@@ -50,6 +51,25 @@ describe("parseDecisionRationaleBlock", () => {
         validBlock.replace("trigger_kind: event; ", ""),
       ),
     ).toThrow(/trigger_kind/);
+  });
+
+  test("rejects trigger kind without concrete condition", () => {
+    expect(() =>
+      parseDecisionRationaleBlock(
+        validBlock.replace(
+          "trigger_kind: event; when Gate Handoff Voice changes.",
+          "trigger_kind: event",
+        ),
+      ),
+    ).toThrow(/concrete condition/);
+  });
+
+  test("rejects extra rationale fields", () => {
+    expect(() =>
+      parseDecisionRationaleBlock(
+        `${validBlock}\n- Extra field: not allowed. [source: agreement:AC1]`,
+      ),
+    ).toThrow(/exactly four rationale fields/);
   });
 
   test.each(["date", "metric", "event", "state"])(

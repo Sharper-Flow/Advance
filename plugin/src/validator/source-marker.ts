@@ -11,6 +11,7 @@ export interface DecisionRationaleField {
 
 export interface DecisionRationaleTriggerField extends DecisionRationaleField {
   triggerKind: DecisionRationaleTriggerKind;
+  condition: string;
 }
 
 export interface ParsedDecisionRationaleBlock {
@@ -32,7 +33,7 @@ export class SourceMarkerMalformedError extends Error {
 const SOURCE_MARKER = /\[source:\s*([^\]]+)\]/i;
 const SOURCE_REF =
   /^(?:spec:[A-Za-z0-9][A-Za-z0-9_-]*|agreement:[A-Z]+\d+|contract:[A-Z]+\d+|adr:\d{4}|[A-Za-z0-9_./-]+(?:#[A-Za-z0-9_.-]+)?)$/;
-const TRIGGER_KIND = /trigger_kind:\s*(date|metric|event|state)\b/i;
+const TRIGGER_KIND = /trigger_kind:\s*(date|metric|event|state)\b\s*;\s*(.+)$/i;
 
 function parseField(raw: string, label: string): DecisionRationaleField {
   const prefix = `- ${label}:`;
@@ -62,12 +63,19 @@ function parseTrigger(raw: string): DecisionRationaleTriggerField {
   const triggerMatch = parsed.text.match(TRIGGER_KIND);
   if (!triggerMatch) {
     throw new SourceMarkerMalformedError(
-      "Re-evaluation trigger must include trigger_kind: date|metric|event|state",
+      "Re-evaluation trigger must include trigger_kind: date|metric|event|state; concrete condition",
+    );
+  }
+  const condition = (triggerMatch[2] ?? "").trim();
+  if (!condition) {
+    throw new SourceMarkerMalformedError(
+      "Re-evaluation trigger must include a concrete condition",
     );
   }
   return {
     ...parsed,
     triggerKind: triggerMatch[1]!.toLowerCase() as DecisionRationaleTriggerKind,
+    condition,
   };
 }
 
@@ -82,6 +90,12 @@ export function parseDecisionRationaleBlock(
   if (lines[0] !== "Decision rationale (major decision):") {
     throw new SourceMarkerMalformedError(
       "block must start with Decision rationale (major decision):",
+    );
+  }
+
+  if (lines.length !== 5) {
+    throw new SourceMarkerMalformedError(
+      "block must contain exactly four rationale fields",
     );
   }
 
