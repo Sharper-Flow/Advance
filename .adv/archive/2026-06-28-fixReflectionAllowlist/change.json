@@ -1,0 +1,414 @@
+{
+  "id": "fixReflectionAllowlist",
+  "title": "Fix reflection allowlist",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-28T02:11:47.447Z",
+  "tasks": [
+    {
+      "id": "tk-4d8eda4b99d8",
+      "title": "Add adv_reflection_list to ADV runtime allowlist",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-28T02:12:12.384Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [],
+        "respects": [],
+        "not_applicable_reason": "Small tracked fix predates contract minting; task directly addresses deploy-local drift check."
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-06-28T02:12:30.948Z",
+      "verification": "Build passed (`pnpm run build`). Local deploy passed (`./scripts/deploy-local.sh --fix`). Deploy check passed: tool drift allowlist matches plugin registry (71 tools). ADV CLI status JSON live/stale=false.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Fixed deploy-local tool drift by allowing `adv_reflection_list` in the canonical ADV runtime agent allowlist under Reflection tools. Rebuilt plugin/runtime bundle and deployed local runtime successfully.",
+      "filesTouched": [
+        ".opencode/agents/adv.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md"
+      ],
+      "checkpointSha": "829e94c2855f54250cacfb0ed7aabec854c69c27",
+      "completedAt": "2026-06-28T02:14:31.931Z",
+      "completed_at": "2026-06-28T02:14:31.931Z",
+      "notes": "Added `adv_reflection_list` to `.opencode/agents/adv.md` allowlist. Verified `pnpm run build` passed, `./scripts/deploy-local.sh --fix` completed, `./scripts/deploy-local.sh --check` passed with tool drift allowlist matching plugin registry (71 tools), and `adv status --json` returned live stale=false. Checkpoint 829e94c2855f54250cacfb0ed7aabec854c69c27.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "No retry needed; verification passed.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-28T02:14:47.550Z"
+    }
+  ],
+  "subagent_reports": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-28T02:53:25.577Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User requested completion of fixReflectionAllowlist; proposal artifact updated with error handling/rollback and verified scope.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "c18b87ab57d80653ad8876324d2fa060f0a9ee64d04ed930c7406725c3b516f0",
+        "non_whitespace_chars": 938,
+        "checked_at": "2026-06-28T02:11:47.525Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-28T02:53:45.807Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "Agreement artifact persisted and minimal contract minted with 12 items. User requested completion of the already implemented/pushed fix.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "non_whitespace_chars": 896,
+        "checked_at": "2026-06-28T02:11:47.526Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-28T02:53:57.160Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact persisted. Low-risk one-line allowlist correction; no user-value tradeoff, validator conflict, or contract-compromise risk remains. Verification already passed and pushed.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "7dd6beb1fb2e4db8a78e705a3eef5e49472852e41799928597f48f6b9afa6d40",
+        "non_whitespace_chars": 848,
+        "checked_at": "2026-06-28T02:11:47.527Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-28T02:54:11.656Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "Existing one-task graph covers full scoped fix. User requested completion; task already done with build/deploy/check evidence."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-28T02:54:20.256Z",
+      "completed_by": "agent",
+      "approval_evidence": "All planned work complete. Task checkpoint 829e94c2855f54250cacfb0ed7aabec854c69c27. Build/deploy/check/git-sync evidence passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-28T02:55:04.291Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User requested completion. Acceptance matrix has 12/12 rows passed/respected; executive summary persisted; build/deploy/check/git-sync evidence complete.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "0464631cad44012d36a315010df954e7f6d0ba0cb7cd04611dd0dc23d498e56f",
+        "non_whitespace_chars": 681,
+        "checked_at": "2026-06-28T02:11:47.528Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "deploy-local-check:adv_reflection_list"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "minimal",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+      "approvedAt": "2026-06-28T02:53:34.605Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_reflection_list` appears in the ADV runtime agent allowlist beside Reflection tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run build` passes from `plugin/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`./scripts/deploy-local.sh --fix` completes successfully.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`./scripts/deploy-local.sh --check` reports allowlist/tool drift clean.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv status --json` reports live state with `stale=false`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Local `trunk` and `origin/trunk` are synchronized with `origin/trunk...HEAD = 0 0`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Only adjust the ADV allowlist; no unrelated tool or runtime behavior changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve trunk-worktree isolation until the final fast-forward/push step.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not bypass failed build/deploy verification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "New reflection tool behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Broader cleanup of active ADV changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Closing unrelated duplicate changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-28T02:54:30.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`.opencode/agents/adv.md` includes `adv_reflection_list: true` under Reflection tools; checkpoint 829e94c2855f54250cacfb0ed7aabec854c69c27.",
+          "notes": "Allowlist restored."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`pnpm run build` passed from `plugin/` after the allowlist fix.",
+          "notes": "Source build green."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`./scripts/deploy-local.sh --fix` completed successfully after build.",
+          "notes": "Runtime deployed locally."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`./scripts/deploy-local.sh --check` passed: tool drift allowlist matches plugin registry (71 tools).",
+          "notes": "Original drift fixed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv status --json` returned `live=true`, `stale=false`.",
+          "notes": "CLI/runtime live check passed."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "After push/fetch, `git rev-list --left-right --count origin/trunk...HEAD` reported `0 0`.",
+          "notes": "Local trunk synchronized with origin."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only source change was `.opencode/agents/adv.md` one-line allowlist addition.",
+          "notes": "No unrelated behavior changes."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation happened in `change/fixReflectionAllowlist` worktree; final trunk update was fast-forward merge and push.",
+          "notes": "Isolation preserved until final integration."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Build, deploy, deploy-check, CLI live check, and git sync all passed before completion.",
+          "notes": "No failed verification bypassed."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to `adv_reflection_list` implementation or reflection tool behavior.",
+          "notes": "Allowlist only."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broader active-change cleanup performed.",
+          "notes": "Only target change state being completed."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No unrelated duplicate changes closed or archived.",
+          "notes": "No unrelated state mutation."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_reflection_list` appears in the ADV runtime agent allowlist beside Reflection tools.",
+    "`pnpm run build` passes from `plugin/`.",
+    "`./scripts/deploy-local.sh --fix` completes successfully.",
+    "`./scripts/deploy-local.sh --check` reports allowlist/tool drift clean.",
+    "`adv status --json` reports live state with `stale=false`.",
+    "Local `trunk` and `origin/trunk` are synchronized with `origin/trunk...HEAD = 0 0`."
+  ],
+  "documents": {
+    "proposal": "# Fix reflection allowlist\n\n## Problem\n\n`./scripts/deploy-local.sh --check` reported tool drift: `adv_reflection_list` was registered in the plugin registry but missing from the ADV runtime agent allowlist, making it invisible in sessions.\n\n## Scope\n\n- Add `adv_reflection_list` to the canonical ADV agent allowlist/source surface.\n- Verify deploy-local check passes.\n- Rebuild and redeploy local runtime.\n- Push the fix and verify local `trunk` is in sync with `origin/trunk`.\n\n## Error Handling / Rollback\n\n- If build failed, stop before deploy and leave runtime untouched.\n- If deploy check still reported drift, keep the change open and inspect allowlist generation before claiming completion.\n- If push/sync failed, keep the change open and report the git failure.\n- Rollback is one-line removal from `.opencode/agents/adv.md` if the registry no longer exposes `adv_reflection_list`.\n\n## Acceptance Criteria\n\n- `./scripts/deploy-local.sh --check` reports no tool drift.\n- Local build passes.\n- Runtime plugin deploy completes successfully.\n- `origin/trunk...HEAD` reports `0 0` after push/fetch.",
+    "agreement": "# Agreement\n\n## Objectives\n\n- Restore ADV runtime visibility for registered `adv_reflection_list`.\n- Keep allowlist aligned with plugin registry.\n- Build, deploy locally, push, and verify sync with `origin/trunk`.\n\n## Acceptance Criteria\n\n- AC1: `adv_reflection_list` appears in the ADV runtime agent allowlist beside Reflection tools.\n- AC2: `pnpm run build` passes from `plugin/`.\n- AC3: `./scripts/deploy-local.sh --fix` completes successfully.\n- AC4: `./scripts/deploy-local.sh --check` reports allowlist/tool drift clean.\n- AC5: `adv status --json` reports live state with `stale=false`.\n- AC6: Local `trunk` and `origin/trunk` are synchronized with `origin/trunk...HEAD = 0 0`.\n\n## Constraints\n\n- C1: Only adjust the ADV allowlist; no unrelated tool or runtime behavior changes.\n- C2: Preserve trunk-worktree isolation until the final fast-forward/push step.\n- C3: Do not bypass failed build/deploy verification.\n\n## Out of Scope\n\n- New reflection tool behavior.\n- Broader cleanup of active ADV changes.\n- Closing unrelated duplicate changes.",
+    "design": "# Design\n\n## Approach\n\nMake the smallest structural correction: add `adv_reflection_list: true` to `.opencode/agents/adv.md` in the existing Reflection allowlist section, then use the repository's deploy script drift check as the source of truth.\n\n## Implementation Notes\n\n- Work happened in ADV worktree `change/fixReflectionAllowlist`.\n- The only source file changed was `.opencode/agents/adv.md`.\n- The worktree commit was fast-forwarded into `trunk`, pushed, then sync-verified.\n\n## Verification Strategy\n\n- Build source bundle with `pnpm run build`.\n- Deploy runtime with `./scripts/deploy-local.sh --fix`.\n- Verify drift with `./scripts/deploy-local.sh --check`.\n- Verify CLI health with `adv status --json`.\n- Verify git sync with `git fetch origin trunk` and `git rev-list --left-right --count origin/trunk...HEAD`.\n\n## Risk\n\nLow. Change is a one-line allowlist addition for an already registered tool. Rollback is removing the allowlist entry if registry support is removed later.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nFixed local deploy drift by adding `adv_reflection_list` to the ADV runtime agent allowlist, rebuilt, redeployed locally, pushed to `origin/trunk`, and verified sync.\n\n## What Was Built\n\n- Added `adv_reflection_list: true` under the Reflection tool allowlist in `.opencode/agents/adv.md`.\n\n## What Was Verified\n\n- `pnpm run build` passed.\n- `./scripts/deploy-local.sh --fix` completed.\n- `./scripts/deploy-local.sh --check` passed with tool drift clean: 71 tools.\n- `adv status --json` reported `live=true`, `stale=false`.\n- `git fetch origin trunk` + `origin/trunk...HEAD` reported `0 0`.\n- Pushed commit: `829e94c2855f54250cacfb0ed7aabec854c69c27`.\n\n## Remaining Concerns\n\nNone for this change. Restart OpenCode sessions to load deployed runtime changes.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-28T02:54:30.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `adv_reflection_list` appears in the ADV runtime agent allowlist beside Reflection tools. | pass | `.opencode/agents/adv.md` includes `adv_reflection_list: true` under Reflection tools; checkpoint 829e94c2855f54250cacfb0ed7aabec854c69c27. |\n| AC2 | acceptance_criterion | `pnpm run build` passes from `plugin/`. | pass | `pnpm run build` passed from `plugin/` after the allowlist fix. |\n| AC3 | acceptance_criterion | `./scripts/deploy-local.sh --fix` completes successfully. | pass | `./scripts/deploy-local.sh --fix` completed successfully after build. |\n| AC4 | acceptance_criterion | `./scripts/deploy-local.sh --check` reports allowlist/tool drift clean. | pass | `./scripts/deploy-local.sh --check` passed: tool drift allowlist matches plugin registry (71 tools). |\n| AC5 | acceptance_criterion | `adv status --json` reports live state with `stale=false`. | pass | `adv status --json` returned `live=true`, `stale=false`. |\n| AC6 | acceptance_criterion | Local `trunk` and `origin/trunk` are synchronized with `origin/trunk...HEAD = 0 0`. | pass | After push/fetch, `git rev-list --left-right --count origin/trunk...HEAD` reported `0 0`. |\n| C1 | constraint | Only adjust the ADV allowlist; no unrelated tool or runtime behavior changes. | respected | Only source change was `.opencode/agents/adv.md` one-line allowlist addition. |\n| C2 | constraint | Preserve trunk-worktree isolation until the final fast-forward/push step. | respected | Implementation happened in `change/fixReflectionAllowlist` worktree; final trunk update was fast-forward merge and push. |\n| C3 | constraint | Do not bypass failed build/deploy verification. | respected | Build, deploy, deploy-check, CLI live check, and git sync all passed before completion. |\n| OOS1 | out_of_scope | New reflection tool behavior. | respected | No changes to `adv_reflection_list` implementation or reflection tool behavior. |\n| OOS2 | out_of_scope | Broader cleanup of active ADV changes. | respected | No broader active-change cleanup performed. |\n| OOS3 | out_of_scope | Closing unrelated duplicate changes. | respected | No unrelated duplicate changes closed or archived. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-28T02:53:14.321Z",
+      "contentHash": "c18b87ab57d80653ad8876324d2fa060f0a9ee64d04ed930c7406725c3b516f0",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-28T02:53:14.321Z",
+      "contentHash": "46633c0a95f8dc4b10be87704f85fd3675f65a136e06ddd9cbeff765f7a6be76",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-28T02:53:14.321Z",
+      "contentHash": "7dd6beb1fb2e4db8a78e705a3eef5e49472852e41799928597f48f6b9afa6d40",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-28T02:53:14.321Z",
+      "contentHash": "0464631cad44012d36a315010df954e7f6d0ba0cb7cd04611dd0dc23d498e56f",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-28T02:55:04.291Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-06-28T02:48:46.274Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
