@@ -74,7 +74,9 @@ function parseTrigger(raw: string): DecisionRationaleTriggerField {
   }
   return {
     ...parsed,
-    triggerKind: triggerMatch[1]!.toLowerCase() as DecisionRationaleTriggerKind,
+    triggerKind: (
+      triggerMatch[1] ?? ""
+    ).toLowerCase() as DecisionRationaleTriggerKind,
     condition,
   };
 }

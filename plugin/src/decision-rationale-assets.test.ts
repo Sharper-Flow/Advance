@@ -3,6 +3,17 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 
+import { parseDecisionRationaleBlock } from "./validator";
+
+interface SpecRequirement {
+  id: string;
+  body: string;
+}
+
+interface SpecJson {
+  requirements: SpecRequirement[];
+}
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const COMMANDS_DIR = join(REPO_ROOT, ".opencode", "command");
 const ADV_AGENT = join(REPO_ROOT, ".opencode", "agents", "adv.md");
@@ -36,8 +47,8 @@ function read(path: string): string {
   return readFileSync(path, "utf8");
 }
 
-function readWorkflowSpec(): any {
-  return JSON.parse(read(WORKFLOW_SPEC));
+function readWorkflowSpec(): SpecJson {
+  return JSON.parse(read(WORKFLOW_SPEC)) as SpecJson;
 }
 
 function listAdvCommandDocs(): string[] {
@@ -55,11 +66,19 @@ function extractCanonicalSpine(content: string): string {
   return match![1];
 }
 
+function extractDecisionRationaleSyntax(content: string): string {
+  const match = content.match(
+    /### Decision rationale \(major decisions only\)[\s\S]*?```md\n([\s\S]*?)\n```/,
+  );
+  expect(match, "Decision rationale syntax block must exist").toBeTruthy();
+  return match![1];
+}
+
 describe("decision rationale output contract assets", () => {
   test("advance-workflow declares decision-rationale requirements", () => {
     const spec = readWorkflowSpec();
     const requirementIds = spec.requirements.map(
-      (requirement: any) => requirement.id,
+      (requirement) => requirement.id,
     );
 
     expect(requirementIds).toEqual(
@@ -75,7 +94,7 @@ describe("decision rationale output contract assets", () => {
   test("decision-rationale requirements preserve handoff spine and default routine", () => {
     const spec = readWorkflowSpec();
     const requirements = new Map(
-      spec.requirements.map((requirement: any) => [
+      spec.requirements.map((requirement) => [
         requirement.id,
         requirement.body,
       ]),
@@ -106,6 +125,23 @@ describe("decision rationale output contract assets", () => {
     expect(voice).toMatch(/\[source: spec:rq-handoffVoice01\]/);
     expect(voice).toMatch(/trigger_kind: date\|metric\|event\|state/);
     expect(voice).toMatch(/not a fourth spine heading/);
+  });
+
+  test("voice standard rationale syntax is parser-validated", () => {
+    const parsed = parseDecisionRationaleBlock(
+      extractDecisionRationaleSyntax(read(VOICE_STANDARD)).replace(
+        "trigger_kind: date|metric|event|state;",
+        "trigger_kind: date;",
+      ),
+    );
+
+    expect(parsed.fields.chosenDirection.source).toBe("spec:rq-handoffVoice01");
+    expect(parsed.fields.whyItFits.source).toBe("agreement:AC1");
+    expect(parsed.fields.alternatives.source).toBe("contract:DONT1");
+    expect(parsed.fields.reEvaluationTrigger.triggerKind).toBe("date");
+    expect(parsed.fields.reEvaluationTrigger.condition).toBe(
+      "{concrete condition}.",
+    );
   });
 
   test("routine handoff spine remains byte-identical to baseline", () => {
