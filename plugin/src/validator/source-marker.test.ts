@@ -46,7 +46,9 @@ describe("parseDecisionRationaleBlock", () => {
 
   test("rejects missing trigger kind", () => {
     expect(() =>
-      parseDecisionRationaleBlock(validBlock.replace("trigger_kind: event; ", "")),
+      parseDecisionRationaleBlock(
+        validBlock.replace("trigger_kind: event; ", ""),
+      ),
     ).toThrow(/trigger_kind/);
   });
 

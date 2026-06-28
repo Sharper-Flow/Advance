@@ -1,12 +1,15 @@
-export type DecisionRationaleTriggerKind = "date" | "metric" | "event" | "state";
+export type DecisionRationaleTriggerKind =
+  | "date"
+  | "metric"
+  | "event"
+  | "state";
 
 export interface DecisionRationaleField {
   text: string;
   source: string;
 }
 
-export interface DecisionRationaleTriggerField
-  extends DecisionRationaleField {
+export interface DecisionRationaleTriggerField extends DecisionRationaleField {
   triggerKind: DecisionRationaleTriggerKind;
 }
 
@@ -27,7 +30,8 @@ export class SourceMarkerMalformedError extends Error {
 }
 
 const SOURCE_MARKER = /\[source:\s*([^\]]+)\]/i;
-const SOURCE_REF = /^(?:spec:[A-Za-z0-9][A-Za-z0-9_-]*|agreement:[A-Z]+\d+|contract:[A-Z]+\d+|adr:\d{4}|[A-Za-z0-9_.\/-]+(?:#[A-Za-z0-9_.-]+)?)$/;
+const SOURCE_REF =
+  /^(?:spec:[A-Za-z0-9][A-Za-z0-9_-]*|agreement:[A-Z]+\d+|contract:[A-Z]+\d+|adr:\d{4}|[A-Za-z0-9_./-]+(?:#[A-Za-z0-9_.-]+)?)$/;
 const TRIGGER_KIND = /trigger_kind:\s*(date|metric|event|state)\b/i;
 
 function parseField(raw: string, label: string): DecisionRationaleField {
