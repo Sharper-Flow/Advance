@@ -1,0 +1,1294 @@
+{
+  "id": "addDecisionRationale",
+  "title": "Add decision rationale",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-26T17:20:26.859Z",
+  "tasks": [
+    {
+      "id": "tk-ce0618b0e876",
+      "title": "Add decision-rationale spec contract and structural validators",
+      "type": "code",
+      "section": "Spec and validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-06-28T01:17:12.502Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "C1",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS4",
+          "OOS5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "TDD red tr_mqx3u24y_af4d8e94 failed on missing decision-rationale contract/source-marker implementation. Green tr_mqx40d2d_c97275cc passed: bin/oc-test targeted -- src/decision-rationale-assets.test.ts src/validator/source-marker.test.ts (13 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `rq-decisionRationale01..04` to advance-workflow spec and docs mirror; added `docs/command-voice-standard.md` nested major-decision rationale contract; updated `.opencode/agents/adv.md`; added `plugin/src/decision-rationale-assets.test.ts`; added pure `plugin/src/validator/source-marker.ts` and tests validating source markers, trigger kinds, and `[source:]`/`[warrant:]` separation.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/agents/adv.md",
+        "docs/command-voice-standard.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/decision-rationale-assets.test.ts",
+        "plugin/src/validator/source-marker.test.ts",
+        "plugin/src/validator/source-marker.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/agents/adv.md",
+        "docs/command-voice-standard.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/decision-rationale-assets.test.ts",
+        "plugin/src/validator/source-marker.test.ts",
+        "plugin/src/validator/source-marker.ts"
+      ],
+      "checkpointSha": "cc650f60f355b405f69e7474315e3f256795ad49",
+      "completedAt": "2026-06-28T01:28:39.085Z",
+      "completed_at": "2026-06-28T01:28:39.085Z",
+      "notes": "Implemented decision-rationale spec contract, voice-standard anchors, ADV output-contract guidance, deterministic source-marker parser, and asset/validator tests. TDD red run tr_mqx3u24y_af4d8e94; green run tr_mqx40d2d_c97275cc. Git checkpoint cc650f60f355b405f69e7474315e3f256795ad49.",
+      "error_recovery": {
+        "last_error": "Targeted green initially failed due malformed test syntax, then exact anchor mismatch in docs/command-voice-standard.md.",
+        "retry_count": 3,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Task succeeded after syntax and anchor fixes; no further retry needed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Initial red command used repo-root-prefixed plugin/src paths, causing no test files found.",
+            "diagnosis": "bin/oc-test targeted runs under plugin, so filters must be plugin-relative src/... paths.",
+            "fix_tried": "Re-ran red with src/decision-rationale-assets.test.ts and src/validator/source-marker.test.ts.",
+            "strategy_label": "correct-test-filter",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-28T01:24:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Green run failed with TypeScript parse error in decision-rationale-assets.test.ts line 39.",
+            "diagnosis": "Malformed test edit left comma instead of semicolon after requirementIds assignment.",
+            "fix_tried": "Corrected assignment syntax.",
+            "strategy_label": "fix-test-syntax",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-28T01:27:00.000Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "Green run failed because voice standard lacked exact anchor `inside ## Chosen direction`.",
+            "diagnosis": "Contract semantics were correct but test expected exact anchor phrase for durable drift guard.",
+            "fix_tried": "Added exact phrase to docs/command-voice-standard.md.",
+            "strategy_label": "align-contract-anchor",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-28T01:28:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-28T01:29:29.185Z"
+    },
+    {
+      "id": "tk-40a8361dcc1a",
+      "title": "Update ADV voice and command surfaces for major-decision rationale",
+      "type": "docs",
+      "section": "Voice surfaces",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-06-28T01:17:37.115Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ce0618b0e876"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC5",
+          "AC1",
+          "AC3",
+          "AC6",
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "verifies": [
+          "AC3",
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "static_check",
+      "verification": "Static voice/command checks passed: tr_mqx43i5h_b817a121 ran bin/oc-test targeted -- src/decision-rationale-assets.test.ts src/checkpoint-surface-drift.test.ts src/commands-spine-assets.test.ts (19 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Confirmed docs/voice surface updates from the structural pass: `docs/command-voice-standard.md` defines nested major-decision rationale, `.opencode/agents/adv.md` references it, command handoff templates avoid top-level `## Decision rationale`, and inline approval anchors remain unchanged.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "cc650f60f355b405f69e7474315e3f256795ad49",
+      "completedAt": "2026-06-28T01:30:27.886Z",
+      "completed_at": "2026-06-28T01:30:27.886Z",
+      "notes": "Voice/agent surface updates verified. Static checks tr_mqx43i5h_b817a121 passed: decision-rationale assets, checkpoint-surface drift, command spine assets (19 tests). No additional dirty files; checkpoint clean at cc650f60f355b405f69e7474315e3f256795ad49.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "No retry needed; verification passed.",
+        "attempts": []
+      },
+      "updatedAt": "2026-06-28T01:30:49.351Z"
+    },
+    {
+      "id": "tk-6d83abdc9253",
+      "title": "Run contract, routine-output, and checkpoint verification sweep",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-06-28T01:18:01.209Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ce0618b0e876"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-40a8361dcc1a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "evidence_policy": "test",
+      "verification": "Harden remediation verified: targeted decision-rationale/source-marker tests tr_mqx5bor1_58bb9308 passed (17 tests), typecheck tr_mqx5b221_abc6f195 passed, touched-file Prettier tr_mqx5bo8z_98a83eb1 passed. Merge dry-run against origin/trunk passed. Fixed high ORPHAN_PARSER finding by exporting parser via validator barrel and validating canonical docs syntax through parser in asset test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran cross-cutting verification and harden remediation for rationale assets, source-marker/warrant separation, handoff/footer drift, checkpoint drift, command spine assets, contract mint, touched-file formatting, typecheck, ADV validation, and merge compatibility. Acceptance/harden review tightened `source-marker.ts` to require exact four rationale fields and a concrete trigger condition, added parser regressions, added routine handoff byte-identical baseline coverage, exported the parser through the validator barrel, and made the canonical docs syntax parser-validated in the asset test. Did not mutate or close duplicate `addDecisionRationale2`.",
+      "filesTouched": [
+        "plugin/src/decision-rationale-assets.test.ts",
+        "plugin/src/validator/index.ts",
+        "plugin/src/validator/source-marker.ts"
+      ],
+      "touched_files": [
+        "plugin/src/decision-rationale-assets.test.ts",
+        "plugin/src/validator/index.ts",
+        "plugin/src/validator/source-marker.ts"
+      ],
+      "checkpointSha": "620a574c437aff0cfa4d3b4cafead51487d4b094",
+      "completedAt": "2026-06-28T02:05:03.955Z",
+      "completed_at": "2026-06-28T02:05:03.955Z",
+      "notes": "Verification sweep complete through harden remediation. Harden scanners found one high `ORPHAN_PARSER` structural reachability issue; fixed by exporting parser via `plugin/src/validator/index.ts` and parser-validating canonical docs syntax in `decision-rationale-assets.test.ts`. Passed targeted tests tr_mqx5bor1_58bb9308 (17 tests), typecheck tr_mqx5b221_abc6f195, touched-file Prettier tr_mqx5bo8z_98a83eb1, earlier 72-test sweep tr_mqx47zml_141282f8, and adv_change_validate strict with NO_DELTAS warning only. Merge dry-run against origin/trunk passed. Full smoke tr_mqx473hs_44be289f exposed unrelated pre-existing `src/advance-epics-assets.test.ts` format warning. Separate harden scan also reported pre-existing epic citation invariant failures on trunk; no epic files touched. Git checkpoint updated to 620a574c437aff0cfa4d3b4cafead51487d4b094.",
+      "error_recovery": {
+        "last_error": "Smoke reported touched-file lint/format issues plus unrelated pre-existing format warning in src/advance-epics-assets.test.ts.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further retry needed; harden ORPHAN_PARSER finding fixed, targeted tests/typecheck/format pass, merge dry-run passes.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Smoke failed on ESLint no-useless-escape in source-marker.ts.",
+            "diagnosis": "Regex char class escaped `/` unnecessarily.",
+            "fix_tried": "Removed unnecessary escape and reran parser tests.",
+            "strategy_label": "fix-eslint-regex",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-28T01:32:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Smoke failed on Prettier for touched source-marker files and unrelated src/advance-epics-assets.test.ts.",
+            "diagnosis": "Touched files needed Prettier; advance-epics formatting is pre-existing and outside this change.",
+            "fix_tried": "Ran Prettier on touched files only; reran targeted tests and touched-file Prettier check.",
+            "strategy_label": "format-touched-files",
+            "outcome": "succeeded",
+            "attempted_at": "2026-06-28T01:34:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-06-28T02:06:35.390Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addDecisionRationale",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout — decision rationale block for major ADV decisions",
+      "sources": [
+        {
+          "label": "docs/command-voice-standard.md Gate Handoff Voice (lines 265-293)",
+          "locator": "/home/jon/dev/advance/docs/command-voice-standard.md:293",
+          "summary": "Gate Handoff Voice spine = Problem / Chosen direction / Delivered + blockquote wayfinder. Line 293: 'No other sections, headings, or structural elements in the handoff.' A rationale block must coexist without violating this, e.g. as enrichment WITHIN the existing 'Chosen direction' section rather than a new top-level heading."
+        },
+        {
+          "label": "plugin/src/handoff-footer-drift.test.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/handoff-footer-drift.test.ts:88",
+          "summary": "Handoff voice is enforced by prose-pattern regex tests over .md command files (.opencode/command/adv-*.md) + docs + adv.md, NOT a runtime renderer. No central runtime handoff formatter exists; enforcement is structural over markdown. Decision-rationale presence/absence checks should follow the same .md-test idiom."
+        },
+        {
+          "label": "chat-output-display spec (rq-ctxformat, rq-toolTitle02)",
+          "locator": "/home/jon/dev/advance/.adv/specs/chat-output-display/spec.json",
+          "summary": "Deterministic box-drawing formatter (utils/context-snapshot.ts) governs snapshots/tickers, NOT handoff prose. rq-toolTitle02/rq-ctxformat establish the determinism + structural-correctness precedent (machine-checkable, not heuristic) a rationale classifier should follow."
+        },
+        {
+          "label": "advance-workflow spec rq-handoffVoice01 / rq-inlineApproval01",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-workflow/spec.json:1423",
+          "summary": "rq-handoffVoice01 (MUST) fixes the handoff spine; rq-handoffVoice01.2 bans mechanics leakage. Per-stage 'Chosen direction' anchors already include 'key tradeoff outcomes' (design) and 'agreed objectives + user decisions' (discover) — rationale content already has a home in the spine."
+        },
+        {
+          "label": "docs/adr/0001-0003 ADR rubric",
+          "locator": "/home/jon/dev/advance/docs/adr/0003-signal-handlers-must-not-throw.md:35",
+          "summary": "Repo ALREADY has an ADR practice with a consistent 3-criterion rubric (Hard to reverse / Surprising without context / Result of real trade-off -> 'All 3 criteria met -> ADR warranted'). ADR sections = Decision (chosen direction) + Context with reference URLs (why-it-fits, source-backed) + Rejected Alternatives. Three of the proposal's four fields already exist as a proven boring pattern; only the re-evaluation trigger is novel."
+        }
+      ],
+      "architecture_assessment": "Greenfield (no existing 'Decision rationale' string anywhere in repo). Two boring proven internal patterns should anchor the change instead of novel machinery: (1) major-vs-routine classification should reuse the existing repo ADR 3-criterion rubric (hard-to-reverse / surprising-without-context / real-trade-off), already consistently applied across docs/adr/0001-0003, satisfying AC7 default-routine+allowlist with machine-checkable structure (P33); (2) the rationale block should enrich the EXISTING 'Chosen direction' spine section (which already carries 'key tradeoff outcomes' for design and 'user decisions' for discover) rather than introduce a new top-level heading, because docs/command-voice-standard.md:293 forbids other sections and rq-handoffVoice01 is MUST. Enforcement is prose-pattern .md tests (handoff-footer-drift.test.ts), not a runtime renderer, so AC2/AC3 lint+snapshot checks fit the established test idiom. The only genuinely new field, re-evaluation trigger, has no internal precedent and is the highest-risk/ambiguity surface (AC6 concrete-condition requirement).",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No release/security/contract blocker. Primary caution: a top-level 'Decision rationale' heading would directly violate command-voice-standard.md:293 ('No other sections') and MUST-priority rq-handoffVoice01. Design must place rationale inside the existing 'Chosen direction' section or formally re-enter to amend the spine spec. Re-evaluation trigger is the only field without internal precedent and needs a user/orchestrator decision on representation."
+      },
+      "recommendation": "AUTO-ADOPT two contract-tied low-risk leverage points: (1) reuse the existing ADR 3-criterion rubric as the major-vs-routine classifier (ties AC7, machine-checkable per P33); (2) enrich the existing 'Chosen direction' spine section instead of adding a new heading (ties AC4 + constraint 'preserve Gate Handoff Voice', avoids rq-handoffVoice01 violation). SURFACE TO USER: (3) re-evaluation trigger representation — no internal precedent, AC6 demands concrete conditions, decide enumerated trigger kinds vs free-text-with-lint; (4) whether major-decision scope is limited to design/discover gate handoffs only or spans all ADV decision emission points (scope/user-value tradeoff). FOLLOW-UP: align rationale source-citation format with the existing ADR 'References' URL convention for AC2 lint consistency.",
+      "follow_ups": [
+        "adv_change_list timed out (ToolExecutionTimeout); archived-change enumeration for full prior_consideration not possible. All candidates classified 'new' based on grep confirming no existing 'Decision rationale' surface.",
+        "Align rationale citation format with docs/adr References-style URLs for AC2 lint consistency.",
+        "Re-evaluation trigger field has no internal precedent — design should resolve its representation before prep."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDecisionRationale",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — decision rationale block (Gate Handoff Voice)",
+      "sources": [
+        {
+          "label": "Existing [warrant: <ref>] convention (rq-acWarrant01)",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-discover.md:573",
+          "summary": "Repo ALREADY ships a typed citation-tag grammar `[warrant: tool:<name> | tool:<name>#<arg> | spec:<rq-id>]`, verified structurally at contract mint (CONTRACT_UNRESOLVED_WARRANT). Design D3 proposes a NEW `[source: ...]` marker covering the same job (spec-id / path#section / contract:AC1). Reuse/extend warrant grammar instead of inventing a parallel marker."
+        },
+        {
+          "label": "Spine validator finds sections by exact heading + order only",
+          "locator": "/home/jon/dev/advance/plugin/src/commands-spine-assets.test.ts:31",
+          "summary": "checkSpine() locates `## Problem` / `## Chosen direction` / `## Delivered` by exact trim-match and checks ordering + `---` + footer. It does NOT forbid sub-content between headings; only `## Next stage` / `## Next` are banned. A nested rationale block inside `## Chosen direction` passes existing tests — design D1 is structurally safe. But the negative test for a top-level `## Decision rationale` must be ADDED (not currently covered)."
+        },
+        {
+          "label": "ADR 3-criterion rubric (boring, proven, repo-native)",
+          "locator": "/home/jon/dev/advance/docs/adr/0003-signal-handlers-must-not-throw.md:35",
+          "summary": "Hard-to-reverse / surprising-without-context / real-trade-off → 'All 3 met → ADR warranted'. D2 reuses this verbatim as the major-vs-routine classifier seed. Boring + machine-mappable (P33). Three of four rationale fields (chosen direction = Decision, why-it-fits = Context+References, alternatives = Rejected Alternatives) already exist as proven ADR sections."
+        },
+        {
+          "label": "rq-handoffVoice01 MUST + canonical spine prose ban",
+          "locator": "/home/jon/dev/advance/docs/command-voice-standard.md:293",
+          "summary": "'No other sections, headings, or structural elements in the handoff.' rq-handoffVoice01 is MUST. Nesting via a labeled (non-`##`) block inside Chosen direction respects this; a 4th `##` heading would violate both. Confirms design avoidance DONT1 is load-bearing."
+        },
+        {
+          "label": "Re-evaluation trigger has NO internal precedent",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-workflow/spec.json:1423",
+          "summary": "grep + spec inspection: no date|metric|event|state typed-trigger pattern exists anywhere in repo. AC5/D3 trigger typing is the single genuinely novel surface and the highest-ambiguity field. Design treats it as deterministic enum (good) but provides no example grammar — risk for test author + LLM emitter."
+        }
+      ],
+      "architecture_assessment": "Design is well-anchored on two boring repo-native patterns (ADR rubric for D2 classification; nested-in-spine for D1) and the existing prose-pattern .md drift-test idiom (D4). It is structurally sound and avoids a runtime-renderer rewrite, which matches reality: handoff voice is enforced over markdown, not a code path. The one avoidable complexity is D3's NEW `[source: ...]` marker grammar, which duplicates the already-shipped, mint-verified `[warrant: <ref>]` convention (rq-acWarrant01). Adopting/extending warrant grammar collapses a novel parser into an existing one and gives AC2 the same structural verification warrant already has. Secondary gap: the spine validator does not currently forbid a top-level `## Decision rationale` heading, so D4's negative test is net-new coverage the design correctly calls for but must specify precisely. The re-evaluation trigger (AC5) is the only field with zero internal precedent and should ship with an explicit enum grammar + one fixture per kind to keep AC5/T1 deterministic.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No release/security/contract blocker. All design decisions trace to approved AC/constraints. Two simplifications (warrant-marker reuse, trigger grammar example) reduce risk without scope change; one classification (allowlist storage location) is a minor surface-to-user point, not a blocker."
+      },
+      "recommendation": "Adopt now: (1) reuse/extend the existing `[warrant: <ref>]` grammar (rq-acWarrant01) for AC2 source markers instead of inventing `[source: ...]`, gaining free mint-time structural verification; (2) reuse ADR 3-criterion rubric for D2 (already in design). Design around: (3) re-evaluation trigger — add an explicit typed-enum grammar + one fixture per kind (date|metric|event|state) since no precedent exists. Surface to user/orchestrator: (4) where the major-decision allowlist lives (spec rq vs docs) — affects D2 determinism and AC4 audit. Confirm before prep. Reject: none.",
+      "follow_ups": [
+        "C4 allowlist-location decision (spec rq-decisionRationale03 vs docs/command-voice-standard.md) should be settled before prep for AC4 determinism.",
+        "If warrant-grammar reuse is adopted, update D3/D4 + the proposed rq-decisionRationale citation requirement to reference rq-acWarrant01 grammar rather than a new [source:] format.",
+        "Spine validator (commands-spine-assets.test.ts) currently has NO ban on a top-level '## Decision rationale' heading — D4's negative test is net-new; specify it explicitly."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDecisionRationale",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — Add decision rationale",
+      "sources": [
+        {
+          "label": "Gate Handoff Voice — no extra headings rule",
+          "locator": "docs/command-voice-standard.md:293",
+          "summary": "Confirms 'No other sections, headings, or structural elements in the handoff' — validates D1: rationale MUST nest inside existing ## Chosen direction, not a top-level heading. Backs AC1, C1, DONT1."
+        },
+        {
+          "label": "Canonical major-vs-routine rubric (spec law)",
+          "locator": ".adv/specs/domain-context/spec.json:61 (rq-domainContextADR01)",
+          "summary": "The real three-criteria rubric (1) hard to reverse (2) surprising without context (3) result of a real trade-off lives here, priority SHOULD. This is the spec-backed source for the design's major-decision criteria — NOT ADR-0003."
+        },
+        {
+          "label": "ADR-0003 actual content (citation mismatch)",
+          "locator": "docs/adr/0003-signal-handlers-must-not-throw.md:1-43",
+          "summary": "ADR-0003 is 'Temporal signal handlers must not throw'. It only APPLIES the rubric in its own 'ADR rubric' table; it is not the rubric source. Design D2/AC4 cite 'ADR-0003 rubric' as the seed — factually wrong pointer."
+        },
+        {
+          "label": "Typed-reference precedent for source markers",
+          "locator": ".opencode/command/adv-discover.md:573, .adv/specs/advance-workflow/spec.json (rq-acWarrant01)",
+          "summary": "[warrant: tool:..|spec:..] is a real typed-reference concept verified structurally at contract mint. Validates D3's modeling of a compact [source: ...] marker. grep shows no existing [source:] marker in docs/ → new grammar, no collision (AC2)."
+        },
+        {
+          "label": "No runtime renderer for handoff prose",
+          "locator": "plugin/src/commands-spine-assets.test.ts, plugin/src/handoff-footer-drift.test.ts",
+          "summary": "Handoff voice is governed by asset/drift tests over command+agent markdown, not a central runtime renderer. Validates the Architecture Overview claim and D5 enforcement-by-test approach; matches existing handoff voice enforcement (rq-handoffVoice01)."
+        },
+        {
+          "label": "Inline approval anchors (checkpoint preservation)",
+          "locator": "docs/command-voice-standard.md:566-646 (rq-inlineApproval01)",
+          "summary": "Seven named human checkpoints + Tier A/B parsers. Design adds no prompts/checkpoints (AC6, C2); preserving these anchors via checkpoint tests (T5) is consistent with the existing surface."
+        }
+      ],
+      "architecture_assessment": "Design is architecturally sound and well-aligned with existing patterns. It correctly treats decision rationale as an output-governance contract (nested block inside ## Chosen direction + deterministic asset/drift tests) rather than a new gate, prompt, or runtime renderer. Source evidence confirms: (a) the no-extra-headings handoff rule makes nesting the only spec-compliant placement (D1); (b) handoff prose is already test-governed with no central renderer, so D5's enforcement approach is by-the-book (boring, proven); (c) [warrant:] is a real typed-reference precedent that justifies a parallel [source:] marker without overloading it (D3); (d) no existing [source:] marker or 'Decision rationale' heading exists, so no collision (AC2/DONT). SIMPLICITY: no materially simpler approach achieves the objectives while respecting Gate Handoff Voice — a separate doc/section would violate the no-extra-headings rule, and a runtime renderer would be more complex than the existing test-governed pattern. The design correctly rejects both. KEY ALTERNATIVES: no significant viable alternative overlooked; the default-routine + allowlist + ADR-rubric classifier (D2) is the structurally-correct (non-heuristic-authority) choice that satisfies P33 and DONT5. One MINOR deviation: the rubric citation is misattributed.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "MINOR citation defect, non-blocking but should be corrected before/at planning. D2 and the agreement's AC4 cite 'ADR-0003 rubric' / 'ADR-0003 rubric, AC4' as the seed for major-decision criteria. ADR-0003 (docs/adr/0003-signal-handlers-must-not-throw.md) is about Temporal signal-handler error semantics — it is NOT the rubric source; it merely applies the rubric. The canonical major-vs-routine rubric is spec domain-context rq-domainContextADR01 (the three criteria: hard to reverse / surprising without context / real trade-off). The three criteria the design enumerates are CORRECT and spec-backed; only the pointer is wrong. Fix: change D2 source citation from 'ADR-0003 rubric' to 'rq-domainContextADR01 (domain-context spec)'. Secondary note: design references the rubric path as 'decisions/0003' implicitly via 'ADR-0003' — the repo path is docs/adr/NNNN-slug.md, and the global do-not-revive 'decisions/' tree is unrelated config-policy ADRs; ensure implementation tasks point at docs/adr/ + the domain-context spec, not a 'decisions/' path."
+      },
+      "recommendation": "Proceed to planning. The design is VALIDATED on correctness, simplicity, spec-law compliance, and alternatives. Before completing the design gate, apply one MINOR correction: retarget the major-decision rubric citation in D2 (and verify the agreement AC4 wording) from 'ADR-0003 rubric' to the actual spec law rq-domainContextADR01 in the domain-context spec. The three rubric criteria themselves are accurate and need no change. Keep the [source:] marker grammar modeled on — but namespaced distinct from — [warrant:] as D3 already specifies, and add a negative test asserting [source:] does not resolve through the warrant mint path (avoids semantic overload regressions). No spec-law contradictions found; the design respects Gate Handoff Voice (rq-handoffVoice01), inline approval (rq-inlineApproval01), and the sparse-ADR rubric (rq-domainContextADR01).",
+      "follow_ups": [
+        "Correct D2/AC4 rubric citation: ADR-0003 → rq-domainContextADR01 (domain-context spec). ADR-0003 is signal-handler semantics, not the major-decision rubric.",
+        "Ensure new rq-decisionRationale0x requirements cross-reference rq-domainContextADR01 for the classifier criteria rather than restating them, to avoid divergent rubric copies.",
+        "Add a negative test that a [source:] marker is NOT verified through the [warrant:] contract-mint path (prevents semantic overload / CONTRACT_UNRESOLVED_WARRANT false-positives)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDecisionRationale",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addDecisionRationale",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/validator/source-marker.ts",
+          "summary": "Tightened rationale parser so re-evaluation trigger must include `trigger_kind: ...;` plus non-empty concrete condition, exposes parsed `condition`, and rejects extra rationale fields to preserve bounded exactly-four-field block shape.",
+          "verification": "bin/oc-test targeted -- src/validator/source-marker.test.ts src/decision-rationale-assets.test.ts passed: 2 files, 16 tests. pnpm run typecheck passed. Prettier check passed."
+        },
+        {
+          "file": "plugin/src/validator/source-marker.test.ts",
+          "summary": "Added regression coverage for concrete trigger condition, exact bounded field count, and parsed trigger condition while preserving source-marker/warrant separation coverage.",
+          "verification": "bin/oc-test targeted -- src/validator/source-marker.test.ts src/decision-rationale-assets.test.ts passed: 2 files, 16 tests."
+        },
+        {
+          "file": "plugin/src/decision-rationale-assets.test.ts",
+          "summary": "Added representative routine handoff baseline regression proving canonical routine spine remains byte-identical-or-shorter and contains no Decision rationale block.",
+          "verification": "bin/oc-test targeted -- src/validator/source-marker.test.ts src/decision-rationale-assets.test.ts passed: 2 files, 16 tests. Prettier check passed."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e '.adv/specs/advance-workflow/spec.json' && test -e '.opencode/agents/adv.md' && test -e 'docs/command-voice-standard.md' && test -e 'docs/specs/advance-workflow.md' && test -e 'plugin/src/decision-rationale-assets.test.ts' && test -e 'plugin/src/validator/source-marker.ts' && test -e 'plugin/src/validator/source-marker.test.ts' && echo OK || echo MISSING",
+          "bin/oc-test targeted -- src/validator/source-marker.test.ts src/decision-rationale-assets.test.ts",
+          "pnpm exec prettier --check src/validator/source-marker.ts src/validator/source-marker.test.ts src/decision-rationale-assets.test.ts",
+          "pnpm run typecheck"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight returned OK. Final targeted tests passed: src/decision-rationale-assets.test.ts 6 tests, src/validator/source-marker.test.ts 10 tests, 16 total. Prettier check reported all matched files use Prettier style. TypeScript `tsc --noEmit` passed. Review covered design, functionality, complexity, tests, naming, comments, style, documentation, security, performance, error handling, consistency, contract traceability, scope conformance, and non-code evidence. Note: spawn requested scope_key acceptance-review, but tool schema accepts review:acceptance for independent review reports; persisted with schema-valid review:acceptance."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Smoke evidence in context still notes unrelated pre-existing formatting warning in src/advance-epics-assets.test.ts; touched files pass Prettier and targeted verification."
+      ],
+      "required_main_agent_actions": [
+        "Include reviewer remediation diff in final acceptance evidence; no ADV orchestration mutation needed from reviewer.",
+        "Do not close/archive addDecisionRationale2 as part of this change; AC7 remains satisfied by no touched state or files for that duplicate/conflict context."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": [
+        {
+          "kind": "consumer_failure",
+          "message": "Requested change-scope scope_key acceptance-review was rejected by adv_subagent_report_submit schema; report was persisted with schema-valid review:acceptance."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addDecisionRationale",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addDecisionRationale",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 2,
+      "dimensions": [
+        "test_coverage",
+        "ai_slop",
+        "documentation_hygiene",
+        "cleanup_readiness",
+        "production_readiness",
+        "deployment_readiness"
+      ],
+      "summary": "Release harden scanners found one high ORPHAN_PARSER issue, remediated by exporting source-marker parser through validator barrel and parser-validating canonical docs syntax in asset tests. Post-remediation targeted tests, typecheck, Prettier, and merge dry-run pass. No blocker/high findings remain.",
+      "findings": [
+        {
+          "scanner": "production_readiness",
+          "severity": "info",
+          "summary": "ORPHAN_PARSER harden finding fixed: parser now exported via plugin/src/validator/index.ts and canonical docs syntax is parser-validated by decision-rationale asset test.",
+          "evidence": [
+            {
+              "label": "checkpoint",
+              "locator": "620a574c437aff0cfa4d3b4cafead51487d4b094",
+              "summary": "Harden remediation checkpoint"
+            },
+            {
+              "label": "test",
+              "locator": "tr_mqx5bor1_58bb9308",
+              "summary": "17 targeted tests passed after remediation"
+            },
+            {
+              "label": "typecheck",
+              "locator": "tr_mqx5b221_abc6f195",
+              "summary": "tsc --noEmit passed"
+            },
+            {
+              "label": "format",
+              "locator": "tr_mqx5bo8z_98a83eb1",
+              "summary": "Prettier check passed"
+            }
+          ]
+        },
+        {
+          "scanner": "deployment_readiness",
+          "severity": "info",
+          "summary": "No env vars, migrations, external services, CI/CD, infrastructure, or feature flags introduced. Full smoke has unrelated pre-existing trunk failures outside touched scope.",
+          "evidence": [
+            {
+              "label": "merge",
+              "locator": "origin/trunk dry-run merge",
+              "summary": "Merge compatibility passed"
+            },
+            {
+              "label": "pre-existing caveat",
+              "locator": "src/advance-epics-assets.test.ts; src/__tests__/spec-citation-invariant.test.ts",
+              "summary": "Reported by scans as pre-existing unrelated trunk issues; no epic files touched"
+            }
+          ]
+        }
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-28T00:35:23.635Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by user via explicit slash-command continuation: user invoked adv-discover after proposal handoff prompt for addDecisionRationale.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "9958053db2229bcadefbe9163ffabd617e4b0bad8fa39353054cfb033242aaa5",
+        "non_whitespace_chars": 5406,
+        "checked_at": "2026-06-26T17:20:26.886Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-28T01:04:07.580Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings persisted; agreement criteria approved by user reply `approve`; ChangeContract minted with 31 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "non_whitespace_chars": 4687,
+        "checked_at": "2026-06-26T17:20:26.887Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-28T01:14:35.912Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted with leverage scout and independent validator. Validator CAUTION was non-blocking citation concern; corrected before gate completion. No user-value tradeoff, unresolved CONFLICT, or contract-compromise risk remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "e580d759807bcdf87c18c34af56fdcaab58667e6628f49f17b8f9544e13703d9",
+        "non_whitespace_chars": 9623,
+        "checked_at": "2026-06-26T17:20:26.888Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-06-28T01:20:02.594Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep plan approved by user reply `approve`; 3-task graph synthesized with contract refs, evidence policies, TDD intent, dependencies, and worktree ready for autonomous implementation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-06-28T01:35:13.454Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 planned tasks completed with checkpoints. Verification: targeted asset/validator/handoff/checkpoint/contract tests passed (72 tests), touched-file Prettier passed, adv_change_validate strict passed with NO_DELTAS warning only. Full smoke reached format:check and exposed pre-existing unrelated src/advance-epics-assets.test.ts formatting warning; touched files are formatted."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-06-28T01:54:59.040Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work with reply `approve` after acceptance summary. Pre-acceptance proof persisted: executive-summary metadata content hash 07b96bc396ce9d5010d094938a7562f6926a61608d3b353f67ad2118a2c7e56d; contract review matrix 31/31 rows passed/respected; reviewer report READY with 0 findings; targeted tests/typecheck/format passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "07b96bc396ce9d5010d094938a7562f6926a61608d3b353f67ad2118a2c7e56d",
+        "non_whitespace_chars": 1822,
+        "checked_at": "2026-06-26T17:20:26.889Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "source_change_id": "trackNativeCsr",
+    "linked_at": "2026-06-26T17:20:26.772Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+      "approvedAt": "2026-06-28T01:04:01.202Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Major ADV decisions expose rationale in the same user-facing output where the decision appears.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Routine ADV output remains terse; no rationale text appears unless classification says `major`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Gate Handoff Voice remains valid: `Problem / Chosen direction / Delivered` spine plus blockquote wayfinder.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Rationale is audit-ready: source-backed, alternatives visible, re-evaluation trigger concrete.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "No new prompts, checkpoints, or approval gates are introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "A major-decision output includes exactly one bounded rationale block inside `## Chosen direction`, with these fields: chosen direction, why it fits, alternatives rejected/deferred, re-evaluation trigger.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-handoffVoice01"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Every rationale field includes a compact source marker using an artifact path, spec requirement ID, agreement item, contract ID, or ADR reference.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Routine decisions emit no rationale block; regression tests prove representative routine handoff output is byte-identical or shorter than baseline.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Major classification defaults to `routine`; a decision becomes `major` only via an explicit allowlist or the ADR rubric: hard to reverse, surprising without context, and result of a real tradeoff.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Re-evaluation trigger is structurally typed as one of: date, metric threshold, named event, or explicit state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Inline approval/checkpoint behavior remains unchanged: no question-tool checkpoint approval and no added approval prompt.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-inlineApproval01"
+        ]
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`addDecisionRationale2` remains out of scope for this change except as recorded duplicate/conflict context; closing it requires separate explicit approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve Gate Handoff Voice structure unless an explicit spec delta updates that structure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not add prompts, checkpoints, or approval gates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not add rationale blocks to routine decisions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Default classification must be `routine`, not `major`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Rationale must be bounded and source-backed; it must not become free-form transcript prose.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Re-evaluation triggers must be concrete typed conditions, not aspirational text.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Treat the `pokeedge` source origin as contextual only because `trackNativeCsr` was not found in target ADV state during discovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add a new top-level `## Decision rationale` heading to gate handoff output unless design proves the spec must change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not gate decisions behind new user approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not introduce per-decision prompts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not bury rationale only in tool-result transcripts; major-decision rationale must be visible in user-facing output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not rely on unconstrained heuristics as correctness authority for persistence, gate completion, or spec compliance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not close or archive duplicate `addDecisionRationale2` inside this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Auto-monitoring or auto-evaluation of re-evaluation triggers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "New user prompts, checkpoints, or approval workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Cross-project rationale federation beyond this repo's ADV output surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "UI redesign unrelated to the rationale block.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Retroactively rewriting archived change artifacts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Closing `addDecisionRationale2`; that requires separate explicit user approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-06-28T01:49:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer report READY, 0 findings; rationale contract added to user-facing output guidance in docs/command-voice-standard.md and .opencode/agents/adv.md.",
+          "notes": "Major-decision rationale appears in same handoff surface via Chosen direction nesting."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mqx4ol8a_64cefcbd passed; routine handoff spine byte-identical baseline test asserts no Decision rationale text in routine spine.",
+          "notes": "Default routine output preserved."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mqx47zml_141282f8 and tr_mqx4ol8a_64cefcbd passed decision-rationale asset checks; no fourth top-level handoff heading introduced.",
+          "notes": "Problem / Chosen direction / Delivered spine preserved."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "source-marker parser validates [source:] markers; docs specify alternatives and concrete typed re-evaluation trigger; tests cover field/source/trigger validity.",
+          "notes": "Audit-ready fields are structural, not free-form only."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "No added approval prompt found by reviewer; checkpoint-surface drift tests included in tr_mqx47zml_141282f8.",
+          "notes": "Workflow approvals unchanged."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mqx4ol8a_64cefcbd passed; parser rejects extra fields and requires exact four rationale fields; docs place block inside ## Chosen direction.",
+          "notes": "Exactly one bounded block shape enforced by docs/tests/parser."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "source-marker tests validate spec/agreement/contract/ADR/path marker forms and reject malformed markers.",
+          "notes": "Every parsed field must include a compact [source:] marker."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Routine handoff byte-identical baseline test added and passed in tr_mqx4ol8a_64cefcbd; baseline length <= original and no Decision rationale text.",
+          "notes": "Routine output terseness protected."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "advance-workflow spec/docs define default routine and major only by allowlist or ADR rubric; asset tests verify rq-decisionRationale contract presence.",
+          "notes": "Classifier boundary is structural/prose-spec backed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "source-marker parser accepts only trigger_kind date|metric|event|state and requires '; concrete condition'; tr_mqx4ol8a_64cefcbd passed.",
+          "notes": "Typed trigger plus non-empty condition enforced."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mqx47zml_141282f8 included checkpoint-surface drift tests; reviewer found no added approval prompt.",
+          "notes": "Inline approval/checkpoint behavior unchanged."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "No task or review evidence shows mutation/closure/archive of addDecisionRationale2; notes explicitly keep it out of scope.",
+          "notes": "Duplicate not closed inside this change."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "docs/command-voice-standard.md keeps canonical spine and nests rationale inside Chosen direction; asset tests passed.",
+          "notes": "No spine replacement."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer report READY; no new prompts/checkpoints/gates found; checkpoint drift tests passed earlier.",
+          "notes": "Approval flow unchanged."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Routine handoff baseline test passed in tr_mqx4ol8a_64cefcbd.",
+          "notes": "Routine decisions remain rationale-free."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec requirement sets default routine; no code changes invert default to major.",
+          "notes": "Default routine preserved."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Parser requires exact fields and source markers; tests reject extra fields and malformed blocks.",
+          "notes": "Bounded/source-backed shape enforced."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Parser extracts triggerKind and condition; tests reject missing concrete condition.",
+          "notes": "Triggers concrete and typed."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation references pokeedge origin only as contextual in change metadata; no dependency on missing trackNativeCsr state.",
+          "notes": "Cross-project origin did not block or expand scope."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Asset tests verify rationale is not a fourth spine heading; docs state it lives inside Chosen direction.",
+          "notes": "No top-level ## Decision rationale heading."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new user approval gate added; reviewer READY.",
+          "notes": "No decision gated behind new approval."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No per-decision prompt added; tests cover checkpoint surfaces.",
+          "notes": "No prompt expansion."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Rationale guidance is in command voice docs and ADV agent output contract, not only task/tool notes.",
+          "notes": "User-facing placement preserved."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Source-marker parser and asset tests provide deterministic checks; heuristics only inform ADR rubric text, not parser correctness.",
+          "notes": "Structural correctness favored."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Task and review notes explicitly did not close/archive addDecisionRationale2.",
+          "notes": "Duplicate untouched."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No monitoring process or trigger evaluator added; only trigger representation/parser.",
+          "notes": "Auto-monitoring out of scope."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new prompt/checkpoint/approval workflow added.",
+          "notes": "Workflow unchanged."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Change confined to this repo's ADV output/spec/test surfaces; no cross-project rationale federation added.",
+          "notes": "Cross-project origin contextual only."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No UI redesign or browser-visible implementation; Preview URL not_applicable.",
+          "notes": "Non-visual docs/spec/test change."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No archive rewrite or historical artifact migration performed.",
+          "notes": "No retroactive archived edits."
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No close/archive operation on addDecisionRationale2 was invoked.",
+          "notes": "Duplicate closure still requires explicit approval."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "A major-decision output includes exactly one bounded rationale block inside `## Chosen direction`, with these fields: chosen direction, why it fits, alternatives rejected/deferred, re-evaluation trigger.",
+    "Every rationale field includes a compact source marker using an artifact path, spec requirement ID, agreement item, contract ID, or ADR reference.",
+    "Routine decisions emit no rationale block; regression tests prove representative routine handoff output is byte-identical or shorter than baseline.",
+    "Major classification defaults to `routine`; a decision becomes `major` only via an explicit allowlist or the ADR rubric: hard to reverse, surprising without context, and result of a real tradeoff.",
+    "Re-evaluation trigger is structurally typed as one of: date, metric threshold, named event, or explicit state.",
+    "Inline approval/checkpoint behavior remains unchanged: no question-tool checkpoint approval and no added approval prompt.",
+    "`addDecisionRationale2` remains out of scope for this change except as recorded duplicate/conflict context; closing it requires separate explicit approval."
+  ],
+  "documents": {
+    "proposal": "# Add decision rationale\n\n## Why\n\nADV major decisions currently show the chosen direction without a concise audit trail for why that direction fits, what alternatives were rejected or deferred, and when the decision should be revisited. Users must reconstruct rationale from proposal, agreement, contract, gate transcripts, or task reports, which weakens auditability for non-trivial ADV choices.\n\n## What Changes\n\nAdd a bounded, source-backed `Decision rationale` block to user-facing output for major ADV decisions only. The block captures:\n\n1. **Chosen direction** — one sentence.\n2. **Why it fits** — concise rationale grounded in a source artifact such as a path, spec requirement ID, agreement item, or contract ID.\n3. **Alternatives rejected / deferred** — short list with one-line reason for each item.\n4. **Re-evaluation trigger** — concrete date, metric threshold, named event, or explicit state that should prompt revisiting the decision.\n\nRoutine decisions remain terse and do not emit rationale boilerplate. Major-decision classification defaults to routine unless an explicit major-decision kind applies.\n\n## User Outcomes\n\n- Users can understand the rationale for each major ADV decision directly in chat output without opening upstream artifacts.\n- Users can audit major decisions using visible source citations tied to artifacts, specs, agreements, or contracts.\n- Users can see which alternatives were rejected or deferred and why.\n- Users can see a concrete condition for when the decision should be revisited.\n- Routine ADV output remains terse and does not gain recurring rationale noise.\n\n## Affected Code\n\nLikely affected surfaces, to be verified in discovery:\n\n- User-facing ADV command output definitions in `.opencode/command/adv-*.md`.\n- Gate handoff and inline approval voice documentation in `docs/command-voice-standard.md`.\n- Command/voice asset drift tests such as `plugin/src/commands-spine-assets.test.ts` and handoff-related tests.\n- Relevant workflow/spec documentation under `.adv/specs/` and generated docs if spec deltas are required.\n- Any runtime formatter or helper that centralizes chat-output or decision-emission behavior, if discovery finds one.\n\n## Related Repositories\n\n- Current repo only: `advance`.\n- Cross-project origin: follow-up from `pokeedge` change `trackNativeCsr`; no target-repo implementation is planned in `pokeedge` for this change.\n\n## Constraints\n\n- Preserve Gate Handoff Voice structure unless discovery/design proves a spec change is required.\n- Do not add prompts, checkpoints, or approval gates.\n- Do not add rationale blocks to routine decisions.\n- Default classification must be routine, not major.\n- Rationale must be bounded and source-backed; it must not become free-form transcript prose.\n- Re-evaluation triggers must be concrete conditions, not aspirational text.\n\n## Impact\n\n- Major ADV decisions become easier to audit at the point of decision.\n- Routine ADV output should remain byte-identical or shorter where existing behavior is unaffected.\n- Tests and specs may gain new constraints around major-decision output and rationale validation.\n\n## Context\n\nCurrent evidence gathered during proposal:\n\n- `docs/command-voice-standard.md` defines the Gate Handoff Voice spine and says gate handoffs use exactly `Problem`, `Chosen direction`, `Delivered`, then a blockquote wayfinder.\n- `advance-workflow` spec includes `rq-stageCriteriaEnforcementRetarget01`, which confirms proposal `User Outcomes` are alignment inputs and testable criteria belong in discovery/contract artifacts.\n- `advance-workflow` spec includes workflow-owned gate/artifact enforcement requirements (`rq-gateArtifactEnforcement01`, `rq-gateReadiness01`), so this change must preserve gate sequencing and artifact-backed gate behavior.\n- Local search found command output templates in `.opencode/command/adv-*.md` and related asset tests as likely output-governance surfaces.\n\n## Discovery Agenda\n\nResolve before design:\n\n- Identify the authoritative runtime/prose surfaces that emit or constrain user-facing major decisions.\n- Determine whether \"major decision\" should be represented as an explicit allowlist, schema, renderer option, command-contract convention, or spec-level concept.\n- Determine how source citation should be represented so it is machine-checkable enough for tests without overloading terse output.\n- Determine how to preserve `docs/command-voice-standard.md` line 293 (`No other sections...`) if a rationale block needs to coexist with gate handoffs.\n- Identify all snapshot, drift, lint, or asset tests that should enforce routine-output non-regression and major-output rationale presence.\n- Review recent archived major decisions as samples for concrete re-evaluation trigger language.\n\n## Scope\n\n### In Scope\n\n- Define the decision-rationale output contract for major ADV decisions.\n- Define and validate major-vs-routine classification behavior.\n- Add or update source-backed rationale formatting rules.\n- Add tests or drift guards that enforce rationale presence for major decisions and absence for routine decisions.\n- Update relevant specs, docs, and command-contract surfaces required to make the behavior durable.\n\n### Out of Scope\n\n- Auto-monitoring or auto-evaluation of re-evaluation triggers.\n- New user prompts, checkpoints, or approval workflows.\n- Cross-project rationale federation beyond this repo's ADV output surfaces.\n- UI redesign unrelated to the rationale block.\n- Retroactively rewriting archived change artifacts.\n\n### Must Not\n\n- Must not weaken or silently bypass Gate Handoff Voice constraints.\n- Must not emit rationale blocks for routine decisions.\n- Must not rely on unconstrained heuristics as the correctness authority for persistence, gate completion, or spec compliance.\n- Must not bury the rationale only in internal tool transcripts; it must be visible in user-facing output when the decision is major.\n\n## B/F/S Ambiguity Scan\n\nNo CRITICAL findings.\n\n- B: Scope sections are present and populated.\n- F: User Outcomes are implementation-free and user-facing.\n- S: Completion signals are intentionally deferred to discovery/contract artifacts per `rq-stageCriteriaEnforcementRetarget01`; proposal contains concrete discovery agenda items for unresolved classification and citation details.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n| --- | --- | --- |\n| Skills Considered | PASS | Loaded `adv-instructions-audit` and `customize-opencode`; no pending-review skill frontmatter found. |\n| Prior Research Extension | PASS | `docs/*-prep.md` packs found, but none directly address decision-rationale output; new finding: ADR docs provide a local decision-rationale precedent. |\n| Conflict Scan | PASS | Active duplicate `addDecisionRationale2` exists and is already marked duplicate of this change; `adv_change_validate` passed with expected pre-prep warnings `NO_TASKS` and `NO_DELTAS`; agenda scan returned no visible direct overlap, but pending agenda output is large/truncated. |\n| Edge Case Investigation | PASS | Structural/output edge cases identified below. |\n| Design Question Depth | PASS | Open questions annotated below. |\n| Draft Spec Deltas | PASS | Draft deltas identified for `advance-workflow` and possibly `chat-output-display`. |\n| Related Pattern Scan | PASS | Similar output-governance patterns found in command docs, voice docs, drift tests, and ADRs. |\n| LBP Check | PASS | Best current direction is internal, structural, and ADR-inspired; external-solution check skipped as no external tool/library option is viable. |\n| Completeness Verification | PASS | Problem and solution scope appear complete for ADV output governance; no unverified sole-entry runtime claim used. |\n\n### Skills Considered\n\n- `adv-instructions-audit`: matched. This change touches load-bearing instruction/command/spec prose; claims need executable anchors.\n- `customize-opencode`: matched. The affected surfaces include `.opencode/command/*.md` and ADV/OpenCode agent-facing behavior.\n- `adv-agent-tool-contracts`: considered but not loaded; no new sub-agent schema/tool packet is currently proposed.\n- Skill gap creation: skipped. Existing skills cover instruction/config-surface and anchor-audit methodology.\n\n### Extends\n\n- `docs/adv-slop-scan-prep.md`, `docs/non-coding-task-rigor-prep.md`, `docs/repo-improve-prep.md`, and `docs/adv-run-test-prep.md` exist as prior research packs, but none directly answer decision-rationale output.\n- New finding beyond those packs: `docs/adr/0003-signal-handlers-must-not-throw.md` has a local ADR rubric and sections for decision, context, rejected alternatives, and references. This is the strongest internal precedent for major-decision rationale.\n- No `temp/*.md` prior notes found.\n\n### Conflict Scan\n\n- Related active work: `addDecisionRationale2` is a duplicate draft with proposal text explicitly saying it should be closed as superseded by `addDecisionRationale` after explicit user approval.\n- Other active work touching prompt/voice/instruction surfaces may overlap indirectly: `reduceAdvPromptSlop` and `addCiWaitAgent` are active and near acceptance, but no direct decision-rationale scope found in visible summaries.\n- Validation: `adv_change_validate addDecisionRationale` passed; `NO_TASKS` and `NO_DELTAS` warnings are expected before planning/spec-delta work.\n- Archived-change listing in the current repo timed out when including archived changes; target-source lineage lookup in `pokeedge` found the repo path but did not find `trackNativeCsr` by direct `adv_change_show` or the visible archived page.\n- Agenda: pending agenda list is large; no visible direct `decision rationale` item in returned top slice.\n\n### Lineage Validation\n\n- `cross_project_origin.source_project`: `pokeedge`.\n- `source_path`: `/home/jon/dev/pokeedge`; verified as a git worktree root.\n- `source_change_id`: `trackNativeCsr`; not found by `adv_change_show` in target path and not visible in first in-flight/archived pages checked.\n- Discovery must confirm with user before agreement: proceed treating the origin as contextual only, repair lineage, or pause.\n\n### Current State\n\n- `docs/command-voice-standard.md` defines Gate Handoff Voice as exactly three narrative sections plus blockquote wayfinder. Line 293 says no other sections/headings/structural elements in the handoff.\n- `docs/specs/advance-workflow.md` `rq-handoffVoice01` requires the `Problem / Chosen direction / Delivered` spine and says reply instructions for checkpoints appear outside the blockquote while the three-section spine is unchanged.\n- `docs/specs/advance-workflow.md` `rq-inlineApproval01` requires inline checkpoint approvals and no question-tool checkpoint approvals.\n- `plugin/src/commands-spine-assets.test.ts` enforces command-doc spine order and expected gate-handoff commands.\n- `plugin/src/handoff-footer-drift.test.ts` enforces `rq-handoffVoice01` and inline approval scenarios from the spec JSON.\n- `plugin/src/checkpoint-surface-drift.test.ts` anchors seven checkpoint command docs and preserves question-tool usage only for non-checkpoint clarification rounds.\n- No current `Decision rationale` output contract or `major decision` classifier was found in live command/docs/tests search.\n\n### Edge Cases\n\nGap: major-vs-routine classification.\n\n- Edge case 1: A routine gate handoff is misclassified major and emits extra rationale, violating terse-output/noise constraints.\n- Edge case 2: A genuinely irreversible or hard-to-reverse user-facing choice is classified routine, leaving no audit rationale.\n\nGap: rationale placement with Gate Handoff Voice.\n\n- Edge case 1: Adding a new top-level `## Decision rationale` section conflicts with `docs/command-voice-standard.md` line 293 and `rq-handoffVoice01` expectations.\n- Edge case 2: Cramming rationale into `## Delivered` leaks mechanics or turns delivered artifacts into decision explanation.\n\nGap: citations and trigger validation.\n\n- Edge case 1: Citation is free text without a path/spec/contract marker, so tests cannot distinguish a real citation from prose.\n- Edge case 2: Re-evaluation trigger is aspirational (`revisit if needed`) rather than a date, metric, named event, or explicit state.\n\n### Open Design Questions\n\n1. Placement: Should rationale be a nested block inside existing `## Chosen direction`, or should specs be changed to allow a new top-level section?\n   - Trust model: joint, because this changes visible output semantics.\n   - Blast radius: wrong choice can break handoff voice tests or add noise to every gate output.\n   - Alternatives: nested block (recommended), top-level section with spec revision, or non-handoff-only rationale.\n\n2. Trigger format: Should re-evaluation triggers use enumerated typed forms (`date`, `metric`, `event`, `state`) or a prose sentence with lint?\n   - Trust model: joint.\n   - Blast radius: too strict may slow authors; too loose may fail AC6.\n   - Alternatives: typed trigger (recommended), prose-with-rubric, or hybrid.\n\n3. Scope boundary: Which outputs count as major decisions?\n   - Trust model: joint for user-visible value; agent resolves implementation allowlist later.\n   - Blast radius: too broad bloats routine output; too narrow misses audit-critical choices.\n   - Alternatives: gate/checkpoint decisions only; design/discovery/prep tradeoff decisions; all command decisions with ADR rubric.\n\n4. Citation format: What citation marker should be testable without clutter?\n   - Trust model: agent-resolved unless user has preference.\n   - Blast radius: weak format cannot enforce AC2; heavy format hurts voice.\n   - Alternatives: `[source: path_or_id]` inline marker (recommended), footnote-style refs, or separate References line.\n\n### Draft Spec Deltas\n\n- `rq-decisionRationale01` (advance-workflow): major user-facing ADV decisions include a bounded rationale inside the allowed handoff structure.\n  - Given a major decision is emitted, when the user-facing output is rendered, then the output includes chosen direction, why-it-fits source, alternatives, and re-evaluation trigger.\n- `rq-decisionRationale02` (advance-workflow): routine decisions do not emit rationale blocks.\n  - Given a routine decision is emitted, when output is rendered, then no `Decision rationale` block appears and existing handoff spine remains terse.\n- `rq-decisionRationale03` (advance-workflow or chat-output-display): major classification uses structural allowlist/ADR-rubric criteria, defaulting to routine.\n  - Given a decision kind is not allowlisted and does not satisfy the major rubric, when classified, then it is routine.\n- `rq-decisionRationale04` (advance-workflow): rationale citations and re-evaluation triggers are bounded and machine-checkable.\n  - Given a rationale field lacks a source marker or a concrete trigger kind, when drift/lint tests run, then validation fails.\n\n### Related Pattern Scan\n\n- Gate handoff voice pattern: `docs/command-voice-standard.md`, `.opencode/command/adv-*.md`, `plugin/src/commands-spine-assets.test.ts`, `plugin/src/handoff-footer-drift.test.ts`.\n- Inline approval pattern: `docs/command-voice-standard.md`, `plugin/src/checkpoint-surface-drift.test.ts`.\n- Chat-output formatting pattern: `chat-output-display` spec and formatter requirements for deterministic, bounded output.\n- ADR decision-rationale pattern: `docs/adr/0003-signal-handlers-must-not-throw.md` with Decision, Context, ADR rubric, Rejected Alternatives, References.\n- No existing `Decision rationale` implementation found; this is a greenfield output-governance addition over existing voice surfaces.\n\n### Completeness Verification\n\n- Problem completeness: high confidence. The issue is not a single command bug; it is a missing audit surface for major ADV decisions. Evidence spans command voice docs, specs, and drift tests.\n- Solution-scope completeness: medium-high confidence. The likely solution spans docs/specs/tests/command templates; no runtime sole-entry formatter is assumed because current evidence suggests prose-pattern command docs and tests own the surface.\n- Sole-entry claim: none used. Discovery does not claim one renderer controls all output.\n- Secondary surfaces: ADR docs are a precedent but not an output surface; context snapshot/tool-title surfaces are adjacent but likely out of scope unless design finds major decisions there.\n\n### LBP Check\n\n- Recommended LBP: reuse the repo's ADR rubric to classify major decisions and enrich the existing `## Chosen direction` area rather than adding a new handoff heading.\n- Why: this preserves `rq-handoffVoice01`, reuses internal precedent, keeps correctness structural, and avoids routine output noise.\n- External-solution check: skipped. No external library/tool/service is viable or relevant; this is internal ADV voice/spec governance.\n\n### Discovery Opportunity Scout\n\n- Trigger decision: run. This is strategic workflow/output governance.\n- Auto-adopted candidates:\n  - Reuse ADR rubric as the major-vs-routine classifier seed.\n  - Enrich `## Chosen direction` rather than adding a new top-level heading.\n- Surfaced candidates:\n  - Re-evaluation trigger representation needs user preference.\n  - Major-decision scope boundary needs user preference.\n- Follow-up candidate:\n  - Align citation format with ADR References conventions during design/prep.\n\n### Recommended Objectives\n\n1. Define a major-decision rationale contract that fits inside existing Gate Handoff Voice constraints.\n2. Define a structural major-vs-routine classifier with default `routine`, seeded by the local ADR rubric.\n3. Require source-backed rationale fields with a compact citation marker.\n4. Require concrete re-evaluation triggers.\n5. Preserve routine-output terseness with negative tests/snapshots.\n6. Preserve inline approval and checkpoint boundaries; add no prompts/checkpoints.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:P F:C S:P M:P\n\n- B1 HIGH Boundaries: source lineage is valid as a path but `trackNativeCsr` was not found in target ADV state.\n  Evidence: `source_change_id: trackNativeCsr`\n  Reason: unclear whether origin should remain audit context, be repaired, or be ignored.\n- S1 HIGH Completion Signals: exact automated signal for \"routine output byte-identical-or-shorter\" needs to be chosen in design.\n  Evidence: `Routine ADV output remains terse and does not gain recurring rationale noise.`\n  Reason: multiple valid verification mechanisms exist: snapshots, drift tests, or a targeted fixture matrix.\n- M1 HIGH Missing Information: user-facing scope of \"major decision\" needs confirmation before criteria are finalized.\n  Evidence: `major ADV decisions only`\n  Reason: broad vs narrow interpretation changes acceptance criteria and blast radius.\n\nSingle HIGH-equivalent questions will be resolved through the mandatory discovery clarification round before agreement; no CRITICAL finding blocks discovery at this point.",
+    "problemStatement": "# Add decision rationale — problem statement\n\n## Problem\n\nADV major decisions currently show the chosen direction without a concise audit trail for why that direction fits, what alternatives were rejected or deferred, and when the decision should be revisited. Users must reconstruct rationale from proposal, agreement, contract, gate transcripts, or task reports.\n\nThis weakens auditability for non-trivial ADV choices and makes later review harder than it needs to be.\n\n## Desired Outcome\n\nEvery major ADV decision surfaces a concise, source-backed `Decision rationale` block in user-facing output, while routine ADV output remains terse and unchanged.\n\n## Expected Scope\n\nThe change should define the rationale block, major-vs-routine classification boundary, source-citation expectations, and verification approach for preserving routine-output terseness.\n\n## Non-goals\n\n- No new prompts, checkpoints, or approval gates.\n- No rationale boilerplate for routine decisions.\n- No auto-monitoring of re-evaluation triggers.\n- No unrelated UI or workflow redesign.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Define a major-decision rationale contract that fits inside existing Gate Handoff Voice constraints.\n2. Define a structural major-vs-routine classifier with default `routine`, seeded by the repo's ADR rubric.\n3. Require source-backed rationale fields with compact citation markers.\n4. Require concrete re-evaluation triggers.\n5. Preserve routine-output terseness with negative tests or snapshots.\n6. Preserve inline approval and checkpoint boundaries; add no prompts or checkpoints.\n\n## Success Criteria\n\n- SC1: Major ADV decisions expose rationale in the same user-facing output where the decision appears.\n- SC2: Routine ADV output remains terse; no rationale text appears unless classification says `major`.\n- SC3: Gate Handoff Voice remains valid: `Problem / Chosen direction / Delivered` spine plus blockquote wayfinder.\n- SC4: Rationale is audit-ready: source-backed, alternatives visible, re-evaluation trigger concrete.\n- SC5: No new prompts, checkpoints, or approval gates are introduced.\n\n## Acceptance Criteria\n\n- AC1: A major-decision output includes exactly one bounded rationale block inside `## Chosen direction`, with these fields: chosen direction, why it fits, alternatives rejected/deferred, re-evaluation trigger. [warrant: spec:rq-handoffVoice01]\n- AC2: Every rationale field includes a compact source marker using an artifact path, spec requirement ID, agreement item, contract ID, or ADR reference.\n- AC3: Routine decisions emit no rationale block; regression tests prove representative routine handoff output is byte-identical or shorter than baseline.\n- AC4: Major classification defaults to `routine`; a decision becomes `major` only via an explicit allowlist or the ADR rubric: hard to reverse, surprising without context, and result of a real tradeoff.\n- AC5: Re-evaluation trigger is structurally typed as one of: date, metric threshold, named event, or explicit state.\n- AC6: Inline approval/checkpoint behavior remains unchanged: no question-tool checkpoint approval and no added approval prompt. [warrant: spec:rq-inlineApproval01]\n- AC7: `addDecisionRationale2` remains out of scope for this change except as recorded duplicate/conflict context; closing it requires separate explicit approval.\n\n## Constraints\n\n- C1: Preserve Gate Handoff Voice structure unless an explicit spec delta updates that structure.\n- C2: Do not add prompts, checkpoints, or approval gates.\n- C3: Do not add rationale blocks to routine decisions.\n- C4: Default classification must be `routine`, not `major`.\n- C5: Rationale must be bounded and source-backed; it must not become free-form transcript prose.\n- C6: Re-evaluation triggers must be concrete typed conditions, not aspirational text.\n- C7: Treat the `pokeedge` source origin as contextual only because `trackNativeCsr` was not found in target ADV state during discovery.\n\n## Avoidances\n\n- DONT1: Do not add a new top-level `## Decision rationale` heading to gate handoff output unless design proves the spec must change.\n- DONT2: Do not gate decisions behind new user approval.\n- DONT3: Do not introduce per-decision prompts.\n- DONT4: Do not bury rationale only in tool-result transcripts; major-decision rationale must be visible in user-facing output.\n- DONT5: Do not rely on unconstrained heuristics as correctness authority for persistence, gate completion, or spec compliance.\n- DONT6: Do not close or archive duplicate `addDecisionRationale2` inside this change.\n\n## Out of Scope\n\n- OOS1: Auto-monitoring or auto-evaluation of re-evaluation triggers.\n- OOS2: New user prompts, checkpoints, or approval workflows.\n- OOS3: Cross-project rationale federation beyond this repo's ADV output surfaces.\n- OOS4: UI redesign unrelated to the rationale block.\n- OOS5: Retroactively rewriting archived change artifacts.\n- OOS6: Closing `addDecisionRationale2`; that requires separate explicit user approval.\n\n## Preview Applicability\n\n- visual_surface: false\n- rationale: The change affects ADV chat/instruction/spec output, not a browser-rendered or front-end visual surface requiring a Preview URL.\n- preview_expectation:\n  - exact_route_required: not_applicable\n  - data_state_expectation: not_applicable\n  - viewport_expectation: not_applicable\n  - rationale: Verification is via specs, command-doc drift tests, snapshots, and review; no browser preview applies.\n\n## Decisions\n\n### User Decisions\n\n- Lineage: treat `pokeedge` origin as contextual only; do not block agreement on missing `trackNativeCsr` source change.\n- Placement: rationale lives inside `## Chosen direction` to preserve Gate Handoff Voice.\n- Major-decision boundary: use ADR rubric plus explicit allowlist; default routine.\n- Re-evaluation trigger format: use typed trigger forms: date, metric threshold, named event, or explicit state.\n\n### Agent Decisions (LBP)\n\n- Reuse local ADR precedent (`docs/adr/0003-signal-handlers-must-not-throw.md`) as the classifier seed because its rubric already captures hard-to-reverse, surprising-without-context, and real-tradeoff decisions.\n- Use command/spec/drift-test surfaces as the likely enforcement layer because current evidence shows no central runtime renderer for handoff prose.\n- Skip external-solution research because this is internal ADV output governance with no viable external tool/library option.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance criteria approved by user reply `approve` during discovery checkpoint on 2026-06-28.",
+    "design": "# Design — Add decision rationale\n\n## Architecture Overview\n\nImplement decision-rationale support as an ADV output-governance contract, not a new workflow gate or prompt. The canonical form lives in `docs/command-voice-standard.md` under Gate Handoff Voice. For major decisions, rationale is rendered as a nested labeled block inside existing `## Chosen direction`; routine decisions omit it.\n\nThe enforcement layer is deterministic spec/doc/asset drift tests, matching existing handoff voice enforcement. Current evidence shows handoff prose is governed by command/agent contracts and tests rather than a central runtime renderer, so the design avoids inventing a runtime renderer solely for this feature.\n\n## Key Decisions\n\n### D1 — Nest rationale inside `## Chosen direction`\n\nRationale must not add a new top-level handoff heading. Major-decision rationale is a nested labeled block inside `## Chosen direction`, before `## Delivered`.\n\n- Source: `docs/command-voice-standard.md:293`, `rq-handoffVoice01`, AC1, C1, DONT1.\n- Why: preserves the existing `Problem / Chosen direction / Delivered` spine and avoids a fourth structural section.\n- Rejected: top-level `## Decision rationale` heading, because it conflicts with current voice contract unless the spec is deliberately re-entered.\n\n### D2 — Classify major decisions structurally with default `routine`\n\nThe classifier is documented as:\n\n1. Default: `routine`.\n2. `major` if a decision kind is explicitly allowlisted in the voice/spec contract.\n3. `major` if all ADR-sparingly rubric criteria are true: hard to reverse, surprising without context, and result of a real tradeoff.\n\n- Source: `.adv/specs/domain-context/spec.json` `rq-domainContextADR01`, `.opencode/command/adv-design.md:61-63`, AC4. Existing ADRs such as `docs/adr/0003-signal-handlers-must-not-throw.md:35-43` are examples, not the canonical rubric source.\n- Why: reuses a proven repo-local decision-rationale rubric instead of inventing a loose heuristic.\n- Allowlist location: define allowlisted major-decision kinds in `docs/command-voice-standard.md` and mirror requirement text in `advance-workflow`; tests assert both remain aligned.\n\n### D3 — Use a bounded rationale schema with typed references\n\nA major-decision rationale block has exactly four fields:\n\n1. `Chosen direction`\n2. `Why it fits`\n3. `Alternatives rejected/deferred`\n4. `Re-evaluation trigger`\n\nEach field includes a compact typed reference marker. Use a source marker shape such as `[source: spec:rq-handoffVoice01]`, `[source: agreement:AC1]`, `[source: contract:AC1]`, `[source: docs/command-voice-standard.md#gate-handoff-voice]`, or `[source: adr:0003]`.\n\nThe implementation should reuse the existing capability-warrant typed-reference grammar concepts from discovery (`[warrant: ...]`) instead of inventing unrelated parsing rules, but rationale citations should stay semantically named `[source: ...]` so they are not confused with capability warrants. Add a negative test proving `[source: ...]` is not routed through contract-warrant minting.\n\n- Source: AC1, AC2, AC5, scout finding about `.opencode/command/adv-discover.md` warrant grammar.\n- Why: source markers become machine-checkable while staying compact enough for terse voice.\n\n### D4 — Type re-evaluation triggers\n\n`Re-evaluation trigger` must include one of these trigger kinds:\n\n- `date`: ISO date or clearly bounded calendar date.\n- `metric`: named metric plus threshold.\n- `event`: named event that can be observed.\n- `state`: explicit system/workflow state.\n\n- Source: AC5.\n- Why: this is the only rationale field without a strong internal precedent; typed trigger kinds make AC5 testable.\n\n### D5 — Enforce through drift/asset tests, not runtime prompts\n\nAdd deterministic tests that verify:\n\n- new spec requirement IDs exist and describe major rationale, routine absence, default-routine classification, citations, and trigger kinds;\n- the voice standard defines nested rationale syntax under `## Chosen direction`;\n- no command handoff template introduces top-level `## Decision rationale`;\n- sample major rationale blocks fail when missing a source marker or typed trigger;\n- sample routine handoff output omits rationale text;\n- existing inline approval anchors remain unchanged.\n\n- Source: `plugin/src/commands-spine-assets.test.ts`, `plugin/src/handoff-footer-drift.test.ts`, `plugin/src/checkpoint-surface-drift.test.ts`.\n- Why: matches current handoff-governance enforcement and avoids new prompts/checkpoints.\n\n### D6 — Keep duplicate cleanup out of scope\n\n`addDecisionRationale2` is conflict context only. Do not close, archive, task, or otherwise advance it in this change.\n\n- Source: AC7, DONT6.\n\n## ADR Drafts\n\nNo ADR draft. The implementation approach is additive output governance. It uses the ADR rubric for classification, but the design itself is not hard-to-reverse enough to warrant a new ADR.\n\n## Implementation Strategy\n\n1. **Spec delta**\n   - Add `rq-decisionRationale01` to `advance-workflow`: major user-facing ADV decisions include a bounded rationale block inside existing handoff structure.\n   - Add `rq-decisionRationale02`: routine decisions omit rationale blocks.\n   - Add `rq-decisionRationale03`: major classification defaults to routine and uses explicit allowlist or ADR rubric.\n   - Add `rq-decisionRationale04`: source markers and typed re-evaluation triggers are required and machine-checkable.\n   - Mirror spec docs in `docs/specs/advance-workflow.md` if the repo's spec-doc mirror is maintained manually for this capability.\n\n2. **Voice standard**\n   - Update `docs/command-voice-standard.md` under Gate Handoff Voice.\n   - Define nested syntax for `Decision rationale` inside `## Chosen direction`.\n   - State explicitly: this nested block is not a new spine heading and must not appear after `## Delivered` or inside the blockquote wayfinder.\n   - Define compact source marker grammar and trigger kinds.\n\n3. **Agent/command surfaces**\n   - Update `.opencode/agents/adv.md` Output Contract so major decisions can enrich `## Chosen direction` while preserving the rule that after `## Delivered` only the blockquote wayfinder appears.\n   - Update `.opencode/command/adv-*.md` only where specific major-decision instructions/examples are needed. Avoid boilerplate in every command if the central voice standard is sufficient.\n\n4. **Tests**\n   - Extend `plugin/src/handoff-footer-drift.test.ts` to assert the new spec requirements exist and preserve `rq-handoffVoice01`.\n   - Add or extend a command/voice asset test for the nested rationale contract.\n   - Add negative tests banning top-level `## Decision rationale` in gate-handoff templates.\n   - Add sample validation tests for source markers and trigger kinds. This can live in a new `plugin/src/decision-rationale-assets.test.ts` if locality is clearer than expanding `commands-spine-assets.test.ts`.\n   - Add a negative test proving `[source: ...]` markers do not get interpreted as `[warrant: ...]` contract-mint warrants.\n   - Preserve `plugin/src/checkpoint-surface-drift.test.ts` expectations; no new question-tool checkpoint approval is introduced.\n\n5. **Verification**\n   - Run targeted tests for changed test files through repo test routing.\n   - Run schema/spec checks if Zod schema or generated public schema surfaces are touched; otherwise run targeted asset tests plus `pnpm run check` through `bin/oc-test` policy where applicable.\n\n## LBP Analysis\n\nThis design follows current ADV governance practice:\n\n- Specs own durable behavior requirements.\n- `docs/command-voice-standard.md` owns voice shape.\n- `.opencode/agents/adv.md` and command docs consume the voice contract.\n- Asset/drift tests enforce that prose contracts do not drift.\n\nIt does not add a runtime prompt or checkpoint and does not assume a single renderer controls all handoff output. It reuses ADR and typed-reference precedents already present in the repo.\n\n## Affected Components\n\n- `.adv/specs/advance-workflow/spec.json`\n- `docs/specs/advance-workflow.md`\n- `docs/command-voice-standard.md`\n- `.opencode/agents/adv.md`\n- `.opencode/command/adv-*.md` where specific major-decision guidance is needed\n- `plugin/src/handoff-footer-drift.test.ts`\n- `plugin/src/commands-spine-assets.test.ts` or new `plugin/src/decision-rationale-assets.test.ts`\n- `plugin/src/checkpoint-surface-drift.test.ts` only if a regression guard must be updated; expected behavior remains unchanged\n\n## Design-Derived Criteria\n\n- T1: Rationale block grammar must be deterministic enough for tests to validate field presence, source markers, and trigger kind without LLM judgment.\n- T2: Routine-output regression coverage must include a representative routine handoff fixture or command-doc sample proving no rationale label appears for routine output.\n- T3: The test suite must include at least one fixture for each trigger kind: `date`, `metric`, `event`, `state`.\n- T4: Added tests must not require external services.\n- T5: Existing checkpoint anchor tests must remain green without adding new checkpoint prompt text.\n\n## Risks / Mitigations\n\n- Risk: New heading violates Gate Handoff Voice.\n  - Mitigation: nested label inside `## Chosen direction`; negative test against top-level `## Decision rationale` in handoff templates.\n- Risk: Classifier becomes heuristic-only.\n  - Mitigation: default routine, explicit allowlist, ADR rubric criteria, and deterministic tests over the contract.\n- Risk: Source markers become noisy.\n  - Mitigation: compact `[source: ...]` marker using existing typed-reference conventions.\n- Risk: Rationale block creeps into routine output.\n  - Mitigation: negative fixture/snapshot tests and explicit default routine.\n- Risk: Tests over prose become brittle.\n  - Mitigation: keep assertions structural and local to contract anchors rather than large golden markdown blocks.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted:\n  - Reuse the ADR-sparingly 3-criterion rubric from `rq-domainContextADR01` for major/routine classification.\n  - Reuse existing typed-reference grammar concepts from `[warrant: ...]` for rationale source markers while keeping the marker label semantically `[source: ...]`.\n- Design-around adopted:\n  - Define explicit trigger enum grammar and one fixture per trigger kind.\n- Agent-resolved:\n  - Allowlist location: define in `docs/command-voice-standard.md`, mirror in `advance-workflow`, and test alignment. This is technical contract placement, not a user-value tradeoff.\n- Follow-up integrated:\n  - Add negative test for top-level `## Decision rationale` because existing spine tests do not currently ban it.\n\n## Validator Result\n\nValidator: CAUTION — non-blocking citation concern corrected.\n\n- Corrected D2 rubric source from example ADR-0003 to canonical `rq-domainContextADR01` / `.opencode/command/adv-design.md:61-63` reference.\n- Validator confirmed nesting under `## Chosen direction` is spec-compliant, test-governed enforcement matches existing handoff voice pattern, `[source: ...]` can remain distinct from `[warrant: ...]`, and no new prompt/checkpoint is introduced.\n- Recommendation accepted: add negative test that `[source: ...]` does not resolve through warrant mint path.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nDelivered a structural decision-rationale contract for major ADV decisions while preserving routine handoff terseness and existing approval boundaries. Acceptance review returned READY with 0 blocking and 0 nonblocking findings after in-scope hardening.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `rq-decisionRationale01..04` to the advance-workflow spec and docs mirror, defining major-vs-routine classification, nested rationale placement, source markers, and typed re-evaluation triggers.\n2. Updated `docs/command-voice-standard.md` and `.opencode/agents/adv.md` so major-decision rationale lives inside `## Chosen direction`, not as a fourth Gate Handoff heading.\n3. Added deterministic parser/validator support in `plugin/src/validator/source-marker.ts` for `[source:]` markers, exact four rationale fields, trigger kind, and concrete trigger condition.\n4. Added regression tests for spec/voice assets, source-marker parsing, routine handoff byte-identical baseline, and checkpoint/command-surface drift.\n5. Acceptance review hardening tightened exact field count, concrete trigger payload enforcement, and routine output baseline coverage.\n\n## What Was Verified\n\n- Verdict: READY/APPROVED with 0 blockers, 0 issues, 0 suggestions, 0 nits.\n- Tests: targeted decision-rationale/source-marker tests `tr_mqx4ol8a_64cefcbd` passed (16 tests); earlier targeted sweep `tr_mqx47zml_141282f8` passed (72 tests); typecheck `tr_mqx4oz84_e0c7f97a` passed; touched-file Prettier `tr_mqx4p7jq_11922eb4` passed; `adv_change_validate strict` passed with `NO_DELTAS` warning only.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; implementation is spec/docs/test/parser work with no browser-visible surface.\n- Contract matrix: 31/31 required rows passed or respected; 0 failed, violated, unknown, or missing rows.\n\n## Remaining Concerns\n\nFull smoke reached `format:check` and exposed unrelated pre-existing `src/advance-epics-assets.test.ts` formatting warning. Touched files pass Prettier; no acceptance blocker.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-06-28T01:49:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Major ADV decisions expose rationale in the same user-facing output where the decision appears. | pass | Reviewer report READY, 0 findings; rationale contract added to user-facing output guidance in docs/command-voice-standard.md and .opencode/agents/adv.md. |\n| SC2 | success_criterion | Routine ADV output remains terse; no rationale text appears unless classification says `major`. | pass | tr_mqx4ol8a_64cefcbd passed; routine handoff spine byte-identical baseline test asserts no Decision rationale text in routine spine. |\n| SC3 | success_criterion | Gate Handoff Voice remains valid: `Problem / Chosen direction / Delivered` spine plus blockquote wayfinder. | pass | tr_mqx47zml_141282f8 and tr_mqx4ol8a_64cefcbd passed decision-rationale asset checks; no fourth top-level handoff heading introduced. |\n| SC4 | success_criterion | Rationale is audit-ready: source-backed, alternatives visible, re-evaluation trigger concrete. | pass | source-marker parser validates [source:] markers; docs specify alternatives and concrete typed re-evaluation trigger; tests cover field/source/trigger validity. |\n| SC5 | success_criterion | No new prompts, checkpoints, or approval gates are introduced. | pass | No added approval prompt found by reviewer; checkpoint-surface drift tests included in tr_mqx47zml_141282f8. |\n| AC1 | acceptance_criterion | A major-decision output includes exactly one bounded rationale block inside `## Chosen direction`, with these fields: chosen direction, why it fits, alternatives rejected/deferred, re-evaluation trigger. | pass | tr_mqx4ol8a_64cefcbd passed; parser rejects extra fields and requires exact four rationale fields; docs place block inside ## Chosen direction. |\n| AC2 | acceptance_criterion | Every rationale field includes a compact source marker using an artifact path, spec requirement ID, agreement item, contract ID, or ADR reference. | pass | source-marker tests validate spec/agreement/contract/ADR/path marker forms and reject malformed markers. |\n| AC3 | acceptance_criterion | Routine decisions emit no rationale block; regression tests prove representative routine handoff output is byte-identical or shorter than baseline. | pass | Routine handoff byte-identical baseline test added and passed in tr_mqx4ol8a_64cefcbd; baseline length <= original and no Decision rationale text. |\n| AC4 | acceptance_criterion | Major classification defaults to `routine`; a decision becomes `major` only via an explicit allowlist or the ADR rubric: hard to reverse, surprising without context, and result of a real tradeoff. | pass | advance-workflow spec/docs define default routine and major only by allowlist or ADR rubric; asset tests verify rq-decisionRationale contract presence. |\n| AC5 | acceptance_criterion | Re-evaluation trigger is structurally typed as one of: date, metric threshold, named event, or explicit state. | pass | source-marker parser accepts only trigger_kind date|metric|event|state and requires '; concrete condition'; tr_mqx4ol8a_64cefcbd passed. |\n| AC6 | acceptance_criterion | Inline approval/checkpoint behavior remains unchanged: no question-tool checkpoint approval and no added approval prompt. | pass | tr_mqx47zml_141282f8 included checkpoint-surface drift tests; reviewer found no added approval prompt. |\n| AC7 | acceptance_criterion | `addDecisionRationale2` remains out of scope for this change except as recorded duplicate/conflict context; closing it requires separate explicit approval. | pass | No task or review evidence shows mutation/closure/archive of addDecisionRationale2; notes explicitly keep it out of scope. |\n| C1 | constraint | Preserve Gate Handoff Voice structure unless an explicit spec delta updates that structure. | respected | docs/command-voice-standard.md keeps canonical spine and nests rationale inside Chosen direction; asset tests passed. |\n| C2 | constraint | Do not add prompts, checkpoints, or approval gates. | respected | Reviewer report READY; no new prompts/checkpoints/gates found; checkpoint drift tests passed earlier. |\n| C3 | constraint | Do not add rationale blocks to routine decisions. | respected | Routine handoff baseline test passed in tr_mqx4ol8a_64cefcbd. |\n| C4 | constraint | Default classification must be `routine`, not `major`. | respected | Spec requirement sets default routine; no code changes invert default to major. |\n| C5 | constraint | Rationale must be bounded and source-backed; it must not become free-form transcript prose. | respected | Parser requires exact fields and source markers; tests reject extra fields and malformed blocks. |\n| C6 | constraint | Re-evaluation triggers must be concrete typed conditions, not aspirational text. | respected | Parser extracts triggerKind and condition; tests reject missing concrete condition. |\n| C7 | constraint | Treat the `pokeedge` source origin as contextual only because `trackNativeCsr` was not found in target ADV state during discovery. | respected | Implementation references pokeedge origin only as contextual in change metadata; no dependency on missing trackNativeCsr state. |\n| DONT1 | avoidance | Do not add a new top-level `## Decision rationale` heading to gate handoff output unless design proves the spec must change. | respected | Asset tests verify rationale is not a fourth spine heading; docs state it lives inside Chosen direction. |\n| DONT2 | avoidance | Do not gate decisions behind new user approval. | respected | No new user approval gate added; reviewer READY. |\n| DONT3 | avoidance | Do not introduce per-decision prompts. | respected | No per-decision prompt added; tests cover checkpoint surfaces. |\n| DONT4 | avoidance | Do not bury rationale only in tool-result transcripts; major-decision rationale must be visible in user-facing output. | respected | Rationale guidance is in command voice docs and ADV agent output contract, not only task/tool notes. |\n| DONT5 | avoidance | Do not rely on unconstrained heuristics as correctness authority for persistence, gate completion, or spec compliance. | respected | Source-marker parser and asset tests provide deterministic checks; heuristics only inform ADR rubric text, not parser correctness. |\n| DONT6 | avoidance | Do not close or archive duplicate `addDecisionRationale2` inside this change. | respected | Task and review notes explicitly did not close/archive addDecisionRationale2. |\n| OOS1 | out_of_scope | Auto-monitoring or auto-evaluation of re-evaluation triggers. | respected | No monitoring process or trigger evaluator added; only trigger representation/parser. |\n| OOS2 | out_of_scope | New user prompts, checkpoints, or approval workflows. | respected | No new prompt/checkpoint/approval workflow added. |\n| OOS3 | out_of_scope | Cross-project rationale federation beyond this repo's ADV output surfaces. | respected | Change confined to this repo's ADV output/spec/test surfaces; no cross-project rationale federation added. |\n| OOS4 | out_of_scope | UI redesign unrelated to the rationale block. | respected | No UI redesign or browser-visible implementation; Preview URL not_applicable. |\n| OOS5 | out_of_scope | Retroactively rewriting archived change artifacts. | respected | No archive rewrite or historical artifact migration performed. |\n| OOS6 | out_of_scope | Closing `addDecisionRationale2`; that requires separate explicit user approval. | respected | No close/archive operation on addDecisionRationale2 was invoked. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-28T00:45:04.592Z",
+      "contentHash": "9e747cc53ce8884d3463ae7eca878f1f51e2848c62a39217d95236be7a62d811",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-28T00:31:54.003Z",
+      "contentHash": "445a16c985edb3ad3641f6140684c6a56be770d210a2213b87f02d32caa29028",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-28T01:03:53.821Z",
+      "contentHash": "36315439117339e803801851eb94a29db262c5c8b37580aa77dfe92c0102f4d3",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-28T01:14:22.467Z",
+      "contentHash": "e580d759807bcdf87c18c34af56fdcaab58667e6628f49f17b8f9544e13703d9",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-06-28T01:53:11.391Z",
+      "contentHash": "07b96bc396ce9d5010d094938a7562f6926a61608d3b353f67ad2118a2c7e56d",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-06-28T02:07:08.255Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
