@@ -1504,6 +1504,90 @@
       }
     },
     {
+      "id": "rq-decisionRationale01",
+      "title": "Major Decision Rationale Placement",
+      "body": "When an ADV command emits a major user-facing decision, it MUST include exactly one bounded Decision rationale block inside `## Chosen direction`. The block MUST contain chosen direction, why it fits, alternatives rejected/deferred, and re-evaluation trigger fields. The block is not a fourth spine heading, MUST NOT appear after `## Delivered`, and MUST NOT appear inside the blockquote wayfinder. Routine handoff spine structure from rq-handoffVoice01 remains unchanged.",
+      "priority": "must",
+      "tags": ["voice", "decision-rationale", "handoff"],
+      "scenarios": [
+        {
+          "id": "rq-decisionRationale01.1",
+          "title": "Major decision rationale nests in Chosen direction",
+          "given": ["An ADV command emits a major user-facing decision"],
+          "when": "The handoff is rendered",
+          "then": [
+            "Exactly one Decision rationale block appears inside `## Chosen direction`",
+            "The block includes chosen direction, why it fits, alternatives rejected/deferred, and re-evaluation trigger fields",
+            "No `## Decision rationale` top-level heading is emitted",
+            "The blockquote wayfinder remains the only content after `## Delivered`"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-decisionRationale02",
+      "title": "Routine Decisions Omit Rationale",
+      "body": "Routine decisions MUST NOT emit a Decision rationale block or rationale boilerplate. Decision classification MUST default to `routine`; therefore existing routine gate handoffs remain terse and byte-identical-or-shorter unless another approved change explicitly modifies them.",
+      "priority": "must",
+      "tags": ["voice", "decision-rationale", "routine-output"],
+      "scenarios": [
+        {
+          "id": "rq-decisionRationale02.1",
+          "title": "Routine output has no rationale block",
+          "given": ["A routine ADV decision or gate handoff is rendered"],
+          "when": "The output is inspected",
+          "then": [
+            "No Decision rationale block appears",
+            "No rationale boilerplate is emitted",
+            "The output remains terse under the existing Gate Handoff Voice contract"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-decisionRationale03",
+      "title": "Structural Major Decision Classification",
+      "body": "Decision classification MUST default to `routine`. A decision may be classified as `major` only when an explicit major-decision allowlist entry applies, or when all ADR-sparingly rubric criteria are true: hard to reverse, surprising without context, and result of a real tradeoff. The allowlist MUST live in docs/command-voice-standard.md and be mirrored by this spec so command authors do not rely on free-form heuristic authority.",
+      "priority": "must",
+      "tags": ["voice", "decision-rationale", "classification"],
+      "scenarios": [
+        {
+          "id": "rq-decisionRationale03.1",
+          "title": "Unknown decision kind remains routine",
+          "given": ["A decision kind is not explicitly allowlisted"],
+          "when": "The ADR-sparingly rubric does not have all three criteria true",
+          "then": ["The decision is classified as `routine`", "No rationale block is emitted"]
+        },
+        {
+          "id": "rq-decisionRationale03.2",
+          "title": "Allowlist or rubric may classify major",
+          "given": ["A decision kind is allowlisted or all three ADR-sparingly rubric criteria are true"],
+          "when": "The decision is emitted to the user",
+          "then": ["The decision may be classified as `major`", "The rationale block rules apply"]
+        }
+      ]
+    },
+    {
+      "id": "rq-decisionRationale04",
+      "title": "Decision Rationale Source Markers and Trigger Kinds",
+      "body": "Each Decision rationale field MUST include a compact source marker such as `[source: spec:rq-handoffVoice01]`, `[source: agreement:AC1]`, `[source: contract:AC1]`, `[source: docs/command-voice-standard.md#gate-handoff-voice]`, or `[source: adr:0003]`. The re-evaluation trigger field MUST include `trigger_kind: date`, `trigger_kind: metric`, `trigger_kind: event`, or `trigger_kind: state` with a concrete condition. Source markers are citation metadata and MUST NOT be interpreted as capability warrant tags.",
+      "priority": "must",
+      "tags": ["voice", "decision-rationale", "source-marker"],
+      "scenarios": [
+        {
+          "id": "rq-decisionRationale04.1",
+          "title": "Source markers and trigger kinds are required",
+          "given": ["A Decision rationale block is rendered"],
+          "when": "The block is validated",
+          "then": [
+            "Every field has a `[source: ...]` marker",
+            "The re-evaluation trigger names one trigger kind: date, metric, event, or state",
+            "A missing source marker or trigger kind fails deterministic validation"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-inlineApproval01",
       "title": "Inline Approval at Named Human Checkpoints",
       "body": "ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text \u2014 composed with the Gate Handoff Voice spine \u2014 instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible \u2014 proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible \u2014 archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md \u00a7 Inline Approval Voice.",

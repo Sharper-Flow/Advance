@@ -369,6 +369,8 @@ After any workflow emits a user-facing gate-transition message, use **Gate Hando
 
 Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not chat. After `## Delivered`, only blockquote wayfinder block. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners.
 
+Decision rationale (major decisions only): when `docs/command-voice-standard.md` classifies a decision as major, place its bounded rationale block inside `## Chosen direction`. Do not add a `## Decision rationale` heading, do not put rationale after `## Delivered`, and do not emit rationale for routine decisions.
+
 ## ADV State Access Policy
 
 **NEVER** read ADV state files directly using `read`, `bash cat`, `ls`, or any filesystem tool. This includes change/proposal/problem-statement/agreement/design/executive-summary/acceptance/agenda/wisdom/conformance files and any path matching:

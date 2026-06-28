@@ -1571,6 +1571,113 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 
 ---
 
+### Major Decision Rationale Placement
+
+**ID:** `rq-decisionRationale01` | **Priority:** **[MUST]**
+
+When an ADV command emits a major user-facing decision, it MUST include exactly one bounded Decision rationale block inside `## Chosen direction`. The block MUST contain chosen direction, why it fits, alternatives rejected/deferred, and re-evaluation trigger fields. The block is not a fourth spine heading, MUST NOT appear after `## Delivered`, and MUST NOT appear inside the blockquote wayfinder. Routine handoff spine structure from rq-handoffVoice01 remains unchanged.
+
+**Tags:** `voice`, `decision-rationale`, `handoff`
+
+#### Scenarios
+
+**Major decision rationale nests in Chosen direction** (`rq-decisionRationale01.1`)
+
+**Given:**
+- An ADV command emits a major user-facing decision
+
+**When:** The handoff is rendered
+
+**Then:**
+- Exactly one Decision rationale block appears inside `## Chosen direction`
+- The block includes chosen direction, why it fits, alternatives rejected/deferred, and re-evaluation trigger fields
+- No `## Decision rationale` top-level heading is emitted
+- The blockquote wayfinder remains the only content after `## Delivered`
+
+---
+
+### Routine Decisions Omit Rationale
+
+**ID:** `rq-decisionRationale02` | **Priority:** **[MUST]**
+
+Routine decisions MUST NOT emit a Decision rationale block or rationale boilerplate. Decision classification MUST default to `routine`; therefore existing routine gate handoffs remain terse and byte-identical-or-shorter unless another approved change explicitly modifies them.
+
+**Tags:** `voice`, `decision-rationale`, `routine-output`
+
+#### Scenarios
+
+**Routine output has no rationale block** (`rq-decisionRationale02.1`)
+
+**Given:**
+- A routine ADV decision or gate handoff is rendered
+
+**When:** The output is inspected
+
+**Then:**
+- No Decision rationale block appears
+- No rationale boilerplate is emitted
+- The output remains terse under the existing Gate Handoff Voice contract
+
+---
+
+### Structural Major Decision Classification
+
+**ID:** `rq-decisionRationale03` | **Priority:** **[MUST]**
+
+Decision classification MUST default to `routine`. A decision may be classified as `major` only when an explicit major-decision allowlist entry applies, or when all ADR-sparingly rubric criteria are true: hard to reverse, surprising without context, and result of a real tradeoff. The allowlist MUST live in docs/command-voice-standard.md and be mirrored by this spec so command authors do not rely on free-form heuristic authority.
+
+**Tags:** `voice`, `decision-rationale`, `classification`
+
+#### Scenarios
+
+**Unknown decision kind remains routine** (`rq-decisionRationale03.1`)
+
+**Given:**
+- A decision kind is not explicitly allowlisted
+
+**When:** The ADR-sparingly rubric does not have all three criteria true
+
+**Then:**
+- The decision is classified as `routine`
+- No rationale block is emitted
+
+**Allowlist or rubric may classify major** (`rq-decisionRationale03.2`)
+
+**Given:**
+- A decision kind is allowlisted or all three ADR-sparingly rubric criteria are true
+
+**When:** The decision is emitted to the user
+
+**Then:**
+- The decision may be classified as `major`
+- The rationale block rules apply
+
+---
+
+### Decision Rationale Source Markers and Trigger Kinds
+
+**ID:** `rq-decisionRationale04` | **Priority:** **[MUST]**
+
+Each Decision rationale field MUST include a compact source marker such as `[source: spec:rq-handoffVoice01]`, `[source: agreement:AC1]`, `[source: contract:AC1]`, `[source: docs/command-voice-standard.md#gate-handoff-voice]`, or `[source: adr:0003]`. The re-evaluation trigger field MUST include `trigger_kind: date`, `trigger_kind: metric`, `trigger_kind: event`, or `trigger_kind: state` with a concrete condition. Source markers are citation metadata and MUST NOT be interpreted as capability warrant tags.
+
+**Tags:** `voice`, `decision-rationale`, `source-marker`
+
+#### Scenarios
+
+**Source markers and trigger kinds are required** (`rq-decisionRationale04.1`)
+
+**Given:**
+- A Decision rationale block is rendered
+
+**When:** The block is validated
+
+**Then:**
+- Every field has a `[source: ...]` marker
+- The re-evaluation trigger names one trigger kind: date, metric, event, or state
+- A missing source marker or trigger kind fails deterministic validation
+
+---
+
 ### Inline Approval at Named Human Checkpoints
 
 **ID:** `rq-inlineApproval01` | **Priority:** **[MUST]**

@@ -292,6 +292,31 @@ Every gate handoff uses exactly three narrative sections, in this order:
 
 No other sections, headings, or structural elements in the handoff. The blockquote wayfinder block is the only content after `## Delivered`. Internal state lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not chat.
 
+### Decision rationale (major decisions only)
+
+Major decisions MAY enrich `## Chosen direction` with one nested block. The block lives inside `## Chosen direction`. This is not a fourth spine heading, not post-`## Delivered` content, and not part of the blockquote wayfinder.
+
+Default classification is `routine`. Classify as `major` only when a documented allowlist entry applies or all ADR-sparingly criteria are true: hard to reverse, surprising without context, and result of a real tradeoff (`rq-domainContextADR01`).
+
+Allowlisted major-decision kinds:
+
+- design choice with user-visible tradeoff
+- contract-compromise route decision
+- scope re-entry route decision
+- release/archive sign-off decision
+
+Nested block syntax:
+
+```md
+Decision rationale (major decision):
+- Chosen direction: {one sentence}. [source: spec:rq-handoffVoice01]
+- Why it fits: {concise source-backed reason}. [source: agreement:AC1]
+- Alternatives rejected/deferred: {short reason}. [source: contract:DONT1]
+- Re-evaluation trigger: trigger_kind: date|metric|event|state; {concrete condition}. [source: docs/command-voice-standard.md#decision-rationale-major-decisions-only]
+```
+
+Accepted source markers are compact citation metadata: `spec:rq-id`, `agreement:AC1`, `contract:AC1`, `adr:0003`, or a repo path with optional `#section`. Source markers are not capability warrants and must not be interpreted as `[warrant: ...]` tags.
+
 ### Per-stage anchors (Chosen direction)
 
 | Stage | Chosen direction anchor |
