@@ -1530,6 +1530,74 @@ describe("adv_epic_repair_membership", () => {
     expect(store.changes.clearEpicMembership).not.toHaveBeenCalled();
   });
 
+  test("remove_stale_entry dry-run previews shell entry removal", async () => {
+    const store = makeStore({
+      entries: [
+        makeShellEntry({
+          entry_id: "shell-stale",
+          title: "Stale Shell",
+        }),
+      ],
+    });
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "shell-stale",
+        mode: "remove_stale_entry",
+        evidence: "Operator verified duplicate shell should be removed.",
+        dryRun: true,
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.action).toBe("remove_stale_entry");
+    expect(parsed.entry_id).toBe("shell-stale");
+    expect(parsed.entry_kind).toBe("shell");
+    expect(parsed.change_id).toBeUndefined();
+    expect(store.epics.unlinkChange).not.toHaveBeenCalled();
+    expect(store.changes.get).not.toHaveBeenCalled();
+  });
+
+  test("remove_stale_entry removes shell entry without child mutation", async () => {
+    const store = makeStore({
+      entries: [
+        makeShellEntry({
+          entry_id: "shell-stale",
+          title: "Stale Shell",
+        }),
+      ],
+    });
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "shell-stale",
+        mode: "remove_stale_entry",
+        evidence: "Operator verified duplicate shell should be removed.",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.repaired).toBe(true);
+    expect(parsed.removed).toBe(true);
+    expect(parsed.entry_id).toBe("shell-stale");
+    expect(parsed.entry_kind).toBe("shell");
+    expect(parsed.change_id).toBeUndefined();
+    expect(store.epics.unlinkChange).toHaveBeenCalledWith(
+      "addAuthEpic",
+      "shell-stale",
+      "Operator verified duplicate shell should be removed.",
+    );
+    expect(store.changes.get).not.toHaveBeenCalled();
+    expect(store.changes.clearEpicMembership).not.toHaveBeenCalled();
+  });
+
   test("retarget_stale_entry dry-run previews retarget without mutation", async () => {
     const store = makeStore({
       entries: [

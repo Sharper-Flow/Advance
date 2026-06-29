@@ -444,6 +444,19 @@ function findChangeEntry(
   }) as Extract<EpicEntry, { kind: "change" }> | undefined;
 }
 
+function findEpicEntry(
+  epic: import("../types").Epic,
+  input: { entryId?: string; changeId?: string },
+) {
+  return epic.entries.find((entry) => {
+    if (input.entryId && entry.entry_id === input.entryId) return true;
+    if (entry.kind === "change" && input.changeId) {
+      return getEpicEntryChangeId(entry) === input.changeId;
+    }
+    return false;
+  });
+}
+
 function requireChangeEntry(
   entry: EpicEntry,
 ): Extract<EpicEntry, { kind: "change" }> {
@@ -1826,6 +1839,46 @@ export const epicTools = {
           }
           return epicNotFound(epic_id);
         }
+        if (mode === "remove_stale_entry") {
+          const entry = findEpicEntry(epic, {
+            entryId: entry_id,
+            changeId: change_id,
+          });
+          if (!entry) {
+            return formatToolOutput({
+              error: `Entry not found in Epic ${epic_id}`,
+              code: "ENTRY_NOT_FOUND",
+            });
+          }
+          const finalChangeId =
+            entry.kind === "change" ? getEpicEntryChangeId(entry) : undefined;
+          if (entry.kind === "change" && !finalChangeId) {
+            return formatToolOutput({
+              error: `Entry has no change reference: ${entry.entry_id}`,
+              code: "PROJECTION_MISSING",
+            });
+          }
+          if (dryRun) {
+            return formatToolOutput({
+              success: true,
+              dryRun: true,
+              entry_id: entry.entry_id,
+              entry_kind: entry.kind,
+              ...(finalChangeId ? { change_id: finalChangeId } : {}),
+              action: "remove_stale_entry",
+            });
+          }
+          await store.epics.unlinkChange(epic_id, entry.entry_id, evidence);
+          return formatToolOutput({
+            success: true,
+            repaired: true,
+            entry_id: entry.entry_id,
+            entry_kind: entry.kind,
+            ...(finalChangeId ? { change_id: finalChangeId } : {}),
+            removed: true,
+          });
+        }
+
         const entry = findChangeEntry(epic, {
           entryId: entry_id,
           changeId: change_id,
@@ -1836,31 +1889,12 @@ export const epicTools = {
             code: "ENTRY_NOT_FOUND",
           });
         }
+
         const finalChangeId = getEpicEntryChangeId(entry);
         if (!finalChangeId) {
           return formatToolOutput({
             error: `Entry has no change reference: ${entry.entry_id}`,
             code: "PROJECTION_MISSING",
-          });
-        }
-
-        if (mode === "remove_stale_entry") {
-          if (dryRun) {
-            return formatToolOutput({
-              success: true,
-              dryRun: true,
-              entry_id: entry.entry_id,
-              change_id: finalChangeId,
-              action: "remove_stale_entry",
-            });
-          }
-          await store.epics.unlinkChange(epic_id, entry.entry_id, evidence);
-          return formatToolOutput({
-            success: true,
-            repaired: true,
-            entry_id: entry.entry_id,
-            change_id: finalChangeId,
-            removed: true,
           });
         }
 
