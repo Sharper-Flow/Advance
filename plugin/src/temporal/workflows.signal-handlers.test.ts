@@ -114,6 +114,34 @@ function makeEngineerReport(taskId: string, attempt = 1) {
   };
 }
 
+function makeVerificationTriageReport(attempt = 1) {
+  return {
+    schema_version: "1.0" as const,
+    change_id: "signal-handler-test-project",
+    attempt,
+    agent: "adv-verification-triage-bundle" as const,
+    scope: { kind: "change" as const, scope_key: "verifier:local-verify" },
+    workdir_used: "/tmp/worktree",
+    phase: "local_verify" as const,
+    targets: [
+      {
+        kind: "command" as const,
+        command: "bin/oc-test targeted -- src/types/subagent-reports.test.ts",
+        exit_code: 1,
+      },
+    ],
+    status: "fail" as const,
+    error_class: "UNKNOWN" as const,
+    confidence: "low" as const,
+    evidence_basis: "Evidence insufficient for automatic remediation.",
+    findings: [],
+    recommended_next_action: "ask_user" as const,
+    scope_risk: false,
+    required_main_agent_actions: ["Review inconclusive verification triage."],
+    follow_ups: [],
+  };
+}
+
 async function withSignalWorker(
   name: string,
   fn: (
@@ -1217,6 +1245,29 @@ describe("changeWorkflow signal handlers", () => {
       expect(task).toBeDefined();
       expect(task!.subagent_reports).toHaveLength(1);
       expect(task!.subagent_reports![0].attempt).toBe(2);
+    });
+  }, 30_000);
+
+  it("stores verification triage bundles only as change sidecar reports", async () => {
+    await withSignalWorker("verification-triage-report", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-report", "report task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      await handle.signal(subagentReportSubmittedSignal, {
+        report: makeVerificationTriageReport(),
+        submittedAt: "2026-05-05T00:00:02.000Z",
+      });
+
+      const state = await queryState(handle);
+      expect(state.subagent_reports).toHaveLength(1);
+      expect(state.subagent_reports![0].agent).toBe(
+        "adv-verification-triage-bundle",
+      );
+      const task = state.tasks.find((t) => t.id === "tk-report");
+      expect(task).toBeDefined();
+      expect(task!.subagent_reports ?? []).toHaveLength(0);
+      expect(task!.error_recovery).toBeUndefined();
     });
   }, 30_000);
 
