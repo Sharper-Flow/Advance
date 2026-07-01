@@ -459,28 +459,68 @@ Task-level delegation (above) covers _implementation_ of a single task. Separate
 - Quick lint or test on a single file
 - Verify step where output is already expected to be short
 
-**Spawn contract** (`subagent_type: "general"`):
+**Verification Triage Packet** (`subagent_type: "general"`):
 
 ```
 WORKING DIRECTORY: {workdir}
-SCOPE: verify-only — do not edit, write, patch, or modify files
+CHANGE: {change-id} | {title}
+SCOPE KEY: verifier:{local-verify|ci-checks|short-slug}
+PHASE: local_verify | ci_check
+ATTEMPT: {attempt-number, starting at 1 for this verification triage}
+TASK_SCOPE: verify-only — command/check identity, bounded evidence, classification, and recommendation
+IN_SCOPE:
+  - local command failures and CI/check-run failures already observed by main ADV
+OUT_OF_SCOPE:
+  - code edits, ADV state mutation, gate completion, scope changes, final user-facing conclusions
+DONE_WHEN:
+  - return one strict Verification Triage Result JSON object
+STOP_WHEN:
+  - missing command/check evidence, unsafe credential exposure, or insufficient identity for stale-safe CI evidence
+VERIFICATION:
+  - cite command output, logs, check metadata, or test evidence
 COMMANDS:
   - {cmd 1, e.g., pnpm lint src/components/Foo}
   - {cmd 2, e.g., pnpm typecheck}
   - {cmd 3, e.g., pnpm test -- src/components/Foo}
-EXPECTED OUTPUT:
-  Per-command:
-    - status: PASS | FAIL
-    - exit code
-    - errors: [{file, line, message}] (first 20)
-  Summary: PASS if all commands passed, else FAIL
+CI CHECKS (when PHASE=ci_check):
+  - repo: {owner/repo}
+  - check_name: {check or job name}
+  - head_sha: {commit SHA or equivalent immutable target}
+  - run_url: {optional URL}
+RULES:
+  - Do not edit files, write files, patch files, or run code remediation.
+  - Do not call adv_subagent_report_submit; main ADV submits adv-verification-triage-bundle if valid.
+  - Do not complete gates, mutate ADV state, change scope, publish final user-facing conclusions, or spawn remediation workers.
 ```
+
+**Verification Triage Result** (strict JSON returned to main ADV):
+
+```json
+{
+  "agent": "adv-verification-triage-bundle",
+  "phase": "local_verify | ci_check",
+  "targets": ["command/check identity with exit_code or repo/check_name/head_sha"],
+  "status": "pass | fail | inconclusive",
+  "error_class": "SEMANTIC | TRANSIENT | ENVIRONMENTAL | FATAL | UNKNOWN",
+  "confidence": "high | medium | low",
+  "evidence_basis": "bounded source-backed reason",
+  "findings": [{ "id": "...", "severity": "blocker|issue|suggestion|info", "summary": "...", "evidence": [] }],
+  "recommended_next_action": "continue | retry_narrower | route_adv_engineer | ask_user | block_environment | wait_ci | no_action",
+  "scope_risk": false,
+  "suggested_handoff": { "summary": "...", "in_scope": [], "out_of_scope": [], "done_when": [], "verification": [] },
+  "required_main_agent_actions": [],
+  "follow_ups": []
+}
+```
+
+`route_adv_engineer` is valid only when `error_class` is `SEMANTIC`, `scope_risk` is false, `confidence` is `high` or `medium`, and `suggested_handoff` is populated. `UNKNOWN` is routing-only: treat as inconclusive; never map it into task `error_recovery`.
 
 **Post-spawn handling:**
 
-- Worker PASS → continue task
-- Worker FAIL with errors → main agent classifies and fixes inline
-- Worker times out or empty result → retry once with narrower scope (single command) → if still fails, run inline with output truncation
+- Worker PASS / `continue` → continue task
+- Worker FAIL with `route_adv_engineer` → main ADV validates predicates and approved scope, then builds the actual `adv-engineer` packet
+- Worker `retry_narrower` / timeout / malformed / empty result → retry once with narrower scope (single command) → if still inconclusive, run inline with output truncation
+- Worker `ask_user`, `block_environment`, or `UNKNOWN` → main ADV owns escalation and user-facing synthesis
 
 Heuristic, not a hard rule. Prefer delegation when heavy; inline is fine otherwise. Focused TDD `adv_run_test` stays inline regardless.
 

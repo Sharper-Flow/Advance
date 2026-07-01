@@ -55,6 +55,7 @@ describe("orchestrator operational delegation assets", () => {
     expectIncludes(section, "reads/searches", "adv.md section");
     expectIncludes(section, "GitHub CI", "adv.md section");
     expectIncludes(section, "check-run", "adv.md section");
+    expectIncludes(section, "verification triage", "adv.md section");
     expectIncludes(section, "second", "adv.md section");
     expectIncludes(section, "general", "adv.md section");
 
@@ -76,6 +77,8 @@ describe("orchestrator operational delegation assets", () => {
     expect(content).toMatch(
       /\|\s*GitHub CI \/ check-run \/ status investigation\s*\|\s*`general`\s*\|/,
     );
+    expect(content).toContain("structured verification triage");
+    expect(content).toContain("before a second primary digest cycle");
     expect(content).toMatch(
       /\|\s*code edits after task scope known\s*\|\s*`adv-engineer`/i,
     );
@@ -103,6 +106,32 @@ describe("orchestrator operational delegation assets", () => {
     expect(
       content.includes("GitHub CI / check-run / status investigation"),
     ).toBe(false);
+  });
+
+  test("adv-apply defines verification triage packet and result contract", () => {
+    const content = readRepoFile(APPLY_COMMAND_PATH);
+
+    for (const anchor of [
+      "Verification Triage Packet",
+      "Verification Triage Result",
+      "adv-verification-triage-bundle",
+      "local_verify",
+      "ci_check",
+      "command/check identity",
+      "head_sha",
+      "error_class",
+      "confidence",
+      "evidence_basis",
+      "recommended_next_action",
+      "route_adv_engineer",
+      "scope_risk",
+      "suggested_handoff",
+      "Do not edit files",
+      "Do not call adv_subagent_report_submit",
+      "Do not complete gates",
+    ]) {
+      expectIncludes(content, anchor, "adv-apply verification triage");
+    }
   });
 
   test("advance-meta declares orchestrator operational delegation law", () => {
