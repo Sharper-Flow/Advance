@@ -121,6 +121,10 @@ describe("orchestrator operational delegation assets", () => {
     expect(requirement).toBeTruthy();
     expect(requirement?.body).toContain("orchestrator-session operational");
     expect(requirement?.body).toContain("GitHub CI");
+    expect(requirement?.body).toContain("structured verification triage");
+    expect(requirement?.body).toContain("local verification bursts");
+    expect(requirement?.body).toContain("CI/check-run failures");
+    expect(requirement?.body).toContain("before a second primary digest cycle");
     expect(requirement?.body).toContain("no second");
 
     const scenarioIds =
