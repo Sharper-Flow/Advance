@@ -499,12 +499,15 @@ RULES:
 {
   "agent": "adv-verification-triage-bundle",
   "phase": "local_verify | ci_check",
-  "targets": ["command/check identity with exit_code or repo/check_name/head_sha"],
+  "targets": [
+    { "kind": "command", "command": "exact command", "exit_code": 1, "duration_ms": 1234 },
+    { "kind": "ci_check", "repo": "owner/repo", "check_name": "test", "head_sha": "0123456789abcdef0123456789abcdef01234567", "run_url": "https://...", "conclusion": "failure" }
+  ],
   "status": "pass | fail | inconclusive",
   "error_class": "SEMANTIC | TRANSIENT | ENVIRONMENTAL | FATAL | UNKNOWN",
   "confidence": "high | medium | low",
   "evidence_basis": "bounded source-backed reason",
-  "findings": [{ "id": "...", "severity": "blocker|issue|suggestion|info", "summary": "...", "evidence": [] }],
+  "findings": [{ "id": "...", "severity": "blocker|issue|suggestion|info", "summary": "...", "evidence": [{ "label": "test output", "locator": "command/check/log URL", "summary": "bounded excerpt or cited signal" }] }],
   "recommended_next_action": "continue | retry_narrower | route_adv_engineer | ask_user | block_environment | wait_ci | no_action",
   "scope_risk": false,
   "suggested_handoff": { "summary": "...", "in_scope": [], "out_of_scope": [], "done_when": [], "verification": [] },
@@ -513,7 +516,7 @@ RULES:
 }
 ```
 
-`route_adv_engineer` is valid only when `error_class` is `SEMANTIC`, `scope_risk` is false, `confidence` is `high` or `medium`, and `suggested_handoff` is populated. `UNKNOWN` is routing-only: treat as inconclusive; never map it into task `error_recovery`.
+`route_adv_engineer` is valid only when `error_class` is `SEMANTIC`, `scope_risk` is false, `confidence` is `high` or `medium`, and `suggested_handoff` is populated. `TRANSIENT` requires rerun or infrastructure evidence; `ENVIRONMENTAL` requires missing dependency, credential, service, or external-system evidence. Unsupported flake claims are invalid. `UNKNOWN` is routing-only: treat as inconclusive; never map it into task `error_recovery`.
 
 **Post-spawn handling:**
 
