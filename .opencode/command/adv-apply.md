@@ -440,7 +440,7 @@ If sub-agent succeeds → run incremental verification → if passes → mark do
 
 **If `inline_required`:** Proceed with standard TDD flow.
 
-Emit routing summary: `tk-{id} → {inline|adv-engineer|adv-designer|general-verify} ({reason})`
+Emit routing summary: `tk-{id} → {inline|adv-engineer|adv-designer|general (verify-burst)} ({reason})`
 
 #### Verify-Burst Delegation
 
@@ -464,7 +464,7 @@ Task-level delegation (above) covers _implementation_ of a single task. Separate
 ```
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title}
-SCOPE KEY: verifier:{local-verify|ci-checks|short-slug}
+SCOPE KEY: verifier:{local-verify|ci-check|short-slug}
 PHASE: local_verify | ci_check
 ATTEMPT: {attempt-number, starting at 1 for this verification triage}
 TASK_SCOPE: verify-only — command/check identity, bounded evidence, classification, and recommendation
@@ -493,6 +493,8 @@ RULES:
   - Do not complete gates, mutate ADV state, change scope, publish final user-facing conclusions, or spawn remediation workers.
 ```
 
+SCOPE KEY slug is hyphen-only; do not mirror underscored PHASE values (`local_verify`, `ci_check`) into `verifier:<slug>`.
+
 **Verification Triage Result** (strict JSON returned to main ADV):
 
 ```json
@@ -516,7 +518,9 @@ RULES:
 }
 ```
 
-`route_adv_engineer` is valid only when `error_class` is `SEMANTIC`, `scope_risk` is false, `confidence` is `high` or `medium`, and `suggested_handoff` is populated. `TRANSIENT` requires rerun or infrastructure evidence; `ENVIRONMENTAL` requires missing dependency, credential, service, or external-system evidence. Unsupported flake claims are invalid. `UNKNOWN` is routing-only: treat as inconclusive; never map it into task `error_recovery`.
+Main ADV wraps the worker result with `schema_version: "1.0"`, `change_id`, `attempt`, `workdir_used`, and `scope: { kind: "change", scope_key: "verifier:<slug>" }` before submitting `adv-verification-triage-bundle`.
+
+`route_adv_engineer` is valid only when `error_class` is `SEMANTIC`, `scope_risk` is false, `confidence` is `high` or `medium`, and `suggested_handoff` is populated. `TRANSIENT` requires rerun or infrastructure evidence; `ENVIRONMENTAL` requires missing dependency, credential, service, or external-system evidence. `FATAL` indicates unsafe or unrecoverable conditions; route to `ask_user` or `block_environment` with scope-risk context. Unsupported flake claims are invalid. `UNKNOWN` is routing-only: treat as inconclusive; never map it into task `error_recovery`.
 
 **Post-spawn handling:**
 

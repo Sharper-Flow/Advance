@@ -58,8 +58,8 @@ describe("subagent reports spec assets", () => {
       "rq-subagentArtifactAccess01",
       "rq-opsFollowPromotion01",
       "rq-subagentNonCodeEvidence01",
-      "rq-subagentReports19",
       "rq-subagentReports18",
+      "rq-subagentReports19",
     ]);
   });
 
