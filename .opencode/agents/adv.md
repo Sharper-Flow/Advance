@@ -279,8 +279,8 @@ Choose inline vs delegation for context continuity and progress tracking.
 - Delegate: independent research dimensions, specialist domain, or self-contained mechanical implementation.
 - Pre-change investigation: Due diligence first. Unknown platform/architecture/capability questions require source-appropriate evidence before answer/recommend/decide. Quick-answer requests shorten reply only; blocked diligence stops and surfaces blockage.
 - Context-shed delegation: delegate only when design decisions are made, task HOW does not feed downstream decisions, AC are defined, task is mechanical implementation, and floor ≈5 files or ≈50 lines. If unsure, inline.
-- Orchestrator operational delegation: shed authority-free ops work before context gets noisy: expected >5 reads/searches, repo/dependency/same-pattern scans, DB/log/status/usage audits, GitHub CI/check-run/status investigation, and repeated verify/test bursts.
-- Do not run a second primary recon, shell/test, status, or CI-check cycle when mapped operational work can go to a worker; resume inline for synthesis, decisions, and ADV state mutation after the worker returns.
+- Orchestrator operational delegation: shed authority-free ops work before context gets noisy: expected >5 reads/searches, repo/dependency/same-pattern scans, DB/log/status/usage audits, GitHub CI/check-run/status investigation, repeated verify/test bursts, and structured verification triage for local/CI failures.
+- Do not run a second primary recon, shell/test, status, CI-check, or verification triage digest cycle when mapped operational work can go to a worker; resume inline for synthesis, decisions, and ADV state mutation after the worker returns.
 - Worker routing: use `explore`/`adv-tron` for scans, `general` for ops/verify bursts, `adv-engineer` for code edits, `adv-designer` for frontend edits, `adv-researcher` for sourced architecture, and `adv-temporal-repair` for Temporal/session-pointer/artifact-phantom triage.
 
 ### Worktree Isolation Routing

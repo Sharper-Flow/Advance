@@ -130,7 +130,9 @@ describe("/adv-coordinate command contract", () => {
 
     expect(content).not.toMatch(/read ADV state files directly/i);
     expect(content).not.toMatch(/edit ADV state files directly/i);
-    expect(content).not.toMatch(/bin\/adv epic (create|update|reorder|repair|delete|remove)/i);
+    expect(content).not.toMatch(
+      /bin\/adv epic (create|update|reorder|repair|delete|remove)/i,
+    );
   });
 });
 

@@ -6,6 +6,7 @@ import type {
   EngineerSubagentReport,
   ResearcherSubagentReport,
   ScannerBundleSubagentReport,
+  VerificationTriageBundleSubagentReport,
 } from "../types";
 import type { Store } from "../storage/store-types";
 import {
@@ -310,6 +311,62 @@ function scannerBundleReport(
     summary: "Orchestrator synthesized scanner bundle.",
     findings: [],
     follow_ups: [],
+    ...overrides,
+  };
+}
+
+function verificationTriageBundleReport(
+  overrides: Partial<VerificationTriageBundleSubagentReport> = {},
+): VerificationTriageBundleSubagentReport {
+  return {
+    schema_version: "1.0",
+    change_id: "change-1",
+    attempt: 1,
+    agent: "adv-verification-triage-bundle",
+    scope: { kind: "change", scope_key: "verifier:local-verify" },
+    workdir_used: "/repo",
+    phase: "local_verify",
+    targets: [
+      {
+        kind: "command",
+        command: "bin/oc-test targeted -- src/types/subagent-reports.test.ts",
+        exit_code: 1,
+        duration_ms: 1200,
+      },
+    ],
+    status: "fail",
+    error_class: "SEMANTIC",
+    confidence: "high",
+    evidence_basis: "Targeted test failed with deterministic schema evidence.",
+    findings: [
+      {
+        id: "triage-schema",
+        severity: "blocker",
+        summary: "Schema branch missing.",
+        evidence: [
+          {
+            label: "test output",
+            locator: "src/types/subagent-reports.test.ts",
+            summary: "adv-verification-triage-bundle rejected before fix.",
+          },
+        ],
+      },
+    ],
+    recommended_next_action: "route_adv_engineer",
+    scope_risk: false,
+    suggested_handoff: {
+      summary: "Implement schema branch.",
+      in_scope: ["plugin/src/types/subagent-reports.ts"],
+      out_of_scope: ["task error_recovery mutation"],
+      done_when: ["Triage bundle parses."],
+      verification: [
+        "bin/oc-test targeted -- src/types/subagent-reports.test.ts",
+      ],
+    },
+    required_main_agent_actions: [
+      "Validate scope before adv-engineer handoff.",
+    ],
+    follow_ups: ["Document triage packet shape"],
     ...overrides,
   };
 }
@@ -693,6 +750,66 @@ describe("subagentReportTools", () => {
     expect(mocks.fireSignalAndRefresh.mock.calls[0][4]).not.toHaveProperty(
       "taskId",
     );
+  });
+
+  test("accepts verification triage bundle reports as change-scoped sidecar evidence", async () => {
+    const store = storeFor(change());
+    const report = verificationTriageBundleReport();
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.reportId).toBe(
+      "change-1|change:verifier:local-verify|adv-verification-triage-bundle|1",
+    );
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.objectContaining({
+        report: expect.objectContaining({
+          agent: "adv-verification-triage-bundle",
+          error_class: "SEMANTIC",
+          recommended_next_action: "route_adv_engineer",
+        }),
+      }),
+    );
+    expect(mocks.fireSignalAndRefresh.mock.calls[0][4]).not.toHaveProperty(
+      "taskId",
+    );
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Document triage packet shape",
+      expect.objectContaining({
+        category: "subagent-followup",
+        description: expect.stringContaining(
+          "change-1/change:verifier:local-verify/adv-verification-triage-bundle/attempt-1",
+        ),
+      }),
+    );
+  });
+
+  test("dryRun previews verification triage bundles without signal or agenda writes", async () => {
+    const store = storeFor(change());
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: verificationTriageBundleReport(), dryRun: true },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.dryRun).toBe(true);
+    expect(output.consumerResults.followUps.previewCount).toBe(1);
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
   test("invalid task anchors return typed actionable diagnostics without signaling", async () => {

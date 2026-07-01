@@ -59,6 +59,7 @@ describe("subagent reports spec assets", () => {
       "rq-opsFollowPromotion01",
       "rq-subagentNonCodeEvidence01",
       "rq-subagentReports18",
+      "rq-subagentReports19",
     ]);
   });
 
@@ -257,6 +258,12 @@ describe("subagent reports spec assets", () => {
       "adv-researcher",
       "adv-tron",
       "adv-scanner-bundle",
+      "adv-verification-triage-bundle",
+      "verifier:<slug>",
+      "local_verify",
+      "ci_check",
+      "route_adv_engineer",
+      "UNKNOWN",
       "source metadata",
       "follow_ups[]",
       "agent/scope pairing",
@@ -276,6 +283,77 @@ describe("subagent reports spec assets", () => {
     expect(text).toContain("non_persisted_scanner");
     expect(text).toContain("orchestrator-submitted scanner bundle");
     expect(text).toContain("without ADV tool access");
+  });
+
+  test("verification triage law pins structured local and CI bundle semantics", () => {
+    const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
+    const text = JSON.stringify(spec);
+
+    for (const anchor of [
+      "adv-verification-triage-bundle",
+      "orchestrator-submitted verification triage bundle",
+      "verifier:<slug>",
+      "local_verify",
+      "ci_check",
+      "SEMANTIC",
+      "TRANSIENT",
+      "ENVIRONMENTAL",
+      "FATAL",
+      "UNKNOWN",
+      "routing-only",
+      "route_adv_engineer",
+      "scope_risk",
+      "suggested_handoff",
+      "must not write task error_recovery",
+    ]) {
+      expect(text).toContain(anchor);
+    }
+  });
+
+  test("verify-only burst has orchestrator-submitted verification bundle packet contract", () => {
+    const spec = readJson(DELEGATION_DEFAULTS_SPEC) as {
+      delegation_matrix: Array<{
+        step: string;
+        delegated_substeps?: Array<{
+          name: string;
+          allowed_subagents?: string[];
+          packet_contracts?: Array<{
+            agent: string;
+            report_transport: string;
+            required_packet_anchors: string[];
+            warn_packet_anchors?: string[];
+          }>;
+        }>;
+      }>;
+    };
+    const apply = spec.delegation_matrix.find((row) => row.step === "apply");
+    const verifyBurst = (apply?.delegated_substeps ?? []).find(
+      (substep) => substep.name === "Verify-Only Burst",
+    );
+
+    expect(verifyBurst).toBeDefined();
+    expect(verifyBurst!.allowed_subagents).toEqual(["general"]);
+    const contract = verifyBurst!.packet_contracts?.find(
+      (entry) =>
+        entry.report_transport === "orchestrator_submitted_verification_bundle",
+    );
+    expect(contract).toBeDefined();
+    expect(contract!.agent).toBe("general");
+    expect(contract!.required_packet_anchors).toEqual([
+      "WORKING DIRECTORY",
+      "CHANGE",
+      "SCOPE KEY",
+      "PHASE",
+      "ATTEMPT",
+    ]);
+    expect(contract!.warn_packet_anchors).toEqual([
+      "TASK_SCOPE",
+      "IN_SCOPE",
+      "OUT_OF_SCOPE",
+      "DONE_WHEN",
+      "STOP_WHEN",
+      "VERIFICATION",
+    ]);
   });
 
   test("delegation-defaults apply step lists Frontend Implementation with adv-designer typed_persisted_worker contract", () => {

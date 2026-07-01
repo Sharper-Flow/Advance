@@ -1,0 +1,1199 @@
+{
+  "id": "addVerificationTriage",
+  "title": "Add verification triage",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-06-28T15:43:35.906Z",
+  "tasks": [
+    {
+      "id": "tk-54a15dd9f500",
+      "title": "Add verification triage report schema",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-01T21:18:36.553Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ],
+        "verifies": [
+          "AC2",
+          "AC5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-01T21:25:51.523Z",
+      "verification": "RED: bin/oc-test targeted -- src/types/subagent-reports.test.ts failed with 8 expected schema failures. GREEN: same command passed, 47 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "80c13c2a48ae11733252aa840bbd682355efbc07",
+      "completedAt": "2026-07-01T21:30:33.732Z",
+      "completed_at": "2026-07-01T21:30:33.732Z"
+    },
+    {
+      "id": "tk-720c39d86e88",
+      "title": "Wire triage bundle ingestion and no-authority persistence",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-01T21:19:14.184Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-54a15dd9f500"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-01T21:39:01.018Z",
+      "verification": "RED: broad targeted command failed; narrowed checks showed newly added submit/workflow triage behavior already passed after schema task, exposing only missing exhaustive/source glue. GREEN: bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/workflows.signal-handlers.test.ts -t \"verification triage|subagentReportTools\" passed, 28 tests selected.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "checkpointSha": "72b06e6ad595b91bd1fe579c4130405876735fba",
+      "completedAt": "2026-07-01T21:45:28.746Z",
+      "completed_at": "2026-07-01T21:45:28.746Z"
+    },
+    {
+      "id": "tk-0a6e437d486d",
+      "title": "Update verification triage spec laws and asset tests",
+      "type": "docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-01T21:19:45.363Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-01T21:31:29.629Z",
+      "verification": "RED: bin/oc-test targeted -- src/subagent-reports-spec-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts failed with 4 expected asset/spec-law failures. GREEN: same command passed, 20 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "aeca8487745f5a66dbad65beeee30514915729e2",
+      "completedAt": "2026-07-01T21:37:25.764Z",
+      "completed_at": "2026-07-01T21:37:25.764Z"
+    },
+    {
+      "id": "tk-50b5e796c35a",
+      "title": "Update ADV verification triage routing guidance",
+      "type": "docs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-01T21:20:27.866Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-54a15dd9f500"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0a6e437d486d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-01T21:45:54.670Z",
+      "verification": "RED: bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts failed on missing verification-triage guidance anchors. GREEN: same command passed, 5 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts"
+      ],
+      "checkpointSha": "04ac571a8f3fc0a96321c160468ea4513b242264",
+      "completedAt": "2026-07-01T21:50:12.960Z",
+      "completed_at": "2026-07-01T21:50:12.960Z"
+    },
+    {
+      "id": "tk-433339992033",
+      "title": "Verify triage contract coverage end to end",
+      "type": "verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-01T21:21:04.357Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-54a15dd9f500"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-720c39d86e88"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0a6e437d486d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-50b5e796c35a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "respects": [
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-01T21:50:36.743Z",
+      "verification": "Acceptance review remediation by adv-reviewer refined .opencode/command/adv-apply.md examples for strict triage targets and evidence-policy wording. Reviewer ran bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts and reported pass 5/5.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-apply.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-apply.md"
+      ],
+      "checkpointSha": "df653f07daf3a383f89d524bc744ac3dbe890b73",
+      "completedAt": "2026-07-01T22:03:45.678Z",
+      "completed_at": "2026-07-01T22:03:45.678Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addVerificationTriage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Verification-triage discovery opportunity scout",
+      "sources": [
+        {
+          "label": "Existing Verify-Only Burst delegation substep (UNTYPED)",
+          "locator": "/home/jon/dev/advance/.adv/specs/delegation-defaults/spec.json:77",
+          "summary": "apply step already declares delegated_substep 'Verify-Only Burst', mode delegate_allowed, allowed_subagents ['general'] — but has NO packet_contracts/report_transport, unlike sibling substeps (lines 55-75). Insertion point for typed triage."
+        },
+        {
+          "label": "Verify-burst spawn contract produces untyped prose",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-apply.md:445-477",
+          "summary": "Existing 'Verify-Burst Delegation' spawns general with prose contract (status/exit/errors[]). No failure CLASS, no handoff shape for adv-engineer. Confirms gap."
+        },
+        {
+          "label": "error_class doom-loop machinery already exists",
+          "locator": "/home/jon/dev/advance/plugin/src/events/status.ts:202-246",
+          "summary": "ErrorClass enum TRANSIENT|SEMANTIC|ENVIRONMENTAL|FATAL with trackRetry: TRANSIENT excluded from doom-loop budget, SEMANTIC default, DOOM_LOOP_THRESHOLD=3. Triage classification can structurally REUSE this taxonomy, not invent a new one."
+        },
+        {
+          "label": "Persisted task.error_recovery bridge already wired",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/checkpoint.ts:312-345 ; /home/jon/dev/advance/plugin/src/events/status.ts:283-318",
+          "summary": "error_recovery.{error_class,attempts[],last_error} persisted on tasks; getEffectiveDoomLoopInfo merges in-memory+persisted. Triage output can feed this existing field instead of a parallel structure."
+        },
+        {
+          "label": "Subagent report schema has no verifier variant",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/subagent-report.ts:875 ; subagent-report.test.ts:222-343",
+          "summary": "v1 report union: adv-engineer/reviewer/designer/researcher/tron/scanner-bundle only. No verifier-specific typed report. New typed lane = new schema branch."
+        },
+        {
+          "label": "Delegation matrix is the structural authority; tests gate phantom agents",
+          "locator": "/home/jon/dev/advance/plugin/src/delegation-matrix.test.ts:63-71,737-756 ; spec.json:247,294",
+          "summary": "KNOWN_SPAWNABLE_SUBAGENTS allowlist + 'command files do not route to sub-agents outside matrix row' test. Any new agent must be added to spec matrix + allowlist or tests fail. Routing is structurally enforced, not prose."
+        },
+        {
+          "label": "Existing orchestrator routing prose already names verify bursts -> general",
+          "locator": "/home/jon/dev/advance/.opencode/agents/adv.md:282,284",
+          "summary": "adv.md already routes 'GitHub CI/check-run/status investigation, and repeated verify/test bursts' and 'general for ops/verify bursts'. Triage = upgrading this existing untyped lane, not greenfield."
+        }
+      ],
+      "architecture_assessment": "The boring/by-the-book path is NOT a new agent. The verify-burst lane already exists structurally (spec.json:77, adv-apply.md:445, adv.md:284) but is untyped: it routes to global `general` with prose output and no packet_contract. Three reusable substrates already exist: (1) the ErrorClass taxonomy TRANSIENT|SEMANTIC|ENVIRONMENTAL|FATAL in status.ts — directly satisfies the proposal's discovery-agenda need to make SEMANTIC/TRANSIENT/ENVIRONMENTAL 'not heuristic-only'; (2) the persisted task.error_recovery bridge — a durable sink for triage classification; (3) the typed_persisted_worker report transport + sidecar persistence used by engineer/reviewer/designer. The lowest-risk leverage is to add a typed packet_contract + a typed report branch to the EXISTING Verify-Only Burst substep, reuse the ErrorClass enum verbatim for classification, and let main ADV map a 'fixable + SEMANTIC' verdict into an adv-engineer handoff. A net-new agent file is higher blast radius (matrix allowlist, agent roster tests, model routing) and likely unnecessary given general already owns the lane.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contradictory evidence. adv-ci-waiter source confirmed NOT present in repo (grep found zero matches in *.ts) — consistent with the anchor. All in-scope constraints (cheap worker = evidence not authority) are satisfiable by reusing typed_persisted_worker transport + main-ADV-owned routing already modeled for adv-engineer in spec.json:336."
+      },
+      "recommendation": "Prefer design_around 'upgrade existing untyped Verify-Only Burst lane' over creating a new agent. Reuse ErrorClass enum (status.ts:202) for structural classification and the error_recovery persisted bridge as the durable sink; add one typed report branch (transport: typed_persisted_worker) + a packet_contract on spec.json:77 so triage output is ingest-validated, not prose. Keep general as executor unless model routing argues for a dedicated cheap agent. Defer net-new-agent decision to orchestrator (surface_to_user) because it trades blast radius vs. specialization.",
+      "follow_ups": [
+        "Orchestrator decision: typed-lane-over-general vs net-new adv-verifier agent (blast radius: matrix allowlist + roster tests + model routing).",
+        "Confirm whether triage classification should write task.error_recovery directly (durable, feeds doom-loop) or only emit a report the orchestrator persists — affects whether the cheap worker touches ADV state (constraint boundary).",
+        "Decide linkage to addCiWaitAgent: dependency vs sibling (per proposal discovery agenda)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addVerificationTriage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout for verification triage draft",
+      "sources": [
+        {
+          "label": "ChangeReportScopeKeySchema regex (BLOCKER for draft scope_key)",
+          "locator": "/home/jon/dev/advance/plugin/src/types/subagent-reports.ts:26-31",
+          "summary": "scope_key regex only allows researcher|tron|scanner-bundle:<slug>, review:acceptance, harden:release. Draft 'verifier:<phase>' FAILS validation. Must reuse 'scanner-bundle:<phase>' or extend regex + tests."
+        },
+        {
+          "label": "adv-scanner-bundle = exact orchestrator-submitted precedent to clone",
+          "locator": "/home/jon/dev/advance/plugin/src/types/subagent-reports.ts:387-411,640-654",
+          "summary": "ScannerBundleSubagentReportSchema: change-scoped, agent literal, phase enum, worker_derived findings, packet_anchor for change_id/scope/attempt/workdir/phase. Field-source map + ChangeScopedSubagentReportSchema union. Triage bundle = new branch beside it, same transport, same anchors."
+        },
+        {
+          "label": "Verify-Only Burst is the ONLY substep missing packet_contracts",
+          "locator": "/home/jon/dev/advance/.adv/specs/delegation-defaults/spec.json:77 vs 55-75",
+          "summary": "Line 77 has no packet_contracts/report_transport; every sibling substep does. Single-line insertion point: add packet_contract { agent: general, report_transport: orchestrator-submitted variant, required_packet_anchors }."
+        },
+        {
+          "label": "subagent-report consumer pipeline already ingests required_follow_ups",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/subagent-report.ts:820-862",
+          "summary": "submit consumes followUps, requiredFollowUps, designConcerns. engineer_handoff need not be a net-new packet field — required_follow_ups consumer already turns obligations into ADV-owned follow-up items main ADV routes."
+        },
+        {
+          "label": "ErrorClass taxonomy + doom-loop budget already structural",
+          "locator": "/home/jon/dev/advance/plugin/src/events/status.ts:202-246,283-318",
+          "summary": "TRANSIENT|SEMANTIC|ENVIRONMENTAL|FATAL drives trackRetry/getEffectiveDoomLoopInfo; TRANSIENT excluded from doom budget. Draft adds 5th 'UNKNOWN' — net-new value not in this enum; will not interoperate with retry tracker unless explicitly mapped."
+        },
+        {
+          "label": "Routing is test-enforced, not prose",
+          "locator": "/home/jon/dev/advance/plugin/src/delegation-matrix.test.ts:63-71 ; optimized-handoff-assets.test.ts:43-56,153-164",
+          "summary": "KNOWN_SPAWNABLE_SUBAGENTS allowlist + payload-skeleton + packet-anchor tests gate any agent/transport. Draft 'no net-new agent, general as executor' is the low-blast path; bundle schema/anchors must land in these test fixtures."
+        }
+      ],
+      "architecture_assessment": "Draft is directionally correct and aligns with the boring path the discovery scout already found: upgrade the existing untyped Verify-Only Burst lane, keep general as executor, clone the adv-scanner-bundle orchestrator-submitted transport rather than minting a new spawnable agent. Highest-leverage corrections, all evidence-backed: (1) The draft's report scope_key 'verifier:<phase>' is invalid against ChangeReportScopeKeySchema (subagent-reports.ts:30) — reuse the scanner-bundle namespace or extend the regex + its tests, else submit() rejects every triage report. (2) engineer_handoff should ride the existing required_follow_ups consumer (subagent-report.ts:825) so the cheap worker emits an obligation and main ADV owns routing — this satisfies AC3/AC4 structurally instead of via a parallel handoff field. (3) The draft's new 'UNKNOWN' error_class is outside the live ErrorClass enum (status.ts:202); either map it to a routing-only label that blocks auto-handoff (good) or reconcile with the doom-loop tracker, but do not silently widen the persisted enum. (4) Reuse scanner-bundle's field-source map pattern (worker_derived vs packet_anchor) so identity fields are anchor-derived, preserving the no-worker-state-mutation boundary by construction. (5) Single spec insertion point at spec.json:77 plus matrix/handoff test fixtures is the full blast radius — no new agent file, no model-routing churn.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contract-compromising blocker. One must-fix correctness item: draft scope_key 'verifier:<phase>' fails ChangeReportScopeKeySchema and will reject reports at runtime — design must pick scanner-bundle namespace or extend the regex with tests. 'UNKNOWN' error_class is net-new vs the live 4-value enum; keep it routing-only or reconcile. Both are design-resolvable, not contradictions."
+      },
+      "recommendation": "Adopt the draft but bind it to existing substrates: (a) clone ScannerBundleSubagentReportSchema into a triage-bundle branch in ChangeScopedSubagentReportSchema with a valid scope_key namespace; (b) express engineer_handoff via required_follow_ups so main ADV owns routing and the worker stays evidence-only; (c) reuse the 4-value ErrorClass enum and treat UNKNOWN as a routing-only auto-handoff blocker, not a persisted class; (d) land the typed packet_contract at spec.json:77 and update delegation-matrix + optimized-handoff-assets test fixtures. Keep general as executor; no net-new spawnable agent.",
+      "follow_ups": [
+        "Design decision: scope_key namespace — reuse 'scanner-bundle:<phase>' vs add a new 'verifier' token to ChangeReportScopeKeySchema regex (+ ChangeReportScopeKeySchema tests).",
+        "Design decision: model engineer_handoff as required_follow_ups obligation (reuse consumer) vs net-new packet field.",
+        "Confirm UNKNOWN error_class is routing-only (blocks auto-handoff) and not persisted into task.error_recovery doom-loop enum."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addVerificationTriage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: verification triage authority-free scanner bundle",
+      "sources": [
+        {
+          "label": "ErrorRecoverySchema (task error_class enum)",
+          "locator": "plugin/src/types/tasks.ts:111-126",
+          "summary": "error_class strictly enum [TRANSIENT, SEMANTIC, ENVIRONMENTAL, FATAL] — no UNKNOWN. Confirms design's 'UNKNOWN routing-only, must not map to task.error_recovery' constraint is REQUIRED to avoid Zod rejection."
+        },
+        {
+          "label": "adv-scanner-bundle precedent (orchestrator-submitted change-scoped report)",
+          "locator": "plugin/src/types/subagent-reports.ts:387-411, 640-654",
+          "summary": "Existing orchestrator-submitted, non-worker-authored, change-scoped bundle report. Direct architectural precedent for adv-verification-triage-bundle: same submit-by-main-ADV pattern, ChangeScopedBaseSubagentReportSchema, field-source table, union membership."
+        },
+        {
+          "label": "ChangeReportScopeKeySchema regex",
+          "locator": "plugin/src/types/subagent-reports.ts:26-31",
+          "summary": "Regex only permits (researcher|tron|scanner-bundle):<slug> plus review:acceptance / harden:release. Proposed scope_key 'verifier:<slug>' is NOT yet allowed and will fail Zod validation unless this regex + SubagentAgentSchema enum are extended in implementation."
+        },
+        {
+          "label": "Verify-Only Burst spawn contract (current prose-only surface)",
+          "locator": ".opencode/command/adv-apply.md:462-485; .adv/specs/delegation-defaults/spec.json:77",
+          "summary": "Existing Verify-Only Burst returns unstructured PASS/FAIL with errors[]; main agent classifies+fixes inline; allowed_subagents=[general]. Design upgrades this exact lane (no phantom worker) — satisfies AC6 and objective 5."
+        },
+        {
+          "label": "errorRecoveryFromReport switch (change-scoped agents return null)",
+          "locator": "plugin/src/temporal/change-state.ts:870-879",
+          "summary": "adv-researcher/adv-tron/adv-scanner-bundle return null (no error_recovery side effect on submit). New bundle must follow same null path so authority-free triage never auto-mutates task.error_recovery — reinforces C1/DONT4."
+        },
+        {
+          "label": "doom-loop TRANSIENT exclusion + default-SEMANTIC",
+          "locator": "plugin/src/events/status.ts:202-313",
+          "summary": "Routing labels (TRANSIENT vs SEMANTIC) carry real downstream effect on doom-loop budget. Confirms AC5 evidence-policy requirement for flake/transient labels is well-motivated; unsupported TRANSIENT label would suppress doom-loop accounting."
+        }
+      ],
+      "architecture_assessment": "Design is structurally sound and well-aligned with the existing codebase. It cleanly reuses the proven adv-scanner-bundle pattern: an authority-free worker emits strict JSON, and main ADV (not the worker) submits/persists a change-scoped bundle report via adv_subagent_report_submit. Authority boundary (no gate/scope/state mutation, no acceptance/release, no code edits, no final synthesis by the worker) maps exactly onto how change-scoped sidecar reports already behave (errorRecoveryFromReport returns null; persistence owned by main ADV). The UNKNOWN-routing-only rule is not just safe but necessary: task.error_recovery.error_class has no UNKNOWN member, so any attempt to fold UNKNOWN into error_recovery would fail the Zod boundary. Upgrading the existing Verify-Only Burst / general lane rather than minting a new spawnable agent matches delegation-defaults spec law and the prose-only adv-apply verify contract, satisfying objective 5 and AC6. The CI/check-run path additionally reuses the existing 'general' GitHub CI investigation routing already documented in orchestrator ops delegation. Two implementation-surface details must be carried into prep/apply or they will break at the type boundary: (1) ChangeReportScopeKeySchema regex and SubagentAgentSchema enum do not yet admit a 'verifier:' prefix / new agent literal, so the new scope_key and agent will be rejected until both are extended; (2) the new schema must be added to ChangeScopedSubagentReportSchema union, SUBAGENT_REPORT_FIELD_SOURCES, and the errorRecoveryFromReport switch (returning null). These are normal additive integration steps, not design flaws.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No CONFLICT with spec law or agreement. CAUTION is advisory only: design is approvable as-is provided implementation extends ChangeReportScopeKeySchema (verifier: prefix) and SubagentAgentSchema (new agent literal), and wires the new schema into the union + field-source table + errorRecoveryFromReport(null). UNKNOWN must remain routing-only (cannot enter error_recovery.error_class). Recommend design explicitly name these touch points so prep does not discover them late."
+      },
+      "recommendation": "VALIDATED-WITH-CAUTION. The design correctly solves all five objectives and respects every constraint (C1-C5) and avoidance (DONT1-DONT5); it reuses the canonical adv-scanner-bundle authority-free-report pattern rather than inventing a novel mechanism, which is the simplest viable approach. Before/at prep, surface three concrete integration touch points so they are not late surprises: (a) extend ChangeReportScopeKeySchema regex to admit verifier:<slug> and add the new agent to SubagentAgentSchema; (b) register the new bundle in ChangeScopedSubagentReportSchema, SUBAGENT_REPORT_FIELD_SOURCES, and errorRecoveryFromReport (must return null like other change-scoped agents); (c) keep UNKNOWN strictly routing-only since task error_class has no UNKNOWN member. No simpler equivalent and no overlooked viable alternative — a brand-new spawnable agent would violate AC6/objective-5 and add surface area for no benefit.",
+      "follow_ups": [
+        "Implementation must extend ChangeReportScopeKeySchema regex (verifier:<slug>) and SubagentAgentSchema enum, else scope_key/agent fail Zod ingest (subagent-reports.ts:21,26-31).",
+        "New bundle schema must be added to ChangeScopedSubagentReportSchema union + SUBAGENT_REPORT_FIELD_SOURCES + errorRecoveryFromReport switch returning null (subagent-reports.ts:406-411,640; change-state.ts:870-879).",
+        "Confirm CI/check_check_run lane reuses existing 'general' GitHub CI investigation routing rather than a second worker name (orchestrator ops delegation precedent).",
+        "adv_change_show was unreachable this session (WorkflowNotFoundError); validation used inline packet + repo source evidence only — re-confirm against live agreement/design artifacts if they diverge from packet."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addVerificationTriage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addVerificationTriage",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "contract-traceability-praise-1",
+          "label": "praise",
+          "file": "plugin/src/types/subagent-reports.ts",
+          "line": 459,
+          "what": "Verification triage bundle has strict change-scoped schema with local and CI targets, status/classification, evidence, and route_adv_engineer predicates.",
+          "why": "This directly traces AC1, AC2, AC3, AC4, and AC6 into machine-checkable ingest behavior."
+        },
+        {
+          "id": "evidence-policy-praise-1",
+          "label": "praise",
+          "file": ".adv/specs/subagent-reports/spec.json",
+          "line": 647,
+          "what": "Spec law now names routing-safe evidence policy for SEMANTIC, TRANSIENT, ENVIRONMENTAL, FATAL, and UNKNOWN classifications.",
+          "why": "This supports AC5 and prevents unsupported flaky/environmental claims from becoming accepted triage guidance."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": ".opencode/command/adv-apply.md",
+          "summary": "Aligned Verification Triage Result example with actual strict bundle schema: object-shaped command/ci_check targets, non-empty source-backed finding evidence, and explicit TRANSIENT/ENVIRONMENTAL/unsupported-flake evidence policy.",
+          "verification": "bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts passed (5 tests)."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When documenting strict worker/result JSON contracts backed by Zod, examples must mirror the actual schema object shape and required non-empty evidence arrays; placeholder strings/empty arrays can create phantom worker contracts even when schema tests pass."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Preflight confirmed all primary affected paths exist. Reviewed schema, ingest tool, workflow signal persistence, specs, command/agent guidance, and asset tests against AC1-AC6. Focused asset verification passed: 1 file, 5 tests. User-provided prior verification also reported targeted 118-test selection passed and pnpm run check passed before this doc-only reviewer fix."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Classification evidence quality for TRANSIENT/ENVIRONMENTAL remains partly semantic/orchestrator-reviewed; schema enforces presence of evidence fields but cannot prove claims are true."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addVerificationTriage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addVerificationTriage",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 4,
+      "dimensions": [
+        "test_coverage",
+        "residual_slop_maintainability",
+        "documentation_hygiene",
+        "production_readiness",
+        "deployment_readiness",
+        "cleanup_readiness",
+        "documentation_hygiene_reverify"
+      ],
+      "summary": "Release harden READY. Initial documentation-hygiene medium/low findings were fixed and re-verified; targeted asset tests passed (21 tests), pnpm run check passed. No blocker/high findings remain; no cleanup/deploy/prod blockers found.",
+      "findings": [
+        {
+          "scanner": "test_coverage_slop",
+          "severity": "info",
+          "summary": "Test coverage and residual slop scan READY. Strong co-located tests/assets cover schema, tool ingestion, workflow sidecar behavior, routing predicates, and packet/spec anchors. Non-blocking notes: pre-existing safe cast in subagent-report.ts, runtime-only superRefine not expressible in generated JSON Schema, evidence_basis remains narrative while findings evidence is structural.",
+          "evidence": [
+            {
+              "label": "schema tests",
+              "locator": "plugin/src/types/subagent-reports.test.ts",
+              "summary": "local_verify/ci_check parsing, route predicates, UNKNOWN routing-only covered."
+            },
+            {
+              "label": "workflow/tool tests",
+              "locator": "plugin/src/tools/subagent-report.test.ts; plugin/src/temporal/workflows.signal-handlers.test.ts",
+              "summary": "verification triage bundle sidecar-only persistence and dryRun preview covered."
+            }
+          ]
+        },
+        {
+          "scanner": "documentation_hygiene",
+          "severity": "info",
+          "summary": "Documentation-hygiene findings DH-01..DH-06 and spec discoverability VT-002 were fixed, then targeted re-scan verified all resolved.",
+          "evidence": [
+            {
+              "label": "routing summary",
+              "locator": ".opencode/command/adv-apply.md:443",
+              "summary": "Uses real general target with verify-burst qualifier."
+            },
+            {
+              "label": "scope key guidance",
+              "locator": ".opencode/command/adv-apply.md:496",
+              "summary": "States verifier slug is hyphen-only and must not mirror underscored phase values."
+            },
+            {
+              "label": "spec order/body/tags",
+              "locator": ".adv/specs/subagent-reports/spec.json",
+              "summary": "rq18 precedes rq19; rq19 body enumerates targets and optional consumer_warnings; rq07 tags include verification and triage."
+            }
+          ]
+        },
+        {
+          "scanner": "production_deployment_cleanup",
+          "severity": "info",
+          "summary": "Production, deployment, and cleanup readiness READY. No env vars, migrations, external services, CI/CD, infrastructure, temp/debug artifacts, or workflow-bundle boundary regressions found.",
+          "evidence": [
+            {
+              "label": "verification",
+              "locator": "bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts src/subagent-reports-spec-assets.test.ts",
+              "summary": "21 tests passed after harden remediation."
+            },
+            {
+              "label": "verification",
+              "locator": "pnpm run check",
+              "summary": "schemas:check, typecheck, isolation, lockfile policy, lint, and format:check passed."
+            }
+          ]
+        }
+      ],
+      "follow_ups": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-06-28T15:45:18.786Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved proposal via chat: \"approve\".",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "ee48ee3813a3d4c721444322ddd78a942925440a067479df4522f156d9f22f4e",
+        "non_whitespace_chars": 5435,
+        "checked_at": "2026-06-28T15:43:36.288Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-06-28T16:30:29.334Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed after user approved criteria via chat: \"approve\". Agreement persisted and contract minted with 23 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "non_whitespace_chars": 3987,
+        "checked_at": "2026-06-28T15:43:36.289Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-06-28T16:41:44.351Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded and independently validated. Validator verdict: VALIDATED with caution-level integration notes; no unresolved conflict or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "304ba82fdd5fa50761ccdad6e230b53821f74af73fa857e1f4ade2204addc8e6",
+        "non_whitespace_chars": 10325,
+        "checked_at": "2026-06-28T15:43:36.290Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-01T21:25:18.574Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan via chat: \"approve\". Task graph has 5 tasks, strict validation passed with only NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-01T21:55:31.756Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks completed in ADV worktree. Verification passed: targeted triage/schema/asset/workflow tests selected 118 passing tests; `pnpm run check` passed after schema generation and formatting. Git working tree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-01T22:42:55.443Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work via chat: \"approve\". Independent review READY; 23/23 contract review matrix rows pass/respected/not_applicable; executive summary persisted with content hash f8fc117fbad4b13e124bec9c52064f668a992883667b0ebfb68f870b0388ca41; preview URL not_applicable because visual_surface false.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "f8fc117fbad4b13e124bec9c52064f668a992883667b0ebfb68f870b0388ca41",
+        "non_whitespace_chars": 2016,
+        "checked_at": "2026-06-28T15:43:36.291Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-06-28T15:43:34.178Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+      "approvedAt": "2026-06-28T16:30:19.330Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** Main ADV spends less decision-context on raw local/CI verification output because triage output is structured and bounded.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** Verification failures are classified consistently enough for main ADV to choose retry, engineer handoff, user escalation, or no-op.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** Cheap workers remain evidence collectors only; main ADV keeps all authority boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**SC4:** Fixable in-scope failures can flow from triage to `adv-engineer` through a scoped handoff.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Local verification bursts and CI/check-run failures both have a defined triage path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Triage output is machine-readable, not prose-only, and includes status, command/check identity, bounded evidence, classification, confidence/evidence basis, and recommended next ADV action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Triage worker/job cannot complete gates, mutate ADV state, change scope, edit code, or publish final user-facing conclusions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Main ADV owns any `adv-engineer` remediation handoff and only routes fixes after validating in-scope classification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** Transient/flaky/environmental labels require an evidence policy defined in design; unsupported “flake” claims are invalid.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** Existing verify-burst/operational delegation behavior is upgraded or explicitly superseded; no phantom worker route is introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** Worker output is evidence, not authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** Main ADV owns gate completion, scope decisions, ADV state mutation, release/acceptance authority, and user-facing synthesis.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** Verification claims must be source-backed by logs, command output, check-run metadata, or test evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** First implementation must cover both local verification bursts and CI/check-run failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5:** Design must decide transient/flaky/environmental evidence policy before those labels drive routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1:** Do not let cheap workers decide release readiness, acceptance, scope drift, or cancellation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2:** Do not create unbounded polling loops in normal ADV context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3:** Do not hide red verification behind generic retry or “flake” labels without evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4:** Do not make triage worker/job silently edit code or mutate ADV state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5:** Do not introduce a phantom worker route without shipped agent assets or explicit use of an existing worker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1:** Branch protection, GitHub Actions policy, and CI provider configuration changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2:** Replacing passive CI waiting unless design finds consolidation with `addCiWaitAgent` is the cleanest path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3:** Changing `adv_run_test` internals unless design proves result shape changes are required for triage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-01T22:05:31.460Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Structured verification triage docs/schema reduce raw-output digestion: adv-apply Verification Triage Result, adv-verification-triage-bundle schema, reviewer READY."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Schema enforces error_class, confidence, evidence_basis, recommended_next_action; route predicates tested in subagent-reports.test.ts."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Worker packet forbids editing, ADV state mutation, gate completion, final user-facing conclusions; bundle is orchestrator-submitted evidence only."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "route_adv_engineer predicate and suggested_handoff schema implemented; main ADV validation ownership documented in adv-apply."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "local_verify and ci_check phases plus command/ci_check targets implemented; asset tests passed."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "VerificationTriageBundle schema includes status, targets, bounded evidence, error_class, confidence, evidence_basis, recommended_next_action; tests passed."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-apply packet rules forbid edit/state/gate/scope/user-facing authority; change-state stores bundle sidecar only; tests passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "route_adv_engineer requires SEMANTIC, no scope risk, high/medium confidence, handoff; main ADV owns actual adv-engineer packet."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "TRANSIENT/ENVIRONMENTAL evidence policy documented; unsupported flake invalid; UNKNOWN routing-only; tests passed."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing Verify-Only Burst remains general with packet contract; no new spawnable agent added; delegation-matrix tests passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Specs and command docs state bundle/worker output is evidence, not authority."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command docs preserve main ADV gate/scope/state/release/user-facing ownership."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Target/finding evidence schemas require source references; command docs require logs/check metadata/test evidence."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "local_verify command targets and ci_check repo/check/head_sha targets both implemented."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "TRANSIENT, ENVIRONMENTAL, FATAL, SEMANTIC, UNKNOWN evidence semantics specified in spec and adv-apply."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No worker release/acceptance/scope/cancellation authority introduced; reviewer READY."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No polling loops added; ci_check consumes existing failure evidence only."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Unsupported flake claims explicitly invalid; transient requires rerun/infra evidence."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Worker packet forbids code edits and ADV mutation; worker does not call adv_subagent_report_submit."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No adv-verifier spawnable agent introduced; existing general Verify-Only Burst upgraded structurally."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No branch protection, GitHub Actions policy, or CI provider config changes made."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Passive CI waiting not replaced; triage handles observed failure evidence only."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "adv_run_test internals unchanged."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Local verification bursts and CI/check-run failures both have a defined triage path.",
+    "**AC2:** Triage output is machine-readable, not prose-only, and includes status, command/check identity, bounded evidence, classification, confidence/evidence basis, and recommended next ADV action.",
+    "**AC3:** Triage worker/job cannot complete gates, mutate ADV state, change scope, edit code, or publish final user-facing conclusions.",
+    "**AC4:** Main ADV owns any `adv-engineer` remediation handoff and only routes fixes after validating in-scope classification.",
+    "**AC5:** Transient/flaky/environmental labels require an evidence policy defined in design; unsupported “flake” claims are invalid.",
+    "**AC6:** Existing verify-burst/operational delegation behavior is upgraded or explicitly superseded; no phantom worker route is introduced."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n# Add verification triage\n\n## Why\n\nPrimary ADV still spends high-value context on repeated verification failure work: running or inspecting local and CI checks, reading failure output, classifying causes, deciding whether code remediation is needed, and preparing enough context for a fixer. `adv-ci-waiter` solved passive CI waiting; the next gap is active verification triage that preserves main-agent context, improves reliability, reduces latency, and can hand fixable failures to `adv-engineer` without giving cheap workers gate, scope, state, or user-facing authority.\n\n## What Changes\n\n- Establish an explicit verification-triage worker job for repeated local/CI verification failures.\n- Define the worker's evidence-only boundary: gather bounded check/log evidence, classify failure shape, and produce a compact handoff when remediation appears needed.\n- Define the main ADV routing boundary: main ADV decides whether to retry, escalate, route to `adv-engineer`, re-enter scope, or report to the user.\n- Align the new triage flow with existing verify-burst delegation, operational delegation, review/harden, archive/CI wait, and apply retry contracts.\n\n## User Outcomes\n\n- ADV keeps main-agent context focused on decisions and synthesis instead of raw verification/log digestion.\n- Verification and CI failures produce consistent, evidence-backed classifications.\n- Fixable failures can be handed to an implementation worker with enough context to act safely.\n- Users see clearer blocked/pending/fix-needed status without paying main-agent context for routine triage.\n\n## Scope\n\n### In Scope\n\n- Verification failure triage for local checks, CI/check-run failures, lint/type/test/format output, and bounded failure evidence summaries.\n- Worker-output shape that supports safe handoff from main ADV to `adv-engineer` when remediation is in scope.\n- Routing rules that decide when main ADV should outsource verification triage instead of handling it inline.\n- Documentation/spec/test alignment so the worker job does not become an informal or phantom process.\n\n### Out of Scope\n\n- Giving cheap workers authority to complete gates, mutate ADV state, change scope, or publish final user-facing conclusions.\n- Replacing `adv-ci-waiter` passive waiting behavior unless discovery shows consolidation is cleaner.\n- Automating arbitrary code fixes directly inside the triage worker.\n- Changing repository branch protection, GitHub Actions policy, or CI provider configuration.\n\n### Must Not\n\n- Must not let a cheap worker decide release readiness, acceptance, scope drift, or cancellation.\n- Must not create unbounded polling loops in normal ADV context.\n- Must not hide red verification behind a generic retry or \"flake\" label without evidence.\n- Must not require user interaction for routine verification triage when evidence can be collected safely.\n\n## Affected Code\n\n- `.opencode/agents/` — possible new or expanded worker prompt.\n- `.opencode/agents/adv.md` and `ADV_INSTRUCTIONS.md` — operational routing and authority boundary.\n- `.opencode/command/adv-apply.md`, `adv-review.md`, `adv-harden.md`, and/or `adv-archive.md` — points where verification triage may be invoked.\n- `plugin/src/types/subagent-reports.ts` / report consumers if a persisted typed report is needed.\n- `plugin/src/*assets*.test.ts` and related tests — structural checks for worker roster, packet contract, and routing guidance.\n- Docs/spec mirrors for relevant ADV workflow/delegation capabilities, as discovery confirms.\n\n## Related Repositories\n\n- Primary: Advance repo at `/home/jon/dev/advance`.\n- Toolbox remains relevant as origin context for `oc-ci-wait` and local test throttle policy, but intended change target is Advance.\n\n## Constraints\n\n- Main ADV owns gate completion, scope decisions, ADV state mutation, release/acceptance authority, and final user-facing synthesis.\n- Cheap worker output is evidence, not authority.\n- If remediation is needed, main ADV routes a scoped packet to `adv-engineer` or handles inline; the triage worker does not silently edit code.\n- Verification claims must remain source-backed by logs, command output, check-run metadata, or test evidence.\n\n## Impact\n\nExpected impact is lower main-agent context pressure, more reliable failure classification, faster turnaround on repeated verification failures, and cleaner handoffs from verification evidence to implementation remediation.\n\n## Context\n\nThe idea follows the success of `adv-ci-waiter`: a low-cost scoped worker replaced either expensive main-agent waiting or human re-engagement. User priorities for the next outsourcing pattern are, in order: context preservation, reliability, latency reduction, and cost reduction. User-stated hard boundaries: cheap workers must not own gate decisions, scope changes, ADV state mutations, or user-facing synthesis.\n\nExisting adjacent change `addCiWaitAgent` covers passive CI waiting / PR-state evidence. This proposal is adjacent but distinct: active verification triage and remediation handoff.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`; no pending global skill review surfaced by `review_status: pending` search. |\n| Prior Research Extension | PASS | Cited `docs/adv-run-test-prep.md`; no `temp/brainstorm-*.md` found. |\n| Conflict & Related-Work Scan | PASS | Related active change: `addCiWaitAgent`; target-path validation tool is unavailable from this session and returned `WorkflowNotFoundError` when called without target routing. |\n| Edge Case Investigation | PASS | Edge cases documented below. |\n| Design Question Depth | PASS | Open questions include trust model, blast radius, alternatives. |\n| Draft Spec Delta Shapes | PASS | Draft deltas listed below. |\n| Related Pattern Scan | PASS | Current verify-burst and operational delegation patterns found. |\n| LBP Check | PASS | Best long-term practice is to upgrade existing verify-only lane with machine-readable output before deciding on net-new agent. |\n| Completeness Verification | PASS | Cross-cutting surfaces scanned proportionally; no sole-entry claim made. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts` — matched. This change modifies sub-agent/worker packets and report contracts; skill requires schema, packet, prompt, transport, tests, and specs to stay aligned.\n- `customize-opencode` — relevant as background because worker agents live under `.opencode/agents/`, but not loaded during discovery because this phase is not editing config.\n\n### Extends\n\n- `docs/adv-run-test-prep.md` — relevant prior research on structured verification evidence. New finding: this proposal should not start by changing `adv_run_test`; it should first make worker/triage output machine-readable so existing local and CI verification evidence can be consumed consistently.\n- `docs/specs/advance-meta.md` `rq-orchestratorOpsDelegation01` — current law already requires delegating repeated verify/test bursts and GitHub CI/check-run/status investigation while primary ADV retains authority. New finding: the gap is not lack of delegation permission; it is insufficient structured triage output and handoff behavior.\n\n### Conflict Scan\n\n- Active related change `addCiWaitAgent` covers passive CI waiting and PR-state evidence. This change should coordinate with it but need not replace it.\n- No source text for `adv-ci-waiter` or `oc-ci-wait` exists in `/home/jon/dev/advance` yet, so discovery treats waiter implementation as not landed.\n- ADV target-path validation is not available through `adv_change_validate`; calling it without target path returned `WorkflowNotFoundError` for the toolbox project namespace. This is a tooling limitation, not a product conflict.\n- Agenda scan in current session surfaced many toolbox-level items, including target-path and worker issues, but no exact verification-triage duplicate in the visible subset.\n\n### Current State\n\n- `.opencode/command/adv-apply.md` already contains a **Verify-Burst Delegation** section: heavy verification bursts route to `general`, with expected output `PASS|FAIL`, exit code, errors, and summary.\n- Current post-spawn handling still says worker FAIL → main agent classifies and fixes inline; classification remains main-context work.\n- `.opencode/agents/adv.md` already says `general` handles verify-only / generic multi-step bursts and main ADV resumes for synthesis, decisions, and ADV state mutation.\n- `docs/specs/advance-meta.md` requires the same operational delegation table and authority boundary.\n- `plugin/src/types/subagent-reports.ts` has strict typed reports for engineer/reviewer/designer/researcher/tron/scanner-bundle, but no verifier/triage-specific report variant.\n- `plugin/src/tools/checkpoint.ts` and ADV retry docs already use error-class vocabulary such as `SEMANTIC`, `TRANSIENT`, and `ENVIRONMENTAL`; discovery should reuse rather than invent conflicting labels.\n\n### Edge Cases\n\n- Worker returns prose-only or malformed JSON: main ADV must treat triage as inconclusive and avoid using it as authority.\n- Local verification fails because formatting/lint drift is unrelated to touched scope: triage must identify scope relevance before recommending remediation.\n- CI fails on stale head SHA or outdated PR check: triage must include target SHA/check identity so main ADV does not act on stale evidence.\n- CI passes but PR remains unmerged or blocked by policy/review/merge queue: triage must report PR/check state separately from release readiness.\n- Worker detects a fixable-looking failure that would require scope expansion: triage must flag scope-risk; main ADV handles drift/re-entry/split decision.\n- Worker labels failure transient/flaky too eagerly: design must define structural evidence policy before such labels can drive behavior.\n\n### Open Design Questions\n\n1. **New worker vs existing `general` verify-burst lane**\n   - Trust model: agent-resolved design decision, because user cares about outcome and boundaries rather than exact worker file.\n   - Blast radius: new worker requires roster, deployment, report-schema, model-routing, and phantom-agent tests; upgrading existing lane is smaller.\n   - Alternatives: net-new `adv-verifier`; typed `general` verify-triage packet; extend future `adv-ci-waiter`; hybrid.\n\n2. **Report transport shape**\n   - Trust model: agent-resolved with user constraint that output must be more than prose.\n   - Blast radius: persisted typed report changes schema/tooling; scanner-style JSON changes command contracts but less durable.\n   - Alternatives: typed persisted worker report; orchestrator-submitted scanner bundle; structured JSON returned to main ADV only.\n\n3. **Remediation handoff**\n   - Trust model: joint. User clarified that better structured triage must come first; design should define safer handoff.\n   - Blast radius: automatic `adv-engineer` handoff can improve latency but risks over-fixing if classification is weak.\n   - Alternatives: main ADV always decides; auto-route only after machine-readable in-scope classification; report-only mode.\n\n4. **Transient/flaky evidence policy**\n   - Trust model: agent-resolved in design; user deferred to design.\n   - Blast radius: too loose causes false flake labels; too strict slows remediation.\n   - Alternatives: require rerun or known-infra signal; allow single strong signal; avoid flaky label and use `unknown` unless proven.\n\n### Draft Spec Deltas\n\n- `rq-verificationTriage01`: Given main ADV has already observed a local or CI verification failure and the next diagnostic step is authority-free, when another verification/log digestion cycle would otherwise run in primary context, then ADV routes that work through verification triage and resumes primary context for decisions.\n- `rq-verificationTriage02`: Given verification triage runs, when it returns, then output includes machine-readable command/check identity, status, exit/conclusion, bounded evidence, target SHA or workdir context when applicable, classification, confidence/evidence basis, and recommended next ADV action.\n- `rq-verificationTriage03`: Given triage identifies a likely in-scope fix, when main ADV accepts the classification, then main ADV may route a scoped remediation packet to `adv-engineer`; the triage worker itself must not edit code or mutate ADV state.\n- `rq-verificationTriage04`: Given triage labels a failure transient/flaky/environmental, when that label affects routing, then the label must cite structural evidence defined by design rather than rely on unsupported prose.\n\n### Related Pattern Scan\n\n- Existing verify-burst pattern: `.opencode/command/adv-apply.md` has verify-burst delegation to `general`, but no durable typed triage output.\n- Existing operational delegation pattern: `.opencode/agents/adv.md`, `ADV_INSTRUCTIONS.md`, and `docs/specs/advance-meta.md` already route repeated verify/test bursts and CI/check-run/status investigation away from primary ADV.\n- Existing report-contract pattern: `plugin/src/types/subagent-reports.ts` and `subagent-reports` asset tests define strict report variants for known sub-agent roles; verification triage lacks a dedicated variant.\n- Existing no-phantom pattern: `plugin/src/phantom-subagent-roster.test.ts` and delegation matrix tests will need updates if a new worker name is introduced.\n\n### Completeness Verification\n\n- Problem-completeness: full problem is broader than CI waiting. It includes local verify bursts, CI/check-run failures, evidence digestion, classification, and safe remediation handoff. Confidence: high based on current verify-burst, operational-delegation, and subagent-report surfaces.\n- Solution-scope: full intended solution should cover worker output structure before remediation automation. User explicitly corrected that worker output must become more than prose first, then design a better triage system. Confidence: high.\n- Sole-entry claim: none. Multiple workflow surfaces may invoke triage: apply verify bursts, review/harden verification, archive/CI checks, and general operational routing.\n- Secondary surfaces: `adv-apply` is in scope; review/harden/archive triggers should be evaluated in design; `adv_run_test` internals are out of scope unless design proves result shape must change.\n\n### LBP Check\n\nBest long-term practice is to upgrade an existing delegation path into typed verification triage before adding a new agent name. This matches structural-correctness guidance: machine-readable report schema, packet contract, and tests before heuristic routing. External alternative research is not needed now because this is an internal ADV workflow/contract problem and `docs/adv-run-test-prep.md` already captured verification-tooling landscape.\n\n### Discovery Opportunity Scout\n\nScout ran via `adv-researcher` and submitted report `addVerificationTriage|change:researcher:discovery-opportunity-scout|adv-researcher|1`.\n\nAdopted now:\n- Upgrade existing verify-only burst lane before building a net-new agent.\n- Reuse existing ADV error-class taxonomy where possible instead of inventing labels.\n\nSurface to design:\n- Whether triage should persist into `task.error_recovery` only through main ADV, not worker mutation.\n- Whether a net-new `adv-verifier` is justified after structured output design.\n- Whether report schema needs a verifier branch or can use orchestrator-submitted scanner bundle.\n\n### Recommended Objectives\n\n1. Make verification triage output machine-readable and evidence-backed, not prose-only.\n2. Cover both local verification bursts and CI/check-run failures.\n3. Preserve main ADV authority over gates, scope, state mutation, release/acceptance, and user-facing synthesis.\n4. Enable safe main-ADV handoff from fixable in-scope triage findings to `adv-engineer`.\n5. Keep first design boring: upgrade existing verify-burst/operational delegation before adding a new worker unless evidence justifies one.\n\n### AMBIGUITY ANALYSIS\n\n- B1 LOW Boundaries: exact worker identity is unresolved. Evidence: \"possible new or expanded worker prompt\". Reason: design should decide whether existing `general`, future `adv-ci-waiter`, or a new agent owns the structured job.\n- F1 LOW Functional Scope: persistence path is unresolved. Evidence: \"Worker-output shape\". Reason: design must choose typed persisted report vs scanner-style JSON vs orchestrator-submitted bundle.\n- S1 LOW Completion Signals: transient/flaky standard deferred. Evidence: user answered \"let design decide\". Reason: discovery can carry design requirement, but final evidence policy belongs in design.\n- M: Clear. Evidence: user clarified \"all worker output is more than just prose\" and first version covers \"Local and CI\".\n- Coverage: B:C F:C S:C M:C\n\n## Discovery Agenda\n\n- Decide whether verification triage should be a new worker, an expansion of `adv-ci-waiter`, or a structured packet/report mode over existing `general`.\n- Define the minimal machine-readable output needed for main ADV to choose among retry, `adv-engineer` handoff, user escalation, or no-op.\n- Decide report transport: typed persisted worker report, scanner bundle, or returned structured JSON.\n- Define evidence policy for transient/flaky/environmental classification.\n- Identify exact workflow trigger points: apply verify bursts, review/harden checks, archive/release CI failures, and operational delegation.\n- Verify interactions with no-polling, worktree isolation, local test throttle, and CI wait policies.\n\n## Proposal Quality Notes\n\nNo critical B/F/S ambiguity found. Remaining questions are design-level implementation choices, not blockers to agreement.",
+    "problemStatement": "Primary ADV still spends high-value context on repeated verification failure work: running/checking local or CI results, reading logs, classifying failures, deciding whether code remediation is needed, and preparing enough context for a fixer. `adv-ci-waiter` solved passive CI waiting; next gap is active verification triage that preserves main-agent context, improves reliability, reduces latency, and can hand fixable failures to `adv-engineer`.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make verification triage output machine-readable and evidence-backed, not prose-only.\n2. Cover both local verification bursts and CI/check-run failures.\n3. Preserve main ADV authority over gates, scope, state mutation, release/acceptance, and user-facing synthesis.\n4. Enable safe main-ADV handoff from fixable in-scope triage findings to `adv-engineer`.\n5. Prefer upgrading existing verify-burst/operational delegation before adding a new worker name unless design evidence justifies one.\n\n## Success Criteria\n\n- **SC1:** Main ADV spends less decision-context on raw local/CI verification output because triage output is structured and bounded.\n- **SC2:** Verification failures are classified consistently enough for main ADV to choose retry, engineer handoff, user escalation, or no-op.\n- **SC3:** Cheap workers remain evidence collectors only; main ADV keeps all authority boundaries.\n- **SC4:** Fixable in-scope failures can flow from triage to `adv-engineer` through a scoped handoff.\n\n## Acceptance Criteria\n\n- **AC1:** Local verification bursts and CI/check-run failures both have a defined triage path.\n- **AC2:** Triage output is machine-readable, not prose-only, and includes status, command/check identity, bounded evidence, classification, confidence/evidence basis, and recommended next ADV action.\n- **AC3:** Triage worker/job cannot complete gates, mutate ADV state, change scope, edit code, or publish final user-facing conclusions.\n- **AC4:** Main ADV owns any `adv-engineer` remediation handoff and only routes fixes after validating in-scope classification.\n- **AC5:** Transient/flaky/environmental labels require an evidence policy defined in design; unsupported “flake” claims are invalid.\n- **AC6:** Existing verify-burst/operational delegation behavior is upgraded or explicitly superseded; no phantom worker route is introduced.\n\n## Constraints\n\n- **C1:** Worker output is evidence, not authority.\n- **C2:** Main ADV owns gate completion, scope decisions, ADV state mutation, release/acceptance authority, and user-facing synthesis.\n- **C3:** Verification claims must be source-backed by logs, command output, check-run metadata, or test evidence.\n- **C4:** First implementation must cover both local verification bursts and CI/check-run failures.\n- **C5:** Design must decide transient/flaky/environmental evidence policy before those labels drive routing.\n\n## Avoidances\n\n- **DONT1:** Do not let cheap workers decide release readiness, acceptance, scope drift, or cancellation.\n- **DONT2:** Do not create unbounded polling loops in normal ADV context.\n- **DONT3:** Do not hide red verification behind generic retry or “flake” labels without evidence.\n- **DONT4:** Do not make triage worker/job silently edit code or mutate ADV state.\n- **DONT5:** Do not introduce a phantom worker route without shipped agent assets or explicit use of an existing worker.\n\n## Out of Scope\n\n- **OOS1:** Branch protection, GitHub Actions policy, and CI provider configuration changes.\n- **OOS2:** Replacing passive CI waiting unless design finds consolidation with `addCiWaitAgent` is the cleanest path.\n- **OOS3:** Changing `adv_run_test` internals unless design proves result shape changes are required for triage.\n\n## Preview Applicability\n\nvisual_surface: false\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: Change affects ADV worker/command/report contracts, not browser-visible UI or visual output.\n\n## Decisions\n\n### User Decisions\n\n- User approved that worker output must become more than prose before designing remediation automation.\n- User selected first-version coverage: local verification bursts and CI/check-run failures.\n- User delegated transient/flaky threshold policy to design.\n- User hard boundaries: cheap workers must not own gate decisions, scope changes, ADV state mutations, or user-facing synthesis.\n\n### Agent Decisions (LBP)\n\n- Discovery recommends upgrading existing verify-burst/operational delegation before adding a new worker name, because current code already has a verify-only lane and structural tests around worker rosters.\n- Discovery recommends a machine-readable output contract as the first design focus, because remediation handoff is unsafe while triage remains prose-only.\n- Discovery recommends reusing existing ADV error-class vocabulary where possible, with design-defined evidence policy for any label that affects routing.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved by user via chat: \"approve\" on 2026-06-28.",
+    "design": "# Design\n\n## Architecture Overview\n\nVerification triage becomes a structured, authority-free scanner job, not a code-editing worker and not a gate authority.\n\nArchitecture shape:\n\n1. Main ADV detects a local verification burst or CI/check-run failure where another raw-output digestion cycle would otherwise run in primary context.\n2. Main ADV spawns a cheap verification-triage worker (`general` initially, with CI evidence optionally sourced from the future `adv-ci-waiter` path once that adjacent change lands).\n3. Worker returns strict machine-readable `VerificationTriageResult` JSON to main ADV. Worker does **not** call ADV mutation tools and does **not** call `adv_subagent_report_submit`.\n4. Main ADV validates and persists an orchestrator-submitted `VERIFICATION_TRIAGE_BUNDLE` report through `adv_subagent_report_submit` using a new Zod schema branch. This mirrors the existing `adv-scanner-bundle` pattern while preserving the user boundary that cheap workers do not mutate ADV state.\n5. Main ADV decides routing: continue, retry narrower, ask user, block environment, wait for CI, or build a final `adv-engineer` remediation packet.\n\nThis is intentionally not a greenfield agent-first design. The existing verify-burst/operational-delegation lane is upgraded from prose to structured triage.\n\n## Key Decisions\n\n### D1 — Use orchestrator-submitted triage bundle, not worker-submitted report\n\nDecision: cheap workers return structured JSON; main ADV submits a typed triage bundle.\n\nRationale:\n- Preserves C2/DONT4: cheap workers do not mutate ADV state.\n- Reuses existing `adv-scanner-bundle` precedent for orchestrator-submitted aggregated scanner evidence.\n- Gives ADV a Zod-validated persistence boundary without trusting a worker to own state mutation.\n\n### D2 — Add verification-specific report schema branch\n\nDecision: add a new report variant, conceptually `adv-verification-triage-bundle`, rather than overloading `adv-scanner-bundle` review/harden fields.\n\nShape:\n\n```ts\ntype VerificationTriageBundle = {\n  schema_version: \"1.0\";\n  change_id: string;\n  attempt: number;\n  workdir_used: string;\n  scope: { kind: \"change\"; scope_key: `verifier:${string}` };\n  agent: \"adv-verification-triage-bundle\";\n  phase: \"local_verify\" | \"ci_check\";\n  targets: VerificationTarget[];\n  status: \"pass\" | \"fail\" | \"inconclusive\";\n  error_class: \"SEMANTIC\" | \"TRANSIENT\" | \"ENVIRONMENTAL\" | \"FATAL\" | \"UNKNOWN\";\n  confidence: \"high\" | \"medium\" | \"low\";\n  evidence_basis: string;\n  findings: VerificationFinding[];\n  recommended_next_action:\n    | \"continue\"\n    | \"retry_narrower\"\n    | \"route_adv_engineer\"\n    | \"ask_user\"\n    | \"block_environment\"\n    | \"wait_ci\"\n    | \"no_action\";\n  scope_risk: boolean;\n  suggested_handoff?: {\n    summary: string;\n    in_scope: string[];\n    out_of_scope: string[];\n    done_when: string[];\n    verification: string[];\n  };\n  required_main_agent_actions: string[];\n  follow_ups: string[];\n};\n```\n\nImplementation must extend `ChangeReportScopeKeySchema` to accept `verifier:<slug>` and add tests so this does not fail at report submission.\n\n### D3 — Reuse existing error-class vocabulary with routing-only `UNKNOWN`\n\nDecision: use `SEMANTIC`, `TRANSIENT`, `ENVIRONMENTAL`, and `FATAL` consistently with existing retry/doom-loop vocabulary. Add `UNKNOWN` only inside the triage report as a routing-only state.\n\nRules:\n- `SEMANTIC`: deterministic test/type/lint/build/check failure with cited evidence.\n- `TRANSIENT`: rerun evidence or known infra/transport signal; not a casual “flake” label.\n- `ENVIRONMENTAL`: missing dependency, credential, tool, service, or external system.\n- `FATAL`: unsafe condition, contract/release blocker, or unrecoverable command surface issue.\n- `UNKNOWN`: evidence insufficient; blocks automatic `adv-engineer` handoff and must not be written into task `error_recovery` as an error class.\n\n### D4 — Main ADV owns remediation handoff\n\nDecision: triage can recommend `route_adv_engineer`, but main ADV must validate all routing predicates before spawning `adv-engineer`.\n\nRequired predicates:\n- `recommended_next_action === \"route_adv_engineer\"`\n- `error_class === \"SEMANTIC\"`\n- `scope_risk === false`\n- `confidence` is `high` or `medium`\n- `suggested_handoff` is present and names in-scope/out-of-scope/done_when/verification\n- main ADV independently confirms the fix is within approved agreement boundaries\n\nMain ADV then builds the actual `adv-engineer` packet. The triage bundle remains evidence, not authority.\n\n### D5 — Upgrade existing routing before adding new spawnable agent\n\nDecision: first implementation updates current verify-burst/operational delegation surfaces. Do not create a new spawnable `adv-verifier` unless implementation proves `general` lacks required tool isolation or model routing controls.\n\nRationale:\n- Current `delegation-defaults` already has `Verify-Only Burst` routed to `general`, but with no packet contract.\n- Existing phantom/roster tests make new agent names a broader blast radius.\n- The user’s primary requirement is structured output and better triage system, not necessarily a new visible agent name.\n\n## ADR Drafts\n\nNone. Decisions are important but not hard-to-reverse enough to require an ADR; they are captured in specs, schema, and tests.\n\n## Implementation Strategy\n\n1. **Schema foundation**\n   - Add `VerificationTriageBundleReportSchema` near existing sub-agent report schemas.\n   - Extend `SubagentAgentSchema` with `adv-verification-triage-bundle`.\n   - Extend `ChangeReportScopeKeySchema` to accept `verifier:<slug>`.\n   - Add scope-pairing rules: verification triage bundle is change-scoped only.\n\n2. **Spec-law updates**\n   - Add/extend `subagent-reports` requirements for orchestrator-submitted verification triage bundle.\n   - Add/extend `delegation-defaults` `Verify-Only Burst` substep with `packet_contracts`: report transport `orchestrator_submitted_verification_bundle`, required anchors `WORKING DIRECTORY`, `CHANGE`, `ATTEMPT`, and warning anchors `TASK_SCOPE`, `IN_SCOPE`, `OUT_OF_SCOPE`, `DONE_WHEN`, `STOP_WHEN`, `VERIFICATION`.\n   - Add/extend `advance-meta` operational delegation wording to mention structured verification triage for repeated verify/test and CI/check-run failures.\n\n3. **Command/agent routing**\n   - Replace prose-only verify-burst handling in `adv-apply.md` with a `Verification Triage Packet` and `Verification Triage Result` schema.\n   - Add guidance to `adv.md` / `ADV_INSTRUCTIONS.md`: repeated verify/test and CI/check-run failures should route to verification triage before a second primary digest cycle.\n   - Add CI/check-run triage hook where release/archive or operational routing currently reports/pends after check failure; keep passive waiting separate.\n\n4. **Consumer behavior**\n   - `adv_subagent_report_submit` validates and persists triage bundles.\n   - Follow-up consumers may create agenda items from `follow_ups`, but no consumer auto-routes fixes.\n   - Main ADV uses triage result to decide whether to spawn `adv-engineer`; worker output never spawns workers directly.\n\n5. **Tests**\n   - Schema tests for valid/invalid triage bundle, scope-key regex, agent/scope pairing, and `UNKNOWN` routing-only behavior.\n   - Asset tests verifying `Verify-Only Burst` gains packet contract and command docs include JSON result fields.\n   - Phantom/roster tests updated only if a new spawnable agent is actually introduced. This design avoids that in v1.\n   - Contract tests proving no worker prompt instructs verification worker to call ADV mutation tools.\n\n## LBP Analysis\n\nPreferred approach: upgrade the existing verify-burst lane with typed, orchestrator-submitted evidence. This is the smallest structural change that satisfies the agreement:\n\n- Machine-readable output: new Zod schema branch.\n- No worker state mutation: orchestrator submits the bundle.\n- Local + CI coverage: phase field and target model cover both.\n- Safe `adv-engineer` handoff: main ADV owns predicates and packet construction.\n- No phantom route: existing `general` worker remains default; no new spawnable agent is introduced in v1.\n\nRejected for v1:\n\n- **New `adv-verifier` worker** — possible later, but unnecessary until tool permissions/model routing prove `general` cannot satisfy the job.\n- **Worker-submitted typed report** — violates the user’s no worker state-mutation boundary.\n- **Prose-only JSON prompt with no persisted schema** — fails AC2 and structural-correctness intent.\n\n## Affected Components\n\n- `.adv/specs/delegation-defaults/spec.json`\n- `.adv/specs/subagent-reports/spec.json`\n- `.adv/specs/advance-meta/spec.json` and generated docs mirror\n- `.opencode/command/adv-apply.md`\n- `.opencode/command/adv-archive.md` if CI failure triage hook belongs there after implementation scan\n- `.opencode/agents/adv.md`\n- `ADV_INSTRUCTIONS.md`\n- `plugin/src/types/subagent-reports.ts`\n- `plugin/src/tools/subagent-report.ts`\n- Asset/schema tests around sub-agent reports, delegation matrix, operational delegation, and phantom worker prevention\n\n## Design-Derived Criteria\n\n- **DDC1:** `adv_subagent_report_submit` validates a triage bundle with `agent: \"adv-verification-triage-bundle\"`, `scope.kind: \"change\"`, and `scope_key` matching `verifier:<slug>`.\n- **DDC2:** `UNKNOWN` is accepted in triage reports only as a routing state and is not mapped into task `error_recovery.error_class`.\n- **DDC3:** Verification-triage worker prompts do not instruct workers to call ADV mutation tools or `adv_subagent_report_submit`.\n- **DDC4:** `route_adv_engineer` is valid only when `error_class` is `SEMANTIC`, `scope_risk` is false, confidence is not low, and `suggested_handoff` is populated.\n- **DDC5:** CI triage targets include enough identity to avoid stale evidence: repo/check identity and head SHA or equivalent check-run target.\n\n## Risks / Mitigations\n\n- **Risk:** Main ADV still has to parse worker JSON from a final message.\n  - Mitigation: keep worker JSON small, validate/persist through Zod before use, treat malformed output as inconclusive.\n\n- **Risk:** `UNKNOWN` leaks into existing doom-loop fields.\n  - Mitigation: schema/consumer tests prohibit mapping `UNKNOWN` to `task.error_recovery.error_class`.\n\n- **Risk:** Generic `general` worker may not be cheap enough or permission-scoped enough.\n  - Mitigation: v1 design avoids new agent but leaves an explicit follow-up decision point; if needed, add `adv-verifier` after schema is stable.\n\n- **Risk:** CI failure triage overlaps passive `adv-ci-waiter` work.\n  - Mitigation: passive wait remains separate; triage starts only after failure/current evidence exists and does not poll.\n\n## Design Leverage Scout\n\nScout result: CAUTION, all findings adopted or constrained.\n\n- Adopted: clone scanner-bundle transport pattern instead of worker-submitted report.\n- Adopted: add/extend packet contract at existing `Verify-Only Burst` substep.\n- Fixed: extend `ChangeReportScopeKeySchema` for `verifier:<slug>`; otherwise triage report would fail runtime validation.\n- Constrained: `UNKNOWN` is routing-only, not part of existing doom-loop error class persistence.\n\n## Validator Result\n\nValidator verdict: VALIDATED with CAUTION-level integration notes only.\n\nValidated findings:\n- `adv-scanner-bundle` is the correct precedent for orchestrator-submitted, non-worker-authored, change-scoped bundle reports.\n- Existing `Verify-Only Burst` is prose-only and routed to `general`; upgrading this lane satisfies AC6 without a phantom worker.\n- `ChangeReportScopeKeySchema` must be extended for `verifier:<slug>` before runtime submission works.\n- Existing task `error_class` enum is `TRANSIENT | SEMANTIC | ENVIRONMENTAL | FATAL`; `UNKNOWN` must stay routing-only.\n- Change-scoped reports do not auto-map into `error_recovery`, preserving the no worker state-mutation boundary.\n\nValidator recommendation: approve design and carry three prep touch points: scope-key/agent enum extension, report union/field-source/errorRecovery null wiring, and `UNKNOWN` routing-only tests.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nVerification triage is implemented as structured, orchestrator-submitted evidence for local verification bursts and CI/check-run failures. The delivered change upgrades the existing Verify-Only Burst lane without adding a phantom worker, preserving main ADV authority over gates, scope, state mutation, remediation routing, and user-facing synthesis.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `adv-verification-triage-bundle` as a strict change-scoped report variant with `verifier:<slug>` scope keys, `local_verify` / `ci_check` phases, command and CI check targets, source-backed findings, routing-only `UNKNOWN`, and structural `route_adv_engineer` predicates.\n2. Wired triage bundle ingestion through `adv_subagent_report_submit` as sidecar evidence only; workflow state stores it change-scoped and does not write task `error_recovery`.\n3. Updated `subagent-reports`, `delegation-defaults`, and `advance-meta` specs plus asset tests to define verification triage semantics, packet contracts, and no-authority boundaries.\n4. Updated ADV apply/orchestrator guidance with a Verification Triage Packet and strict Verification Triage Result contract, including local/CI target identity and transient/environmental evidence policy.\n5. Regenerated public schema output and completed end-to-end contract verification.\n\n## What Was Verified\n\n- Verdict: READY / APPROVED. Independent reviewer reported READY with no blocking findings after one scoped command-doc remediation.\n- Tests: targeted verification passed across triage schema, submit ingestion, spec assets, delegation matrix, orchestrator guidance, and workflow sidecar behavior: 6 files, 118 selected tests passed.\n- Pre-push check: `pnpm run check` passed after schema generation and formatting.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; implementation changes ADV worker/report/schema/command contracts, not browser-visible UI or visual output.\n- Contract matrix: 23/23 required rows pass/respected/not_applicable; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\n- Evidence truth for `TRANSIENT` and `ENVIRONMENTAL` remains orchestrator-reviewed; schema enforces structure and required evidence fields, not factual truth. This matches the approved authority boundary.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-01T22:05:31.460Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** Main ADV spends less decision-context on raw local/CI verification output because triage output is structured and bounded. | pass | Structured verification triage docs/schema reduce raw-output digestion: adv-apply Verification Triage Result, adv-verification-triage-bundle schema, reviewer READY. |\n| SC2 | success_criterion | **SC2:** Verification failures are classified consistently enough for main ADV to choose retry, engineer handoff, user escalation, or no-op. | pass | Schema enforces error_class, confidence, evidence_basis, recommended_next_action; route predicates tested in subagent-reports.test.ts. |\n| SC3 | success_criterion | **SC3:** Cheap workers remain evidence collectors only; main ADV keeps all authority boundaries. | pass | Worker packet forbids editing, ADV state mutation, gate completion, final user-facing conclusions; bundle is orchestrator-submitted evidence only. |\n| SC4 | success_criterion | **SC4:** Fixable in-scope failures can flow from triage to `adv-engineer` through a scoped handoff. | pass | route_adv_engineer predicate and suggested_handoff schema implemented; main ADV validation ownership documented in adv-apply. |\n| AC1 | acceptance_criterion | **AC1:** Local verification bursts and CI/check-run failures both have a defined triage path. | pass | local_verify and ci_check phases plus command/ci_check targets implemented; asset tests passed. |\n| AC2 | acceptance_criterion | **AC2:** Triage output is machine-readable, not prose-only, and includes status, command/check identity, bounded evidence, classification, confidence/evidence basis, and recommended next ADV action. | pass | VerificationTriageBundle schema includes status, targets, bounded evidence, error_class, confidence, evidence_basis, recommended_next_action; tests passed. |\n| AC3 | acceptance_criterion | **AC3:** Triage worker/job cannot complete gates, mutate ADV state, change scope, edit code, or publish final user-facing conclusions. | pass | adv-apply packet rules forbid edit/state/gate/scope/user-facing authority; change-state stores bundle sidecar only; tests passed. |\n| AC4 | acceptance_criterion | **AC4:** Main ADV owns any `adv-engineer` remediation handoff and only routes fixes after validating in-scope classification. | pass | route_adv_engineer requires SEMANTIC, no scope risk, high/medium confidence, handoff; main ADV owns actual adv-engineer packet. |\n| AC5 | acceptance_criterion | **AC5:** Transient/flaky/environmental labels require an evidence policy defined in design; unsupported “flake” claims are invalid. | pass | TRANSIENT/ENVIRONMENTAL evidence policy documented; unsupported flake invalid; UNKNOWN routing-only; tests passed. |\n| AC6 | acceptance_criterion | **AC6:** Existing verify-burst/operational delegation behavior is upgraded or explicitly superseded; no phantom worker route is introduced. | pass | Existing Verify-Only Burst remains general with packet contract; no new spawnable agent added; delegation-matrix tests passed. |\n| C1 | constraint | **C1:** Worker output is evidence, not authority. | respected | Specs and command docs state bundle/worker output is evidence, not authority. |\n| C2 | constraint | **C2:** Main ADV owns gate completion, scope decisions, ADV state mutation, release/acceptance authority, and user-facing synthesis. | respected | Command docs preserve main ADV gate/scope/state/release/user-facing ownership. |\n| C3 | constraint | **C3:** Verification claims must be source-backed by logs, command output, check-run metadata, or test evidence. | respected | Target/finding evidence schemas require source references; command docs require logs/check metadata/test evidence. |\n| C4 | constraint | **C4:** First implementation must cover both local verification bursts and CI/check-run failures. | respected | local_verify command targets and ci_check repo/check/head_sha targets both implemented. |\n| C5 | constraint | **C5:** Design must decide transient/flaky/environmental evidence policy before those labels drive routing. | respected | TRANSIENT, ENVIRONMENTAL, FATAL, SEMANTIC, UNKNOWN evidence semantics specified in spec and adv-apply. |\n| DONT1 | avoidance | **DONT1:** Do not let cheap workers decide release readiness, acceptance, scope drift, or cancellation. | respected | No worker release/acceptance/scope/cancellation authority introduced; reviewer READY. |\n| DONT2 | avoidance | **DONT2:** Do not create unbounded polling loops in normal ADV context. | respected | No polling loops added; ci_check consumes existing failure evidence only. |\n| DONT3 | avoidance | **DONT3:** Do not hide red verification behind generic retry or “flake” labels without evidence. | respected | Unsupported flake claims explicitly invalid; transient requires rerun/infra evidence. |\n| DONT4 | avoidance | **DONT4:** Do not make triage worker/job silently edit code or mutate ADV state. | respected | Worker packet forbids code edits and ADV mutation; worker does not call adv_subagent_report_submit. |\n| DONT5 | avoidance | **DONT5:** Do not introduce a phantom worker route without shipped agent assets or explicit use of an existing worker. | respected | No adv-verifier spawnable agent introduced; existing general Verify-Only Burst upgraded structurally. |\n| OOS1 | out_of_scope | **OOS1:** Branch protection, GitHub Actions policy, and CI provider configuration changes. | not_applicable | No branch protection, GitHub Actions policy, or CI provider config changes made. |\n| OOS2 | out_of_scope | **OOS2:** Replacing passive CI waiting unless design finds consolidation with `addCiWaitAgent` is the cleanest path. | not_applicable | Passive CI waiting not replaced; triage handles observed failure evidence only. |\n| OOS3 | out_of_scope | **OOS3:** Changing `adv_run_test` internals unless design proves result shape changes are required for triage. | not_applicable | adv_run_test internals unchanged. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-06-28T16:26:59.430Z",
+      "contentHash": "85e0fc2d3281167255ee6cbac2b8f411b35f0fa680797d7665cb6191cc80558b",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-06-28T15:43:36.135Z",
+      "contentHash": "2b2098da02ca2cdb1626fcdb17c09d06695531e5aa3a096c6a1a28d920c892eb",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-06-28T16:30:08.038Z",
+      "contentHash": "c03d113bfee562778b9e471069d790dc2df3a790a63b4dc922def676bde4936f",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-06-28T16:41:31.714Z",
+      "contentHash": "304ba82fdd5fa50761ccdad6e230b53821f74af73fa857e1f4ade2204addc8e6",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-01T22:42:30.272Z",
+      "contentHash": "f8fc117fbad4b13e124bec9c52064f668a992883667b0ebfb68f870b0388ca41",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-01T22:57:23.621Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-01T21:13:57.275Z"
+    }
+  ]
+}

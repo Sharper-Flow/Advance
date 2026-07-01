@@ -831,7 +831,7 @@ ADV code-writing → `adv-engineer` (not `general`). Verify-burst/non-ADV → `g
 
 ### Orchestrator-Session Operational Routing
 
-This table is session-level operational routing, distinct from task-level Step 4.5. Use it when primary `adv` is about to do broad authority-free operational work outside a task handoff. Do not run a second primary recon/shell/test/CI-check cycle before delegating when the next step fits one of these rows.
+This table is session-level operational routing, distinct from task-level Step 4.5. Use it when primary `adv` is about to do broad authority-free operational work outside a task handoff. Do not run a second primary recon/shell/test/CI-check cycle before delegating when the next step fits one of these rows. Repeated local verify failures and CI/check-run failures should use structured verification triage before a second primary digest cycle when the next step is authority-free.
 
 | Trigger | Worker |
 | --- | --- |

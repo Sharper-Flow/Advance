@@ -870,6 +870,7 @@ function blockerSummary(
     case "adv-researcher":
     case "adv-tron":
     case "adv-scanner-bundle":
+    case "adv-verification-triage-bundle":
       return null;
 
     default: {
