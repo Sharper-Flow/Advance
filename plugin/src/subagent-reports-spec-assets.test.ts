@@ -334,7 +334,8 @@ describe("subagent reports spec assets", () => {
     expect(verifyBurst).toBeDefined();
     expect(verifyBurst!.allowed_subagents).toEqual(["general"]);
     const contract = verifyBurst!.packet_contracts?.find(
-      (entry) => entry.report_transport === "orchestrator_submitted_verification_bundle",
+      (entry) =>
+        entry.report_transport === "orchestrator_submitted_verification_bundle",
     );
     expect(contract).toBeDefined();
     expect(contract!.agent).toBe("general");

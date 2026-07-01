@@ -227,7 +227,8 @@ const verificationTriageBundleReport = {
   targets: [
     {
       kind: "command",
-      command: "bin/oc-test targeted -- plugin/src/types/subagent-reports.test.ts",
+      command:
+        "bin/oc-test targeted -- plugin/src/types/subagent-reports.test.ts",
       exit_code: 1,
       duration_ms: 1234,
     },
@@ -257,8 +258,12 @@ const verificationTriageBundleReport = {
     summary: "Add verification triage bundle schema branch.",
     in_scope: ["plugin/src/types/subagent-reports.ts"],
     out_of_scope: ["adv_run_test internals"],
-    done_when: ["Triage bundle schema parses and invalid route predicates reject."],
-    verification: ["bin/oc-test targeted -- plugin/src/types/subagent-reports.test.ts"],
+    done_when: [
+      "Triage bundle schema parses and invalid route predicates reject.",
+    ],
+    verification: [
+      "bin/oc-test targeted -- plugin/src/types/subagent-reports.test.ts",
+    ],
   },
   required_main_agent_actions: [
     "Validate route_adv_engineer predicates before spawning remediation.",

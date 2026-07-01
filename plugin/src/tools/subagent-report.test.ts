@@ -359,9 +359,13 @@ function verificationTriageBundleReport(
       in_scope: ["plugin/src/types/subagent-reports.ts"],
       out_of_scope: ["task error_recovery mutation"],
       done_when: ["Triage bundle parses."],
-      verification: ["bin/oc-test targeted -- src/types/subagent-reports.test.ts"],
+      verification: [
+        "bin/oc-test targeted -- src/types/subagent-reports.test.ts",
+      ],
     },
-    required_main_agent_actions: ["Validate scope before adv-engineer handoff."],
+    required_main_agent_actions: [
+      "Validate scope before adv-engineer handoff.",
+    ],
     follow_ups: ["Document triage packet shape"],
     ...overrides,
   };
