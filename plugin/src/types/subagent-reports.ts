@@ -19,6 +19,7 @@ export const SubagentAgentSchema = z.enum([
   "adv-researcher",
   "adv-tron",
   "adv-scanner-bundle",
+  "adv-verification-triage-bundle",
 ]);
 
 export type SubagentAgent = z.infer<typeof SubagentAgentSchema>;
@@ -27,7 +28,7 @@ export const ChangeReportScopeKeySchema = z
   .string()
   .min(1)
   .regex(
-    /^(?:(researcher|tron|scanner-bundle):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$/u,
+    /^(?:(researcher|tron|scanner-bundle|verifier):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$/u,
   );
 
 export const TaskSubagentReportScopeSchema = z
@@ -396,6 +397,124 @@ export const ScannerBundleSubagentReportSchema =
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
   }).strict();
 
+export const VerificationTriageErrorClassSchema = z.enum([
+  "SEMANTIC",
+  "TRANSIENT",
+  "ENVIRONMENTAL",
+  "FATAL",
+  // Routing-only: accepted in triage evidence, never mapped into task
+  // error_recovery.error_class.
+  "UNKNOWN",
+]);
+
+export const VerificationTriageTargetSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("command"),
+      command: z.string().min(1),
+      exit_code: z.number().int().nullable(),
+      duration_ms: z.number().nonnegative().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("ci_check"),
+      repo: z.string().min(1),
+      check_name: z.string().min(1),
+      head_sha: z.string().regex(/^[0-9a-f]{7,40}$/iu),
+      run_url: z.string().url().optional(),
+      conclusion: z.enum([
+        "success",
+        "failure",
+        "cancelled",
+        "timed_out",
+        "action_required",
+        "neutral",
+        "skipped",
+        "unknown",
+      ]),
+    })
+    .strict(),
+]);
+
+export const VerificationTriageFindingSchema = z
+  .object({
+    id: z.string().min(1),
+    severity: z.enum(["blocker", "issue", "suggestion", "info"]),
+    summary: z.string().min(1),
+    evidence: z.array(SubagentSourceReferenceSchema).min(1),
+  })
+  .strict();
+
+export const VerificationTriageHandoffSchema = z
+  .object({
+    summary: z.string().min(1),
+    in_scope: z.array(z.string().min(1)).min(1),
+    out_of_scope: z.array(z.string().min(1)),
+    done_when: z.array(z.string().min(1)).min(1),
+    verification: z.array(z.string().min(1)).min(1),
+  })
+  .strict();
+
+export const VerificationTriageBundleSubagentReportSchema =
+  ChangeScopedBaseSubagentReportSchema.extend({
+    agent: z.literal("adv-verification-triage-bundle"),
+    phase: z.enum(["local_verify", "ci_check"]),
+    targets: z.array(VerificationTriageTargetSchema).min(1),
+    status: z.enum(["pass", "fail", "inconclusive"]),
+    error_class: VerificationTriageErrorClassSchema,
+    confidence: z.enum(["high", "medium", "low"]),
+    evidence_basis: z.string().min(1),
+    findings: z.array(VerificationTriageFindingSchema),
+    recommended_next_action: z.enum([
+      "continue",
+      "retry_narrower",
+      "route_adv_engineer",
+      "ask_user",
+      "block_environment",
+      "wait_ci",
+      "no_action",
+    ]),
+    scope_risk: z.boolean(),
+    suggested_handoff: VerificationTriageHandoffSchema.optional(),
+    required_main_agent_actions: z.array(z.string().min(1)),
+    follow_ups: z.array(z.string().min(1)),
+    consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
+  })
+    .strict()
+    .superRefine((report, ctx) => {
+      if (report.recommended_next_action !== "route_adv_engineer") return;
+
+      if (report.error_class !== "SEMANTIC") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["error_class"],
+          message: "route_adv_engineer requires SEMANTIC error_class",
+        });
+      }
+      if (report.scope_risk) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["scope_risk"],
+          message: "route_adv_engineer requires scope_risk false",
+        });
+      }
+      if (report.confidence === "low") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["confidence"],
+          message: "route_adv_engineer requires high or medium confidence",
+        });
+      }
+      if (!report.suggested_handoff) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["suggested_handoff"],
+          message: "route_adv_engineer requires suggested_handoff",
+        });
+      }
+    });
+
 export const TaskScopedSubagentReportSchema = z.discriminatedUnion("agent", [
   EngineerSubagentReportSchema,
   ReviewerSubagentReportSchema,
@@ -408,6 +527,7 @@ export const ChangeScopedSubagentReportSchema = z.discriminatedUnion("agent", [
   ResearcherSubagentReportSchema,
   TronSubagentReportSchema,
   ScannerBundleSubagentReportSchema,
+  VerificationTriageBundleSubagentReportSchema,
 ]);
 
 /**
@@ -652,6 +772,27 @@ export const SUBAGENT_REPORT_FIELD_SOURCES = {
     follow_ups: "worker_derived",
     consumer_warnings: "tool_enriched",
   },
+  "adv-verification-triage-bundle": {
+    schema_version: "worker_derived",
+    change_id: "packet_anchor",
+    scope: "packet_anchor",
+    attempt: "packet_anchor",
+    agent: "worker_derived",
+    workdir_used: "packet_anchor",
+    phase: "packet_anchor",
+    targets: "worker_derived",
+    status: "worker_derived",
+    error_class: "worker_derived",
+    confidence: "worker_derived",
+    evidence_basis: "worker_derived",
+    findings: "worker_derived",
+    recommended_next_action: "worker_derived",
+    scope_risk: "worker_derived",
+    suggested_handoff: "worker_derived",
+    required_main_agent_actions: "worker_derived",
+    follow_ups: "worker_derived",
+    consumer_warnings: "tool_enriched",
+  },
 } as const satisfies Record<
   PersistedSubagentReportAgent,
   Record<string, SubagentReportFieldSource>
@@ -708,6 +849,9 @@ export type ResearcherSubagentReport = z.infer<
 export type TronSubagentReport = z.infer<typeof TronSubagentReportSchema>;
 export type ScannerBundleSubagentReport = z.infer<
   typeof ScannerBundleSubagentReportSchema
+>;
+export type VerificationTriageBundleSubagentReport = z.infer<
+  typeof VerificationTriageBundleSubagentReportSchema
 >;
 export type ScopedSubagentReport = z.infer<typeof ScopedSubagentReportSchema>;
 export type SupportedSubagentReport = z.infer<

@@ -20,6 +20,7 @@ import {
   SubagentAgentSchema,
   SubagentConsumerWarningSchema,
   TronSubagentReportSchema,
+  VerificationTriageBundleSubagentReportSchema,
 } from "./subagent-reports";
 
 const engineerReport = {
@@ -215,6 +216,56 @@ const scannerBundleReport = {
   workdir_used: "/tmp/worktree",
 };
 
+const verificationTriageBundleReport = {
+  schema_version: "1.0",
+  change_id: "addVerificationTriage",
+  scope: { kind: "change", scope_key: "verifier:local-verify" },
+  attempt: 1,
+  agent: "adv-verification-triage-bundle",
+  workdir_used: "/tmp/worktree",
+  phase: "local_verify",
+  targets: [
+    {
+      kind: "command",
+      command: "bin/oc-test targeted -- plugin/src/types/subagent-reports.test.ts",
+      exit_code: 1,
+      duration_ms: 1234,
+    },
+  ],
+  status: "fail",
+  error_class: "SEMANTIC",
+  confidence: "high",
+  evidence_basis:
+    "Vitest reported a deterministic schema assertion failure in subagent-reports.test.ts.",
+  findings: [
+    {
+      id: "schema-missing-agent",
+      severity: "blocker",
+      summary: "Verification triage report agent is not accepted by schema.",
+      evidence: [
+        {
+          label: "test output",
+          locator: "plugin/src/types/subagent-reports.test.ts",
+          summary: "Expected adv-verification-triage-bundle to parse.",
+        },
+      ],
+    },
+  ],
+  recommended_next_action: "route_adv_engineer",
+  scope_risk: false,
+  suggested_handoff: {
+    summary: "Add verification triage bundle schema branch.",
+    in_scope: ["plugin/src/types/subagent-reports.ts"],
+    out_of_scope: ["adv_run_test internals"],
+    done_when: ["Triage bundle schema parses and invalid route predicates reject."],
+    verification: ["bin/oc-test targeted -- plugin/src/types/subagent-reports.test.ts"],
+  },
+  required_main_agent_actions: [
+    "Validate route_adv_engineer predicates before spawning remediation.",
+  ],
+  follow_ups: [],
+};
+
 function requiredTopLevelKeys(schema: z.ZodObject<z.ZodRawShape>): string[] {
   return Object.entries(schema.shape)
     .filter(([, fieldSchema]) => !fieldSchema.safeParse(undefined).success)
@@ -232,6 +283,10 @@ const reportSchemas: Array<{
   { agent: "adv-researcher", schema: ResearcherSubagentReportSchema },
   { agent: "adv-tron", schema: TronSubagentReportSchema },
   { agent: "adv-scanner-bundle", schema: ScannerBundleSubagentReportSchema },
+  {
+    agent: "adv-verification-triage-bundle",
+    schema: VerificationTriageBundleSubagentReportSchema,
+  },
 ];
 
 describe("Subagent report schemas", () => {
@@ -269,6 +324,76 @@ describe("Subagent report schemas", () => {
     expect(
       ScannerBundleSubagentReportSchema.parse(scannerBundleReport).agent,
     ).toBe("adv-scanner-bundle");
+    expect(
+      VerificationTriageBundleSubagentReportSchema.parse(
+        verificationTriageBundleReport,
+      ).agent,
+    ).toBe("adv-verification-triage-bundle");
+  });
+
+  it("parses verification triage bundle reports for local verify and CI checks", () => {
+    const parsedLocal = VerificationTriageBundleSubagentReportSchema.parse(
+      verificationTriageBundleReport,
+    );
+    const parsedCi = VerificationTriageBundleSubagentReportSchema.parse({
+      ...verificationTriageBundleReport,
+      scope: { kind: "change", scope_key: "verifier:ci-checks" },
+      phase: "ci_check",
+      targets: [
+        {
+          kind: "ci_check",
+          repo: "Sharper-Flow/Advance",
+          check_name: "test",
+          head_sha: "0123456789abcdef0123456789abcdef01234567",
+          run_url: "https://github.com/Sharper-Flow/Advance/actions/runs/1",
+          conclusion: "failure",
+        },
+      ],
+      recommended_next_action: "wait_ci",
+      suggested_handoff: undefined,
+      error_class: "TRANSIENT",
+      confidence: "medium",
+    });
+
+    expect(parsedLocal.phase).toBe("local_verify");
+    expect(parsedCi.targets[0]).toMatchObject({
+      kind: "ci_check",
+      head_sha: "0123456789abcdef0123456789abcdef01234567",
+    });
+  });
+
+  it("enforces route_adv_engineer predicates structurally", () => {
+    for (const invalid of [
+      { error_class: "TRANSIENT" },
+      { scope_risk: true },
+      { confidence: "low" },
+      { suggested_handoff: undefined },
+    ]) {
+      expect(() =>
+        VerificationTriageBundleSubagentReportSchema.parse({
+          ...verificationTriageBundleReport,
+          ...invalid,
+        }),
+      ).toThrow();
+    }
+  });
+
+  it("keeps UNKNOWN routing-only inside verification triage bundles", () => {
+    const parsed = VerificationTriageBundleSubagentReportSchema.parse({
+      ...verificationTriageBundleReport,
+      error_class: "UNKNOWN",
+      confidence: "low",
+      recommended_next_action: "ask_user",
+      suggested_handoff: undefined,
+    });
+
+    expect(parsed.error_class).toBe("UNKNOWN");
+    expect(() =>
+      EngineerSubagentReportSchema.parse({
+        ...engineerReport,
+        error_recovery: { error_class: "UNKNOWN" },
+      }),
+    ).toThrow();
   });
 
   it("rejects unknown fields at the report boundary", () => {
@@ -461,6 +586,7 @@ describe("Subagent report schemas", () => {
       "adv-researcher",
       "adv-tron",
       "adv-scanner-bundle",
+      "adv-verification-triage-bundle",
     ]);
   });
 
@@ -479,6 +605,9 @@ describe("Subagent report schemas", () => {
     );
     expect(ChangeReportScopeKeySchema.parse("harden:release")).toBe(
       "harden:release",
+    );
+    expect(ChangeReportScopeKeySchema.parse("verifier:local-verify")).toBe(
+      "verifier:local-verify",
     );
     expect(() => ChangeReportScopeKeySchema.parse("freeform")).toThrow();
   });
@@ -677,6 +806,18 @@ describe("Subagent report schemas", () => {
 
     it("keeps scanner bundle packet anchors aligned with phase and scope", () => {
       expect(getSubagentReportPacketAnchors("adv-scanner-bundle")).toEqual([
+        "ATTEMPT",
+        "CHANGE",
+        "PHASE",
+        "SCOPE KEY",
+        "WORKING DIRECTORY",
+      ]);
+    });
+
+    it("keeps verification triage bundle packet anchors aligned with phase and scope", () => {
+      expect(
+        getSubagentReportPacketAnchors("adv-verification-triage-bundle"),
+      ).toEqual([
         "ATTEMPT",
         "CHANGE",
         "PHASE",
