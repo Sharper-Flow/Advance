@@ -592,7 +592,9 @@ export const checkpointTools = {
         activeDefaultWorkdir: string,
       ): Promise<string> => {
         const store = activeStore;
-        const cwd = args.workdir || activeDefaultWorkdir;
+        const cwd = args.target_path
+          ? activeDefaultWorkdir
+          : args.workdir || activeDefaultWorkdir;
         const mode = args.mode ?? "complete";
 
         // Validate cancel mode requires reason

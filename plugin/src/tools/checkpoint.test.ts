@@ -846,5 +846,35 @@ describe("checkpoint tools — signal-driven", () => {
       );
       expect(revParseCall?.[2]).toMatchObject({ cwd: "/tmp/target" });
     });
+
+    test("uses target store root as cwd when target_path is provided with caller workdir", async () => {
+      const store = createMockStore();
+      mockGitResponses({
+        "rev-parse --show-toplevel": { stdout: "/tmp/target\n" },
+      });
+      mockRecordedTask();
+
+      await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          workdir: "/tmp/source-worktree",
+          mode: "complete",
+          verification: "Tests passed",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const revParseCall = mocks.execFile.mock.calls.find(
+        ([, args]) =>
+          Array.isArray(args) &&
+          args[0] === "rev-parse" &&
+          args[1] === "--show-toplevel",
+      );
+      expect(revParseCall?.[2]).toMatchObject({ cwd: "/tmp/target" });
+    });
   });
 });
