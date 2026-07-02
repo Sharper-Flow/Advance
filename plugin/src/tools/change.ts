@@ -113,8 +113,6 @@ function subagentReportReadbackKey(report: ScopedSubagentReport): string {
     attempt: report.attempt,
   });
 }
-
-
 const DEFAULT_BRIEFING_PACKET_LANE: BriefingPacketLane = "engineer";
 
 function briefingPacketGeneratedBy(
@@ -156,6 +154,11 @@ function collectBriefingFactsForReadback(change: Change) {
   return facts;
 }
 
+/**
+ * Storage-backed adapter that hydrates existing ADV structured state into the
+ * pure briefing-packet renderer. Reads artifact content only when a packet is
+ * requested; never mutates workflow state or persists live packet bodies.
+ */
 async function buildBriefingPacketForChange(
   store: Store,
   change: Change,

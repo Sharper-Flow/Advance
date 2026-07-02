@@ -1,6 +1,6 @@
 import { existsSync } from "fs";
 import { execSync } from "child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, describe, expect, test } from "vitest";
@@ -594,6 +594,42 @@ describe("contract archive traceability", () => {
         .filter(Boolean)
         .map((line) => JSON.parse(line));
       expect(wisdomEntries).toHaveLength(1);
+    });
+
+    test("archive replay reuses an existing dated bundle instead of duplicating digests", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "digest-cross-day",
+        status: "active",
+        contract: undefined,
+      });
+      const paths = {
+        specs: join(root, "specs"),
+        docs: join(root, "docs"),
+        archive: join(root, "archive"),
+      };
+      const existingArchivePath = join(paths.archive, "2026-01-01-digest-cross-day");
+      await mkdir(existingArchivePath, { recursive: true });
+      await writeFile(
+        join(existingArchivePath, "change.json"),
+        JSON.stringify({ ...change, status: "archived" }, null, 2),
+      );
+
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.archivePath).toBe(existingArchivePath);
+      expect(existsSync(join(existingArchivePath, "BRIEFING_DIGEST.md"))).toBe(
+        true,
+      );
+      const matchingBundles = (await readdir(paths.archive)).filter((name) =>
+        name.endsWith("-digest-cross-day"),
+      );
+      expect(matchingBundles).toEqual(["2026-01-01-digest-cross-day"]);
     });
   });
 });

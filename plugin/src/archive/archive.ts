@@ -38,6 +38,13 @@ function archiveBundlePath(archiveDir: string, changeId: string): string {
   );
 }
 
+async function archiveBundlePathForWrite(
+  archiveDir: string,
+  changeId: string,
+): Promise<string> {
+  return (await findArchiveBundle(archiveDir, changeId)) ?? archiveBundlePath(archiveDir, changeId);
+}
+
 function sortedScopeRepos(change: Change): NonNullable<Change["scope_repos"]> {
   return [...(change.scope_repos ?? [])].sort((a, b) => {
     const aOrder = a.merge_order ?? Number.MAX_SAFE_INTEGER;
@@ -794,7 +801,9 @@ async function createArchive(
   errors?: string[],
   multiRepo?: MultiRepoArchiveMetadata,
 ): Promise<string> {
-  const archivePath = archiveBundlePath(archiveDir, change.id);
+  const archivePath = dryRun
+    ? archiveBundlePath(archiveDir, change.id)
+    : await archiveBundlePathForWrite(archiveDir, change.id);
 
   if (!dryRun) {
     // Write the change as archived
@@ -933,7 +942,10 @@ export async function createInRepoArchive(
   sourceChangeDir?: string,
   multiRepo?: MultiRepoArchiveMetadata,
 ): Promise<string> {
-  const archivePath = archiveBundlePath(inRepoArchiveDir, change.id);
+  const archivePath = await archiveBundlePathForWrite(
+    inRepoArchiveDir,
+    change.id,
+  );
 
   const archivedChange: Change = {
     ...change,

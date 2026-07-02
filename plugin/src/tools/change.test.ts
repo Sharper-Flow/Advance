@@ -1526,6 +1526,56 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed._briefingPacket.lane).toBe("reviewer");
     });
 
+    test("includes structurally classified durable facts from persisted reports", async () => {
+      const store = createMockStore({
+        subagent_reports: [
+          {
+            schema_version: "1.0",
+            change_id: "test-change",
+            attempt: 1,
+            workdir_used: "/tmp/test",
+            scope: { kind: "change", scope_key: "review:acceptance" },
+            agent: "adv-reviewer",
+            phase: "review",
+            verdict: "READY",
+            blocking_findings: [],
+            nonblocking_findings: [],
+            changes_made: [],
+            wisdom_candidates: [
+              { type: "pattern", content: "Use generated packet slices" },
+            ],
+            verification: {
+              tests_run: ["bin/oc-test targeted -- src/tools/change.test.ts"],
+              results: "pass",
+              evidence: "targeted tests passed",
+            },
+            scope_drift: null,
+            risks: [],
+            required_main_agent_actions: [],
+          } as NonNullable<Change["subagent_reports"]>[number],
+        ],
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { briefingPacket: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._briefingPacket.facts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            outcome: "wisdom_candidate",
+            source_label: "wisdom_candidates",
+            content: "[pattern] Use generated packet slices",
+          }),
+        ]),
+      );
+      const durableFacts = parsed._briefingPacket.sections.find(
+        (s: { kind: string }) => s.kind === "durable_facts",
+      );
+      expect(durableFacts).toBeDefined();
+    });
+
     test("default adv_change_show output omits _briefingPacket", async () => {
       const store = createMockStore({
         documents: {
