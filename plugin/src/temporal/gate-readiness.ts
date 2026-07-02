@@ -615,8 +615,86 @@ export function checkUnresolvedDesignConcerns(
   return blockers;
 }
 
-function isOpsFollowupComplete(link: OpsFollowupLink): boolean {
-  return COMPLETE_OPS_STATUSES.includes(link.status);
+function hasCompleteOpsProof(link: OpsFollowupLink): boolean {
+  const resolution = link.resolution;
+  if (!resolution) return false;
+  if (resolution.source !== "child_profile") return false;
+  if (!COMPLETE_OPS_STATUSES.includes(resolution.status)) return false;
+  return Boolean(
+    resolution.completion_signal &&
+    resolution.health_verification &&
+    resolution.rollback_or_cleanup_disposition,
+  );
+}
+
+function makeOpsResolutionBlocker(
+  link: OpsFollowupLink,
+  gateId: GateId,
+): GateReadinessBlocker | null {
+  const mustResolve =
+    link.relationship === "blocks" ||
+    (HANDOFF_OPS_RELATIONSHIPS.includes(link.relationship) &&
+      link.required_handoff);
+  if (!mustResolve) return null;
+
+  const resolution = link.resolution;
+  if (!resolution && !COMPLETE_OPS_STATUSES.includes(link.status)) {
+    const code =
+      link.relationship === "blocks"
+        ? "OPS_FOLLOWUP_BLOCKS_INCOMPLETE"
+        : "OPS_FOLLOWUP_HANDOFF_INCOMPLETE";
+    return makeBlocker({
+      code,
+      gateId,
+      linkId: link.id,
+      changeId: link.changeId,
+      relationship: link.relationship,
+      message: `Ops follow-up ${link.id} (${link.changeId}) is incomplete (status: ${link.status}).`,
+      remediation: `Complete the ops follow-up change ${link.changeId} before releasing, or change the relationship/required handoff if it is not a release blocker.`,
+    });
+  }
+
+  if (!resolution || resolution.source === "unreachable") {
+    return makeBlocker({
+      code: "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      gateId,
+      linkId: link.id,
+      changeId: link.changeId,
+      relationship: link.relationship,
+      message: `Ops follow-up ${link.id} (${link.changeId}) lacks fresh verified child-state proof; parent status ${link.status} is not release authority.`,
+      remediation: `Verify child ops follow-up change ${link.changeId} and project a fresh resolution proof before release.`,
+    });
+  }
+
+  if (resolution.status === "complete" && !hasCompleteOpsProof(link)) {
+    return makeBlocker({
+      code: "OPS_FOLLOWUP_COMPLETION_PROOF_INCOMPLETE",
+      gateId,
+      linkId: link.id,
+      changeId: link.changeId,
+      relationship: link.relationship,
+      message: `Ops follow-up ${link.id} (${link.changeId}) is marked complete but lacks completion signal, health verification, or rollback/cleanup disposition proof.`,
+      remediation: `Record completion signal, health verification, and rollback/cleanup disposition on child ops follow-up ${link.changeId}, then re-run reconciliation.`,
+    });
+  }
+
+  if (!COMPLETE_OPS_STATUSES.includes(resolution.status)) {
+    const code =
+      link.relationship === "blocks"
+        ? "OPS_FOLLOWUP_BLOCKS_INCOMPLETE"
+        : "OPS_FOLLOWUP_HANDOFF_INCOMPLETE";
+    return makeBlocker({
+      code,
+      gateId,
+      linkId: link.id,
+      changeId: link.changeId,
+      relationship: link.relationship,
+      message: `Ops follow-up ${link.id} (${link.changeId}) verified child status is incomplete (status: ${resolution.status}).`,
+      remediation: `Complete the ops follow-up change ${link.changeId} before releasing, or change the relationship/required handoff if it is not a release blocker.`,
+    });
+  }
+
+  return null;
 }
 
 /**
@@ -636,40 +714,8 @@ export function checkOpsFollowupReleaseBlockers(
   const links = state.ops_followup_links ?? [];
 
   return links.flatMap((link) => {
-    if (isOpsFollowupComplete(link)) return [];
-
-    if (link.relationship === "blocks") {
-      return [
-        makeBlocker({
-          code: "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
-          gateId,
-          linkId: link.id,
-          changeId: link.changeId,
-          relationship: link.relationship,
-          message: `Blocking ops follow-up ${link.id} (${link.changeId}) is incomplete (status: ${link.status}).`,
-          remediation: `Complete the blocking ops follow-up change ${link.changeId} before releasing, or change the relationship to a non-blocking type.`,
-        }),
-      ];
-    }
-
-    if (
-      HANDOFF_OPS_RELATIONSHIPS.includes(link.relationship) &&
-      link.required_handoff
-    ) {
-      return [
-        makeBlocker({
-          code: "OPS_FOLLOWUP_HANDOFF_INCOMPLETE",
-          gateId,
-          linkId: link.id,
-          changeId: link.changeId,
-          relationship: link.relationship,
-          message: `Surviving-obligation handoff ${link.id} (${link.changeId}, ${link.relationship}) is incomplete (status: ${link.status}).`,
-          remediation: `Complete the required handoff for ops follow-up change ${link.changeId} before releasing, or clear required_handoff if it is not a release blocker.`,
-        }),
-      ];
-    }
-
-    return [];
+    const blocker = makeOpsResolutionBlocker(link, gateId);
+    return blocker ? [blocker] : [];
   });
 }
 
@@ -679,7 +725,20 @@ export interface OpenOpsFollowupObligation {
   relationship: OpsRelationship;
   required_handoff: boolean;
   status: OpsFollowupStatus;
+  status_source: "child_profile" | "unreachable" | "parent_snapshot";
+  completion_proof: "incomplete" | "unverified" | "unreachable";
+  verified_at?: string;
+  resolution_error?: string;
   open: boolean;
+}
+
+function incompleteOpsProofReason(
+  link: OpsFollowupLink,
+): OpenOpsFollowupObligation["completion_proof"] {
+  const resolution = link.resolution;
+  if (!resolution) return "unverified";
+  if (resolution.source === "unreachable") return "unreachable";
+  return "incomplete";
 }
 
 /**
@@ -690,13 +749,21 @@ export function getOpenOpsFollowupObligations(
   links: OpsFollowupLink[] | undefined,
 ): OpenOpsFollowupObligation[] {
   return (links ?? [])
-    .filter((link) => !isOpsFollowupComplete(link))
+    .filter((link) => !hasCompleteOpsProof(link))
     .map((link) => ({
       linkId: link.id,
       changeId: link.changeId,
       relationship: link.relationship,
       required_handoff: link.required_handoff,
-      status: link.status,
+      status: link.resolution?.status ?? link.status,
+      status_source: link.resolution?.source ?? "parent_snapshot",
+      completion_proof: incompleteOpsProofReason(link),
+      ...(link.resolution?.verified_at
+        ? { verified_at: link.resolution.verified_at }
+        : {}),
+      ...(link.resolution?.error
+        ? { resolution_error: link.resolution.error }
+        : {}),
       open: true,
     }));
 }

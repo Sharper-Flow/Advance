@@ -1,0 +1,1574 @@
+{
+  "id": "addOpsRunbooks",
+  "title": "Add ops runbooks",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-02T17:02:13.956Z",
+  "tasks": [
+    {
+      "id": "tk-46e32931df8f",
+      "title": "Add ops-run spec laws",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-02T17:39:29.915Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "verifies": [
+          "C1",
+          "C3"
+        ],
+        "respects": [
+          "C2",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "verification": "PASS: bin/oc-test targeted -- src/ops-follow-up-assets.test.ts (12 tests). PASS: targeted Prettier check for TS/JSON touched files; docs markdown formatting left narrow to avoid broad generated-doc churn. Added rq-opsRunbook01, rq-opsRunApproval01, rq-opsRunEvidence01, rq-opsRunReleaseReadiness01 to advance-workflow spec laws and mirrored docs.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added four advance-workflow spec-law requirements for ops runbooks: rq-opsRunbook01 (durable runbook-shaped ops state and resume), rq-opsRunApproval01 (production approval authority and bounded autonomous classification), rq-opsRunEvidence01 (append-only secret-safe ops evidence and completion proof), and rq-opsRunReleaseReadiness01 (fresh child/source-of-truth release authority). Mirrored the new laws in docs/specs/advance-workflow.md and extended ops-follow-up asset tests to assert presence, priority, scenario coverage, and version bump.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/ops-follow-up-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/ops-follow-up-assets.test.ts"
+      ],
+      "checkpointSha": "5ce61912f6d2d6cd2f1c28d49c1d84f67fe9d875",
+      "completedAt": "2026-07-02T17:55:49.088Z",
+      "completed_at": "2026-07-02T17:55:49.088Z",
+      "notes": "Spec-law task complete. Verification: bin/oc-test targeted -- src/ops-follow-up-assets.test.ts passed (12 tests); Prettier check for touched TS/JSON passed. Checkpoint commit 5ce61912f6d2d6cd2f1c28d49c1d84f67fe9d875.",
+      "updatedAt": "2026-07-02T17:56:08.962Z"
+    },
+    {
+      "id": "tk-1201b447122c",
+      "title": "Model ops run schemas and legacy projection",
+      "type": "code",
+      "section": "Core model",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-02T17:39:47.905Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-46e32931df8f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7",
+          "AC8"
+        ],
+        "verifies": [
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT4",
+          "OOS2",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "RED: bin/oc-test targeted -- src/types/changes.ops-follow-up.test.ts failed before implementation with missing runbook/default behavior. GREEN/VERIFY: bin/oc-test targeted -- src/types/changes.ops-follow-up.test.ts src/temporal/change-state.ops-follow-up.test.ts passed (19 tests). PASS: pnpm exec prettier --check src/types/changes.ts src/types/changes.ops-follow-up.test.ts src/temporal/change-state.ops-follow-up.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added typed ops runbook schemas under OpsFollowupProfile: OpsRunStatus, step kind/status, approval policy discriminated union, secret-safe artifact refs, run plan, steps, run evidence, and OpsRun. OpsFollowupProfile now defaults runs: [] so legacy profiles remain readable. Added schema tests for runbook parsing, bounded autonomous bounds enforcement, artifact pointer/no-artifact rationale enforcement, minimal legacy default projection, and workflow reseed carrying runs[].",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ops-follow-up.test.ts",
+        "plugin/src/types/changes.ops-follow-up.test.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ops-follow-up.test.ts",
+        "plugin/src/types/changes.ops-follow-up.test.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "809c2f54ac94c99558a7d84d8401c2cccdbe77e5",
+      "completedAt": "2026-07-02T18:02:25.318Z",
+      "completed_at": "2026-07-02T18:02:25.318Z",
+      "notes": "Schema/model task complete. RED run tr_mr3t75rr_f70db2ba failed before implementation. GREEN run tr_mr3t8tqk_ccb7c1aa passed. Final verify run tr_mr3taa64_f4d4c969 passed (19 tests). Formatting run tr_mr3ta9ub_eb999f8d passed. Checkpoint commit 809c2f54ac94c99558a7d84d8401c2cccdbe77e5.",
+      "updatedAt": "2026-07-02T18:02:41.959Z"
+    },
+    {
+      "id": "tk-a42fc719ff64",
+      "title": "Persist ops run workflow signals",
+      "type": "code",
+      "section": "Workflow state",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-02T17:40:06.129Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1201b447122c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "verifies": [
+          "AC2",
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "RED: bin/oc-test targeted -- src/temporal/change-state.ops-follow-up.test.ts src/temporal/workflows.ops-follow-up.test.ts src/temporal/messages.test.ts failed before implementation (missing run reducers/signals/message contract). GREEN/VERIFY: targeted Temporal reducer/workflow/message tests passed (17 tests), combined schema/workflow tests passed (28 tests), pnpm run typecheck passed, Prettier check passed for touched TS files.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added Temporal signal payloads, message bindings, workflow handlers, and reducers for ops runbook state: opsRunUpserted and opsRunEvidenceAppended. Reducers require an existing ops_followup profile, upsert runs idempotently by run ID, append typed run evidence, update run status from entry.next_status, update optional child profile status from follow-up status overrides, and record updated_at/lastSignalAt. Extended message-contract tests, reducer tests, workflow signal tests, and existing followup promotion to seed runs: [].",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ops-follow-up.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ops-follow-up.test.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/followup.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ops-follow-up.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ops-follow-up.test.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/followup.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "0253665ce9bb91fbec79775e16b4204d387602b3",
+      "completedAt": "2026-07-02T18:13:19.179Z",
+      "completed_at": "2026-07-02T18:13:19.179Z",
+      "notes": "Workflow-signal task complete. RED run tr_mr3tg3o5_202e8120 failed before implementation. GREEN run tr_mr3tlg5i_b658c4d9 passed. Final verify runs: tr_mr3to18t_784999d5 targeted tests passed, tr_mr3to14q_1d762230 typecheck passed, tr_mr3toad7_8110823c Prettier check passed. Checkpoint commit 0253665ce9bb91fbec79775e16b4204d387602b3.",
+      "updatedAt": "2026-07-02T18:13:42.268Z"
+    },
+    {
+      "id": "tk-f9a9fe6c0258",
+      "title": "Add ops run tools and preflight",
+      "type": "code",
+      "section": "Tooling",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-02T17:40:24.608Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a42fc719ff64"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:15:36.272Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/ops-evidence.test.ts failed before implementation because adv_ops_run_upsert and adv_ops_run_evidence_add were absent. GREEN/VERIFY: ops evidence/tool tests passed (14 tests), combined ops evidence/schema/workflow tests passed (29 tests), pnpm run typecheck passed, targeted Prettier check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added source tool surfaces adv_ops_run_upsert and adv_ops_run_evidence_add. Upsert creates/replaces typed ops runs and defaults unclassified prod execute steps to approval-required. Evidence append validates secret-safe summaries, enforces approval-required prod execute steps before completion authority, appends typed run evidence, maps complete/operational statuses back to profile status when applicable, supports dry run, and registers both tools in tool-registry. Exported ops run schemas/types through the public type barrel.",
+      "filesTouched": [
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/ops-evidence.test.ts",
+        "plugin/src/tools/ops-evidence.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/ops-evidence.test.ts",
+        "plugin/src/tools/ops-evidence.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "checkpointSha": "ba8c60c728164454a20db3ae1095e62225195bc5",
+      "completedAt": "2026-07-02T18:23:42.407Z",
+      "completed_at": "2026-07-02T18:23:42.407Z",
+      "notes": "Ops run tools/preflight task complete. RED run tr_mr3tvdob_b22d406f failed before implementation. GREEN run tr_mr3u0ewr_cd9a1263 passed. Verify runs: tr_mr3u1n8c_f4d3a1a5 targeted tests passed, tr_mr3u0y8w_d0dee0ad typecheck passed, tr_mr3u1hp7_7f91d91e Prettier passed. Checkpoint commit ba8c60c728164454a20db3ae1095e62225195bc5.",
+      "updatedAt": "2026-07-02T18:24:01.615Z"
+    },
+    {
+      "id": "tk-103432774e43",
+      "title": "Reconcile linked ops readiness from child state",
+      "type": "code",
+      "section": "Release readiness",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-02T17:40:40.666Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a42fc719ff64"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "SC5",
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "DONT2",
+          "DONT3",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:24:40.055Z",
+      "verification": "RED: bin/oc-test targeted -- src/temporal/gate-readiness.test.ts failed because release readiness still trusted complete parent link status without verified child proof. GREEN/VERIFY: gate-readiness tests passed (52 tests), combined readiness/schema tests passed (63 tests), pnpm run typecheck passed, targeted Prettier check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added OpsFollowupResolution as a verified-at-read proof on outbound ops links and changed release readiness to require child/source-of-truth resolution for completed blocking or required-handoff obligations. Stale parent status complete without resolution now blocks as OPS_FOLLOWUP_STATUS_UNVERIFIED; complete resolution must include completion signal, health verification, and rollback/cleanup disposition. Unreachable child proof blocks blocking/required-handoff links. Open obligation reporting now uses resolution status and treats unproven complete links as open.",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "checkpointSha": "3ba0ddaa5e4be1c78c05ebe82bb3f21869050790",
+      "completedAt": "2026-07-02T18:31:03.225Z",
+      "completed_at": "2026-07-02T18:31:03.225Z",
+      "notes": "Linked ops readiness reconciliation complete. RED run tr_mr3u63g2_25317756 failed before implementation. GREEN run tr_mr3u9zma_85f7df8f passed. Verify runs: tr_mr3ub39u_8d3a17e2 readiness/schema tests passed, tr_mr3uaiuk_bd8c463f typecheck passed, tr_mr3ub2z1_402b9dc5 Prettier passed. Checkpoint commit 3ba0ddaa5e4be1c78c05ebe82bb3f21869050790.",
+      "updatedAt": "2026-07-02T18:31:20.350Z"
+    },
+    {
+      "id": "tk-64ae1951ca1a",
+      "title": "Surface ops run state in readbacks and reports",
+      "type": "code",
+      "section": "Readbacks",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-02T17:40:57.807Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f9a9fe6c0258"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-103432774e43"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:32:08.033Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/backlog.test.ts src/tools/change.archive-phase9.test.ts failed as expected for missing run/resolution readbacks. GREEN/VERIFY: bin/oc-test targeted -- src/tools/backlog.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.test.ts passed (118 tests); pnpm run typecheck passed; prettier --check on touched TS files passed; pnpm run lint passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Expanded compact ops follow-up annotations to include bounded run summaries (run count, run evidence count, up to 3 compact runs) and link authority metadata (status_source, completion_proof, compact resolution). Extended archive/open-obligation report payloads with status_source, completion_proof, verified_at, and unreachable resolution errors so stale parent snapshots and unreachable child state are visible rather than treated as authoritative/N/A. Added/updated tests for WIP readbacks, change-list expectations, and archive report obligations.",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/ops-followup-readback.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/ops-followup-readback.ts"
+      ],
+      "checkpointSha": "edf863e6c471862739a48951dd7e9f95a3d50cc4",
+      "completedAt": "2026-07-02T18:42:36.159Z",
+      "completed_at": "2026-07-02T18:42:36.159Z",
+      "notes": "Implemented compact ops run/readiness readbacks and report proof annotations. Checkpoint edf863e6c471862739a48951dd7e9f95a3d50cc4.",
+      "updatedAt": "2026-07-02T18:42:50.211Z"
+    },
+    {
+      "id": "tk-35f75fd86f9f",
+      "title": "Update ADV command contracts for ops runbooks",
+      "type": "docs",
+      "section": "Command contracts",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-07-02T17:41:16.264Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-46e32931df8f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC8"
+        ],
+        "verifies": [
+          "C2",
+          "C4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5",
+          "OOS2"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:43:21.045Z",
+      "verification": "RED: bin/oc-test targeted -- src/ops-follow-up-assets.test.ts failed for missing ops-runbook command-contract anchors. GREEN/VERIFY: bin/oc-test targeted -- src/ops-follow-up-assets.test.ts passed (13 tests); bin/oc-test targeted -- src/commands-spine-assets.test.ts src/adv-prep-assets.test.ts src/optimized-handoff-assets.test.ts passed (16 tests); pnpm exec prettier --check src/ops-follow-up-assets.test.ts passed; pnpm run typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Documented ops runbook task shaping in prep, execution-time adv_ops_run_upsert/adv_ops_run_evidence_add requirements in apply, acceptance proof expectations in review, release-readiness checks in harden, and archive sign-off rendering rules for status_source/completion_proof/unreachable child state. Added asset coverage so command contracts retain ops-runbook authority anchors.",
+      "filesTouched": [
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/ops-follow-up-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/ops-follow-up-assets.test.ts"
+      ],
+      "checkpointSha": "1b3d240687ac858fd30d7a5c7cb19465438440e5",
+      "completedAt": "2026-07-02T18:48:50.592Z",
+      "completed_at": "2026-07-02T18:48:50.592Z",
+      "notes": "Updated prep/apply/review/harden/archive command contracts for ops runbook authority and evidence. Checkpoint 1b3d240687ac858fd30d7a5c7cb19465438440e5.",
+      "updatedAt": "2026-07-02T18:49:05.125Z"
+    },
+    {
+      "id": "tk-18658992f914",
+      "title": "Verify ops runbook compatibility and full gate readiness",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-07-02T17:41:33.741Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-64ae1951ca1a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-35f75fd86f9f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:49:34.835Z",
+      "verification": "Final verification completed. Fixed smoke/full-suite asset drift discovered during verification: generated change.schema.json, ADV_TOOL_NAMES/title parity for ops-run tools, CLI matrix rows, approval-consequence spec citations, retired Epic prompt refs, and frozen tool-name snapshot. Evidence: bin/oc-test smoke passed; bin/oc-test full passed; pnpm run build passed; targeted asset suites passed after fixes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final verification, repaired schema/prompt/asset drift exposed by smoke/full suites, and confirmed repo checks. Generated change.schema.json for ops run/resolution schemas; added ops-run tools to ADV_TOOL_NAMES and display titles; updated CLI matrix/frozen snapshot; cited approval-consequence spec requirements; replaced unavailable Epic command references with typed available tools. Final smoke, full test suite, and build pass.",
+      "filesTouched": [
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-epic.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/schemas/change.schema.json",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-epic.md",
+        "docs/cli-surface-matrix.md",
+        "plugin/schemas/change.schema.json",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "61f137cc7132f37126778338604019006329327f",
+      "completedAt": "2026-07-02T19:06:31.783Z",
+      "completed_at": "2026-07-02T19:06:31.783Z",
+      "notes": "Final compatibility/readiness verification green. Checkpoint 61f137cc7132f37126778338604019006329327f.",
+      "updatedAt": "2026-07-02T19:06:45.755Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addOpsRunbooks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Ops runbooks discovery opportunity scout: missed leverage points within approved scope",
+      "sources": [
+        {
+          "label": "Release blocker reads parent link status snapshot",
+          "locator": "plugin/src/temporal/gate-readiness.ts:618-674",
+          "summary": "checkOpsFollowupReleaseBlockers + isOpsFollowupComplete read link.status (parent display snapshot). Schema (types/changes.ts:460-465) documents link.status as 'last-known display snapshot only — child profile is source of truth'. Blocker authority runs on the field the schema says is not authoritative."
+        },
+        {
+          "label": "Evidence tool updates child only, not parent link",
+          "locator": "plugin/src/tools/ops-evidence.ts:124-189",
+          "summary": "adv_ops_evidence_add fires opsEvidenceAppendedSignal updating the CHILD ops_followup profile status; it never refreshes the parent ops_followup_links[].status. Nothing in the append path reconciles the edge the release gate reads. Concrete stale-status mechanism."
+        },
+        {
+          "label": "Blocking follow-up completable with zero evidence",
+          "locator": "plugin/src/temporal/gate-readiness.ts:22,618-653",
+          "summary": "COMPLETE_OPS_STATUSES=['complete']; a 'blocks' link with status 'complete' clears the release blocker regardless of evidence[] length. Matches fixPikaqianDrainerR2Config (blocking deploy-config, no evidence entries, still releasable)."
+        },
+        {
+          "label": "Evidence entry is lightweight, no runbook step model",
+          "locator": "plugin/src/types/changes.ts:421-458",
+          "summary": "OpsEvidenceEntry = flat {env,action,batch,status,summary,next_step,completion_signal}. No dry_run/execute pairing, no approval reference, no health-check assertion, no rollback disposition. Profile is a status+append-only log, not a planned-step runbook."
+        },
+        {
+          "label": "Reusable durable evidence-policy pattern already established",
+          "locator": "docs/non-coding-task-rigor-prep.md:71-77; docs/adv-run-test-prep.md:36-56",
+          "summary": "Prior packs established: typed evidence policy axis (source_citation/rubric_review/stakeholder_acceptance/not_applicable), structural-over-heuristic for approval/gate authority, durable per-task evidence ledger with retention/privacy. Ops runbook should reuse this axis rather than invent a parallel one."
+        }
+      ],
+      "architecture_assessment": "Existing ops primitives are sound as a lightweight follow-up TRACKER but under-built as a first-class RUN model. Three concrete correctness gaps are code-verified: (1) release-blocker authority reads the parent link.status snapshot the schema itself declares non-authoritative; (2) the only evidence-append tool never reconciles that parent snapshot, so it goes stale by construction; (3) a blocking follow-up can be marked complete with zero evidence, so the release gate can pass with no proof — exactly the fixPikaqianDrainerR2Config failure. Two shape leverage points: the flat OpsEvidenceEntry cannot express the observed dry-run→approve→execute→health-verify→rollback-disposition runbook lifecycle, and the design should reuse ADV's existing typed evidence-policy axis instead of a new parallel vocabulary. Simplicity bias: prefer extending OpsFollowup + a derived-status reconciler over a brand-new ops_run state machine unless discovery proves the lifecycle cannot fit the profile. Boring fix for the stale snapshot: make release-blocker authority read a DERIVED status (child profile / evidence), not the cached edge field — remove the dual-source-of-truth rather than add sync machinery.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Three code-verified structural gaps surfaced (dual source of truth for release authority; parent snapshot never refreshed on evidence append; blocking completion with zero evidence). These are design-input CONCERNS for discovery, not release blockers on this change. Research limitation: Exa credits exhausted and lgrep semantic timed out — no external SRE/runbook best-practice corroboration this pass; grounded entirely in repo code + prior prep-packs. External runbook-model validation recommended before finalizing data model."
+      },
+      "recommendation": "Route to discovery/design with these ranked candidates. ADOPT_NOW: (S1) make release-blocker authority derive completion from the child ops_followup profile/evidence rather than the parent link.status snapshot — kills the dual-source-of-truth (boring, high payoff). (S2) require >=1 evidence entry (or explicit not_applicable disposition) before a 'blocks' follow-up counts complete — structural, closes the drainer no-evidence hole. DESIGN_AROUND: (S3) extend OpsEvidenceEntry/profile with runbook-step semantics (dry_run/execute pairing, approval ref, health-check assertion, rollback disposition) reusing the existing evidence-policy axis; prefer profile extension over a new ops_run state machine. SURFACE_TO_USER: (S4) whether prod approval is per-run mandatory vs allowlist-low-risk — policy decision, not inferable from code. DEFER: (S5) cross-project link status refresh — real but secondary to fixing the single-project stale-snapshot root cause first.",
+      "follow_ups": [
+        "External SRE/runbook best-practice validation still owed (Exa credits exhausted this pass) before locking the runbook-step data model.",
+        "Discovery must decide extend-ops_followup vs new ops_run; evidence favors extension + derived-status reconciler for simplicity.",
+        "Confirm no other reader (archive/acceptance projection) also trusts the stale link.status snapshot before changing its authority."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOpsRunbooks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Ops runbooks design leverage scout: simplification paths, missed risk readers, reusable primitives, canonical runbook-model corroboration",
+      "sources": [
+        {
+          "label": "Release-gate authority reads parent link.status (schema says non-authoritative)",
+          "locator": "plugin/src/temporal/gate-readiness.ts:618-620,631-674 + types/changes.ts:460-465",
+          "summary": "isOpsFollowupComplete + checkOpsFollowupReleaseBlockers gate on link.status. Schema comment: link.status is 'last-known display snapshot only — child profile is source of truth'. DDC1 target confirmed at code level."
+        },
+        {
+          "label": "Second stale-snapshot reader: archive obligation surface",
+          "locator": "plugin/src/temporal/gate-readiness.ts:689-702 + plugin/src/tools/change.ts:4283-4284",
+          "summary": "getOpenOpsFollowupObligations filters/reports on link.status; change.ts archive path calls it. Prior scout follow-up asked to confirm 'no other reader trusts stale snapshot' — there IS a second one. DDC1 reconciliation must cover archive+release, not release only."
+        },
+        {
+          "label": "Evidence-append tool never refreshes the parent snapshot",
+          "locator": "plugin/src/tools/ops-evidence.ts:124-189",
+          "summary": "adv_ops_evidence_add fires opsEvidenceAppendedSignal updating CHILD profile status/evidence only; never touches parent ops_followup_links[].status. Stale-by-construction mechanism the reconciler must replace (not sync)."
+        },
+        {
+          "label": "Blocking follow-up completable with zero evidence",
+          "locator": "plugin/src/temporal/gate-readiness.ts:22,618-653",
+          "summary": "COMPLETE_OPS_STATUSES=['complete']; a 'blocks' link at status 'complete' clears the blocker regardless of evidence[].length. Structural hole DDC2/AC5 must close."
+        },
+        {
+          "label": "Flat OpsEvidenceEntry vs runbook lifecycle",
+          "locator": "plugin/src/types/changes.ts:421-458",
+          "summary": "OpsEvidenceEntry is flat {env,action,batch,status,summary,next_step,completion_signal}; no dry_run→execute pairing, approval ref, health-check assertion, or rollback disposition. Confirms the shape gap the runs[] layer fills."
+        },
+        {
+          "label": "Canonical runbook model (Rundeck) corroboration",
+          "locator": "Context7 /rundeck/docs — execution/state + output/state?stateOnly=true",
+          "summary": "Mature runbook automation separates job PLAN from EXECUTION instances; each execution has executionState + per-step steps[] with executionState + start/end times; state metadata is separable from log output (stateOnly=true). Rundeck keeps APPROVAL as a separate ACL/gate axis, NOT embedded per execution step."
+        }
+      ],
+      "architecture_assessment": "Design's core direction is boring and correct: extend ops_followup with an optional runs[] layer + a parent-owned verified reconciliation proof that REPLACES (not syncs) the stale link.status authority. Canonical Rundeck corroborates two design choices — (a) plan-vs-execution-instance separation, and (b) state-vs-raw-log separation (stateOnly) which directly backs C4/DDC5 secret-safe bounded evidence. Two leverage refinements: (1) The design scopes reconciliation to 'release/harden/archive gate tool path' but the archive obligation surface (change.ts:4283 → getOpenOpsFollowupObligations) is a SECOND concrete reader of the stale snapshot; DDC1 + Affected-Components already list change.ts archive context, but Implementation Strategy step 5 names only release/harden/archive gate path — ensure getOpenOpsFollowupObligations itself (used by archive report, not just the release blocker) is migrated to derived/verified status, else the archive readback stays stale. (2) Simplification: Decision 5's per-step approval-policy tag (approval_required|low_risk_autonomous|human_executed) is heavier than Rundeck's canonical model, which keeps approval as a separate axis. It's justified here because ADV's threat model is single-agent autonomous prod safety (not multi-user ACL), so per-step policy IS the structural enforcement point — keep it, but bound it to execute-classified steps only (non-execute steps need no policy tag), avoiding policy-tag ceremony on read/plan/health steps. Reusable primitive: the design should reuse ADV's existing typed evidence_policy axis (source_citation/rubric_review/stakeholder_acceptance/not_applicable per docs/non-coding-task-rigor-prep.md) rather than mint a parallel ops evidence-policy vocabulary — LBP alignment and one fewer concept.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "All repo claims code-verified this pass; Rundeck canonical model corroborated via Context7. One design-completeness CONCERN (not a release blocker): reconciliation scope must cover getOpenOpsFollowupObligations (archive readback path), which is a second stale-snapshot reader beyond the release blocker. Research limitation: Exa credits exhausted again — no broad SRE-survey corroboration beyond the single canonical Rundeck reference; that reference is sufficient to validate plan/execution + state/log separation but is not a multi-source confirmation of the per-step approval-policy choice."
+      },
+      "recommendation": "Keep the design's extend-ops_followup + reconciliation-replaces-snapshot direction (boring, canonical-backed). Apply 3 bounded refinements before/at prep: (R1) explicitly migrate getOpenOpsFollowupObligations (archive readback, gate-readiness.ts:689) to the verified reconciliation/derived status — not just the release blocker — so the archive surface stops reading link.status. (R2) Constrain per-step approval-policy tags to execute-classified steps only; read/plan/health steps carry no policy tag (reduces over-modeling, satisfies Rundeck-style separation while preserving single-agent safety enforcement). (R3) Reuse the existing typed evidence_policy axis for ops evidence rather than a parallel vocabulary. Do not add a separate ops_run state machine; the optional runs[] under OpsFollowupProfile is the simpler proven shape.",
+      "follow_ups": [
+        "Prep must verify R1: getOpenOpsFollowupObligations is a second link.status reader (archive), not only the release blocker — reconciliation must cover it.",
+        "Broader SRE/runbook multi-source corroboration for the per-step approval-policy choice still owed (Exa credits exhausted); Rundeck alone validates plan/execution + state/log separation but keeps approval on a separate axis.",
+        "Confirm reused evidence_policy axis values map cleanly onto ops execute steps (test/static_check/stakeholder_acceptance/not_applicable) during type design."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOpsRunbooks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for Add ops runbooks (addOpsRunbooks)",
+      "sources": [
+        {
+          "label": "OpsFollowupLink schema — status is display snapshot, child is source of truth",
+          "locator": "plugin/src/types/changes.ts:460-481",
+          "summary": "link.status doc: 'last-known display snapshot only — the child profile is the source of truth'. Confirms the dual-source-of-truth the design (D4) targets."
+        },
+        {
+          "label": "Release blocker + open-obligation readback trust stale link.status",
+          "locator": "plugin/src/temporal/gate-readiness.ts:22,618-702",
+          "summary": "COMPLETE_OPS_STATUSES=['complete']; isOpsFollowupComplete(link) reads link.status; both checkOpsFollowupReleaseBlockers (line 638) and getOpenOpsFollowupObligations (line 699) map link.status directly. Verifies design DDC1/DDC2 targets and the zero-evidence-complete hole (a 'blocks' link with status:'complete' clears the blocker regardless of evidence[])."
+        },
+        {
+          "label": "OpsEvidenceEntry is flat/lightweight, no runbook step model",
+          "locator": "plugin/src/types/changes.ts:421-458",
+          "summary": "OpsEvidenceEntry={id,recorded_at,env,action,batch,status,summary,next_step,completion_signal}. No dry_run/execute pairing, approval ref, health-check, or rollback disposition. Confirms need for design D2 OpsRun/step layer; extension keeps this schema valid (D3/DDC5)."
+        },
+        {
+          "label": "Readback reads both profile.status (child) and link.status (parent)",
+          "locator": "plugin/src/tools/ops-followup-readback.ts:36,49",
+          "summary": "Confirms both source-of-truth (child profile) and stale-snapshot (parent link) surfaces exist; design D4 reconciliation must cover this readback path."
+        },
+        {
+          "label": "Temporal canonical signal-driven HITL approval pattern",
+          "locator": "Context7 /temporalio/documentation — typescript message-passing + openai-agents integration",
+          "summary": "Signals mutate workflow state, queries expose pending approval, condition() gates on approval; needsApproval + RunState is the documented durable long-running HITL pattern. Validates design LBP: signal/reducer approval+evidence state is the boring, proven approach and matches ADV's existing signal/query-only change-workflow surface (no defineUpdate)."
+        },
+        {
+          "label": "Spec-law: seven-gate model and deterministic gate readiness",
+          "locator": "adv_spec advance-workflow rq-gatemodel01, rq-gateReadiness01, rq-toolPlaceholderPolicy01",
+          "summary": "Design preserves seven gates (Constraint C3), routes release authority through workflow-owned deterministic readiness (aligns rq-gateReadiness01: structural not heuristic), and commits FIELD_POLICIES coverage for new args (aligns rq-toolPlaceholderPolicy01). No contradicting requirement found; new rq-opsRun*/rq-opsFollowSourceOfTruth01 are additive."
+        }
+      ],
+      "architecture_assessment": "Design is a source-verified, least-surprising extension. All three central defects it targets are code-confirmed: (1) release authority + archive readback read OpsFollowupLink.status which the schema itself declares non-authoritative (gate-readiness.ts:462-464 vs 618-702); (2) a 'blocks' link marked complete clears the release blocker with zero evidence (COMPLETE_OPS_STATUSES=['complete']); (3) the flat OpsEvidenceEntry cannot express the plan→approve→execute→health→rollback runbook lifecycle. Design D4 (verified OpsFollowupResolution, link.status becomes display-only), D5 (completion=signal+health+rollback/cleanup+evidence), D2 (nested OpsRun), and D3/DDC5 (legacy evidence stays readable via optional fields) directly and correctly address these. LBP is sound: extend ops_followup + derived-status reconciler over a standalone ops_run workflow avoids re-introducing a second source of truth; signal/reducer approval state matches ADV's signal/query-only change-workflow surface and Temporal's documented durable-HITL pattern. Spec-law: no contradiction found; new requirements are additive and consistent with rq-gateReadiness01 (structural authority) and rq-toolPlaceholderPolicy01 (FIELD_POLICIES). Simplicity note (not a blocker): the discovery scout's boring alternative — make release authority DERIVE completion from child profile/evidence and DROP the cached edge field, rather than ADD an OpsFollowupResolution reconciler alongside it — is materially simpler for the single-project case and removes rather than manages the dual source of truth. The design chose reconciliation to also cover cross-project/unreachable-child determinism (DDC7), which the derive-only path does not fully solve; the choice is defensible but the resolution proof adds a third state (link.status, child profile, resolution) that must be kept from itself becoming stale. Replay/backward-compat is the main execution risk: optional-field reducers on the signal/query-only surface must not reintroduce defineUpdate (AGENTS.md replay cliff) and need legacy-history fixtures.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED with cautions, no conflicts. CORRECTNESS: solves stated objectives; all targeted defects code-verified; no logical gaps found. SIMPLICITY (caution): a derive-completion-from-child-and-drop-cached-field alternative is simpler for single-project but does not cover cross-project unreachable-child determinism (DDC7) that the resolution proof handles — design choice defensible; ensure the new resolution proof does not itself become a fourth stale snapshot (reconcile only at release/harden/archive, never persist as authority between). SPEC-LAW: no existing advance-workflow requirement contradicted; new rq-opsRun*/rq-opsFollowSourceOfTruth01/rq-opsRunCompat01 are additive and consistent with rq-gateReadiness01 and rq-toolPlaceholderPolicy01. KEY ALTERNATIVES: standalone ops_run workflow correctly rejected (dual source of truth). REPLAY caution: optional reducers must stay signal/query-only (no defineUpdate) and carry legacy-history compat fixtures per AGENTS.md replay-cliff guidance."
+      },
+      "recommendation": "Proceed to planning. The design is correct, spec-law-compliant, and each defect it targets is verified against source (gate-readiness.ts, types/changes.ts, ops-followup-readback.ts). Two non-blocking prep-phase asks: (1) explicitly justify OpsFollowupResolution reconciler vs the simpler derive-from-child-and-remove-cached-field approach — the reconciler is only clearly superior because it also delivers deterministic cross-project/unreachable-child blockers (DDC7); document that the resolution proof is verified-at-read (release/harden/archive/approval context) and is never persisted as standalone release authority, so it cannot become a new stale snapshot; (2) require legacy-history/replay compatibility fixtures for the new optional-field reducers and confirm they remain signal/query-only (no defineUpdate) per the AGENTS.md replay cliff. Both are already implied by Slice 7 tests and DDC7/Risk-mitigations; make them explicit acceptance items in prep.",
+      "follow_ups": [
+        "Prep: add explicit test that a 'blocks' link with status:'complete' but zero evidence is NOT release-authoritative under the new resolution path (closes the fixPikaqianDrainerR2Config no-evidence hole).",
+        "Prep: add legacy-history replay fixture proving old OpsFollowupProfile (evidence[] only, no runs[]) parses and projects unchanged after reducer additions.",
+        "External SRE/runbook best-practice corroboration was not obtained this pass (repo+Temporal-docs grounded only); optional additional Exa lookup could validate the plan→approve→execute→health→rollback step taxonomy against industry runbook models before locking OpsRunStep kinds."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOpsRunbooks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addOpsRunbooks",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/temporal/change-state.ts",
+          "summary": "Preserved existing ops run evidence during run upserts so stale/client-side upsert payloads cannot erase append-only workflow evidence already accepted by Temporal state.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.ops-follow-up.test.ts src/tools/ops-evidence.test.ts src/utils/tool-title.test.ts; bin/oc-test smoke"
+        },
+        {
+          "file": "plugin/src/temporal/change-state.ops-follow-up.test.ts",
+          "summary": "Added regression coverage proving ops run metadata upserts keep previously appended run evidence.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.ops-follow-up.test.ts src/tools/ops-evidence.test.ts src/utils/tool-title.test.ts; bin/oc-test smoke"
+        },
+        {
+          "file": "plugin/src/tools/ops-evidence.ts",
+          "summary": "Expanded ops run evidence secret-safety validation beyond summary text to artifact pointers, artifact rationale/summary, completion signal, health verification, and rollback/cleanup disposition fields.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.ops-follow-up.test.ts src/tools/ops-evidence.test.ts src/utils/tool-title.test.ts; bin/oc-test smoke"
+        },
+        {
+          "file": "plugin/src/tools/ops-evidence.test.ts",
+          "summary": "Added regression coverage rejecting secret-like material embedded in ops run artifact pointers/completion proof fields.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.ops-follow-up.test.ts src/tools/ops-evidence.test.ts src/utils/tool-title.test.ts; bin/oc-test smoke"
+        },
+        {
+          "file": "plugin/src/utils/tool-title.ts",
+          "summary": "Aligned display-title suffix keys for adv_ops_run_upsert and adv_ops_run_evidence_add with actual camelCase tool arg runId.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.ops-follow-up.test.ts src/tools/ops-evidence.test.ts src/utils/tool-title.test.ts; bin/oc-test smoke"
+        },
+        {
+          "file": "plugin/src/utils/tool-title.test.ts",
+          "summary": "Added display-title regression coverage for ops run tools using runId.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.ops-follow-up.test.ts src/tools/ops-evidence.test.ts src/utils/tool-title.test.ts; bin/oc-test smoke"
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "For append-only ledgers in Temporal workflow state, do not trust whole-object upsert payloads from tool-layer snapshots; reducer must merge/preserve existing workflow-side evidence to prevent stale payloads from deleting accepted ledger entries."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/change-state.ops-follow-up.test.ts src/tools/ops-evidence.test.ts src/utils/tool-title.test.ts",
+          "bin/oc-test smoke"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite: 3 files passed, 33 tests passed. Smoke: schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check passed; smoke vitest 2 files/57 tests passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Context packet requested scope_key acceptance-review, but report schema only accepts review:acceptance for independent review summaries; submitted with schema-valid scope_key review:acceptance."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addOpsRunbooks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addOpsRunbooks",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/ops-evidence.ts",
+          "line": 469,
+          "what": "Ops run evidence rejects secret-like summaries, artifact pointers, and completion proof fields before signaling state mutation.",
+          "why": "This makes secret-safety structural at the tool boundary and aligns with release-readiness requirements."
+        },
+        {
+          "id": "harden-praise-2",
+          "label": "praise",
+          "file": "plugin/src/temporal/gate-readiness.ts",
+          "line": 618,
+          "what": "Release readiness uses child/source-of-truth proof and requires completion signal, health verification, and rollback/cleanup disposition.",
+          "why": "This prevents stale parent snapshots from becoming release authority for blocking or required-handoff ops obligations."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/change-state.ops-follow-up.test.ts src/tools/ops-evidence.test.ts src/utils/tool-title.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Targeted harden verification passed: 3 files, 33 tests. Git worktree clean after verification. Gate status shows acceptance done, release pending; adv_change_show reports ops_followup null, ops_followup_links [], readyTasks [], and all 8 tasks done. Prior post-review verification evidence from context: targeted reviewer checks, smoke, full suite, and pnpm run build all passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Release readiness rows: ops readiness — no production ops run required for this internal tooling change; no ops_followup profile and no ops_followup_links/open obligations on addOpsRunbooks.",
+        "Release readiness rows: migration/data impact — schema changes are generated type/schema artifacts only; legacy ops_followup readability covered by task evidence and tests, no runtime data migration or deploy config required.",
+        "Release readiness rows: frontend/preview impact — no frontend/runtime UI surface changed; no browser preview required.",
+        "Release readiness rows: collision/release risk — worktree clean; command/tool registration assets present for adv_ops_run_upsert and adv_ops_run_evidence_add; targeted, smoke, full, and build evidence green.",
+        "Release readiness rows: open follow-ups — none detected in adv_change_show (ops_followup_links empty, readyTasks empty).",
+        "Next action recommendation: proceed to release gate completion/archive from orchestrator; no harden blockers remain."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-6kEQnb",
+      "type": "gotcha",
+      "content": "For spec-law docs in this repo, avoid running Prettier over generated/broad docs/spec artifacts unless intentionally regenerating them; it can churn unrelated existing formatting. Prefer narrow manual spec/doc edits plus targeted asset tests, and limit formatter checks to TS/JSON surfaces that are already Prettier-owned.",
+      "source_task": "tk-46e32931df8f",
+      "recorded_at": "2026-07-02T17:56:19.283Z"
+    },
+    {
+      "id": "ws-VfF168",
+      "type": "pattern",
+      "content": "For nested optional ADV state extensions, add discriminated-union schemas for structurally exclusive cases (e.g., approval policy, artifact pointer vs no-artifact rationale) and default the new array/object field at the owning profile boundary to preserve legacy profile readability.",
+      "source_task": "tk-1201b447122c",
+      "recorded_at": "2026-07-02T18:02:57.959Z"
+    },
+    {
+      "id": "ws-Fv6Yg1",
+      "type": "gotcha",
+      "content": "Ops run status and ops follow-up profile status are related but not identical: run-only states like planned/approval_required/approved must not be assigned directly to OpsFollowupProfile.status. Signal payloads should carry child-profile status overrides using OpsFollowupStatus while run status follows the run evidence next_status.",
+      "source_task": "tk-a42fc719ff64",
+      "recorded_at": "2026-07-02T18:13:52.998Z"
+    },
+    {
+      "id": "ws-sN450s",
+      "type": "pattern",
+      "content": "For ops-run tool preflight, keep production approval authority at the tool boundary: default unclassified prod execute steps to approval_required during run upsert, then reject prod execute evidence when the matching step lacks approval evidence or bounded-autonomous classification. This keeps completion authority structural before workflow state mutation.",
+      "source_task": "tk-f9a9fe6c0258",
+      "recorded_at": "2026-07-02T18:24:13.726Z"
+    },
+    {
+      "id": "ws-nwteH0",
+      "type": "pattern",
+      "content": "Release readiness cannot query child workflows inside sandbox-safe gate evaluation. Use an optional verified-at-read proof projected onto the parent link; gate-readiness consumes that proof deterministically and treats stale complete parent status without proof as unresolved.",
+      "source_task": "tk-103432774e43",
+      "recorded_at": "2026-07-02T18:31:34.927Z"
+    },
+    {
+      "id": "ws-G6ZGS6",
+      "type": "pattern",
+      "content": "Compact ops readbacks should separate display snapshot from authority: keep legacy link.status for compatibility, add status_source/completion_proof/resolution metadata for truth, and bound run summaries to IDs/status/env/action/counts instead of raw evidence payloads.",
+      "source_task": "tk-64ae1951ca1a",
+      "recorded_at": "2026-07-02T18:42:59.456Z"
+    },
+    {
+      "id": "ws-Lg3gUX",
+      "type": "pattern",
+      "content": "Command-contract changes should be backed by asset tests that anchor the exact operational vocabulary/tool names agents must follow. This keeps prompt/command docs aligned with typed tool authority after source code changes.",
+      "source_task": "tk-35f75fd86f9f",
+      "recorded_at": "2026-07-02T18:49:13.793Z"
+    },
+    {
+      "id": "ws-aZG_8u",
+      "type": "gotcha",
+      "content": "Adding new ADV tools requires updating more than tool registration: ADV_TOOL_NAMES, display titles, frozen no-removal snapshot, live prompt references, CLI surface matrix, and public schema artifacts may all drift. Full suite is needed to catch all asset guards.",
+      "source_task": "tk-18658992f914",
+      "recorded_at": "2026-07-02T19:06:57.663Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-02T17:06:51.894Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by command-as-approval: user invoked /adv-discover addOpsRunbooks after proposal handoff. Problem statement and proposal artifact persisted; validation passed with expected pre-planning warnings only.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "36042f304be876f3f00bf090d67d89ca4405f4ac1fa95863887866d3da89d5a2",
+        "non_whitespace_chars": 7293,
+        "checked_at": "2026-07-02T17:02:13.979Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-02T17:26:27.351Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed after user approved success and acceptance criteria with reply `approve`. Agreement persisted; contract minted with 29 items. Key decisions: bounded low-risk autonomous ops allowed only when classified/allowlisted; otherwise explicit approval required; completion requires signal + health verification + rollback/cleanup disposition; stale parent ops link snapshot alone is not authoritative.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "non_whitespace_chars": 5605,
+        "checked_at": "2026-07-02T17:02:13.980Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-02T17:38:23.846Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed with mandatory leverage scout and independent validator. Validator verdict VALIDATED with caution, no conflict: keep reconciliation verified-at-read and add legacy/replay fixtures. No contract compromise or user-value tradeoff requiring checkpoint.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "f4c683cc753cb4747fc632cc90ffd8fd9a0f7c86e32cd1f51c38a1e30452494e",
+        "non_whitespace_chars": 14073,
+        "checked_at": "2026-07-02T17:02:13.981Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-02T17:43:32.525Z",
+      "completed_by": "agent",
+      "approval_evidence": "Planning approved by user instruction: \"Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.\" Task graph has 8 tasks, validation passed, and ready queue identified tk-46e32931df8f."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-02T19:07:26.186Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 8 planned tasks completed. Final validation passed with one non-blocking NO_DELTAS warning. Verification evidence: bin/oc-test smoke passed, bin/oc-test full passed, pnpm run build passed, targeted asset/tool/schema tests passed. Worktree clean at checkpoint 61f137cc7132f37126778338604019006329327f."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-02T19:35:09.539Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance with reply `approve`. Acceptance review verdict READY; contract review matrix has 29 rows, 0 failing. Executive summary persisted. Verification: targeted reviewer checks, smoke, full suite, and build pass after reviewer fixes.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "7dde99f47b5fdc6f90f6f5c1b2b06b32649ddc9da6439b12a0a0843cfe2cfeae",
+        "non_whitespace_chars": 1484,
+        "checked_at": "2026-07-02T17:02:13.982Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+      "approvedAt": "2026-07-02T17:26:18.963Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "ADV gives production ops work one durable runbook-shaped path from plan → approval policy → execution evidence → health check → rollback/cleanup disposition.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Agents can resume ops work from ADV state, not chat history.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Acceptance/release/archive surfaces show accurate open ops obligations from source-backed state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Existing `ops_followup` and ops evidence records remain readable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "No secrets, raw prod logs, or unapproved prod-impacting execution become valid ADV state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a production-impacting ops run is planned, when it is presented for execution, then ADV shows env, action, bounds, approval policy, evidence policy, and rollback/cleanup plan.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given an ops action is not classified as bounded low-risk autonomous, when an agent attempts prod-impacting execution without matching approval evidence, then ADV blocks completion authority for that execute step.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given low-risk autonomous classification is used, when inspected, then it cites an allowlist/rationale and explicit bounds; unclassified prod-impacting actions default to approval-required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given ops evidence is appended, when run status changes, then append-only evidence records step kind, env, run/batch id, status, bounded summary, secret-safe artifact pointer/rationale, and next state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given an ops run is complete for release/sign-off, when readiness is evaluated, then evidence includes completion signal, health verification, and rollback/cleanup disposition.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given a parent change has linked ops obligations, when acceptance/release/archive context renders, then status comes from child/source-of-truth state or verified reconciliation; stale parent snapshot alone is not authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given existing ops follow-up tools and records, when old profiles/evidence are read, then they remain readable with no data loss.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_followup_promote",
+          "tool:adv_ops_evidence_add"
+        ]
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given evidence would include credentials or raw sensitive prod logs, when recording is attempted, then ADV rejects, redacts, or stores only bounded safe pointers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Structural correctness owns approval, evidence, run status, and release authority; heuristics may only assist discovery/triage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not add a parallel project-management workflow with owners, sprints, boards, or assignment surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve seven-gate ADV flow and existing task/evidence compatibility unless a spec-law change explicitly supersedes it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Production evidence must be bounded and secret-safe; it may cite commands, run IDs, summaries, and artifact pointers, not credentials or raw sensitive logs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Existing `ops_followup` profiles, evidence entries, and links must remain readable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Design must decide whether to extend `ops_followup`, add nested run state, or introduce a distinct ops-run model before implementation tasks are planned.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not make chat transcript memory the source of truth for production ops approval or completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not allow unapproved production-impacting execution.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not treat stale parent link snapshots as release authority when the child profile is the source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not persist secret values or full raw production logs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not create a separate PM workflow unrelated to ADV changes, tasks, and gates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Changing PokeEdge or PokeEdge-Web production infrastructure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Adding ownership, sprint, board, or assignment workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Choosing exact implementation files or task graph before design/prep.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Replacing Temporal or the seven-gate ADV workflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Deep external market research beyond what design needs for this internal workflow capability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-02T19:23:19.753Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "OpsRun schemas, workflow signals/reducers, adv_ops_run_upsert, adv_ops_run_evidence_add, and command contracts implement plan→approval→evidence→health→rollback/cleanup path. Verified by ops-evidence, change-state, workflow, gate-readiness, asset tests; smoke/full/build pass."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Runbook state persists in ops_followup.runs and compact readbacks expose bounded run summaries. Verified by backlog/change readback tests and full suite."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Release/readback/archive surfaces use status_source/completion_proof/resolution and getOpenOpsFollowupObligations. Verified by gate-readiness, backlog, change, archive phase9, review/harden/archive command asset tests."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing ops_followup evidence remains default-readable; runs defaults to [] and legacy compact evidence remains supported. Verified by schema/legacy tests and smoke/full suite."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tool preflight rejects unapproved prod execute evidence and secret-like material in summary/artifact/completion fields; no raw log field exists in schemas. Verified by ops-evidence tests and reviewer hardening tests."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_ops_run_upsert requires env, action, bounds, evidence_policy, rollback_or_cleanup_plan, steps with approval_policy. Tests cover run creation/upsert and readbacks."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Prod execute evidence without matching approval evidence is rejected unless bounded autonomous policy is present. Verified by ops-evidence tests."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bounded_low_risk_autonomous policy requires rationale and bounds; unclassified prod execute defaults to approval_required. Verified by schemas/tool preflight and ops-evidence tests."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_ops_run_evidence_add records step kind, env, run/batch, status, bounded summary, artifact pointer/rationale, next_status and appends evidence. Verified by reducer/workflow/tool tests."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Complete proof requires completion_signal, health_verification, rollback_or_cleanup_disposition through resolution/readiness helpers. Verified by gate-readiness and archive/readback tests."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Compact link readbacks and open obligations expose status_source/completion_proof; release blockers reject stale parent complete without child proof. Verified by gate-readiness, backlog, change list, archive tests."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Legacy ops follow-up profiles/evidence remain readable; adv_followup_promote seeds runs: [] and adv_ops_evidence_add path retained. Verified by legacy schema, followup, ops evidence, full suite."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Secret-like evidence in summary, artifact URI/summary/rationale, completion signal, health verification, and disposition is rejected; schemas accept pointers/rationales only. Verified by ops-evidence hardening test."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Approval/evidence/run status/release authority implemented via Zod schemas, tool preflight, Temporal reducers, and readiness checks; heuristics not used as authority."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No PM ownership/sprint/board workflow added. Work stays under existing ADV changes/tasks/ops_followup tools and command contracts."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Seven-gate flow preserved; new tools integrate with existing ops_followup/task/review/harden/archive flow. Gate/status tests and full suite pass."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Bounded evidence enforced structurally by schema/tool preflight and secret-like rejection tests; raw log field absent."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Existing profiles/evidence/links remain readable with optional defaulted runs and optional resolution. Legacy tests pass."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Design chose extending ops_followup with nested runs and verified-at-read resolution before implementation; implementation follows that design."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Approval/completion proof lives in workflow state, tools, run evidence, and resolution fields; command docs forbid chat transcript source of truth."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Unapproved production-impacting execute evidence is rejected by ops run tool preflight; tests pass."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Readiness/open obligations use resolution/status_source/completion_proof; stale parent status alone blocks/unverified. Tests pass."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "No raw-log field added; unsafe secret-like evidence rejected in tool tests."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No separate PM workflow added; no owners/sprints/boards introduced."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No PokeEdge or PokeEdge-Web production infrastructure changed."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No ownership, sprint, board, or assignment workflows added."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Implementation files/tasks were chosen after design/prep gates, not before."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Temporal and seven-gate workflow retained; no replacement attempted."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No deep external market research performed; work stayed internal workflow capability."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given a production-impacting ops run is planned, when it is presented for execution, then ADV shows env, action, bounds, approval policy, evidence policy, and rollback/cleanup plan.",
+    "Given an ops action is not classified as bounded low-risk autonomous, when an agent attempts prod-impacting execution without matching approval evidence, then ADV blocks completion authority for that execute step.",
+    "Given low-risk autonomous classification is used, when inspected, then it cites an allowlist/rationale and explicit bounds; unclassified prod-impacting actions default to approval-required.",
+    "Given ops evidence is appended, when run status changes, then append-only evidence records step kind, env, run/batch id, status, bounded summary, secret-safe artifact pointer/rationale, and next state.",
+    "Given an ops run is complete for release/sign-off, when readiness is evaluated, then evidence includes completion signal, health verification, and rollback/cleanup disposition.",
+    "Given a parent change has linked ops obligations, when acceptance/release/archive context renders, then status comes from child/source-of-truth state or verified reconciliation; stale parent snapshot alone is not authority.",
+    "Given existing ops follow-up tools and records, when old profiles/evidence are read, then they remain readable with no data loss.",
+    "Given evidence would include credentials or raw sensitive prod logs, when recording is attempted, then ADV rejects, redacts, or stores only bounded safe pointers."
+  ],
+  "documents": {
+    "proposal": "# Add ops runbooks\n\n## Why\n\nADV can track some production ops work today, but agent-run ops are not first-class. Recent PokeEdge changes required dry-runs, canaries, live prod config mutation, requeues, drainers, health checks, rollback reports, and evidence handoff. Those safety rules lived mostly in prose, task notes, and ad hoc evidence instead of a typed runbook model.\n\nWe need ADV support for production ops runs: planned steps, explicit prod approval, bounded execution, append-only evidence, health verification, rollback/cleanup disposition, and durable parent/child handoff.\n\n## What Changes\n\n- Establish first-class workflow support for production ops runs in ADV.\n- Make agent-run prod operations planable, approvable, resumable, auditable, and evaluable without relying on chat history.\n- Preserve existing ops-follow-up and task workflows while discovery determines whether the best shape is an extension of `ops_followup`, a distinct `ops_run`, or a hybrid.\n- Make ops evidence durable enough for acceptance, release, archive sign-off, and later resume/recovery.\n\n## User Outcomes\n\n- Operators can see what production operation is planned, why it is safe to run, what approval applies, and what evidence proves it completed.\n- Agents can execute approved production work without losing run state across sessions.\n- Risky production actions are bounded by explicit approval, dry-run/canary expectations where applicable, and rollback/cleanup disposition.\n- Parent changes and follow-up changes surface open ops obligations accurately at acceptance/release instead of relying on stale task prose.\n- Production evidence is useful for review and audit without storing secrets or dumping sensitive logs.\n\n## Scope\n\n### In Scope\n\n- Production ops run planning shape: prechecks, dry-run/canary, approval, execute, health verification, rollback/cleanup disposition, terminal state.\n- Append-only operational evidence semantics beyond the current lightweight env/action/status/summary fields where needed.\n- Approval boundary for prod-impacting execution.\n- Parent/child ops handoff and release/acceptance visibility.\n- Integration with current ADV concepts: tasks, `ops_followup`, `adv_ops_evidence_add`, sub-agent reports, release blockers, archive reporting.\n- Secret hygiene and bounded evidence rules for prod commands/logs.\n- Discovery of recent PokeEdge and PokeEdge-Web operational examples as design input.\n\n### Out of Scope\n\n- Building a project-management system with owners, sprints, boards, or assignment workflows.\n- Storing credentials, secret values, or raw sensitive production logs in ADV state.\n- Granting agents blanket autonomous production authority.\n- Changing PokeEdge or PokeEdge-Web production infrastructure as part of this Advance workflow improvement.\n- Designing the final data model before discovery compares extension vs new-run alternatives.\n\n### Must Not\n\n- Do not make chat transcript memory the source of truth for production ops approval or completion.\n- Do not allow unapproved production-impacting execution.\n- Do not treat heuristic text matching as the authority for approval, gate completion, or release blocking.\n- Do not create a separate PM workflow surface unrelated to ADV changes/tasks/gates.\n- Do not persist secrets or full raw prod logs.\n\n## Affected Code\n\nLikely affected areas to validate during discovery:\n\n- ADV workflow and change state types for ops metadata.\n- `adv_followup_promote` and `adv_ops_evidence_add` tool surfaces.\n- Gate readiness and release/archive reporting around open ops obligations.\n- Prep/apply/review/harden/archive command contracts for ops planning, approval, execution, and evidence.\n- Sub-agent report schemas if workers need to request or report required ops follow-ups.\n- Specs under `advance-workflow`, `adv-prep`, `subagent-reports`, and related workflow capability docs.\n\n## Related Repositories\n\n- Primary: `advance`.\n- Research examples: `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web` recent ADV histories.\n- No product-linked repo config is present in this Advance project; cross-repo behavior remains a discovery concern only.\n\n## Constraints\n\n- Keep structural correctness: typed schemas/state machines/validators/tests own correctness; heuristics may only assist discovery/triage.\n- Preserve seven-gate ADV workflow and existing task/evidence semantics unless discovery proves a spec-law change is needed.\n- Production approval and evidence must be source-backed and durable, not inferred from loose prose.\n- Secret hygiene is mandatory: evidence may cite commands, run IDs, bounded summaries, and artifact pointers, but not secret values.\n- Design must respect current ops-follow-up release-blocking semantics while fixing stale or incomplete handoff behavior if confirmed.\n\n## Impact\n\n- Reduces risk when agents perform or coordinate production operations.\n- Improves resume/recovery after long-running prod work, failed runs, or session loss.\n- Makes acceptance/release sign-off more trustworthy for changes with live ops obligations.\n- Provides reusable patterns for dry-run-first repair, deploy-config, requeue/drain, migration/backfill, monitoring, and cleanup work.\n\n## Context\n\nResearch from recent PokeEdge/PokeEdge-Web history showed repeated ops patterns:\n\n- `addPricingRepairOp`: dry-run `933`, approved execute `933`, rollback/audit report, post-repair verification.\n- `sourceDeadTailCardImages`: canary, provider rate lock, abort-on-abuse, residual report, health verification.\n- `completeImageReplay`: multi-cohort post-release replay with PikaQian, Poke52, Firecrawl, and PriceCharting child evidence.\n- `fixPikaqianProxyConfig`: live prod config mutation, DLQ requeue, ledger evidence, and durability follow-up.\n- `fixPikaqianDrainerR2Config`: blocking deploy-config follow-up with no evidence entries despite release dependency.\n- `enforceEbayAttribution`: frontend release noted backend companion as agenda, showing cross-repo operational follow-up can still fall back to weaker tracking.\n\nCurrent ADV already has useful primitives: `ops` task type, non-code evidence policies, `ops_followup` profiles, `adv_followup_promote`, `adv_ops_evidence_add`, and release blockers for linked ops follow-ups. The gap is an ideal first-class runbook/evaluation model for approved production ops execution.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Examined global skills; no pending-review skills found. Loaded `adv-agent-tool-contracts` and `adv-arch-detection`. |\n| Prior Research Extension | PASS | Cited `docs/non-coding-task-rigor-prep.md`, `docs/adv-run-test-prep.md`, `docs/repo-improve-prep.md`; added new ops-specific findings. |\n| Conflict & Related-Work Scan | PASS/degraded | `adv_change_validate` passed with expected NO_TASKS/NO_DELTAS. `adv_agenda_list` returned large pending set. `adv_change_list includeArchived:true` timed out twice; `adv_status view:\"changes\"` used as degraded snapshot. |\n| Edge Case Investigation | PASS | Edge cases recorded below. |\n| Design Question Depth | PASS | Open design questions carry trust model, blast radius, alternatives. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-*` deltas recorded below. |\n| Related Pattern Scan | PASS | Similar patterns found in ops follow-up, adv_run_test evidence, non-code evidence, and release readiness. |\n| LBP Check | PASS/degraded | Existing packs + Context7 Temporal docs support durable workflow/state/signal model. Exa external search unavailable due 402 credits. |\n| Completeness Verification | PASS | Problem and solution scope checked; no sole-entry claim accepted without scan. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts` — matched. This change will likely affect tool schemas, reports, packets, and preflight fields.\n- `adv-arch-detection` — matched. Relevant because current ops status has a source-of-truth split.\n- `adv-opportunity-scout` — used through `adv-researcher` scout phase; candidates submitted in sidecar report.\n- Pending-review scan — no pending-review global skills found; `adv-backend-stack-eval` and `playwright-mcp` were already reviewed.\n- Skill gap — no new skill created. Existing skills cover ADV contract/schema and architecture-drift analysis sufficiently.\n\n### Extends\n\n- `docs/non-coding-task-rigor-prep.md`: prior finding says durable multi-step non-code work should enter tracked ADV state with evidence policies. New finding: production ops needs a stronger runbook/evidence lifecycle than generic non-code work because prod action needs approval, bounds, health verification, rollback/cleanup disposition, and secret hygiene.\n- `docs/adv-run-test-prep.md`: prior finding says durable per-task evidence ledger may be needed, with retention/privacy questions. New finding: ops run evidence has stricter privacy and authority needs than test evidence because command identity, prod environment, and secret/log redaction affect release safety.\n- `docs/repo-improve-prep.md`: prior finding calls for durable orchestration and observability. New finding: current discovery hit the same `adv_change_list includeArchived:true` timeout; ops-run status surfaces must be summary-first and not require large archive hydration at release time.\n- Archived/recent PokeEdge changes: current examples add new evidence that ops work repeats across data repair, deploy config, queue requeue/drain, canary, rate-limit, and post-release cleanup patterns.\n\n### Conflict Scan\n\n- Own change: `adv_change_validate` passed. NO_TASKS and NO_DELTAS are expected before planning/spec-delta work.\n- Active changes snapshot: no obvious active change owns first-class ops runbooks. `fixReconnaissanceRisks` is hot but unrelated by title/scope. Stale changes around CI, temp rules, prompt slop, and status do not directly cover ops-run model.\n- Archived/recent related work: existing ops follow-up implementation exists and must not be bypassed.\n- Agenda: large pending backlog includes evidence/latency/status follow-ups. No exact first-class production ops runbook item surfaced in visible slice; agenda output was truncated, so design should still dedupe before implementation.\n- Tool friction: `adv_change_list includeArchived:true` timed out twice; discovery records this as evidence for summary-first ops surfaces.\n\n### Current State\n\n- `TaskTypeSchema` includes `ops`, and `adv_task_add` exposes `type` plus `evidence_policy`. This is stronger than the older non-coding research pack, which noted task type was not exposed at that time.\n- `OpsFollowupProfile` exists with kind, source, relationship, status, created/updated timestamps, completion_signal, and evidence array.\n- `OpsEvidenceEntry` is explicitly lightweight: id, recorded_at, env, action, optional batch, status, summary, next_step, completion_signal.\n- `adv_ops_evidence_add` appends evidence only to a change that already owns an `ops_followup` profile; it updates child profile status.\n- `OpsFollowupLink.status` is documented as a “last-known display snapshot only”; child profile is source of truth.\n- `checkOpsFollowupReleaseBlockers` and `getOpenOpsFollowupObligations` currently read parent `ops_followup_links[]` status. This creates stale-link risk unless design derives/refreshes status structurally.\n- No `OpsRun`/runbook model exists in source.\n- `advance-workflow` already has laws for ops follow-up provenance, evidence trail, release-first handoff, and approval consequence context.\n\n### Edge Cases\n\n1. Approval boundary gap\n   - Low-risk autonomous action is misclassified too broadly and mutates prod without human review.\n   - Approval evidence references one dry-run/batch but execution runs a different env, action, or count.\n\n2. Evidence lifecycle gap\n   - Dry-run passes, execute partially fails, then health check fails; status must not collapse to complete.\n   - Evidence summary cites raw logs or secrets; bounded artifact pointer/redaction must preserve audit without leaking.\n\n3. Parent/child handoff gap\n   - Child follow-up completes but parent link snapshot remains `not_started`, blocking release incorrectly.\n   - Parent link says `complete` but child evidence is absent or failed, allowing release incorrectly.\n\n4. Cross-project ops gap\n   - Target project state is unreachable during archive; renderer must show warning/blocked instead of N/A.\n   - Cross-project target path is untrusted; mutation/evidence append must require explicit target confirmation when mutating.\n\n### Open Design Questions\n\n1. Extend `ops_followup` or add `ops_run`?\n   - Trust model: agent-owned technical decision within user-approved outcomes.\n   - Blast radius: wrong choice creates duplicate state machines or overfits simple follow-ups.\n   - Alternatives: extend `OpsFollowupProfile`; add nested `runs[]`; create standalone `ops_run` workflow. Likely LBP: extend existing profile with typed run lifecycle unless discovery/design finds migration risk.\n\n2. How to derive release authority from child state?\n   - Trust model: agent-owned structural correctness decision.\n   - Blast radius: stale parent snapshots can block or permit release incorrectly.\n   - Alternatives: hydrate linked child status at release; write-through status sync on evidence append; make parent link a pure edge without status authority. Likely LBP: child/source-of-truth or verified reconciliation, not stale snapshot alone.\n\n3. What evidence fields are required?\n   - Trust model: joint; user cares about audit/privacy, agent chooses schema.\n   - Blast radius: too little evidence weakens release sign-off; too much leaks secrets/logs.\n   - Alternatives: keep lightweight entries; add typed step_kind/run_id/bounds/artifact pointers; separate approval records. Likely LBP: bounded typed ledger with redaction constraints.\n\n4. Which prod actions require explicit approval?\n   - Trust model: user-owned policy with agent enforcement.\n   - Blast radius: unsafe autonomous prod mutation or excessive approval friction.\n   - User decision: allow low-risk autonomous actions only when bounded/allowlisted; unclassified prod-impacting actions require explicit approval.\n\n5. What counts as done?\n   - Trust model: user-owned outcome threshold.\n   - Blast radius: release may proceed before ops safety is real.\n   - User decision: completion signal + health verification + rollback/cleanup disposition.\n\n### Draft Spec Deltas\n\n- `rq-opsRunPlan01`: Production ops run planning state.\n  - Given a prod-impacting ops step is planned, when ADV displays it for approval/execution, then it includes env, action, bounds, approval policy, evidence policy, and rollback/cleanup plan.\n- `rq-opsRunApproval01`: Approval-gated prod execution.\n  - Given an ops step is not allowlisted low-risk autonomous, when an agent attempts to mark execute complete without matching approval evidence, then ADV rejects completion/evidence authority for that step.\n- `rq-opsRunEvidence01`: Typed append-only run evidence.\n  - Given an ops run changes state, when evidence is recorded, then an append-only entry captures step kind, env, run/batch id, status, bounded summary, artifact pointer/rationale, and next state without secrets.\n- `rq-opsRunCompletion01`: Completion requires health and rollback/cleanup disposition.\n  - Given an ops run is marked complete for release/sign-off, when readiness is evaluated, then completion signal, health verification, and rollback/cleanup disposition are present.\n- `rq-opsFollowSourceOfTruth01`: Linked ops release authority uses child source of truth or verified reconciliation.\n  - Given a parent has an ops follow-up link, when release readiness is evaluated, then stale parent link status alone is not sufficient authority.\n- `rq-opsRunCompat01`: Existing ops follow-up compatibility.\n  - Given an existing `ops_followup` profile or evidence entry predates ops-run support, when read through ADV tools, then it remains readable and migrates/projects without loss.\n\n### Related Pattern Scan\n\n- `adv_run_test` evidence gap: prior pack found “record evidence” wording without durable evidence storage; similar ledger/privacy problem.\n- Non-code task rigor: prior pack found non-code work needs typed evidence policies; ops run is a stricter subtype.\n- `OpsFollowupLink.status`: source itself documents a display snapshot but release readiness consumes it; source-of-truth split pattern.\n- `approval consequence context`: already requires ops readiness and open follow-ups at acceptance/archive; ops-run model should feed that surface, not create a new approval UI.\n- No `OpsRun` or runbook type exists in source.\n\n### Completeness Verification\n\n- Problem-completeness: high confidence. Research covered proposal, specs, current ops types/tools, release readiness, command surfaces, prior research packs, and PokeEdge examples. The problem is broader than one missing field: it spans approval, evidence, completion, and parent/child authority.\n- Solution-scope: medium-high confidence. Agreement should scope outcomes, not final architecture. Discovery does not claim a sole entry/control surface; design must verify whether `ops_followup` extension is sufficient.\n- Sole-entry claim status: downgraded. No sole entry claim accepted; current likely chokepoints are `ops_followup`, `adv_ops_evidence_add`, release readiness, and approval consequence context.\n- Secondary surfaces: `adv_run_test` durable evidence and non-code evidence policies are adjacent patterns, not in scope except as design references. Cross-project target-path mutation is in scope for ops handoff semantics. PokeEdge/PokeEdge-Web infra changes are out of scope.\n\n### LBP Check\n\n- Internal LBP: reuse existing ADV gates, tasks, `ops_followup`, typed evidence policies, and approval consequence context; avoid creating a parallel PM/runbook product.\n- Structural correctness: typed schemas/state machine/readiness checks must own approval/completion/release authority; free text can summarize but not decide.\n- External support: Context7 Temporal TypeScript docs show long-running workflows can pause for human approval via signals and resume from durable run state; this matches ADV's Temporal-backed model. Google SRE book references support automation/release-engineering as lifecycle practices; applicable pattern is bounded, auditable automation, not blind autonomy.\n- Degraded external search: Exa search failed with `402 credits limit`; no fresh top-3 competitor list produced. Existing packs already cover durable agent orchestration alternatives; recommend `/adv-improve production ops runbooks` only if design needs deeper external landscape.\n\n### Discovery Opportunity Scout\n\n- Trigger decision: run. Strategic workflow/state change with production safety implications.\n- Candidates considered: 5.\n- Auto-adopt/design-around: derive release authority from child state; require evidence/proof before completion; extend evidence entry with step semantics.\n- Surface-to-user: per-run approval vs low-risk allowlist — resolved by user: allow bounded/allowlisted low-risk autonomous, default approval-required.\n- Deferred: cross-project status refresh details; still in discovery/design scope but secondary to source-of-truth fix.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings\n\nCoverage: B:C F:C S:C M:C\n\nAdvisory notes only:\n- Design must choose exact data model and enforcement location.\n- External runbook best-practice search degraded due Exa 402; current evidence is sufficient for agreement, but design may cite more sources if needed.\n\n## Discovery Agenda\n\nResolved in discovery:\n\n- User allows low-risk autonomous ops only when bounded/allowlisted; otherwise prod-impacting actions require explicit approval.\n- Ops run complete means completion signal, health verification, and rollback/cleanup disposition.\n- Blocking follow-up evidence strictness remains a design decision, but stale status alone must not be authoritative.\n\nCarry into design:\n\n- Choose extension vs nested run vs new `ops_run` model.\n- Define approval record, evidence fields, completion state machine, and compatibility migration.\n- Define parent/child status derivation/reconciliation and cross-project degraded behavior.\n- Define tests/spec deltas and tool preflight policies.\n\nDeferred to planning/implementation:\n\n- Exact files, task graph, migration details, and tests.",
+    "problemStatement": "ADV can track some production ops work today, but agent-run ops are not first-class. Recent PokeEdge changes required dry-runs, canaries, live prod config mutation, requeues, drainers, health checks, rollback reports, and evidence handoff. Those safety rules lived mostly in prose, task notes, and ad hoc evidence instead of a typed runbook model. We need ADV support for production ops runs: planned steps, explicit prod approval, bounded execution, append-only evidence, health verification, rollback/cleanup disposition, and durable parent/child handoff.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Establish a durable, runbook-shaped ADV path for production ops work from plan through approval policy, execution evidence, health verification, and rollback/cleanup disposition.\n2. Make agent-run production ops resumable from ADV state rather than chat history.\n3. Ensure acceptance, release, and archive sign-off surfaces report open ops obligations from source-backed state.\n4. Preserve existing `ops_followup`, `adv_followup_promote`, and `adv_ops_evidence_add` compatibility while improving authority and evidence semantics.\n5. Protect production safety by preventing unapproved prod-impacting execution and avoiding secret/raw-log persistence.\n\n## Success Criteria\n\n- SC1: ADV gives production ops work one durable runbook-shaped path from plan → approval policy → execution evidence → health check → rollback/cleanup disposition.\n- SC2: Agents can resume ops work from ADV state, not chat history.\n- SC3: Acceptance/release/archive surfaces show accurate open ops obligations from source-backed state.\n- SC4: Existing `ops_followup` and ops evidence records remain readable.\n- SC5: No secrets, raw prod logs, or unapproved prod-impacting execution become valid ADV state.\n\n## Acceptance Criteria\n\n- AC1: Given a production-impacting ops run is planned, when it is presented for execution, then ADV shows env, action, bounds, approval policy, evidence policy, and rollback/cleanup plan.\n- AC2: Given an ops action is not classified as bounded low-risk autonomous, when an agent attempts prod-impacting execution without matching approval evidence, then ADV blocks completion authority for that execute step.\n- AC3: Given low-risk autonomous classification is used, when inspected, then it cites an allowlist/rationale and explicit bounds; unclassified prod-impacting actions default to approval-required.\n- AC4: Given ops evidence is appended, when run status changes, then append-only evidence records step kind, env, run/batch id, status, bounded summary, secret-safe artifact pointer/rationale, and next state.\n- AC5: Given an ops run is complete for release/sign-off, when readiness is evaluated, then evidence includes completion signal, health verification, and rollback/cleanup disposition.\n- AC6: Given a parent change has linked ops obligations, when acceptance/release/archive context renders, then status comes from child/source-of-truth state or verified reconciliation; stale parent snapshot alone is not authority.\n- AC7: Given existing ops follow-up tools and records, when old profiles/evidence are read, then they remain readable with no data loss. [warrant: tool:adv_followup_promote, tool:adv_ops_evidence_add]\n- AC8: Given evidence would include credentials or raw sensitive prod logs, when recording is attempted, then ADV rejects, redacts, or stores only bounded safe pointers.\n\n## Constraints\n\n- C1: Structural correctness owns approval, evidence, run status, and release authority; heuristics may only assist discovery/triage.\n- C2: Do not add a parallel project-management workflow with owners, sprints, boards, or assignment surfaces.\n- C3: Preserve seven-gate ADV flow and existing task/evidence compatibility unless a spec-law change explicitly supersedes it.\n- C4: Production evidence must be bounded and secret-safe; it may cite commands, run IDs, summaries, and artifact pointers, not credentials or raw sensitive logs.\n- C5: Existing `ops_followup` profiles, evidence entries, and links must remain readable.\n- C6: Design must decide whether to extend `ops_followup`, add nested run state, or introduce a distinct ops-run model before implementation tasks are planned.\n\n## Avoidances\n\n- DONT1: Do not make chat transcript memory the source of truth for production ops approval or completion.\n- DONT2: Do not allow unapproved production-impacting execution.\n- DONT3: Do not treat stale parent link snapshots as release authority when the child profile is the source of truth.\n- DONT4: Do not persist secret values or full raw production logs.\n- DONT5: Do not create a separate PM workflow unrelated to ADV changes, tasks, and gates.\n\n## Out of Scope\n\n- OOS1: Changing PokeEdge or PokeEdge-Web production infrastructure.\n- OOS2: Adding ownership, sprint, board, or assignment workflows.\n- OOS3: Choosing exact implementation files or task graph before design/prep.\n- OOS4: Replacing Temporal or the seven-gate ADV workflow.\n- OOS5: Deep external market research beyond what design needs for this internal workflow capability.\n\n## Preview Applicability\n\n- visual_surface: false\n- rationale: This is an internal workflow/tooling capability. It may affect command output and status/report text, but it does not directly change browser-visible UI or visual frontend surfaces.\n- preview_expectation:\n  - exact_route_required: not_applicable\n  - data_state_expectation: not_applicable\n  - viewport_expectation: not_applicable\n  - rationale: Verification should use unit/integration/asset tests and ADV tool/readiness outputs, not browser preview.\n\n## Decisions\n\n### User Decisions\n\n- Production approval policy: allow bounded low-risk autonomous ops only when explicitly classified/allowlisted; unclassified prod-impacting actions require explicit approval.\n- Completion threshold: an ops run can count complete for release/sign-off only when completion signal, health verification, and rollback/cleanup disposition are recorded.\n- Blocking follow-up strictness: final enforcement shape is a design decision, but stale parent snapshot alone must not be authoritative.\n\n### Agent Decisions (LBP)\n\n- Prefer extending/reconciling existing ops-follow-up concepts before adding a wholly separate workflow surface, unless design proves a distinct run model is cleaner.\n- Treat `OpsFollowupLink.status` as display/cache information only unless verified against child/source-of-truth state.\n- Use typed schemas/state/readiness checks for approval and completion authority.\n- Use bounded evidence pointers/summaries rather than raw logs for secret hygiene.\n\n## Deferred Questions\n\n- Exact data model: extend `ops_followup`, add nested `runs[]`, or introduce a distinct `ops_run` state.\n- Exact release-readiness mechanism for child status hydration/reconciliation, including cross-project degraded behavior.\n- Exact tool schema and preflight changes for approval/evidence/secret-safe artifacts.\n- Backward-compatible migration/projection strategy for existing ops evidence records.\n\n## Sign-Off\n\nUser approved criteria with reply `approve` on 2026-07-02.",
+    "design": "# Design\n\n## Architecture Overview\n\nExtend the existing ops-follow-up model rather than introducing a parallel PM/runbook system. The child ops follow-up change remains the operational source of truth. `OpsFollowupProfile` gains optional typed runbook/run state while legacy `evidence[]` remains readable and projectable.\n\nThe core shape is:\n\n- `OpsFollowupProfile` keeps existing provenance, relationship, status, completion signal, and legacy evidence.\n- New optional `runs[]` captures planned production operations as run instances.\n- Each `OpsRun` contains a plan, execute-classified steps, approval policy, evidence ledger, health checks, and rollback/cleanup disposition.\n- Existing `adv_followup_promote` remains the path that creates linked ops/enabler changes.\n- Existing `adv_ops_evidence_add` remains a legacy/compact evidence append path; new runbook-capable tool surfaces add plan/evidence/approval structure without breaking old profiles.\n\nRelease, acceptance, archive, and handoff surfaces must not trust `OpsFollowupLink.status` alone. `OpsFollowupLink.status` is documented as a display snapshot while the child `ops_followup` profile is the source of truth. Before release/harden/archive evaluates linked ops state, the tool layer reconciles each linked child profile into a bounded `OpsFollowupResolution` proof on the parent link. Workflow readiness then checks only a fresh verified resolution proof for blocking/required-handoff relationships.\n\nImportant validator refinement: `OpsFollowupResolution` is a verified-at-read proof, not a new standalone source of truth. It exists to make release/archive readiness deterministic, especially for cross-project or unreachable child state. It must carry verified-at/freshness evidence and must not be treated as permanently authoritative after the read context expires.\n\nIf child state is unreachable:\n\n- `blocks` and required-handoff links block with deterministic `OPS_FOLLOWUP_STATUS_UNVERIFIED`-style readiness blockers.\n- non-blocking release-first links render warning/handoff context, never N/A.\n\n## Key Decisions\n\n### D1 — Extend `ops_followup`, do not create an unrelated `ops_run` workflow\n\nUse an optional runbook layer under `OpsFollowupProfile`.\n\nRationale:\n\n- Existing profile already owns provenance, relationship, status, evidence, and source/target linkage.\n- Current specs already define ops follow-up provenance, evidence, release-first handoff, and approval consequence context.\n- Adding a separate workflow would create another source-of-truth and drift risk.\n- Optional fields preserve compatibility for existing profiles.\n\n### D2 — Add `OpsRun` as nested run state\n\nIntroduce schemas similar to:\n\n- `OpsRunSchema`: id, title, env, status, created/updated timestamps, plan summary, steps, approvals, evidence, health checks, rollback/cleanup disposition.\n- `OpsRunStepSchema`: id, kind (`precheck`, `dry_run`, `canary`, `execute`, `health_check`, `rollback`, `cleanup`, `handoff`), status, bounds, evidence policy, related evidence ids.\n- `OpsApprovalPolicySchema`: for execute-classified steps only: `approval_required`, `low_risk_autonomous`, or `human_executed`.\n- `OpsApprovalRecordSchema`: approval evidence bound to env, action, bounds, approver, timestamp, and run/step id.\n- `OpsRunEvidenceSchema`: append-only typed evidence with step kind, env, run/batch id, status, bounded summary, artifact pointer/rationale, redaction assertion, next state.\n- `OpsHealthCheckSchema`: check name, signal/source, status, bounded evidence pointer.\n- `OpsRollbackDispositionSchema`: `rollback_ready`, `rollback_not_needed`, `rollback_completed`, `cleanup_needed`, `cleanup_complete`, with evidence/rationale.\n\nApproval policy is intentionally attached to execute-classified steps, not every precheck/read/health step.\n\n### D3 — Keep legacy evidence readable\n\nExisting `OpsEvidenceEntry` remains valid. Readbacks project legacy `evidence[]` into compact legacy-run summaries when `runs[]` is absent.\n\nCompatibility rules:\n\n- Existing profiles parse unchanged.\n- Existing evidence count/status surfaces keep working.\n- New runbook evidence can coexist with legacy `evidence[]` during rollout.\n- No migration must erase or rewrite existing evidence.\n\n### D4 — Release/readback authority uses verified child resolution, not stale parent status\n\nAdd a bounded `OpsFollowupResolution` on parent links or adjacent parent state:\n\n- child change id + target project/path\n- relationship and required handoff\n- verified child status\n- evidence count / run count\n- completion proof status\n- health proof status\n- rollback/cleanup disposition status\n- verified_at\n- expires_at or freshness context\n- unresolved/unreachable reason when applicable\n\nRelease gate readiness for linked ops obligations checks a fresh verified resolution. `OpsFollowupLink.status` remains display/cache only.\n\nThis reconciliation must cover both:\n\n- release blockers (`checkOpsFollowupReleaseBlockers`), and\n- archive/approval readbacks (`getOpenOpsFollowupObligations` and approval consequence context) so archive reports do not use stale snapshots.\n\n### D5 — Completion requires proof, not status text\n\nFor blocking or required-handoff links, `complete` is valid for release/sign-off only when the verified child state shows:\n\n1. completion signal present,\n2. health verification present and passing/not-applicable with rationale,\n3. rollback/cleanup disposition present,\n4. at least one relevant evidence record or explicit not-applicable proof.\n\nLegacy profiles may satisfy the proof through legacy evidence projection only when evidence is present and status is complete; zero-evidence complete is not enough for blocking/required-handoff release authority.\n\n### D6 — Low-risk autonomous is explicit and bounded\n\nUnclassified production-impacting execute steps default to `approval_required`.\n\n`low_risk_autonomous` execute steps require:\n\n- allowlist/rationale,\n- env/action/bounds,\n- max count or scope bound when applicable,\n- evidence policy,\n- rollback/cleanup disposition expectation.\n\nThis is structural policy, not inference from prose.\n\n### D7 — Evidence is bounded and secret-safe by construction\n\nRun evidence does not accept raw log blobs. It accepts:\n\n- bounded human summary,\n- structured status,\n- artifact pointer or command/run id,\n- redaction/secret-safe assertion,\n- next-state pointer.\n\nTool preflight rejects blank audit/evidence fields and should not expose secret-like values in diagnostics. Secret scanning of arbitrary prose may assist, but correctness comes from not providing a raw-log field in the schema.\n\n## ADR Drafts\n\nNone. The design is important but not hard-to-reverse enough to warrant an ADR draft at this gate. It extends existing ops follow-up architecture rather than changing a product-wide architectural doctrine.\n\n## Implementation Strategy\n\n### Slice 1 — Spec law\n\nUpdate `.adv/specs/advance-workflow/spec.json` and `docs/specs/advance-workflow.md` with draft requirements:\n\n- `rq-opsRunPlan01`: production ops run planning state.\n- `rq-opsRunApproval01`: approval-gated prod execution.\n- `rq-opsRunEvidence01`: typed append-only run evidence.\n- `rq-opsRunCompletion01`: completion requires signal + health + rollback/cleanup disposition.\n- `rq-opsFollowSourceOfTruth01`: linked ops release/readback authority uses child source-of-truth or verified reconciliation.\n- `rq-opsRunCompat01`: existing ops follow-up compatibility.\n\n### Slice 2 — Types and schema registry\n\nExtend `plugin/src/types/changes.ts` with optional runbook schemas and resolution schemas. Keep optional additions backward-compatible.\n\nIf any public schema exposes these types, update schema registry and generated schemas.\n\n### Slice 3 — Workflow state and signals\n\nAdd signal payloads and reducers for:\n\n- setting/updating an ops run plan,\n- recording approval for an execute step,\n- appending run evidence,\n- setting health check result,\n- setting rollback/cleanup disposition,\n- reconciling parent link resolution.\n\nReducers must be deterministic and append-only where evidence is involved. New workflow mutations must stay on signal/query surfaces; do not introduce `defineUpdate`. Add legacy-history/replay fixtures for pre-change `ops_followup` state and for histories without new runbook fields.\n\n### Slice 4 — Tool surfaces and preflight\n\nAdd focused runbook-capable tools or extend existing ops tool module. Required capabilities:\n\n- create/update ops run plan on a child follow-up profile,\n- append run evidence bound to run/step id,\n- record approval evidence for approval-required execute steps,\n- reconcile parent ops link resolution from child source-of-truth.\n\nKeep `adv_ops_evidence_add` as legacy/compact append support.\n\nAdd `FIELD_POLICIES` coverage for all new audit/evidence/path/action/bounds fields. Blank or placeholder approval/evidence must fail before mutation.\n\n### Slice 5 — Release/readback integration\n\nUpdate release/harden/archive/tool preflight to reconcile child ops state before evaluating blockers or rendering consequence context.\n\nUpdate:\n\n- `plugin/src/temporal/gate-readiness.ts`\n- `plugin/src/tools/change.ts` archive and approval consequence context paths\n- `plugin/src/tools/ops-followup-readback.ts`\n- list/status annotations where compact ops state appears\n\n### Slice 6 — Command contracts\n\nUpdate workflow docs so agents know when to plan/run/report ops work:\n\n- prep: synthesize ops tasks with runbook/evidence policies where agreement/design require ops work,\n- apply: record plan/approval/evidence before/while executing ops tasks,\n- review/harden/archive: inspect runbook evidence, health, rollback/cleanup, and unresolved child-state warnings.\n\n### Slice 7 — Tests\n\nAdd tests for:\n\n- schema backward compatibility for old profiles/evidence,\n- replay/legacy-history compatibility for old workflow state and signal histories,\n- run plan and evidence append reducers,\n- approval-required execute blocked without approval,\n- bounded low-risk autonomous classification accepted only with rationale/bounds,\n- zero-evidence complete not enough for blocking/required-handoff release,\n- stale parent `link.status` not authoritative,\n- `getOpenOpsFollowupObligations`/archive context uses fresh verified resolution, not stale snapshot,\n- unreachable child state produces deterministic warning/blocker,\n- secret/raw-log-shaped evidence field cannot be persisted because no raw field exists and blank audit fields are rejected,\n- no `defineUpdate` surface is added to change workflow ops-run mutations.\n\n## LBP Analysis\n\nThis design is the least-surprising extension of the current system:\n\n- It keeps ADV's seven-gate lifecycle intact.\n- It reuses `ops_followup` provenance and relationship semantics.\n- It upgrades evidence from prose/light log to typed runbook events where needed.\n- It makes child state authoritative and parent state a verified projection.\n- It avoids a PM-like subsystem.\n- It follows existing Zod/schema/preflight/reducer patterns.\n- It uses Temporal signal/query durability for long-running HITL-style work. Context7 Temporal TypeScript docs show signal-driven human approval and durable run state as an established pattern for long-running workflows.\n\nAlternative rejected: new standalone ops-run workflow. It could be cleaner for very complex ops orchestration, but it would duplicate change/task/follow-up lifecycle state and increase release/readback integration cost. Existing `ops_followup` is already the right locality boundary.\n\nAlternative rejected: status-sync-only parent links. Merely syncing `link.status` would preserve a dual-source-of-truth failure mode. Verified resolution makes the proof explicit and bounded.\n\nAlternative considered by validator: derive directly from child state at read time with no persisted resolution. This is simpler for same-project reachable children, but it does not give deterministic workflow-owned blockers for cross-project/unreachable child state. The design keeps resolution only as a fresh verified proof for the active release/readback context.\n\n## Affected Components\n\n- `plugin/src/types/changes.ts`\n- `plugin/src/temporal/messages.ts`\n- `plugin/src/temporal/change-state.ts`\n- `plugin/src/temporal/gate-readiness.ts`\n- `plugin/src/tools/ops-evidence.ts`\n- `plugin/src/tools/followup.ts`\n- new or extended ops-run tool module\n- `plugin/src/tools/ops-followup-readback.ts`\n- `plugin/src/tools/change.ts`\n- `plugin/src/utils/tool-arg-preflight.ts`\n- `plugin/src/schema-registry.ts` and generated schemas if public type surfaces change\n- `.opencode/command/adv-prep.md`\n- `.opencode/command/adv-apply.md`\n- `.opencode/command/adv-review.md`\n- `.opencode/command/adv-harden.md`\n- archive/sign-off command contract\n- `.adv/specs/advance-workflow/spec.json`\n- `docs/specs/advance-workflow.md`\n\n## Design-Derived Criteria\n\n- DDC1: Release readiness must not use `OpsFollowupLink.status` alone as authority for blocking or required-handoff ops obligations.\n- DDC2: Archive/approval open-obligation readbacks must use fresh verified resolution or child/source-of-truth state, not stale parent snapshots.\n- DDC3: A production-impacting execute step with no low-risk classification must require approval evidence bound to env/action/bounds before it can count complete.\n- DDC4: An ops run complete state must include completion signal, health verification, and rollback/cleanup disposition.\n- DDC5: Existing profiles with only `evidence[]` and no `runs[]` remain readable and can be projected as legacy evidence.\n- DDC6: Evidence tool schemas must not accept raw log blobs; they accept bounded summary, artifact pointer, status, and redaction/secret-safe assertion.\n- DDC7: Cross-project or unreachable child state produces deterministic warning/blocker, not N/A.\n- DDC8: New tool arguments for approval/evidence/run fields have placeholder policies and deterministic preflight failures.\n- DDC9: Ops-run workflow mutations remain signal/query-only; no `defineUpdate` change-workflow surface is added.\n\n## Risks / Mitigations\n\n- Migration risk: Add optional fields; keep old fields; add compatibility fixtures/tests.\n- Over-modeling risk: Keep one runbook layer under ops follow-up; do not add owners/sprints/boards.\n- Release latency risk: Reconcile linked child state only at release/harden/archive/approval consequence contexts, not every list/status call.\n- Resolution-staleness risk: Treat `OpsFollowupResolution` as fresh proof with verified_at/freshness context, not permanent source-of-truth.\n- Secret leakage risk: No raw-log field; bounded summary/pointer schema; redaction assertion; preflight redaction.\n- Cross-project unreachable risk: deterministic blockers/warnings; target_path trust rules remain enforced for mutations.\n- Workflow replay risk: reducer and schema changes must be optional/backward-compatible; tests cover legacy histories/state and signal/query-only boundary.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: 2.\n  - Reconciliation must cover archive/readback (`getOpenOpsFollowupObligations`) as well as release blockers.\n  - Reuse existing `evidence_policy` axis instead of creating an unrelated vocabulary.\n- Already in design: zero-evidence complete hole; test coverage called out explicitly.\n- Refined: approval policy attaches to execute-classified steps only, not every read/precheck/health step.\n- Kept: run plan/execution state separation and raw-log exclusion.\n\n## Validator Result\n\n- Verdict: VALIDATED with caution, no conflicts.\n- Correctness: design solves stated objectives and addresses code-verified gaps: parent link snapshot authority, zero-evidence complete, and flat evidence shape.\n- Simplicity caution: derive-direct-from-child is simpler, but verified resolution is defensible for deterministic cross-project/unreachable-child blockers. Mitigation: resolution is verified-at-read and never permanent standalone authority.\n- Spec-law: no contradictions found; new requirements are additive and preserve gate/readiness/preflight laws.\n- Alternatives: standalone `ops_run` workflow correctly rejected; optional reducers must stay signal/query-only and include replay fixtures.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nImplemented first-class ADV ops runbook support for durable production-ops planning, approval policy, execution evidence, health verification, rollback/cleanup disposition, and release/readback authority.\n\n## What Changed\n\n- Added ops runbook spec law and public schema coverage.\n- Extended `ops_followup` with nested `runs[]` plus verified-at-read `OpsFollowupResolution` on parent links.\n- Added Temporal signal/reducer/workflow support for ops run upsert and append-only run evidence.\n- Added `adv_ops_run_upsert` and `adv_ops_run_evidence_add` with structural approval and secret-safety preflight.\n- Updated release/readback/archive surfaces to expose `status_source`, `completion_proof`, bounded run summaries, and unreachable child-state warnings/blockers.\n- Updated prep/apply/review/harden/archive command contracts so agents plan, execute, review, and sign off ops work from ADV state, not chat history.\n- Regenerated public schema artifacts and updated tool registry/title/matrix/frozen-snapshot surfaces for the new tools.\n\n## Verification\n\n- `bin/oc-test targeted -- src/temporal/change-state.ops-follow-up.test.ts src/tools/ops-evidence.test.ts src/utils/tool-title.test.ts` — pass, 33 tests.\n- `bin/oc-test smoke` — pass: schemas, typecheck, isolation, lockfile, lint, format, smoke tests.\n- `bin/oc-test full` — pass.\n- `pnpm run build` — pass.\n- Acceptance review: `adv-reviewer` verdict READY; reviewer fixes committed in `c9124b65`.\n- Contract review matrix: 29/29 rows passing/respected/not_applicable, 0 failing rows.\n\n## Release Readiness Summary\n\n| Category | Status | Evidence |\n|---|---|---|\n| Delivered value | ready | Adds durable ops runbook support for ADV production-ops work; replaces chat-memory approval/completion with typed workflow state. |\n| Enabling/follow-up dependency | ready | No linked `ops_followup_links`; no blocking or required-handoff child changes. |\n| Ops readiness | ready | Harden verdict READY. No actual production ops run required for this internal tooling change; ops evidence semantics are structurally tested. |\n| Migration/data impact | ready | Public schema artifact regenerated; no database migration or production data operation. |\n| Frontend/preview impact | n/a | Internal CLI/tool/workflow capability; no browser-visible UI surface. |\n| Collision/release risk | ready | Worktree clean. `bin/oc-test smoke`, `bin/oc-test full`, and `pnpm run build` pass. |\n| Open follow-ups | ready | None. |\n| Next action | ready | Archive with Phase 9 finalization after user archive sign-off. |\n\n## Remaining Concerns\n\nNone known. Full test suite emits existing warn-only command token-budget advisory; tests pass.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-02T19:23:19.753Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | ADV gives production ops work one durable runbook-shaped path from plan → approval policy → execution evidence → health check → rollback/cleanup disposition. | pass | OpsRun schemas, workflow signals/reducers, adv_ops_run_upsert, adv_ops_run_evidence_add, and command contracts implement plan→approval→evidence→health→rollback/cleanup path. Verified by ops-evidence, change-state, workflow, gate-readiness, asset tests; smoke/full/build pass. |\n| SC2 | success_criterion | Agents can resume ops work from ADV state, not chat history. | pass | Runbook state persists in ops_followup.runs and compact readbacks expose bounded run summaries. Verified by backlog/change readback tests and full suite. |\n| SC3 | success_criterion | Acceptance/release/archive surfaces show accurate open ops obligations from source-backed state. | pass | Release/readback/archive surfaces use status_source/completion_proof/resolution and getOpenOpsFollowupObligations. Verified by gate-readiness, backlog, change, archive phase9, review/harden/archive command asset tests. |\n| SC4 | success_criterion | Existing `ops_followup` and ops evidence records remain readable. | pass | Existing ops_followup evidence remains default-readable; runs defaults to [] and legacy compact evidence remains supported. Verified by schema/legacy tests and smoke/full suite. |\n| SC5 | success_criterion | No secrets, raw prod logs, or unapproved prod-impacting execution become valid ADV state. | pass | Tool preflight rejects unapproved prod execute evidence and secret-like material in summary/artifact/completion fields; no raw log field exists in schemas. Verified by ops-evidence tests and reviewer hardening tests. |\n| AC1 | acceptance_criterion | Given a production-impacting ops run is planned, when it is presented for execution, then ADV shows env, action, bounds, approval policy, evidence policy, and rollback/cleanup plan. | pass | adv_ops_run_upsert requires env, action, bounds, evidence_policy, rollback_or_cleanup_plan, steps with approval_policy. Tests cover run creation/upsert and readbacks. |\n| AC2 | acceptance_criterion | Given an ops action is not classified as bounded low-risk autonomous, when an agent attempts prod-impacting execution without matching approval evidence, then ADV blocks completion authority for that execute step. | pass | Prod execute evidence without matching approval evidence is rejected unless bounded autonomous policy is present. Verified by ops-evidence tests. |\n| AC3 | acceptance_criterion | Given low-risk autonomous classification is used, when inspected, then it cites an allowlist/rationale and explicit bounds; unclassified prod-impacting actions default to approval-required. | pass | bounded_low_risk_autonomous policy requires rationale and bounds; unclassified prod execute defaults to approval_required. Verified by schemas/tool preflight and ops-evidence tests. |\n| AC4 | acceptance_criterion | Given ops evidence is appended, when run status changes, then append-only evidence records step kind, env, run/batch id, status, bounded summary, secret-safe artifact pointer/rationale, and next state. | pass | adv_ops_run_evidence_add records step kind, env, run/batch, status, bounded summary, artifact pointer/rationale, next_status and appends evidence. Verified by reducer/workflow/tool tests. |\n| AC5 | acceptance_criterion | Given an ops run is complete for release/sign-off, when readiness is evaluated, then evidence includes completion signal, health verification, and rollback/cleanup disposition. | pass | Complete proof requires completion_signal, health_verification, rollback_or_cleanup_disposition through resolution/readiness helpers. Verified by gate-readiness and archive/readback tests. |\n| AC6 | acceptance_criterion | Given a parent change has linked ops obligations, when acceptance/release/archive context renders, then status comes from child/source-of-truth state or verified reconciliation; stale parent snapshot alone is not authority. | pass | Compact link readbacks and open obligations expose status_source/completion_proof; release blockers reject stale parent complete without child proof. Verified by gate-readiness, backlog, change list, archive tests. |\n| AC7 | acceptance_criterion | Given existing ops follow-up tools and records, when old profiles/evidence are read, then they remain readable with no data loss. | pass | Legacy ops follow-up profiles/evidence remain readable; adv_followup_promote seeds runs: [] and adv_ops_evidence_add path retained. Verified by legacy schema, followup, ops evidence, full suite. |\n| AC8 | acceptance_criterion | Given evidence would include credentials or raw sensitive prod logs, when recording is attempted, then ADV rejects, redacts, or stores only bounded safe pointers. | pass | Secret-like evidence in summary, artifact URI/summary/rationale, completion signal, health verification, and disposition is rejected; schemas accept pointers/rationales only. Verified by ops-evidence hardening test. |\n| C1 | constraint | Structural correctness owns approval, evidence, run status, and release authority; heuristics may only assist discovery/triage. | respected | Approval/evidence/run status/release authority implemented via Zod schemas, tool preflight, Temporal reducers, and readiness checks; heuristics not used as authority. |\n| C2 | constraint | Do not add a parallel project-management workflow with owners, sprints, boards, or assignment surfaces. | respected | No PM ownership/sprint/board workflow added. Work stays under existing ADV changes/tasks/ops_followup tools and command contracts. |\n| C3 | constraint | Preserve seven-gate ADV flow and existing task/evidence compatibility unless a spec-law change explicitly supersedes it. | respected | Seven-gate flow preserved; new tools integrate with existing ops_followup/task/review/harden/archive flow. Gate/status tests and full suite pass. |\n| C4 | constraint | Production evidence must be bounded and secret-safe; it may cite commands, run IDs, summaries, and artifact pointers, not credentials or raw sensitive logs. | respected | Bounded evidence enforced structurally by schema/tool preflight and secret-like rejection tests; raw log field absent. |\n| C5 | constraint | Existing `ops_followup` profiles, evidence entries, and links must remain readable. | respected | Existing profiles/evidence/links remain readable with optional defaulted runs and optional resolution. Legacy tests pass. |\n| C6 | constraint | Design must decide whether to extend `ops_followup`, add nested run state, or introduce a distinct ops-run model before implementation tasks are planned. | respected | Design chose extending ops_followup with nested runs and verified-at-read resolution before implementation; implementation follows that design. |\n| DONT1 | avoidance | Do not make chat transcript memory the source of truth for production ops approval or completion. | respected | Approval/completion proof lives in workflow state, tools, run evidence, and resolution fields; command docs forbid chat transcript source of truth. |\n| DONT2 | avoidance | Do not allow unapproved production-impacting execution. | respected | Unapproved production-impacting execute evidence is rejected by ops run tool preflight; tests pass. |\n| DONT3 | avoidance | Do not treat stale parent link snapshots as release authority when the child profile is the source of truth. | respected | Readiness/open obligations use resolution/status_source/completion_proof; stale parent status alone blocks/unverified. Tests pass. |\n| DONT4 | avoidance | Do not persist secret values or full raw production logs. | respected | No raw-log field added; unsafe secret-like evidence rejected in tool tests. |\n| DONT5 | avoidance | Do not create a separate PM workflow unrelated to ADV changes, tasks, and gates. | respected | No separate PM workflow added; no owners/sprints/boards introduced. |\n| OOS1 | out_of_scope | Changing PokeEdge or PokeEdge-Web production infrastructure. | not_applicable | No PokeEdge or PokeEdge-Web production infrastructure changed. |\n| OOS2 | out_of_scope | Adding ownership, sprint, board, or assignment workflows. | not_applicable | No ownership, sprint, board, or assignment workflows added. |\n| OOS3 | out_of_scope | Choosing exact implementation files or task graph before design/prep. | not_applicable | Implementation files/tasks were chosen after design/prep gates, not before. |\n| OOS4 | out_of_scope | Replacing Temporal or the seven-gate ADV workflow. | not_applicable | Temporal and seven-gate workflow retained; no replacement attempted. |\n| OOS5 | out_of_scope | Deep external market research beyond what design needs for this internal workflow capability. | not_applicable | No deep external market research performed; work stayed internal workflow capability. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-02T17:24:28.242Z",
+      "contentHash": "1809a380dc58b550a871094875ac9bfc5190107df1c5271e0866b74b5c2fbbe4",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-02T17:02:14.021Z",
+      "contentHash": "225cff07519e13d2c238ef7c62aba88f3ebd8225b631ed85d18cb9edb9f68a79",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-02T17:26:11.079Z",
+      "contentHash": "001d111744902a311c302487b55e1da5cd3eb2ac0b0923b047fa67cc2d4cdfc2",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-02T17:38:16.697Z",
+      "contentHash": "f4c683cc753cb4747fc632cc90ffd8fd9a0f7c86e32cd1f51c38a1e30452494e",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-02T19:40:23.019Z",
+      "contentHash": "8f1f86edcf462e7de5cf078052de2cdd3eb12ce6b0b2c48763d1594fae6887e9",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-02T19:40:23.019Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

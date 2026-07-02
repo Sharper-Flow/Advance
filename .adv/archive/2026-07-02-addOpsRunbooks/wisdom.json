@@ -1,0 +1,61 @@
+{
+  "entries": [
+    {
+      "id": "ws-6kEQnb",
+      "type": "gotcha",
+      "content": "For spec-law docs in this repo, avoid running Prettier over generated/broad docs/spec artifacts unless intentionally regenerating them; it can churn unrelated existing formatting. Prefer narrow manual spec/doc edits plus targeted asset tests, and limit formatter checks to TS/JSON surfaces that are already Prettier-owned.",
+      "source_task": "tk-46e32931df8f",
+      "recorded_at": "2026-07-02T17:56:19.283Z"
+    },
+    {
+      "id": "ws-VfF168",
+      "type": "pattern",
+      "content": "For nested optional ADV state extensions, add discriminated-union schemas for structurally exclusive cases (e.g., approval policy, artifact pointer vs no-artifact rationale) and default the new array/object field at the owning profile boundary to preserve legacy profile readability.",
+      "source_task": "tk-1201b447122c",
+      "recorded_at": "2026-07-02T18:02:57.959Z"
+    },
+    {
+      "id": "ws-Fv6Yg1",
+      "type": "gotcha",
+      "content": "Ops run status and ops follow-up profile status are related but not identical: run-only states like planned/approval_required/approved must not be assigned directly to OpsFollowupProfile.status. Signal payloads should carry child-profile status overrides using OpsFollowupStatus while run status follows the run evidence next_status.",
+      "source_task": "tk-a42fc719ff64",
+      "recorded_at": "2026-07-02T18:13:52.998Z"
+    },
+    {
+      "id": "ws-sN450s",
+      "type": "pattern",
+      "content": "For ops-run tool preflight, keep production approval authority at the tool boundary: default unclassified prod execute steps to approval_required during run upsert, then reject prod execute evidence when the matching step lacks approval evidence or bounded-autonomous classification. This keeps completion authority structural before workflow state mutation.",
+      "source_task": "tk-f9a9fe6c0258",
+      "recorded_at": "2026-07-02T18:24:13.726Z"
+    },
+    {
+      "id": "ws-nwteH0",
+      "type": "pattern",
+      "content": "Release readiness cannot query child workflows inside sandbox-safe gate evaluation. Use an optional verified-at-read proof projected onto the parent link; gate-readiness consumes that proof deterministically and treats stale complete parent status without proof as unresolved.",
+      "source_task": "tk-103432774e43",
+      "recorded_at": "2026-07-02T18:31:34.927Z"
+    },
+    {
+      "id": "ws-G6ZGS6",
+      "type": "pattern",
+      "content": "Compact ops readbacks should separate display snapshot from authority: keep legacy link.status for compatibility, add status_source/completion_proof/resolution metadata for truth, and bound run summaries to IDs/status/env/action/counts instead of raw evidence payloads.",
+      "source_task": "tk-64ae1951ca1a",
+      "recorded_at": "2026-07-02T18:42:59.456Z"
+    },
+    {
+      "id": "ws-Lg3gUX",
+      "type": "pattern",
+      "content": "Command-contract changes should be backed by asset tests that anchor the exact operational vocabulary/tool names agents must follow. This keeps prompt/command docs aligned with typed tool authority after source code changes.",
+      "source_task": "tk-35f75fd86f9f",
+      "recorded_at": "2026-07-02T18:49:13.793Z"
+    },
+    {
+      "id": "ws-aZG_8u",
+      "type": "gotcha",
+      "content": "Adding new ADV tools requires updating more than tool registration: ADV_TOOL_NAMES, display titles, frozen no-removal snapshot, live prompt references, CLI surface matrix, and public schema artifacts may all drift. Full suite is needed to catch all asset guards.",
+      "source_task": "tk-18658992f914",
+      "recorded_at": "2026-07-02T19:06:57.663Z"
+    }
+  ],
+  "count": 8
+}

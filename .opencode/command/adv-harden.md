@@ -366,6 +366,20 @@ Severity: BLOCKER (missing migration, hardcoded secret, destructive without roll
 
 Return JSON with: `dimension: "deployment_readiness"`, `environment`, `migrations`, `external_services`, `ci_cd`, `infrastructure`, `feature_flags`, `deployment_steps`, `overall_status`, `issues`.
 
+#### Ops Runbook Release Readiness
+
+When the change or linked follow-ups include `ops_followup` / `ops_followup_links` state, harden must verify release-owned ops readiness from child/source-of-truth state or fresh reconciliation proof.
+
+Checks:
+
+- Runbook completeness: env, action, bounds, evidence policy, rollback/cleanup plan, execute-step approval policy.
+- Production approval: `approval_required` steps have matching approval evidence; `bounded_low_risk_autonomous` steps have rationale and explicit bounds.
+- Evidence safety: run evidence uses bounded summaries plus safe artifact pointers/rationales; no raw prod logs or credentials.
+- Completion proof: release-ready complete requires completion signal, health verification, and rollback/cleanup disposition.
+- Link authority: compact link readbacks with `status_source: "parent_snapshot"`, `completion_proof: "unverified"`, or unreachable child state are warnings/blockers according to `checkOpsFollowupReleaseBlockers`; never render them as N/A.
+
+Add findings as release-safety blockers when blocking/required-handoff obligations lack complete proof. Non-blocking follow-ups may remain as “coming next” only when the report names the obligation and next action.
+
 ---
 
 ## Phase 2: Synthesis
@@ -568,6 +582,7 @@ Populate release-owned rows from harden evidence:
 Rules:
 
 - Every row must include status plus brief source/evidence pointer.
+- Ops readiness and open follow-ups must cite runbook/reconciliation fields when present: `status_source`, `completion_proof`, completion signal, health verification, rollback/cleanup disposition, and any unreachable child warning/blocker.
 - Missing scanner/sub-agent output needed for a release-owned row is `warning` or `blocked` with evidence `harden evidence unavailable`; never render it as `n/a`.
 - Do not include raw logs, diffs, task spam, or full scanner reports.
 - Persist by reading current `_executiveSummary` (`adv_change_show include: { executiveSummary: true }`), appending/replacing `## Release Readiness Summary` and the rendered `Approval Consequence Context`, then calling `adv_change_update changeId: {id} executiveSummary: "{updated markdown}"`.

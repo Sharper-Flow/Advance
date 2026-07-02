@@ -92,6 +92,7 @@
 | `adv_archive_repair` | `no-cli-dangerous` | Archive release repair mutation |
 | `adv_change_status_repair` | `no-cli-dangerous` | Change status repair mutation |
 | `adv_change_update_issues` | `no-cli-dangerous` | Issue linkage mutation |
+| `adv_change_repair_origin` | `no-cli-dangerous` | Origin-linkage repair mutation |
 | `adv_change_reenter` | `no-cli-dangerous` | Change state mutation |
 | `adv_task_add` | `no-cli-dangerous` | Task mutation |
 | `adv_task_update` | `no-cli-dangerous` | Task mutation |
@@ -101,6 +102,8 @@
 | `adv_contract_mint` | `no-cli-dangerous` | Contract authority mutation |
 | `adv_contract_review_matrix_set` | `no-cli-dangerous` | Contract authority mutation |
 | `adv_design_concern_disposition` | `no-cli-dangerous` | Contract authority mutation |
+| `adv_ops_run_upsert` | `no-cli-dangerous` | Ops runbook state mutation |
+| `adv_ops_run_evidence_add` | `no-cli-dangerous` | Ops run evidence mutation |
 | `adv_worktree_create` | `no-cli-dangerous` | Worktree mutation |
 | `adv_worktree_resume` | `no-cli-dangerous` | Worktree mutation |
 | `adv_worktree_delete` | `no-cli-dangerous` | Worktree mutation |

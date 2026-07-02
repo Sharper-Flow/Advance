@@ -184,6 +184,42 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
               summary: "Cleanup complete",
             },
           ],
+          runs: [
+            {
+              id: "run-1",
+              title: "Cleanup prod temp table",
+              status: "health_check",
+              created_at: "2026-05-11T00:00:00.000Z",
+              updated_at: "2026-05-11T00:30:00.000Z",
+              plan: {
+                env: "prod",
+                action: "drop-temp-table",
+                bounds: ["single table"],
+                evidence_policy: "run id + health check",
+                rollback_or_cleanup_plan: "restore from snapshot",
+              },
+              steps: [
+                {
+                  id: "step-1",
+                  title: "execute",
+                  kind: "execute",
+                  status: "pass",
+                },
+              ],
+              evidence: [
+                {
+                  id: "rev-1",
+                  recorded_at: "2026-05-11T00:30:00.000Z",
+                  step_kind: "execute",
+                  env: "prod",
+                  status: "pass",
+                  summary: "bounded execution summary",
+                  artifact: { kind: "pointer", uri: "run://123" },
+                  next_status: "health_check",
+                },
+              ],
+            },
+          ],
         },
         ops_followup_links: [
           {
@@ -193,6 +229,14 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
             status: "not_started",
             required_handoff: true,
             linked_at: "2026-05-11T00:00:00.000Z",
+            resolution: {
+              source: "child_profile",
+              status: "complete",
+              verified_at: "2026-05-11T00:40:00.000Z",
+              completion_signal: "deployment complete",
+              health_verification: "health check passed",
+              rollback_or_cleanup_disposition: "cleanup complete",
+            },
           },
         ],
       } as any,
@@ -220,6 +264,20 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
       relationship: "cleanup_after",
       status: "cleanup_needed",
       evidence_count: 1,
+      run_count: 1,
+      run_evidence_count: 1,
+      runs: [
+        {
+          id: "run-1",
+          title: "Cleanup prod temp table",
+          status: "health_check",
+          env: "prod",
+          action: "drop-temp-table",
+          step_count: 1,
+          evidence_count: 1,
+          updated_at: "2026-05-11T00:30:00.000Z",
+        },
+      ],
     });
     expect(c.ops_followup_links).toEqual([
       {
@@ -227,7 +285,15 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
         changeId: "child-1",
         relationship: "follows_release",
         status: "not_started",
+        status_source: "child_profile",
+        completion_proof: "complete",
         required_handoff: true,
+        resolution: {
+          source: "child_profile",
+          status: "complete",
+          verified_at: "2026-05-11T00:40:00.000Z",
+          completion_proof: "complete",
+        },
       },
     ]);
   });

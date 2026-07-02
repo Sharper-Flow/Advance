@@ -403,6 +403,16 @@ export function createToolMap(
       "adv_ops_evidence_add",
       store,
     ),
+    adv_ops_run_upsert: bindTool(
+      opsEvidenceTools.adv_ops_run_upsert,
+      "adv_ops_run_upsert",
+      store,
+    ),
+    adv_ops_run_evidence_add: bindTool(
+      opsEvidenceTools.adv_ops_run_evidence_add,
+      "adv_ops_run_evidence_add",
+      store,
+    ),
 
     // Contract Tools
     adv_contract_mint: bindTool(
@@ -879,6 +889,8 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_epic_reorder",
   "adv_followup_promote",
   "adv_ops_evidence_add",
+  "adv_ops_run_upsert",
+  "adv_ops_run_evidence_add",
   "adv_contract_mint",
   "adv_contract_review_matrix_set",
   "adv_design_concern_disposition",

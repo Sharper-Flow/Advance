@@ -30,6 +30,8 @@ import type {
   OpsEvidenceAppendedSignalPayload,
   OpsFollowupLinkAddedSignalPayload,
   OpsFollowupSeededSignalPayload,
+  OpsRunEvidenceAppendedSignalPayload,
+  OpsRunUpsertedSignalPayload,
   OriginRepairedSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
@@ -300,6 +302,77 @@ export function applyOpsEvidenceAppendedToState(
   state.ops_followup = {
     ...state.ops_followup,
     evidence: [...(state.ops_followup.evidence ?? []), payload.entry],
+    ...(payload.status ? { status: payload.status } : {}),
+    updated_at: payload.appendedAt,
+  };
+  setLastSignalAt(state, payload.appendedAt);
+  return state;
+}
+
+export function applyOpsRunUpsertedToState(
+  state: ChangeWorkflowState,
+  payload: OpsRunUpsertedSignalPayload,
+): ChangeWorkflowState {
+  if (!state.ops_followup) {
+    throw new Error(
+      "Cannot upsert ops run: change has no ops_followup profile",
+    );
+  }
+  const existing = state.ops_followup.runs ?? [];
+  const index = existing.findIndex((run) => run.id === payload.run.id);
+  const runs =
+    index >= 0
+      ? existing.map((run, i) =>
+          i === index
+            ? {
+                ...payload.run,
+                // rq-opsRunEvidence01: run evidence is append-only. A stale
+                // client-side upsert payload must not erase evidence already
+                // accepted by the workflow state machine.
+                evidence: run.evidence ?? [],
+              }
+            : run,
+        )
+      : [...existing, payload.run];
+  state.ops_followup = {
+    ...state.ops_followup,
+    runs,
+    updated_at: payload.upsertedAt,
+  };
+  setLastSignalAt(state, payload.upsertedAt);
+  return state;
+}
+
+export function applyOpsRunEvidenceAppendedToState(
+  state: ChangeWorkflowState,
+  payload: OpsRunEvidenceAppendedSignalPayload,
+): ChangeWorkflowState {
+  if (!state.ops_followup) {
+    throw new Error(
+      "Cannot append ops run evidence: change has no ops_followup profile",
+    );
+  }
+  const existing = state.ops_followup.runs ?? [];
+  const index = existing.findIndex((run) => run.id === payload.runId);
+  if (index < 0) {
+    throw new Error(
+      `Cannot append ops run evidence: run not found ${payload.runId}`,
+    );
+  }
+
+  const runs = existing.map((run, i) => {
+    if (i !== index) return run;
+    return {
+      ...run,
+      status: payload.entry.next_status,
+      evidence: [...(run.evidence ?? []), payload.entry],
+      updated_at: payload.appendedAt,
+    };
+  });
+
+  state.ops_followup = {
+    ...state.ops_followup,
+    runs,
     ...(payload.status ? { status: payload.status } : {}),
     updated_at: payload.appendedAt,
   };
