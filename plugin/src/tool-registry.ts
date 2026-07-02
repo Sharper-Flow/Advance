@@ -826,6 +826,7 @@ export function getToolSurface(): Map<string, Set<string>> {
     conformanceTools,
     advWorktreeTools,
     advSessionTools,
+    epicTools,
   ];
   const surface = new Map<string, Set<string>>();
   for (const group of groups) {

@@ -1451,6 +1451,73 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.fields).toEqual(["entry_id", "epic_title"]);
       expect(store.changes.create).not.toHaveBeenCalled();
     });
+
+    test("rejects active plain same-summary duplicate before create", async () => {
+      const store = createMockStore({
+        id: "fixOpenBugs",
+        title: "Fix open bugs",
+        status: "active",
+      });
+      const existing = {
+        id: "fixOpenBugs",
+        title: "Fix open bugs",
+        status: "active",
+      };
+      store.changes.list = vi.fn(async (filter) => ({
+        changes: filter?.status === "active" ? [existing] : [existing],
+      }));
+      vi.mocked(store.changes.create).mockResolvedValueOnce({
+        changeId: "fixOpenBugs2",
+        path: "/tmp/test/.adv/changes/fixOpenBugs2/proposal.md",
+      });
+      const claimChecker = vi.fn().mockResolvedValue([]);
+
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "Fix open bugs" },
+        store,
+        undefined,
+        { claimChecker, claimRaceCheckMs: 0 },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.code).toBe("DUPLICATE_ACTIVE_CHANGE");
+      expect(parsed.existing_change_id).toBe("fixOpenBugs");
+      expect(parsed.existing_change_title).toBe("Fix open bugs");
+      expect(store.changes.create).not.toHaveBeenCalled();
+    });
+
+    test("does not reject duplicate summary when existing change is archived", async () => {
+      const store = createMockStore({
+        id: "fixOpenBugs",
+        title: "Fix open bugs",
+        status: "archived",
+      });
+      const existing = {
+        id: "fixOpenBugs",
+        title: "Fix open bugs",
+        status: "archived",
+      };
+      store.changes.list = vi.fn(async (filter) => ({
+        changes: filter?.status === "active" ? [] : [existing],
+      }));
+      vi.mocked(store.changes.create).mockResolvedValueOnce({
+        changeId: "fixOpenBugs2",
+        path: "/tmp/test/.adv/changes/fixOpenBugs2/proposal.md",
+      });
+      const claimChecker = vi.fn().mockResolvedValue([]);
+
+      const result = await changeTools.adv_change_create.execute(
+        { summary: "Fix open bugs" },
+        store,
+        undefined,
+        { claimChecker, claimRaceCheckMs: 0 },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.changeId).toBe("fixOpenBugs2");
+      expect(store.changes.create).toHaveBeenCalled();
+    });
   });
 
   describe("adv_change_close", () => {

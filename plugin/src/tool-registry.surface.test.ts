@@ -56,4 +56,22 @@ describe("getToolSurface (live surface)", () => {
       }),
     ).toThrow(/CONTRACT_UNRESOLVED_WARRANT/);
   });
+
+  test("exposes Epic tool surface (adv_epic_create#epic_id)", () => {
+    expect(surface.has("adv_epic_create")).toBe(true);
+    expect(surface.get("adv_epic_create")?.has("epic_id")).toBe(true);
+  });
+
+  test("mint succeeds for an Epic tool warrant against the live surface", () => {
+    const contract = buildContractFromAgreement({
+      agreement: `## Acceptance Criteria
+- AC1: Epic creation routes through epic_id. [warrant: tool:adv_epic_create#epic_id]
+`,
+      approvedAt: "2026-06-25T00:00:00.000Z",
+      warrantLookup: { toolSurface: surface, specIds: new Set() },
+    });
+    expect(contract.items[0]?.warrants).toEqual([
+      "tool:adv_epic_create#epic_id",
+    ]);
+  });
 });

@@ -44,6 +44,7 @@ import {
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { getReflection } from "../storage/reflection";
 import { getProjectId } from "../utils/project-id";
+import { generateChangeId } from "../utils/change-id";
 import { isSyntheticValidationDraftPattern } from "../utils/synthetic-fixture-detector";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
@@ -80,6 +81,41 @@ function subagentReportReadbackKey(report: ScopedSubagentReport): string {
     agent: report.agent,
     attempt: report.attempt,
   });
+}
+
+/**
+ * rq-dupActiveCreate01 — Shared pre-create guard. Returns an error payload
+ * when an active change already shares the generated ID or exact summary
+ * title. Called for same-project creates and cross-project follow-ups so
+ * the disk store's suffix fallback cannot mint e.g. `fixOpenBugs2` while
+ * the original is still in-flight.
+ */
+async function checkActiveDuplicateChange(
+  store: Store,
+  summary: string,
+): Promise<
+  | {
+      error: string;
+      code: "DUPLICATE_ACTIVE_CHANGE";
+      existing_change_id: string;
+      existing_change_title: string;
+      hint: string;
+    }
+  | undefined
+> {
+  const candidateChangeId = generateChangeId(summary);
+  const existingActiveList = await store.changes.list({ status: "active" });
+  const existingDuplicate = existingActiveList.changes.find(
+    (c) => c.id === candidateChangeId || c.title === summary,
+  );
+  if (!existingDuplicate) return undefined;
+  return {
+    error: `An active change already exists for "${summary}"`,
+    code: "DUPLICATE_ACTIVE_CHANGE",
+    existing_change_id: existingDuplicate.id,
+    existing_change_title: existingDuplicate.title,
+    hint: `Resume the existing change with /adv-apply ${existingDuplicate.id}, or archive it before creating a new one.`,
+  };
 }
 
 async function normalizeArtifactMetadataForReadback(
@@ -831,6 +867,14 @@ async function createCrossProjectFollowUp({
         confirmationEvidence,
       },
       async ({ context, store: targetStore }) => {
+        const duplicateError = await checkActiveDuplicateChange(
+          targetStore,
+          summary,
+        );
+        if (duplicateError) {
+          return formatToolOutput(duplicateError);
+        }
+
         const result = await targetStore.changes.create(summary, {
           capability,
           artifacts: {
@@ -2968,6 +3012,11 @@ export const changeTools = {
       const scopeResolution = resolveScopeRepos(store, scope_repos);
       if (!scopeResolution.ok) {
         return formatToolOutput({ error: scopeResolution.error });
+      }
+
+      const duplicateError = await checkActiveDuplicateChange(store, summary);
+      if (duplicateError) {
+        return formatToolOutput(duplicateError);
       }
 
       const initialMetadata: ChangeCreateInitialMetadata = {};

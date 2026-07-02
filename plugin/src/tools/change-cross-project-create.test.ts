@@ -72,7 +72,11 @@ describe("adv_change_create cross-project Temporal routing", () => {
       throw new Error("target getState/get must not be called after create");
     });
     const targetStore = {
-      changes: { create: targetCreate, get: targetGet },
+      changes: {
+        create: targetCreate,
+        get: targetGet,
+        list: vi.fn(async () => ({ changes: [] })),
+      },
     } as unknown as Store;
     mocks.withTargetPathStore.mockImplementationOnce(async (_input, fn) =>
       fn({
@@ -145,12 +149,65 @@ describe("adv_change_create cross-project Temporal routing", () => {
     });
   });
 
+  test("rejects target_path create when target project already has an active same-summary change", async () => {
+    const targetStore = {
+      changes: {
+        create: vi.fn(),
+        get: vi.fn(),
+        list: vi.fn(async () => ({
+          changes: [
+            {
+              id: "addTargetFollowup",
+              title: "Add target followup",
+              status: "active",
+            },
+          ],
+        })),
+      },
+    } as unknown as Store;
+    mocks.withTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: TARGET_ROOT,
+          projectId: "target-project-id",
+          externalRoot: "/state/target",
+          trusted: false,
+          trustSource: "explicit",
+          stateMode: "temporal",
+        },
+        store: targetStore,
+      }),
+    );
+
+    const sourceStore = makeSourceStore();
+    const output = await changeTools.adv_change_create.execute(
+      {
+        summary: "Add target followup",
+        target_path: TARGET_ROOT,
+        target_confirmed: true,
+        confirmationEvidence: "user approved target mutation",
+        source_change_id: "sourceChange",
+      } as never,
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.code).toBe("DUPLICATE_ACTIVE_CHANGE");
+    expect(parsed.existing_change_id).toBe("addTargetFollowup");
+    expect(targetStore.changes.create).not.toHaveBeenCalled();
+    expect(sourceStore.changes.save).not.toHaveBeenCalled();
+  });
+
   test("reports target Temporal create failure after readiness without writing source link", async () => {
     const targetCreate = vi.fn(async () => {
       throw new Error("Temporal workflow start failed");
     });
     const targetStore = {
-      changes: { create: targetCreate, get: vi.fn() },
+      changes: {
+        create: targetCreate,
+        get: vi.fn(),
+        list: vi.fn(async () => ({ changes: [] })),
+      },
     } as unknown as Store;
     mocks.withTargetPathStore.mockImplementationOnce(async (_input, fn) =>
       fn({
