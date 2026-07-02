@@ -17,7 +17,7 @@ import {
   buildChangeContextSnapshot,
   buildChangeContextTicker,
 } from "../utils/context-snapshot";
-import { readArtifact } from "./change";
+import { readArtifact } from "./change/artifacts";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
 import {

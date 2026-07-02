@@ -29,7 +29,7 @@ import { loadChange } from "../storage/json";
 import {
   normalizeGateArtifactEvidenceForReadback,
   readArtifact,
-} from "./change";
+} from "./change/artifacts";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
 import {

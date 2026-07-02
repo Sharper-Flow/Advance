@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Store } from "../storage/store";
-import { readArtifact } from "./change";
+import { readArtifact } from "./change/artifacts";
 import { saveChange } from "../storage/json";
 import {
   ContractEvidencePolicySchema,

@@ -1,0 +1,834 @@
+/**
+ * archive-gate helpers extracted from change.ts.
+ */
+import {
+  createDefaultGates,
+  getIncompleteGates,
+  isGateSatisfied,
+  GATE_ORDER,
+  type GateCompletion,
+  type Gates,
+  type Change,
+  type Phase9FinalizationStatus,
+} from "../../types";
+import type { Store } from "../../storage/store";
+import { getProjectId } from "../../utils/project-id";
+import { createLogger } from "../../utils/debug-log";
+import { formatToolOutput } from "../../utils/tool-output";
+import { collectErrorText } from "../../temporal/retry-wrapper";
+import { getService } from "../../temporal/service";
+import {
+  fireSignalAndRefresh,
+  getChangeHandle,
+  querySignal,
+  waitForGateCompletion,
+} from "../_adapters";
+import {
+  gateCompletedSignal,
+  getGateStatusQuery,
+  phase9StatusUpdatedSignal,
+} from "../../temporal/messages";
+import {
+  detectDefaultBranch,
+  classifyFinalizationRoute,
+  coercePrWorkflowRoute,
+  resolveReleaseReachability,
+  type GitFinalizeOutcome,
+} from "../archive-helpers/git-finalize";
+const logger = createLogger("change");
+export function getArchiveTaskPreflightError(change: {
+  tasks: {
+    id: string;
+    title: string;
+    status: string;
+  }[];
+}): string | null {
+  const incompleteTasks = change.tasks.filter(
+    (t) => t.status !== "done" && t.status !== "cancelled",
+  );
+  if (incompleteTasks.length > 0) {
+    return formatToolOutput({
+      error: "Cannot archive: incomplete tasks",
+      incompleteTasks: incompleteTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+      })),
+    });
+  }
+  return null;
+}
+export type ArchiveGateState = {
+  effectiveGates: Gates;
+  storeGates: Gates;
+  source: "store" | "live";
+  liveGates?: Gates;
+  liveQueryError?: string;
+};
+export async function resolveArchiveGateState(
+  store: Store,
+  changeId: string,
+  change: {
+    gates?: Gates;
+  },
+): Promise<ArchiveGateState> {
+  const storeGates = change.gates ?? createDefaultGates();
+  const bundle = getService();
+  const projectId = bundle ? await getProjectId(store.paths.root) : null;
+  if (!bundle || !projectId) {
+    return { effectiveGates: storeGates, storeGates, source: "store" };
+  }
+  try {
+    const handle = getChangeHandle(bundle.client, projectId, changeId);
+    const queriedGates = await querySignal<Gates>(
+      handle,
+      getGateStatusQuery,
+      undefined,
+    );
+    if (queriedGates && typeof queriedGates === "object") {
+      // Live Temporal gates are authoritative. When they disagree with store
+      // gates, getGateDivergenceHint surfaces the mismatch so the user can
+      // recover (e.g., manual /adv-gate-complete to sync stale state).
+      return {
+        effectiveGates: queriedGates,
+        storeGates,
+        source: "live",
+        liveGates: queriedGates,
+      };
+    }
+  } catch (error) {
+    return {
+      effectiveGates: storeGates,
+      storeGates,
+      source: "store",
+      liveQueryError: collectErrorText(error),
+    };
+  }
+  return { effectiveGates: storeGates, storeGates, source: "store" };
+}
+export function getArchiveGatePreflightError(
+  changeId: string,
+  gateState: ArchiveGateState,
+  allowReleasePending: boolean,
+  divergenceHint?: string | null,
+): string | null {
+  const gates = gateState.effectiveGates;
+  // rq-releaseFinalization01: archive may run with release gate pending.
+  // Finalization creates the reachability/push evidence required to complete
+  // the release gate, which is then done after archive succeeds.
+  const incompleteGates = allowReleasePending
+    ? GATE_ORDER.filter(
+        (gateId) => gateId !== "release" && !isGateSatisfied(gates[gateId]),
+      )
+    : getIncompleteGates(gates);
+  if (incompleteGates.length > 0) {
+    const fallbackHint = `Run /adv-gate-status ${changeId} to see gate details`;
+    const hint = [
+      fallbackHint,
+      gateState.liveQueryError
+        ? `Live gate-status query failed: ${gateState.liveQueryError}`
+        : null,
+      divergenceHint ?? null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return formatToolOutput({
+      error:
+        "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
+      incompleteGates,
+      gateStateSource: gateState.source,
+      storeIncompleteGates: getIncompleteGates(gateState.storeGates),
+      ...(gateState.liveGates
+        ? { liveIncompleteGates: getIncompleteGates(gateState.liveGates) }
+        : {}),
+      ...(gateState.liveQueryError
+        ? { liveQueryError: gateState.liveQueryError }
+        : {}),
+      hint,
+    });
+  }
+  return null;
+}
+// rq-releaseFinalization01: release gate confirmation must be durable.
+export async function waitForArchiveReleaseGateCompletion(
+  handle: ReturnType<typeof getChangeHandle>,
+): Promise<GateCompletion | undefined> {
+  return waitForGateCompletion(handle, "release");
+}
+export function buildReleaseCompletionEvidence(
+  finalization: GitFinalizeOutcome,
+): string {
+  const details = [
+    `defaultBranch=${finalization.defaultBranch}`,
+    `mainCheckout=${finalization.mainCheckout}`,
+    `pushStatus=${finalization.pushStatus}`,
+    finalization.mergeCommitSha
+      ? `mergeCommitSha=${finalization.mergeCommitSha}`
+      : null,
+    finalization.mainCheckpointCommitSha
+      ? `mainCheckpointCommitSha=${finalization.mainCheckpointCommitSha}`
+      : null,
+    finalization.prBranch ? `prBranch=${finalization.prBranch}` : null,
+    finalization.prNumber ? `prNumber=${finalization.prNumber}` : null,
+    finalization.prUrl ? `prUrl=${finalization.prUrl}` : null,
+    finalization.route ? `route=${finalization.route}` : null,
+  ].filter(Boolean);
+  return `Phase 9 finalization ${finalization.status}; ${details.join("; ")}`;
+}
+export function buildPendingMergePhase9Status(input: {
+  finalization: GitFinalizeOutcome;
+  startedAt: string;
+}): Phase9FinalizationStatus {
+  return {
+    status: "pending_merge",
+    startedAt: input.startedAt,
+    prNumber: input.finalization.prNumber,
+    prUrl: input.finalization.prUrl,
+    autoMergeArmed: input.finalization.autoMergeArmed,
+    route: input.finalization.route,
+  };
+}
+/**
+ * rq-archiveRetryIdempotence01 (AC7): bounded retry when the change is already
+ * archived and the archive bundle is present. Reconciles release-gate and
+ * phase9 metadata without repeating finalization, branch deletion, issue
+ * closure, or cleanup.
+ */
+export async function reconcileArchivedBundleRetry(input: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  archiveMode: "direct" | "pr";
+  phase9?: "run" | "skip";
+  existingBundlePath: string;
+  openOpsObligationsPayload: Record<string, unknown>;
+  validationWarnings: Array<{
+    code: string;
+    message: string;
+    path?: string;
+  }>;
+}): Promise<string> {
+  if (input.phase9 === "skip") {
+    return formatToolOutput({
+      success: true,
+      changeId: input.changeId,
+      archivePath: input.existingBundlePath,
+      noOp: true,
+      message: `Change ${input.changeId} is already archived with an existing bundle; phase9=skip skipped reconciliation.`,
+      ...input.openOpsObligationsPayload,
+      ...(input.validationWarnings.length > 0
+        ? {
+            validationWarnings: input.validationWarnings.map((w) => ({
+              code: w.code,
+              message: w.message,
+              path: w.path,
+            })),
+          }
+        : {}),
+    });
+  }
+  const finalization = verifyReleaseEvidenceFromMain({
+    store: input.store,
+    changeId: input.changeId,
+    archiveMode: input.archiveMode,
+    change: input.change,
+  });
+  const commonPayload = {
+    changeId: input.changeId,
+    archivePath: input.existingBundlePath,
+    ...input.openOpsObligationsPayload,
+    ...(input.validationWarnings.length > 0
+      ? {
+          validationWarnings: input.validationWarnings.map((w) => ({
+            code: w.code,
+            message: w.message,
+            path: w.path,
+          })),
+        }
+      : {}),
+  };
+  if (finalization.status === "blocked") {
+    return formatToolOutput({
+      success: false,
+      error: `Archive finalization blocked: ${finalization.blocked?.reason}`,
+      requirement: "rq-releaseFinalization01",
+      remediation: finalization.blocked?.remediation,
+      details: finalization.blocked?.details,
+      ...buildFailedPhase9Classification({
+        change: input.change,
+        finalization,
+      }),
+      ...commonPayload,
+      finalization,
+      continueFrom: {
+        path: finalization.mainCheckout,
+        branch: finalization.defaultBranch,
+      },
+    });
+  }
+  if (finalization.status === "pending_merge") {
+    await recordPhase9Status({
+      store: input.store,
+      changeId: input.changeId,
+      status: buildPendingMergePhase9Status({
+        finalization,
+        startedAt:
+          input.change.phase9_status?.startedAt ?? new Date().toISOString(),
+      }),
+    });
+    return formatToolOutput({
+      success: true,
+      noOp: true,
+      message: `Change ${input.changeId} is already archived; pending_merge state recorded without repeating finalization.`,
+      ...commonPayload,
+      phase9: "pending_merge",
+      finalization,
+      continueFrom: {
+        path: finalization.mainCheckout,
+        branch: finalization.defaultBranch,
+      },
+    });
+  }
+  // If the store already shows release done, skip workflow interaction;
+  // this keeps archived-bundle retries bounded and avoids missing workflow
+  // mocks in no-op scenarios while still allowing metadata reconciliation.
+  let releaseResult: Extract<
+    ArchiveReleaseGateResult,
+    {
+      ok: true;
+    }
+  >;
+  const durableGates = await input.store.gates.get(input.changeId);
+  const storeReleaseGate = durableGates?.release;
+  if (storeReleaseGate?.status === "done") {
+    releaseResult = {
+      ok: true,
+      gate: storeReleaseGate,
+      alreadyDone: true,
+    };
+  } else {
+    const completionResult = await completeReleaseGateAfterFinalization({
+      store: input.store,
+      change: input.change,
+      changeId: input.changeId,
+      finalization,
+    });
+    if (!completionResult.ok) {
+      return formatToolOutput({
+        success: false,
+        error: `Archive release gate completion blocked: ${completionResult.error}`,
+        requirement: "rq-releaseFinalization01",
+        ...commonPayload,
+        finalization,
+        continueFrom: {
+          path: finalization.mainCheckout,
+          branch: finalization.defaultBranch,
+        },
+        workflowGateStatus: completionResult.workflowGateStatus,
+        stuckReason: completionResult.stuckReason,
+        readinessBlockers: completionResult.readinessBlockers,
+      });
+    }
+    const releaseEvidence = buildReleaseCompletionEvidence(finalization);
+    const durableProof = await verifyReleaseGateDurableForArchive({
+      store: input.store,
+      changeId: input.changeId,
+      evidence: releaseEvidence,
+    });
+    if (!durableProof.ok) {
+      return formatToolOutput({
+        success: false,
+        error: `Archive durable release gate proof blocked: ${durableProof.error}`,
+        requirement: "rq-releaseProjectionDurability01",
+        ...commonPayload,
+        finalization,
+        continueFrom: {
+          path: finalization.mainCheckout,
+          branch: finalization.defaultBranch,
+        },
+        releaseGateStatus: durableProof.releaseGateStatus,
+        stuckReason: durableProof.stuckReason,
+        readinessBlockers: durableProof.readinessBlockers,
+      });
+    }
+    releaseResult = completionResult;
+  }
+  if (
+    input.change.phase9_status?.status &&
+    input.change.phase9_status.status !== "done"
+  ) {
+    await recordPhase9Status({
+      store: input.store,
+      changeId: input.changeId,
+      status: {
+        status: "done",
+        startedAt:
+          input.change.phase9_status.startedAt ?? new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      },
+    });
+  }
+  return formatToolOutput({
+    success: true,
+    noOp: true,
+    message: `Change ${input.changeId} is already archived; release gate and Phase 9 metadata reconciled without repeating finalization or cleanup.`,
+    ...commonPayload,
+    finalization,
+    continueFrom: {
+      path: finalization.mainCheckout,
+      branch: finalization.defaultBranch,
+    },
+    releaseGate: releaseResult.gate,
+    releaseGateAlreadyDone: releaseResult.alreadyDone,
+    ...(releaseResult.recoveryMutation ? { _recoveryMutation: true } : {}),
+    ...(releaseResult.reconciliationWarning
+      ? { reconciliationWarning: releaseResult.reconciliationWarning }
+      : {}),
+  });
+}
+export function buildFailedPhase9Classification(input: {
+  change: Change;
+  finalization: GitFinalizeOutcome;
+}):
+  | {
+      phase9Failure: {
+        status: "failed";
+        error?: string;
+        blocker?: string;
+        recoverable: false;
+        remediation?: string;
+        details?: string[];
+      };
+    }
+  | Record<string, never> {
+  // rq-archiveRecoveryConsistency01: failed Phase 9 recovery without
+  // structural release proof must classify the blocker and fail closed.
+  const phase9Status = input.change.phase9_status;
+  if (phase9Status?.status !== "failed") {
+    return {};
+  }
+  const blocked =
+    input.finalization.status === "blocked"
+      ? input.finalization.blocked
+      : undefined;
+  return {
+    phase9Failure: {
+      status: "failed",
+      error: phase9Status.error,
+      blocker: blocked?.reason,
+      recoverable: false,
+      remediation: blocked?.remediation,
+      details: blocked?.details,
+    },
+  };
+}
+export async function recordPhase9Status(input: {
+  store: Store;
+  changeId: string;
+  status: Phase9FinalizationStatus;
+}): Promise<void> {
+  const bundle = getService();
+  if (!bundle) {
+    throw new Error("Temporal service not available for phase9 status update");
+  }
+  const projectId = await getProjectId(input.store.paths.root);
+  if (!projectId) {
+    throw new Error("Could not resolve project ID for phase9 status update");
+  }
+  const handle = getChangeHandle(bundle.client, projectId, input.changeId);
+  await fireSignalAndRefresh(
+    handle,
+    input.store,
+    input.changeId,
+    phase9StatusUpdatedSignal,
+    {
+      phase9_status: input.status,
+      updatedAt: new Date().toISOString(),
+    },
+  );
+}
+export async function projectEpicTerminalSummaryAfterArchive(input: {
+  store: Store;
+  change: Change;
+  completedAt: string;
+}): Promise<
+  | {
+      status: "not_applicable";
+    }
+  | {
+      status: "recorded";
+      epicId: string;
+      entryId: string;
+    }
+  | {
+      status: "warning";
+      epicId: string;
+      entryId: string;
+      error: string;
+    }
+> {
+  const membership = input.change.epic_membership;
+  if (!membership) return { status: "not_applicable" };
+  try {
+    await input.store.epics.setEntryTerminalSummary(membership.epic_id, {
+      entryId: membership.entry_id,
+      status: "archived",
+      completedAt: input.completedAt,
+    });
+    return {
+      status: "recorded",
+      epicId: membership.epic_id,
+      entryId: membership.entry_id,
+    };
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    logger.warn(
+      `archive epic terminal projection: failed to update ${membership.epic_id}/${membership.entry_id} for ${input.change.id}: ${error}`,
+    );
+    return {
+      status: "warning",
+      epicId: membership.epic_id,
+      entryId: membership.entry_id,
+      error,
+    };
+  }
+}
+/**
+ * Verify Phase 9 release evidence from the main checkout when the original
+ * change worktree is already gone. Used only for existing-bundle retries; it
+ * mirrors finalizeRelease's release proof without merging or pushing again.
+ */
+export function verifyReleaseEvidenceFromMain(input: {
+  store: Store;
+  changeId: string;
+  archiveMode: "direct" | "pr";
+  change?: Change;
+}): GitFinalizeOutcome {
+  const mainCheckout = input.store.paths.root;
+  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+  const classifiedRoute = classifyFinalizationRoute(
+    mainCheckout,
+    defaultBranch,
+  );
+  const route =
+    input.archiveMode === "pr" ||
+    input.change?.phase9_status?.status === "pending_merge"
+      ? coercePrWorkflowRoute(classifiedRoute)
+      : classifiedRoute;
+  const reachability = resolveReleaseReachability({
+    mainCheckout,
+    defaultBranch,
+    changeId: input.changeId,
+    route,
+    prNumber: input.change?.phase9_status?.prNumber,
+  });
+  if (reachability.reachable) {
+    return {
+      status: "shipped",
+      mainCheckout,
+      defaultBranch,
+      route: route.route,
+      mergeCommitSha:
+        reachability.proof === "pr_merged"
+          ? reachability.mergeCommitOid
+          : undefined,
+      prNumber: reachability.prNumber,
+      prUrl: input.change?.phase9_status?.prUrl,
+      autoMergeArmed: false,
+      pushStatus: "pushed",
+    };
+  }
+  if (reachability.proof === "origin_push_unverified") {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      route: route.route,
+      pushStatus: "failed",
+      pushFailureReason: reachability.details?.join("; "),
+      blocked: {
+        reason: "DEFAULT_BRANCH_PUSH_NOT_VERIFIED",
+        remediation: `Default branch ${defaultBranch} must be pushed before release completion (rq-releaseFinalization01).`,
+        details: reachability.details,
+      },
+    };
+  }
+  if (reachability.proof === "pr_unmerged") {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      route: route.route,
+      pushStatus: "pushed",
+      prBranch: `change/${input.changeId}`,
+      prNumber: reachability.prNumber,
+      prUrl: input.change?.phase9_status?.prUrl,
+      autoMergeArmed: reachability.autoMergeArmed,
+      blocked: {
+        reason: reachability.autoMergeArmed
+          ? "PR_PENDING_AUTO_MERGE"
+          : "PR_NOT_MERGED",
+        remediation: `PR for change/${input.changeId} must be merged before release completion (rq-releaseFinalization01).`,
+        details: reachability.details,
+      },
+    };
+  }
+  return {
+    status: "blocked",
+    mainCheckout,
+    defaultBranch,
+    route: route.route,
+    pushStatus: "not_attempted",
+    blocked: {
+      reason:
+        reachability.proof === "origin_unmerged"
+          ? "CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN"
+          : "CHANGE_BRANCH_NOT_REACHABLE",
+      remediation: `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01).`,
+      details: reachability.details,
+    },
+  };
+}
+export type ArchiveReleaseGateResult =
+  | {
+      ok: true;
+      gate: GateCompletion;
+      alreadyDone: boolean;
+      recoveryMutation?: boolean;
+      reconciliationWarning?: string;
+    }
+  | {
+      ok: false;
+      error: string;
+      workflowGateStatus?: GateCompletion["status"];
+      readinessBlockers?: GateCompletion["readiness_blockers"];
+      stuckReason?: GateCompletion["stuck_reason"];
+    };
+/**
+ * Repair only the release-gate disk projection after structural Phase 9
+ * evidence exists but the change workflow has already completed. The caller
+ * must pass completed-workflow evidence so disk-direct recovery remains
+ * auditable instead of becoming an unguarded state bypass.
+ */
+export async function recoverReleaseGateViaDiskProjection(input: {
+  store: Store;
+  change: Change;
+  evidence: string;
+  recoveryEvidence: string;
+}): Promise<
+  Extract<
+    ArchiveReleaseGateResult,
+    {
+      ok: true;
+    }
+  >
+> {
+  const { RECOVERY_RECONCILIATION_WARNING } =
+    await import("../../temporal/recovery-classification");
+  const { saveRecoveredGateCompletion } = await import("../_recovery-writers");
+  const completion: GateCompletion = {
+    status: "done",
+    completed_at: new Date().toISOString(),
+    completed_by: "adv-archive",
+    approval_evidence: input.evidence,
+  };
+  const updated = await saveRecoveredGateCompletion({
+    store: input.store,
+    change: input.change,
+    authorization: {
+      reason: "completed_workflow_release_gate_recovery",
+      evidence: `${input.recoveryEvidence}; ${input.evidence}`,
+    },
+    gateId: "release",
+    completion,
+  });
+  return {
+    ok: true,
+    gate: updated.gates?.release ?? completion,
+    alreadyDone: false,
+    recoveryMutation: true,
+    reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+  };
+}
+/**
+ * Single source of truth for the completed-workflow recovery dance used by the
+ * archive release-gate completion path (STRUCT-002). Classifies the error; on a
+ * completed/poisoned workflow it recovers the release gate via disk projection,
+ * otherwise it rethrows. Replaces three byte-identical inline catch blocks.
+ */
+export async function recoverReleaseGateIfWorkflowCompleted(
+  error: unknown,
+  ctx: {
+    store: Store;
+    change: Change;
+    evidence: string;
+  },
+): Promise<
+  Extract<
+    ArchiveReleaseGateResult,
+    {
+      ok: true;
+    }
+  >
+> {
+  const { isWorkflowCompletedError } =
+    await import("../../temporal/recovery-classification");
+  if (isWorkflowCompletedError(error)) {
+    return recoverReleaseGateViaDiskProjection({
+      store: ctx.store,
+      change: ctx.change,
+      evidence: ctx.evidence,
+      recoveryEvidence: collectErrorText(error),
+    });
+  }
+  throw error;
+}
+export type DurableReleaseGateProofResult =
+  | {
+      ok: true;
+      gate: GateCompletion;
+    }
+  | {
+      ok: false;
+      error: string;
+      releaseGateStatus?: GateCompletion["status"];
+      readinessBlockers?: GateCompletion["readiness_blockers"];
+      stuckReason?: GateCompletion["stuck_reason"];
+    };
+export function releaseGateEvidenceMatches(
+  gate: GateCompletion | undefined,
+  evidence: string,
+): boolean {
+  return (
+    typeof gate?.approval_evidence === "string" &&
+    gate.approval_evidence.includes(evidence)
+  );
+}
+export async function verifyReleaseGateDurableForArchive(input: {
+  store: Store;
+  changeId: string;
+  evidence: string;
+}): Promise<DurableReleaseGateProofResult> {
+  let gates: Gates | null;
+  try {
+    gates = await input.store.gates.get(input.changeId);
+  } catch (error) {
+    return {
+      ok: false,
+      error: `Store-backed release gate read failed: ${collectErrorText(error)}`,
+    };
+  }
+  const releaseGate = gates?.release;
+  if (releaseGate?.status !== "done") {
+    return {
+      ok: false,
+      error:
+        "Store-backed durable release gate proof did not observe release done",
+      releaseGateStatus: releaseGate?.status,
+      readinessBlockers: releaseGate?.readiness_blockers,
+      stuckReason: releaseGate?.stuck_reason,
+    };
+  }
+  if (!releaseGateEvidenceMatches(releaseGate, input.evidence)) {
+    return {
+      ok: false,
+      error:
+        "Store-backed durable release gate proof lacks matching Phase 9 evidence",
+      releaseGateStatus: releaseGate.status,
+      readinessBlockers: releaseGate.readiness_blockers,
+      stuckReason: releaseGate.stuck_reason,
+    };
+  }
+  return { ok: true, gate: releaseGate };
+}
+/**
+ * Record the release gate after Phase 9 returns shipped evidence and
+ * before archive status retires the workflow. Each Temporal interaction can
+ * race a completed workflow, so query, signal, and confirmation poll all route
+ * completed-workflow failures through disk-projection recovery.
+ */
+export async function completeReleaseGateAfterFinalization(input: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  finalization: GitFinalizeOutcome;
+}): Promise<ArchiveReleaseGateResult> {
+  if (input.finalization.status !== "shipped") {
+    return {
+      ok: false,
+      error: `Release gate requires successful Phase 9 finalization, got ${input.finalization.status}`,
+    };
+  }
+  const bundle = getService();
+  if (!bundle) {
+    return {
+      ok: false,
+      error: "Temporal service not available for release gate completion",
+    };
+  }
+  const projectId = await getProjectId(input.store.paths.root);
+  if (!projectId) {
+    return {
+      ok: false,
+      error: "Could not resolve project ID for release gate completion",
+    };
+  }
+  const handle = getChangeHandle(bundle.client, projectId, input.changeId);
+  const evidence = buildReleaseCompletionEvidence(input.finalization);
+  let currentGate: GateCompletion | undefined;
+  try {
+    currentGate = await querySignal<GateCompletion>(
+      handle,
+      getGateStatusQuery,
+      "release",
+    );
+  } catch (error) {
+    return recoverReleaseGateIfWorkflowCompleted(error, {
+      store: input.store,
+      change: input.change,
+      evidence,
+    });
+  }
+  if (currentGate?.status === "done") {
+    return { ok: true, gate: currentGate, alreadyDone: true };
+  }
+  try {
+    await fireSignalAndRefresh(
+      handle,
+      input.store,
+      input.changeId,
+      gateCompletedSignal,
+      {
+        gateId: "release",
+        completedBy: "adv-archive",
+        completedAt: new Date().toISOString(),
+        approvalEvidence: evidence,
+      },
+    );
+  } catch (error) {
+    return recoverReleaseGateIfWorkflowCompleted(error, {
+      store: input.store,
+      change: input.change,
+      evidence,
+    });
+  }
+  let postSignalGate: GateCompletion | undefined;
+  try {
+    postSignalGate = await waitForArchiveReleaseGateCompletion(handle);
+  } catch (error) {
+    return recoverReleaseGateIfWorkflowCompleted(error, {
+      store: input.store,
+      change: input.change,
+      evidence,
+    });
+  }
+  if (postSignalGate?.status === "done") {
+    return { ok: true, gate: postSignalGate, alreadyDone: false };
+  }
+  return {
+    ok: false,
+    error: "Cannot confirm release gate completion from workflow state",
+    workflowGateStatus: postSignalGate?.status,
+    readinessBlockers: postSignalGate?.readiness_blockers,
+    stuckReason: postSignalGate?.stuck_reason,
+  };
+}
