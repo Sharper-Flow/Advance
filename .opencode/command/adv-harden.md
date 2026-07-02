@@ -225,6 +225,8 @@ Protocol: retry once → if still fails → inline fallback analysis → never s
 
 ## Phase 1: Spawn Analysis Sub-Agents
 
+For every spawned packet, generate the lane-specific briefing packet via `adv_change_show include: { briefingPacket: true, briefingPacketLane: "<lane>" }` and inject `_briefingPacket` into the packet. Do not reconstruct `affected_files`, `contract`, `epic_context`, or `scope` manually.
+
 #### Harden Scanner Context Packet
 
 Inject into every `explore` scanner spawn prompt:
@@ -233,19 +235,10 @@ Inject into every `explore` scanner spawn prompt:
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: release
 ATTEMPT: {attempt-number, starting at 1 for this spawned worker}
-AFFECTED FILES:
-  - {file}: {one-line change summary}
-  - ...
-ACCEPTANCE CRITERIA:
-  - AC1: {text}
-  - ...
-CONTRACT PROOF:
-  - contract.reviewMatrix: {passed}/{total} required rows passed/respected
-  - unresolved: {fail|violated|unknown rows}
+BRIEFING PACKET: inject the generated `_briefingPacket` (lane: scanner) here — includes identity_anchors, scope, contract, affected_files, epic_context, durable_facts, unavailable_state
 TASK EVIDENCE SUMMARY:
   - {task-id}: {title} | {status} | type: {type} | evidence_policy: {evidence_policy} | tdd: {phase}
   - ...
-EPIC CONTEXT: {if epic_membership present: Epic id/title/entry order/title; otherwise "none"}
 EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
 
@@ -478,9 +471,7 @@ VERIFICATION:
 SCOPE: fix only the listed in-scope hardening finding(s); honor drift rule before edits
 FINDINGS TO FIX:
   - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}
-ACCEPTANCE CRITERIA:
-  - AC1: {text}
-  - ...
+BRIEFING PACKET: inject the generated `_briefingPacket` (lane: reviewer) here — includes identity_anchors, scope, contract, tasks, affected_files, epic_context, verification_expectations, durable_facts, unavailable_state
 FRONTEND DESIGN REVIEW SKILL: when the change includes frontend/design implementation scope (any task with metadata.frontend == "true" or an agreement-declared design scope), populate this anchor. Otherwise the anchor MAY be omitted.
   Primary: load `skill("adv-frontend-review")` for the canonical 6-dimension methodology.
   Fallback (inline checklist for offline reviewers or older deployments without the skill):
@@ -521,9 +512,7 @@ VERIFICATION:
 SCOPE: implement only the listed in-scope hardening fix; honor drift rule before edits
 FINDINGS TO FIX:
   - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}
-ACCEPTANCE CRITERIA:
-  - AC1: {text}
-  - ...
+BRIEFING PACKET: inject the generated `_briefingPacket` (lane: engineer) here — includes identity_anchors, scope, contract, tasks, affected_files, epic_context, verification_expectations, durable_facts, unavailable_state
 EXPECTED OUTPUT: implement the fix, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
 ```
 

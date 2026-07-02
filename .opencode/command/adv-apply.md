@@ -372,6 +372,8 @@ Load context in two tiers:
 
 **Phase start (once):** `adv_change_show` → load full change context including proposal, design, gates, task summary, and `epic_membership`. If `epic_membership` is present, load compact Epic context with `adv_epic_show epic_id: {epic_id}` and include it in sub-agent packets.
 
+**Briefing packet (MANDATORY for every delegated packet):** generate a lane-specific briefing packet via `adv_change_show include: { briefingPacket: true, briefingPacketLane: "<lane>" }` and inject `_briefingPacket` into the packet. The briefing packet is the authoritative source for `identity_anchors`, `scope`, `contract`, `tasks`, `affected_files`, `epic_context`, `verification_expectations`, `durable_facts`, and `unavailable_state`. Do not reconstruct these sections manually.
+
 **Per task:**
 
 1. `adv_task_show` → load current task details
@@ -566,11 +568,9 @@ VERIFICATION:
   required_when_possible:
     - {task-specific test/lint/typecheck command}
   optional_additional_checks: true
-AFFECTED FILES: {file list from task description — use VERIFIED paths from Phase 0.1 path verification, not assumed paths}
+BRIEFING PACKET: inject the generated `_briefingPacket` (lane: engineer) here — includes identity_anchors, scope, contract, tasks, affected_files, epic_context, verification_expectations, durable_facts, unavailable_state
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
-ACCEPTANCE CRITERIA: {criteria relevant to this task}
-EPIC CONTEXT: {if epic_membership present: Epic id/title/entry order/title; otherwise "none"}
 EXPECTED OUTPUT: implement the task, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
 ```
 
@@ -598,6 +598,7 @@ VERIFICATION:
   required_when_possible:
     - {task-specific component/lint/typecheck/a11y command}
   optional_additional_checks: true
+BRIEFING PACKET: inject the generated `_briefingPacket` (lane: designer) here — includes identity_anchors, scope, contract, tasks, affected_files, epic_context, durable_facts, unavailable_state
 VISUAL_CONTEXT:
   surface_type: {tool | dashboard | form | docs | marketing | component | unknown | unavailable: reason}
   existing_patterns:
@@ -612,11 +613,8 @@ VISUAL_CONTEXT:
 DESIGN QUALITY BAR: component correctness, semantic HTML/accessibility, responsive behavior, visual polish, matching site design, finer details
 NEIGHBORING RECOMMENDATIONS: finish owned UI scope if safe; surface adjacent UI inconsistencies (e.g., unstyled neighboring buttons, inconsistent tokens) via `DESIGNER_REPORT.neighboring_recommendations[]` and `required_main_agent_actions` for orchestrator/user HITL. Do not silently broaden scope.
 BACKEND BOUNDARY: if the UI task requires changing storage, APIs, Temporal, or business logic, stop and report. Populate `scope_drift.recommendation: "stop_and_report"` and `required_main_agent_actions` with a handoff to `adv-engineer`. Do NOT edit backend files.
-AFFECTED FILES: {file list from task description — use VERIFIED paths from Phase 0.1 path verification, not assumed paths}
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
-ACCEPTANCE CRITERIA: {criteria relevant to this task}
-EPIC CONTEXT: {if epic_membership present: Epic id/title/entry order/title; otherwise "none"}
 EXPECTED OUTPUT: implement the UI/component task, run tests, call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md
 ```
 

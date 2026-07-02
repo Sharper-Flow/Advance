@@ -115,6 +115,7 @@ Before touching anything, establish scope:
      - If not found at all → report in `DESIGNER_REPORT.blockers`. Do NOT call `question`; return the blocker for orchestrator recovery.
    - If MISSING and the file is a create-target (new component file) → skip verification; proceed normally.
 7. **Epic context:** If the Designer Apply Context Packet includes `epic_membership`, treat the Epic id/title/order as supplementary initiative context. Do not block UI work based on Epic order, and do not assume every change belongs to an Epic.
+8. **Consume the generated briefing packet:** The Designer Apply Context Packet includes a `BRIEFING PACKET` slice (`_briefingPacket`) that is the authoritative source for `scope`, `contract`, `tasks`, `affected_files`, `epic_context`, and `verification_expectations`. Use it; do not reconstruct those sections from prose.
 
 You may not begin work until the scope is locked AND path preflight is complete.
 

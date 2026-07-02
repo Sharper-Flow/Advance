@@ -110,6 +110,7 @@ Before touching anything, establish scope:
    - If MISSING and the file is a create-target (new file to write) → skip verification; proceed normally.
     - Use the `PROJECT STRUCTURE` line from the Apply Context Packet as a guide if available — it contains verified paths from the orchestrator's Phase 0.1 path verification.
     - **Epic context:** If the Apply Context Packet or `adv_change_show` includes `epic_membership`, treat the Epic id/title/order as supplementary initiative context. Do not block work based on Epic order, and do not assume every change belongs to an Epic.
+6. **Consume the generated briefing packet:** The Apply Context Packet includes a `BRIEFING PACKET` slice (`_briefingPacket`) that is the authoritative source for `scope`, `contract`, `tasks`, `affected_files`, `epic_context`, and `verification_expectations`. Use it; do not reconstruct those sections from prose.
 
 You may not begin work until the scope is locked AND path preflight is complete.
 

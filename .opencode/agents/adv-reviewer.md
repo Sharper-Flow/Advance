@@ -122,6 +122,7 @@ Before touching anything, establish scope:
    - `bash "test -e '{workdir}/{path}' && echo OK || echo MISSING"` per referenced path.
    - If MISSING and essential → record in `REVIEWER_REPORT.required_main_agent_actions` and stop the affected dimension.
 6. **Epic context:** If the Context Packet includes `epic_membership`, treat the Epic id/title/order as supplementary initiative context. Do not block findings or fixes based on Epic order, and do not assume every change belongs to an Epic.
+7. **Consume the generated briefing packet:** The Context Packet includes a `BRIEFING PACKET` slice (`_briefingPacket`) that is the authoritative source for `scope`, `contract`, `tasks`, `affected_files`, `epic_context`, and `verification_expectations`. Use it; do not reconstruct those sections from prose.
 
 You may not begin analysis until scope is locked AND path preflight is complete.
 

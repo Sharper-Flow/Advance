@@ -133,7 +133,7 @@ Technical criteria caused by the chosen architecture only; no new user-facing AC
 
 - Spawn the independent validator agent (`adv-researcher`) with a validator-specific prompt. This step is mandatory — it must run before Phase 4. If task tool is unavailable, skip gracefully and record `INCONCLUSIVE` via `adv_change_update` appended to `design.md` (see Phase 3.6).
 
-**Validator input:** design.md content + compact agreement summary (objectives, AC, constraints, avoidances), provided inline or from `adv_change_show` include fields. Do not ask validator to read `artifacts.*.path`.
+**Validator input:** design.md content + generated researcher-lane briefing packet (`adv_change_show include: { briefingPacket: true, briefingPacketLane: "researcher" }`). Inject `_briefingPacket` for agreement context; do not reconstruct objectives, AC, constraints, avoidances, affected_files, or epic_context manually. Do not ask validator to read `artifacts.*.path`.
 
 **Validator prompt template:**
 
@@ -160,11 +160,7 @@ VERIFICATION:
 DESIGN UNDER REVIEW:
 {design.md content}
 
-AGREEMENT CONTEXT:
-Objectives: {numbered objectives from agreement}
-Acceptance Criteria: {numbered AC}
-Constraints: {constraints}
-Avoidances: {avoidances}
+BRIEFING PACKET: inject the generated `_briefingPacket` (lane: researcher) here — includes identity_anchors, scope, contract, affected_files, epic_context, durable_facts, unavailable_state
 
 ARCHITECTURE JUDGEMENT DIMENSIONS:
 1. CORRECTNESS — Does this design solve the stated objectives? Are there logical gaps? → maps to architecture_judgement.risk

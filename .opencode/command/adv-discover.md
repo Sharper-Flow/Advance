@@ -434,6 +434,8 @@ If worker skill-load is unavailable, adv-researcher spawn fails, returns empty/m
 
 ### Researcher Scout Packet
 
+Generate the researcher-lane briefing packet via `adv_change_show include: { briefingPacket: true, briefingPacketLane: "researcher" }` and inject `_briefingPacket` into the scout prompt. Do not reconstruct `scope`, `contract`, `affected_files`, or `epic_context` manually.
+
 Inject into the `adv-researcher` scout prompt:
 
 ```
@@ -454,6 +456,7 @@ VERIFICATION:
   required_when_possible:
     - cite source/docs/code evidence for each surfaced candidate
   optional_additional_checks: true
+BRIEFING PACKET: inject the generated `_briefingPacket` (lane: researcher) here — includes identity_anchors, scope, contract, affected_files, epic_context, durable_facts, unavailable_state
 EXPECTED OUTPUT: return ScoutCandidate rows and call adv_subagent_report_submit with RESEARCHER_REPORT per .opencode/agents/adv-researcher.md
 ```
 
