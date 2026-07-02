@@ -1,39 +1,15 @@
 # Roadmap
 
-<!-- adv-triage generated: 2026-07-01T22:45:18Z | DO NOT EDIT MANUALLY -->
+<!-- adv-triage generated: 2026-07-02T03:57:54Z | DO NOT EDIT MANUALLY -->
 <!-- Source of truth: GitHub Project #2 owned by @Sharper-Flow -->
 
 Regenerate with `/adv-triage`. Manual edits are overwritten.
 
-**Total: 11 bugs / 25 features / 1 deferred**
+**Total: 0 bugs / 25 features / 1 deferred**
 
 ## Bugs (by priority)
 
-### Critical
-
-| # | Title | Labels |
-|---|-------|--------|
-| #131 | Investigate worktree delete timeout | — |
-| #136 | Fix archive release gate ordering after terminal archive | — |
-| #168 | Archive status repair reports success but read paths remain draft/in-flight | — |
-| #174 | Worktree registry: archived-change `missing_from_disk` entries are unclearable (removeWorktree is a stub) | — |
-| #175 | Fix peer-owned target_path create | — |
-| #185 | adv_change_archive and adv_task_checkpoint lack target_path (cross-project lifecycle blocked) | — |
-
-### High
-
-| # | Title | Labels |
-|---|-------|--------|
-| #1 | adv_change_create creates duplicate instead of updating existing change | — |
-| #127 | Add origin repair tool | — |
-| #138 | Acceptance signals reject after execution gate complete: 'workflow execution already completed' | — |
-| #183 | Epic terminal child projection remains repair-needed after archived child link | — |
-
-### Medium
-
-| # | Title | Labels |
-|---|-------|--------|
-| #191 | Fix archive timeout on archived release | — |
+_No open bugs._
 
 ## Features (by WSJF, descending)
 
@@ -71,11 +47,11 @@ Regenerate with `/adv-triage`. Manual edits are overwritten.
 
 ## Triage Run Summary
 
-- Run timestamp: 2026-07-01T22:45:18Z
-- Sources scanned: GH issues, GH Project items, ADV changes, agenda, wisdom, cross-session notes, TODO/FIXME
-- Issues opened this run: 6
-- Issues added to project this run: 8
-- Issues closed as completed/duplicate/superseded this run: 5
-- Field assignments this run: 3 bug priority labels, 0 feature Value/WSJF sets
+- Run timestamp: 2026-07-02T03:57:54Z
+- Sources scanned: GH issues, GH Project items
+- Issues opened this run: 0
+- Issues added to project this run: 0
+- Issues closed as completed/duplicate/superseded this run: 7
+- Field assignments this run: 0 bug priority labels, 0 feature Value/WSJF sets
 - Items deferred: 1
-- Local sources deprecated: 4 agenda items completed; 1 ADV draft closed as not_planned
+- Local sources deprecated: 0

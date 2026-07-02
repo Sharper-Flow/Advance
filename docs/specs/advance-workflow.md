@@ -3866,6 +3866,141 @@ Parent release/archive reporting MUST surface open linked ops obligations and re
 
 ---
 
+### Approval Consequence Context at Final HITL Checkpoints
+
+**ID:** `rq-approvalConsequenceContext01` | **Priority:** **[MUST]**
+
+Acceptance and archive/complete HITL approval surfaces MUST render a bounded, source-backed Approval Consequence Context before asking for user approval. The context MUST use one shared category vocabulary in stable order: delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action. Each category MUST show a status with a source/evidence pointer, or a brief N/A rationale when genuinely not applicable. Missing or unreadable evidence MUST NOT be rendered as N/A. The surface MUST NOT add new checkpoints, second confirmations, raw logs, diffs, task spam, or full scanner reports.
+
+**Tags:** `workflow`, `approval`, `acceptance`, `archive`, `harden`, `context`, `hitl`
+
+#### Scenarios
+
+**Acceptance prompt shows consequence context** (`rq-approvalConsequenceContext01.1`)
+
+**Given:**
+- A change has completed execution and /adv-review is preparing the acceptance checkpoint
+
+**When:** The acceptance approval prompt is emitted
+
+**Then:**
+- The prompt includes Approval Consequence Context before the user is asked to accept
+- All eight approved categories are present in stable order
+- Each category shows source-backed status or a brief N/A rationale
+- Release-readiness categories that harden owns may be marked pending harden rather than guessed
+
+**Archive sign-off shows harden and release consequences** (`rq-approvalConsequenceContext01.2`)
+
+**Given:**
+- A change has completed acceptance and /adv-archive is preparing Tier B archive sign-off
+
+**When:** The archive sign-off report is emitted
+
+**Then:**
+- The report includes Approval Consequence Context before the Tier B sign-off instructions
+- Harden-owned readiness answers are shown from durable harden/release evidence when available
+- Collision/release-risk and next-action categories reflect archive preflight and release finalization state
+- Tier B whitelist-only parsing and no-LLM fallback remain unchanged
+
+**Missing evidence is explicit, not N/A** (`rq-approvalConsequenceContext01.3`)
+
+**Given:**
+- Archive-time consequence rendering cannot read required harden readiness evidence
+
+**When:** The ops, migration/data, frontend/preview, or collision/release-risk category is rendered
+
+**Then:**
+- The category is not rendered as N/A
+- The category is rendered as unavailable, warning, or blocked with a remediation hint
+- The user is not asked to infer missing readiness from absent rows
+
+**Context is bounded and non-verbose** (`rq-approvalConsequenceContext01.4`)
+
+**Given:**
+- Task, scanner, review, harden, or archive evidence contains long logs, diffs, or report bodies
+
+**When:** Approval Consequence Context is rendered
+
+**Then:**
+- The context contains bounded summary rows and evidence pointers only
+- Raw logs, diffs, task spam, and full scanner reports are omitted
+- The approval prompt remains concise and scannable
+
+---
+
+### Harden Readiness Evidence Carries Forward to Archive Sign-Off
+
+**ID:** `rq-hardenReadinessCarryForward01` | **Priority:** **[MUST]**
+
+/adv-harden MUST synthesize release/deploy/production/docs/cleanup readiness into durable or workflow-visible evidence that /adv-archive can read after resume. The carried-forward evidence MUST be sufficient to populate Approval Consequence Context categories for ops readiness, migration/data impact, frontend/preview impact when relevant, collision/release risk, open follow-ups, and next action without relying on prior chat history. If the evidence cannot be read at archive time, /adv-archive MUST surface explicit unavailable/blocked/warning status instead of N/A for categories that require harden evidence.
+
+**Tags:** `workflow`, `harden`, `archive`, `release-readiness`, `evidence`
+
+#### Scenarios
+
+**Harden emits compact release-readiness summary** (`rq-hardenReadinessCarryForward01.1`)
+
+**Given:**
+- /adv-harden checks deployment, production, documentation, cleanup, and release readiness dimensions
+
+**When:** Harden emits its final summary or persisted report evidence
+
+**Then:**
+- A compact readiness summary is available for archive-time readback
+- The summary contains evidence pointers rather than raw scanner dumps
+- The summary identifies blockers, warnings, and N/A categories distinctly
+
+**Archive reads harden evidence after resume** (`rq-hardenReadinessCarryForward01.2`)
+
+**Given:**
+- A session resumes after harden completed and before archive sign-off
+
+**When:** /adv-archive builds Approval Consequence Context
+
+**Then:**
+- Archive uses durable or workflow-visible harden evidence instead of chat history
+- Archive can render release-readiness categories without rerunning harden when evidence is present
+- Missing harden evidence is surfaced explicitly with remediation
+
+---
+
+### Single Renderer Owns Approval Consequence Vocabulary
+
+**ID:** `rq-approvalConsequenceRenderer01` | **Priority:** **[MUST]**
+
+Approval Consequence Context category vocabulary, category order, status values, N/A handling, missing-evidence handling, and output bounds MUST be owned by a single programmatic renderer/model rather than duplicated independently across acceptance, harden, archive, and executive-summary prose. Tests MUST fail if the required categories, bounded rendering, source-backed evidence rule, missing-evidence rule, or Tier A/Tier B approval invariants are removed or contradicted.
+
+**Tags:** `workflow`, `approval`, `renderer`, `structural`, `tests`
+
+#### Scenarios
+
+**Renderer owns stable category vocabulary** (`rq-approvalConsequenceRenderer01.1`)
+
+**Given:**
+- Approval Consequence Context is rendered for acceptance, archive sign-off, or executive summary
+
+**When:** The rendering code is invoked
+
+**Then:**
+- The same eight category identifiers and order are used
+- Statuses come from a typed finite vocabulary
+- Empty categories render a brief N/A rationale
+- Missing required evidence does not render as N/A
+
+**Tests anchor approval context behavior** (`rq-approvalConsequenceRenderer01.2`)
+
+**Given:**
+- A future change removes a required category, weakens source-backed evidence, adds verbose raw dumps, or changes approval parsing semantics
+
+**When:** The relevant unit or asset tests run
+
+**Then:**
+- At least one test fails
+- The failure points to the approval consequence context or checkpoint invariant
+- The behavior is not governed by prose-only instructions
+
+---
+
 ### Large Non-Code Deliverables Use Tracked ADV Workflow
 
 **ID:** `rq-nonCodeWorkflow01` | **Priority:** **[MUST]**

@@ -1,118 +1,18 @@
 {
   "version": 1,
-  "generated_at": "2026-07-01T22:45:18Z",
+  "generated_at": "2026-07-02T03:57:54Z",
   "project": {
     "owner": "Sharper-Flow",
     "number": 2,
     "title": "ADV: Advance"
   },
   "counts": {
-    "total": 37,
-    "bugs": 11,
+    "total": 26,
+    "bugs": 0,
     "features": 25,
     "deferred": 1
   },
-  "bugs": [
-    {
-      "number": 131,
-      "title": "Investigate worktree delete timeout",
-      "priority": "critical",
-      "labels": [
-        "bug",
-        "priority:critical"
-      ]
-    },
-    {
-      "number": 136,
-      "title": "Fix archive release gate ordering after terminal archive",
-      "priority": "critical",
-      "labels": [
-        "bug",
-        "priority:critical"
-      ]
-    },
-    {
-      "number": 168,
-      "title": "Archive status repair reports success but read paths remain draft/in-flight",
-      "priority": "critical",
-      "labels": [
-        "bug",
-        "priority:critical"
-      ]
-    },
-    {
-      "number": 174,
-      "title": "Worktree registry: archived-change `missing_from_disk` entries are unclearable (removeWorktree is a stub)",
-      "priority": "critical",
-      "labels": [
-        "bug",
-        "priority:critical"
-      ]
-    },
-    {
-      "number": 175,
-      "title": "Fix peer-owned target_path create",
-      "priority": "critical",
-      "labels": [
-        "bug",
-        "priority:critical"
-      ]
-    },
-    {
-      "number": 185,
-      "title": "adv_change_archive and adv_task_checkpoint lack target_path (cross-project lifecycle blocked)",
-      "priority": "critical",
-      "labels": [
-        "bug",
-        "priority:critical"
-      ]
-    },
-    {
-      "number": 1,
-      "title": "adv_change_create creates duplicate instead of updating existing change",
-      "priority": "high",
-      "labels": [
-        "bug",
-        "priority:high"
-      ]
-    },
-    {
-      "number": 127,
-      "title": "Add origin repair tool",
-      "priority": "high",
-      "labels": [
-        "bug",
-        "priority:high"
-      ]
-    },
-    {
-      "number": 138,
-      "title": "Acceptance signals reject after execution gate complete: 'workflow execution already completed'",
-      "priority": "high",
-      "labels": [
-        "bug",
-        "priority:high"
-      ]
-    },
-    {
-      "number": 183,
-      "title": "Epic terminal child projection remains repair-needed after archived child link",
-      "priority": "high",
-      "labels": [
-        "bug",
-        "priority:high"
-      ]
-    },
-    {
-      "number": 191,
-      "title": "Fix archive timeout on archived release",
-      "priority": "medium",
-      "labels": [
-        "bug",
-        "priority:medium"
-      ]
-    }
-  ],
+  "bugs": [],
   "features": [
     {
       "number": 129,
