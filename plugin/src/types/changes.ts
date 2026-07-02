@@ -441,6 +441,132 @@ export const OpsEvidenceEntrySchema = z.object({
 export type OpsEvidenceEntry = z.infer<typeof OpsEvidenceEntrySchema>;
 
 /**
+ * Status vocabulary for a typed ops runbook instance. This is nested under the
+ * ops_followup profile so legacy profiles remain valid while production-impacting
+ * work can carry a durable runbook state machine.
+ */
+export const OpsRunStatusSchema = z.enum([
+  "not_started",
+  "planned",
+  "approval_required",
+  "approved",
+  "running",
+  "partial",
+  "failed",
+  "rerun_needed",
+  "rollback_needed",
+  "cleanup_needed",
+  "complete",
+]);
+export type OpsRunStatus = z.infer<typeof OpsRunStatusSchema>;
+
+export const OpsRunStepKindSchema = z.enum([
+  "plan",
+  "approval",
+  "execute",
+  "health_check",
+  "rollback",
+  "cleanup",
+]);
+export type OpsRunStepKind = z.infer<typeof OpsRunStepKindSchema>;
+
+export const OpsRunStepStatusSchema = z.enum([
+  "pending",
+  "running",
+  "pass",
+  "fail",
+  "skipped",
+]);
+export type OpsRunStepStatus = z.infer<typeof OpsRunStepStatusSchema>;
+
+export const OpsRunApprovalPolicySchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("approval_required"),
+    approval_evidence: z.string().min(1).optional(),
+  }),
+  z.object({
+    mode: z.literal("bounded_low_risk_autonomous"),
+    rationale: z.string().min(1),
+    bounds: z.array(z.string().min(1)).min(1),
+  }),
+  z.object({
+    mode: z.literal("not_prod_impacting"),
+    rationale: z.string().min(1).optional(),
+  }),
+]);
+export type OpsRunApprovalPolicy = z.infer<typeof OpsRunApprovalPolicySchema>;
+
+export const OpsRunArtifactRefSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("pointer"),
+    uri: z.string().min(1),
+    summary: z.string().min(1).optional(),
+  }),
+  z.object({
+    kind: z.literal("none"),
+    rationale: z.string().min(1),
+  }),
+]);
+export type OpsRunArtifactRef = z.infer<typeof OpsRunArtifactRefSchema>;
+
+export const OpsRunPlanSchema = z.object({
+  env: z.string().min(1),
+  action: z.string().min(1),
+  bounds: z.array(z.string().min(1)).min(1),
+  evidence_policy: z.string().min(1),
+  rollback_or_cleanup_plan: z.string().min(1),
+});
+export type OpsRunPlan = z.infer<typeof OpsRunPlanSchema>;
+
+export const OpsRunStepSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  kind: OpsRunStepKindSchema,
+  status: OpsRunStepStatusSchema.default("pending"),
+  approval_policy: OpsRunApprovalPolicySchema.optional(),
+});
+export type OpsRunStep = z.infer<typeof OpsRunStepSchema>;
+
+export const OpsRunEvidenceEntrySchema = z.object({
+  id: z.string().min(1),
+  recorded_at: z.string(),
+  step_id: z.string().min(1).optional(),
+  step_kind: OpsRunStepKindSchema,
+  env: z.string().min(1),
+  run_id: z.string().min(1).optional(),
+  batch: z.string().min(1).optional(),
+  status: z.enum([
+    "started",
+    "partial",
+    "pass",
+    "fail",
+    "rerun_needed",
+    "rollback_needed",
+    "cleanup_needed",
+    "complete",
+  ]),
+  summary: z.string().min(1),
+  artifact: OpsRunArtifactRefSchema,
+  next_status: OpsRunStatusSchema,
+  completion_signal: z.string().min(1).optional(),
+  health_verification: z.string().min(1).optional(),
+  rollback_or_cleanup_disposition: z.string().min(1).optional(),
+});
+export type OpsRunEvidenceEntry = z.infer<typeof OpsRunEvidenceEntrySchema>;
+
+export const OpsRunSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  status: OpsRunStatusSchema,
+  created_at: z.string(),
+  updated_at: z.string().optional(),
+  plan: OpsRunPlanSchema,
+  steps: z.array(OpsRunStepSchema).default([]),
+  evidence: z.array(OpsRunEvidenceEntrySchema).default([]),
+});
+export type OpsRun = z.infer<typeof OpsRunSchema>;
+
+/**
  * Ops follow-up profile on the child/follow-up change. The child owns its own
  * source provenance, status, and evidence; the parent/source owns the outbound
  * link edge for release/discovery.
@@ -454,6 +580,7 @@ export const OpsFollowupProfileSchema = z.object({
   updated_at: z.string().optional(),
   completion_signal: z.string().optional(),
   evidence: z.array(OpsEvidenceEntrySchema).default([]),
+  runs: z.array(OpsRunSchema).default([]),
 });
 export type OpsFollowupProfile = z.infer<typeof OpsFollowupProfileSchema>;
 

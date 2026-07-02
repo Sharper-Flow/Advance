@@ -175,6 +175,42 @@ describe("ops follow-up state reducers", () => {
     expect(seed.ops_followup_links).toHaveLength(1);
   });
 
+  it("changeSeedStateFromChange carries ops runbook state for workflow reseed", () => {
+    const profile = {
+      ...makeProfile(),
+      runs: [
+        {
+          id: "run-1",
+          title: "Run prod cleanup",
+          status: "planned" as const,
+          created_at: timestamp,
+          plan: {
+            env: "prod",
+            action: "cleanup temp rows",
+            bounds: ["batch=001"],
+            evidence_policy: "summary_and_pointer",
+            rollback_or_cleanup_plan:
+              "rerun cleanup or restore backup snapshot",
+          },
+          steps: [],
+          evidence: [],
+        },
+      ],
+    };
+    const change = {
+      id: "runbook-ops",
+      title: "Runbook ops",
+      status: "active",
+      created_at: timestamp,
+      tasks: [],
+      ops_followup: profile,
+    } as unknown as Change;
+
+    const seed = changeSeedStateFromChange(change);
+    expect(seed.ops_followup?.runs).toHaveLength(1);
+    expect(seed.ops_followup?.runs?.[0]?.plan.env).toBe("prod");
+  });
+
   it("changeSeedStateFromChange is safe for changes without ops fields", () => {
     const change = {
       id: "plain",
