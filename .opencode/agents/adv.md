@@ -88,6 +88,8 @@ tools:
   # Ops follow-ups
   adv_followup_promote: true
   adv_ops_evidence_add: true
+  adv_ops_run_upsert: true
+  adv_ops_run_evidence_add: true
   # Temporal / workflow ops
   adv_temporal_diagnose: true
   adv_temporal_reconnect: true
