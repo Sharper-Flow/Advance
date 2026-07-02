@@ -160,10 +160,29 @@ const researcherReport = {
     blockers: [],
     notes: "Versioning needed for legacy key replay.",
   },
+  architecture_judgement: {
+    applicability: "applicable",
+    confidence: "medium",
+    risk: "medium",
+    tradeoffs: ["Sidecar reports add another query surface to maintain."],
+    alternatives_considered: [
+      {
+        option: "Persist raw transcript only",
+        disposition: "rejected",
+        rationale: "Raw transcript persistence is not queryable enough.",
+      },
+    ],
+    recommendation: "Use typed sidecar judgement fields.",
+  },
   recommendation: "Use deterministic scope keys.",
   follow_ups: ["Add replay regression test"],
   workdir_used: "/tmp/worktree",
 };
+
+const legacyResearcherReport = (() => {
+  const { architecture_judgement: _judgement, ...legacy } = researcherReport;
+  return legacy;
+})();
 
 const tronReport = {
   schema_version: "1.0",
@@ -336,6 +355,84 @@ describe("Subagent report schemas", () => {
     ).toBe("adv-verification-triage-bundle");
   });
 
+  it("requires researcher architecture judgement for new ingest", () => {
+    expect(() =>
+      ResearcherSubagentReportSchema.parse(legacyResearcherReport),
+    ).toThrow();
+
+    const parsed = ResearcherSubagentReportSchema.parse({
+      ...researcherReport,
+      architecture_judgement: {
+        applicability: "applicable",
+        confidence: "medium",
+        risk: "medium",
+        tradeoffs: ["Sidecar reports add another query surface to maintain."],
+        alternatives_considered: [
+          {
+            option: "Persist raw transcript only",
+            disposition: "rejected",
+            rationale: "Raw transcript persistence is not queryable enough.",
+          },
+        ],
+        recommendation: "Use typed sidecar judgement fields.",
+      },
+    });
+
+    expect(parsed.architecture_judgement).toMatchObject({
+      applicability: "applicable",
+      confidence: "medium",
+    });
+  });
+
+  it("enforces researcher judgement consistency with validation status", () => {
+    const applicableJudgement = {
+      applicability: "applicable" as const,
+      confidence: "medium" as const,
+      risk: "medium" as const,
+      tradeoffs: ["Adds schema/test maintenance."],
+      alternatives_considered: [
+        {
+          option: "Prompt-only guidance",
+          disposition: "rejected" as const,
+          rationale: "Prompt-only guidance is not durable.",
+        },
+      ],
+      recommendation: "Add typed researcher judgement.",
+    };
+
+    expect(() =>
+      ResearcherSubagentReportSchema.parse({
+        ...researcherReport,
+        validation: { status: "pass", blockers: [], notes: "ok" },
+        architecture_judgement: {
+          ...applicableJudgement,
+          confidence: "low",
+        },
+      }),
+    ).toThrow();
+
+    expect(() =>
+      ResearcherSubagentReportSchema.parse({
+        ...researcherReport,
+        validation: { status: "fail", blockers: [], notes: "Anti-pattern." },
+        architecture_judgement: applicableJudgement,
+      }),
+    ).toThrow();
+
+    expect(() =>
+      ResearcherSubagentReportSchema.parse({
+        ...researcherReport,
+        scope: { kind: "change", scope_key: "researcher:design-validation" },
+        architecture_judgement: {
+          applicability: "not_applicable",
+          confidence: "high",
+          reason: "Generic docs lookup.",
+          recommendation: "Continue.",
+        },
+      }),
+    ).toThrow();
+  });
+
   it("parses verification triage bundle reports for local verify and CI checks", () => {
     const parsedLocal = VerificationTriageBundleSubagentReportSchema.parse(
       verificationTriageBundleReport,
@@ -477,6 +574,7 @@ describe("Subagent report schemas", () => {
           scope_drift: undefined,
           required_main_agent_actions: undefined,
         },
+        legacyResearcherReport,
       ],
     };
 
@@ -492,12 +590,22 @@ describe("Subagent report schemas", () => {
       scope_drift: null,
       required_main_agent_actions: [],
     });
+    expect(normalizedState.subagent_reports[1]).toMatchObject({
+      agent: "adv-researcher",
+      architecture_judgement: {
+        applicability: "not_applicable",
+        confidence: "low",
+      },
+    });
     expect(() =>
       EngineerSubagentReportSchema.parse({
         ...engineerReport,
         scope_drift: undefined,
         required_main_agent_actions: undefined,
       }),
+    ).toThrow();
+    expect(() =>
+      ResearcherSubagentReportSchema.parse(legacyResearcherReport),
     ).toThrow();
   });
 

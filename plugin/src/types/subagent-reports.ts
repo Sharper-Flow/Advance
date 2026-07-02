@@ -342,6 +342,40 @@ export const ResearcherValidationSchema = z
   })
   .strict();
 
+export const ResearcherArchitectureAlternativeSchema = z
+  .object({
+    option: z.string().min(1),
+    disposition: z.enum(["preferred", "rejected", "deferred"]),
+    rationale: z.string().min(1),
+  })
+  .strict();
+
+export const ResearcherArchitectureJudgementSchema = z.discriminatedUnion(
+  "applicability",
+  [
+    z
+      .object({
+        applicability: z.literal("applicable"),
+        confidence: z.enum(["high", "medium", "low"]),
+        risk: z.enum(["low", "medium", "high"]),
+        tradeoffs: z.array(z.string().min(1)).min(1),
+        alternatives_considered: z
+          .array(ResearcherArchitectureAlternativeSchema)
+          .min(1),
+        recommendation: z.string().min(1),
+      })
+      .strict(),
+    z
+      .object({
+        applicability: z.literal("not_applicable"),
+        confidence: z.enum(["high", "medium", "low"]),
+        reason: z.string().min(1),
+        recommendation: z.string().min(1),
+      })
+      .strict(),
+  ],
+);
+
 export const ResearcherSubagentReportSchema =
   ChangeScopedBaseSubagentReportSchema.extend({
     agent: z.literal("adv-researcher"),
@@ -349,10 +383,49 @@ export const ResearcherSubagentReportSchema =
     sources: z.array(SubagentSourceReferenceSchema).min(1),
     architecture_assessment: z.string().min(1),
     validation: ResearcherValidationSchema,
+    architecture_judgement: ResearcherArchitectureJudgementSchema,
     recommendation: z.string().min(1),
     follow_ups: z.array(z.string().min(1)),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
-  }).strict();
+  })
+    .strict()
+    .superRefine((report, ctx) => {
+      const judgement = report.architecture_judgement;
+
+      if (
+        report.validation.status === "pass" &&
+        judgement.applicability === "applicable" &&
+        judgement.confidence === "low"
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["architecture_judgement", "confidence"],
+          message: "pass validation requires high or medium confidence",
+        });
+      }
+
+      if (
+        report.validation.status === "fail" &&
+        report.validation.blockers.length === 0
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["validation", "blockers"],
+          message: "fail validation requires at least one blocker",
+        });
+      }
+
+      if (
+        judgement.applicability === "not_applicable" &&
+        report.scope.scope_key === "researcher:design-validation"
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["architecture_judgement", "applicability"],
+          message: "design validation requires applicable architecture judgement",
+        });
+      }
+    });
 
 export const TronEvidenceSchema = z
   .object({
@@ -564,6 +637,24 @@ function normalizeLegacySubagentReportRow(value: unknown): [unknown, boolean] {
 
   const row = value as Record<string, unknown>;
   const agent = row.agent;
+  if (agent === "adv-researcher" && row.architecture_judgement === undefined) {
+    return [
+      {
+        ...row,
+        architecture_judgement: {
+          applicability: "not_applicable",
+          confidence: "low",
+          reason: "Legacy persisted adv-researcher report predates typed architecture judgement.",
+          recommendation:
+            typeof row.recommendation === "string" && row.recommendation.trim()
+              ? row.recommendation
+              : "Review legacy researcher report context manually if architecture judgement is needed.",
+        },
+      },
+      true,
+    ];
+  }
+
   if (
     typeof agent !== "string" ||
     !LEGACY_DEFAULT_NORMALIZED_REPORT_AGENTS.has(agent)
@@ -736,6 +827,7 @@ export const SUBAGENT_REPORT_FIELD_SOURCES = {
     sources: "worker_derived",
     architecture_assessment: "worker_derived",
     validation: "worker_derived",
+    architecture_judgement: "worker_derived",
     recommendation: "worker_derived",
     follow_ups: "worker_derived",
     consumer_warnings: "tool_enriched",

@@ -260,6 +260,20 @@ function researcherReport(
     ],
     architecture_assessment: "Sidecar reports keep task reads compact.",
     validation: { status: "pass", blockers: [], notes: "ok" },
+    architecture_judgement: {
+      applicability: "applicable",
+      confidence: "high",
+      risk: "low",
+      tradeoffs: ["Sidecar persistence adds readback coverage."],
+      alternatives_considered: [
+        {
+          option: "Task-scoped researcher report",
+          disposition: "rejected",
+          rationale: "Researcher reports are change-scoped optimized handoffs.",
+        },
+      ],
+      recommendation: "Persist change-scoped report.",
+    },
     recommendation: "Persist change-scoped report.",
     follow_ups: ["Review sidecar readback"],
     ...overrides,

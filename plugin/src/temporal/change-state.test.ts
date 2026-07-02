@@ -71,6 +71,20 @@ function makeResearcherReport(changeId: string) {
     ],
     architecture_assessment: "Sidecar persistence avoids task payload bloat.",
     validation: { status: "pass" as const, blockers: [], notes: "ok" },
+    architecture_judgement: {
+      applicability: "applicable" as const,
+      confidence: "high" as const,
+      risk: "low" as const,
+      tradeoffs: ["Sidecar persistence adds a readback surface."],
+      alternatives_considered: [
+        {
+          option: "Task-scoped researcher report",
+          disposition: "rejected" as const,
+          rationale: "Researcher reports are change-scoped optimized handoffs.",
+        },
+      ],
+      recommendation: "Persist as change-scoped sidecar report.",
+    },
     recommendation: "Persist as change-scoped sidecar report.",
     follow_ups: [],
     workdir_used: "/tmp/worktree",
