@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const REVIEW_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-review.md");
+const HARDEN_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-harden.md");
 
 const REQUIRED_CATEGORIES = [
   "delivered value",
@@ -38,6 +39,28 @@ describe("approval consequence context command assets", () => {
 
     for (const category of REQUIRED_CATEGORIES) {
       expect(review).toContain(category);
+    }
+  });
+
+  test("adv-harden carries release readiness forward for archive consequence context", () => {
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+
+    expect(harden).toContain("Release Readiness Summary");
+    expect(harden).toContain("Approval Consequence Context");
+    expect(harden).toContain("buildApprovalConsequenceContext");
+    expect(harden).toContain("adv_change_update");
+    expect(harden).toContain("executiveSummary");
+    expect(harden).toContain("harden evidence unavailable");
+
+    for (const category of [
+      "ops readiness",
+      "migration/data impact",
+      "frontend/preview impact",
+      "collision/release risk",
+      "open follow-ups",
+      "next action",
+    ]) {
+      expect(harden).toContain(category);
     }
   });
 });

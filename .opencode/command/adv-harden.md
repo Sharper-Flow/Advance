@@ -552,6 +552,27 @@ Aggregate cleanup candidates from scanner + session artifacts. Display preview l
 
 If READY → do **not** complete a gate here; `/adv-archive` owns the `release` gate.
 
+### Carry Forward Release Readiness Summary
+
+Before starting `/adv-archive`, synthesize a durable `Release Readiness Summary` for the archive-time `Approval Consequence Context`. Use the shared renderer/model contract in `plugin/src/utils/approval-consequence-context.ts` (`buildApprovalConsequenceContext`) for category vocabulary, status values, N/A behavior, missing-evidence handling, and output bounds.
+
+Populate release-owned rows from harden evidence:
+
+- ops readiness — release/deploy/production/docs/cleanup readiness summary.
+- migration/data impact — deployment-readiness scanner or inline N/A rationale for migrations/data changes.
+- frontend/preview impact — harden preview/design evidence when relevant, or source-backed N/A.
+- collision/release risk — merge compatibility, unresolved findings, release-safety blockers, and cleanup state.
+- open follow-ups — blocking follow-ups vs non-blocking follow-ups that happen after closure.
+- next action — `/adv-archive {change-id}` if READY; otherwise remediation required.
+
+Rules:
+
+- Every row must include status plus brief source/evidence pointer.
+- Missing scanner/sub-agent output needed for a release-owned row is `warning` or `blocked` with evidence `harden evidence unavailable`; never render it as `n/a`.
+- Do not include raw logs, diffs, task spam, or full scanner reports.
+- Persist by reading current `_executiveSummary` (`adv_change_show include: { executiveSummary: true }`), appending/replacing `## Release Readiness Summary` and the rendered `Approval Consequence Context`, then calling `adv_change_update changeId: {id} executiveSummary: "{updated markdown}"`.
+- Verify with `adv_change_show include: { executiveSummary: true }` before archive begins; if verification fails, block archive and surface remediation.
+
 ### Report Display
 
 Emit HARDENING REPORT banner with per-dimension results:
