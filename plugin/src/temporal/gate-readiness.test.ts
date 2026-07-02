@@ -789,6 +789,17 @@ describe("gate readiness", () => {
       };
     }
 
+    function completeResolution() {
+      return {
+        status: "complete" as const,
+        verified_at: "2026-05-20T00:01:00.000Z",
+        source: "child_profile" as const,
+        completion_signal: "ops run complete",
+        health_verification: "health check passed",
+        rollback_or_cleanup_disposition: "cleanup complete; no rollback needed",
+      };
+    }
+
     it("blocks release when a blocks link is incomplete", () => {
       const result = evaluateGateReadiness(
         makeState({
@@ -873,12 +884,14 @@ describe("gate readiness", () => {
               relationship: "blocks",
               status: "complete",
               id: "ofl-blocks",
+              resolution: completeResolution(),
             }),
             makeLink({
               relationship: "follows_release",
               status: "complete",
               required_handoff: true,
               id: "ofl-follows",
+              resolution: completeResolution(),
             }),
           ],
         }),
@@ -889,6 +902,89 @@ describe("gate readiness", () => {
       expect(
         result.blockers.some((b) => b.code.startsWith("OPS_FOLLOWUP")),
       ).toBe(false);
+    });
+
+    it("blocks release when parent status is complete but verified child proof is missing", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          ops_followup_links: [
+            makeLink({
+              relationship: "blocks",
+              status: "complete",
+              id: "ofl-stale",
+            }),
+          ],
+        }),
+        "release",
+      );
+
+      expect(result.ready).toBe(false);
+      expect(result.blockers).toContainEqual(
+        expect.objectContaining({
+          code: "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+          linkId: "ofl-stale",
+        }),
+      );
+    });
+
+    it("blocks release when verified child proof lacks completion evidence", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          ops_followup_links: [
+            makeLink({
+              relationship: "blocks",
+              status: "complete",
+              id: "ofl-incomplete-proof",
+              resolution: {
+                status: "complete",
+                verified_at: "2026-05-20T00:01:00.000Z",
+                source: "child_profile",
+              },
+            }),
+          ],
+        }),
+        "release",
+      );
+
+      expect(result.ready).toBe(false);
+      expect(result.blockers).toContainEqual(
+        expect.objectContaining({
+          code: "OPS_FOLLOWUP_COMPLETION_PROOF_INCOMPLETE",
+          linkId: "ofl-incomplete-proof",
+        }),
+      );
+    });
+
+    it("blocks release when a blocking child state is unreachable", () => {
+      const result = evaluateGateReadiness(
+        makeState({
+          gates: releaseReadyGates(),
+          ops_followup_links: [
+            makeLink({
+              relationship: "blocks",
+              status: "complete",
+              id: "ofl-unreachable",
+              resolution: {
+                status: "not_started",
+                verified_at: "2026-05-20T00:01:00.000Z",
+                source: "unreachable",
+                error: "WorkflowNotFoundError",
+              },
+            }),
+          ],
+        }),
+        "release",
+      );
+
+      expect(result.ready).toBe(false);
+      expect(result.blockers).toContainEqual(
+        expect.objectContaining({
+          code: "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+          linkId: "ofl-unreachable",
+        }),
+      );
     });
 
     it("only evaluates ops follow-up blockers for release gate", () => {
@@ -922,6 +1018,15 @@ describe("gate readiness", () => {
           status: "complete",
           required_handoff: true,
           linked_at: "2026-05-20T00:00:00.000Z",
+          resolution: {
+            status: "complete",
+            verified_at: "2026-05-20T00:01:00.000Z",
+            source: "child_profile",
+            completion_signal: "ops run complete",
+            health_verification: "health check passed",
+            rollback_or_cleanup_disposition:
+              "cleanup complete; no rollback needed",
+          },
         },
       ]);
 

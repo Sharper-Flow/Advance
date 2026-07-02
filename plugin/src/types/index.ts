@@ -308,6 +308,8 @@ export {
   type OpsRun,
   OpsFollowupProfileSchema,
   type OpsFollowupProfile,
+  OpsFollowupResolutionSchema,
+  type OpsFollowupResolution,
   OpsFollowupLinkSchema,
   type OpsFollowupLink,
 } from "./changes";

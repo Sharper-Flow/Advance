@@ -585,6 +585,23 @@ export const OpsFollowupProfileSchema = z.object({
 export type OpsFollowupProfile = z.infer<typeof OpsFollowupProfileSchema>;
 
 /**
+ * Verified-at-read proof projected onto a parent outbound ops link after reading
+ * the child/source-of-truth profile. This is not a standalone source of truth;
+ * it is a bounded release/archive readiness proof.
+ */
+export const OpsFollowupResolutionSchema = z.object({
+  status: OpsFollowupStatusSchema,
+  verified_at: z.string(),
+  source: z.enum(["child_profile", "unreachable"]),
+  completion_signal: z.string().min(1).optional(),
+  health_verification: z.string().min(1).optional(),
+  rollback_or_cleanup_disposition: z.string().min(1).optional(),
+  evidence_summary: z.string().min(1).optional(),
+  error: z.string().min(1).optional(),
+});
+export type OpsFollowupResolution = z.infer<typeof OpsFollowupResolutionSchema>;
+
+/**
  * Outbound ops follow-up link recorded on the parent/source change. The parent
  * owns edge existence for release/archive reporting and discovery; the `status`
  * field is a last-known display snapshot only — the child profile is the source
@@ -604,6 +621,7 @@ export const OpsFollowupLinkSchema = z.object({
   linked_at: z.string(),
   source_artifact: z.string().optional(),
   source_contract_id: z.string().optional(),
+  resolution: OpsFollowupResolutionSchema.optional(),
 });
 export type OpsFollowupLink = z.infer<typeof OpsFollowupLinkSchema>;
 
