@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.23.0",
-  "updated_at": "2026-06-25T00:00:00.000Z",
+  "version": "1.24.0",
+  "updated_at": "2026-07-02T03:30:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -3872,6 +3872,177 @@
           "given": ["A frontend change has a runnable visual surface or preview"],
           "when": "/adv-review evaluates design-quality proof",
           "then": ["Browser/design evidence includes viewport context", "A missing runnable surface records an explicit fallback rationale", "Advance does not add Storybook as a plugin dependency to satisfy proof"]
+        }
+      ]
+    },
+    {
+      "id": "rq-dupActiveCreate01",
+      "title": "Active Duplicate Change Creation Rejection",
+      "body": "adv_change_create MUST reject creation of a new active change whose generated change ID or exact summary title matches an existing active (in-flight) change. The rejection MUST return existing-change evidence including the existing change ID and title, MUST NOT create a suffixed active duplicate such as `fixOpenBugs2`, and MUST allow the operator to resume the existing change or archive it first.",
+      "priority": "must",
+      "tags": ["workflow", "change-create", "duplicate", "idempotency"],
+      "scenarios": [
+        {
+          "id": "rq-dupActiveCreate01.1",
+          "title": "Plain same-summary duplicate is rejected",
+          "given": ["An active change exists with summary \"Fix open bugs\""],
+          "when": "adv_change_create is called with summary \"Fix open bugs\"",
+          "then": [
+            "The call is rejected with code DUPLICATE_ACTIVE_CHANGE",
+            "The response includes existing_change_id and existing_change_title",
+            "No new change is created"
+          ]
+        },
+        {
+          "id": "rq-dupActiveCreate01.2",
+          "title": "No suffixed active duplicate is minted",
+          "given": ["An active change already exists for summary \"Fix open bugs\""],
+          "when": "The disk store suffix fallback would create fixOpenBugs2",
+          "then": [
+            "The fallback is blocked while the original is active",
+            "The response points to the existing change"
+          ]
+        },
+        {
+          "id": "rq-dupActiveCreate01.3",
+          "title": "Archived same-summary change allows a new create",
+          "given": ["A change with summary \"Fix open bugs\" is archived"],
+          "when": "adv_change_create is called with summary \"Fix open bugs\"",
+          "then": [
+            "Creation proceeds normally subject to other validation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-activeOriginRepair01",
+      "title": "Audited Active/Open Origin Repair",
+      "body": "adv_change_repair_origin MUST provide an audited, claim-safe path to repair the origin of an active or open ADV change. The tool MUST require approvedByUser, non-blank approvalEvidence, and non-blank reason; MUST enforce the origin linkage matrix (e.g., `roadmap` requires `origin_issue_number` and rejects it for `discovery`/`adhoc`); MUST reject archived and closed changes (OOS2); and MUST reject conflicting open issue claims with existing-change evidence. The same change holding the claim MUST be allowed idempotently. The repair MUST fire `originRepairedSignal` with the new origin, previous origin, audit evidence, and repair reason.",
+      "priority": "must",
+      "tags": ["workflow", "origin", "repair", "audit", "claim-safety"],
+      "scenarios": [
+        {
+          "id": "rq-activeOriginRepair01.1",
+          "title": "Requires approval evidence and reason",
+          "given": ["An active change is missing an origin"],
+          "when": "adv_change_repair_origin is called without approvalEvidence or without reason",
+          "then": [
+            "The call is rejected with a field-required error",
+            "No originRepairedSignal is fired"
+          ]
+        },
+        {
+          "id": "rq-activeOriginRepair01.2",
+          "title": "Rejects archived and closed changes",
+          "given": ["A change has status archived or closed"],
+          "when": "adv_change_repair_origin is called",
+          "then": [
+            "The call is rejected with an active/open-only error",
+            "No originRepairedSignal is fired"
+          ]
+        },
+        {
+          "id": "rq-activeOriginRepair01.3",
+          "title": "Rejects conflicting open issue claims",
+          "given": ["Another open change already claims issue #99"],
+          "when": "adv_change_repair_origin assigns issue #99 to a different active change",
+          "then": [
+            "The call is rejected with code ORIGIN_CLAIM_CONFLICT",
+            "The response includes existing_change_id and existing_change_status",
+            "No originRepairedSignal is fired"
+          ]
+        },
+        {
+          "id": "rq-activeOriginRepair01.4",
+          "title": "Idempotent when this change already holds the claim",
+          "given": ["The target change already claims issue #99"],
+          "when": "adv_change_repair_origin retries the same issue assignment",
+          "then": [
+            "The call succeeds",
+            "originRepairedSignal is fired once"
+          ]
+        },
+        {
+          "id": "rq-activeOriginRepair01.5",
+          "title": "Fires audited origin repaired signal",
+          "given": ["A valid active-change origin repair request is provided"],
+          "when": "adv_change_repair_origin executes",
+          "then": [
+            "originRepairedSignal fires with new origin",
+            "The payload includes previousOrigin when one existed",
+            "The payload includes approvalEvidence, reason, repairedBy, and repairedAt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-archiveTargetPathRouting01",
+      "title": "Target-Project Terminal Lifecycle Routing",
+      "body": "adv_change_archive and adv_task_checkpoint MUST support `target_path` to route terminal lifecycle and task checkpoint operations to a target project from a non-native session. Target mutation MUST require explicit `target_confirmed` and non-blank `confirmationEvidence` for untrusted targets, MUST use the target project's store and Temporal queue, MUST preserve same-project safety semantics (gate preflight, worktree validation, branch/HEAD guards, task-to-change resolution), and MUST fail closed with a same-project recovery packet when the target project is unreachable.",
+      "priority": "must",
+      "tags": ["workflow", "archive", "checkpoint", "target-path", "cross-project"],
+      "scenarios": [
+        {
+          "id": "rq-archiveTargetPathRouting01.1",
+          "title": "Archive routes through target store when approved",
+          "given": ["An untrusted target_path is explicitly approved with confirmationEvidence"],
+          "when": "adv_change_archive is called with target_path",
+          "then": [
+            "The change is loaded from the target project's store",
+            "Gate, bundle, and finalization checks use target-project state",
+            "The mutation is routed through the target project's Temporal queue"
+          ]
+        },
+        {
+          "id": "rq-archiveTargetPathRouting01.2",
+          "title": "Checkpoint routes through target store when approved",
+          "given": ["An untrusted target_path is explicitly approved with confirmationEvidence"],
+          "when": "adv_task_checkpoint is called with target_path",
+          "then": [
+            "The task is resolved from the target project's store",
+            "Git operations run in the target project's root",
+            "The response carries target-project context"
+          ]
+        },
+        {
+          "id": "rq-archiveTargetPathRouting01.3",
+          "title": "Unconfirmed target mutation is rejected",
+          "given": ["A target_path is provided without target_confirmed or confirmationEvidence"],
+          "when": "adv_change_archive or adv_task_checkpoint evaluates the call",
+          "then": [
+            "The call is rejected before filesystem or state mutation",
+            "Same-project behavior remains unchanged"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-archiveRetryIdempotence01",
+      "title": "Archived Archive Retry Is Idempotent No-Op",
+      "body": "adv_change_archive MUST detect when a change is already archived and the archive bundle is present on disk. In that case it MUST return bounded success with `noOp: true`, MUST report the existing archive path, MUST NOT repeat Phase 9 finalization, branch deletion, linked issue closure, or terminal cleanup, and MUST still surface any open ops follow-up obligations. When the bundle exists but the status is not yet archived, the tool MUST recover the status transition without rewriting the bundle.",
+      "priority": "must",
+      "tags": ["workflow", "archive", "idempotency"],
+      "scenarios": [
+        {
+          "id": "rq-archiveRetryIdempotence01.1",
+          "title": "Already archived with bundle returns no-op success",
+          "given": ["A change has status archived", "The archive bundle exists on disk"],
+          "when": "adv_change_archive is called again",
+          "then": [
+            "The response has success true and noOp true",
+            "The response includes the existing archivePath",
+            "Phase 9 finalization, branch deletion, issue closure, and cleanup are not repeated"
+          ]
+        },
+        {
+          "id": "rq-archiveRetryIdempotence01.2",
+          "title": "Bundle-only retry completes status transition",
+          "given": ["The archive bundle exists on disk", "The change status is not archived"],
+          "when": "adv_change_archive is called",
+          "then": [
+            "The existing bundle is reused instead of rewritten",
+            "The status transition completes in the durable store"
+          ]
         }
       ]
     }

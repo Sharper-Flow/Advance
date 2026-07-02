@@ -921,6 +921,8 @@ export const checkpointTools = {
         }
       };
 
+      // rq-archiveTargetPathRouting01: route task checkpoint through the
+      // target project's store and root when target_path is approved.
       if (args.target_path) {
         return withTargetPathStore(
           {

@@ -3,8 +3,8 @@
   "name": "advance-epics",
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
-  "version": "1.5.0",
-  "updated_at": "2026-06-26T00:00:00.000Z",
+  "version": "1.6.0",
+  "updated_at": "2026-07-02T03:30:00.000Z",
   "requirements": [
     {
       "id": "rq-epicEntity01",
@@ -698,6 +698,46 @@
           "then": [
             "AdvEpicId is set as a single-value Keyword",
             "No KeywordList attribute is used for Epic membership"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicTerminalChildProjection01",
+      "title": "Direct Epic Link Projects Terminal Child State",
+      "body": "adv_epic_link_change MUST project the terminal state of an archived or closed child change onto the linked Epic entry in the same operation. When the child change is already terminal, the Epic entry MUST receive a `terminal_summary` with `status` and `completed_at`, the entry's `membership_status` MUST reflect `terminal`, and later `adv_epic_show` MUST display the entry in compact history without `repair-needed` or `projection-missing` status. Changes without Epic membership or non-terminal changes MUST follow normal link semantics.",
+      "priority": "must",
+      "tags": ["epics", "link", "terminal", "projection"],
+      "scenarios": [
+        {
+          "id": "rq-epicTerminalChildProjection01.1",
+          "title": "Archived child link projects terminal summary",
+          "given": ["An ADV change has status archived", "The change is not yet linked to an Epic"],
+          "when": "adv_epic_link_change links the change to an Epic",
+          "then": [
+            "The Epic entry receives a terminal_summary with status archived and a completed_at timestamp",
+            "The entry's membership_status is terminal",
+            "The response indicates terminal_summary_projected: true"
+          ]
+        },
+        {
+          "id": "rq-epicTerminalChildProjection01.2",
+          "title": "Closed child link projects terminal summary",
+          "given": ["An ADV change has status closed"],
+          "when": "adv_epic_link_change links the change to an Epic",
+          "then": [
+            "The Epic entry receives a terminal_summary with status closed and a completed_at timestamp",
+            "The entry's membership_status is terminal"
+          ]
+        },
+        {
+          "id": "rq-epicTerminalChildProjection01.3",
+          "title": "Later Epic show does not flag repaired terminal entry",
+          "given": ["A terminal child change has been linked to an Epic"],
+          "when": "adv_epic_show renders the Epic",
+          "then": [
+            "The entry appears in compact terminal history",
+            "The entry does not show projection_missing, projection_stale, or repair-needed markers"
           ]
         }
       ]

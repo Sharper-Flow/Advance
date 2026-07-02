@@ -1823,6 +1823,8 @@ async function verifyMissingRegistryChangeBranchIntegration(
   return verifyNonAdvBranchIntegration(branch, deps);
 }
 
+// rq-worktreeStaleRegistryCleanup01: clear missing_from_disk registry entries
+// only for terminal changes; unsafe cases are retained with typed blockers.
 async function maybeRemoveMissingFromDiskRegistryEntry(
   branch: string,
   worktreePath: string,

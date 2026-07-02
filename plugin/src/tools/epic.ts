@@ -299,6 +299,8 @@ function terminalSummaryCompletedAt(
   );
 }
 
+// rq-epicTerminalChildProjection01: project archived/closed child state onto
+// the Epic entry when linking an already-terminal change.
 async function projectTerminalStateForLinkedEntry(
   store: Store,
   epicId: string,
@@ -828,6 +830,7 @@ export const epicTools = {
     },
   },
 
+  // rq-epicMutableScope01: audited, versioned Epic scope mutation.
   adv_epic_update_scope: {
     description:
       "Update an Epic's typed repo/project scope with audit evidence and optimistic-concurrency protection.",

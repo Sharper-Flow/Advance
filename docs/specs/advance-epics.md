@@ -1,7 +1,7 @@
 # Advance Epics
 
-> **Version:** 1.5.0
-> **Updated:** 2026-06-26
+> **Version:** 1.6.0
+> **Updated:** 2026-07-02
 
 ## Purpose
 
@@ -874,5 +874,52 @@ The child-change Visibility index for Epic lookup MUST use a single-value `Keywo
 **Then:**
 - AdvEpicId is set as a single-value Keyword
 - No KeywordList attribute is used for Epic membership
+
+---
+
+### Direct Epic Link Projects Terminal Child State
+
+**ID:** `rq-epicTerminalChildProjection01` | **Priority:** **[MUST]**
+
+adv_epic_link_change MUST project the terminal state of an archived or closed child change onto the linked Epic entry in the same operation. When the child change is already terminal, the Epic entry MUST receive a `terminal_summary` with `status` and `completed_at`, the entry's `membership_status` MUST reflect `terminal`, and later `adv_epic_show` MUST display the entry in compact history without `repair-needed` or `projection-missing` status. Changes without Epic membership or non-terminal changes MUST follow normal link semantics.
+
+**Tags:** `epics`, `link`, `terminal`, `projection`
+
+#### Scenarios
+
+**Archived child link projects terminal summary** (`rq-epicTerminalChildProjection01.1`)
+
+**Given:**
+- An ADV change has status archived
+- The change is not yet linked to an Epic
+
+**When:** adv_epic_link_change links the change to an Epic
+
+**Then:**
+- The Epic entry receives a terminal_summary with status archived and a completed_at timestamp
+- The entry's membership_status is terminal
+- The response indicates terminal_summary_projected: true
+
+**Closed child link projects terminal summary** (`rq-epicTerminalChildProjection01.2`)
+
+**Given:**
+- An ADV change has status closed
+
+**When:** adv_epic_link_change links the change to an Epic
+
+**Then:**
+- The Epic entry receives a terminal_summary with status closed and a completed_at timestamp
+- The entry's membership_status is terminal
+
+**Later Epic show does not flag repaired terminal entry** (`rq-epicTerminalChildProjection01.3`)
+
+**Given:**
+- A terminal child change has been linked to an Epic
+
+**When:** adv_epic_show renders the Epic
+
+**Then:**
+- The entry appears in compact terminal history
+- The entry does not show projection_missing, projection_stale, or repair-needed markers
 
 ---

@@ -89,6 +89,8 @@ export const EpicScopeLabelSchema = z.enum([
 
 export type EpicScopeLabel = z.infer<typeof EpicScopeLabelSchema>;
 
+// rq-epicScopeDerivation01: local/product-spanning label is derived from
+// the number of scoped repos, not from a stored `kind` field.
 export function deriveEpicScopeLabel(
   scope: EpicScope | null | undefined,
 ): EpicScopeLabel {

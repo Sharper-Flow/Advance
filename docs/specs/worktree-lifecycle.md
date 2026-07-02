@@ -1,7 +1,7 @@
 # Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation
 
-> **Version:** 1.6.0
-> **Updated:** 2026-06-25
+> **Version:** 1.7.0
+> **Updated:** 2026-07-02
 
 ## Purpose
 
@@ -648,5 +648,54 @@ Worktree lease reclamation must treat an owning PID as alive unless the liveness
 **Then:**
 - The owning PID is treated as dead
 - The lease may be reclaimed per the normal stale-reclaim rules
+
+---
+
+### Stale Missing-From-Disk Registry Cleanup
+
+**ID:** `rq-worktreeStaleRegistryCleanup01` | **Priority:** **[MUST]**
+
+adv_worktree_delete MUST safely clear worktree registry entries reported as `missing_from_disk` when the owning change is terminal (archived or closed) and the on-disk worktree is absent. The cleanup MUST dispatch `worktreeDeletedSignal` with reason `missing_from_disk_cleanup`, refresh the owning change's cache, and leave unsafe cases (non-terminal owning change, dirty/unmerged branch, in-use worktree) retained with a typed blocker. Subsequent `adv_worktree_triage` MUST NOT report the same cleared stale entry.
+
+**Tags:** `worktree`, `cleanup`, `registry`, `missing-from-disk`
+
+#### Scenarios
+
+**Archived missing-from-disk entry is cleared** (`rq-worktreeStaleRegistryCleanup01.1`)
+
+**Given:**
+- A worktree_registry entry exists for branch change/x
+- The owning change is archived
+- No on-disk worktree exists for change/x
+
+**When:** adv_worktree_delete is called for change/x
+
+**Then:**
+- worktreeDeletedSignal is dispatched with reason missing_from_disk_cleanup
+- The owning change cache is refreshed
+- The tool returns ok: true
+
+**Non-terminal missing-from-disk entry is retained** (`rq-worktreeStaleRegistryCleanup01.2`)
+
+**Given:**
+- A worktree_registry entry exists for branch change/y
+- The owning change is active
+- No on-disk worktree exists for change/y
+
+**When:** adv_worktree_delete is called for change/y
+
+**Then:**
+- The tool returns ok: false with reason change_not_terminal
+- No worktreeDeletedSignal is dispatched
+
+**Triage no longer reports cleared entry** (`rq-worktreeStaleRegistryCleanup01.3`)
+
+**Given:**
+- A missing_from_disk registry entry for an archived change was just cleared
+
+**When:** adv_worktree_triage runs afterward
+
+**Then:**
+- The orphans list does not contain the cleared branch/path entry
 
 ---

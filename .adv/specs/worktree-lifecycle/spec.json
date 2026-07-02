@@ -3,8 +3,8 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, cleanup eligibility tracking, and bounded cleanup.",
-  "version": "1.6.0",
-  "updated_at": "2026-06-25",
+  "version": "1.7.0",
+  "updated_at": "2026-07-02T03:30:00.000Z",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
@@ -707,6 +707,45 @@
           "then": [
             "The owning PID is treated as dead",
             "The lease may be reclaimed per the normal stale-reclaim rules"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-worktreeStaleRegistryCleanup01",
+      "title": "Stale Missing-From-Disk Registry Cleanup",
+      "body": "adv_worktree_delete MUST safely clear worktree registry entries reported as `missing_from_disk` when the owning change is terminal (archived or closed) and the on-disk worktree is absent. The cleanup MUST dispatch `worktreeDeletedSignal` with reason `missing_from_disk_cleanup`, refresh the owning change's cache, and leave unsafe cases (non-terminal owning change, dirty/unmerged branch, in-use worktree) retained with a typed blocker. Subsequent `adv_worktree_triage` MUST NOT report the same cleared stale entry.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "registry", "missing-from-disk"],
+      "scenarios": [
+        {
+          "id": "rq-worktreeStaleRegistryCleanup01.1",
+          "title": "Archived missing-from-disk entry is cleared",
+          "given": ["A worktree_registry entry exists for branch change/x", "The owning change is archived", "No on-disk worktree exists for change/x"],
+          "when": "adv_worktree_delete is called for change/x",
+          "then": [
+            "worktreeDeletedSignal is dispatched with reason missing_from_disk_cleanup",
+            "The owning change cache is refreshed",
+            "The tool returns ok: true"
+          ]
+        },
+        {
+          "id": "rq-worktreeStaleRegistryCleanup01.2",
+          "title": "Non-terminal missing-from-disk entry is retained",
+          "given": ["A worktree_registry entry exists for branch change/y", "The owning change is active", "No on-disk worktree exists for change/y"],
+          "when": "adv_worktree_delete is called for change/y",
+          "then": [
+            "The tool returns ok: false with reason change_not_terminal",
+            "No worktreeDeletedSignal is dispatched"
+          ]
+        },
+        {
+          "id": "rq-worktreeStaleRegistryCleanup01.3",
+          "title": "Triage no longer reports cleared entry",
+          "given": ["A missing_from_disk registry entry for an archived change was just cleared"],
+          "when": "adv_worktree_triage runs afterward",
+          "then": [
+            "The orphans list does not contain the cleared branch/path entry"
           ]
         }
       ]
