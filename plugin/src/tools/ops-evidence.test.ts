@@ -501,4 +501,69 @@ describe("ops runbook tools", () => {
     expect(result.code).toBe("UNSAFE_OPS_EVIDENCE");
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
+
+  test("rejects secret-like material in artifact pointers and completion proof fields", async () => {
+    const store = makeStore(
+      makeChange({
+        ops_followup: makeProfile({
+          runs: [
+            {
+              id: "run-1",
+              title: "Run prod cleanup",
+              status: "running",
+              created_at: "2026-06-20T04:00:00.000Z",
+              plan: {
+                env: "prod",
+                action: "cleanup temp rows",
+                bounds: ["batch=001"],
+                evidence_policy: "summary_and_pointer",
+                rollback_or_cleanup_plan:
+                  "rerun cleanup or restore backup snapshot",
+              },
+              steps: [
+                {
+                  id: "step-1",
+                  title: "Execute cleanup",
+                  kind: "execute",
+                  status: "pending",
+                  approval_policy: {
+                    mode: "approval_required",
+                    approval_evidence: "User approved batch=001 cleanup",
+                  },
+                },
+              ],
+              evidence: [],
+            },
+          ],
+        }),
+      }),
+    );
+
+    const result = parseToolOutput(
+      await opsEvidenceTools.adv_ops_run_evidence_add.execute(
+        {
+          changeId: "childChange",
+          runId: "run-1",
+          step_id: "step-1",
+          step_kind: "execute",
+          env: "prod",
+          status: "complete",
+          summary: "Cleanup complete",
+          artifact: {
+            kind: "pointer",
+            uri: "s3://ops-bucket/cleanup.log?token=super-secret-value",
+          },
+          next_status: "complete",
+          completion_signal: "cleanup job finished",
+          health_verification: "row count is zero",
+          rollback_or_cleanup_disposition:
+            "cleanup complete; no rollback needed",
+        },
+        store,
+      ),
+    );
+
+    expect(result.code).toBe("UNSAFE_OPS_EVIDENCE");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
 });

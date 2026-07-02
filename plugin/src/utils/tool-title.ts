@@ -116,9 +116,9 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_ops_evidence_add: (args) =>
     write(`Add ops evidence${suffix(args, "changeId")}`),
   adv_ops_run_upsert: (args) =>
-    write(`Upsert ops run${suffix(args, "changeId", "run_id")}`),
+    write(`Upsert ops run${suffix(args, "changeId", "runId")}`),
   adv_ops_run_evidence_add: (args) =>
-    write(`Add ops run evidence${suffix(args, "changeId", "run_id")}`),
+    write(`Add ops run evidence${suffix(args, "changeId", "runId")}`),
   adv_contract_mint: (args) =>
     write(`Mint contract${suffix(args, "changeId")}`),
   adv_contract_review_matrix_set: (args) =>

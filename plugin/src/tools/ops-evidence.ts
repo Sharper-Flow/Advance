@@ -148,6 +148,21 @@ function evidenceTextLooksUnsafe(text: string): boolean {
   return UNSAFE_EVIDENCE_PATTERNS.some((pattern) => pattern.test(text));
 }
 
+function opsRunEvidenceLooksUnsafe(input: AddRunEvidenceInput): boolean {
+  const fields = [
+    input.summary,
+    input.completion_signal,
+    input.health_verification,
+    input.rollback_or_cleanup_disposition,
+    input.artifact.kind === "pointer" ? input.artifact.uri : undefined,
+    input.artifact.kind === "pointer" ? input.artifact.summary : undefined,
+    input.artifact.kind === "none" ? input.artifact.rationale : undefined,
+  ];
+  return fields.some(
+    (value) => typeof value === "string" && evidenceTextLooksUnsafe(value),
+  );
+}
+
 function normalizeRunStatusForProfile(
   status: OpsRunStatus,
 ): OpsFollowupStatus | undefined {
@@ -451,10 +466,10 @@ export const opsEvidenceTools = {
       input: AddRunEvidenceInput,
       store: Store,
     ): Promise<string> => {
-      if (evidenceTextLooksUnsafe(input.summary)) {
+      if (opsRunEvidenceLooksUnsafe(input)) {
         return formatToolOutput({
           error:
-            "Ops run evidence summary appears to contain secret material. Store a bounded summary and safe artifact pointer instead.",
+            "Ops run evidence appears to contain secret material. Store bounded summaries and safe artifact pointers instead.",
           code: "UNSAFE_OPS_EVIDENCE",
         });
       }

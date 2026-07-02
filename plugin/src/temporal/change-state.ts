@@ -322,7 +322,17 @@ export function applyOpsRunUpsertedToState(
   const index = existing.findIndex((run) => run.id === payload.run.id);
   const runs =
     index >= 0
-      ? existing.map((run, i) => (i === index ? payload.run : run))
+      ? existing.map((run, i) =>
+          i === index
+            ? {
+                ...payload.run,
+                // rq-opsRunEvidence01: run evidence is append-only. A stale
+                // client-side upsert payload must not erase evidence already
+                // accepted by the workflow state machine.
+                evidence: run.evidence ?? [],
+              }
+            : run,
+        )
       : [...existing, payload.run];
   state.ops_followup = {
     ...state.ops_followup,

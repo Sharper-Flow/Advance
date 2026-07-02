@@ -166,6 +166,78 @@ describe("ops follow-up state reducers", () => {
     expect(state.ops_followup?.updated_at).toBe("2026-06-20T04:02:00.000Z");
   });
 
+  it("preserves existing run evidence when a later upsert replaces run metadata", () => {
+    const state = createChangeWorkflowState({
+      changeId: "child-1",
+      title: "Child follow-up",
+      createdAt: timestamp,
+    });
+    applyOpsFollowupSeededToState(state, {
+      profile: {
+        ...makeProfile(),
+        runs: [
+          {
+            id: "run-1",
+            title: "Run prod cleanup",
+            status: "running",
+            created_at: timestamp,
+            plan: {
+              env: "prod",
+              action: "cleanup temp rows",
+              bounds: ["batch=001"],
+              evidence_policy: "summary_and_pointer",
+              rollback_or_cleanup_plan:
+                "rerun cleanup or restore backup snapshot",
+            },
+            steps: [],
+            evidence: [
+              {
+                id: "run-ev-1",
+                recorded_at: "2026-06-20T04:03:00.000Z",
+                step_kind: "execute",
+                env: "prod",
+                run_id: "run-1",
+                status: "partial",
+                summary: "Cleanup partially complete",
+                artifact: {
+                  kind: "none",
+                  rationale: "No external artifact emitted",
+                },
+                next_status: "partial",
+              },
+            ],
+          },
+        ],
+      },
+      seededAt: timestamp,
+    });
+
+    applyOpsRunUpsertedToState(state, {
+      run: {
+        id: "run-1",
+        title: "Run prod cleanup with revised bounds",
+        status: "planned",
+        created_at: timestamp,
+        plan: {
+          env: "prod",
+          action: "cleanup temp rows",
+          bounds: ["batch=001", "limit=100"],
+          evidence_policy: "summary_and_pointer",
+          rollback_or_cleanup_plan: "rerun cleanup or restore backup snapshot",
+        },
+        steps: [],
+        evidence: [],
+      },
+      upsertedAt: "2026-06-20T04:04:00.000Z",
+    });
+
+    expect(state.ops_followup?.runs?.[0]?.title).toBe(
+      "Run prod cleanup with revised bounds",
+    );
+    expect(state.ops_followup?.runs?.[0]?.evidence).toHaveLength(1);
+    expect(state.ops_followup?.runs?.[0]?.evidence[0]?.id).toBe("run-ev-1");
+  });
+
   it("appends run evidence and updates run/profile status", () => {
     const state = createChangeWorkflowState({
       changeId: "child-1",
