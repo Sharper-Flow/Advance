@@ -556,6 +556,34 @@ Using `agreement.md`, produce:
 
 Keep concise; user-facing.
 
+### Build Approval Consequence Context
+
+Before the acceptance approval prompt, render `Approval Consequence Context` using the shared renderer/model contract in `plugin/src/utils/approval-consequence-context.ts` (`buildApprovalConsequenceContext`). This is part of the existing acceptance prompt, not a new checkpoint.
+
+Rows MUST use the shared stable order and exact category meanings:
+
+1. delivered value
+2. enabling-only/follow-up dependency
+3. ops readiness
+4. migration/data impact
+5. frontend/preview impact
+6. collision/release risk
+7. open follow-ups
+8. next action
+
+Acceptance-time evidence sources:
+
+- Delivered value: acceptance summary + task implementation summaries + contract review matrix.
+- Enabling-only/follow-up dependency: agreement scope, ops_followup links, required follow-up reports, and task summaries.
+- Ops readiness: acceptance evidence if already proven; otherwise `pending` with evidence `harden owns release/deploy/production/docs/cleanup readiness`.
+- Migration/data impact: implementation evidence and contract constraints; if not applicable, render `n/a` with a source-backed rationale.
+- Frontend/preview impact: Preview URL Proof (`live`, `not_applicable`, or `blocked`) and matching contract matrix row.
+- Collision/release risk: acceptance review findings and known branch/scope collision evidence; harden/archive may refine later.
+- Open follow-ups: required follow-ups, ops obligations, or `n/a` with explicit no-open-follow-ups evidence.
+- Next action: acceptance approval proceeds inline to `/adv-harden {change-id}`; fixes/re-entry/split/stop follow the existing reply parser.
+
+Each row MUST include a status plus a brief source/evidence pointer. Empty categories get a brief source-backed `n/a`; missing or unreadable evidence MUST render `warning`, `pending`, or `blocked`, never `n/a`. Do not include raw logs, diffs, task spam, or full scanner reports.
+
 ### Persist Executive Summary
 
 Before acceptance prompt, persist durable executive summary:
@@ -582,6 +610,9 @@ Before acceptance prompt, persist durable executive summary:
 
    ## Remaining Concerns
    {open items or "None".}
+
+   ## Consequence Context
+   {Rendered Approval Consequence Context from `buildApprovalConsequenceContext`, including all 8 required categories and source/evidence pointers.}
    ```
 3. `adv_change_update changeId: {id} executiveSummary: "{composed markdown}"`
 4. Verify: `adv_change_show changeId: {id} include: { executiveSummary: true }` → `_executiveSummary` present and workflow-visible executive-summary artifact metadata exists with content-hash evidence.
@@ -595,6 +626,7 @@ Before acceptance summary or **Inline Approval prompt**, load `adv_change_show`;
 - `change.contract` exists.
 - `contract.reviewMatrix` exists when contract items require it.
 - `executive-summary.md` exists, is non-blank/substantive, and has workflow-visible artifact metadata with content-hash evidence.
+- `executive-summary.md` includes `## Consequence Context` rendered before acceptance, with all 8 Approval Consequence Context categories and no missing evidence disguised as `n/a`.
 - Preview proof has matching `contract.reviewMatrix` evidence when `visual_surface` is true or false. `visual_surface: unknown` or visual-surface drift blocks before acceptance and must be clarified or re-entered before a matrix pass row is expected.
 - Required rows have no `fail`, `violated`, `unknown`, or missing evidence.
 - Required new MCP tool is callable in current session. If source registered it but live registry lacks it, stop: tell user to build/reload plugin and open fresh OpenCode session. Do not ask for acceptance until proof path exists.
@@ -604,7 +636,7 @@ Preflight fail → surface blocker + remediation. Do not continue to acceptance 
 No-late-homework rule: required acceptance proof (`contract.reviewMatrix`, generated/generatable `acceptance.md`, and workflow-visible `executive-summary.md`) must be persisted and verified before this checkpoint. If proof persistence fails after the user replies, acceptance remains pending/stuck until proof is persisted or an audited completed/poisoned workflow recovery validates the same evidence.
 
 ### Ask for Acceptance (Inline)
-Emit the acceptance summary inline, followed by the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice:
+Emit the acceptance summary inline, including the rendered `Approval Consequence Context`, followed by the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice:
 
 ```
 Reply `accept` (or `approve`, `continue`, `looks good`, `lgtm`) to accept the delivered work and proceed inline to /adv-harden,
