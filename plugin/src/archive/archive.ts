@@ -42,7 +42,10 @@ async function archiveBundlePathForWrite(
   archiveDir: string,
   changeId: string,
 ): Promise<string> {
-  return (await findArchiveBundle(archiveDir, changeId)) ?? archiveBundlePath(archiveDir, changeId);
+  return (
+    (await findArchiveBundle(archiveDir, changeId)) ??
+    archiveBundlePath(archiveDir, changeId)
+  );
 }
 
 function sortedScopeRepos(change: Change): NonNullable<Change["scope_repos"]> {

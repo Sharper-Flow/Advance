@@ -608,7 +608,10 @@ describe("contract archive traceability", () => {
         docs: join(root, "docs"),
         archive: join(root, "archive"),
       };
-      const existingArchivePath = join(paths.archive, "2026-01-01-digest-cross-day");
+      const existingArchivePath = join(
+        paths.archive,
+        "2026-01-01-digest-cross-day",
+      );
       await mkdir(existingArchivePath, { recursive: true });
       await writeFile(
         join(existingArchivePath, "change.json"),
