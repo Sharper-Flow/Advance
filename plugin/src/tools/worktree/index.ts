@@ -1130,15 +1130,16 @@ export async function advWorktreeCreate(
     }
     if (!gitResult.ok) {
       const failedAt = new Date(sourceVersion + 1).toISOString();
+      const changeId = inferChangeIdFromBranch(branch) ?? undefined;
       await fireWorktreeSignal(
         repoRoot,
         deps.store,
-        inferChangeIdFromBranch(branch) ?? undefined,
+        changeId,
         worktreeSetupFailedSignal,
         {
           branch,
           path: worktreePath,
-          changeId: inferChangeIdFromBranch(branch) ?? undefined,
+          changeId,
           baseRef: resolvedBase,
           setupFailureReason: gitResult.error,
           failedAt,
@@ -1179,15 +1180,16 @@ export async function advWorktreeCreate(
       } catch (err) {
         const reason = String(err instanceof Error ? err.message : err);
         const failedAt = new Date(sourceVersion + 1).toISOString();
+        const changeId = inferChangeIdFromBranch(branch) ?? undefined;
         await fireWorktreeSignal(
           repoRoot,
           deps.store,
-          inferChangeIdFromBranch(branch) ?? undefined,
+          changeId,
           worktreeSetupFailedSignal,
           {
             branch,
             path: worktreePath,
-            changeId: inferChangeIdFromBranch(branch) ?? undefined,
+            changeId,
             baseRef: resolvedBase,
             headSha,
             setupFailureReason: reason,
