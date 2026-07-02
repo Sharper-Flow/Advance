@@ -1317,6 +1317,205 @@ function buildPendingMergePhase9Status(input: {
   };
 }
 
+/**
+ * rq-archiveRetryIdempotence01 (AC7): bounded retry when the change is already
+ * archived and the archive bundle is present. Reconciles release-gate and
+ * phase9 metadata without repeating finalization, branch deletion, issue
+ * closure, or cleanup.
+ */
+async function reconcileArchivedBundleRetry(input: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  archiveMode: "direct" | "pr";
+  phase9?: "run" | "skip";
+  existingBundlePath: string;
+  openOpsObligationsPayload: Record<string, unknown>;
+  validationWarnings: Array<{ code: string; message: string; path?: string }>;
+}): Promise<string> {
+  if (input.phase9 === "skip") {
+    return formatToolOutput({
+      success: true,
+      changeId: input.changeId,
+      archivePath: input.existingBundlePath,
+      noOp: true,
+      message: `Change ${input.changeId} is already archived with an existing bundle; phase9=skip skipped reconciliation.`,
+      ...input.openOpsObligationsPayload,
+      ...(input.validationWarnings.length > 0
+        ? {
+            validationWarnings: input.validationWarnings.map((w) => ({
+              code: w.code,
+              message: w.message,
+              path: w.path,
+            })),
+          }
+        : {}),
+    });
+  }
+
+  const finalization = verifyReleaseEvidenceFromMain({
+    store: input.store,
+    changeId: input.changeId,
+    archiveMode: input.archiveMode,
+    change: input.change,
+  });
+
+  const commonPayload = {
+    changeId: input.changeId,
+    archivePath: input.existingBundlePath,
+    ...input.openOpsObligationsPayload,
+    ...(input.validationWarnings.length > 0
+      ? {
+          validationWarnings: input.validationWarnings.map((w) => ({
+            code: w.code,
+            message: w.message,
+            path: w.path,
+          })),
+        }
+      : {}),
+  };
+
+  if (finalization.status === "blocked") {
+    return formatToolOutput({
+      success: false,
+      error: `Archive finalization blocked: ${finalization.blocked?.reason}`,
+      requirement: "rq-releaseFinalization01",
+      remediation: finalization.blocked?.remediation,
+      details: finalization.blocked?.details,
+      ...buildFailedPhase9Classification({
+        change: input.change,
+        finalization,
+      }),
+      ...commonPayload,
+      finalization,
+      continueFrom: {
+        path: finalization.mainCheckout,
+        branch: finalization.defaultBranch,
+      },
+    });
+  }
+
+  if (finalization.status === "pending_merge") {
+    await recordPhase9Status({
+      store: input.store,
+      changeId: input.changeId,
+      status: buildPendingMergePhase9Status({
+        finalization,
+        startedAt:
+          input.change.phase9_status?.startedAt ?? new Date().toISOString(),
+      }),
+    });
+    return formatToolOutput({
+      success: true,
+      noOp: true,
+      message: `Change ${input.changeId} is already archived; pending_merge state recorded without repeating finalization.`,
+      ...commonPayload,
+      phase9: "pending_merge",
+      finalization,
+      continueFrom: {
+        path: finalization.mainCheckout,
+        branch: finalization.defaultBranch,
+      },
+    });
+  }
+
+  // If the store already shows release done, skip workflow interaction;
+  // this keeps archived-bundle retries bounded and avoids missing workflow
+  // mocks in no-op scenarios while still allowing metadata reconciliation.
+  let releaseResult: Extract<ArchiveReleaseGateResult, { ok: true }>;
+  const durableGates = await input.store.gates.get(input.changeId);
+  const storeReleaseGate = durableGates?.release;
+  if (storeReleaseGate?.status === "done") {
+    releaseResult = {
+      ok: true,
+      gate: storeReleaseGate,
+      alreadyDone: true,
+    };
+  } else {
+    const completionResult = await completeReleaseGateAfterFinalization({
+      store: input.store,
+      change: input.change,
+      changeId: input.changeId,
+      finalization,
+    });
+    if (!completionResult.ok) {
+      return formatToolOutput({
+        success: false,
+        error: `Archive release gate completion blocked: ${completionResult.error}`,
+        requirement: "rq-releaseFinalization01",
+        ...commonPayload,
+        finalization,
+        continueFrom: {
+          path: finalization.mainCheckout,
+          branch: finalization.defaultBranch,
+        },
+        workflowGateStatus: completionResult.workflowGateStatus,
+        stuckReason: completionResult.stuckReason,
+        readinessBlockers: completionResult.readinessBlockers,
+      });
+    }
+
+    const releaseEvidence = buildReleaseCompletionEvidence(finalization);
+    const durableProof = await verifyReleaseGateDurableForArchive({
+      store: input.store,
+      changeId: input.changeId,
+      evidence: releaseEvidence,
+    });
+    if (!durableProof.ok) {
+      return formatToolOutput({
+        success: false,
+        error: `Archive durable release gate proof blocked: ${durableProof.error}`,
+        requirement: "rq-releaseProjectionDurability01",
+        ...commonPayload,
+        finalization,
+        continueFrom: {
+          path: finalization.mainCheckout,
+          branch: finalization.defaultBranch,
+        },
+        releaseGateStatus: durableProof.releaseGateStatus,
+        stuckReason: durableProof.stuckReason,
+        readinessBlockers: durableProof.readinessBlockers,
+      });
+    }
+
+    releaseResult = completionResult;
+  }
+
+  if (
+    input.change.phase9_status?.status &&
+    input.change.phase9_status.status !== "done"
+  ) {
+    await recordPhase9Status({
+      store: input.store,
+      changeId: input.changeId,
+      status: {
+        status: "done",
+        startedAt:
+          input.change.phase9_status.startedAt ?? new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  return formatToolOutput({
+    success: true,
+    noOp: true,
+    message: `Change ${input.changeId} is already archived; release gate and Phase 9 metadata reconciled without repeating finalization or cleanup.`,
+    ...commonPayload,
+    finalization,
+    continueFrom: {
+      path: finalization.mainCheckout,
+      branch: finalization.defaultBranch,
+    },
+    releaseGate: releaseResult.gate,
+    releaseGateAlreadyDone: releaseResult.alreadyDone,
+    ...(releaseResult.recoveryMutation ? { _recoveryMutation: true } : {}),
+    ...(releaseResult.reconciliationWarning
+      ? { reconciliationWarning: releaseResult.reconciliationWarning }
+      : {}),
+  });
+}
+
 function buildFailedPhase9Classification(input: {
   change: Change;
   finalization: GitFinalizeOutcome;
@@ -4241,21 +4440,23 @@ export const changeTools = {
         }
 
         // rq-archiveRetryIdempotence01 (AC7): If the change is already
-        // archived and the archive bundle is present, return a bounded no-op
-        // success. Do not repeat finalization, branch deletion, issue closure,
-        // or cleanup.
+        // archived and the archive bundle is present, run a bounded metadata
+        // reconciliation only. Do not repeat finalization, branch deletion,
+        // issue closure, or cleanup.
         if (
           !dryRun &&
           change.status === "archived" &&
           existingBundlePath !== null
         ) {
-          return formatToolOutput({
-            success: true,
+          return reconcileArchivedBundleRetry({
+            store,
+            change,
             changeId,
-            archivePath: existingBundlePath,
-            noOp: true,
-            message: `Change ${changeId} is already archived with an existing bundle; no finalization, cleanup, or issue closure was repeated.`,
-            ...openOpsObligationsPayload,
+            archiveMode,
+            phase9,
+            existingBundlePath,
+            openOpsObligationsPayload,
+            validationWarnings: validationResult.warnings,
           });
         }
 
@@ -4936,6 +5137,8 @@ export const changeTools = {
         });
       };
 
+      // rq-archiveTargetPathRouting01: route terminal archive through the
+      // target project's store and queue when target_path is approved.
       if (target_path) {
         return withTargetPathStore(
           {
