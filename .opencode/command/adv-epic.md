@@ -66,8 +66,8 @@ If plausible overlap exists, present the evidence and ask the user to choose exa
 
 | Option                  | Meaning                                                                                                                      |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| update/clarify existing | Use `adv_epic_update`, `adv_epic_add_shell`, `adv_epic_link_change`, `adv_epic_move_change`, or `adv_epic_repair_membership` to refine the existing Epic |
-| merge duplicate         | No single merge tool exists; use `adv_epic_move_change`, `adv_epic_unlink_change`, and `adv_epic_update` only after explicit conflict dispositions |
+| update/clarify existing | Use typed Epic tools such as `adv_epic_update`, `adv_epic_add_shell`, `adv_epic_link_change`, `adv_epic_move_change`, or `adv_epic_repair_membership` to refine the existing Epic |
+| merge duplicate         | No single merge tool exists; plan conflict-safe consolidation, then execute with existing typed Epic tools such as `adv_epic_move_change`, `adv_epic_unlink_change`, `adv_epic_update`, and `adv_epic_repair_membership` only after explicit conflict dispositions |
 | create new              | Create a distinct Epic because the ultimate goal or scope is different                                                       |
 | stop                    | Do not mutate Epic state                                                                                                     |
 
@@ -96,7 +96,7 @@ After confirmation:
 1. Create new Epic with `adv_epic_create`, update existing Epic title/narrative with `adv_epic_update`, or refine entries with `adv_epic_add_shell`, `adv_epic_link_change`, `adv_epic_move_change`, and `adv_epic_repair_membership`.
 2. Add user-approved future work with `adv_epic_add_shell`.
 3. Link user-approved existing changes with `adv_epic_link_change`.
-4. Consolidate approved duplicate active Epics with typed entry moves/unlinks (`adv_epic_move_change`, `adv_epic_unlink_change`) after presenting a conflict-safe plan.
+4. Consolidate approved duplicate active Epics by moving/linking/unlinking entries with existing typed Epic tools (`adv_epic_move_change`, `adv_epic_unlink_change`, `adv_epic_update`, and `adv_epic_repair_membership`) after plan review. No single merge tool exists.
 5. If follow-on shell/link/merge operations fail after Epic creation, report the created Epic ID, failed operation, and safe retry/repair path.
 
 × MUST NOT directly edit ADV state files.

@@ -568,7 +568,7 @@ VERIFICATION:
   required_when_possible:
     - {task-specific test/lint/typecheck command}
   optional_additional_checks: true
-BRIEFING PACKET: inject the generated `_briefingPacket` (lane: engineer) here — includes identity_anchors, scope, contract, tasks, affected_files, epic_context, verification_expectations, durable_facts, unavailable_state
+BRIEFING PACKET: inject the generated `_briefingPacket` (lane: engineer) here — includes identity_anchors, scope, contract, tasks, affected_files, EPIC CONTEXT (`epic_context`), verification_expectations, durable_facts, unavailable_state
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
 EXPECTED OUTPUT: implement the task, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
@@ -598,7 +598,7 @@ VERIFICATION:
   required_when_possible:
     - {task-specific component/lint/typecheck/a11y command}
   optional_additional_checks: true
-BRIEFING PACKET: inject the generated `_briefingPacket` (lane: designer) here — includes identity_anchors, scope, contract, tasks, affected_files, epic_context, durable_facts, unavailable_state
+BRIEFING PACKET: inject the generated `_briefingPacket` (lane: designer) here — includes identity_anchors, scope, contract, tasks, affected_files, EPIC CONTEXT (`epic_context`), durable_facts, unavailable_state
 VISUAL_CONTEXT:
   surface_type: {tool | dashboard | form | docs | marketing | component | unknown | unavailable: reason}
   existing_patterns:

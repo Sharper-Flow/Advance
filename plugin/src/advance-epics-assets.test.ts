@@ -181,6 +181,11 @@ describe("/adv-epic command contract", () => {
     expect(content).toContain("adv_epic_unlink_change");
     expect(content).toMatch(/refine entries|consolidate/i);
     expect(content).toMatch(/No single merge tool exists/i);
+    expect(content).toContain("adv_epic_repair_membership");
+    expect(content).toMatch(
+      /update\/clarify existing|update an existing Epic/i,
+    );
+    expect(content).toMatch(/merge/i);
   });
 
   test("keeps initial entries optional and mutations typed", () => {
