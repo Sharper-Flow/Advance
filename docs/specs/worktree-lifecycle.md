@@ -106,7 +106,7 @@ Cross-change worktree visibility MUST query each owning change workflow independ
 
 **ID:** `rq-wl-setupReadiness01` | **Priority:** **[MUST]**
 
-advWorktreeCreate must record materializing state before git worktree add, then transition to active/idle only after postCreate hooks succeed. Hook failure writes setup_failed status with setupReady=false and the failure reason. Active session registration must be blocked on setup_failed records.
+advWorktreeCreate must record materializing state before git worktree add, then transition to active/idle only after postCreate hooks succeed. Hook failure writes setup_failed status with setupReady=false and the failure reason. The setup_failed record must be durable across sessions and visible to a later advWorktreeResume in a new session, which must return SETUP_FAILED with the recorded reason. Active session registration must be blocked on setup_failed records.
 
 **Tags:** `worktree`, `safety`, `hooks`
 
@@ -136,6 +136,18 @@ advWorktreeCreate must record materializing state before git worktree add, then 
 - Registry entry has status=active or idle
 - setupReady=true
 - Active session is registered
+
+**setup_failed is durable and resume-visible across sessions** (`rq-wl-setupReadiness01.3`)
+
+**Given:**
+- advWorktreeCreate failed during postCreate hook for a change
+- The original session ended
+
+**When:** advWorktreeResume is called in a new session for the same change
+
+**Then:**
+- getWorktreeRecord returns status=setup_failed with the recorded reason
+- advWorktreeResume returns SETUP_FAILED with branch, path, and the recorded reason
 
 ---
 
