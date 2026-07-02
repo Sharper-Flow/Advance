@@ -634,6 +634,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
         changeId: "missing-from-disk",
       },
     ];
+    attachChangeStatus(deps, "archived");
     deps.integrationCheck = async () => {
       throw new Error("integration check must be skipped for missing disk");
     };
@@ -645,10 +646,77 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       branch,
       path: wtPath,
     });
+    expect(workflowSignal).toHaveBeenCalledWith(
+      worktreeDeletedSignal,
+      expect.objectContaining({
+        branch,
+        reason: "missing_from_disk_cleanup",
+        deletedAt: expect.any(String),
+      }),
+    );
+    expect(deps.store?.changes.refresh).toHaveBeenCalledWith(
+      "missing-from-disk",
+    );
     expect(appendDebugLog).toHaveBeenCalledWith(
       "worktree-delete",
       expect.stringContaining("removed stale missing-from-disk registry entry"),
     );
+  });
+
+  it("#174 dispatches worktreeDeletedSignal when clearing archived missing-from-disk registry entry", async () => {
+    const branch = "change/archived-missing";
+    const wtPath = join(repoRoot, "worktrees", branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [
+      {
+        branch,
+        path: wtPath,
+        changeId: "archived-missing",
+      },
+    ];
+    attachChangeStatus(deps, "archived");
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({
+      ok: true,
+      branch,
+      path: wtPath,
+    });
+    expect(workflowSignal).toHaveBeenCalledWith(
+      worktreeDeletedSignal,
+      expect.objectContaining({
+        branch,
+        reason: "missing_from_disk_cleanup",
+        deletedAt: expect.any(String),
+      }),
+    );
+    expect(deps.store?.changes.refresh).toHaveBeenCalledWith(
+      "archived-missing",
+    );
+  });
+
+  it("#174 retains missing-from-disk registry entry when change is not terminal", async () => {
+    const branch = "change/not-archived";
+    const wtPath = join(repoRoot, "worktrees", branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [
+      {
+        branch,
+        path: wtPath,
+        changeId: "not-archived",
+      },
+    ];
+    attachChangeStatus(deps, "active");
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "change_not_terminal",
+    });
+    expect(workflowSignal).not.toHaveBeenCalled();
   });
 
   it("#38 deletes clean merged non-ADV worktree branch without archived change", async () => {

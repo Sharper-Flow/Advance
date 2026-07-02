@@ -37,8 +37,9 @@ import {
 import type { OpencodeClient } from "../../utils/opencode-types";
 import { appendDebugLog } from "../../utils/debug-log";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
-import { getStateQuery } from "../../temporal/messages";
+import { getStateQuery, worktreeDeletedSignal } from "../../temporal/messages";
 import { getService } from "../../temporal/service";
+import type { Store } from "../../storage/store";
 import { acquireFileLock, atomicWriteFile } from "../../utils/fs";
 import { collectErrorText } from "../../temporal/error-text";
 import {
@@ -241,6 +242,7 @@ const MAX_WORKTREE_ERROR_EVIDENCE_CHARS = 500;
 
 type ChangeWorkflowWorktreeHandle = {
   query: (def: unknown, ...args: unknown[]) => Promise<unknown>;
+  signal?: (signal: unknown, payload: unknown) => Promise<unknown>;
   describe?: () => Promise<unknown>;
 };
 
@@ -569,11 +571,59 @@ export async function updateWorktree(
 }
 
 export async function removeWorktree(
-  _access: WorktreeStateAccess,
-  _branch: string,
+  access: WorktreeStateAccess,
+  branch: string,
   _client?: OpencodeClient,
-): Promise<void> {
-  // Stub: will dispatch worktreeDeletedSignal to change workflow.
+  store?: Store,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const changeId = inferChangeIdFromBranch(branch);
+  if (!changeId) {
+    return { ok: false, reason: "not_a_change_branch" };
+  }
+
+  const bundle = getService();
+  if (!bundle) {
+    return { ok: false, reason: "temporal_unavailable" };
+  }
+  const workflowApi = bundle.client.workflow as {
+    getHandle?: (workflowId: string) => ChangeWorkflowWorktreeHandle;
+  };
+  if (!workflowApi?.getHandle) {
+    return { ok: false, reason: "temporal_unavailable" };
+  }
+
+  const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`;
+  let handle: ChangeWorkflowWorktreeHandle;
+  try {
+    handle = workflowApi.getHandle(workflowId);
+  } catch (error) {
+    return {
+      ok: false,
+      reason: `workflow_unreachable: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+
+  try {
+    await handle.signal?.(worktreeDeletedSignal, {
+      branch,
+      reason: "missing_from_disk_cleanup",
+      deletedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      reason: `signal_failed: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+
+  if (store) {
+    try {
+      await store.changes.refresh(changeId);
+    } catch {
+      // best-effort cache refresh; the durable signal is already sent
+    }
+  }
+  return { ok: true };
 }
 
 export async function listWorktrees(

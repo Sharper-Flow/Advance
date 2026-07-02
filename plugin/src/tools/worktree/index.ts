@@ -81,6 +81,7 @@ import {
   listWorktrees,
   recordPendingDeleteFailure,
   removeSession,
+  removeWorktree,
   setPendingDelete,
   updateWorktreeRecord,
 } from "./state";
@@ -1826,12 +1827,54 @@ async function maybeRemoveMissingFromDiskRegistryEntry(
   branch: string,
   worktreePath: string,
   deps: AdvWorktreeDeleteDeps,
+  registryEntry: { branch: string; changeId?: string; path: string },
 ): Promise<AdvWorktreeDeleteResult | null> {
   if (await pathExists(worktreePath)) return null;
 
   const gitWorktree = await findGitWorktreeByBranch(deps.projectRoot, branch);
   const branchStillExists = await branchExists(deps.projectRoot, branch);
   if (gitWorktree || branchStillExists) return null;
+
+  const changeId = registryEntry.changeId ?? inferChangeIdFromBranch(branch);
+  if (!changeId) return null;
+
+  // Structural safety gate: only clear durable registry rows for terminal
+  // changes. Dirty/in-use/open/unreachable cases are retained.
+  let status: string | undefined;
+  if (deps.store) {
+    const loaded = await readChangeStatusWithCleanupTimeout(
+      deps.store,
+      changeId,
+      deps.signalTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
+    );
+    if (loaded.ok) {
+      status = loaded.status;
+    }
+  }
+
+  if (status !== "archived" && status !== "closed") {
+    return {
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "change_not_terminal",
+      hint: `Change ${changeId} is ${status ?? "unreachable"}; archive or close it before clearing the missing-from-disk registry entry.`,
+    };
+  }
+
+  // Durable cleanup through the owning change workflow.
+  const removed = await removeWorktree(
+    deps.database,
+    branch,
+    undefined,
+    deps.store,
+  );
+  if (!removed.ok) {
+    return {
+      ok: false,
+      error: "REMOVE_FAILED",
+      reason: removed.reason,
+    };
+  }
 
   await removeSession(deps.database, branch);
   await clearPendingDelete(deps.database, branch);
@@ -1963,6 +2006,7 @@ export async function advWorktreeDelete(
       branch,
       worktreePath,
       deps,
+      registryEntry,
     );
     if (missingFromDisk) return missingFromDisk;
   }
