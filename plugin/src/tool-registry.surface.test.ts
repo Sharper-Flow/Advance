@@ -27,9 +27,14 @@ describe("getToolSurface (live surface)", () => {
     expect(args?.has("recoveryReason")).toBe(true);
   });
 
-  test("does NOT expose adv_change_archive#target_path (the AC6 defect surface)", () => {
+  test("exposes adv_change_archive#target_path for cross-project archive", () => {
     expect(surface.has("adv_change_archive")).toBe(true);
-    expect(surface.get("adv_change_archive")?.has("target_path")).toBe(false);
+    expect(surface.get("adv_change_archive")?.has("target_path")).toBe(true);
+  });
+
+  test("exposes adv_task_checkpoint#target_path for cross-project checkpoint", () => {
+    expect(surface.has("adv_task_checkpoint")).toBe(true);
+    expect(surface.get("adv_task_checkpoint")?.has("target_path")).toBe(true);
   });
 
   test("mint succeeds for a warrant resolving against the live surface (AC2)", () => {
@@ -45,11 +50,24 @@ describe("getToolSurface (live surface)", () => {
     ]);
   });
 
-  test("mint fails for the AC6-class warrant against the live surface (AC1)", () => {
+  test("mint succeeds for cross-project archive warrant against the live surface", () => {
+    const contract = buildContractFromAgreement({
+      agreement: `## Acceptance Criteria
+- AC1: Cross-project archive routes through target. [warrant: tool:adv_change_archive#target_path]
+`,
+      approvedAt: "2026-06-25T00:00:00.000Z",
+      warrantLookup: { toolSurface: surface, specIds: new Set() },
+    });
+    expect(contract.items[0]?.warrants).toEqual([
+      "tool:adv_change_archive#target_path",
+    ]);
+  });
+
+  test("mint fails for a warrant naming a nonexistent tool arg on the live surface", () => {
     expect(() =>
       buildContractFromAgreement({
         agreement: `## Acceptance Criteria
-- AC1: Cross-project archive routes through target. [warrant: tool:adv_change_archive#target_path]
+- AC1: Cross-project archive routes through target. [warrant: tool:adv_change_archive#nonexistent_arg]
 `,
         approvedAt: "2026-06-25T00:00:00.000Z",
         warrantLookup: { toolSurface: surface, specIds: new Set() },

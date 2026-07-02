@@ -9,7 +9,11 @@ import {
 const lookup: WarrantLookup = {
   toolSurface: new Map([
     ["adv_change_status_repair", new Set(["changeId", "target_path"])],
-    ["adv_change_archive", new Set(["changeId", "phase9", "worktreePath"])],
+    [
+      "adv_change_archive",
+      new Set(["changeId", "phase9", "worktreePath", "target_path"]),
+    ],
+    ["adv_task_checkpoint", new Set(["taskId", "target_path"])],
   ]),
   specIds: new Set(["rq-acWarrant01"]),
 };
@@ -61,13 +65,15 @@ describe("resolveWarrants", () => {
     ).toEqual({ ok: true, unresolved: [] });
   });
 
-  test("unresolved when tool arg is absent (the AC6 case)", () => {
+  test("unresolved when tool arg is absent", () => {
     const result = resolveWarrants(
-      ["tool:adv_change_archive#target_path"],
+      ["tool:adv_change_archive#nonexistent_arg"],
       lookup,
     );
     expect(result.ok).toBe(false);
-    expect(result.unresolved).toEqual(["tool:adv_change_archive#target_path"]);
+    expect(result.unresolved).toEqual([
+      "tool:adv_change_archive#nonexistent_arg",
+    ]);
   });
 
   test("ok when tool exists (name only)", () => {

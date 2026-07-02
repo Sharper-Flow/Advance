@@ -22,11 +22,32 @@ const mocks = vi.hoisted(() => {
   const temporalBundle = {
     client: { workflow: { getHandle: getHandleMock } },
   };
+  const targetStore = {
+    paths: {
+      root: "/tmp/target",
+      changes: "/tmp/target/.adv/changes",
+      archive: "/tmp/target/.adv/archive",
+    },
+    config: null,
+    changes: {
+      get: vi.fn(),
+      save: vi.fn(),
+      refresh: vi.fn(async () => undefined),
+      list: vi.fn(async () => ({ changes: [] })),
+    },
+    tasks: { ready: vi.fn(async () => ({ ready: [], blocked: [] })) },
+    specs: {
+      list: vi.fn(async () => ({ specs: [] })),
+      get: vi.fn(async () => ({ success: false, error: "not found" })),
+    },
+    close: vi.fn(),
+  };
 
   return {
     signalMock,
     queryMock,
     handleMock,
+    targetStore,
     getHandleMock,
     temporalBundle,
     getService: vi.fn(() => temporalBundle),
@@ -47,6 +68,38 @@ const mocks = vi.hoisted(() => {
     execGh: vi.fn(),
     readGitHubProjectConfig: vi.fn(),
     execGit: vi.fn(),
+    withTargetPathStore: vi.fn(async (_input: unknown, fn: unknown) => {
+      const callback = fn as (scope: {
+        context: unknown;
+        store: unknown;
+      }) => Promise<unknown>;
+      return callback({
+        context: {
+          root: "/tmp/target",
+          projectId: "target-project-id",
+          externalRoot: "/tmp/target-external",
+          trusted: false,
+          trustSource: "explicit",
+          stateMode: "temporal",
+        },
+        store: targetStore,
+      });
+    }),
+    formatTargetProjectContext: vi.fn(
+      (context: {
+        root: string;
+        projectId: string;
+        trusted: boolean;
+        trustSource: string;
+        stateMode: string;
+      }) => ({
+        root: context.root,
+        projectId: context.projectId,
+        trusted: context.trusted,
+        trustSource: context.trustSource,
+        stateMode: context.stateMode,
+      }),
+    ),
   };
 });
 
@@ -70,6 +123,46 @@ vi.mock("./_adapters", () => ({
   querySignal: mocks.querySignal,
   getChangeHandle: mocks.getChangeHandle,
 }));
+
+vi.mock("./target-project", async () => {
+  const { z } = await import("zod");
+  return {
+    targetPathSchema: z.object({
+      target_path: z.string().optional(),
+      target_confirmed: z.literal(true).optional(),
+      confirmationEvidence: z.string().optional(),
+    }),
+    withTargetPathStore: mocks.withTargetPathStore,
+    withOptionalTargetPathStore: vi.fn(async ({ store }, fn) => fn(store)),
+    formatTargetProjectContext: mocks.formatTargetProjectContext,
+    resolveTargetAwareMutationCwd: vi.fn(
+      ({ store, target_path }: { store: Store; target_path?: string }) =>
+        target_path ? store.paths.root : process.cwd(),
+    ),
+    appendTargetProjectContextOutput: vi.fn(
+      (
+        output: string,
+        context: {
+          root: string;
+          projectId: string;
+          trusted: boolean;
+          trustSource: string;
+          stateMode: string;
+        },
+      ) => {
+        const parsed = JSON.parse(output);
+        parsed._projectContext = {
+          root: context.root,
+          projectId: context.projectId,
+          trusted: context.trusted,
+          trustSource: context.trustSource,
+          stateMode: context.stateMode,
+        };
+        return JSON.stringify(parsed);
+      },
+    ),
+  };
+});
 
 vi.mock("../storage/json", async () => {
   const actual =
@@ -2243,6 +2336,109 @@ describe("change tools — signal-driven lifecycle", () => {
 
       expect(parsed.error ?? "").not.toContain("incomplete gates");
       expect(parsed.incompleteGates).toBeUndefined();
+    });
+
+    test("routes target_path archive dryRun through the target store", async () => {
+      const store = createMockStore({ gates: allDoneGates });
+      const targetChange: Change = {
+        id: "target-change",
+        title: "Target Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [
+          { id: "tk-1", title: "Task", status: "done" },
+        ] as Change["tasks"],
+        deltas: {},
+        wisdom: [],
+        gates: allDoneGates,
+      };
+      vi.mocked(mocks.targetStore.changes.get).mockResolvedValue({
+        success: true,
+        data: targetChange,
+      });
+      vi.mocked(mocks.targetStore.specs.list).mockResolvedValue({
+        specs: [],
+      });
+      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        {
+          changeId: "target-change",
+          dryRun: true,
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error ?? "").not.toContain("incomplete gates");
+      expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentProjectPath: "/tmp/test",
+          target_path: "/tmp/target",
+          stateRequirement: "temporal-required",
+          mutation: false,
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        }),
+        expect.any(Function),
+      );
+      expect(mocks.targetStore.changes.get).toHaveBeenCalledWith(
+        "target-change",
+      );
+      expect(parsed._projectContext).toEqual({
+        root: "/tmp/target",
+        projectId: "target-project-id",
+        trusted: false,
+        trustSource: "explicit",
+        stateMode: "temporal",
+      });
+    });
+
+    test("target_path archive dryRun does not require mutation trust", async () => {
+      const store = createMockStore({ gates: allDoneGates });
+      const targetChange: Change = {
+        id: "target-change",
+        title: "Target Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [
+          { id: "tk-1", title: "Task", status: "done" },
+        ] as Change["tasks"],
+        deltas: {},
+        wisdom: [],
+        gates: allDoneGates,
+      };
+      vi.mocked(mocks.targetStore.changes.get).mockResolvedValue({
+        success: true,
+        data: targetChange,
+      });
+      vi.mocked(mocks.targetStore.specs.list).mockResolvedValue({
+        specs: [],
+      });
+      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+      await changeTools.adv_change_archive.execute(
+        {
+          changeId: "target-change",
+          dryRun: true,
+          target_path: "/tmp/target",
+        },
+        store,
+      );
+
+      expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target_path: "/tmp/target",
+          stateRequirement: "temporal-required",
+          mutation: false,
+        }),
+        expect.any(Function),
+      );
     });
 
     test("blocks archive when non-release gates are incomplete", async () => {

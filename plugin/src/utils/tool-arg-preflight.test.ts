@@ -116,7 +116,37 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
   },
   {
     toolName: "adv_change_archive",
+    field: "target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_archive",
+    field: "confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_change_archive",
     field: "recoveryEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_task_checkpoint",
+    field: "target_path",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_task_checkpoint",
+    field: "confirmationEvidence",
+    policy: "blank",
+    action: "omit",
+  },
+  {
+    toolName: "adv_task_checkpoint",
+    field: "workdir",
     policy: "blank",
     action: "omit",
   },

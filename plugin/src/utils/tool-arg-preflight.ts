@@ -112,6 +112,9 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_change_archive: {
     worktreePath: { blank: "omit" },
+    target_path: { blank: "omit" },
+    // Contextually-validated: handler checks only when target_path present.
+    confirmationEvidence: { blank: "omit" },
     // Contextually-validated: handler checks only when recoveryMode=poisoned_history.
     recoveryEvidence: { blank: "omit" },
   },
@@ -181,6 +184,12 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     target_path: { blank: "omit" },
     // Contextually-validated (rq-toolPlaceholderPolicy01.6).
     confirmationEvidence: { blank: "omit" },
+  },
+  adv_task_checkpoint: {
+    target_path: { blank: "omit" },
+    // Contextually-validated when target_path present.
+    confirmationEvidence: { blank: "omit" },
+    workdir: { blank: "omit" }, // optional explicit override
   },
   adv_gate_status: {
     target_path: { blank: "omit" },

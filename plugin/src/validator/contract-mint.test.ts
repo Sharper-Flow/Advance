@@ -125,39 +125,50 @@ describe("buildContractFromAgreement", () => {
   const warrantLookup = {
     toolSurface: new Map([
       ["adv_change_status_repair", new Set(["changeId", "target_path"])],
-      ["adv_change_archive", new Set(["changeId", "phase9"])],
+      ["adv_change_archive", new Set(["changeId", "phase9", "target_path"])],
+      ["adv_task_checkpoint", new Set(["taskId", "target_path"])],
     ]),
     specIds: new Set(["rq-acWarrant01"]),
   };
 
-  test("AC1: mint fails fast when a declared warrant names a nonexistent tool surface", () => {
+  test("AC1: mint fails fast when a declared warrant names a nonexistent tool arg", () => {
     expect(() =>
       buildContractFromAgreement({
         agreement: `## Acceptance Criteria
-- AC1: Cross-project archive routes through target. [warrant: tool:adv_change_archive#target_path]
+- AC1: Cross-project archive routes through target. [warrant: tool:adv_change_archive#nonexistent_arg]
 `,
         approvedAt,
         warrantLookup,
       }),
     ).toThrow(
-      /CONTRACT_UNRESOLVED_WARRANT[\s\S]*adv_change_archive#target_path/,
+      /CONTRACT_UNRESOLVED_WARRANT[\s\S]*adv_change_archive#nonexistent_arg/,
     );
   });
 
-  test("AC2: mint succeeds when a declared warrant resolves; tag stripped, refs recorded", () => {
+  test("AC2a: mint succeeds when an archive target_path warrant resolves", () => {
     const contract = buildContractFromAgreement({
       agreement: `## Acceptance Criteria
-- AC1: Cross-project repair routes through target. [warrant: tool:adv_change_status_repair#target_path]
+- AC1: Cross-project archive routes through target. [warrant: tool:adv_change_archive#target_path]
 `,
       approvedAt,
       warrantLookup,
     });
     const item = contract.items.find((i) => i.id === "AC1");
-    expect(item?.warrants).toEqual([
-      "tool:adv_change_status_repair#target_path",
-    ]);
-    expect(item?.text).toBe("Cross-project repair routes through target.");
+    expect(item?.warrants).toEqual(["tool:adv_change_archive#target_path"]);
+    expect(item?.text).toBe("Cross-project archive routes through target.");
     expect(item?.text).not.toContain("[warrant:");
+  });
+
+  test("AC2b: mint succeeds when a checkpoint target_path warrant resolves", () => {
+    const contract = buildContractFromAgreement({
+      agreement: `## Acceptance Criteria
+- AC1: Cross-project checkpoint routes through target. [warrant: tool:adv_task_checkpoint#target_path]
+`,
+      approvedAt,
+      warrantLookup,
+    });
+    const item = contract.items.find((i) => i.id === "AC1");
+    expect(item?.warrants).toEqual(["tool:adv_task_checkpoint#target_path"]);
   });
 
   test("AC3: behavioral criteria with no warrant tags mint unchanged (no lookup needed)", () => {

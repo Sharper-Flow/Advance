@@ -1214,8 +1214,8 @@ Acceptance and success criteria that presume a capability surface exists (a tool
 **Mint fails on a warrant naming a nonexistent surface** (`rq-acWarrant01.1`)
 
 **Given:**
-- An approved agreement declares a criterion with [warrant: tool:adv_change_archive#target_path]
-- adv_change_archive has no target_path argument in the live tool surface
+- An approved agreement declares a criterion with [warrant: tool:adv_change_archive#nonexistent_arg]
+- adv_change_archive has no `nonexistent_arg` argument in the live tool surface
 
 **When:** adv_contract_mint mints the contract
 

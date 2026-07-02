@@ -32,6 +32,11 @@ import {
   querySignal,
 } from "./_adapters";
 import {
+  targetPathSchema,
+  withTargetPathStore,
+  appendTargetProjectContextOutput,
+} from "./target-project";
+import {
   changeTaskQuery,
   getStateQuery,
   taskCompletedSignal,
@@ -563,6 +568,7 @@ export const checkpointTools = {
         .describe(
           "Verification summary for complete mode (required when committing dirty tree)",
         ),
+      ...targetPathSchema.shape,
     },
     execute: async (
       args: {
@@ -574,337 +580,367 @@ export const checkpointTools = {
         expectedBranch?: string;
         expectedHeadSha?: string;
         verification?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
       defaultWorkdir: string,
     ): Promise<string> => {
-      const cwd = args.workdir || defaultWorkdir;
-      const mode = args.mode ?? "complete";
+      const runCheckpoint = async (
+        activeStore: Store,
+        activeDefaultWorkdir: string,
+      ): Promise<string> => {
+        const store = activeStore;
+        const cwd = args.workdir || activeDefaultWorkdir;
+        const mode = args.mode ?? "complete";
 
-      // Validate cancel mode requires reason
-      if (mode === "cancel" && !args.reason) {
-        return formatToolOutput({
-          error:
-            "Cancel mode requires a 'reason' argument. " +
-            "Provide the cancellation reason for the commit message.",
-          status: "failed",
-          classification: "SEMANTIC",
-          workdir: cwd,
-        } satisfies CheckpointResult);
-      }
-
-      // Detect repo state
-      const repoState = await detectRepoState(cwd);
-      if (repoState === "not_git") {
-        return formatToolOutput({
-          status: "failed",
-          classification: "ENVIRONMENTAL",
-          workdir: cwd,
-        } satisfies CheckpointResult);
-      }
-      if (repoState === "detached") {
-        return formatToolOutput({
-          status: "failed",
-          classification: "ENVIRONMENTAL",
-          workdir: cwd,
-          message: "Detached HEAD — cannot checkpoint without a branch",
-        } satisfies CheckpointResult);
-      }
-      if (repoState === "merging") {
-        return formatToolOutput({
-          status: "failed",
-          classification: "SEMANTIC",
-          workdir: cwd,
-          message:
-            "MERGE_HEAD present — resolve merge conflict before checkpoint",
-        } satisfies CheckpointResult);
-      }
-
-      // Resolve change identity from store
-      let derivedChangeId: string | undefined;
-      try {
-        const taskInfo = await store.tasks.show(args.taskId);
-        if (taskInfo) {
-          derivedChangeId = taskInfo.changeId;
+        // Validate cancel mode requires reason
+        if (mode === "cancel" && !args.reason) {
+          return formatToolOutput({
+            error:
+              "Cancel mode requires a 'reason' argument. " +
+              "Provide the cancellation reason for the commit message.",
+            status: "failed",
+            classification: "SEMANTIC",
+            workdir: cwd,
+          } satisfies CheckpointResult);
         }
-      } catch {
-        // If store doesn't support tasks.show, continue without derived changeId
-      }
 
-      // Determine if guard mode is active (explicit guard params passed)
-      const guardMode = !!(
-        args.changeId ||
-        args.expectedBranch ||
-        args.expectedHeadSha ||
-        args.verification
-      );
-
-      // Validate optional changeId assertion
-      if (
-        args.changeId &&
-        derivedChangeId &&
-        args.changeId !== derivedChangeId
-      ) {
-        return formatToolOutput({
-          status: "failed",
-          classification: "SEMANTIC",
-          workdir: cwd,
-          error: `changeId mismatch: expected ${args.changeId} but task ${args.taskId} belongs to change ${derivedChangeId}`,
-          changeId: derivedChangeId,
-        } satisfies CheckpointResult);
-      }
-
-      const effectiveChangeId = args.changeId || derivedChangeId;
-      const expectedBranch =
-        args.expectedBranch ||
-        (guardMode && effectiveChangeId
-          ? `change/${effectiveChangeId}`
-          : undefined);
-
-      // Compute git context
-      let actualBranch: string;
-      let actualHeadSha: string;
-      let gitRoot: string;
-      try {
-        actualBranch = (
-          await runGit(["rev-parse", "--abbrev-ref", "HEAD"], cwd)
-        ).stdout.trim();
-        actualHeadSha = (
-          await runGit(["rev-parse", "HEAD"], cwd)
-        ).stdout.trim();
-        gitRoot = (
-          await runGit(["rev-parse", "--show-toplevel"], cwd)
-        ).stdout.trim();
-      } catch (err) {
-        return formatToolOutput({
-          status: "failed",
-          classification: classifyGitError(err),
-          workdir: cwd,
-          stderr: err instanceof Error ? err.message : String(err),
-        } satisfies CheckpointResult);
-      }
-
-      // Validate branch match
-      if (expectedBranch && actualBranch !== expectedBranch) {
-        return formatToolOutput({
-          status: "failed",
-          classification: "SEMANTIC",
-          workdir: cwd,
-          gitRoot,
-          error:
-            `branch mismatch: expected ${expectedBranch} but currently on ${actualBranch}. ` +
-            `Run in the correct worktree for change ${effectiveChangeId || args.taskId}.`,
-          expectedBranch,
-          actualBranch,
-        } satisfies CheckpointResult);
-      }
-
-      // Validate HEAD match
-      if (args.expectedHeadSha && actualHeadSha !== args.expectedHeadSha) {
-        return formatToolOutput({
-          status: "failed",
-          classification: "SEMANTIC",
-          workdir: cwd,
-          gitRoot,
-          error:
-            `HEAD mismatch: expected ${args.expectedHeadSha} but HEAD is ${actualHeadSha}. ` +
-            `The working tree may have been modified outside this task.`,
-          expectedHeadSha: args.expectedHeadSha,
-          actualHeadSha,
-        } satisfies CheckpointResult);
-      }
-
-      // Check if working tree is clean
-      let statusOutput: string;
-      try {
-        const { stdout } = await runGit(["status", "--porcelain"], cwd);
-        statusOutput = stdout;
-      } catch (err) {
-        return formatToolOutput({
-          status: "failed",
-          classification: classifyGitError(err),
-          workdir: cwd,
-          gitRoot,
-          stderr: err instanceof Error ? err.message : String(err),
-        } satisfies CheckpointResult);
-      }
-
-      if (statusOutput.trim() === "") {
-        // Clean tree — idempotent, no commit needed
-        // For complete mode, fire taskCompletedSignal so the task is marked done
-        let checkpointRecording: CheckpointRecordingResult = {
-          recorded: mode !== "complete",
-        };
-        if (mode === "complete") {
-          checkpointRecording = await fireTaskCompletedFromCheckpoint(
-            store,
-            args.taskId,
-            actualHeadSha,
-            args.verification ?? "Clean tree checkpoint",
-            [],
-          );
+        // Detect repo state
+        const repoState = await detectRepoState(cwd);
+        if (repoState === "not_git") {
+          return formatToolOutput({
+            status: "failed",
+            classification: "ENVIRONMENTAL",
+            workdir: cwd,
+          } satisfies CheckpointResult);
         }
-        return formatToolOutput({
-          status: "clean",
-          sha: actualHeadSha,
-          branch: actualBranch,
-          workdir: cwd,
-          gitRoot,
-          changeId: derivedChangeId,
-          checkpointRecorded: checkpointRecording.recorded,
-          ...(checkpointRecording.error && {
-            recordingError: checkpointRecording.error,
-          }),
-          ...(checkpointRecording.remediation && {
-            remediation: checkpointRecording.remediation,
-          }),
-        } satisfies CheckpointResult);
-      }
+        if (repoState === "detached") {
+          return formatToolOutput({
+            status: "failed",
+            classification: "ENVIRONMENTAL",
+            workdir: cwd,
+            message: "Detached HEAD — cannot checkpoint without a branch",
+          } satisfies CheckpointResult);
+        }
+        if (repoState === "merging") {
+          return formatToolOutput({
+            status: "failed",
+            classification: "SEMANTIC",
+            workdir: cwd,
+            message:
+              "MERGE_HEAD present — resolve merge conflict before checkpoint",
+          } satisfies CheckpointResult);
+        }
 
-      // Dirty tree — require verification for complete mode
-      if (mode === "complete" && !args.verification) {
-        return formatToolOutput({
-          status: "failed",
-          classification: "SEMANTIC",
-          workdir: cwd,
-          gitRoot,
-          error:
-            "Verification required for complete mode checkpoint on dirty tree. " +
-            "Provide the verification summary (e.g., test command that passed).",
-        } satisfies CheckpointResult);
-      }
+        // Resolve change identity from store
+        let derivedChangeId: string | undefined;
+        try {
+          const taskInfo = await store.tasks.show(args.taskId);
+          if (taskInfo) {
+            derivedChangeId = taskInfo.changeId;
+          }
+        } catch {
+          // If store doesn't support tasks.show, continue without derived changeId
+        }
 
-      // Build commit message with structured body
-      let commitMessage: { subject: string; body: string };
-      try {
-        commitMessage = buildCommitMessage(
-          args.taskId,
-          mode,
-          args.reason,
-          effectiveChangeId,
-          args.verification,
+        // Determine if guard mode is active (explicit guard params passed)
+        const guardMode = !!(
+          args.changeId ||
+          args.expectedBranch ||
+          args.expectedHeadSha ||
+          args.verification
         );
-      } catch (err) {
-        return formatToolOutput({
-          status: "failed",
-          classification: "SEMANTIC",
-          workdir: cwd,
-          gitRoot,
-          error: err instanceof Error ? err.message : String(err),
-        } satisfies CheckpointResult);
-      }
 
-      const { subject, body } = commitMessage;
+        // Validate optional changeId assertion
+        if (
+          args.changeId &&
+          derivedChangeId &&
+          args.changeId !== derivedChangeId
+        ) {
+          return formatToolOutput({
+            status: "failed",
+            classification: "SEMANTIC",
+            workdir: cwd,
+            error: `changeId mismatch: expected ${args.changeId} but task ${args.taskId} belongs to change ${derivedChangeId}`,
+            changeId: derivedChangeId,
+          } satisfies CheckpointResult);
+        }
 
-      try {
-        // Stage
-        await runGit(["add", "-A"], cwd);
+        const effectiveChangeId = args.changeId || derivedChangeId;
+        const expectedBranch =
+          args.expectedBranch ||
+          (guardMode && effectiveChangeId
+            ? `change/${effectiveChangeId}`
+            : undefined);
 
-        // Commit with retry for transient lock contention
-        const maxRetries = 2;
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-          try {
-            await runGit(["commit", "-m", subject, "-m", body], cwd);
-            break;
-          } catch (err) {
-            const cls = classifyGitError(err);
-            if (cls === "TRANSIENT" && attempt < maxRetries - 1) {
-              // Brief pause before retry
-              await new Promise((r) => setTimeout(r, 500));
-              continue;
-            }
-            // Non-transient or exhausted retries
-            const gitErr = err as {
-              stderr?: string;
-              exitCode?: number;
-              message: string;
-            };
-            // Bridge error_class to task's error_recovery
-            await bridgeErrorClass(
+        // Compute git context
+        let actualBranch: string;
+        let actualHeadSha: string;
+        let gitRoot: string;
+        try {
+          actualBranch = (
+            await runGit(["rev-parse", "--abbrev-ref", "HEAD"], cwd)
+          ).stdout.trim();
+          actualHeadSha = (
+            await runGit(["rev-parse", "HEAD"], cwd)
+          ).stdout.trim();
+          gitRoot = (
+            await runGit(["rev-parse", "--show-toplevel"], cwd)
+          ).stdout.trim();
+        } catch (err) {
+          return formatToolOutput({
+            status: "failed",
+            classification: classifyGitError(err),
+            workdir: cwd,
+            stderr: err instanceof Error ? err.message : String(err),
+          } satisfies CheckpointResult);
+        }
+
+        // Validate branch match
+        if (expectedBranch && actualBranch !== expectedBranch) {
+          return formatToolOutput({
+            status: "failed",
+            classification: "SEMANTIC",
+            workdir: cwd,
+            gitRoot,
+            error:
+              `branch mismatch: expected ${expectedBranch} but currently on ${actualBranch}. ` +
+              `Run in the correct worktree for change ${effectiveChangeId || args.taskId}.`,
+            expectedBranch,
+            actualBranch,
+          } satisfies CheckpointResult);
+        }
+
+        // Validate HEAD match
+        if (args.expectedHeadSha && actualHeadSha !== args.expectedHeadSha) {
+          return formatToolOutput({
+            status: "failed",
+            classification: "SEMANTIC",
+            workdir: cwd,
+            gitRoot,
+            error:
+              `HEAD mismatch: expected ${args.expectedHeadSha} but HEAD is ${actualHeadSha}. ` +
+              `The working tree may have been modified outside this task.`,
+            expectedHeadSha: args.expectedHeadSha,
+            actualHeadSha,
+          } satisfies CheckpointResult);
+        }
+
+        // Check if working tree is clean
+        let statusOutput: string;
+        try {
+          const { stdout } = await runGit(["status", "--porcelain"], cwd);
+          statusOutput = stdout;
+        } catch (err) {
+          return formatToolOutput({
+            status: "failed",
+            classification: classifyGitError(err),
+            workdir: cwd,
+            gitRoot,
+            stderr: err instanceof Error ? err.message : String(err),
+          } satisfies CheckpointResult);
+        }
+
+        if (statusOutput.trim() === "") {
+          // Clean tree — idempotent, no commit needed
+          // For complete mode, fire taskCompletedSignal so the task is marked done
+          let checkpointRecording: CheckpointRecordingResult = {
+            recorded: mode !== "complete",
+          };
+          if (mode === "complete") {
+            checkpointRecording = await fireTaskCompletedFromCheckpoint(
               store,
               args.taskId,
-              cls === "TRANSIENT" ? "SEMANTIC" : cls,
-              gitErr.stderr ?? gitErr.message,
+              actualHeadSha,
+              args.verification ?? "Clean tree checkpoint",
+              [],
             );
-            return formatToolOutput({
-              status: "failed",
-              classification: cls === "TRANSIENT" ? "SEMANTIC" : cls,
-              workdir: cwd,
-              gitRoot,
-              message: subject,
-              stderr: gitErr.stderr ?? gitErr.message,
-              gitExitCode: gitErr.exitCode,
-            } satisfies CheckpointResult);
           }
+          return formatToolOutput({
+            status: "clean",
+            sha: actualHeadSha,
+            branch: actualBranch,
+            workdir: cwd,
+            gitRoot,
+            changeId: derivedChangeId,
+            checkpointRecorded: checkpointRecording.recorded,
+            ...(checkpointRecording.error && {
+              recordingError: checkpointRecording.error,
+            }),
+            ...(checkpointRecording.remediation && {
+              remediation: checkpointRecording.remediation,
+            }),
+          } satisfies CheckpointResult);
         }
 
-        // Commit succeeded — get SHA
-        const { stdout: sha } = await runGit(["rev-parse", "HEAD"], cwd);
+        // Dirty tree — require verification for complete mode
+        if (mode === "complete" && !args.verification) {
+          return formatToolOutput({
+            status: "failed",
+            classification: "SEMANTIC",
+            workdir: cwd,
+            gitRoot,
+            error:
+              "Verification required for complete mode checkpoint on dirty tree. " +
+              "Provide the verification summary (e.g., test command that passed).",
+          } satisfies CheckpointResult);
+        }
 
-        // Compute touched files from diff (repo-relative paths)
-        let touchedFiles: string[] = [];
+        // Build commit message with structured body
+        let commitMessage: { subject: string; body: string };
         try {
-          const { stdout: diffOutput } = await runGit(
-            ["diff", "--name-only", "HEAD~1"],
-            cwd,
+          commitMessage = buildCommitMessage(
+            args.taskId,
+            mode,
+            args.reason,
+            effectiveChangeId,
+            args.verification,
           );
-          touchedFiles = diffOutput
-            .split("\n")
-            .map((f) => f.trim())
-            .filter((f) => f.length > 0);
-        } catch {
-          // Diff failed (e.g., initial commit) — use empty array
-          touchedFiles = [];
+        } catch (err) {
+          return formatToolOutput({
+            status: "failed",
+            classification: "SEMANTIC",
+            workdir: cwd,
+            gitRoot,
+            error: err instanceof Error ? err.message : String(err),
+          } satisfies CheckpointResult);
         }
 
-        // For complete mode, fire taskCompletedSignal to mark task done
-        let checkpointRecording: CheckpointRecordingResult = {
-          recorded: mode !== "complete",
-        };
-        if (mode === "complete") {
-          checkpointRecording = await fireTaskCompletedFromCheckpoint(
+        const { subject, body } = commitMessage;
+
+        try {
+          // Stage
+          await runGit(["add", "-A"], cwd);
+
+          // Commit with retry for transient lock contention
+          const maxRetries = 2;
+          for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+              await runGit(["commit", "-m", subject, "-m", body], cwd);
+              break;
+            } catch (err) {
+              const cls = classifyGitError(err);
+              if (cls === "TRANSIENT" && attempt < maxRetries - 1) {
+                // Brief pause before retry
+                await new Promise((r) => setTimeout(r, 500));
+                continue;
+              }
+              // Non-transient or exhausted retries
+              const gitErr = err as {
+                stderr?: string;
+                exitCode?: number;
+                message: string;
+              };
+              // Bridge error_class to task's error_recovery
+              await bridgeErrorClass(
+                store,
+                args.taskId,
+                cls === "TRANSIENT" ? "SEMANTIC" : cls,
+                gitErr.stderr ?? gitErr.message,
+              );
+              return formatToolOutput({
+                status: "failed",
+                classification: cls === "TRANSIENT" ? "SEMANTIC" : cls,
+                workdir: cwd,
+                gitRoot,
+                message: subject,
+                stderr: gitErr.stderr ?? gitErr.message,
+                gitExitCode: gitErr.exitCode,
+              } satisfies CheckpointResult);
+            }
+          }
+
+          // Commit succeeded — get SHA
+          const { stdout: sha } = await runGit(["rev-parse", "HEAD"], cwd);
+
+          // Compute touched files from diff (repo-relative paths)
+          let touchedFiles: string[] = [];
+          try {
+            const { stdout: diffOutput } = await runGit(
+              ["diff", "--name-only", "HEAD~1"],
+              cwd,
+            );
+            touchedFiles = diffOutput
+              .split("\n")
+              .map((f) => f.trim())
+              .filter((f) => f.length > 0);
+          } catch {
+            // Diff failed (e.g., initial commit) — use empty array
+            touchedFiles = [];
+          }
+
+          // For complete mode, fire taskCompletedSignal to mark task done
+          let checkpointRecording: CheckpointRecordingResult = {
+            recorded: mode !== "complete",
+          };
+          if (mode === "complete") {
+            checkpointRecording = await fireTaskCompletedFromCheckpoint(
+              store,
+              args.taskId,
+              sha.trim(),
+              args.verification ?? "Checkpoint committed",
+              touchedFiles,
+            );
+          }
+
+          return formatToolOutput({
+            status: "committed",
+            sha: sha.trim(),
+            branch: actualBranch,
+            workdir: cwd,
+            gitRoot,
+            message: subject,
+            changeId: derivedChangeId,
+            checkpointRecorded: checkpointRecording.recorded,
+            ...(checkpointRecording.error && {
+              recordingError: checkpointRecording.error,
+            }),
+            ...(checkpointRecording.remediation && {
+              remediation: checkpointRecording.remediation,
+            }),
+            touched_files: touchedFiles,
+          } satisfies CheckpointResult);
+        } catch (err) {
+          const cls = classifyGitError(err);
+          // Bridge error_class to task's error_recovery
+          await bridgeErrorClass(
             store,
             args.taskId,
-            sha.trim(),
-            args.verification ?? "Checkpoint committed",
-            touchedFiles,
+            cls,
+            err instanceof Error ? err.message : String(err),
           );
+          return formatToolOutput({
+            status: "failed",
+            classification: cls,
+            workdir: cwd,
+            gitRoot,
+            stderr: err instanceof Error ? err.message : String(err),
+          } satisfies CheckpointResult);
         }
+      };
 
-        return formatToolOutput({
-          status: "committed",
-          sha: sha.trim(),
-          branch: actualBranch,
-          workdir: cwd,
-          gitRoot,
-          message: subject,
-          changeId: derivedChangeId,
-          checkpointRecorded: checkpointRecording.recorded,
-          ...(checkpointRecording.error && {
-            recordingError: checkpointRecording.error,
-          }),
-          ...(checkpointRecording.remediation && {
-            remediation: checkpointRecording.remediation,
-          }),
-          touched_files: touchedFiles,
-        } satisfies CheckpointResult);
-      } catch (err) {
-        const cls = classifyGitError(err);
-        // Bridge error_class to task's error_recovery
-        await bridgeErrorClass(
-          store,
-          args.taskId,
-          cls,
-          err instanceof Error ? err.message : String(err),
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) => {
+            const result = await runCheckpoint(
+              targetStore,
+              targetStore.paths.root,
+            );
+            return appendTargetProjectContextOutput(result, context);
+          },
         );
-        return formatToolOutput({
-          status: "failed",
-          classification: cls,
-          workdir: cwd,
-          gitRoot,
-          stderr: err instanceof Error ? err.message : String(err),
-        } satisfies CheckpointResult);
       }
+
+      return runCheckpoint(store, defaultWorkdir);
     },
   },
 };

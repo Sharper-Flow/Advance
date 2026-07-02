@@ -21,11 +21,48 @@ const mocks = vi.hoisted(() => {
   const temporalBundle = {
     client: { workflow: { getHandle: getHandleMock } },
   };
+  const targetStore = {
+    paths: { root: "/tmp/target", changes: "/tmp/target/.adv/changes" },
+    changes: {
+      get: vi.fn(async () => ({
+        success: true,
+        data: {
+          id: "target-change",
+          title: "Target Change",
+          status: "active",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+        },
+      })),
+    },
+    tasks: {
+      show: vi.fn(async (taskId: string) => ({
+        task: {
+          id: taskId,
+          title: "Target Task",
+          status: "in_progress",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+        } as import("../types").Task,
+        changeId: "target-change",
+      })),
+      get: vi.fn(),
+      list: vi.fn(),
+      ready: vi.fn(),
+      update: vi.fn(),
+      add: vi.fn(),
+      cancel: vi.fn(),
+      reclassifyTdd: vi.fn(),
+    },
+    close: vi.fn(),
+  };
 
   return {
     signalMock,
     queryMock,
     handleMock,
+    targetStore,
     getHandleMock,
     temporalBundle,
     getService: vi.fn(() => temporalBundle),
@@ -37,6 +74,38 @@ const mocks = vi.hoisted(() => {
         queryMock(query, ...args),
     ),
     getChangeHandle: vi.fn(() => handleMock),
+    withTargetPathStore: vi.fn(async (_input: unknown, fn: unknown) => {
+      const callback = fn as (scope: {
+        context: unknown;
+        store: unknown;
+      }) => Promise<unknown>;
+      return callback({
+        context: {
+          root: "/tmp/target",
+          projectId: "target-project-id",
+          externalRoot: "/tmp/target-external",
+          trusted: false,
+          trustSource: "explicit",
+          stateMode: "temporal",
+        },
+        store: targetStore,
+      });
+    }),
+    formatTargetProjectContext: vi.fn(
+      (context: {
+        root: string;
+        projectId: string;
+        trusted: boolean;
+        trustSource: string;
+        stateMode: string;
+      }) => ({
+        root: context.root,
+        projectId: context.projectId,
+        trusted: context.trusted,
+        trustSource: context.trustSource,
+        stateMode: context.stateMode,
+      }),
+    ),
     execFile: vi.fn(
       (_cmd: string, _args: string[], _opts: unknown, cb: unknown) => {
         const callback = cb as (
@@ -53,6 +122,41 @@ const mocks = vi.hoisted(() => {
 vi.mock("../temporal/service", () => ({
   getService: mocks.getService,
 }));
+
+vi.mock("./target-project", async () => {
+  const { z } = await import("zod");
+  return {
+    targetPathSchema: z.object({
+      target_path: z.string().optional(),
+      target_confirmed: z.literal(true).optional(),
+      confirmationEvidence: z.string().optional(),
+    }),
+    withTargetPathStore: mocks.withTargetPathStore,
+    formatTargetProjectContext: mocks.formatTargetProjectContext,
+    appendTargetProjectContextOutput: vi.fn(
+      (
+        output: string,
+        context: {
+          root: string;
+          projectId: string;
+          trusted: boolean;
+          trustSource: string;
+          stateMode: string;
+        },
+      ) => {
+        const parsed = JSON.parse(output);
+        parsed._projectContext = {
+          root: context.root,
+          projectId: context.projectId,
+          trusted: context.trusted,
+          trustSource: context.trustSource,
+          stateMode: context.stateMode,
+        };
+        return JSON.stringify(parsed);
+      },
+    ),
+  };
+});
 
 vi.mock("../utils/project-id", async () => {
   const actual = await vi.importActual<typeof import("../utils/project-id")>(
@@ -665,29 +769,82 @@ describe("checkpoint tools — signal-driven", () => {
       },
     );
 
-    test("returns checkpointRecorded false on clean tree when completion signal fails", async () => {
-      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
-        new Error("signal failed"),
-      );
+    test("routes target_path checkpoint through the target store", async () => {
       const store = createMockStore();
       mockGitResponses({
-        "status --porcelain": { stdout: "" },
+        "rev-parse --abbrev-ref HEAD": { stdout: "change/target-change\n" },
+        "rev-parse --show-toplevel": { stdout: "/tmp/target\n" },
       });
+      mockRecordedTask();
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
         {
           taskId: "tk-abc",
           mode: "complete",
+          verification: "Tests passed",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
         },
         store,
         "/tmp/test",
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.status).toBe("clean");
-      expect(parsed.checkpointRecorded).toBe(false);
-      expect(parsed.recordingError).toContain("signal failed");
-      expect(parsed.remediation).toContain("adv_task_checkpoint");
+      expect(parsed.status).toBe("committed");
+      expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentProjectPath: "/tmp/test",
+          target_path: "/tmp/target",
+          stateRequirement: "temporal-required",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        }),
+        expect.any(Function),
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        mocks.targetStore,
+        "target-change",
+        expect.anything(),
+        expect.objectContaining({ taskId: "tk-abc" }),
+      );
+      expect(parsed._projectContext).toEqual({
+        root: "/tmp/target",
+        projectId: "target-project-id",
+        trusted: false,
+        trustSource: "explicit",
+        stateMode: "temporal",
+      });
+    });
+
+    test("uses target store root as cwd when target_path is provided without workdir", async () => {
+      const store = createMockStore();
+      mockGitResponses({
+        "rev-parse --show-toplevel": { stdout: "/tmp/target\n" },
+      });
+      mockRecordedTask();
+
+      await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "complete",
+          verification: "Tests passed",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const revParseCall = mocks.execFile.mock.calls.find(
+        ([, args]) =>
+          Array.isArray(args) &&
+          args[0] === "rev-parse" &&
+          args[1] === "--show-toplevel",
+      );
+      expect(revParseCall?.[2]).toMatchObject({ cwd: "/tmp/target" });
     });
   });
 });
