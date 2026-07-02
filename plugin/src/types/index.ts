@@ -166,6 +166,7 @@ export {
   type ResearcherSubagentReport,
   type TronSubagentReport,
   type ScannerBundleSubagentReport,
+  type VerificationTriageBundleSubagentReport,
   type ScopedSubagentReport,
   type SupportedSubagentReport,
   SubagentReportSchema,
