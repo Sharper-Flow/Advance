@@ -1,0 +1,1374 @@
+{
+  "id": "improveApprovalContext",
+  "title": "Improve approval context",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-01T23:54:02.746Z",
+  "tasks": [
+    {
+      "id": "tk-6008a2d6ccd1",
+      "title": "Update approval-context spec law",
+      "type": "docs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-02T00:25:59.679Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T00:34:37.109Z",
+      "verification": "Static spec verification passed: JSON parse and required rq IDs found in spec+docs via adv_run_test tr_mr2rzzy5_b135c227; pnpm run schemas:check passed via adv_run_test tr_mr2s0bly_5cebf4cf.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "checkpointSha": "1bdd1b147510f3b51873a8d778b55df2b4ca61d5",
+      "completedAt": "2026-07-02T00:38:59.358Z",
+      "completed_at": "2026-07-02T00:38:59.358Z"
+    },
+    {
+      "id": "tk-f8e18014a9d0",
+      "title": "Add approval consequence renderer",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-02T00:26:21.426Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6008a2d6ccd1"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC7",
+          "C1",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT3",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T00:39:27.184Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "improveApprovalContext",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveApprovalContext",
+          "task_id": "tk-f8e18014a9d0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f8e18014a9d0"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/utils/approval-consequence-context.ts",
+            "plugin/src/utils/approval-consequence-context.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/utils/approval-consequence-context.test.ts",
+              "exit_code": 0,
+              "summary": "9 tests pass"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented renderer as a single pure utility with exported category/status constants and no external deps",
+              "why": "Matches approved design constraints for stable vocabulary, bounded output, and deterministic rendering."
+            },
+            {
+              "what": "Rejected empty evidence with a TypeError instead of silently rendering n/a",
+              "why": "Prevents missing required evidence from being disguised as n/a."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Approval consequence context renderer is implemented and tested. Exports 8-category stable order, finite status vocabulary, source/evidence pointers, and byte-budget truncation. All targeted tests and repo check pass.",
+            "suggested_next_action": "Integrate buildApprovalConsequenceContext into the approval gate/renderer caller, or proceed to the next task in improveApprovalContext."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/approval-consequence-context.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "TDD red/green evidence recorded via adv_run_test: red tr_mr2sdezo_68a513a1 failed on multibyte byte-budget overflow; green tr_mr2sefvf_d195b99f passed 10 renderer tests after byte-safe truncation; verify tr_mr2sff03_ee3cdf9a passed pnpm run check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/approval-consequence-context.test.ts",
+        "plugin/src/utils/approval-consequence-context.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/approval-consequence-context.test.ts",
+        "plugin/src/utils/approval-consequence-context.ts"
+      ],
+      "checkpointSha": "b2783ad201200249bf6da96ef1d20d06e71f4810",
+      "completedAt": "2026-07-02T00:50:40.118Z",
+      "completed_at": "2026-07-02T00:50:40.118Z"
+    },
+    {
+      "id": "tk-2c5705410682",
+      "title": "Wire acceptance consequence context",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-02T00:26:43.470Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f8e18014a9d0"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T00:51:51.712Z",
+      "verification": "TDD evidence recorded via adv_run_test: red tr_mr2sjyfi_4f8b35a0 failed because adv-review lacked consequence context wiring; green tr_mr2sl4ob_2596e9e0 passed after wiring; verify tr_mr2slgs2_f560ab82 passed asset + renderer tests (11 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-review.md",
+        "plugin/src/approval-consequence-context-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-review.md",
+        "plugin/src/approval-consequence-context-assets.test.ts"
+      ],
+      "checkpointSha": "3cdc2d51924abb7324cf52db0bc6c024d03d6bea",
+      "completedAt": "2026-07-02T00:55:37.551Z",
+      "completed_at": "2026-07-02T00:55:37.551Z"
+    },
+    {
+      "id": "tk-0fc1b23a6f49",
+      "title": "Wire harden readiness carry-forward",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-02T00:27:06.433Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f8e18014a9d0"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T00:55:51.114Z",
+      "verification": "TDD evidence recorded via adv_run_test: red tr_mr2snxvo_2b5a598c failed because adv-harden lacked Release Readiness Summary carry-forward; green tr_mr2sooj5_ee15437d passed after wiring; verify tr_mr2sovwx_23564b37 passed asset + renderer tests (12 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-harden.md",
+        "plugin/src/approval-consequence-context-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-harden.md",
+        "plugin/src/approval-consequence-context-assets.test.ts"
+      ],
+      "checkpointSha": "2e0637687e0401586c2021c369c77c2a704652af",
+      "completedAt": "2026-07-02T00:57:59.187Z",
+      "completed_at": "2026-07-02T00:57:59.187Z"
+    },
+    {
+      "id": "tk-7cdd66c7b2ea",
+      "title": "Wire archive consequence sign-off",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-02T00:27:28.188Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2c5705410682"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0fc1b23a6f49"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T00:58:10.295Z",
+      "verification": "TDD evidence recorded via adv_run_test: red tr_mr2sr2va_25ecf003 failed because archive/ADV sign-off lacked consequence context; green tr_mr2ssq0e_60e2c650 passed after wiring; verify tr_mr2ssydn_f12a9b6d passed asset + renderer tests (13 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-archive.md",
+        "plugin/src/approval-consequence-context-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-archive.md",
+        "plugin/src/approval-consequence-context-assets.test.ts"
+      ],
+      "checkpointSha": "37f714a92c5ecf124ff3b649e455fd021763521f",
+      "completedAt": "2026-07-02T01:01:24.584Z",
+      "completed_at": "2026-07-02T01:01:24.584Z"
+    },
+    {
+      "id": "tk-55b2419bd575",
+      "title": "Run final approval-context verification",
+      "type": "verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-02T00:27:47.662Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6008a2d6ccd1"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f8e18014a9d0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2c5705410682"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0fc1b23a6f49"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7cdd66c7b2ea"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T01:01:38.759Z",
+      "verification": "Acceptance review remediation verified via adv_run_test: targeted approval context suite tr_mr2t7af7_6cff8c70 passed (14 tests); pnpm run check tr_mr2t88ry_e8ed29b3 passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/approval-consequence-context.test.ts",
+        "plugin/src/utils/approval-consequence-context.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/approval-consequence-context.test.ts",
+        "plugin/src/utils/approval-consequence-context.ts"
+      ],
+      "checkpointSha": "40539de337a2508f63bc469bb79bd11860aba174",
+      "completedAt": "2026-07-02T01:12:50.542Z",
+      "completed_at": "2026-07-02T01:12:50.542Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "improveApprovalContext",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Opportunity scout: leverage points for improving acceptance + archive/complete approval context",
+      "sources": [
+        {
+          "label": "Spec rq-opsFollowRelease01 (advance-workflow.md:3822-3826)",
+          "locator": "/home/jon/dev/advance/docs/specs/advance-workflow.md#L3826",
+          "summary": "MUST: 'Archive terminal output MUST list open ops follow-ups and their handoff status.' Spec already mandates surfacing open ops obligations at the archive/complete surface."
+        },
+        {
+          "label": "Archive tool openOpsObligations emit (change.ts:4018-4024, 4403+)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/change.ts#L4018",
+          "summary": "adv_change_archive already computes getOpenOpsFollowupObligations(change.ops_followup_links) and injects openOpsObligations into every archive return path. Structured data exists; only the human report drops it."
+        },
+        {
+          "label": "Archive tool open-ops test (change.archive-phase9.test.ts:390-435)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/change.archive-phase9.test.ts#L390",
+          "summary": "Test 'surfaces open ops follow-up obligations in archive output' asserts parsed.openOpsObligations length/content — tool output is already covered by tests; the command report template is not."
+        },
+        {
+          "label": "Archive command Phase 8 report template (adv-archive.md:192-220)",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-archive.md#L192",
+          "summary": "Terminal archive report Delivered block lists spec deltas, git merge, push, release proof, PR, deploy, Epic, reflection, cleanup — but NO open-ops-obligations line. Drift vs spec rq-opsFollowRelease01 and vs the tool payload."
+        },
+        {
+          "label": "Review acceptance summary build (adv-review.md:549-557, 574-585)",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-review.md#L549",
+          "summary": "Build Acceptance Summary = delivered work, AC checklist, constraints, preview URL, caveats. Executive summary adds Outcome/Verdict/What Built/What Verified/Remaining Concerns. Neither distinguishes delivered user value vs enabling-only vs follow-up-dependent work — the proposal's core User Outcome."
+        },
+        {
+          "label": "Harden deployment-readiness scanner (adv-harden.md:354-367)",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-harden.md#L354",
+          "summary": "Harden already checks env vars, migrations (destructive=BLOCKER), external services, CI/CD, infra, feature flags, deployment steps and returns JSON with overall_status. Verdicts are ephemeral scanner output, not persisted to a field the acceptance/archive prompt reads back."
+        },
+        {
+          "label": "archive-summary.renderBriefSummary (utils/archive-summary.ts:18-86)",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/archive-summary.ts#L18",
+          "summary": "Durable, size-bounded (<2KB) structured summary generator (Outcome/Why/Surface/AC/Deltas/Wisdom/Approval). Reuse target for consequence context rather than a new artifact field. No ops/release-readiness section today."
+        },
+        {
+          "label": "Release gate ops blockers (gate-readiness.ts:631-702)",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/gate-readiness.ts#L631",
+          "summary": "checkOpsFollowupReleaseBlockers + getOpenOpsFollowupObligations already structurally classify blocks vs follows_release/monitors/cleanup_after and required_handoff. Authoritative source for collision/release-risk readiness — no heuristics needed."
+        }
+      ],
+      "architecture_assessment": "The change should be a thin, structural surfacing layer over evidence that already exists, not new machinery. Four durable sources already carry the consequence/readiness signal: (1) getOpenOpsFollowupObligations/openOpsObligations for surviving-obligation + collision/release risk, already tool-emitted and tested; (2) harden's deployment-readiness scanner JSON (env/migration/external-service/CI-CD/feature-flag) for ops/migration readiness; (3) contract.reviewMatrix + Preview URL proof for delivered-work + frontend readiness; (4) renderBriefSummary as the durable, size-bounded archive artifact. The single clearest defect is a spec-vs-command drift: rq-opsFollowRelease01 MUST-requires open ops follow-ups in archive terminal output, the archive tool already returns openOpsObligations with test coverage, yet the Phase 8 archive report template has no line to render it. The clearest user-value gap is that neither the acceptance summary nor the executive summary distinguishes delivered-usable-value from enabling-only or follow-up-dependent work — the proposal's headline User Outcome. Harden readiness verdicts are the one input that is computed but not persisted durably for the approval prompt to read back, which risks the 'discover live' failure the proposal calls out. All surfacing must stay terse (renderBriefSummary is already <2KB-capped) and omit-when-not-applicable to honor the 'no verbose dumps / no weak summaries' constraints.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blocker. No collision with in-flight changes: reduceAdvPromptSlop (all 23 tasks done, prompt-slop reduction) is complementary and lowers dump risk; addStatusProblemExcerpt targets adv_status output, a different surface. Recommend the eventual design add/extend asset-drift tests (checkpoint-surface-drift / ops-follow-up-assets) so the archive report open-ops line and any new acceptance categories are test-enforced rather than prose-only, satisfying structural-before-heuristic (P33)."
+      },
+      "recommendation": "Prioritize two auto-adoptable, structural, spec-backed candidates: (A) render the already-emitted openOpsObligations in the archive Phase 8 report + adopt in renderBriefSummary, closing rq-opsFollowRelease01 drift; (B) add a terse delivered-value classification (delivered-usable | enabling-only | follow-up-dependent) to the acceptance/executive summary sourced from contract.reviewMatrix + open ops links. Surface to user for agreement: (C) persisting harden deployment-readiness verdicts into a durable field the approval prompt reads, and (D) the exact minimal always-show-vs-omit consequence category set. Keep everything omit-when-empty and under the existing size cap; add asset-drift tests so surfaces are enforced, not prose-only.",
+      "follow_ups": [
+        "ScoutCandidate rows (route | payoff | risk | evidence | suggested_agreement_effect):",
+        "1) Render openOpsObligations in archive Phase 8 report + renderBriefSummary — route: auto_adopt — payoff: closes spec rq-opsFollowRelease01 MUST drift; data already emitted+tested (change.ts:4018, change.archive-phase9.test.ts:390) — risk: low (template + one asset test) — evidence: advance-workflow.md:3826, adv-archive.md:192-220 — suggested_agreement_effect: add AC 'archive/complete report lists open ops follow-ups + handoff status, omitted when none'.",
+        "2) Delivered-value classification (delivered-usable | enabling-only | follow-up-dependent) in acceptance + executive summary — route: auto_adopt — payoff: directly satisfies proposal User Outcome 'distinguish delivered value from enabling/follow-up work'; sourced from contract.reviewMatrix + ops links (no new heuristic authority) — risk: low-medium (wording + drift test) — evidence: adv-review.md:549-585 — suggested_agreement_effect: add AC 'acceptance summary states a one-line value classification with source-backed basis'.",
+        "3) Persist harden deployment-readiness verdict to a durable field read by acceptance/archive prompt — route: surface_to_user — payoff: prevents 'discover live' ops/migration/frontend readiness at approval (proposal core) — risk: medium (needs a durable field/signal; touches harden→review→archive handoff; must not add a checkpoint) — evidence: adv-harden.md:354-367 returns JSON overall_status but ephemeral — suggested_agreement_effect: agree whether readiness answers are persisted structurally vs re-synthesized at review, and which field carries them.",
+        "4) Define minimal always-show-vs-omit consequence categories (delivered value, remaining ops, migration/data impact, frontend/preview, collision/release risk, release action, open follow-ups) — route: surface_to_user — payoff: sets the durable contract for what approval context always contains; prevents scope creep into verbose dumps — risk: low (definition/agreement task) — evidence: proposal Discovery Agenda Domain unknowns — suggested_agreement_effect: enumerate the category set + omit-when-not-applicable rule as explicit AC.",
+        "5) Surface release-action + collision/release risk one-liner at archive sign-off from gate-readiness ops classification — route: auto_adopt — payoff: tells user 'what approving does next' (release-first vs blocking) using existing structural classifier, no heuristic — risk: low — evidence: gate-readiness.ts:631-702 (blocks vs follows_release/monitors/cleanup_after + required_handoff) — suggested_agreement_effect: add AC 'archive sign-off states the release action and any surviving-obligation handoff'.",
+        "Warning: packet omitted no required anchors; all identity/scope anchors present. VERIFICATION note: every candidate is cited to spec/code/command source above."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveApprovalContext",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage/simplification scout for Approval Consequence Context",
+      "sources": [
+        {
+          "label": "renderBriefSummary pure formatter",
+          "locator": "plugin/src/utils/archive-summary.ts:18-86",
+          "summary": "Existing pure, state-only bounded renderer (<2KB truncation, locked sections, excerpt() helper). Exact template for the design's 'optional pure formatter/renderer' — same shape as a consequence-matrix renderer. Adopt-as-model."
+        },
+        {
+          "label": "getOpenOpsFollowupObligations + checkOpsFollowupReleaseBlockers",
+          "locator": "plugin/src/temporal/gate-readiness.ts:631-702",
+          "summary": "Structural follow-up authority: blocks=hard release blocker; non-blocking listed as open obligations. checkOpsFollowupReleaseBlockers already runs inside evaluateGateReadiness release path (line 775). Directly satisfies DDC/AC4 without new follow-up model."
+        },
+        {
+          "label": "Persisted subagent reports readback",
+          "locator": "plugin/src/tools/change.ts:2583-2601",
+          "summary": "adv_change_show include:{subagentReports:true} returns change.subagent_reports + legacy task reports as _subagentReports with _subagentReportsMeta. Durable, resume-safe carrier for harden adv-scanner-bundle evidence — resolves the 'archive cannot find harden evidence after resume' risk (DDC4)."
+        },
+        {
+          "label": "Executive-summary template + persist ordering",
+          "locator": ".opencode/command/adv-review.md:559-589",
+          "summary": "Phase 7 already persists executive-summary.md before Tier A prompt with a fixed section template (Outcome/Verdict/What Was Built/What Was Verified incl. Preview URL + Contract matrix/Remaining Concerns). Extend with ## Consequence Context; DDC3 carry-forward rail already exists."
+        },
+        {
+          "label": "Preview-state table (frontend/preview impact rail)",
+          "locator": ".opencode/command/adv-review.md:524-547",
+          "summary": "live|not_applicable|blocked preview state with source-backed evidence + 'blocked stops before checkpoint'. Exactly the frontend/preview-impact category status model; reuse verbatim rather than inventing new preview evaluation."
+        },
+        {
+          "label": "Asset-test anchor points",
+          "locator": "plugin/src/__tests__/human-checkpoints-assets.test.ts:126-157 ; plugin/src/workflow-noise-reduction-assets.test.ts:214-244",
+          "summary": "Existing asset tests enforce (a) exec-summary persist-before-gate ordering, (b) adv-archive Phase 1 include-flag load, (c) adv.md Sign-Off reads not recomposes, (d) no investment-report noise / nonblocking-line grammar. These are the exact DDC3/DDC4/AC5/AC7 test hooks to extend — no new test harness needed."
+        },
+        {
+          "label": "Warrant spec IDs present",
+          "locator": ".adv/specs/advance-workflow/spec.json:1591 (rq-inlineApproval01), :3737 (rq-opsFollowRelease01)",
+          "summary": "Both agreement warrants (AC4->rq-opsFollowRelease01, AC6->rq-inlineApproval01) exist as spec requirements with sub-items; new consequence-context requirement should be a sibling rq- in same spec, cross-referencing these rather than duplicating follow-up/parsing law."
+        }
+      ],
+      "architecture_assessment": "Design is well-aligned with existing structural rails and carries low novelty risk. Every proposed source already exists as a reusable, resume-safe structural surface: renderBriefSummary (bounded pure formatter model), getOpenOpsFollowupObligations/checkOpsFollowupReleaseBlockers (follow-up authority already wired into release gate), _subagentReports readback (durable harden-evidence carrier), executive-summary persist-before-prompt ordering, and the preview-state table. The main simplification leverage: (1) make the optional pure formatter non-optional and single-source the 8-category vocabulary so acceptance/archive/exec-summary cannot drift (strongest DDC5/AC7 anchor); (2) explicitly cite include:{subagentReports:true} as the archive-time harden-evidence read path in the design to close DDC4 concretely; (3) reuse the preview-state table verbatim for the frontend/preview category. One overlooked risk: the design's 8-row matrix vocabulary must be centralized in one module (like archive-summary.ts) or the two command prose surfaces (adv-review, adv-archive) plus exec-summary template will drift — prose-in-three-places is the real slop vector, not verbosity.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blocker and no user-value tradeoff surfaced. Design stays within approved scope; all reuse targets verified in repo. Recommendations are simplification/robustness refinements, not scope changes."
+      },
+      "recommendation": "Adopt now: (A) Promote the 'optional pure formatter' to a single required renderer module (mirror plugin/src/utils/archive-summary.ts) owning the 8-category vocabulary + status enum, so adv-review, adv-archive, exec-summary template, and asset tests all reference one source — this is the durable AC7/DDC5 anchor and kills the prose-drift risk. (B) In the design, name adv_change_show include:{subagentReports:true} as the concrete archive-time harden-evidence read path (DDC4). (C) Reuse the existing preview-state table (adv-review.md:524-547) and getOpenOpsFollowupObligations verbatim; do not re-implement. Defer: no ADR needed (design already declined). Reject: none.",
+      "follow_ups": [
+        "If a shared renderer module is added, extend workflow-noise-reduction-assets.test.ts + human-checkpoints-assets.test.ts rather than adding a new test file.",
+        "Confirm during prep whether adv-scanner-bundle harden reports are submitted at change scope (change.subagent_reports) vs task scope, so the archive read path targets the right array."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveApprovalContext",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: Approval Consequence Context",
+      "sources": [
+        {
+          "label": "advance-workflow spec rq-inlineApproval01",
+          "locator": ".adv/specs/advance-workflow/spec.json:1591",
+          "summary": "Tier A (reversible: proposal/agreement/design/prep/acceptance) uses whitelist+LLM fallback; Tier B (archive sign-off, cancellation) whitelist-only, no LLM fallback; seven named checkpoints. Confirms design's constraint that parsing/checkpoints stay unchanged (AC6, DONT2)."
+        },
+        {
+          "label": "advance-workflow spec rq-opsFollowRelease01",
+          "locator": ".adv/specs/advance-workflow/spec.json:3737",
+          "summary": "Blocking ops relationships prevent release; non-blocking (follows_release/monitors/cleanup_after) allow release with recorded handoff; archive terminal output MUST list open ops follow-ups with relationship/status/handoff. Directly warrants AC4 and the design's follow-up rendering."
+        },
+        {
+          "label": "adv-review.md Phase 7 acceptance",
+          "locator": ".opencode/command/adv-review.md:516-604",
+          "summary": "Confirms executive-summary.md is persisted+verified BEFORE the acceptance Tier A prompt (no-late-homework rule). Design's plan to append '## Consequence Context' to executive-summary before prompting fits the existing assembly point exactly."
+        },
+        {
+          "label": "adv-archive.md Phase 5 / Phase 6 / terminal output",
+          "locator": ".opencode/command/adv-archive.md:33,76-106,155",
+          "summary": "Phase 5 renders change report inline then Tier B whitelist-only sign-off; loads executive summary via adv_change_show include:{executiveSummary:true}; archive executes inline on whitelist match. Confirms archive-time render + terminal-output insertion points."
+        },
+        {
+          "label": "adv-harden.md release-readiness ownership",
+          "locator": ".opencode/command/adv-harden.md:594",
+          "summary": "Harden auto-continues to /adv-archive after READY verdict; owns release/deploy/production/docs/cleanup readiness (rq-R3v13wR1). Confirms C2 harden-ownership carry-forward is the correct owning phase for archive-time readiness."
+        },
+        {
+          "label": "gate-readiness.ts ops-followup helpers",
+          "locator": "plugin/src/temporal/gate-readiness.ts:631,689",
+          "summary": "checkOpsFollowupReleaseBlockers and getOpenOpsFollowupObligations already exist and are consumed by change.ts:4018. Design reuse of these helpers is real, not aspirational — no new follow-up model needed."
+        },
+        {
+          "label": "archive-summary.ts renderBriefSummary",
+          "locator": "plugin/src/utils/archive-summary.ts:18",
+          "summary": "Existing bounded/excerpting summary renderer confirms the pattern the new pure renderer (approval-consequence-context.ts) will mirror for bounded, test-anchored output (AC5, DONT1)."
+        }
+      ],
+      "architecture_assessment": "Design is a structural carry-forward pattern: classify readiness in the owning phase (harden), persist bounded verdict (executive-summary + subagent reports), render at approval via one pure renderer module. All six named assembly points (acceptance summary, executive summary, harden evidence, archive sign-off, archive terminal output, brief summary) were verified to exist in-repo and match the design's insertion claims. The design reuses existing rails (executive-summary persistence-before-prompt, preview proof, contract review matrix, checkOpsFollowupReleaseBlockers/getOpenOpsFollowupObligations, renderBriefSummary) rather than inventing parallel mechanisms — the boring, proven path. Both cited spec requirements exist and semantically support AC4 and AC6. Single-renderer-module decision correctly avoids three drifting prose copies and makes correctness structural (P33) via test-anchored category vocabulary. No spec-law contradiction found: parsing tiers and checkpoint count are preserved; archive Tier B whitelist-only (C3) is respected.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "CAUTION (non-blocking, dimension 1 CORRECTNESS): archive-time render reads latest harden readiness via adv_change_show include:{subagentReports:true}. Design acknowledges the resume risk (harden ran in a prior session) and mitigates via persisted subagent reports + harden summary + archive preflight. Recommend planning explicitly define fallback rendering when no harden subagent report is retrievable (e.g. explicit 'harden evidence unavailable' status rather than silent N/A) so AC2 source-backed-or-N/A is not satisfied by a misleading N/A. This is a plan-level detail, not a design conflict. INFO (dimension 4): a viable simpler alternative — persist the full 8-category matrix once at harden time and have archive render only from persisted state (no live subagent-report reassembly) — would reduce archive-time reassembly complexity; current design's live-read is defensible but slightly more moving parts. Not a blocker."
+      },
+      "recommendation": "VALIDATED with one caution. The design is architecturally sound, spec-compliant, and correctly reuses existing structural rails at verified assembly points. Before planning completes, the design/plan should specify the archive-time fallback when harden readiness evidence cannot be retrieved from subagent reports (explicit 'unavailable' status vs silent N/A) to keep AC2 honest, and consider whether persisting the full readiness matrix at harden time (rather than live reassembly at archive) is materially simpler. Neither point blocks design-gate completion.",
+      "follow_ups": [
+        "Plan: define explicit archive-time fallback status when harden subagent-report evidence is unretrievable, to avoid misleading N/A (protects AC2).",
+        "Plan/design note: evaluate persisting full readiness matrix at harden time vs live reassembly at archive for simplicity (dimension 4, non-blocking)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveApprovalContext",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveApprovalContext",
+      "task_id": "tk-f8e18014a9d0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f8e18014a9d0"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/utils/approval-consequence-context.ts",
+        "plugin/src/utils/approval-consequence-context.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/utils/approval-consequence-context.test.ts",
+          "exit_code": 0,
+          "summary": "9 tests pass"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented renderer as a single pure utility with exported category/status constants and no external deps",
+          "why": "Matches approved design constraints for stable vocabulary, bounded output, and deterministic rendering."
+        },
+        {
+          "what": "Rejected empty evidence with a TypeError instead of silently rendering n/a",
+          "why": "Prevents missing required evidence from being disguised as n/a."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Approval consequence context renderer is implemented and tested. Exports 8-category stable order, finite status vocabulary, source/evidence pointers, and byte-budget truncation. All targeted tests and repo check pass.",
+        "suggested_next_action": "Integrate buildApprovalConsequenceContext into the approval gate/renderer caller, or proceed to the next task in improveApprovalContext."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/approval-consequence-context.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveApprovalContext",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveApprovalContext",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/utils/approval-consequence-context.ts",
+          "line": 183,
+          "what": "Shared approval consequence renderer owns stable category order, finite status vocabulary, missing-evidence rejection, per-row truncation, and overall byte budgeting.",
+          "why": "This satisfies AC1, AC2, AC5, and AC7 structurally instead of relying only on command prose."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": ".opencode/command/adv-archive.md",
+          "line": 80,
+          "what": "Archive sign-off wiring uses carried-forward readiness evidence plus follow-up blocker semantics before Tier B prompt.",
+          "why": "This satisfies AC3, AC4, and AC6 while preserving whitelist-only Tier B parsing and no second confirmation."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/utils/approval-consequence-context.ts",
+          "summary": "Fixed byte-budget enforcement for extremely small maxBytes values by truncating the truncation marker itself when the marker would exceed the requested budget.",
+          "verification": "bin/oc-test targeted -- src/approval-consequence-context-assets.test.ts src/utils/approval-consequence-context.test.ts passed (2 files, 14 tests); pnpm run format:check passed; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/utils/approval-consequence-context.test.ts",
+          "summary": "Added regression coverage for maxBytes shorter than the truncation marker so renderer output bounds remain machine-checked.",
+          "verification": "bin/oc-test targeted -- src/approval-consequence-context-assets.test.ts src/utils/approval-consequence-context.test.ts passed (2 files, 14 tests); pnpm run check passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When a renderer advertises a hard byte budget, truncation markers must also respect the budget; test budgets smaller than marker length to prevent bounded-output regressions."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight for reviewed files via test -e loop",
+          "bin/oc-test targeted -- src/approval-consequence-context-assets.test.ts src/utils/approval-consequence-context.test.ts",
+          "pnpm run format:check",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Preflight found all reviewed files. Targeted tests passed: approval-consequence-context.test.ts 11 tests, approval-consequence-context-assets.test.ts 3 tests, total 14 passed. format:check passed. pnpm run check passed: schemas:check, typecheck, test isolation, lockfile policy, lint, format:check."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveApprovalContext",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveApprovalContext",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "plugin/src/utils/approval-consequence-context.ts",
+          "line": 195,
+          "what": "Shared renderer provides typed status/category vocabulary, required-evidence validation, and byte-bounded output.",
+          "why": "Release-critical approval context behavior is structural and test-backed rather than prose-only."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/approval-consequence-context-assets.test.ts src/utils/approval-consequence-context.test.ts",
+          "pnpm run check",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Targeted approval-context tests passed: 2 files, 14 tests. pnpm run check passed schemas:check, typecheck, test-isolation check, lockfile policy, lint, and format:check. git status --short produced no output; worktree clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Shared ADV command/spec/agent surfaces are collision-prone at archive time only; require normal archive Phase 9 merge/finalization proof, not a current harden blocker."
+      ],
+      "required_main_agent_actions": [
+        "Proceed to /adv-archive improveApprovalContext when ready; archive Phase 9 owns merge/finalization proof and release gate recording.",
+        "Carry forward Release Readiness Summary in executive summary before archive sign-off per .opencode/command/adv-harden.md."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-01T23:57:02.547Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by command-as-approval: user invoked `/adv-discover improveApprovalContext` after inline proposal checkpoint showed that exact continuation command.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "aa522b831d64b1a2bdbfe8baee5417b4bb2a7bb18690915274a8d81e1e9c4856",
+        "non_whitespace_chars": 6572,
+        "checked_at": "2026-07-01T23:54:02.827Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-02T00:14:07.168Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete: user approved criteria via inline checkpoint (`approve`); agreement persisted; ChangeContract minted with 24 items. Discovery findings captured in proposal.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "non_whitespace_chars": 4272,
+        "checked_at": "2026-07-01T23:54:02.828Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-02T00:25:02.297Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete: shared Approval Consequence Context renderer/model, acceptance executive-summary persistence, harden readiness carry-forward, archive sign-off/terminal rendering. Leverage scout VALIDATED; independent validator CAUTION resolved with explicit unavailable/blocked fallback for missing harden evidence. No user-value tradeoff, no CONFLICT, no contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "f6dd87970772059dcd13444f57035f7aa3777a82928cc38e5b1c8ae604d5f5e7",
+        "non_whitespace_chars": 10382,
+        "checked_at": "2026-07-01T23:54:02.829Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-02T00:33:52.817Z",
+      "completed_by": "agent",
+      "approval_evidence": "Planning approved by user reply `approve` at prep checkpoint. Six-task graph approved; proceed to apply."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-02T01:04:23.392Z",
+      "completed_by": "agent",
+      "approval_evidence": "All six planned tasks completed and checkpointed. Verification: spec static checks; renderer red/green tests; acceptance/harden/archive asset tests; final targeted approval context suite passed; pnpm run check passed. adv_change_validate strict passed with NO_DELTAS warning only."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-02T01:17:49.310Z",
+      "completed_by": "user:approve",
+      "approval_evidence": "User approved acceptance checkpoint with reply `approve`. Acceptance evidence persisted: executiveSummary content hash 850235666cc600b3d8bc90321a9b1b8f2f2d5081a979f80ae87f8f30fcb0d51b; contract review matrix 24 rows, 0 failing; reviewer verdict READY; targeted tests and pnpm run check passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "850235666cc600b3d8bc90321a9b1b8f2f2d5081a979f80ae87f8f30fcb0d51b",
+        "non_whitespace_chars": 2789,
+        "checked_at": "2026-07-01T23:54:02.830Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+      "approvedAt": "2026-07-02T00:13:58.982Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Final approval prompts let user understand broader consequences before approving.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Harden prepares release-readiness answers before archive/complete sign-off depends on them.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Approval context stays concise, source-backed, and auditable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Acceptance and archive/complete prompts show delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Each category shows source-backed status or brief `N/A`; empty categories are not silently omitted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Harden prepares or verifies ops/migration/frontend/collision/release-readiness answers before archive sign-off.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Blocking follow-ups block release; non-blocking follow-ups are listed as coming next or needs done after closure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-opsFollowRelease01"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Prompts do not include raw logs, diffs, task spam, or full scanner reports.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "No new checkpoints, no second confirmation, Tier A/Tier B parsing unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-inlineApproval01"
+        ]
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Tests/specs fail if required consequence categories or source-backed evidence rules are removed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Source readiness/consequence statements from structural evidence where available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep harden as the owner for release/deploy/production/docs/cleanup readiness when those answers are needed for archive/complete approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve archive Tier B whitelist-only parsing and no LLM fallback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep approval context terse and scannable; use brief N/A rows for empty categories.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Design must verify exact assembly points for acceptance summary, executive summary, harden evidence, archive sign-off, archive terminal output, and brief archive summary before implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not dump raw logs, diffs, task spam, or full scanner reports into approval prompts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add new human approval checkpoints or second confirmations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not invent weak summaries without source-backed evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not move readiness checks later than the approval point that relies on them.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not treat heuristics as authority for readiness, release safety, persistence, or gate completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Replacing the seven-gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Broad prompt slop reduction unrelated to final approval consequence context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Product-specific ops, database, or frontend behavior for downstream apps.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Changing archive finalization semantics beyond surfacing prepared consequences and readiness answers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-02T01:13:59.825Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Acceptance review READY: approval surfaces now require Approval Consequence Context before acceptance/archive approval; asset tests pin review/harden/archive/ADV sign-off wiring."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Harden command now carries Release Readiness Summary into executiveSummary before archive; archive reads it for sign-off context."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Shared renderer enforces stable categories, status vocabulary, evidence pointers, N/A handling, and byte bounds; tests cover these invariants."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mr2t7af7_6cff8c70: approval consequence asset + renderer tests passed; asset test requires all eight categories in acceptance/archive sign-off surfaces."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Renderer tests require every category, non-empty evidence, source-backed N/A behavior, and missing evidence rejection; tr_mr2t7af7_6cff8c70 passed."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-harden asset test requires Release Readiness Summary, executiveSummary persistence, and harden evidence unavailable fallback; tr_mr2t7af7_6cff8c70 passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive/ADV sign-off asset test requires checkOpsFollowupReleaseBlockers and getOpenOpsFollowupObligations semantics; tr_mr2t7af7_6cff8c70 passed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Renderer and command tests require bounded consequence context and command prose forbids raw logs, diffs, task spam, and full scanner reports; tr_mr2t7af7_6cff8c70 passed."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Acceptance/harden/archive edits explicitly state no new checkpoint/second confirmation; Tier A/Tier B sections preserved; tr_mr2t7af7_6cff8c70 and tr_mr2t88ry_e8ed29b3 passed."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec law plus renderer/asset tests fail if categories/evidence rules are removed; tr_mr2t7af7_6cff8c70 and pnpm run check tr_mr2t88ry_e8ed29b3 passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Rows require source/evidence pointers; commands name structural sources: task summaries, contract matrix, subagent reports, archive preflight, harden summary, follow-up blockers."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Harden owns Release Readiness Summary for release/deploy/production/docs/cleanup readiness before archive begins."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-archive Tier B whitelist/no LLM fallback text remains unchanged; consequence context is before prompt only."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Shared renderer bounds output and evidence length; command prose requires terse, scannable rows and brief N/A rationales."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation wires exact assembly points: adv-review, executiveSummary, adv-harden, adv-archive sign-off/report, and ADV Sign-Off Boundary."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Renderer comments/tests and command prose forbid raw logs, diffs, task spam, full scanner reports; reviewer verdict READY."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new approval parser or checkpoint added; existing acceptance/archive prompts preserved."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Missing/unreadable harden evidence must render warning/blocked as harden evidence unavailable; renderer rejects missing evidence."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Harden persists readiness before archive; archive blocks if required harden evidence is missing/unreadable."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Renderer/model owns correctness-critical category/status/evidence invariants; command heuristics are only evidence sources, not authority."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Seven-gate lifecycle unchanged."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Scope limited to final approval consequence context surfaces and tests."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No downstream product-specific ops/database/frontend behavior changed."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Archive finalization semantics unchanged; only sign-off/report context changed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Acceptance and archive/complete prompts show delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action.",
+    "Each category shows source-backed status or brief `N/A`; empty categories are not silently omitted.",
+    "Harden prepares or verifies ops/migration/frontend/collision/release-readiness answers before archive sign-off.",
+    "Blocking follow-ups block release; non-blocking follow-ups are listed as coming next or needs done after closure.",
+    "Prompts do not include raw logs, diffs, task spam, or full scanner reports.",
+    "No new checkpoints, no second confirmation, Tier A/Tier B parsing unchanged.",
+    "Tests/specs fail if required consequence categories or source-backed evidence rules are removed."
+  ],
+  "documents": {
+    "proposal": "# Improve Approval Context\n\n## Why\n\nUsers are asked to approve ADV acceptance and archive/complete checkpoints without enough concise, source-backed context about change impact, remaining risks, and downstream consequences. This makes approval feel blind: the user cannot easily tell whether work delivers usable value now, only enables later work, requires ops/database/frontend follow-up, has collision/release risk, or changes what archive/release will do next.\n\nReadiness answers that require preparation or verification — for example ops readiness, migration readiness, frontend readiness, and collision risk — should be resolved during harden when not already covered, so approval prompts report prepared answers instead of making the user discover them live.\n\n## What Changes\n\n- Improve human-facing context at the acceptance checkpoint and archive/complete sign-off checkpoint.\n- Make final approval context consequence-oriented: what changed, what value exists now, what remains, what approving does next.\n- Ensure harden carries or verifies release-readiness answers that require preparation before archive/sign-off.\n- Preserve existing inline approval model and gate sequence.\n\n## User Outcomes\n\n- User can understand the broader consequences of accepting delivered work before approving.\n- User can understand whether archive/complete is safe to sign off without asking for hidden operational context.\n- User can distinguish delivered user value from enabling work or follow-up-dependent work.\n- User can see whether ops, migration, frontend, collision, or release-readiness concerns are resolved, blocked, or explicitly handed off.\n\n## Scope\n\n### In Scope\n\n- Acceptance approval context for `/adv-review`.\n- Archive/complete sign-off context for `/adv-archive` and related final report surfaces.\n- Harden readiness responsibilities where final approval depends on prepared answers, including ops readiness, migration readiness, frontend readiness, and collision/release risk when applicable.\n- Evidence-backed, concise summaries sourced from existing artifacts, task evidence, contract/review matrices, harden findings, and archive preflight outputs.\n- Spec and command contract updates needed to make the behavior durable.\n\n### Out of Scope\n\n- Adding new human approval checkpoints.\n- Replacing the seven-gate lifecycle.\n- Reworking unrelated prompt voice or broad chat-output formatting beyond final approval context.\n- Implementing product-specific ops, database, or frontend behavior for a downstream app.\n- Changing archive finalization semantics beyond surfacing prepared consequences and readiness answers.\n\n### Must Not\n\n- Must not dump raw logs, diffs, task spam, or full scanner reports into approval prompts.\n- Must not ask for a second confirmation after approval.\n- Must not invent weak summaries without source-backed evidence.\n- Must not move readiness checks later than the approval point that relies on them.\n- Must not treat heuristics as authority for readiness, release safety, persistence, or gate completion.\n\n## Affected Code\n\nLikely current-repo surfaces:\n\n- `.opencode/command/adv-review.md` — acceptance approval summary and persisted executive summary.\n- `.opencode/command/adv-harden.md` — release/deploy/production readiness responsibilities and synthesized evidence.\n- `.opencode/command/adv-archive.md` — archive/complete sign-off report and final release context.\n- `.opencode/agents/adv.md` — sign-off boundary text if archive report structure changes.\n- `docs/command-voice-standard.md` — inline approval voice and handoff/report standards if context shape becomes canonical.\n- `.adv/specs/advance-workflow/` — workflow/approval/harden/archive requirements.\n- Potential tests under `plugin/src/*asset*.test.ts` and command/spec drift tests that enforce command wording and checkpoint surfaces.\n\n## Related Repositories\n\n- Current repository only: `advance`.\n- No product-linked `project.json` scope found in the root project config.\n- Discovery should verify whether plugin runtime code, bundled global agent sync assets, or generated docs need updates in addition to command/spec artifacts.\n\n## Constraints\n\n- Preserve Tier A/Tier B inline approval semantics.\n- Preserve archive Tier B whitelist-only parsing and no-LLM fallback.\n- Preserve no extra approval checkpoints and no second confirmation.\n- Keep approval context terse and scannable.\n- Source readiness/consequence statements from structural evidence where available.\n- Keep harden as the place for release/deploy/production/docs/cleanup readiness when those answers are needed for archive/complete approval.\n\n## Impact\n\n- Reduces blind approvals at acceptance and archive/complete.\n- Makes final approval safer by surfacing ops/migration/frontend/collision consequences before the user signs off.\n- May require changes across command contracts, specs, tests, and possibly summary artifact generation.\n- Should improve audit clarity for why a user approval was reasonable.\n\n## Context\n\nExisting quick-check evidence:\n\n- `/adv-review` already builds an acceptance summary with delivered work, criteria checklist, constraints, preview URL, and caveats; it persists an executive summary before asking for acceptance.\n- `/adv-harden` already owns release/deploy/production/docs/cleanup readiness and includes deployment-readiness checks for env vars, migrations, external services, CI/CD, infrastructure, feature flags, and deployment steps.\n- `/adv-archive` already presents archive sign-off after preflight, contract proof gate, archive preview, and gate status; current sign-off template emphasizes gates and executive summary.\n- `docs/command-voice-standard.md` defines Gate Handoff Voice and Inline Approval Voice for acceptance and archive sign-off.\n- `advance-workflow` spec already distinguishes review ownership from harden ownership and requires inline approval at named checkpoints.\n\n## Discovery Agenda\n\n### Codebase unknowns\n\n- Which acceptance/archive context is produced only in command prose versus enforced by tests or runtime helpers?\n- Where should consequence context be represented durably: executive summary, acceptance projection, archive preview, harden scanner bundle, or a new structured summary field?\n- Which existing tests guard approval prompt wording and should be extended instead of adding brittle snapshots?\n\n### Ecosystem unknowns\n\n- No external ecosystem dependency appears likely. Discovery should still verify current OpenCode plugin/chat-output constraints if runtime rendering changes are considered.\n\n### Domain unknowns\n\n- Exact minimum consequence categories for approval context need agreement: delivered value, enabling-only work, remaining ops, migration/data impact, frontend/preview impact, collision risk, release action, and open follow-ups are candidates.\n- Which categories are always shown versus omitted when not applicable needs definition.\n\n### Integration unknowns\n\n- How this interacts with active/nearby changes such as `reduceAdvPromptSlop` and `addStatusProblemExcerpt` needs checking before implementation.\n- Whether linked ops follow-up reporting (`ops_followup`) already covers some archive/complete context needs verification.\n\n## Proposal Quality Scan\n\n- B / Boundaries: PASS — `### In Scope`, `### Out of Scope`, and `### Must Not` present.\n- F / Functional Scope: PASS — `## User Outcomes` states user-visible outcomes without implementation acceptance criteria.\n- S / Completion Signals: PASS for proposal stage — measurable criteria deferred to discovery; vague terms are carried as discovery agenda categories rather than firm AC.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skills Considered | PASS | Loaded `adv-instructions-audit` and `adv-agent-tool-contracts`; no pending skill requiring review found. |\n| Prior Research Extension | PASS | `docs/non-coding-task-rigor-prep.md` and `docs/repo-improve-prep.md` cited; new finding: existing final-approval context is mostly command/spec/test surface, not external ecosystem. |\n| Conflict Scan | PASS | Active related work inspected; `reduceAdvPromptSlop` is broad/complementary, `addStatusProblemExcerpt` is different status JSON surface, `fixOpenBugs` is bug backlog. |\n| Edge Case Investigation | PASS | Edge cases recorded for acceptance, harden, archive, ops follow-ups, and verbosity. |\n| Design Question Depth | PASS | Open design questions annotated; user resolved category visibility, N/A display, and follow-up handling. |\n| Draft Spec Deltas | PASS | Draft `rq-*` deltas listed below with G/W/T shape. |\n| Related Pattern Scan | PASS | Similar evidence/readiness surfaces found in preview URL proof, contract proof, ops follow-up release blockers, and archive output. |\n| LBP Check | PASS | Internal structural surfacing; no external-solution check needed. |\n| Completeness Verification | PASS | Full final-approval path considered: acceptance → harden → archive/complete. |\n\n### Skills Considered\n\n- `adv-instructions-audit`: matched because this change modifies command/agent/spec instruction surfaces and must keep executable anchors aligned.\n- `adv-agent-tool-contracts`: matched if design adds or changes typed report/context fields, harden packets, or tool output contracts.\n- No new skill created; this is an internal ADV workflow-surface change with existing methodology coverage.\n\n### Extends\n\n- `docs/non-coding-task-rigor-prep.md`: relevant pattern — large non-code/workflow deliverables should use tracked criteria, evidence policies, and review proof rather than prose-only reports. New finding: final approval context should be contract/evidence-backed, not just a better narrative.\n- `docs/repo-improve-prep.md`: relevant pattern — ADV hot read surfaces can time out when they hydrate too much state. New finding from this discovery: `adv_change_list includeArchived:true` and repeated `adv_change_validate` timed out while Temporal diagnostics stayed healthy, so final approval context should avoid expensive broad list fanout at checkpoint time.\n- `docs/adv-run-test-prep.md` and `docs/adv-slop-scan-prep.md`: present but not directly applicable to approval-context requirements.\n\n### Conflict Scan\n\n- `reduceAdvPromptSlop`: complementary broad prompt/prose cleanup. This change should stay narrower: final approval consequence context and harden readiness surfacing.\n- `addStatusProblemExcerpt`: different surface (`adv status --json` problem excerpts) and not approval prompt context.\n- `fixOpenBugs`: broad bug backlog; overlaps only if it changes archive/release bugs. Treat as active-nearby risk during design/apply, not a scope conflict.\n- `adv_agenda_list`: 494 pending items; visible slice has no exact approval-context item. An adv-researcher scout report created follow-up agenda candidates during discovery; current change should adopt relevant ones instead of leaving them as loose agenda.\n- `adv_change_validate`: passed before proposal gate with expected pre-planning warnings (`NO_TASKS`, `NO_DELTAS`); after proposal completion, repeated validation timed out despite `adv_temporal_diagnose` reporting healthy Temporal.\n\n### Current State\n\n- Acceptance: `/adv-review` Phase 7 builds an acceptance summary with delivered work, acceptance checklist, constraints/avoidances, preview URL, and caveats; it persists `executive-summary.md` before the prompt. Current template does not require delivered-value vs enabling-only vs follow-up-dependent consequence classification.\n- Harden: `/adv-harden` owns release/deploy/production/docs/cleanup readiness. Deployment readiness already checks env vars, migrations, external services, CI/CD, infrastructure, feature flags, deployment steps, and docs. Current harden findings are not clearly carried into the final approval/report as a compact consequence summary.\n- Archive: `/adv-archive` sign-off and terminal output show release proof, merge/push/PR/deploy/reflection/cleanup. Current report does not explicitly show a full consequence matrix before sign-off.\n- Ops follow-ups: release-gate code structurally blocks incomplete `blocks` follow-ups and incomplete required handoffs; archive tooling exposes `openOpsObligations`; spec `rq-opsFollowRelease01` requires archive output to list open follow-ups and handoff status.\n- Existing anchors: asset tests already guard executive summary persistence before acceptance, preview URL proof, contract proof, sign-off loading from `_executiveSummary`, and archive Tier B sign-off phrases.\n\n### Edge Cases\n\n- Acceptance approval:\n  - Change only enables later work; prompt must not imply user value is delivered now.\n  - Change has no tasks/spec deltas but changes workflow behavior; prompt still needs consequence context.\n- Harden readiness:\n  - Migration/env/frontend readiness is unknown; archive approval must not make user discover it live.\n  - Harden scanner finds a release concern that is non-blocking but material; prompt must show it without inventing a new approval.\n- Archive/complete:\n  - Open non-blocking follow-up remains; prompt should note what is coming next or still needs done.\n  - Blocking ops/data follow-up remains; release must block through existing structural blockers.\n- Verbosity:\n  - All categories are N/A; prompt should show brief N/A rows, not disappear entirely.\n  - Many scanner findings exist; prompt should summarize, not dump raw scanner reports.\n\n### Open Design Questions\n\n1. Durable consequence context location.\n   - Trust model: agent-owned technical design.\n   - Blast radius: if wrong, archive sign-off may read stale/ephemeral harden evidence.\n   - Alternatives: reuse `executive-summary.md`, add structured harden readiness summary, extend archive preview/report, or combine. Recommendation: design should choose the smallest structural source that remains workflow-visible before prompt.\n2. Consequence category rendering.\n   - Trust model: user outcome decision resolved in discovery.\n   - Blast radius: if too sparse, approvals stay blind; if too broad, prompts become dumps.\n   - Decision: show all listed categories with brief status, using N/A when not applicable.\n3. Follow-up handling.\n   - Trust model: user outcome decision resolved in discovery plus existing spec law.\n   - Blast radius: if any follow-up blocks, release flow becomes over-strict; if none block, ops risk can escape.\n   - Decision: follow-ups expected after closure should be noted so user knows what comes next; blocking follow-ups still block through existing relationship semantics.\n\n### Draft Spec Deltas\n\n- `rq-approvalConsequenceContext01`: final approval prompts surface consequence context.\n  - Given acceptance or archive sign-off is being presented, when the prompt is emitted, then it includes delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action; each category has evidence-backed status or brief N/A.\n- `rq-hardenReadinessCarryForward01`: harden prepares final-readiness answers.\n  - Given harden detects release/deploy/production readiness dimensions, when acceptance has completed and archive sign-off will rely on them, then the relevant readiness verdicts are available to the final approval report before user sign-off.\n- `rq-openFollowupApprovalContext01`: final approval distinguishes blockers from release-first handoffs.\n  - Given open linked follow-ups exist, when archive/release context is shown, then blocking relationships prevent release, while non-blocking follow-ups are listed as coming-next/surviving obligations with handoff status rather than silently hidden.\n- `rq-approvalContextBounded01`: final approval context stays bounded.\n  - Given scanner/task/review evidence is large, when approval context is emitted, then it summarizes evidence into bounded rows and does not include raw logs, diffs, task spam, or full scanner reports.\n- `rq-approvalContextAnchors01`: approval-context changes are test-anchored.\n  - Given command/spec/agent approval context is changed, when tests run, then asset/unit tests fail if required consequence categories or source-backed evidence rules are removed.\n\n### Related Pattern Scan\n\n- Preview URL proof already models source-backed acceptance context with `live`, `not_applicable`, and `blocked` states.\n- Contract proof and review matrix already make acceptance/archive proof structural before approval.\n- `checkOpsFollowupReleaseBlockers` and `getOpenOpsFollowupObligations` already classify ops follow-ups structurally for release/archive.\n- Archive terminal output already exposes release proof and finalization state, but lacks a compact consequence/readiness matrix.\n- `renderBriefSummary` provides an existing bounded durable-summary pattern capped at 2KB, useful as a design reference.\n\n### Completeness Verification\n\nProblem completeness: high confidence. Discovery considered both final human decision points and the phase that should prepare release-readiness answers (`harden`).\n\nSolution-scope completeness: medium-high confidence. The intended solution is not just changing wording; it includes evidence availability before prompts, harden carry-forward, and tests/specs to prevent prose-only drift.\n\nSole-entry claim: no single code chokepoint accepted yet. Design must verify where acceptance, harden, archive sign-off, terminal archive output, and summary artifacts are actually assembled.\n\nSecondary surfaces:\n\n- `docs/command-voice-standard.md`: in scope if canonical checkpoint templates change.\n- `.opencode/agents/adv.md` sign-off boundary: in scope if archive report structure changes.\n- Runtime tool output (`adv_change_archive` open obligations): in scope for archive terminal/report surfaces.\n- Broad prompt slop reduction: out of scope except where final approval context requires anchor updates.\n\n### LBP Check\n\nBest practice is structural carry-forward: compute or classify readiness in the phase that owns it, persist or expose a bounded verdict, and render that verdict at the human approval point. This matches existing ADV patterns: contract proof before acceptance, preview proof before acceptance, release proof before archive completion, and ops follow-up blockers at release. No external tool/library is a viable alternative; this is internal workflow contract work.\n\n### Discovery Opportunity Scout\n\nScout ran via `adv-researcher` and submitted report `improveApprovalContext|change:researcher:discovery-opportunity-scout|adv-researcher|1`.\n\nAuto-adopted:\n\n- Render open ops obligations in archive report/brief summary where relevant.\n- Add delivered-value classification to acceptance/executive summary.\n- Add archive sign-off one-liner for release action and collision/release risk.\n\nSurfaced to user and resolved:\n\n- Persist/carry harden readiness verdicts: user wants harden-prepared answers available before approval.\n- Consequence category set: user chose all listed categories.\n- Empty categories: user chose brief N/A rows.\n- Open follow-ups: user wants non-blocking follow-ups noted as coming next / needs done after closure.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:C\n\nNo blocking ambiguity findings.\n\nAdvisory:\n\nM1 HIGH Missing Information — exact durable representation for harden readiness verdicts remains design-owned.\n  Evidence: \"Where should consequence context be represented durably: executive summary, acceptance projection, archive preview, harden scanner bundle, or a new structured summary field?\"\n  Reason: discovery defines user-visible outcome; design must choose the structural storage/rendering path.\n",
+    "problemStatement": "Users are asked to approve ADV acceptance and archive/complete checkpoints without enough concise, source-backed context about change impact, remaining risks, and downstream consequences. This makes approval feel blind: the user cannot easily tell whether work delivers usable value now, only enables later work, requires ops/database/frontend follow-up, has collision/release risk, or changes what archive/release will do next. Readiness answers that require preparation or verification (for example ops readiness, migration readiness, frontend readiness, and collision risk) should be resolved during harden when not already covered, so approval prompts report prepared answers instead of making the user discover them live.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Improve acceptance and archive/complete HITL approval context so the user can understand broader consequences before approving.\n2. Ensure final approval context covers delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action.\n3. Ensure readiness answers that require preparation or verification are resolved during harden when not already covered, before archive/complete sign-off depends on them.\n4. Preserve existing approval semantics: no new checkpoints, no second confirmation, Tier A/Tier B parsing unchanged.\n5. Make the behavior durable through specs, command contracts, and tests instead of prose-only guidance.\n\n## Success Criteria\n\n- SC1: Final approval prompts let user understand broader consequences before approving.\n- SC2: Harden prepares release-readiness answers before archive/complete sign-off depends on them.\n- SC3: Approval context stays concise, source-backed, and auditable.\n\n## Acceptance Criteria\n\n- AC1: Acceptance and archive/complete prompts show delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action.\n- AC2: Each category shows source-backed status or brief `N/A`; empty categories are not silently omitted.\n- AC3: Harden prepares or verifies ops/migration/frontend/collision/release-readiness answers before archive sign-off.\n- AC4: Blocking follow-ups block release; non-blocking follow-ups are listed as coming next or needs done after closure. [warrant: spec:rq-opsFollowRelease01]\n- AC5: Prompts do not include raw logs, diffs, task spam, or full scanner reports.\n- AC6: No new checkpoints, no second confirmation, Tier A/Tier B parsing unchanged. [warrant: spec:rq-inlineApproval01]\n- AC7: Tests/specs fail if required consequence categories or source-backed evidence rules are removed.\n\n## Constraints\n\n- C1: Source readiness/consequence statements from structural evidence where available.\n- C2: Keep harden as the owner for release/deploy/production/docs/cleanup readiness when those answers are needed for archive/complete approval.\n- C3: Preserve archive Tier B whitelist-only parsing and no LLM fallback.\n- C4: Keep approval context terse and scannable; use brief N/A rows for empty categories.\n- C5: Design must verify exact assembly points for acceptance summary, executive summary, harden evidence, archive sign-off, archive terminal output, and brief archive summary before implementation.\n\n## Avoidances\n\n- DONT1: Do not dump raw logs, diffs, task spam, or full scanner reports into approval prompts.\n- DONT2: Do not add new human approval checkpoints or second confirmations.\n- DONT3: Do not invent weak summaries without source-backed evidence.\n- DONT4: Do not move readiness checks later than the approval point that relies on them.\n- DONT5: Do not treat heuristics as authority for readiness, release safety, persistence, or gate completion.\n\n## Out of Scope\n\n- OOS1: Replacing the seven-gate lifecycle.\n- OOS2: Broad prompt slop reduction unrelated to final approval consequence context.\n- OOS3: Product-specific ops, database, or frontend behavior for downstream apps.\n- OOS4: Changing archive finalization semantics beyond surfacing prepared consequences and readiness answers.\n\n## Preview Applicability\n\nvisual_surface: false — this change affects ADV command/spec/tool/report text and workflow context surfaces, not browser-visible or visual output.\n\npreview_expectation:\n- exact_route_required: false\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: no frontend/browser-visible surface is in scope.\n\n## Decisions\n\n### User Decisions\n\n- Consequence categories: show all listed categories — delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action.\n- Empty categories: show brief `N/A` rows instead of omitting them.\n- Follow-ups: non-blocking follow-ups are expected to happen after the change closes; note them so the user knows what is coming next or needs to be done. Blocking follow-ups still block release through existing relationship semantics.\n\n### Agent Decisions (LBP)\n\n- Use structural carry-forward: classify readiness in the owning phase, persist or expose a bounded verdict, then render it at approval.\n- Reuse existing rails where possible: executive-summary persistence, preview proof states, contract proof, `checkOpsFollowupReleaseBlockers`, `getOpenOpsFollowupObligations`, archive release proof, and bounded brief summary patterns.\n- No external solution check needed; this is internal ADV workflow contract work.\n\n## Deferred Questions\n\n- None.\n\n## Sign-Off\n\nApproved by user via inline criteria checkpoint (reply: `approve`) on 2026-07-01.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nAdd a compact, source-backed **Approval Consequence Context** surface to the two final human decision points:\n\n1. **Acceptance checkpoint** (`/adv-review` Phase 7): show the consequence matrix before the Tier A acceptance prompt and persist the acceptance-time matrix in `executive-summary.md`.\n2. **Archive/complete sign-off** (`/adv-archive` Phase 5 + terminal report): show the same category set enriched with harden/release-readiness evidence before Tier B sign-off and in terminal archive output where relevant.\n\nThe matrix is a rendered approval surface, not a new gate. It reads from existing structural sources:\n\n- Agreement contract and review matrix for criteria proof.\n- Task implementation summaries and verification notes for delivered value.\n- Preview URL proof for frontend/visual impact.\n- Harden scanner bundle / harden summary for release/deploy/production/docs/cleanup readiness.\n- Gate readiness blockers and `getOpenOpsFollowupObligations` for blocking vs non-blocking follow-ups.\n- Archive preflight/finalization proof for collision/release action and next step.\n\nIntroduce one required pure renderer module for the category vocabulary and bounded rendering, e.g. `plugin/src/utils/approval-consequence-context.ts`. Command prose invokes the contract; tests pin the renderer and required command surfaces. This avoids three separate prose copies drifting across `adv-review`, `adv-archive`, and `executive-summary.md` templates.\n\n## Key Decisions\n\n1. **Use one consequence category model across acceptance and archive.**\n   - Categories: delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, next action.\n   - Each row renders `pass | warning | blocked | pending | n/a` plus one short evidence pointer.\n   - Empty categories render brief `N/A`, per user decision.\n\n2. **Make a pure renderer the single source for category vocabulary.**\n   - The renderer owns category order, status enum, row bounds, and N/A behavior.\n   - Command docs specify when to render and which evidence sources feed it.\n   - Tests cover the renderer directly and asset-test command surfaces for required invocation language.\n\n3. **Acceptance records acceptance-time consequence context in `executive-summary.md`.**\n   - `/adv-review` already persists `executive-summary.md` before prompting.\n   - Extend that artifact with `## Consequence Context` rendered from the shared model.\n   - Acceptance-time release readiness may say `pending harden` when harden owns the answer.\n\n4. **Harden owns archive-time readiness evidence.**\n   - `/adv-harden` already owns release/deploy/production/docs/cleanup readiness and submits/scans harden reports.\n   - Harden output should synthesize a compact Release Readiness Summary using existing scanner dimensions and structural blockers.\n   - `/adv-archive` reads the latest harden/release evidence using `adv_change_show include:{subagentReports:true}` plus archive preflight outputs to render archive-time consequence context.\n   - Missing or unreadable harden evidence is never rendered as `N/A`; render `blocked` or `warning` with `harden evidence unavailable` and remediation such as rerun `/adv-harden`, depending on whether the missing evidence is required for the category.\n\n5. **Follow-up semantics reuse existing structural release rules.**\n   - `blocks` or required handoff relationships remain release blockers.\n   - Non-blocking follow-ups are listed as coming next / needs done after closure.\n   - Reuse `checkOpsFollowupReleaseBlockers` and `getOpenOpsFollowupObligations`; do not invent a new follow-up approval model.\n\n6. **Keep rendering bounded and test-anchored.**\n   - Mirror the bounded-summary pattern in `plugin/src/utils/archive-summary.ts` (`renderBriefSummary` caps output and excerpts rows).\n   - Asset/unit tests must fail if required categories, N/A behavior, source-backed evidence, or Tier A/Tier B invariants are removed.\n\n## ADR Drafts\n\nNone. Decisions are internal workflow-surface design choices, reversible through command/spec updates, and do not meet the full ADR rubric.\n\n## Implementation Strategy\n\n1. **Spec law first**\n   - Add/update `advance-workflow` requirements for approval consequence context, harden readiness carry-forward, follow-up rendering, missing-evidence fallback, and bounded output.\n   - Update generated spec docs if required by repo convention.\n\n2. **Shared renderer**\n   - Add `plugin/src/utils/approval-consequence-context.ts` (exact path may vary) with typed categories/statuses and a pure bounded renderer.\n   - Unit-test stable order, status values, brief N/A rows, missing-evidence fallback, truncation/bounds, and no raw evidence dump behavior.\n\n3. **Acceptance context**\n   - Update `.opencode/command/adv-review.md` Phase 7 to require Approval Consequence Context before the Tier A acceptance prompt.\n   - Extend the persisted `executive-summary.md` template with `## Consequence Context` rendered by or aligned to the shared model.\n   - Use the existing preview-state table (`live | not_applicable | blocked`) as the frontend/preview category source.\n   - Add asset tests near existing human checkpoint / preview proof tests.\n\n4. **Harden carry-forward**\n   - Update `.opencode/command/adv-harden.md` synthesis/output to produce a compact Release Readiness Summary from deployment, production, docs, cleanup, and residual-slop evidence.\n   - Ensure scanner packet/report language preserves evidence pointers, not raw dumps.\n   - Ensure archive-time readback path is explicit: `adv_change_show include:{subagentReports:true}` or the selected equivalent durable source.\n   - Define fallback behavior: unavailable harden evidence is shown as unavailable/blocking, never as N/A.\n\n5. **Archive/complete context**\n   - Update `.opencode/agents/adv.md` Sign-Off Boundary and `.opencode/command/adv-archive.md` Phase 5 to include consequence context before Tier B sign-off.\n   - Update archive terminal output template to include open follow-ups/handoff status and release action/collision risk.\n   - Use existing `openOpsObligations` output and `rq-opsFollowRelease01` as structural authority.\n\n6. **Tests and drift anchors**\n   - Extend asset tests that already guard `Reply accept`, `Reply sign off`, executive summary persistence, contract proof, preview URL proof, and archive open ops obligations.\n   - Add tests for: all required categories present, brief N/A behavior, missing harden evidence not shown as N/A, no raw dump phrasing, no extra checkpoint/second confirmation, and open follow-up rendering.\n\n## LBP Analysis\n\nPreferred long-term pattern: compute or classify readiness in the phase that owns the evidence, persist or expose a compact verdict, then render that verdict at the human decision point. This matches existing ADV patterns:\n\n- Contract proof and preview proof are prepared before acceptance.\n- Harden owns release/deploy/production/docs/cleanup readiness.\n- Release gate readiness structurally blocks unresolved design concerns and blocking ops follow-ups.\n- Archive finalization reports release proof instead of asking the user to infer it.\n- `renderBriefSummary` demonstrates a reusable bounded pure summary pattern.\n\nRejected alternatives:\n\n- **Chat-only summary:** too fragile; not source-backed or crash-safe.\n- **New approval checkpoint:** violates agreement and adds friction.\n- **Raw scanner/report dump:** violates bounded context and user decision.\n- **Heuristic-only inference from file paths:** violates P33 for readiness/release safety.\n- **Three prose copies:** high drift risk across review, archive, and executive summary; use one renderer/model.\n- **Silent N/A for missing evidence:** violates source-backed honesty; use explicit unavailable/blocked status.\n\n## Affected Components\n\n- `plugin/src/utils/approval-consequence-context.ts` or equivalent — required renderer/model.\n- `.opencode/command/adv-review.md` — acceptance summary, executive summary template, acceptance prompt context.\n- `.opencode/command/adv-harden.md` — release readiness synthesis and carry-forward wording.\n- `.opencode/command/adv-archive.md` — sign-off report and terminal archive output.\n- `.opencode/agents/adv.md` — Sign-Off Boundary template.\n- `docs/command-voice-standard.md` — only if shared inline approval/report templates need canonical category wording.\n- `.adv/specs/advance-workflow/spec.json` and `docs/specs/advance-workflow.md` — workflow law for new approval context requirements.\n- `plugin/src/__tests__/human-checkpoints-assets.test.ts`, `plugin/src/adv-skill-backed-commands-assets.test.ts`, `plugin/src/workflow-noise-reduction-assets.test.ts`, `plugin/src/tools/change.archive-phase9.test.ts`, or adjacent asset tests — drift anchors.\n\n## Design-Derived Criteria\n\n- DDC1: Consequence context renders exactly the approved category set in a stable order.\n- DDC2: Each rendered category has a status and source/evidence pointer, or a brief `N/A` rationale.\n- DDC3: Acceptance-time context is persisted in `executive-summary.md` before the acceptance prompt.\n- DDC4: Archive-time context includes harden/release evidence from a durable read path and does not rely on prior chat history.\n- DDC5: Missing/unreadable harden evidence is explicitly unavailable/blocked/warning and never rendered as N/A.\n- DDC6: Rendering remains bounded: no raw logs, diffs, task spam, or full scanner reports.\n- DDC7: Tier A/Tier B approval parsing and auto-continue behavior remain unchanged.\n- DDC8: Follow-up rows use existing release-blocking semantics: blocking relationships block release; non-blocking follow-ups render as coming-next obligations.\n\n## Risks / Mitigations\n\n- **Risk: Prose-only drift.** Mitigation: one renderer/model plus spec requirements and asset/unit tests.\n- **Risk: Archive report cannot find harden evidence after resume.** Mitigation: explicit durable read path via persisted subagent reports / harden summary and archive preflight outputs; missing evidence renders unavailable, not N/A.\n- **Risk: Prompt gets verbose.** Mitigation: stable 8-row matrix with short evidence pointers, N/A rows, and renderer bounds.\n- **Risk: Follow-up semantics conflict with release gate.** Mitigation: reuse `checkOpsFollowupReleaseBlockers` / `getOpenOpsFollowupObligations` and `rq-opsFollowRelease01`.\n- **Risk: Acceptance shows release readiness too early.** Mitigation: acceptance row may explicitly say `pending harden`; archive sign-off must show prepared harden/release answer.\n\n## Design Leverage Scout\n\nScout: VALIDATED. Report `improveApprovalContext|change:researcher:design-leverage-scout|adv-researcher|1` submitted.\n\nAuto-adopted / designed around:\n\n- Promote optional formatter to required single renderer module.\n- Use `renderBriefSummary` as bounded summary pattern evidence.\n- Use `adv_change_show include:{subagentReports:true}` as explicit archive-time harden readback path.\n- Reuse `getOpenOpsFollowupObligations` and `checkOpsFollowupReleaseBlockers` verbatim for follow-up rows.\n- Reuse preview-state table as frontend/preview category status source.\n\nNo user-value tradeoff, no blocker.\n\n## Validator Result\n\nValidator: CAUTION, non-blocking. Report `improveApprovalContext|change:researcher:design-validation|adv-researcher|1` submitted.\n\nFindings:\n\n- Correctness caution: archive-time render must not silently show `N/A` when harden evidence is unavailable after resume. Resolved in this design by requiring explicit unavailable/blocked/warning fallback.\n- Simplicity: single renderer is simpler than three drifting prose copies.\n- Spec-law: no contradiction with `rq-inlineApproval01` or `rq-opsFollowRelease01`.\n- Alternatives: persist full matrix once at harden time is viable; current design keeps live archive assembly but requires durable read path and missing-evidence fallback. Planning may choose the lower-risk implementation detail while preserving this design contract.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nImproved ADV final approval context so acceptance and archive sign-off show source-backed consequences before approval. Change adds spec law, a shared renderer/model, and command/agent wiring for acceptance, harden, archive, and the ADV Sign-Off Boundary.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Added approval-context requirements to `advance-workflow` spec/docs.\n2. Added `buildApprovalConsequenceContext` renderer with stable 8-category order, finite statuses, non-empty evidence validation, N/A handling, and UTF-8 byte-budget truncation.\n3. Wired `/adv-review` to render and persist consequence context before acceptance approval.\n4. Wired `/adv-harden` to persist Release Readiness Summary before archive.\n5. Wired `/adv-archive` and ADV Sign-Off Boundary to show archive-time consequence context before Tier B sign-off.\n6. Added asset/regression tests for renderer and command/agent surfaces.\n\n## What Was Verified\n- Verdict: READY from `adv-reviewer` acceptance review; 0 blockers/issues.\n- Harden verdict: READY from `adv-reviewer` harden review; 0 blockers/issues; no changes made.\n- Tests: `bin/oc-test targeted -- src/approval-consequence-context-assets.test.ts src/utils/approval-consequence-context.test.ts` passed, 14 tests (`tr_mr2t7af7_6cff8c70`, rerun `tr_mr2t7af7_6cff8c70` equivalent after reviewer remediation recorded as 14 passed).\n- Check: `pnpm run check` passed (`tr_mr2t88ry_e8ed29b3`, harden reviewer also reported `pnpm run check` passed).\n- Contract matrix: 24/24 rows pass/respected/not_applicable; 0 failing/unknown rows.\n- Preview URL: not_applicable — no browser-visible product UI changed; workflow/command/spec surfaces only.\n- Git readiness: worktree clean; `git fetch origin trunk && git merge --no-commit --no-ff origin/trunk` reported `Already up to date.`\n\n## Remaining Concerns\nNone.\n\n## Consequence Context\n1. delivered_value: delivered value — pass\n   Evidence: Spec law, renderer/model, and review/harden/archive/sign-off wiring completed and checkpointed.\n   Source: tasks tk-6008a2d6ccd1, tk-f8e18014a9d0, tk-2c5705410682, tk-0fc1b23a6f49, tk-7cdd66c7b2ea\n\n2. enabling_only_dependency: enabling-only/follow-up dependency — n/a\n   Evidence: No separate enabling-only release dependency; change directly updates ADV workflow contracts and tests.\n   Source: agreement scope + completed tasks\n\n3. ops_readiness: ops readiness — pass\n   Evidence: Harden found no env/config/infra impact and no deploy-production blocker.\n   Source: REVIEWER_REPORT improveApprovalContext|change:harden:release|adv-reviewer|1\n\n4. migration_data_impact: migration/data impact — n/a\n   Evidence: No data migration, schema migration, or runtime data backfill in scope.\n   Source: touched files/specs reviewed\n\n5. frontend_preview_impact: frontend/preview impact — n/a\n   Evidence: No browser-visible surface changed; preview proof not applicable.\n   Source: agreement visual_surface=false; harden review\n\n6. collision_release_risk: collision/release risk — warning\n   Evidence: Shared ADV surfaces touched; harden found no current blocker; archive Phase 9 still must prove final merge/push or PR state.\n   Source: harden review + adv-archive Phase 9\n\n7. open_follow_ups: open follow-ups — n/a\n   Evidence: Acceptance and harden reviewers reported no required or blocking follow-ups for this change.\n   Source: REVIEWER_REPORT acceptance + harden\n\n8. next_action: next action — pass\n   Evidence: Proceed to archive sign-off; Tier B approval will run `adv_change_archive phase9:\"run\"`.\n   Source: /adv-archive flow\n\n## Release Readiness Summary\n- Status: READY.\n- Ops readiness: pass — no env/config/infra impact.\n- Migration/data impact: n/a — no migration/data-loss surface.\n- Frontend/preview impact: n/a — command/spec/test-only change.\n- Collision/release risk: warning only — shared ADV surfaces touched; archive Phase 9 merge/finalization proof remains required.\n- Open follow-ups: none blocking.\n- Next action: present archive sign-off for `improveApprovalContext`.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-02T01:13:59.825Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Final approval prompts let user understand broader consequences before approving. | pass | Acceptance review READY: approval surfaces now require Approval Consequence Context before acceptance/archive approval; asset tests pin review/harden/archive/ADV sign-off wiring. |\n| SC2 | success_criterion | Harden prepares release-readiness answers before archive/complete sign-off depends on them. | pass | Harden command now carries Release Readiness Summary into executiveSummary before archive; archive reads it for sign-off context. |\n| SC3 | success_criterion | Approval context stays concise, source-backed, and auditable. | pass | Shared renderer enforces stable categories, status vocabulary, evidence pointers, N/A handling, and byte bounds; tests cover these invariants. |\n| AC1 | acceptance_criterion | Acceptance and archive/complete prompts show delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action. | pass | tr_mr2t7af7_6cff8c70: approval consequence asset + renderer tests passed; asset test requires all eight categories in acceptance/archive sign-off surfaces. |\n| AC2 | acceptance_criterion | Each category shows source-backed status or brief `N/A`; empty categories are not silently omitted. | pass | Renderer tests require every category, non-empty evidence, source-backed N/A behavior, and missing evidence rejection; tr_mr2t7af7_6cff8c70 passed. |\n| AC3 | acceptance_criterion | Harden prepares or verifies ops/migration/frontend/collision/release-readiness answers before archive sign-off. | pass | adv-harden asset test requires Release Readiness Summary, executiveSummary persistence, and harden evidence unavailable fallback; tr_mr2t7af7_6cff8c70 passed. |\n| AC4 | acceptance_criterion | Blocking follow-ups block release; non-blocking follow-ups are listed as coming next or needs done after closure. | pass | archive/ADV sign-off asset test requires checkOpsFollowupReleaseBlockers and getOpenOpsFollowupObligations semantics; tr_mr2t7af7_6cff8c70 passed. |\n| AC5 | acceptance_criterion | Prompts do not include raw logs, diffs, task spam, or full scanner reports. | pass | Renderer and command tests require bounded consequence context and command prose forbids raw logs, diffs, task spam, and full scanner reports; tr_mr2t7af7_6cff8c70 passed. |\n| AC6 | acceptance_criterion | No new checkpoints, no second confirmation, Tier A/Tier B parsing unchanged. | pass | Acceptance/harden/archive edits explicitly state no new checkpoint/second confirmation; Tier A/Tier B sections preserved; tr_mr2t7af7_6cff8c70 and tr_mr2t88ry_e8ed29b3 passed. |\n| AC7 | acceptance_criterion | Tests/specs fail if required consequence categories or source-backed evidence rules are removed. | pass | Spec law plus renderer/asset tests fail if categories/evidence rules are removed; tr_mr2t7af7_6cff8c70 and pnpm run check tr_mr2t88ry_e8ed29b3 passed. |\n| C1 | constraint | Source readiness/consequence statements from structural evidence where available. | respected | Rows require source/evidence pointers; commands name structural sources: task summaries, contract matrix, subagent reports, archive preflight, harden summary, follow-up blockers. |\n| C2 | constraint | Keep harden as the owner for release/deploy/production/docs/cleanup readiness when those answers are needed for archive/complete approval. | respected | Harden owns Release Readiness Summary for release/deploy/production/docs/cleanup readiness before archive begins. |\n| C3 | constraint | Preserve archive Tier B whitelist-only parsing and no LLM fallback. | respected | adv-archive Tier B whitelist/no LLM fallback text remains unchanged; consequence context is before prompt only. |\n| C4 | constraint | Keep approval context terse and scannable; use brief N/A rows for empty categories. | respected | Shared renderer bounds output and evidence length; command prose requires terse, scannable rows and brief N/A rationales. |\n| C5 | constraint | Design must verify exact assembly points for acceptance summary, executive summary, harden evidence, archive sign-off, archive terminal output, and brief archive summary before implementation. | respected | Implementation wires exact assembly points: adv-review, executiveSummary, adv-harden, adv-archive sign-off/report, and ADV Sign-Off Boundary. |\n| DONT1 | avoidance | Do not dump raw logs, diffs, task spam, or full scanner reports into approval prompts. | respected | Renderer comments/tests and command prose forbid raw logs, diffs, task spam, full scanner reports; reviewer verdict READY. |\n| DONT2 | avoidance | Do not add new human approval checkpoints or second confirmations. | respected | No new approval parser or checkpoint added; existing acceptance/archive prompts preserved. |\n| DONT3 | avoidance | Do not invent weak summaries without source-backed evidence. | respected | Missing/unreadable harden evidence must render warning/blocked as harden evidence unavailable; renderer rejects missing evidence. |\n| DONT4 | avoidance | Do not move readiness checks later than the approval point that relies on them. | respected | Harden persists readiness before archive; archive blocks if required harden evidence is missing/unreadable. |\n| DONT5 | avoidance | Do not treat heuristics as authority for readiness, release safety, persistence, or gate completion. | respected | Renderer/model owns correctness-critical category/status/evidence invariants; command heuristics are only evidence sources, not authority. |\n| OOS1 | out_of_scope | Replacing the seven-gate lifecycle. | not_applicable | Seven-gate lifecycle unchanged. |\n| OOS2 | out_of_scope | Broad prompt slop reduction unrelated to final approval consequence context. | not_applicable | Scope limited to final approval consequence context surfaces and tests. |\n| OOS3 | out_of_scope | Product-specific ops, database, or frontend behavior for downstream apps. | not_applicable | No downstream product-specific ops/database/frontend behavior changed. |\n| OOS4 | out_of_scope | Changing archive finalization semantics beyond surfacing prepared consequences and readiness answers. | not_applicable | Archive finalization semantics unchanged; only sign-off/report context changed. |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-07-01T23:54:02.963Z",
+      "contentHash": "6e8f92c68ee9a773b440cb58a7d1eb9aee6930b4ac80202057d50e6764295799",
+      "source": "temporal",
+      "readable": false
+    },
+    "proposal": {
+      "updatedAt": "2026-07-02T00:11:59.692Z",
+      "contentHash": "4b3d902fb1bb376dea6e32889aea6a1357187c4378b7b69358ffdba3940c93ec",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-02T00:13:49.062Z",
+      "contentHash": "7bcdebe85778f6d06ee8fc0a02991b3fecd35ebedc3e3b34c2d3061b3e85861f",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-02T00:24:53.240Z",
+      "contentHash": "f6dd87970772059dcd13444f57035f7aa3777a82928cc38e5b1c8ae604d5f5e7",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-02T01:23:55.975Z",
+      "contentHash": "e6ba2a12fee0d21598816a6804f120f798e789c25b1e6d6e4a3cd0faf85baaa2",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-02T01:23:55.975Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
