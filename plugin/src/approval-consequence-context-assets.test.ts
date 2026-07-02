@@ -5,7 +5,10 @@ import { describe, expect, test } from "vitest";
 const REPO_ROOT = resolve(__dirname, "../..");
 const REVIEW_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-review.md");
 const HARDEN_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-harden.md");
-const ARCHIVE_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-archive.md");
+const ARCHIVE_COMMAND_PATH = join(
+  REPO_ROOT,
+  ".opencode/command/adv-archive.md",
+);
 const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv.md");
 
 const REQUIRED_CATEGORIES = [
@@ -25,7 +28,9 @@ describe("approval consequence context command assets", () => {
 
     expect(review).toContain("Approval Consequence Context");
     expect(review).toContain("buildApprovalConsequenceContext");
-    expect(review).toContain("plugin/src/utils/approval-consequence-context.ts");
+    expect(review).toContain(
+      "plugin/src/utils/approval-consequence-context.ts",
+    );
 
     const contextIndex = review.indexOf("Approval Consequence Context");
     const promptIndex = review.indexOf("### Ask for Acceptance (Inline)");
