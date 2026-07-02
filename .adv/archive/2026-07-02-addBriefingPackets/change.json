@@ -1,0 +1,2264 @@
+{
+  "id": "addBriefingPackets",
+  "title": "Add briefing packets",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-02T17:23:35.027Z",
+  "tasks": [
+    {
+      "id": "tk-eb2cc01eed52",
+      "title": "Add briefing packet spec law and type foundations",
+      "type": "code",
+      "section": "Spec and Type Foundations",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-02T18:02:16.152Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC7",
+          "AC8",
+          "AC9",
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT5",
+          "DONT6",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addBriefingPackets",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+          "task_id": "tk-eb2cc01eed52",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-eb2cc01eed52"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/subagent-reports/spec.json",
+            ".adv/specs/advance-workflow/spec.json",
+            ".adv/specs/advance-epics/spec.json",
+            "docs/specs/advance-workflow.md",
+            "docs/specs/advance-epics.md",
+            "plugin/src/types/briefing-packets.ts",
+            "plugin/src/types/briefing-packets.test.ts",
+            "plugin/src/types/index.ts",
+            "plugin/src/briefing-packets-spec-assets.test.ts",
+            "plugin/src/subagent-reports-spec-assets.test.ts",
+            "plugin/src/advance-epics-assets.test.ts",
+            "plugin/src/ops-follow-up-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/types/briefing-packets.test.ts src/briefing-packets-spec-assets.test.ts src/subagent-reports-spec-assets.test.ts src/advance-epics-assets.test.ts src/ops-follow-up-assets.test.ts",
+              "exit_code": 0,
+              "summary": "89 tests pass across briefing packet types, spec law, and dependent version/ID expectations"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added a dedicated briefing-packets types module instead of extending subagent-reports.ts",
+              "why": "Keeps the generated projection surface cohesive and avoids bloating the report ingest schema"
+            },
+            {
+              "what": "Derived lane identity anchors from existing SUBAGENT_REPORT_FIELD_SOURCES / getSubagentReportPacketAnchors()",
+              "why": "Satisfies AC2 and avoids duplicating strict identity-anchor lists"
+            },
+            {
+              "what": "Added archive as a non-worker lane with deterministic terminal anchors",
+              "why": "Archive digest is not a persisted worker report; separating it preserves the lane/agent mapping invariant"
+            },
+            {
+              "what": "Bumped spec versions and updated dependent version-lock tests",
+              "why": "Adding spec law requires version advancement; the existing advance-workflow lock was already stale"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated dependent spec-version expectations in ops-follow-up-assets.test.ts and Epic req-ID mirror check in advance-epics-assets.test.ts",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Briefing packet spec law and type foundations are in place: lanes, identity-anchor derivation, fact outcomes, packet schema, and spec requirements across subagent-reports, advance-workflow, and advance-epics. All targeted tests and pnpm run check pass.",
+            "suggested_next_action": "Proceed to task tk-cb9e107ca5ef (Implement pure briefing packet renderer) which depends on these foundations"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/types/briefing-packets.test.ts src/briefing-packets-spec-assets.test.ts src/subagent-reports-spec-assets.test.ts src/advance-epics-assets.test.ts src/ops-follow-up-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "bin/oc-test targeted -- src/types/briefing-packets.test.ts src/briefing-packets-spec-assets.test.ts src/subagent-reports-spec-assets.test.ts src/advance-epics-assets.test.ts src/ops-follow-up-assets.test.ts: 89 tests passed; pnpm run check: schemas/typecheck/isolation/lockfile/lint/format all passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "docs/specs/advance-epics.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/briefing-packets-spec-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/types/briefing-packets.test.ts",
+        "plugin/src/types/briefing-packets.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "docs/specs/advance-epics.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/briefing-packets-spec-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/types/briefing-packets.test.ts",
+        "plugin/src/types/briefing-packets.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "checkpointSha": "0a1e292cb7da9e7a0df8f97a46856ecbaceb3a9f",
+      "completedAt": "2026-07-02T18:28:15.969Z",
+      "completed_at": "2026-07-02T18:28:15.969Z"
+    },
+    {
+      "id": "tk-cb9e107ca5ef",
+      "title": "Implement pure briefing packet renderer",
+      "type": "code",
+      "section": "Renderer",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-02T18:02:31.637Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-eb2cc01eed52"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC8",
+          "C1",
+          "C2",
+          "C4"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC8"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addBriefingPackets",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+          "task_id": "tk-cb9e107ca5ef",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-cb9e107ca5ef"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/utils/briefing-packet-renderer.ts",
+            "plugin/src/utils/briefing-packet-renderer.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "npx vitest run src/utils/briefing-packet-renderer.test.ts --reporter=verbose",
+              "exit_code": 0,
+              "summary": "15/15 renderer tests pass"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "No TypeScript errors"
+            },
+            {
+              "command": "pnpm run lint -- src/utils/briefing-packet-renderer.ts src/utils/briefing-packet-renderer.test.ts",
+              "exit_code": 0,
+              "summary": "No lint errors"
+            },
+            {
+              "command": "pnpm run format:check -- src/utils/briefing-packet-renderer.ts src/utils/briefing-packet-renderer.test.ts",
+              "exit_code": 0,
+              "summary": "Prettier formatting clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Made renderer deterministic by accepting generated_at as input rather than calling Date.now()",
+              "why": "Keeps the pure renderer deterministic for the same input, which is required for testable, replay-safe packet generation"
+            },
+            {
+              "what": "Kept durable-fact classifier consumer out of scope; renderer accepts pre-extracted BriefingFact[]",
+              "why": "The task scope explicitly excluded the classifier consumer; callers pass already-extracted facts"
+            },
+            {
+              "what": "Used a lane-specific section selection map and worker/archive anchor functions from types",
+              "why": "Satisfies the lane-specific bounded sections requirement without adding storage/tool dependencies"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Pure briefing packet renderer implemented in plugin/src/utils/briefing-packet-renderer.ts. Emits lane-specific sections, source labels, omission metadata, unavailable markers, compact Epic context, and bounded facts. 15 unit tests pass; typecheck and lint clean.",
+            "suggested_next_action": "Wire renderer into adv_change_show include path or durable-fact classifier consumer in a follow-up task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/utils/briefing-packet-renderer.test.ts --reporter=verbose"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint -- src/utils/briefing-packet-renderer.ts src/utils/briefing-packet-renderer.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check -- src/utils/briefing-packet-renderer.ts src/utils/briefing-packet-renderer.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "npx vitest run src/utils/briefing-packet-renderer.test.ts: 15/15 pass; pnpm run typecheck: clean; pnpm run lint -- src/utils/briefing-packet-renderer.ts src/utils/briefing-packet-renderer.test.ts: clean; pnpm run format:check on touched files: clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/briefing-packet-renderer.test.ts",
+        "plugin/src/utils/briefing-packet-renderer.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/briefing-packet-renderer.test.ts",
+        "plugin/src/utils/briefing-packet-renderer.ts"
+      ],
+      "checkpointSha": "31e2f333c1b7bbdb7ef0684a66d68b52e4a09167",
+      "completedAt": "2026-07-02T18:45:30.334Z",
+      "completed_at": "2026-07-02T18:45:30.334Z"
+    },
+    {
+      "id": "tk-12d65d289dab",
+      "title": "Expose briefing packets through existing change read surfaces",
+      "type": "code",
+      "section": "Read Surface",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-02T18:02:46.676Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cb9e107ca5ef"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC5",
+          "C1",
+          "C3",
+          "C4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT5",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addBriefingPackets",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+          "task_id": "tk-12d65d289dab",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-12d65d289dab"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.test.ts",
+            "plugin/src/tool-name-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts src/briefing-packets-spec-assets.test.ts src/tool-name-assets.test.ts -t \"briefing|adv_briefing_packet\"",
+              "exit_code": 0,
+              "summary": "8 targeted tests pass: 3 change.show briefing-packet behaviors, 4 spec-law assets, 1 no-standalone-tool assertion"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented storage-backed adapter inside change.ts rather than a separate file",
+              "why": "Avoids circular import with readArtifacts and keeps the include/execute path in one place"
+            },
+            {
+              "what": "Default briefing lane is engineer when briefingPacketLane omitted",
+              "why": "Matches the most common worker consumer and the design's lane/request field shape"
+            },
+            {
+              "what": "Left durable_facts and archive_digest undefined in the adapter",
+              "why": "Durable-fact classifier and archive digest writer are explicitly out of scope for this task; renderer emits unavailable markers for missing sections"
+            },
+            {
+              "what": "Added tolerant preprocessing for briefingPacketLane empty-string placeholders",
+              "why": "Defensive against strict-mode providers filling optional enum fields with empty strings"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Pre-existing unrelated failure in src/tool-name-assets.test.ts: .opencode/command/adv-epic.md references adv_epic_update_scope and adv_epic_merge which are not in ADV_TOOL_NAMES"
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes needed; briefing packet wiring is isolated to adv_change_show include path",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_change_show now supports include.briefingPacket (plus optional briefingPacketLane/briefingPacketRequest) and returns a generated _briefingPacket from existing structured state via the pure renderer. Default reads remain compact. No standalone adv_briefing_packet tool was added. A pre-existing unrelated tool-name-assets failure for adv-epic.md references was observed.",
+            "suggested_next_action": "Proceed to durable-fact classifier or archive digest tasks; current read surface is wired and verified"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/briefing-packets-spec-assets.test.ts src/tool-name-assets.test.ts -t \"briefing|adv_briefing_packet\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "bin/oc-test targeted -- src/tools/change.test.ts src/briefing-packets-spec-assets.test.ts src/tool-name-assets.test.ts -t \"briefing|adv_briefing_packet\": 8 passed; pnpm run check passed (schemas, typecheck, isolation, lockfile, lint, format).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tool-name-assets.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-name-assets.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "30372685f91ec6ac9f847431551ed36befb59204",
+      "completedAt": "2026-07-02T19:01:15.676Z",
+      "completed_at": "2026-07-02T19:01:15.676Z"
+    },
+    {
+      "id": "tk-1d4d6a5d94a3",
+      "title": "Implement structural durable-fact classifier",
+      "type": "code",
+      "section": "Durable Fact Lifecycle",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-02T18:03:05.234Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-eb2cc01eed52"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "C1",
+          "C2",
+          "C5"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addBriefingPackets",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+          "task_id": "tk-1d4d6a5d94a3",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-1d4d6a5d94a3"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/utils/briefing-fact-classifier.ts",
+            "plugin/src/utils/briefing-fact-classifier.test.ts",
+            "plugin/src/types/index.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/utils/briefing-fact-classifier.test.ts",
+              "exit_code": 0,
+              "summary": "13 classifier tests pass; includes RED→GREEN TDD for structural mapping and no-keyword-inference guard."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Full pre-push check gate passes: schemas:check, typecheck, test isolation, lockfile policy, lint, format:check."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implemented pure classifier in plugin/src/utils/briefing-fact-classifier.ts using only structural field access and type casts; no free-text keyword inference.",
+              "why": "Matches AC6/C1/C2/C5 and respects DONT1/DONT2/DONT5/DONT6 by deriving outcomes from typed report fields and explicit typed facts rather than heuristics."
+            },
+            {
+              "what": "Mapped follow_ups/required_follow_ups to agenda, required_main_agent_actions to unresolved_action, context_update_for_adv to transient_prompt_context, reviewer wisdom_candidates to wisdom_candidate, scanner bundle follow_ups to agenda, and supplied Epic membership to epic_terminal_note.",
+              "why": "These are the existing structured sources listed in the task scope and their natural durable-fact lifecycles."
+            },
+            {
+              "what": "Used an optional explicitFacts input for spec_delta_candidate instead of adding a new report storage field.",
+              "why": "No existing structured report field maps to spec_delta_candidate; explicit typed input proves the gap without schema weakening or keyword inference."
+            },
+            {
+              "what": "Added the missing VerificationTriageBundleSubagentReport type export to plugin/src/types/index.ts.",
+              "why": "Classifier needs the verifier type for structural handling; the export was absent from the barrel."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified adjacent briefing-packet/renderer tests and subagent-report/followup tests still pass; no standalone adv_briefing_packet tool or archive digest writer added.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Structural durable-fact classifier is implemented and tested. It maps existing sub-agent report fields to all seven briefing-fact outcomes without keyword inference. pnpm run check and targeted tests are green.",
+            "suggested_next_action": "Wire classifier into adv_change_show/handoff read surfaces and archive digest generation in subsequent tasks."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/briefing-fact-classifier.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "bin/oc-test targeted -- src/utils/briefing-fact-classifier.test.ts: 13 passed; pnpm run check passed (schemas, typecheck, lint, format, isolation, lockfile).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/types/index.ts",
+        "plugin/src/utils/briefing-fact-classifier.test.ts",
+        "plugin/src/utils/briefing-fact-classifier.ts"
+      ],
+      "touched_files": [
+        "plugin/src/types/index.ts",
+        "plugin/src/utils/briefing-fact-classifier.test.ts",
+        "plugin/src/utils/briefing-fact-classifier.ts"
+      ],
+      "checkpointSha": "8ae331bfa488981a7725b72e48a8af0b20dfa865",
+      "completedAt": "2026-07-02T19:14:22.807Z",
+      "completed_at": "2026-07-02T19:14:22.807Z"
+    },
+    {
+      "id": "tk-e97d791ffb60",
+      "title": "Add archive briefing digest and idempotent cleanup semantics",
+      "type": "code",
+      "section": "Archive Lifecycle",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-02T18:03:20.309Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cb9e107ca5ef"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1d4d6a5d94a3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7",
+          "C1",
+          "C5"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addBriefingPackets",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+          "task_id": "tk-e97d791ffb60",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-e97d791ffb60"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/archive/archive.ts",
+            "plugin/src/archive/archive.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/archive/archive.test.ts",
+              "exit_code": 0,
+              "summary": "15 archive tests pass including 5 new digest/idempotency tests"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+            },
+            {
+              "command": "pnpm exec vitest run src/utils/briefing-packet-renderer.test.ts src/utils/briefing-fact-classifier.test.ts src/types/briefing-packets.test.ts src/briefing-packets-spec-assets.test.ts",
+              "exit_code": 0,
+              "summary": "42 related briefing-packet tests pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Composed contract/AC coverage summary inside archive.ts instead of extending the archive lane in the renderer",
+              "why": "Renderer task is complete and archive lane intentionally excludes transient live slices; contract summary is archive-specific digest content"
+            },
+            {
+              "what": "Filtered transient_prompt_context facts out of the durable facts fed to the archive-lane renderer",
+              "why": "Spec law requires transient prompt-only slices to stop being exposed in the archive digest"
+            },
+            {
+              "what": "Used deterministic BRIEFING_DIGEST.md filename and atomicWriteFile in both createArchive and createInRepoArchive",
+              "why": "Repeated archive/replay overwrites the same path instead of appending duplicate records"
+            },
+            {
+              "what": "Relied on existing project-wisdom content deduplication for durable promotion idempotency",
+              "why": "Archive already checks existing wisdom contents before promoting; repeat archive does not duplicate entries"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified both archive creation paths (createArchive and createInRepoArchive) write BRIEFING_DIGEST.md; no other archive creation paths found in plugin/src.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Archive-lane briefing digest is implemented: BRIEFING_DIGEST.md is written to every archive bundle (external and in-repo) using the pure briefing packet renderer and durable-fact classifier. The digest includes change identity, terminal gate summary, durable fact outcomes, Epic context, unresolved actions (or explicit none), contract/AC coverage, and unavailable warnings. Transient prompt context is filtered out. Repeat archives overwrite the deterministic digest path and do not duplicate wisdom promotions.",
+            "suggested_next_action": "Run the full test suite or proceed to the next execution task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/archive/archive.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/briefing-packet-renderer.test.ts src/utils/briefing-fact-classifier.test.ts src/types/briefing-packets.test.ts src/briefing-packets-spec-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "pnpm exec vitest run src/archive/archive.test.ts: 15/15 pass; pnpm run check passed; pnpm exec vitest run src/utils/briefing-packet-renderer.test.ts src/utils/briefing-fact-classifier.test.ts src/types/briefing-packets.test.ts src/briefing-packets-spec-assets.test.ts: 42/42 pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/archive/archive.test.ts",
+        "plugin/src/archive/archive.ts"
+      ],
+      "touched_files": [
+        "plugin/src/archive/archive.test.ts",
+        "plugin/src/archive/archive.ts"
+      ],
+      "checkpointSha": "dd1404f92a4d27ace9ef1335d88531f997af5cdb",
+      "completedAt": "2026-07-02T19:28:29.518Z",
+      "completed_at": "2026-07-02T19:28:29.518Z"
+    },
+    {
+      "id": "tk-3c3a4a9e0637",
+      "title": "Replace command packet duplication with generated briefing packet consumption",
+      "type": "docs",
+      "section": "Command and Agent Contracts",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-02T18:03:37.832Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-12d65d289dab"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC9",
+          "C1",
+          "C3",
+          "C4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC9"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addBriefingPackets",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+          "task_id": "tk-3c3a4a9e0637",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3c3a4a9e0637"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/command/adv-apply.md",
+            ".opencode/command/adv-review.md",
+            ".opencode/command/adv-harden.md",
+            ".opencode/command/adv-design.md",
+            ".opencode/command/adv-discover.md",
+            ".opencode/agents/adv-engineer.md",
+            ".opencode/agents/adv-reviewer.md",
+            ".opencode/agents/adv-designer.md",
+            ".opencode/agents/adv-researcher.md",
+            "plugin/src/briefing-packets-command-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "npx vitest run src/briefing-packets-command-assets.test.ts src/briefing-packets-spec-assets.test.ts src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-review-assets.test.ts src/commands-spine-assets.test.ts --reporter=verbose",
+              "exit_code": 0,
+              "summary": "All 99 targeted asset tests passed; new briefing-packet command/agent consumption tests green, existing anchor-preservation tests unchanged"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Replaced manual AFFECTED FILES/ACCEPTANCE CRITERIA/EPIC CONTEXT/CONTRACT sections in command packets with a single `BRIEFING PACKET: inject _briefingPacket (lane: ...)` slice",
+              "why": "Eliminates duplicated packet correctness prose and makes the generated read projection the single source of truth for scope, contract, tasks, affected files, epic context, and verification expectations"
+            },
+            {
+              "what": "Preserved required identity anchors (WORKING DIRECTORY, CHANGE, TASK/SCOPE KEY, ATTEMPT, PHASE) and warn-first anchors inline",
+              "why": "Worker packet identity cannot be inferred from the briefing packet alone; the anchors remain explicit in every spawned packet"
+            },
+            {
+              "what": "Kept TASK EVIDENCE SUMMARY in scanner-only context packets and left scanner-bundle orchestrator-submitted",
+              "why": "Scanner lane briefing packets do not include tasks, and per DONT the scanner lanes remain non-persisted orchestrator-submitted bundles only"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Replaced duplicated packet context in Apply, Designer Apply, Review/Harden scanner and remediation packets, Design validator prompt, and Discover researcher scout packet; aligned all four worker agents to consume the generated briefing packet slice.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Command and agent prompt assets now consume generated `_briefingPacket` slices instead of duplicating AFFECTED FILES, ACCEPTANCE CRITERIA, EPIC CONTEXT, CONTRACT ITEMS/PROOF, and AGREEMENT CONTEXT. Required worker packet identity anchors are preserved inline. New asset tests (briefing-packets-command-assets.test.ts) enforce this consumption contract and verify anchor preservation. `pnpm run check` passes.",
+            "suggested_next_action": "Run the full test suite or merge if CI is green; no further code changes needed for this task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/briefing-packets-command-assets.test.ts src/briefing-packets-spec-assets.test.ts src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-review-assets.test.ts src/commands-spine-assets.test.ts --reporter=verbose"
+            }
+          ]
+        }
+      ],
+      "verification": "Targeted command/agent asset tests: 99 passed / 0 failed; pnpm run check passed (schemas, typecheck, test isolation, lockfile policy, lint, format).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/briefing-packets-command-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/briefing-packets-command-assets.test.ts"
+      ],
+      "checkpointSha": "e59efb924377148872843a6be4124ba00b8c72fa",
+      "completedAt": "2026-07-02T19:46:56.217Z",
+      "completed_at": "2026-07-02T19:46:56.217Z"
+    },
+    {
+      "id": "tk-24faf6e93013",
+      "title": "Run full contract and regression verification for briefing packets",
+      "type": "verification",
+      "section": "Final Verification",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-07-02T18:03:54.054Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e97d791ffb60"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3c3a4a9e0637"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "Harden remediation verified: reviewer bounded briefingPacketRequest generated_by metadata; added _briefingPacketError read-path coverage. Final targeted briefing/spec/archive/change/tool-name suite passed (11 files, 247 tests); pnpm run check passed; bin/oc-test smoke passed (57 tests plus check).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/briefing-packets.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/briefing-packets.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "checkpointSha": "884cab3dd873864c5acfe77ffa82e594f2bf30a8",
+      "completedAt": "2026-07-02T20:49:47.975Z",
+      "completed_at": "2026-07-02T20:49:47.975Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout for lifecycle-managed briefing packets",
+      "sources": [
+        {
+          "label": "SUBAGENT_REPORT_FIELD_SOURCES",
+          "locator": "plugin/src/types/subagent-reports.ts:665-799",
+          "summary": "Every worker report field is already classified packet_anchor|worker_derived|tool_enriched. Inverse of what a packet renderer needs: packet_anchor fields ARE the briefing slice per lane. getSubagentReportPacketAnchors() (line 801) already derives anchor set per agent."
+        },
+        {
+          "label": "buildChangeContextSnapshot + epicMembership",
+          "locator": "plugin/src/utils/context-snapshot.ts:21-50,338-339",
+          "summary": "Compact source-backed change+Epic context already rendered from structured state; epicMembership carried without full Epic hydration. Pure formatter (no storage import) reusable as packet base."
+        },
+        {
+          "label": "adv_change_show include quartet",
+          "locator": "plugin/src/tools/change.ts:2530-2878",
+          "summary": "include.snapshot/ledger/readyTasks already collapse the phase-start quartet into one read. Natural host for a lane-scoped include.briefingPacket slice — reuses existing collapse pattern instead of new tool."
+        },
+        {
+          "label": "required_main_agent_actions + context_update_for_adv",
+          "locator": "plugin/src/types/subagent-reports.ts:680,683,703,720,723; plugin/src/tools/subagent-report.test.ts:366",
+          "summary": "Durable 'main agent must remember' facts already persist on sidecar reports (worker_derived). No archive-cleanup/promotion path today — this is the durable-fact lifecycle gap the proposal targets."
+        },
+        {
+          "label": "optimized-handoff-assets.test.ts",
+          "locator": "plugin/src/optimized-handoff-assets.test.ts:1-70; plugin/src/subagent-reports-spec-assets.test.ts:143-442",
+          "summary": "Asset tests already assert command/agent packets contain getSubagentReportPacketAnchors() output + warn-first anchors. Existing contract-test spine to extend for packet rendering; do not bypass."
+        },
+        {
+          "label": "subagent-reports spec rq-subagentReports05/10",
+          "locator": ".adv/specs/subagent-reports",
+          "summary": "Strict identity anchors must stay strict; missing anchors = INVALID_REPORT (never inferred). rq10 normalizes only legacy readback, not new ingest. Constrains packet generation: generated content feeds prompts, must not weaken report ingest strictness."
+        }
+      ],
+      "architecture_assessment": "The briefing-packet layer can be built almost entirely by inverting and composing existing structural surfaces rather than inventing new state. SUBAGENT_REPORT_FIELD_SOURCES already answers 'which fields each lane needs from the packet' per agent — a renderer that emits exactly the packet_anchor set per lane is the boring, contract-aligned path. buildChangeContextSnapshot is a pure formatter already carrying compact Epic context, so the change-level packet base is a reuse, not a rebuild. The include-quartet collapse pattern on adv_change_show is the natural delivery vector (add a lane-scoped include flag) rather than a parallel tool. The genuinely NEW surface the proposal needs is the durable-fact lifecycle: required_main_agent_actions/context_update_for_adv persist but have no archive promotion/cleanup classifier — that is where design effort and AC coverage should concentrate. Two acceptance gaps risk an incomplete change: (a) no stated error/degradation behavior when structured state is missing (clarify finding CLARIFY_MISSING_ERROR_HANDLING already flags this), and (b) archive-cleanup idempotency/replay-safety for transient vs durable slice retirement is unspecified.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blocker. All candidates tie to existing structural surfaces; none proposes scope expansion, mandatory Epics, or weakened report strictness. Auto-adopt candidates are contract-tied + low risk; user-surface candidates involve design-shape or user-value tradeoffs requiring orchestrator/user decision."
+      },
+      "recommendation": "Auto-adopt the two low-risk contract-tied leverage candidates (invert SUBAGENT_REPORT_FIELD_SOURCES as the lane packet renderer; reuse buildChangeContextSnapshot as the packet base). Surface to user the two shape decisions (include-quartet delivery vector vs new tool; durable-fact promotion taxonomy). Record the missing-state degradation behavior as an AC gap that discovery must close before design.",
+      "follow_ups": [
+        "Add AC covering degradation behavior when structured ADV state is missing at packet-render time (ties to CLARIFY_MISSING_ERROR_HANDLING).",
+        "Add AC covering archive-cleanup idempotency/replay-safety for transient vs durable slice retirement."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — generated briefing packets",
+      "sources": [
+        {
+          "label": "adv_change_show include-flag projection surface",
+          "locator": "plugin/src/tools/change.ts:2801-2899",
+          "summary": "Existing `include` opt-in attachment pattern (snapshot/ledger/subagentReports/readyTasks/artifacts) already batches change+task+contract+report reads into one lazy projection. `include.briefingPacket` slots directly into this switch — no standalone tool, matches AC 'existing read/handoff surfaces only'."
+        },
+        {
+          "label": "buildChangeContextSnapshot pure formatter",
+          "locator": "plugin/src/utils/context-snapshot.ts:21-50 (ContextSnapshotInput incl. epicMembership)",
+          "summary": "Pure, storage-free formatter already renders change/title/gates/taskCounts/workdir/wisdom/currentTask AND compact epicMembership. Packet lane assembly reuses this projection shape; optional Epic block is already a first-class optional field, satisfying the 'optional Epic context, no mandatory Epics' avoidance for free."
+        },
+        {
+          "label": "SUBAGENT_REPORT_FIELD_SOURCES + getSubagentReportPacketAnchors",
+          "locator": "plugin/src/types/subagent-reports.ts:665-819",
+          "summary": "Per-agent field-source map already distinguishes packet_anchor vs worker_derived vs tool_enriched, and getSubagentReportPacketAnchors() emits the exact identity anchor set per agent. Lane packets derive strict anchors mechanically from this single structural source — no heuristic anchor inference."
+        },
+        {
+          "label": "Archive wisdom auto-promotion classifier",
+          "locator": "plugin/src/archive/archive.ts:450-491",
+          "summary": "Archive already runs a type-based durable classifier: promotableTypes={convention,pattern} promoted to project wisdom, deduped by content (existingContents set), compacted under cap. Direct prior art + reusable primitive for the durable-fact classifier (transient vs wisdom_candidate vs archive_only) and idempotent digest."
+        },
+        {
+          "label": "Archive bundle writer (idempotent digest host)",
+          "locator": "plugin/src/archive/archive.ts:548-626; createInRepoArchive 685-",
+          "summary": "createArchive already writes ARCHIVE_SUMMARY.md, CONTRACT_TRACEABILITY.md, wisdom.json into the bundle from change state via atomicWriteFile, and archiveBundleExists()/status-repair treat the bundle as the idempotent durable record. The archive digest is one more generated bundle artifact on this same path — idempotency is structural (regenerated from durable change state), not a new mechanism."
+        }
+      ],
+      "architecture_assessment": "Design is a generated-projection layer over already-durable state; nearly every lane input and the archive digest have existing reusable primitives. Highest leverage: (1) implement briefing packet as an `adv_change_show include.briefingPacket` flag reusing the existing lazy-include switch and buildChangeContextSnapshot projection rather than any new surface — collapses 'no standalone tool' + 'existing read surfaces' + optional-Epic AC into reuse; (2) derive strict lane identity anchors mechanically from SUBAGENT_REPORT_FIELD_SOURCES via getSubagentReportPacketAnchors (structural, no heuristic); (3) model the durable-fact classifier and archive digest on the existing archive.ts:450-491 type-based promote/dedup/compact classifier + bundle-writer, reusing content-dedup for idempotency. Reference (by-the-book) pattern for this repo = pure formatter (utils) + storage-backed fetch (storage/context-snapshot-fetch.ts) + tool include flag; the design should follow that three-layer split, keeping packet formatting in a pure util reachable from workflow-safe contexts (AGENTS.md layer-boundary rule). No core-architecture replacement needed — all candidates are leverage points, not design revisions.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All five candidates tie to specific in-repo evidence; none conflict with constraints/avoidances (no standalone tool, no shared-workflow revival, no gate authority, no session-log persistence). Idempotency and durable/transient separation are backed by existing archive classifier prior art, satisfying structural-correctness constraint. No contract/security/release blocker requiring orchestrator decision."
+      },
+      "recommendation": "Adopt candidate 1 (include.briefingPacket flag + pure formatter reuse) and candidate 3 (mechanical anchor derivation) now — both are contract-tied, low-risk, no user-value tradeoff. Model the durable-fact classifier + archive digest (candidate 4/5) directly on archive.ts:450-491's type-based dedup/compact classifier and the createArchive bundle-writer to inherit idempotency structurally. Keep packet formatting in a pure util (no storage/tools imports) per the enforced layer-boundary test so it stays reachable from workflow-safe contexts.",
+      "follow_ups": [
+        "Confirm classifier outcome taxonomy (transient_prompt_context/agenda/wisdom_candidate/spec_delta_candidate/epic_terminal_note/archive_only_evidence/unresolved_action) maps onto existing promotable-type + follow_up/required_follow_up report fields before adding new outcome storage.",
+        "Ensure any new packet formatter passes context-snapshot.purity.test.ts-style boundary rules (no storage/tools imports) if placed under utils/."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for addBriefingPackets (briefing packet projection layer)",
+      "sources": [
+        {
+          "label": "SUBAGENT_REPORT_FIELD_SOURCES + getSubagentReportPacketAnchors",
+          "locator": "plugin/src/types/subagent-reports.ts:665-814",
+          "summary": "All 7 persisted agents (engineer/reviewer/designer/researcher/tron/scanner-bundle/verification-triage-bundle) have field-source maps with packet_anchor fields. getSubagentReportPacketAnchors() derives strict identity anchors programmatically. Backs Decision 2 / AC2."
+        },
+        {
+          "label": "SubagentAgentSchema + strict scope pairing spec",
+          "locator": "plugin/src/types/subagent-reports.ts:15-23; spec subagent-reports rq-subagentReports05/06",
+          "summary": "Scanner->adv-scanner-bundle and verifier->adv-verification-triage-bundle mapping matches spec exactly. Individual scanner lanes are explicitly non-persisted (rq-subagentReports05.2). Design mirrors this ('individual scanner prompts remain non-persisted analysis lanes'). No conflict."
+        },
+        {
+          "label": "adv_change_show include pattern",
+          "locator": "plugin/src/tools/change.ts:2531-2536,2581,2693-2859",
+          "summary": "Existing include object already carries snapshot/ledger/readyTasks/proposal/design/artifactOnly with default-compact behavior ('defaults preserve current behavior'). include.briefingPacket fits the existing lazy-include switch. Backs Decision 1 / AC1 / C3."
+        },
+        {
+          "label": "context-snapshot purity + compact Epic membership",
+          "locator": "plugin/src/utils/context-snapshot.ts:43,338-339 (no ../storage or ../tools imports)",
+          "summary": "Pure formatter renders Epic membership only when present (if(epicMembership)), omitting otherwise. Backs the pure-renderer purity boundary and AC5 (non-Epic valid, Epic compact, order non-blocking)."
+        },
+        {
+          "label": "Archive wisdom promotion dedupe/compaction precedent",
+          "locator": "plugin/src/archive/archive.ts:450-489",
+          "summary": "Existing archive path promotes convention/pattern wisdom with content-based dedupe (existingContents Set) + compaction. Backs Decision 4/5 classifier 'type-based routing, content dedupe, compaction'. NOTE: dedupe is content-string based, not a deterministic digest-PATH overwrite; the design's idempotent digest-path is a NEW mechanism, not identical to this precedent."
+        },
+        {
+          "label": "subagent-reports spec — compact read + anchor lifecycle contracts",
+          "locator": "spec subagent-reports v1.5.0 rq-subagentReports03/05/06/07",
+          "summary": "'ordinary change/task read remains compact unless include.subagentReports is true' (rq06.2). Packet identity anchors + warn-first anchors are spec-owned per lane (rq05). Asset/spec tests already pin anchor derivation (subagent-reports.test.ts:774-845), supporting AC9's drift-fail requirement."
+        }
+      ],
+      "architecture_assessment": "The design is a typed read-projection over already-trusted ADV structured state, delivered through the existing adv_change_show include surface with a pure no-storage renderer mirroring context-snapshot.ts boundaries. Every material claim is verified against real code: (1) lane identity anchors are derivable from the existing SUBAGENT_REPORT_FIELD_SOURCES map for all 7 persisted agents; (2) the include-flag delivery pattern with default-compact reads already exists and is spec-mandated; (3) the pure-renderer purity boundary is real and enforced; (4) compact Epic membership is already optionally rendered with omit-when-absent semantics; (5) the archive wisdom promotion path already implements type-routing + dedupe + compaction as a classifier precedent. The LBP correctly rejects a standalone tool, live packet persistence, heuristic prose classification, and raw dumps — all aligned with DONT1-7 and P33 (structural-before-heuristic). The design is boring in the good sense: it reuses existing surfaces rather than inventing a new state store or workflow authority (respects DONT4/DONT5).",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Two MINOR cautions, neither a conflict: (A) The archive digest 'deterministic path overwrite' idempotency (Decision 5 / AC7) is a NEW mechanism — the cited archive.ts precedent dedupes by content-string within an append-and-compact model, not by overwriting a fixed bundle-artifact path. Implementation must add real overwrite/upsert semantics + a replay-repeat test; the precedent informs but does not provide this. (B) Decision 4's durable-fact classifier explicitly defers the outcome-taxonomy-to-report-field mapping ('implementation must prove the outcome taxonomy maps to existing report fields ... or add explicit typed fields'). This is an unresolved design-derived proof obligation, appropriately gated to planning/execution rather than a design gap, but it means AC6 correctness depends on that mapping proof landing before the classifier is trusted. Both are called out in the design's own Risks section, which is the correct structural-correctness posture."
+      },
+      "recommendation": "VALIDATED-with-CAUTION: proceed to planning. The architecture is sound, simpler than the rejected alternatives, spec-compliant, and backed by verified code precedents for every load-bearing claim (anchor derivation, include pattern, renderer purity, Epic compactness, archive dedupe). Before or during planning, tighten two items: (1) specify the archive digest's deterministic overwrite/upsert semantics as an explicit mechanism with a replay-repeat idempotency test (AC7), since the cited wisdom-promotion precedent is content-dedupe not path-overwrite; (2) require the durable-fact classifier task to first prove each Decision-4 outcome maps to an existing structured report field (follow_ups, required_follow_ups, required_main_agent_actions, context_update_for_adv, wisdom_candidates, scanner bundle follow_ups) before adding any new outcome storage, adding narrow typed briefing_facts[] only where a concrete gap is demonstrated (AC6, P33). No CONFLICT with specs or agreement was found; scanner/verifier lane mapping and non-persisted-scanner handling match subagent-reports spec exactly.",
+      "follow_ups": [
+        "Planning: add explicit archive-digest overwrite/upsert mechanism + replay-repeat idempotency test (AC7); do not rely solely on wisdom content-dedupe precedent.",
+        "Planning: gate the durable-fact classifier behind a proof that each outcome maps to an existing structured report field before adding new outcome storage (AC6, P33).",
+        "Asset tests: extend existing subagent-reports.test.ts anchor-drift pattern to also pin the new briefingPacket lane->agent mapping and lane-slice bounds (AC9)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+      "task_id": "tk-eb2cc01eed52",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-eb2cc01eed52"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/subagent-reports/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/advance-epics/spec.json",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/types/briefing-packets.ts",
+        "plugin/src/types/briefing-packets.test.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/briefing-packets-spec-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/types/briefing-packets.test.ts src/briefing-packets-spec-assets.test.ts src/subagent-reports-spec-assets.test.ts src/advance-epics-assets.test.ts src/ops-follow-up-assets.test.ts",
+          "exit_code": 0,
+          "summary": "89 tests pass across briefing packet types, spec law, and dependent version/ID expectations"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added a dedicated briefing-packets types module instead of extending subagent-reports.ts",
+          "why": "Keeps the generated projection surface cohesive and avoids bloating the report ingest schema"
+        },
+        {
+          "what": "Derived lane identity anchors from existing SUBAGENT_REPORT_FIELD_SOURCES / getSubagentReportPacketAnchors()",
+          "why": "Satisfies AC2 and avoids duplicating strict identity-anchor lists"
+        },
+        {
+          "what": "Added archive as a non-worker lane with deterministic terminal anchors",
+          "why": "Archive digest is not a persisted worker report; separating it preserves the lane/agent mapping invariant"
+        },
+        {
+          "what": "Bumped spec versions and updated dependent version-lock tests",
+          "why": "Adding spec law requires version advancement; the existing advance-workflow lock was already stale"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated dependent spec-version expectations in ops-follow-up-assets.test.ts and Epic req-ID mirror check in advance-epics-assets.test.ts",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Briefing packet spec law and type foundations are in place: lanes, identity-anchor derivation, fact outcomes, packet schema, and spec requirements across subagent-reports, advance-workflow, and advance-epics. All targeted tests and pnpm run check pass.",
+        "suggested_next_action": "Proceed to task tk-cb9e107ca5ef (Implement pure briefing packet renderer) which depends on these foundations"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/types/briefing-packets.test.ts src/briefing-packets-spec-assets.test.ts src/subagent-reports-spec-assets.test.ts src/advance-epics-assets.test.ts src/ops-follow-up-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+      "task_id": "tk-cb9e107ca5ef",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-cb9e107ca5ef"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/utils/briefing-packet-renderer.ts",
+        "plugin/src/utils/briefing-packet-renderer.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "npx vitest run src/utils/briefing-packet-renderer.test.ts --reporter=verbose",
+          "exit_code": 0,
+          "summary": "15/15 renderer tests pass"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "No TypeScript errors"
+        },
+        {
+          "command": "pnpm run lint -- src/utils/briefing-packet-renderer.ts src/utils/briefing-packet-renderer.test.ts",
+          "exit_code": 0,
+          "summary": "No lint errors"
+        },
+        {
+          "command": "pnpm run format:check -- src/utils/briefing-packet-renderer.ts src/utils/briefing-packet-renderer.test.ts",
+          "exit_code": 0,
+          "summary": "Prettier formatting clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Made renderer deterministic by accepting generated_at as input rather than calling Date.now()",
+          "why": "Keeps the pure renderer deterministic for the same input, which is required for testable, replay-safe packet generation"
+        },
+        {
+          "what": "Kept durable-fact classifier consumer out of scope; renderer accepts pre-extracted BriefingFact[]",
+          "why": "The task scope explicitly excluded the classifier consumer; callers pass already-extracted facts"
+        },
+        {
+          "what": "Used a lane-specific section selection map and worker/archive anchor functions from types",
+          "why": "Satisfies the lane-specific bounded sections requirement without adding storage/tool dependencies"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Pure briefing packet renderer implemented in plugin/src/utils/briefing-packet-renderer.ts. Emits lane-specific sections, source labels, omission metadata, unavailable markers, compact Epic context, and bounded facts. 15 unit tests pass; typecheck and lint clean.",
+        "suggested_next_action": "Wire renderer into adv_change_show include path or durable-fact classifier consumer in a follow-up task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/utils/briefing-packet-renderer.test.ts --reporter=verbose"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint -- src/utils/briefing-packet-renderer.ts src/utils/briefing-packet-renderer.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check -- src/utils/briefing-packet-renderer.ts src/utils/briefing-packet-renderer.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+      "task_id": "tk-12d65d289dab",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-12d65d289dab"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tool-name-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts src/briefing-packets-spec-assets.test.ts src/tool-name-assets.test.ts -t \"briefing|adv_briefing_packet\"",
+          "exit_code": 0,
+          "summary": "8 targeted tests pass: 3 change.show briefing-packet behaviors, 4 spec-law assets, 1 no-standalone-tool assertion"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented storage-backed adapter inside change.ts rather than a separate file",
+          "why": "Avoids circular import with readArtifacts and keeps the include/execute path in one place"
+        },
+        {
+          "what": "Default briefing lane is engineer when briefingPacketLane omitted",
+          "why": "Matches the most common worker consumer and the design's lane/request field shape"
+        },
+        {
+          "what": "Left durable_facts and archive_digest undefined in the adapter",
+          "why": "Durable-fact classifier and archive digest writer are explicitly out of scope for this task; renderer emits unavailable markers for missing sections"
+        },
+        {
+          "what": "Added tolerant preprocessing for briefingPacketLane empty-string placeholders",
+          "why": "Defensive against strict-mode providers filling optional enum fields with empty strings"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Pre-existing unrelated failure in src/tool-name-assets.test.ts: .opencode/command/adv-epic.md references adv_epic_update_scope and adv_epic_merge which are not in ADV_TOOL_NAMES"
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes needed; briefing packet wiring is isolated to adv_change_show include path",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_change_show now supports include.briefingPacket (plus optional briefingPacketLane/briefingPacketRequest) and returns a generated _briefingPacket from existing structured state via the pure renderer. Default reads remain compact. No standalone adv_briefing_packet tool was added. A pre-existing unrelated tool-name-assets failure for adv-epic.md references was observed.",
+        "suggested_next_action": "Proceed to durable-fact classifier or archive digest tasks; current read surface is wired and verified"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/briefing-packets-spec-assets.test.ts src/tool-name-assets.test.ts -t \"briefing|adv_briefing_packet\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+      "task_id": "tk-1d4d6a5d94a3",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-1d4d6a5d94a3"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/utils/briefing-fact-classifier.ts",
+        "plugin/src/utils/briefing-fact-classifier.test.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/utils/briefing-fact-classifier.test.ts",
+          "exit_code": 0,
+          "summary": "13 classifier tests pass; includes RED→GREEN TDD for structural mapping and no-keyword-inference guard."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Full pre-push check gate passes: schemas:check, typecheck, test isolation, lockfile policy, lint, format:check."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implemented pure classifier in plugin/src/utils/briefing-fact-classifier.ts using only structural field access and type casts; no free-text keyword inference.",
+          "why": "Matches AC6/C1/C2/C5 and respects DONT1/DONT2/DONT5/DONT6 by deriving outcomes from typed report fields and explicit typed facts rather than heuristics."
+        },
+        {
+          "what": "Mapped follow_ups/required_follow_ups to agenda, required_main_agent_actions to unresolved_action, context_update_for_adv to transient_prompt_context, reviewer wisdom_candidates to wisdom_candidate, scanner bundle follow_ups to agenda, and supplied Epic membership to epic_terminal_note.",
+          "why": "These are the existing structured sources listed in the task scope and their natural durable-fact lifecycles."
+        },
+        {
+          "what": "Used an optional explicitFacts input for spec_delta_candidate instead of adding a new report storage field.",
+          "why": "No existing structured report field maps to spec_delta_candidate; explicit typed input proves the gap without schema weakening or keyword inference."
+        },
+        {
+          "what": "Added the missing VerificationTriageBundleSubagentReport type export to plugin/src/types/index.ts.",
+          "why": "Classifier needs the verifier type for structural handling; the export was absent from the barrel."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified adjacent briefing-packet/renderer tests and subagent-report/followup tests still pass; no standalone adv_briefing_packet tool or archive digest writer added.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Structural durable-fact classifier is implemented and tested. It maps existing sub-agent report fields to all seven briefing-fact outcomes without keyword inference. pnpm run check and targeted tests are green.",
+        "suggested_next_action": "Wire classifier into adv_change_show/handoff read surfaces and archive digest generation in subsequent tasks."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/briefing-fact-classifier.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+      "task_id": "tk-e97d791ffb60",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-e97d791ffb60"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/archive/archive.ts",
+        "plugin/src/archive/archive.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/archive/archive.test.ts",
+          "exit_code": 0,
+          "summary": "15 archive tests pass including 5 new digest/idempotency tests"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+        },
+        {
+          "command": "pnpm exec vitest run src/utils/briefing-packet-renderer.test.ts src/utils/briefing-fact-classifier.test.ts src/types/briefing-packets.test.ts src/briefing-packets-spec-assets.test.ts",
+          "exit_code": 0,
+          "summary": "42 related briefing-packet tests pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Composed contract/AC coverage summary inside archive.ts instead of extending the archive lane in the renderer",
+          "why": "Renderer task is complete and archive lane intentionally excludes transient live slices; contract summary is archive-specific digest content"
+        },
+        {
+          "what": "Filtered transient_prompt_context facts out of the durable facts fed to the archive-lane renderer",
+          "why": "Spec law requires transient prompt-only slices to stop being exposed in the archive digest"
+        },
+        {
+          "what": "Used deterministic BRIEFING_DIGEST.md filename and atomicWriteFile in both createArchive and createInRepoArchive",
+          "why": "Repeated archive/replay overwrites the same path instead of appending duplicate records"
+        },
+        {
+          "what": "Relied on existing project-wisdom content deduplication for durable promotion idempotency",
+          "why": "Archive already checks existing wisdom contents before promoting; repeat archive does not duplicate entries"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified both archive creation paths (createArchive and createInRepoArchive) write BRIEFING_DIGEST.md; no other archive creation paths found in plugin/src.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Archive-lane briefing digest is implemented: BRIEFING_DIGEST.md is written to every archive bundle (external and in-repo) using the pure briefing packet renderer and durable-fact classifier. The digest includes change identity, terminal gate summary, durable fact outcomes, Epic context, unresolved actions (or explicit none), contract/AC coverage, and unavailable warnings. Transient prompt context is filtered out. Repeat archives overwrite the deterministic digest path and do not duplicate wisdom promotions.",
+        "suggested_next_action": "Run the full test suite or proceed to the next execution task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/archive/archive.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/briefing-packet-renderer.test.ts src/utils/briefing-fact-classifier.test.ts src/types/briefing-packets.test.ts src/briefing-packets-spec-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+      "task_id": "tk-3c3a4a9e0637",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3c3a4a9e0637"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-review.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-researcher.md",
+        "plugin/src/briefing-packets-command-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "npx vitest run src/briefing-packets-command-assets.test.ts src/briefing-packets-spec-assets.test.ts src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-review-assets.test.ts src/commands-spine-assets.test.ts --reporter=verbose",
+          "exit_code": 0,
+          "summary": "All 99 targeted asset tests passed; new briefing-packet command/agent consumption tests green, existing anchor-preservation tests unchanged"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Replaced manual AFFECTED FILES/ACCEPTANCE CRITERIA/EPIC CONTEXT/CONTRACT sections in command packets with a single `BRIEFING PACKET: inject _briefingPacket (lane: ...)` slice",
+          "why": "Eliminates duplicated packet correctness prose and makes the generated read projection the single source of truth for scope, contract, tasks, affected files, epic context, and verification expectations"
+        },
+        {
+          "what": "Preserved required identity anchors (WORKING DIRECTORY, CHANGE, TASK/SCOPE KEY, ATTEMPT, PHASE) and warn-first anchors inline",
+          "why": "Worker packet identity cannot be inferred from the briefing packet alone; the anchors remain explicit in every spawned packet"
+        },
+        {
+          "what": "Kept TASK EVIDENCE SUMMARY in scanner-only context packets and left scanner-bundle orchestrator-submitted",
+          "why": "Scanner lane briefing packets do not include tasks, and per DONT the scanner lanes remain non-persisted orchestrator-submitted bundles only"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Replaced duplicated packet context in Apply, Designer Apply, Review/Harden scanner and remediation packets, Design validator prompt, and Discover researcher scout packet; aligned all four worker agents to consume the generated briefing packet slice.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Command and agent prompt assets now consume generated `_briefingPacket` slices instead of duplicating AFFECTED FILES, ACCEPTANCE CRITERIA, EPIC CONTEXT, CONTRACT ITEMS/PROOF, and AGREEMENT CONTEXT. Required worker packet identity anchors are preserved inline. New asset tests (briefing-packets-command-assets.test.ts) enforce this consumption contract and verify anchor preservation. `pnpm run check` passes.",
+        "suggested_next_action": "Run the full test suite or merge if CI is green; no further code changes needed for this task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/briefing-packets-command-assets.test.ts src/briefing-packets-spec-assets.test.ts src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-review-assets.test.ts src/commands-spine-assets.test.ts --reporter=verbose"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/change.ts",
+          "summary": "Fixed acceptance-review issue discovered during review: live adv_change_show briefing-packet readback now structurally classifies persisted task/change sub-agent reports into durable briefing facts instead of always leaving durable_facts unavailable.",
+          "verification": "bin/oc-test targeted -- src/types/briefing-packets.test.ts src/utils/briefing-packet-renderer.test.ts src/utils/briefing-fact-classifier.test.ts src/tools/change.test.ts src/archive/archive.test.ts src/briefing-packets-command-assets.test.ts src/briefing-packets-spec-assets.test.ts src/tool-name-assets.test.ts passed: 8 files, 160 tests; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tools/change.test.ts",
+          "summary": "Added regression coverage proving include.briefingPacket includes structurally classified durable facts from persisted reviewer reports on the existing adv_change_show read surface.",
+          "verification": "bin/oc-test targeted -- src/tools/change.test.ts src/utils/briefing-fact-classifier.test.ts src/utils/briefing-packet-renderer.test.ts passed: 3 files, 108 tests; full targeted briefing subset passed: 8 files, 160 tests."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Briefing-packet renderer/classifier tests can pass while the storage-backed read adapter still omits classified facts; acceptance coverage needs a tool-surface test that feeds persisted subagent_reports through adv_change_show include.briefingPacket."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight for all 32 changed files: OK",
+          "bin/oc-test targeted -- src/types/briefing-packets.test.ts src/utils/briefing-packet-renderer.test.ts src/utils/briefing-fact-classifier.test.ts src/tools/change.test.ts src/archive/archive.test.ts src/briefing-packets-command-assets.test.ts src/briefing-packets-spec-assets.test.ts src/tool-name-assets.test.ts",
+          "pnpm run typecheck",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Preflight confirmed all listed changed files exist. Reviewed contract SC1-SC3, AC1-AC9, C1-C6, DONT1-DONT7 against source/spec/tests. Initial targeted test rerun after remediation passed 8 files / 160 tests. pnpm run typecheck passed. pnpm run check passed: schemas:check, typecheck, test-isolation, lockfile policy, lint, format:check."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live ADV tool schema in this already-running OpenCode session still does not expose include.briefingPacket until source is built/deployed and a fresh session/plugin host loads the new dist, per repo source-vs-dist reload gotcha.",
+        "Review was source/test based; no end-to-end live MCP invocation of include.briefingPacket was possible in this session because the deployed live schema predates this change."
+      ],
+      "required_main_agent_actions": [
+        "If promoting this review wisdom, record it via adv_wisdom_add; not blocking.",
+        "Before release/archive, rebuild/deploy/restart plugin host if end-to-end live MCP validation of include.briefingPacket is required; source tests and check are green."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "plugin/src/utils/briefing-packet-renderer.ts",
+          "line": 490,
+          "what": "Briefing packet renderer remains pure and storage-free with explicit lane sections and omission markers.",
+          "why": "Supports release readiness by keeping packet generation read-only, bounded, and testable."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/types/briefing-packets.ts",
+          "summary": "Added BRIEFING_PACKET_SESSION_METADATA_MAX_LENGTH and enforced it on session_metadata.generated_by so audit metadata stays bounded with packet body constraints.",
+          "verification": "bin/oc-test targeted 11 briefing/asset files passed 246 tests; pnpm run check passed; bin/oc-test smoke passed."
+        },
+        {
+          "file": "plugin/src/types/index.ts",
+          "summary": "Exported BRIEFING_PACKET_SESSION_METADATA_MAX_LENGTH through the type barrel so tool readback code uses the canonical bound.",
+          "verification": "pnpm run typecheck and pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tools/change.ts",
+          "summary": "Bounded include.briefingPacketRequest at the tool schema and truncated generated_by metadata to the canonical max, preventing oversized request metadata from inflating _briefingPacket output.",
+          "verification": "src/tools/change.test.ts passed inside targeted suite; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tools/change.test.ts",
+          "summary": "Added regression coverage that a 500-character briefingPacketRequest yields 200-character generated_by session metadata.",
+          "verification": "bin/oc-test targeted -- src/tools/change.test.ts src/types/briefing-packets.test.ts passed 91 tests; full targeted briefing suite passed 246 tests."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Read-projection packet bounds must include audit/session metadata, not just main sections and facts; otherwise optional request context can bypass bounded-output guarantees."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight: test -e for .adv/specs, docs/specs, briefing packet type/utils/tool/archive/command/agent paths",
+          "git status --short; git diff --stat origin/trunk...HEAD",
+          "git diff --name-only origin/trunk...HEAD | xargs -r rg -n \"TODO|FIXME|debugger|console\\.log|adv_briefing_packet|process\\.env|migration|featureFlag|fetch\\(\"",
+          "bin/oc-test targeted -- plugin/src/... (initial incorrect path attempt; failed with no test files found; operator command path error, not product failure)",
+          "bin/oc-test targeted -- src/types/briefing-packets.test.ts src/utils/briefing-packet-renderer.test.ts src/utils/briefing-fact-classifier.test.ts src/tools/change.test.ts src/archive/archive.test.ts src/briefing-packets-command-assets.test.ts src/briefing-packets-spec-assets.test.ts src/subagent-reports-spec-assets.test.ts src/advance-epics-assets.test.ts src/ops-follow-up-assets.test.ts src/tool-name-assets.test.ts",
+          "pnpm run typecheck",
+          "pnpm run format:check",
+          "pnpm run check",
+          "bin/oc-test smoke"
+        ],
+        "results": "pass",
+        "evidence": "Preflight paths OK. Initial targeted command used root-relative plugin/src paths while wrapper runs in plugin/ and failed with 'No test files found'; corrected command passed. After harden fix: targeted briefing suite passed 11 files / 246 tests; pnpm run check passed schemas:check, typecheck, test-isolation, lockfile policy, lint, format:check; bin/oc-test smoke passed check plus 2 smoke files / 57 tests. Worktree contains intended reviewer edits only."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Current running MCP schema may not expose include.briefingPacket until source is built/deployed and OpenCode session restarts; source tests verify the new surface.",
+        "Harden review used source/test evidence and packet-provided prior acceptance evidence; no live deployed tool invocation of include.briefingPacket was possible in this session."
+      ],
+      "required_main_agent_actions": [
+        "Carry the four reviewer harden-fix files into the final release diff; they are verified and in-scope.",
+        "Before live end-to-end tool validation, rebuild/deploy plugin and restart OpenCode per repo source-vs-dist reload gotcha."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addBriefingPackets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addBriefingPackets",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability",
+        "test-coverage"
+      ],
+      "summary": "Harden READY. No blocker/high findings. One medium untested error-path finding fixed inline. Final verification green: targeted 11 files/247 tests, pnpm run check, bin/oc-test smoke.",
+      "findings": [
+        {
+          "scanner": "docs-cleanup-deployment",
+          "severity": "info",
+          "summary": "Docs, command assets, and deployment readiness pass. No env vars, migrations, external services, CI/CD, infra, or frontend preview surface. Pre-existing orphaned unbound epic tool implementations remain outside this change scope.",
+          "evidence": [
+            {
+              "label": "verification",
+              "locator": "adv_run_test tr_mr3z883z_b93d06c0 / tr_mr3z8yvg_a517e542 / tr_mr3z9ry4_4358520a",
+              "summary": "Targeted suite, pnpm run check, and smoke passed after harden remediation."
+            },
+            {
+              "label": "pre-existing cleanup candidate",
+              "locator": "plugin/src/tools/epic.ts:834,1643",
+              "summary": "adv_epic_update_scope and adv_epic_merge implementations are unbound and not referenced by docs/commands; not introduced by this change."
+            }
+          ]
+        },
+        {
+          "scanner": "slop-production-test-coverage",
+          "severity": "info",
+          "summary": "Production readiness pass. Test coverage is strong for changed source. Medium _briefingPacketError coverage gap was fixed and verified.",
+          "evidence": [
+            {
+              "label": "coverage",
+              "locator": "plugin/src/tools/change.test.ts",
+              "summary": "Added read-path failure coverage for _briefingPacketError; targeted tests now 247 pass."
+            },
+            {
+              "label": "bounded metadata",
+              "locator": "plugin/src/types/briefing-packets.ts / plugin/src/tools/change.ts",
+              "summary": "generated_by metadata bounded at 200 chars and tested."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Optional separate cleanup: decide whether to bind or remove pre-existing unbound adv_epic_update_scope / adv_epic_merge implementations in plugin/src/tools/epic.ts."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Live OpenCode session cannot invoke new include.briefingPacket schema until plugin build/deploy/restart; source tests verify behavior."
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-02T17:29:28.297Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved via inline Tier A reply: user replied \"approve\" after completed proposal summary for addBriefingPackets.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "2a533337a75b21ad2ccd4d6276edacf07ac4f936c35e1932bff5d677a4629826",
+        "non_whitespace_chars": 7128,
+        "checked_at": "2026-07-02T17:23:35.068Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-02T17:50:39.520Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete: agreement approved via inline Tier A reply `approve`; contract minted with 25 items (SC1-3, AC1-9, C1-6, DONT1-7). User decisions recorded: existing read/handoff surfaces only, most-programmatic durable-fact classifier, session/tool-read metadata audit-only.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "non_whitespace_chars": 4601,
+        "checked_at": "2026-07-02T17:23:35.069Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-02T18:01:19.943Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete: generated briefing packet read projection via existing adv_change_show/handoff surfaces; strict lane anchors derived from SUBAGENT_REPORT_FIELD_SOURCES; no live packet state; programmatic durable-fact classifier; idempotent archive digest. Design leverage scout ran and auto-adopted low-risk reuse findings. Independent validator returned CAUTION with planning obligations for archive upsert/replay tests and classifier mapping proof; no CONFLICT or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "c96aa629ab04fd5e4de6aae4e859f9f18251b5733614626b2503e8830920a958",
+        "non_whitespace_chars": 10503,
+        "checked_at": "2026-07-02T17:23:35.070Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-02T18:10:18.399Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep approved via inline Tier A reply: user replied `approve` after 7-task graph presentation. Proceeding inline to apply."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-02T19:54:24.264Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 planned tasks done and checkpointed; _readyTasks empty; final verification task passed targeted suite (11 files, 234 tests), pnpm run check, and bin/oc-test smoke."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-02T20:32:07.732Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance inline: `approve`. Acceptance proof persisted before prompt: review verdict APPROVED, executive summary present, contract matrix 25/25 pass/respected, targeted suite 245 tests, pnpm run check, and smoke passed after rebase.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "414932cbc4f6a39cc328793b0c6f984fea717e7c13e3569ed8883cad3555dac8",
+        "non_whitespace_chars": 3903,
+        "checked_at": "2026-07-02T17:23:35.071Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "briefing-packet-audit-session-2026-07-02"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+      "approvedAt": "2026-07-02T17:50:31.545Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Sub-agent packet assembly is generated from structural ADV state instead of duplicated command prose for the covered lanes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Workers receive bounded lane-relevant context without full artifact/report dumping.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Durable context discovered mid-change has an explicit typed lifecycle through archive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Existing ADV change/handoff read surfaces expose briefing packets; no standalone `adv_briefing_packet` tool is introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Lane identity anchors match `SUBAGENT_REPORT_FIELD_SOURCES` / `getSubagentReportPacketAnchors()` for each supported persisted worker or bundle lane.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Packet content derives from structured ADV state with source labels; raw artifacts, raw transcripts, and unbounded report bodies are not dumped into every packet.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Missing structured state renders explicit unavailable markers or warnings; packet rendering does not heuristically fabricate correctness-critical fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Non-Epic changes render valid packets; Epic changes include compact membership context without blocking on Epic order alone.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Report-created durable facts are structurally classified into typed outcomes such as transient, agenda, wisdom, spec-delta candidate, Epic terminal note, or archive-only evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Archive keeps a compact digest and durable promotions while transient prompt-only slices stop being exposed; repeated archive/finalization/replay does not duplicate digest or promotions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Session/tool-read metadata remains audit-only and is not persisted as live briefing packet state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Asset/spec tests fail if packet-anchor derivation, lane-slice bounds, or lifecycle/cleanup contracts are removed or drift from specs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Packet correctness must be structural: types, schemas, validators, and tests own required fields and lifecycle behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Existing strict sub-agent report validation must remain strict; missing identity anchors must not be inferred heuristically.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Packet delivery must use existing ADV read/handoff surfaces; no new standalone briefing tool.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Packet slices must be bounded and lane-specific.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Archive lifecycle must separate transient prompt context from durable facts that should become wisdom, spec-delta candidates, Epic terminal notes, agenda items, or archive evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Implementation remains current-repo scoped unless design proves target-path/product Epic packet reads require additional handling inside `advance`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not create a manual checklist as the source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not dump full artifacts, raw transcripts, or all reports into every sub-agent prompt.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not make Epic membership mandatory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not revive project-level shared workflow or singleton context state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not let briefing packets complete gates, override release proof, or mutate ADV state independently.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not persist session logs/tool-read metadata as briefing packet state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not add a new standalone `adv_briefing_packet` tool.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-02T20:22:05.808Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY; command/agent assets consume generated BRIEFING PACKET slices; briefing-packets-command-assets.test passed."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Renderer emits lane-specific bounded sections; no raw artifact/report dump; targeted suite 11 files/245 tests passed after rebase."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "classifier maps typed report fields to durable outcomes; archive digest writes durable facts and excludes transient prompt context; archive.test passed."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_change_show include.briefingPacket source path tested in plugin/src/tools/change.test.ts; tool-name asset test confirms no adv_briefing_packet tool; targeted suite passed."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Briefing lane anchors derive via getSubagentReportPacketAnchors/SUBAGENT_REPORT_FIELD_SOURCES; types and command asset tests passed."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Renderer tests cover source labels and bounded content; command asset tests ban duplicated AFFECTED FILES/AC/CONTRACT/EPIC manual sections; targeted suite passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Renderer unavailable-state tests pass; missing structured state renders explicit unavailable markers; classifier has no keyword/prose inference path."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Renderer non-Epic and Epic compact context tests pass; Epic order remains advisory in spec/command assets."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "briefing-fact-classifier.test covers typed outcomes; reviewer remediation wired readback facts into change.ts and change.test; targeted suite passed."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive.test covers BRIEFING_DIGEST.md, transient exclusion, durable facts, same-day replay, and existing dated bundle replay without duplicate digest; targeted suite passed."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "BriefingPacketSchema enforces session_metadata.audit_only true; no live packet state persistence path; type/renderer tests passed."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec/asset tests cover packet-anchor derivation, lane-slice bounds, command consumption, and lifecycle cleanup; targeted suite passed after rebase."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Zod schemas, TypeScript lane maps, classifier enum outcomes, renderer unit tests, and spec asset tests own correctness structurally."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Strict sub-agent report schemas retained; anchors are derived from SUBAGENT_REPORT_FIELD_SOURCES; missing anchors throw rather than infer."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Delivery uses existing adv_change_show include path and command/handoff packet consumption; ADV_TOOL_NAMES test confirms no standalone briefing tool."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "LANE_SECTIONS and omitTail bounds in renderer; schema caps sections/facts; renderer tests verify bounded slices."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Classifier separates transient_prompt_context from durable outcomes; archive digest filters transient context and records durable archive evidence."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation remains current repo scoped; no target_path/product read expansion added beyond optional compact Epic membership context."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No checklist source of truth added; generated renderer/types/spec tests own packet structure."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Command asset tests ban raw manual sections; renderer uses structured summaries, bounded facts, and source labels only."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Non-Epic packets render valid; Epic context present:false path tested; Epic membership remains optional/advisory."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No project-level singleton/shared workflow state added; packets are generated read projections from current change state."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Briefing packets do not complete gates, override proof, or mutate state; archive digest is written only by archive flow."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "session_metadata audit_only is schema-enforced; no session log/tool-read persistence added."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "tool-name asset test confirms no adv_briefing_packet tool; command docs reference existing typed tools only."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Existing ADV change/handoff read surfaces expose briefing packets; no standalone `adv_briefing_packet` tool is introduced.",
+    "Lane identity anchors match `SUBAGENT_REPORT_FIELD_SOURCES` / `getSubagentReportPacketAnchors()` for each supported persisted worker or bundle lane.",
+    "Packet content derives from structured ADV state with source labels; raw artifacts, raw transcripts, and unbounded report bodies are not dumped into every packet.",
+    "Missing structured state renders explicit unavailable markers or warnings; packet rendering does not heuristically fabricate correctness-critical fields.",
+    "Non-Epic changes render valid packets; Epic changes include compact membership context without blocking on Epic order alone.",
+    "Report-created durable facts are structurally classified into typed outcomes such as transient, agenda, wisdom, spec-delta candidate, Epic terminal note, or archive-only evidence.",
+    "Archive keeps a compact digest and durable promotions while transient prompt-only slices stop being exposed; repeated archive/finalization/replay does not duplicate digest or promotions.",
+    "Session/tool-read metadata remains audit-only and is not persisted as live briefing packet state.",
+    "Asset/spec tests fail if packet-anchor derivation, lane-slice bounds, or lifecycle/cleanup contracts are removed or drift from specs."
+  ],
+  "documents": {
+    "proposal": "## Why\n\nADV sub-agent prompts are assembled from duplicated per-command packet templates, so critical change/Epic context is uneven, workers rediscover context through reads/searches, and durable “remember this” facts lack lifecycle cleanup/archive handling.\n\nAudit evidence from this session:\n\n- Command packets repeat the same anchors across `adv-apply`, `adv-review`, `adv-harden`, `adv-design`, and `adv-discover`: `WORKING DIRECTORY`, `CHANGE`, `ATTEMPT`, `TASK_SCOPE`, `IN_SCOPE`, `OUT_OF_SCOPE`, `DONE_WHEN`, `STOP_WHEN`, `VERIFICATION`, and `EXPECTED OUTPUT`.\n- Existing sources are partial: `_contextSnapshot`, `epic_membership`, `adv_epic_show`, strict sub-agent reports, scanner bundles, and archive summaries each carry some context, but no single generated briefing layer owns prompt-ready slices.\n- Current-project session metadata showed high non-primary worker rediscovery: non-ADV agents used `read` 1,538 times, `grep` 560 times, `bash` 642 times, and repeatedly called `adv_change_show` / `adv_spec` to reconstruct context.\n- Persisted reports and reflections repeatedly ask the main agent to remember durable facts such as release-proof authority, cleanup classification, dedicated test obligations, and retained evidence decisions.\n\n## What Changes\n\n- Introduce a source-backed briefing packet concept for ADV changes, with Epic-aware context when a change has `epic_membership`.\n- Define compact prompt slices for worker lanes such as researcher, engineer, designer, reviewer, scanner, and verifier.\n- Derive packet content from existing structured ADV state where possible: change artifacts, contracts, tasks, gates, sub-agent reports, wisdom, Epic membership, and archive/harden evidence.\n- Use existing ADV read/handoff surfaces for packet delivery; do not add a new standalone agent-callable briefing tool.\n- Define archive lifecycle behavior: transient prompt-only slices retire; durable facts are promoted to appropriate long-lived surfaces; final digest is available as archive evidence.\n- Add spec/docs/tooling coverage so packet generation and cleanup are structural rather than manual command prose.\n\n## User Outcomes\n\n- Users can rely on sub-agents receiving the key context needed for their lane without manually restating change or Epic background in every prompt.\n- Users see fewer repeated “I need to inspect the same files/specs again” cycles from workers when the needed context is already known to ADV.\n- Users can trust that important change/Epic facts surfaced during implementation, review, or harden are not lost before archive.\n- Users can trust that prompt-only context does not accumulate as stale ADV state after archive.\n- Users retain optional Epic usage; non-Epic changes continue through the normal ADV workflow without extra ceremony.\n\n## Affected Code\n\nLikely affected areas, to validate in design:\n\n- `plugin/src/utils/context-snapshot.ts` and related context formatting utilities.\n- `plugin/src/tools/change.ts` read surfaces such as `adv_change_show include.*`.\n- `plugin/src/types/subagent-reports.ts` and report readback/consumer paths.\n- `.opencode/command/adv-apply.md`, `adv-review.md`, `adv-harden.md`, `adv-design.md`, `adv-discover.md` packet templates.\n- `.opencode/agents/adv-*.md` worker prompt contracts where packet anchors are consumed.\n- `.adv/specs/advance-workflow`, `.adv/specs/subagent-reports`, `.adv/specs/advance-epics`, and possibly `.adv/specs/chat-output-display`.\n- Archive/harden report and cleanup paths that decide what survives into archive evidence.\n\n## Related Repositories\n\n- Current repository only: `advance`.\n- No cross-repo implementation scope is expected.\n- Product-linked or cross-project Epic behavior may need design consideration, but not a separate repository change unless design finds target-path packet requirements.\n\n## Constraints\n\n- Packet correctness must be structural: types, schemas, validators, and tests own required fields and lifecycle behavior.\n- Existing strict sub-agent report schemas must stay strict; missing identity anchors must not be inferred heuristically.\n- Generated packet content must cite or derive from source-backed ADV state, not freeform manual summaries.\n- Prompt slices must be bounded and lane-specific; full artifact/report dumping is out of scope.\n- Epic membership remains optional and advisory.\n- Archive cleanup must distinguish transient prompt context from durable facts that should become wisdom, spec deltas, Epic terminal summaries, agenda items, or archive evidence.\n- Session log/tool-read metadata may inform audits, but must not become live briefing packet state.\n\n## Impact\n\n- Commands can share generated packet rendering instead of repeating packet assembly prose.\n- Sub-agent prompts can receive lane-specific context slices derived from ADV state.\n- Implementation, review, harden, and archive can use the same source-backed facts instead of separate ad hoc summaries.\n- Context discovered mid-change can be classified as transient prompt context, durable wisdom/spec/Epic context, agenda follow-up, or archive-only evidence.\n- Archived changes can retain a compact briefing digest while live prompt-only slices stop being exposed.\n\n## Context\n\nRelevant verified facts from discovery:\n\n- No existing code mention of “briefing packet” was found by local text search.\n- `subagent-reports` spec already requires schema-aligned packet anchors and strict scope models for worker reports.\n- `advance-epics` spec already requires compact Epic membership context and optional Epic membership.\n- `advance-workflow` spec owns gate workflow, review/harden, archive, and context-sensitive workflow behavior.\n- `optimized-handoff-assets.test.ts` already tests some packet anchors and scanner-bundle contracts, so this proposal should build on existing contract tests rather than bypass them.\n- `SUBAGENT_REPORT_FIELD_SOURCES` already separates packet-anchor, worker-derived, and tool-enriched fields; this is the strongest existing structural base for lane packet requirements.\n- `buildChangeContextSnapshot` is pure and compact, with optional `epicMembership`, but it is user-facing state rather than lane-specific briefing content.\n- `adv_change_show` already has optional include flags for snapshot, ready tasks, artifacts, ledger, and sub-agent reports; extending this existing read/handoff surface fits the no-new-tool direction.\n- `reduceAdvPromptSlop` overlaps in prompt-surface cleanup, but this change is narrower: generated lifecycle-managed briefing packets, not broad prompt slop reduction.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`, `adv-opportunity-scout`, and `lgrep`; no new skill needed. |\n| Prior Research Extension | PASS | `docs/*-prep.md` scan found related prompt/tool rigor patterns; no dedicated briefing-pack research pack exists. |\n| Conflict & Related-Work Scan | PASS | Active related change: `reduceAdvPromptSlop`; validation passed with expected pre-prep warnings; archived list queries timed out, so reflections were used for archive-history signals. |\n| Edge Case Investigation | PASS | Missing state, archive replay/idempotency, Epic absence, and prompt-bloat edge cases identified. |\n| Design Question Depth | PASS | Delivery surface, durable-fact lifecycle, and telemetry boundary resolved or carried to design. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-briefing*` requirement shapes listed below. |\n| Related Pattern Scan | PASS | Found repeated command packet templates and existing packet-anchor tests/types. |\n| LBP Check | PASS | Best direction is internal structural reuse; external-solution check skipped as not relevant. |\n| Completeness Verification | PASS | Problem spans packet assembly, worker handoff, report consumers, Epic context, and archive lifecycle; no sole-entry claim remains unverified. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts`: matched core surface; use strict schemas, packet anchors, prompts, and asset tests.\n- `adv-opportunity-scout`: matched discovery scout; researcher ran and submitted report.\n- `lgrep`: matched code discovery; semantic search timed out twice, so exact text/read fallback was used.\n\n### Extends\n\n- `docs/adv-slop-scan-prep.md`: prior pattern says prompt-only tool contracts are not reproducible across agents/sessions. New finding: briefing packets should be structural generated output, not another prompt-only convention.\n- `docs/repo-improve-prep.md`: prior pattern favors explicit context flow and reducing hydration/round trips. New finding: briefing packet delivery should extend existing read/handoff surfaces, not add another tool round trip.\n- `docs/non-coding-task-rigor-prep.md`: prior pattern emphasizes archive lifecycle for durable non-code outputs. New finding: briefing packet cleanup must classify transient versus durable context before archive.\n\n### Conflict Scan\n\n- `addBriefingPackets`: target change; validation passed with expected `NO_TASKS` and `NO_DELTAS` warnings.\n- `reduceAdvPromptSlop`: related active change; broad prompt-surface cleanup already exists. This change remains distinct by focusing on lifecycle-managed generated briefing packets.\n- Agenda scan: many unrelated report-created follow-ups. Relevant scout-created items flagged missing-state degradation and archive-cleanup idempotency/replay-safety.\n- Archived-change listing with `includeArchived` timed out twice; reflection history still showed recurring missing-capability patterns around structural generated readers, target-path read behavior, Epic terminal summaries, and cross-surface asset tests.\n\n### Current State\n\n- Strict report schemas and packet-anchor derivation exist in `plugin/src/types/subagent-reports.ts`.\n- Existing command packets are still manually assembled in command markdown.\n- Context snapshot is compact and Epic-aware, but not lane-specific and not lifecycle-managed.\n- `adv_change_show` already supports include flags and artifact/report/snapshot readback.\n- Report consumers already create agenda items and warnings, but durable “remember this” facts are not classified into briefing lifecycle outcomes.\n\n### Edge Cases\n\n- Missing structured state: packet rendering must emit explicit unavailable markers or warnings, not fabricated summaries.\n- Archived/replayed changes: cleanup/digest behavior must be idempotent and Temporal-safe.\n- Change without Epic membership: packet remains valid and unchanged except for “no Epic context” marker.\n- Change with stale/unreachable Epic projection: packet must surface typed projection status rather than block solely on Epic order or reachability.\n- Report bloat: packet slices must summarize bounded fields, never dump raw transcripts or all reports.\n- Conflicting durable facts: classifier must route conflicts to agenda/user/discovery rather than silently overwrite prior context.\n\n### Open Design Questions\n\n1. Delivery shape: existing `adv_change_show include.briefingPacket` versus default inclusion at phase-start.\n   - Trust model: agent-owned design within user constraint.\n   - Blast radius: affects prompt size and command ergonomics.\n   - Alternatives: include flag, default phase-start packet, or both. User ruled out a new standalone tool.\n2. Durable fact classifier: generated-only versus typed pinned facts versus hybrid.\n   - Trust model: agent-owned technical design within user preference for most programmatic path.\n   - Blast radius: affects persistence, archive cleanup, and report consumers.\n   - Alternatives: classifier enum, pinned facts, hybrid. User prefers most programmatic path.\n3. Telemetry use: audit-only versus persisted packet tuning metrics.\n   - Trust model: user-owned privacy/safety boundary.\n   - Blast radius: affects privacy and state growth.\n   - Decision: audit-only; session metadata must not become live briefing state.\n\n### Draft Spec Deltas\n\n- `rq-briefingPacket01`: ADV exposes generated briefing packet slices through existing change/handoff read surfaces.\n  - Given a change with proposal, gates, tasks, and reports, when a lane requests a briefing packet, then the packet contains bounded lane-relevant sections with source-backed unavailable markers for missing state.\n- `rq-briefingPacket02`: Lane identity anchors derive from strict sub-agent report contracts.\n  - Given an agent has packet-anchor fields in `SUBAGENT_REPORT_FIELD_SOURCES`, when its briefing slice renders, then required identity anchors match the derived anchor set and tests fail on drift.\n- `rq-briefingPacket03`: Durable facts are classified structurally.\n  - Given a sub-agent report contains required main-agent actions or context updates, when consumers process it, then each durable fact is classified into typed outcomes such as transient, agenda, wisdom, spec-delta candidate, Epic terminal note, or archive-only evidence.\n- `rq-briefingPacket04`: Archive retires transient packet state and preserves digest evidence idempotently.\n  - Given a change is archived, when archive cleanup runs once or is replayed, then transient prompt-only slices stop being exposed and a compact digest/durable promotions remain without duplicate records.\n- `rq-briefingPacket05`: Session metadata remains audit-only.\n  - Given session/tool-read metadata exists, when briefing packets render, then no raw prompts, excerpts, or session metadata are persisted as packet state.\n\n### Related Pattern Scan\n\n- Manual packet templates found in `adv-apply`, `adv-review`, `adv-harden`, `adv-design`, and `adv-discover`.\n- Structural packet anchor constants and tests exist in `subagent-reports.ts`, `optimized-handoff-assets.test.ts`, `adv-engineer-assets.test.ts`, `adv-reviewer-asset.test.ts`, and `subagent-reports-spec-assets.test.ts`.\n- Existing include-flag readback pattern exists in `adv_change_show`.\n- No existing `briefing packet` implementation found.\n\n### Completeness Verification\n\n- Problem-completeness: high confidence. The problem is not only duplicated prose; it includes prompt assembly, lane-specific source selection, durable report facts, Epic context, telemetry privacy, and archive cleanup.\n- Solution-scope: medium-high confidence. Current scope covers the necessary surfaces without claiming a single implementation chokepoint. Design must still choose exact delivery and classifier architecture.\n- Sole-entry claim status: none. No unverified single-control-surface claim is required.\n- Secondary surfaces: command templates, report consumers, context snapshot, Epic membership, archive/harden, and asset tests are in scope. Broad prompt cleanup remains out of scope.\n\n### LBP Check\n\nLikely best practice is structural composition from existing typed state: invert packet-anchor metadata, reuse compact snapshot/Epic context where appropriate, and classify durable report facts with typed enums. External alternatives are not relevant because this is an internal ADV workflow/runtime capability.\n\n### Discovery Opportunity Scout\n\n- Trigger decision: run, because this is strategic internal architecture and broad prompt workflow.\n- Auto-adopted: two low-risk contract-tied findings.\n  - Invert `SUBAGENT_REPORT_FIELD_SOURCES` for lane identity anchors.\n  - Reuse compact context snapshot/Epic data as a base, while making lane slices distinct.\n- Surfaced/resolved with user: delivery surface and durable-fact classifier direction.\n- Planning guidance: extend existing optimized-handoff asset-test spine.\n\n### AMBIGUITY ANALYSIS\n\nNo blocking ambiguity findings. Coverage: B:C F:C S:C M:C\n\nAdvisory resolved during discovery:\n- M1 HIGH Missing Information: failure behavior for missing structured state.\n  - Evidence: proposal previously said packet content derives from structured state but did not specify missing-state behavior.\n  - Resolution: agreement will require explicit unavailable markers/fallback warnings, not heuristic filling.\n\n## Discovery Agenda\n\nResolved in discovery:\n\n- Use existing ADV change/handoff read surfaces; do not add a new standalone briefing tool.\n- Treat session/tool-read metadata as audit-only, not live packet state.\n- Prefer the most programmatic durable-fact lifecycle: structural classifier first, typed pins only if design proves needed.\n\nCarry into design:\n\n- Exact include/default delivery shape on existing surfaces.\n- Exact durable-fact classifier enum and persistence boundary.\n- Exact archive digest representation and idempotent cleanup mechanism.\n- Exact packet section bounds per lane.\n\n## Scope\n\n### In Scope\n\n- Change-level briefing packet model and renderer.\n- Epic-aware briefing context for changes with `epic_membership`.\n- Lane-specific prompt slices for ADV sub-agent classes.\n- Generated packet content from structured ADV state.\n- Programmatic durable-fact classifier for report-created context and required main-agent actions.\n- Existing change/handoff read-surface delivery; no new standalone briefing tool.\n- Archive lifecycle semantics for packet digest, durable promotion, and transient cleanup.\n- Spec, docs, and asset-test coverage for packet generation and cleanup contracts.\n\n### Out of Scope\n\n- Replacing the seven-gate ADV workflow.\n- Replacing strict sub-agent report schemas or weakening report validation.\n- Making Epic membership mandatory.\n- Reviving project-level shared workflow or singleton context state.\n- Persisting session log/tool-read metadata as live packet state.\n- Cross-repo implementation outside `advance` unless design proves it is required for product-scoped Epic packet reads.\n- Broad prompt-surface cleanup unrelated to briefing packet generation and lifecycle.\n\n### Must Not\n\n- Must not create a manual checklist as the source of truth.\n- Must not dump full artifacts, raw transcripts, or all reports into every sub-agent prompt.\n- Must not infer correctness-critical packet fields heuristically when structured state is unavailable.\n- Must not let briefing packets complete gates, override release proof, or mutate ADV state independently.\n- Must not retain transient prompt-only material as live state after archive.\n- Must not add a new standalone `adv_briefing_packet` tool.",
+    "problemStatement": "ADV sub-agent prompts are assembled from duplicated per-command packet templates, so critical change/Epic context is uneven, workers rediscover context through reads/searches, and durable “remember this” facts lack lifecycle cleanup/archive handling.\n\nDesired outcome: ADV has a source-backed briefing packet layer for change/Epic work that renders compact prompt slices by worker lane, avoids manual packet prose drift, reduces redundant worker rediscovery, carries durable facts into archive/wisdom/spec/Epic terminal summaries, and drops transient prompt-only slices after archive.\n\nExpected scope includes change-level and Epic-aware briefing data model/rendering, prompt-slice generation for sub-agent lanes, safe audit/telemetry inputs from reports/session metadata, and archive cleanup/digest semantics. It excludes replacing the ADV gate workflow, making Epics mandatory, reviving a shared project workflow, or dumping full artifacts into prompts.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Generate source-backed briefing packets for ADV changes.\n2. Provide lane-specific slices for researcher, engineer, designer, reviewer, scanner, and verifier workers.\n3. Include Epic context only when present; Epic membership remains optional and advisory.\n4. Classify durable “remember this” facts from reports and workflow context programmatically.\n5. Retire transient prompt-only context at archive while preserving durable digest/promotions.\n\n## Success Criteria\n\n- SC1: Sub-agent packet assembly is generated from structural ADV state instead of duplicated command prose for the covered lanes.\n- SC2: Workers receive bounded lane-relevant context without full artifact/report dumping.\n- SC3: Durable context discovered mid-change has an explicit typed lifecycle through archive.\n\n## Acceptance Criteria\n\n- AC1: Existing ADV change/handoff read surfaces expose briefing packets; no standalone `adv_briefing_packet` tool is introduced.\n- AC2: Lane identity anchors match `SUBAGENT_REPORT_FIELD_SOURCES` / `getSubagentReportPacketAnchors()` for each supported persisted worker or bundle lane.\n- AC3: Packet content derives from structured ADV state with source labels; raw artifacts, raw transcripts, and unbounded report bodies are not dumped into every packet.\n- AC4: Missing structured state renders explicit unavailable markers or warnings; packet rendering does not heuristically fabricate correctness-critical fields.\n- AC5: Non-Epic changes render valid packets; Epic changes include compact membership context without blocking on Epic order alone.\n- AC6: Report-created durable facts are structurally classified into typed outcomes such as transient, agenda, wisdom, spec-delta candidate, Epic terminal note, or archive-only evidence.\n- AC7: Archive keeps a compact digest and durable promotions while transient prompt-only slices stop being exposed; repeated archive/finalization/replay does not duplicate digest or promotions.\n- AC8: Session/tool-read metadata remains audit-only and is not persisted as live briefing packet state.\n- AC9: Asset/spec tests fail if packet-anchor derivation, lane-slice bounds, or lifecycle/cleanup contracts are removed or drift from specs.\n\n## Constraints\n\n- C1: Packet correctness must be structural: types, schemas, validators, and tests own required fields and lifecycle behavior.\n- C2: Existing strict sub-agent report validation must remain strict; missing identity anchors must not be inferred heuristically.\n- C3: Packet delivery must use existing ADV read/handoff surfaces; no new standalone briefing tool.\n- C4: Packet slices must be bounded and lane-specific.\n- C5: Archive lifecycle must separate transient prompt context from durable facts that should become wisdom, spec-delta candidates, Epic terminal notes, agenda items, or archive evidence.\n- C6: Implementation remains current-repo scoped unless design proves target-path/product Epic packet reads require additional handling inside `advance`.\n\n## Avoidances / Rejected Approaches\n\n- DONT1: Do not create a manual checklist as the source of truth.\n- DONT2: Do not dump full artifacts, raw transcripts, or all reports into every sub-agent prompt.\n- DONT3: Do not make Epic membership mandatory.\n- DONT4: Do not revive project-level shared workflow or singleton context state.\n- DONT5: Do not let briefing packets complete gates, override release proof, or mutate ADV state independently.\n- DONT6: Do not persist session logs/tool-read metadata as briefing packet state.\n- DONT7: Do not add a new standalone `adv_briefing_packet` tool.\n\n## Preview Applicability\n\nvisual_surface: false — change affects ADV workflow/tooling behavior and prompt/context generation only; no browser-visible or visual output can be affected.\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: no frontend/browser surface.\n\n## User Decisions\n\n- Delivery surface: use existing change/handoff surfaces, potentially include flag or default phase-start inclusion; no additional standalone tool.\n- Durable facts: prefer the most programmatic path available; design should favor structural classification over manual pinning, with typed pins only if necessary.\n- Telemetry boundary: session/tool-read metadata remains audit-only and must not become live briefing packet state.\n\n## Agent-Resolved Discovery Decisions\n\n- Use `SUBAGENT_REPORT_FIELD_SOURCES` / `getSubagentReportPacketAnchors()` as the strongest existing source for lane identity anchors.\n- Treat `buildChangeContextSnapshot` as useful compact context precedent, not the whole briefing-packet implementation.\n- Build on existing optimized-handoff asset tests and subagent-report spec assets rather than creating an unrelated packet-test spine.\n- Skip external-solution research because this is an internal ADV workflow capability with no realistic third-party solution dependency.\n\n## Deferred Design Questions\n\n- Exact include/default delivery shape on existing surfaces.\n- Exact durable-fact classifier enum and persistence boundary.\n- Exact archive digest representation and idempotent cleanup mechanism.\n- Exact per-lane packet section bounds.\n\n## Sign-Off\n\nApproved by user via inline agreement checkpoint (reply: `approve`) on 2026-07-02.",
+    "design": "# Design — Add briefing packets\n\n## Architecture Overview\n\nIntroduce a generated briefing-packet layer that composes existing ADV structured state into bounded lane-specific prompt slices. The packet is a read projection, not a new workflow authority and not a manual checklist.\n\nCore shape:\n\n- `BriefingPacket` — generated projection for one change and one lane/request context.\n- `BriefingPacketLane` — researcher, engineer, designer, reviewer, scanner, verifier, archive.\n- `BriefingPacketSection` — bounded source-labeled sections such as identity anchors, scope, contract, task, affected files, Epic context, verification expectations, durable facts, and unavailable-state warnings.\n- `BriefingFact` — typed classification of report-created or workflow-created context that may affect later prompts or archive output.\n\nThe packet builder is pure and takes already-loaded state. Storage-backed loading stays in tools/storage adapters, matching `context-snapshot.ts` purity boundaries.\n\n## Key Decisions\n\n### Decision 1 — Existing read/handoff surfaces, not a new tool\n\nUse `adv_change_show` include support and command-internal helper calls as the agent-facing delivery path. Add `include.briefingPacket` plus lane/request fields inside the existing include object, rather than adding `adv_briefing_packet`.\n\nRationale:\n\n- Matches user decision: no additional standalone tool.\n- Reuses the existing phase-start collapse pattern in `adv_change_show`.\n- Preserves tool defaults: ordinary `adv_change_show` remains compact unless a packet is requested.\n- Commands can request packets explicitly at phase start, so “default for workflows” can be implemented in command behavior without bloating all tool reads.\n\n### Decision 2 — Derive lane identity anchors from report field-source metadata\n\nUse `SUBAGENT_REPORT_FIELD_SOURCES` and `getSubagentReportPacketAnchors()` as the authority for strict identity anchors per lane. Do not duplicate identity-anchor lists in command prose.\n\nMapping:\n\n- engineer → `adv-engineer`\n- designer → `adv-designer`\n- reviewer → `adv-reviewer`\n- researcher → `adv-researcher`\n- scanner → `adv-scanner-bundle` for orchestrator-submitted scanner bundles, while individual scanner prompts remain non-persisted analysis lanes\n- verifier → `adv-verification-triage-bundle` for orchestrator-submitted verification triage evidence\n\nWarn-first anchors (`TASK_SCOPE`, `IN_SCOPE`, `OUT_OF_SCOPE`, `DONE_WHEN`, `STOP_WHEN`, `VERIFICATION`) remain separate from strict identity anchors.\n\n### Decision 3 — Generated packets, no live packet state\n\nDo not persist live packet bodies. Generate packets from structured source state when requested.\n\nSources:\n\n- change metadata, gates, tasks, task dependencies, current task\n- parsed proposal/agreement/design sections where needed\n- minted contract and review matrix when present\n- sub-agent sidecar reports and legacy task reports via normalized readback\n- wisdom entries and agenda-derived report follow-ups where already present\n- compact Epic membership projection when present\n- archive/harden evidence when rendering archive/release slices\n\nThis avoids stale packet state and makes archive cleanup simpler: transient slices are never stored as primary live state.\n\n### Decision 4 — Programmatic durable-fact classifier\n\nAdd a pure classifier for context that may matter after the current worker turn. The classifier routes facts by structural source field and explicit typed metadata, not by free-text guessing.\n\nInitial outcomes:\n\n- `transient_prompt_context` — live packet only; not archived as durable fact.\n- `agenda` — action/follow-up already handled by report follow-up consumers or emitted as source-tagged agenda item.\n- `wisdom_candidate` — reviewer wisdom candidates and explicit wisdom-like typed sources.\n- `spec_delta_candidate` — only explicit typed candidate sources; no inference from prose keywords.\n- `epic_terminal_note` — Epic membership terminal summary inputs at archive/release.\n- `archive_only_evidence` — retained in final briefing digest but not promoted elsewhere.\n- `unresolved_action` — surfaced in packets and release readiness until dispositioned or explicitly classified.\n\nFor v1, avoid adding a broad manual pinning mechanism. If design/implementation proves some facts cannot be classified from structural source fields, add a narrow typed `briefing_facts[]` field to supported report schemas rather than accepting freeform pins.\n\nThe classifier should reuse the archive wisdom-promotion precedent: type-based routing, content dedupe, and compaction. Before adding any new outcome storage, implementation must prove the outcome taxonomy maps to existing report fields (`follow_ups`, `required_follow_ups`, `required_main_agent_actions`, `context_update_for_adv`, `wisdom_candidates`, scanner bundle follow-ups) or add explicit typed fields.\n\n### Decision 5 — Archive digest is generated idempotently\n\nAt archive, render an archive-lane briefing digest from final state and write it into the archive bundle as another generated bundle artifact. Repeat archive/finalization/replay overwrites the deterministic digest path instead of appending duplicate records.\n\nDigest contents are compact:\n\n- change identity and terminal gate summary\n- contract/AC coverage summary\n- durable facts and their outcomes\n- Epic terminal note inputs when present\n- unresolved actions or explicit “none”\n- unavailable-state warnings if archive evidence was incomplete\n\nTransient prompt-only slices stop being exposed because live packet rendering is unavailable for archived changes except archive/history views.\n\n## Implementation Strategy\n\n1. Add packet types and pure renderer near existing context utilities, preserving no-storage imports.\n2. Extend `adv_change_show` include schema with briefing packet request fields.\n3. Add storage/tool adapter loading that supplies the renderer with bounded source state.\n4. Replace command-template packet duplication gradually by calling/rendering the generated packet content in apply/review/harden/design/discover packet assembly.\n5. Add durable-fact classifier and tests from report sidecar examples.\n6. Add archive digest rendering/writing in archive bundle creation path, using deterministic overwrite semantics.\n7. Update specs and asset tests to pin lane anchors, section bounds, missing-state behavior, no-new-tool rule, and archive idempotency.\n\n## LBP Analysis\n\nThis is the preferred long-term approach because it turns prompt packets into a typed projection over existing ADV state. It avoids a separate state store, avoids manual checklists, preserves strict report schemas, and uses the same structural sources already trusted by current tools and tests.\n\nRejected alternatives:\n\n- Standalone `adv_briefing_packet` tool: clearer name but adds surface area, against user direction, and duplicates `adv_change_show` include pattern.\n- Persist every live packet: simpler archive cleanup story but creates stale state and storage churn.\n- Heuristic classifier over report prose: tempting for coverage, but violates P33 and risks misrouting correctness-critical context.\n- Full artifact/report prompt dumps: maximizes context but violates bounded prompt and privacy constraints.\n\n## Affected Components\n\n- `plugin/src/types/subagent-reports.ts` — existing field-source maps and optional narrow typed fact additions if needed.\n- `plugin/src/utils/context-snapshot.ts` or neighboring pure utility — shared compact context formatter precedent; new packet renderer should preserve purity.\n- `plugin/src/tools/change.ts` — include flags and read-surface attachment.\n- `plugin/src/tools/subagent-report.ts` — durable-fact classifier consumer points and report follow-up interaction.\n- `plugin/src/archive/archive.ts` and archive tests — deterministic digest output and durable promotion evidence.\n- `.opencode/command/adv-apply.md`, `adv-review.md`, `adv-harden.md`, `adv-design.md`, `adv-discover.md` — replace hand-built packet prose with generated packet use where practical.\n- `.opencode/agents/adv-*.md` — worker prompt guidance for consuming generated packet sections.\n- `.adv/specs/subagent-reports`, `.adv/specs/advance-workflow`, `.adv/specs/advance-epics`, possibly `.adv/specs/chat-output-display`.\n\n## Design-Derived Criteria\n\n- Packet rendering must be bounded: each lane packet reports section truncation/omission metadata when source data exceeds its budget.\n- Missing state must be represented structurally as `unavailable` / warning entries with source and reason.\n- Strict identity anchors must be generated from existing field-source maps and must fail tests on drift.\n- Durable-fact classification must be deterministic from structured source fields or explicit typed fact metadata.\n- Archive digest writes must be idempotent: same change/final state produces same digest path and no duplicate promotions.\n- Session/tool-read metadata may be cited in discovery/audits only; packet renderer must not read or persist session logs.\n\n## Risks / Mitigations\n\n- Risk: packet renderer becomes another dumping ground.\n  - Mitigation: lane-specific budgets, omission metadata, asset tests for forbidden raw dumps.\n- Risk: durable-fact classifier under-classifies useful prose.\n  - Mitigation: structural-first v1; add narrow typed `briefing_facts[]` only where a concrete gap appears.\n- Risk: replacing command prose breaks worker report identity.\n  - Mitigation: derive identity anchors from `getSubagentReportPacketAnchors()` and keep strict schema tests.\n- Risk: archive digest duplicates on recovery/replay.\n  - Mitigation: deterministic path and overwrite/upsert semantics; tests simulate repeat archive path.\n- Risk: Epic context fetch becomes hard dependency.\n  - Mitigation: use compact projection and unavailable markers; Epic order/reachability remains advisory.\n\n## Design Leverage Scout\n\nScout ran with `adv-researcher` attempt 1 and submitted `researcher:design-leverage-scout`.\n\nAuto-adopted findings:\n\n- `include.briefingPacket` fits the existing `adv_change_show` lazy include switch.\n- `getSubagentReportPacketAnchors()` should own strict lane anchors.\n- `buildChangeContextSnapshot`/compact `epicMembership` should inform the packet base while preserving a distinct lane-packet renderer.\n- Archive digest should be emitted through the existing archive bundle artifact path.\n\nDesign-around finding:\n\n- Durable-fact classifier should model archive wisdom promotion/dedupe/compact behavior, but must first prove the outcome taxonomy maps onto existing report fields before adding new outcome storage.\n\nNo user-value tradeoff, contract compromise, or scope expansion was identified.\n\n## Validator Result\n\nIndependent validator ran with `adv-researcher` attempt 1 and submitted `researcher:design-validation`.\n\nVerdict: CAUTION — proceed to planning.\n\nFindings:\n\n- Correctness/info: load-bearing claims verified against code for anchor derivation, include pattern, renderer purity, Epic compactness, and archive precedents.\n- Correctness/caution: AC7 archive-digest deterministic path overwrite is a new mechanism; archive wisdom precedent is content-string dedupe plus append/compact, not path overwrite. Planning must include explicit upsert semantics and repeat-archive/replay idempotency tests.\n- Correctness/caution: AC6 classifier outcome taxonomy still needs proof against existing structured report fields before any new outcome storage. Planning must include this proof and add narrow typed `briefing_facts[]` only if concrete gaps are demonstrated.\n- Simplicity/info: design stays a typed projection over existing state; no new tool/store/workflow authority.\n- Spec-law/info: scanner and verifier mappings match `subagent-reports` spec; non-persisted scanner handling remains intact.\n- Alternatives/info: no significant viable alternative overlooked.\n\nPlanning obligations from validator:\n\n1. Add archive-digest overwrite/upsert design and repeat-archive/replay test coverage.\n2. Add classifier mapping proof from each outcome to existing structured report fields before adding storage.\n3. Keep packet formatter storage-free.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nAdd briefing packets is implemented, accepted, and hardened: ADV now has generated, lane-specific briefing packet projections for worker context plus archive-time briefing digests, with structural durable-fact classification and drift tests. Acceptance and harden review findings were remediated, rebased onto current `origin/trunk`, checkpointed, and re-verified.\n\n## Verdict\nREADY FOR ARCHIVE\n\n## What Was Built\n1. Spec law and type foundations for briefing packets across `advance-workflow`, `subagent-reports`, and `advance-epics`.\n2. Pure briefing packet renderer with lane-specific bounded sections, source labels, unavailable-state markers, compact optional Epic context, and audit-only session metadata.\n3. `adv_change_show include.briefingPacket` source implementation using existing read surfaces, with no standalone `adv_briefing_packet` tool.\n4. Structural durable-fact classifier for typed sub-agent report outcomes; review remediation wired classified durable facts into live readback packet generation.\n5. Archive `BRIEFING_DIGEST.md` generation, durable/transient separation, wisdom promotion dedupe, same-day replay, and existing dated-bundle replay without duplicate digest paths.\n6. Command/agent prompt integration so workers consume generated `BRIEFING PACKET` slices instead of duplicated manual context blocks.\n7. Trunk rebase conflict resolution preserving `rq-subagentReports20` researcher judgement law and moving briefing packet sub-agent report law to `rq-subagentReports21`.\n8. Harden remediation: bounded `session_metadata.generated_by` to 200 chars and added `_briefingPacketError` read-path coverage.\n\n## What Was Verified\n- Acceptance verdict: APPROVED after review; contract matrix 25/25 required rows passed or respected.\n- Harden verdict: READY; no blocker/high findings. One medium coverage gap was fixed.\n- Tests: `bin/oc-test targeted -- src/types/briefing-packets.test.ts src/utils/briefing-packet-renderer.test.ts src/utils/briefing-fact-classifier.test.ts src/briefing-packets-spec-assets.test.ts src/briefing-packets-command-assets.test.ts src/archive/archive.test.ts src/tools/change.test.ts src/subagent-reports-spec-assets.test.ts src/advance-epics-assets.test.ts src/ops-follow-up-assets.test.ts src/tool-name-assets.test.ts` passed after harden: 11 files, 247 tests.\n- Check: `pnpm run check` passed after harden: schemas, typecheck, test isolation, lockfile policy, lint, and format.\n- Smoke: `bin/oc-test smoke` passed after harden: 57 tests plus check.\n- Preview URL: not_applicable — this is ADV plugin/tooling, spec, archive, and prompt behavior; no user-facing browser visual surface or frontend route changed.\n- Integration: branch `change/addBriefingPackets` is rebased on `origin/trunk`; worktree clean at harden preflight; merge compatibility passed by `origin/trunk` ancestry.\n\n## Remaining Concerns\n- Live OpenCode session cannot invoke the new `adv_change_show include.briefingPacket` schema until plugin source is built/deployed and OpenCode restarts. Source tests verify behavior; this is expected for ADV tool-surface changes in the current cached plugin host.\n- Optional nonblocking follow-up created: decide whether to bind or remove pre-existing unbound `adv_epic_update_scope` / `adv_epic_merge` implementations in `plugin/src/tools/epic.ts`; they are not referenced by docs/commands and were not introduced by this change.\n\n## Consequence Context\n1. delivered value — pass: sub-agents get generated bounded briefing context and archive gets a compact digest; evidence: completed tasks, review matrix, targeted tests.\n2. enabling-only/follow-up dependency — warning: live use requires build/deploy/restart of the ADV plugin host before current-session tool invocation can show `include.briefingPacket`; evidence: source-vs-dist runtime gotcha and reviewer risk note.\n3. ops readiness — pass: no ops follow-up links, no runbook/external service obligations, no blocking release-safety obligations.\n4. migration/data impact — n/a: no database or user data migration; archive writes reuse existing archive directories when present and keep same controlled archive paths.\n5. frontend/preview impact — n/a: no frontend/browser-visible surface; Preview URL not_applicable.\n6. collision/release risk — pass: branch rebased onto `origin/trunk`, conflicts resolved, worktree clean at harden preflight, targeted/check/smoke verification passed.\n7. open follow-ups — warning: one optional nonblocking cleanup agenda item for pre-existing unbound Epic helper implementations; not a release blocker.\n8. next action — archive sign-off; archive should build/deploy/restart note for live tool-surface validation.\n\n## Release Readiness Summary\n- Status: READY.\n- Release/deploy readiness: pass — no new env vars, migrations, external services, CI/CD, infrastructure, feature flags, or manual deploy steps.\n- Production readiness: pass — no secrets, command execution, untrusted path expansion, raw transcript dumping, or security-critical surface added; output bounds and schema guards are tested.\n- Documentation hygiene: pass — spec/docs/command/agent assets are aligned; no command references to unavailable `adv_briefing_packet`, `adv_epic_update_scope`, or `adv_epic_merge` remain.\n- Cleanup readiness: pass — no temp/debug files or dead imports in changed scope; one pre-existing unbound Epic helper cleanup candidate is tracked separately as optional follow-up.\n- Verification: pass — targeted suite 247 tests, `pnpm run check`, and smoke passed after harden remediation.\n- Collision/release risk: pass — branch is based on `origin/trunk`; merge compatibility passed by ancestry; worktree was clean before harden fix and final changes were checkpointed.\n- Archive note: because this change modifies ADV live tool behavior, build/deploy/restart is required before end-to-end live `adv_change_show include.briefingPacket` use in a fresh OpenCode session.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-02T20:22:05.808Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Sub-agent packet assembly is generated from structural ADV state instead of duplicated command prose for the covered lanes. | pass | adv-reviewer READY; command/agent assets consume generated BRIEFING PACKET slices; briefing-packets-command-assets.test passed. |\n| SC2 | success_criterion | Workers receive bounded lane-relevant context without full artifact/report dumping. | pass | Renderer emits lane-specific bounded sections; no raw artifact/report dump; targeted suite 11 files/245 tests passed after rebase. |\n| SC3 | success_criterion | Durable context discovered mid-change has an explicit typed lifecycle through archive. | pass | classifier maps typed report fields to durable outcomes; archive digest writes durable facts and excludes transient prompt context; archive.test passed. |\n| AC1 | acceptance_criterion | Existing ADV change/handoff read surfaces expose briefing packets; no standalone `adv_briefing_packet` tool is introduced. | pass | adv_change_show include.briefingPacket source path tested in plugin/src/tools/change.test.ts; tool-name asset test confirms no adv_briefing_packet tool; targeted suite passed. |\n| AC2 | acceptance_criterion | Lane identity anchors match `SUBAGENT_REPORT_FIELD_SOURCES` / `getSubagentReportPacketAnchors()` for each supported persisted worker or bundle lane. | pass | Briefing lane anchors derive via getSubagentReportPacketAnchors/SUBAGENT_REPORT_FIELD_SOURCES; types and command asset tests passed. |\n| AC3 | acceptance_criterion | Packet content derives from structured ADV state with source labels; raw artifacts, raw transcripts, and unbounded report bodies are not dumped into every packet. | pass | Renderer tests cover source labels and bounded content; command asset tests ban duplicated AFFECTED FILES/AC/CONTRACT/EPIC manual sections; targeted suite passed. |\n| AC4 | acceptance_criterion | Missing structured state renders explicit unavailable markers or warnings; packet rendering does not heuristically fabricate correctness-critical fields. | pass | Renderer unavailable-state tests pass; missing structured state renders explicit unavailable markers; classifier has no keyword/prose inference path. |\n| AC5 | acceptance_criterion | Non-Epic changes render valid packets; Epic changes include compact membership context without blocking on Epic order alone. | pass | Renderer non-Epic and Epic compact context tests pass; Epic order remains advisory in spec/command assets. |\n| AC6 | acceptance_criterion | Report-created durable facts are structurally classified into typed outcomes such as transient, agenda, wisdom, spec-delta candidate, Epic terminal note, or archive-only evidence. | pass | briefing-fact-classifier.test covers typed outcomes; reviewer remediation wired readback facts into change.ts and change.test; targeted suite passed. |\n| AC7 | acceptance_criterion | Archive keeps a compact digest and durable promotions while transient prompt-only slices stop being exposed; repeated archive/finalization/replay does not duplicate digest or promotions. | pass | archive.test covers BRIEFING_DIGEST.md, transient exclusion, durable facts, same-day replay, and existing dated bundle replay without duplicate digest; targeted suite passed. |\n| AC8 | acceptance_criterion | Session/tool-read metadata remains audit-only and is not persisted as live briefing packet state. | pass | BriefingPacketSchema enforces session_metadata.audit_only true; no live packet state persistence path; type/renderer tests passed. |\n| AC9 | acceptance_criterion | Asset/spec tests fail if packet-anchor derivation, lane-slice bounds, or lifecycle/cleanup contracts are removed or drift from specs. | pass | Spec/asset tests cover packet-anchor derivation, lane-slice bounds, command consumption, and lifecycle cleanup; targeted suite passed after rebase. |\n| C1 | constraint | Packet correctness must be structural: types, schemas, validators, and tests own required fields and lifecycle behavior. | respected | Zod schemas, TypeScript lane maps, classifier enum outcomes, renderer unit tests, and spec asset tests own correctness structurally. |\n| C2 | constraint | Existing strict sub-agent report validation must remain strict; missing identity anchors must not be inferred heuristically. | respected | Strict sub-agent report schemas retained; anchors are derived from SUBAGENT_REPORT_FIELD_SOURCES; missing anchors throw rather than infer. |\n| C3 | constraint | Packet delivery must use existing ADV read/handoff surfaces; no new standalone briefing tool. | respected | Delivery uses existing adv_change_show include path and command/handoff packet consumption; ADV_TOOL_NAMES test confirms no standalone briefing tool. |\n| C4 | constraint | Packet slices must be bounded and lane-specific. | respected | LANE_SECTIONS and omitTail bounds in renderer; schema caps sections/facts; renderer tests verify bounded slices. |\n| C5 | constraint | Archive lifecycle must separate transient prompt context from durable facts that should become wisdom, spec-delta candidates, Epic terminal notes, agenda items, or archive evidence. | respected | Classifier separates transient_prompt_context from durable outcomes; archive digest filters transient context and records durable archive evidence. |\n| C6 | constraint | Implementation remains current-repo scoped unless design proves target-path/product Epic packet reads require additional handling inside `advance`. | respected | Implementation remains current repo scoped; no target_path/product read expansion added beyond optional compact Epic membership context. |\n| DONT1 | avoidance | Do not create a manual checklist as the source of truth. | respected | No checklist source of truth added; generated renderer/types/spec tests own packet structure. |\n| DONT2 | avoidance | Do not dump full artifacts, raw transcripts, or all reports into every sub-agent prompt. | respected | Command asset tests ban raw manual sections; renderer uses structured summaries, bounded facts, and source labels only. |\n| DONT3 | avoidance | Do not make Epic membership mandatory. | respected | Non-Epic packets render valid; Epic context present:false path tested; Epic membership remains optional/advisory. |\n| DONT4 | avoidance | Do not revive project-level shared workflow or singleton context state. | respected | No project-level singleton/shared workflow state added; packets are generated read projections from current change state. |\n| DONT5 | avoidance | Do not let briefing packets complete gates, override release proof, or mutate ADV state independently. | respected | Briefing packets do not complete gates, override proof, or mutate state; archive digest is written only by archive flow. |\n| DONT6 | avoidance | Do not persist session logs/tool-read metadata as briefing packet state. | respected | session_metadata audit_only is schema-enforced; no session log/tool-read persistence added. |\n| DONT7 | avoidance | Do not add a new standalone `adv_briefing_packet` tool. | respected | tool-name asset test confirms no adv_briefing_packet tool; command docs reference existing typed tools only. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-02T17:43:28.292Z",
+      "contentHash": "dd8ce2eae85122eef5665b269f65710ea5d79e4781e0b379a9cb8f28ae282127",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-02T17:23:35.140Z",
+      "contentHash": "7c1f7ea6126c8485e0f56f87f73eb94604e876b9fcfbaee3b460c33c7a9b8e61",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-02T17:50:22.598Z",
+      "contentHash": "cf27eca0a7ab769cfeddc776e1e763702f413900a76d991a6db97b138697b9dc",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-02T18:01:10.192Z",
+      "contentHash": "c96aa629ab04fd5e4de6aae4e859f9f18251b5733614626b2503e8830920a958",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-02T20:51:16.618Z",
+      "contentHash": "3f913c08f5943c59c473a6a57d3896f034b33c64fa9bcddd4f96e00e0650ff17",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-02T20:51:16.618Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-02T17:29:14.392Z",
+      "resolved": true,
+      "resolved_at": "2026-07-02T17:50:49.282Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
