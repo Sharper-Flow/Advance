@@ -1080,6 +1080,84 @@ describe("adv_epic_link_change", () => {
     expect(store.epics.retargetChange).not.toHaveBeenCalled();
     expect(store.changes.setEpicMembership).not.toHaveBeenCalled();
   });
+
+  test.each(["archived", "closed"] as const)(
+    "projects terminal child state when directly linking a %s change",
+    async (status) => {
+      const store = makeStore();
+      store.changes.get = vi.fn(async () => ({
+        success: true,
+        data: {
+          id: "change-2",
+          title: "Done Change",
+          status,
+          gates: {},
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          created_at: "2026-06-25T00:00:00.000Z",
+          updated_at: "2026-06-26T00:00:00.000Z",
+        } as Change,
+      }));
+      store.epics.linkChange = vi.fn(async () =>
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_id: "change-2",
+          title: "Done Change",
+          membership_status: "projection_pending",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "Direct link terminal.",
+        }),
+      );
+      store.epics.setEntryMembershipStatus = vi.fn(async () =>
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_id: "change-2",
+          title: "Done Change",
+          membership_status: "terminal",
+          terminal_summary: {
+            status,
+            completed_at: "2026-06-26T00:00:00.000Z",
+          },
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "Direct link terminal.",
+        }),
+      );
+
+      const output = await epicTools.adv_epic_link_change.execute(
+        {
+          epic_id: "addAuthEpic",
+          change_id: "change-2",
+          link_evidence: "Direct link terminal change.",
+        },
+        store,
+      );
+      const parsed = parseToolOutput(output);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.terminal_summary_projected).toBe(true);
+      expect(parsed.terminal_summary.status).toBe(status);
+      expect(store.epics.setEntryTerminalSummary).toHaveBeenCalledWith(
+        "addAuthEpic",
+        {
+          entryId: "entry-2",
+          status,
+          completedAt: "2026-06-26T00:00:00.000Z",
+        },
+      );
+      expect(store.epics.setEntryMembershipStatus).toHaveBeenCalledWith(
+        "addAuthEpic",
+        expect.objectContaining({
+          entryId: "entry-2",
+          membershipStatus: "terminal",
+          evidence: "Direct link terminal change.",
+        }),
+      );
+      expect(parsed.member_status.status).toBe("ok");
+    },
+  );
 });
 
 describe("adv_epic_unlink_change", () => {

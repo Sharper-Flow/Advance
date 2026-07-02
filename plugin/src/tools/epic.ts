@@ -299,6 +299,41 @@ function terminalSummaryCompletedAt(
   );
 }
 
+async function projectTerminalStateForLinkedEntry(
+  store: Store,
+  epicId: string,
+  entry: Extract<EpicEntry, { kind: "change" }>,
+  change: Change,
+  evidence: string,
+): Promise<{
+  entry: Extract<EpicEntry, { kind: "change" }>;
+  terminalSummary: {
+    status: "archived" | "closed";
+    completed_at: string;
+  } | null;
+  projected: boolean;
+}> {
+  const terminalStatus = terminalSummaryStatusForChange(change.status);
+  if (!terminalStatus) {
+    return { entry, terminalSummary: null, projected: false };
+  }
+  const completedAt = terminalSummaryCompletedAt(change);
+  const terminalSummary = { status: terminalStatus, completed_at: completedAt };
+  await store.epics.setEntryTerminalSummary(epicId, {
+    entryId: entry.entry_id,
+    status: terminalStatus,
+    completedAt,
+  });
+  const finalEntry = requireChangeEntry(
+    await store.epics.setEntryMembershipStatus(epicId, {
+      entryId: entry.entry_id,
+      membershipStatus: "terminal",
+      evidence,
+    }),
+  );
+  return { entry: finalEntry, terminalSummary, projected: true };
+}
+
 async function resolveChildStore(
   store: Store,
   args: {
@@ -1146,7 +1181,7 @@ export const epicTools = {
             : undefined;
 
           if (!parentEntry) {
-            const entry = requireChangeEntry(
+            const linkedEntry = requireChangeEntry(
               await store.epics.linkChange(epic_id, {
                 entryId: membership.entry_id,
                 changeId: change_id,
@@ -1159,6 +1194,14 @@ export const epicTools = {
                 targetPath: childStore.context?.root,
               }),
             );
+            const { entry, terminalSummary, projected } =
+              await projectTerminalStateForLinkedEntry(
+                store,
+                epic_id,
+                linkedEntry,
+                change,
+                link_evidence,
+              );
             const rebuiltMembership = membershipFromChangeEntry(
               epic_id,
               entry,
@@ -1174,6 +1217,13 @@ export const epicTools = {
               rebuilt: true,
               entry: mapEpicEntry(entry),
               epic_membership: rebuiltMembership,
+              ...(projected
+                ? {
+                    terminal_summary_projected: true,
+                    terminal_summary: terminalSummary,
+                  }
+                : {}),
+              member_status: memberStatusForEntry(entry),
             });
             return maybeAppendTargetContext(output, childStore.context);
           }
@@ -1189,7 +1239,7 @@ export const epicTools = {
                   target_path: childStore.context.root,
                 }
               : undefined;
-            const retargetedEntry = requireChangeEntry(
+            const retargetedLinkedEntry = requireChangeEntry(
               await store.epics.retargetChange(epic_id, {
                 entryId: membership.entry_id,
                 fromChangeId: parentChangeId,
@@ -1199,6 +1249,17 @@ export const epicTools = {
                 retargetedBy: linked_by ?? "agent",
                 retargetEvidence: link_evidence,
               }),
+            );
+            const {
+              entry: retargetedEntry,
+              terminalSummary,
+              projected,
+            } = await projectTerminalStateForLinkedEntry(
+              store,
+              epic_id,
+              retargetedLinkedEntry,
+              change,
+              link_evidence,
             );
             const retargetedMembership = membershipFromChangeEntry(
               epic_id,
@@ -1216,13 +1277,31 @@ export const epicTools = {
               repaired: true,
               entry: mapEpicEntry(retargetedEntry),
               epic_membership: retargetedMembership,
+              ...(projected
+                ? {
+                    terminal_summary_projected: true,
+                    terminal_summary: terminalSummary,
+                  }
+                : {}),
+              member_status: memberStatusForEntry(retargetedEntry),
             });
             return maybeAppendTargetContext(output, childStore.context);
           }
 
-          const refreshedMembership = membershipFromChangeEntry(
+          const {
+            entry: refreshedEntry,
+            terminalSummary,
+            projected,
+          } = await projectTerminalStateForLinkedEntry(
+            store,
             epic_id,
             parentEntry,
+            change,
+            link_evidence,
+          );
+          const refreshedMembership = membershipFromChangeEntry(
+            epic_id,
+            refreshedEntry,
             title ?? change.title,
             "link_existing",
           );
@@ -1233,8 +1312,15 @@ export const epicTools = {
           const output = formatToolOutput({
             success: true,
             idempotent: true,
-            entry: mapEpicEntry(parentEntry),
+            entry: mapEpicEntry(refreshedEntry),
             epic_membership: refreshedMembership,
+            ...(projected
+              ? {
+                  terminal_summary_projected: true,
+                  terminal_summary: terminalSummary,
+                }
+              : {}),
+            member_status: memberStatusForEntry(refreshedEntry),
           });
           return maybeAppendTargetContext(output, childStore.context);
         }
@@ -1245,9 +1331,20 @@ export const epicTools = {
           changeId: change_id,
         });
         if (existingEntry) {
-          const membership = membershipFromChangeEntry(
+          const {
+            entry: finalEntry,
+            terminalSummary,
+            projected,
+          } = await projectTerminalStateForLinkedEntry(
+            store,
             epic_id,
             existingEntry,
+            change,
+            link_evidence,
+          );
+          const membership = membershipFromChangeEntry(
+            epic_id,
+            finalEntry,
             title ?? change.title,
             "link_existing",
           );
@@ -1258,13 +1355,20 @@ export const epicTools = {
           const output = formatToolOutput({
             success: true,
             idempotent: true,
-            entry: mapEpicEntry(existingEntry),
+            entry: mapEpicEntry(finalEntry),
             epic_membership: membership,
+            ...(projected
+              ? {
+                  terminal_summary_projected: true,
+                  terminal_summary: terminalSummary,
+                }
+              : {}),
+            member_status: memberStatusForEntry(finalEntry),
           });
           return maybeAppendTargetContext(output, childStore.context);
         }
 
-        const entry = requireChangeEntry(
+        const linkedEntry = requireChangeEntry(
           await store.epics.linkChange(epic_id, {
             entryId: entry_id,
             changeId: change_id,
@@ -1277,6 +1381,14 @@ export const epicTools = {
             targetPath: childStore.context?.root,
           }),
         );
+        const { entry, terminalSummary, projected } =
+          await projectTerminalStateForLinkedEntry(
+            store,
+            epic_id,
+            linkedEntry,
+            change,
+            link_evidence,
+          );
         const membership = membershipFromChangeEntry(
           epic_id,
           entry,
@@ -1291,6 +1403,13 @@ export const epicTools = {
           success: true,
           entry: mapEpicEntry(entry),
           epic_membership: membership,
+          ...(projected
+            ? {
+                terminal_summary_projected: true,
+                terminal_summary: terminalSummary,
+              }
+            : {}),
+          member_status: memberStatusForEntry(entry),
         });
         return maybeAppendTargetContext(output, childStore.context);
       } catch (err) {
