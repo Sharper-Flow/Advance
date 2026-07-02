@@ -10,29 +10,9 @@
  */
 
 import type { ChangeRecord, GateState, TaskRecord } from "./types";
+import { GATE_ORDER, type GateId } from "../../plugin/src/shared/cli-projection";
 
-// =============================================================================
-// Gate Order — single source of truth
-// =============================================================================
-
-/**
- * Canonical gate order — mirrors plugin/src/types/gates.ts GATE_DEFS.
- *
- * This array is the CLI-side single source of truth.  The plugin-side
- * authoritative copy lives in plugin/src/types/gates.ts and is verified
- * to stay in sync by plugin/src/cli-gate-order-parity.test.ts.
- */
-export const GATE_ORDER = [
-  "proposal",
-  "discovery",
-  "design",
-  "planning",
-  "execution",
-  "acceptance",
-  "release",
-] as const;
-
-export type GateId = (typeof GATE_ORDER)[number];
+export { GATE_ORDER, type GateId };
 
 // =============================================================================
 // Thresholds & Sets

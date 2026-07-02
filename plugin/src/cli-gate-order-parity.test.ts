@@ -1,38 +1,34 @@
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "fs";
 import { resolve } from "path";
-import { GATE_ORDER } from "./types";
+import { GATE_ORDER as PluginGateOrder } from "./types/gates";
+import { GATE_ORDER as SharedGateOrder } from "./shared/cli-projection";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const BIN_CHANGES_TS = resolve(REPO_ROOT, "bin/lib/changes.ts");
 
 describe("GATE_ORDER cross-boundary parity", () => {
-  test("bin/lib/changes.ts GATE_ORDER matches plugin GATE_ORDER", () => {
+  test("shared GATE_ORDER equals plugin GATE_DEFS-derived order", () => {
+    expect(SharedGateOrder).toEqual(PluginGateOrder);
+  });
+
+  test("bin/lib/changes.ts re-exports GATE_ORDER from shared module", () => {
     const source = readFileSync(BIN_CHANGES_TS, "utf8");
 
-    // Extract the GATE_ORDER array literal (contents between brackets)
-    const match = source.match(/GATE_ORDER\s*=\s*\[([\s\S]*?)\]/);
+    expect(source).toContain("../../plugin/src/shared/cli-projection");
+
+    const importMatch = source.match(
+      /import\s+\{\s*GATE_ORDER[^}]*\}\s+from\s+["']\.\.\/\.\.\/plugin\/src\/shared\/cli-projection["']/,
+    );
     expect(
-      match,
-      "GATE_ORDER array literal not found in bin/lib/changes.ts",
+      importMatch,
+      "bin/lib/changes.ts must import GATE_ORDER from the shared module",
     ).toBeTruthy();
 
-    const inner = match![1];
-    // Parse quoted ids, ignoring commas, whitespace, and comments
-    const binOrder = inner
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0)
-      .map((s) => {
-        const m = s.match(/^"([^"]+)"$/);
-        if (!m) {
-          // Could be a trailing comma line — skip
-          return null;
-        }
-        return m[1];
-      })
-      .filter((s): s is string => s !== null);
-
-    expect(binOrder).toEqual(GATE_ORDER);
+    const exportMatch = source.match(/export\s+\{\s*GATE_ORDER[^}]*\}\s*;?/);
+    expect(
+      exportMatch,
+      "bin/lib/changes.ts must re-export GATE_ORDER",
+    ).toBeTruthy();
   });
 });
