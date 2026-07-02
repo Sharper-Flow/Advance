@@ -69,18 +69,15 @@ async function getProjectId(
 }
 import { isWorktreeInUse } from "./in-use";
 import {
-  addSession,
   clearPendingDelete,
   getPendingDeletes,
   getWorktreeRecord,
-  getSession,
   getWorktreePath,
   findBranchOwnersAcrossChanges,
   inferChangeIdFromBranch,
   initStateDb,
   listWorktrees,
   recordPendingDeleteFailure,
-  removeSession,
   removeWorktree,
   setPendingDelete,
 } from "./state";
@@ -93,7 +90,6 @@ import {
   acquireGitWorktreeFlock,
   releaseGitWorktreeFlock,
 } from "../../utils/git-worktree-flock";
-import { generateSessionId } from "../../utils/session-id";
 import {
   assertPathInsideDirectory,
   getDataHome,
@@ -1212,19 +1208,6 @@ export async function advWorktreeCreate(
       }
     }
 
-    // Step 7: register in worktree_registry only after setup is ready.
-    const sessionId = generateSessionId();
-    await addSession(
-      deps.database,
-      {
-        sessionId,
-        branch,
-        path: worktreePath,
-      },
-      undefined,
-      inferChangeIdFromBranch(branch),
-    );
-
     // Signal-driven: notify change workflow that worktree was created
     const createdChangeId = inferChangeIdFromBranch(branch);
     await fireWorktreeSignal(
@@ -1862,7 +1845,6 @@ async function maybeRemoveMissingFromDiskRegistryEntry(
     };
   }
 
-  await removeSession(deps.database, branch);
   await clearPendingDelete(deps.database, branch);
   appendDebugLog(
     "worktree-delete",
@@ -2333,10 +2315,7 @@ export async function advWorktreeDelete(
     return { ok: false, error: "REMOVE_FAILED", reason: removeResult.error };
   }
 
-  // 7. Remove from registry
-  await removeSession(deps.database, branch);
-
-  // 7.5. Remove empty branch-prefix parents (e.g. `{base}/change`).
+  // 7. Remove empty branch-prefix parents (e.g. `{base}/change`).
   try {
     await reapEmptyWorktreeParents(
       worktreePath,
@@ -3123,17 +3102,6 @@ export const WorktreePlugin: Plugin = async (ctx) => {
                   `[worktree] mode:warp failed after creating the git worktree (${error}); ${cleanupMessage}; falling back to mode:terminal.`,
                 );
 
-                await addSession(
-                  database,
-                  {
-                    sessionId: `inline:${args.branch}`,
-                    branch: args.branch,
-                    path: worktreePath,
-                  },
-                  undefined,
-                  inferChangeIdFromBranch(args.branch),
-                );
-
                 return [
                   `Worktree created at ${worktreePath}`,
                   `Branch: ${args.branch}`,
@@ -3142,17 +3110,6 @@ export const WorktreePlugin: Plugin = async (ctx) => {
                   `IMPORTANT: Terminal mode is active. You MUST use workdir="${worktreePath}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
                 ].join("\n");
               }
-
-              await addSession(
-                database,
-                {
-                  sessionId: toolCtx.sessionID,
-                  branch: args.branch,
-                  path: worktreePath,
-                },
-                undefined,
-                inferChangeIdFromBranch(args.branch),
-              );
 
               return [
                 `Worktree created at ${worktreePath}`,
@@ -3165,17 +3122,6 @@ export const WorktreePlugin: Plugin = async (ctx) => {
             case "terminal": {
               log.info(
                 `[worktree] Terminal mode — skipping terminal spawn for ${args.branch}`,
-              );
-
-              await addSession(
-                database,
-                {
-                  sessionId: `inline:${args.branch}`,
-                  branch: args.branch,
-                  path: worktreePath,
-                },
-                undefined,
-                inferChangeIdFromBranch(args.branch),
               );
 
               return [
@@ -3231,19 +3177,6 @@ export const WorktreePlugin: Plugin = async (ctx) => {
             );
           }
 
-          // Record session for tracking (used by delete flow).
-          // T13: addSession now async + sessionId/branch/path shape.
-          await addSession(
-            database,
-            {
-              sessionId: forkedSession.id,
-              branch: args.branch,
-              path: worktreePath,
-            },
-            undefined,
-            inferChangeIdFromBranch(args.branch),
-          );
-
           return `Worktree created at ${worktreePath}\n\nA new terminal has been opened with OpenCode.`;
         },
       }),
@@ -3259,7 +3192,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
             .string()
             .optional()
             .describe(
-              "Branch name of the worktree to delete (required in inline mode)",
+              "Branch name of the worktree to delete (required now that the retired session registry no longer maps sessions to branches)",
             ),
           force: tool.schema
             .boolean()
@@ -3268,7 +3201,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
               "Force removal even with uncommitted changes (requires explicit audit reason)",
             ),
         },
-        async execute(args, toolCtx) {
+        async execute(args, _toolCtx) {
           const worktreeConfig = await loadWorktreeConfig(directory, log);
 
           if (worktreeConfig.inline && !args.branch) {
@@ -3276,24 +3209,18 @@ export const WorktreePlugin: Plugin = async (ctx) => {
           }
 
           // The session registry is retired; branch-addressed deletes are the
-          // structural path for terminal/warp cleanup. Keep session lookup only
-          // as a legacy fallback for old standalone spawn records.
-          const session = args.branch
-            ? null
-            : await getSession(database, toolCtx?.sessionID ?? "");
-
-          if (!session && !args.branch) {
-            return `No worktree found${args.branch ? ` for branch "${args.branch}"` : " associated with this session"}`;
+          // only structural path. A branch is required to locate the worktree.
+          if (!args.branch) {
+            return `No worktree found associated with this session`;
           }
 
           const result = await advWorktreeDelete(
-            session?.branch ?? args.branch ?? "",
+            args.branch,
             { force: args.force ?? false },
             {
               projectRoot: directory,
               database,
               log,
-              worktreePath: session?.path,
               warpDeps: { serverUrl, directory, client },
             },
           );

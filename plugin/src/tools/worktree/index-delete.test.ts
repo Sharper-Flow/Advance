@@ -468,7 +468,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).toContain(branch);
   });
 
-  it("clean delete succeeds — removes worktree and calls removeSession", async () => {
+  it("clean delete succeeds — removes worktree and durable workflow record", async () => {
     const branch = "change/clean";
     const wtPath = addWorktree(repoRoot, branch);
 

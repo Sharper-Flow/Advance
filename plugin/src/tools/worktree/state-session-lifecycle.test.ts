@@ -42,9 +42,14 @@ vi.mock("../../temporal/service", () => ({
 }));
 
 import {
+  addSession,
   inferChangeIdFromBranch,
   getWorktreePath,
+  getSession,
+  getSessionRecord,
+  listSessions,
   registerSession,
+  removeSession,
   unregisterSession,
   updateSessionActivity,
   buildWorktreeBranchVisibilityQuery,
@@ -108,6 +113,37 @@ describe("session lifecycle helpers (T21)", () => {
     await expect(
       updateSessionActivity(access, payload),
     ).resolves.toBeUndefined();
+  });
+
+  it("addSession is a no-op after projectWorkflow retirement", async () => {
+    await expect(
+      addSession(
+        access,
+        {
+          sessionId: "sess_AAAA1111",
+          branch: "change/feat",
+          path: "/work/feat",
+        },
+        undefined,
+        "feat",
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it("removeSession is a no-op after projectWorkflow retirement", async () => {
+    await expect(removeSession(access, "change/feat")).resolves.toBeUndefined();
+  });
+
+  it("getSession always returns null after projectWorkflow retirement", async () => {
+    await expect(getSession(access, "sess_AAAA1111")).resolves.toBeNull();
+  });
+
+  it("getSessionRecord always returns null (stub compatibility surface)", async () => {
+    await expect(getSessionRecord(access, "sess_AAAA1111")).resolves.toBeNull();
+  });
+
+  it("listSessions always returns an empty array (stub compatibility surface)", async () => {
+    await expect(listSessions(access)).resolves.toEqual([]);
   });
 
   it("silently no-ops when project workflow is not reachable", async () => {
