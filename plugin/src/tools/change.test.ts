@@ -1126,6 +1126,8 @@ describe("change tools — signal-driven lifecycle", () => {
           changeId: "child-2",
           relationship: "monitors",
           status: "partial",
+          status_source: "parent_snapshot",
+          completion_proof: "unverified",
           required_handoff: false,
         },
       ]);
@@ -1189,6 +1191,8 @@ describe("change tools — signal-driven lifecycle", () => {
           changeId: "child-3",
           relationship: "cleanup_after",
           status: "not_started",
+          status_source: "parent_snapshot",
+          completion_proof: "unverified",
           required_handoff: true,
         },
       ]);

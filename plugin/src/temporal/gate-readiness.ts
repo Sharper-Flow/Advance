@@ -725,7 +725,20 @@ export interface OpenOpsFollowupObligation {
   relationship: OpsRelationship;
   required_handoff: boolean;
   status: OpsFollowupStatus;
+  status_source: "child_profile" | "unreachable" | "parent_snapshot";
+  completion_proof: "incomplete" | "unverified" | "unreachable";
+  verified_at?: string;
+  resolution_error?: string;
   open: boolean;
+}
+
+function incompleteOpsProofReason(
+  link: OpsFollowupLink,
+): OpenOpsFollowupObligation["completion_proof"] {
+  const resolution = link.resolution;
+  if (!resolution) return "unverified";
+  if (resolution.source === "unreachable") return "unreachable";
+  return "incomplete";
 }
 
 /**
@@ -743,6 +756,14 @@ export function getOpenOpsFollowupObligations(
       relationship: link.relationship,
       required_handoff: link.required_handoff,
       status: link.resolution?.status ?? link.status,
+      status_source: link.resolution?.source ?? "parent_snapshot",
+      completion_proof: incompleteOpsProofReason(link),
+      ...(link.resolution?.verified_at
+        ? { verified_at: link.resolution.verified_at }
+        : {}),
+      ...(link.resolution?.error
+        ? { resolution_error: link.resolution.error }
+        : {}),
       open: true,
     }));
 }

@@ -413,6 +413,12 @@ describe("adv_change_archive Phase 9 behavior", () => {
           status: "complete",
           required_handoff: true,
           linked_at: "2026-01-01T00:00:00Z",
+          resolution: {
+            source: "unreachable",
+            status: "complete",
+            verified_at: "2026-01-01T01:00:00Z",
+            error: "child workflow unavailable",
+          },
         },
       ],
     });
@@ -423,7 +429,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
-    expect(parsed.openOpsObligations).toHaveLength(2);
+    expect(parsed.openOpsObligations).toHaveLength(3);
     expect(parsed.openOpsObligations).toContainEqual(
       expect.objectContaining({
         linkId: "ofl-1",
@@ -438,6 +444,20 @@ describe("adv_change_archive Phase 9 behavior", () => {
         changeId: "child-2",
         relationship: "follows_release",
         required_handoff: true,
+        status_source: "parent_snapshot",
+        completion_proof: "unverified",
+        open: true,
+      }),
+    );
+    expect(parsed.openOpsObligations).toContainEqual(
+      expect.objectContaining({
+        linkId: "ofl-3",
+        changeId: "child-3",
+        relationship: "cleanup_after",
+        status: "complete",
+        status_source: "unreachable",
+        completion_proof: "unreachable",
+        resolution_error: "child workflow unavailable",
         open: true,
       }),
     );
