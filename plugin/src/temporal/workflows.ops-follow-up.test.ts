@@ -14,6 +14,8 @@ import {
   opsEvidenceAppendedSignal,
   opsFollowupLinkAddedSignal,
   opsFollowupSeededSignal,
+  opsRunEvidenceAppendedSignal,
+  opsRunUpsertedSignal,
 } from "./messages";
 import { withTestWorkflowEnvironment } from "./__tests__/with-test-env";
 
@@ -148,6 +150,69 @@ describe("changeWorkflow ops follow-up signal handlers", () => {
         batch: "batch-1",
         status: "started",
       });
+    });
+  }, 30_000);
+
+  it("upserts runbook state and appends run evidence via signals", async () => {
+    await withOpsSignalWorker("runbook", async (handle) => {
+      await handle.signal(opsFollowupSeededSignal, {
+        profile: {
+          kind: "cleanup",
+          source: {
+            source_change_id: "parent-3",
+            source_kind: "manual",
+          },
+          relationship: "blocks",
+          status: "not_started",
+          created_at: "2026-06-20T04:00:00.000Z",
+          evidence: [],
+        },
+        seededAt: "2026-06-20T04:00:01.000Z",
+      });
+      await handle.signal(opsRunUpsertedSignal, {
+        run: {
+          id: "run-1",
+          title: "Run prod cleanup",
+          status: "running",
+          created_at: "2026-06-20T04:01:00.000Z",
+          plan: {
+            env: "prod",
+            action: "cleanup temp rows",
+            bounds: ["batch=001"],
+            evidence_policy: "summary_and_pointer",
+            rollback_or_cleanup_plan:
+              "rerun cleanup or restore backup snapshot",
+          },
+          steps: [],
+          evidence: [],
+        },
+        upsertedAt: "2026-06-20T04:01:00.000Z",
+      });
+      await handle.signal(opsRunEvidenceAppendedSignal, {
+        runId: "run-1",
+        entry: {
+          id: "run-ev-1",
+          recorded_at: "2026-06-20T04:02:00.000Z",
+          step_kind: "execute",
+          env: "prod",
+          run_id: "run-1",
+          status: "complete",
+          summary: "Cleanup complete",
+          artifact: { kind: "none", rationale: "No external artifact emitted" },
+          next_status: "complete",
+          completion_signal: "cleanup job finished",
+          health_verification: "row count is zero",
+          rollback_or_cleanup_disposition:
+            "cleanup complete; no rollback needed",
+        },
+        status: "complete",
+        appendedAt: "2026-06-20T04:02:00.000Z",
+      });
+
+      const state = await queryState(handle);
+      expect(state.ops_followup?.status).toBe("complete");
+      expect(state.ops_followup?.runs).toHaveLength(1);
+      expect(state.ops_followup?.runs?.[0]?.evidence).toHaveLength(1);
     });
   }, 30_000);
 

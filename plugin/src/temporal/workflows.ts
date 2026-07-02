@@ -51,6 +51,8 @@ import {
   applyGateStuckToState,
   applyOpsEvidenceAppendedToState,
   applyOpsFollowupLinkAddedToState,
+  applyOpsRunEvidenceAppendedToState,
+  applyOpsRunUpsertedToState,
   applyOriginRepairedToState,
   applyDesignConcernDispositionedToState,
   applyOpsFollowupSeededToState,
@@ -384,6 +386,12 @@ const opsFollowupLinkAddedSignal = wf.defineSignal<
 const opsEvidenceAppendedSignal = wf.defineSignal<
   [import("../types").OpsEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsEvidenceAppended);
+const opsRunUpsertedSignal = wf.defineSignal<
+  [import("../types").OpsRunUpsertedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.opsRunUpserted);
+const opsRunEvidenceAppendedSignal = wf.defineSignal<
+  [import("../types").OpsRunEvidenceAppendedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.opsRunEvidenceAppended);
 const epicMembershipSetSignal = wf.defineSignal<
   [import("../types").EpicMembershipSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.epicMembershipSet);
@@ -1534,6 +1542,18 @@ export async function changeWorkflow(
     opsEvidenceAppendedSignal,
     signalMutation("opsEvidenceAppended", (payload) =>
       applyOpsEvidenceAppendedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    opsRunUpsertedSignal,
+    signalMutation("opsRunUpserted", (payload) =>
+      applyOpsRunUpsertedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    opsRunEvidenceAppendedSignal,
+    signalMutation("opsRunEvidenceAppended", (payload) =>
+      applyOpsRunEvidenceAppendedToState(state, payload),
     ),
   );
   wf.setHandler(

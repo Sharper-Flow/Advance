@@ -6,6 +6,8 @@ import {
   applyOpsEvidenceAppendedToState,
   applyOpsFollowupLinkAddedToState,
   applyOpsFollowupSeededToState,
+  applyOpsRunEvidenceAppendedToState,
+  applyOpsRunUpsertedToState,
   changeSeedStateFromChange,
   createChangeWorkflowState,
 } from "./change-state";
@@ -127,6 +129,97 @@ describe("ops follow-up state reducers", () => {
     expect(state.ops_followup?.evidence).toHaveLength(1);
     expect(state.ops_followup?.status).toBe("running");
     expect(state.ops_followup?.updated_at).toBe("2026-06-20T04:01:00.000Z");
+  });
+
+  it("upserts an ops run into the child profile", () => {
+    const state = createChangeWorkflowState({
+      changeId: "child-1",
+      title: "Child follow-up",
+      createdAt: timestamp,
+    });
+    applyOpsFollowupSeededToState(state, {
+      profile: makeProfile(),
+      seededAt: timestamp,
+    });
+
+    applyOpsRunUpsertedToState(state, {
+      run: {
+        id: "run-1",
+        title: "Run prod cleanup",
+        status: "planned",
+        created_at: timestamp,
+        plan: {
+          env: "prod",
+          action: "cleanup temp rows",
+          bounds: ["batch=001"],
+          evidence_policy: "summary_and_pointer",
+          rollback_or_cleanup_plan: "rerun cleanup or restore backup snapshot",
+        },
+        steps: [],
+        evidence: [],
+      },
+      upsertedAt: "2026-06-20T04:02:00.000Z",
+    });
+
+    expect(state.ops_followup?.runs).toHaveLength(1);
+    expect(state.ops_followup?.runs?.[0]?.id).toBe("run-1");
+    expect(state.ops_followup?.updated_at).toBe("2026-06-20T04:02:00.000Z");
+  });
+
+  it("appends run evidence and updates run/profile status", () => {
+    const state = createChangeWorkflowState({
+      changeId: "child-1",
+      title: "Child follow-up",
+      createdAt: timestamp,
+    });
+    applyOpsFollowupSeededToState(state, {
+      profile: {
+        ...makeProfile(),
+        runs: [
+          {
+            id: "run-1",
+            title: "Run prod cleanup",
+            status: "running",
+            created_at: timestamp,
+            plan: {
+              env: "prod",
+              action: "cleanup temp rows",
+              bounds: ["batch=001"],
+              evidence_policy: "summary_and_pointer",
+              rollback_or_cleanup_plan:
+                "rerun cleanup or restore backup snapshot",
+            },
+            steps: [],
+            evidence: [],
+          },
+        ],
+      },
+      seededAt: timestamp,
+    });
+
+    applyOpsRunEvidenceAppendedToState(state, {
+      runId: "run-1",
+      entry: {
+        id: "run-ev-1",
+        recorded_at: "2026-06-20T04:03:00.000Z",
+        step_kind: "execute",
+        env: "prod",
+        run_id: "run-1",
+        status: "complete",
+        summary: "Cleanup complete",
+        artifact: { kind: "none", rationale: "No external artifact emitted" },
+        next_status: "complete",
+        completion_signal: "cleanup job finished",
+        health_verification: "row count is zero",
+        rollback_or_cleanup_disposition: "cleanup complete; no rollback needed",
+      },
+      status: "complete",
+      appendedAt: "2026-06-20T04:03:00.000Z",
+    });
+
+    expect(state.ops_followup?.runs?.[0]?.status).toBe("complete");
+    expect(state.ops_followup?.runs?.[0]?.evidence).toHaveLength(1);
+    expect(state.ops_followup?.status).toBe("complete");
   });
 
   it("throws when appending evidence without a profile", () => {
