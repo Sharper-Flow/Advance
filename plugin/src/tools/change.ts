@@ -1810,12 +1810,17 @@ async function verifyStatusRepairReadAfterWrite(input: {
   let archived: Awaited<ReturnType<Store["changes"]["list"]>>;
   try {
     showResult = await input.store.changes.get(input.changeId);
-    [inFlight, archived] = await Promise.all([
-      // `in-flight` is a tool-layer union, not a persisted status. The
-      // default list surface is the durable draft/pending/active projection.
-      input.store.changes.list({}),
-      input.store.changes.list({ status: "archived", includeArchived: true }),
-    ]);
+    // AC3 parity: verify the warm-path summary list (adv_change_list) first
+    // when the store exposes it, because that is the public read path most
+    // likely to read a stale memo/cache entry after a disk-only status repair.
+    const inFlightList = input.store.changes.listSummary
+      ? await input.store.changes.listSummary({})
+      : await input.store.changes.list({});
+    archived = await input.store.changes.list({
+      status: "archived",
+      includeArchived: true,
+    });
+    inFlight = inFlightList;
   } catch (error) {
     const readback = {
       inFlightCount: -1,

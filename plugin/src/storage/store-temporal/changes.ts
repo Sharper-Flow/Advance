@@ -23,7 +23,7 @@ import {
   crossProjectCoordinationUpdatedSignal,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
-import { listChangeDirs, removeChangeDir } from "../json";
+import { hasArchiveBundle, listChangeDirs, removeChangeDir } from "../json";
 import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";
 import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
@@ -885,6 +885,45 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const memoIndex = new Map<string, ChangeSummary>();
       for (const summary of memoSummaries) {
         memoIndex.set(summary.id, summary);
+      }
+
+      // rq-crossSessionCacheConsistency01 / status-repair-parity: warm-path
+      // summaries must not serve stale active cache/memo entries after an
+      // archive bundle has been written (e.g. adv_change_archive or
+      // adv_change_status_repair). Mirror the Layer A1 pre-scan from
+      // listResolvedChanges: invalidate any non-terminal cached/memo entry
+      // whose change now has an archive bundle, so the next read rehydrates
+      // from the durable terminal record.
+      if (legacy.paths.archive) {
+        const archiveBundleCache = new Map<string, boolean>();
+        const checkArchiveBundle = async (id: string): Promise<boolean> => {
+          const cached = archiveBundleCache.get(id);
+          if (cached !== undefined) return cached;
+          const exists = await hasArchiveBundle(legacy.paths.archive, id);
+          archiveBundleCache.set(id, exists);
+          return exists;
+        };
+
+        for (const summary of memoSummaries) {
+          if (
+            summary.status !== "archived" &&
+            summary.status !== "closed" &&
+            (await checkArchiveBundle(summary.id))
+          ) {
+            memoIndex.delete(summary.id);
+            invalidateChange(summary.id);
+          }
+        }
+
+        for (const [id, cached] of changeCache.entries()) {
+          if (
+            cached.status !== "archived" &&
+            cached.status !== "closed" &&
+            (await checkArchiveBundle(id))
+          ) {
+            invalidateChange(id);
+          }
+        }
       }
 
       let fromMemo = 0;
