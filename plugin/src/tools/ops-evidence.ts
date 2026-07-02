@@ -13,12 +13,24 @@ import type { Store } from "../storage/store-types";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
-import { opsEvidenceAppendedSignal } from "../temporal/messages";
+import {
+  opsEvidenceAppendedSignal,
+  opsRunEvidenceAppendedSignal,
+  opsRunUpsertedSignal,
+} from "../temporal/messages";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import {
   type OpsEvidenceEntry,
   type OpsFollowupStatus,
   type Change,
+  type OpsRun,
+  type OpsRunEvidenceEntry,
+  type OpsRunStatus,
+  OpsRunApprovalPolicySchema,
+  OpsRunArtifactRefSchema,
+  OpsRunStatusSchema,
+  OpsRunStepKindSchema,
+  OpsRunStepStatusSchema,
 } from "../types";
 
 const OPS_EVIDENCE_TOOL_STATUS = [
@@ -65,6 +77,129 @@ interface AddEvidenceInput {
   next_step?: string;
   completion_signal?: string;
   dryRun?: boolean;
+}
+
+const OpsRunToolStatusSchema = OpsRunStatusSchema;
+const OpsRunEvidenceStatusSchema = z.enum([
+  "started",
+  "partial",
+  "pass",
+  "fail",
+  "rerun_needed",
+  "rollback_needed",
+  "cleanup_needed",
+  "complete",
+]);
+
+const OpsRunStepInputSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  kind: OpsRunStepKindSchema,
+  status: OpsRunStepStatusSchema.optional(),
+  approval_policy: OpsRunApprovalPolicySchema.optional(),
+});
+
+interface UpsertRunInput {
+  changeId: string;
+  runId: string;
+  title: string;
+  env: string;
+  action: string;
+  bounds: string[];
+  evidence_policy: string;
+  rollback_or_cleanup_plan: string;
+  status?: OpsRunStatus;
+  steps?: z.infer<typeof OpsRunStepInputSchema>[];
+  dryRun?: boolean;
+}
+
+interface AddRunEvidenceInput {
+  changeId: string;
+  runId: string;
+  step_id?: string;
+  step_kind: OpsRunEvidenceEntry["step_kind"];
+  env: string;
+  status: OpsRunEvidenceEntry["status"];
+  summary: string;
+  artifact: OpsRunEvidenceEntry["artifact"];
+  next_status: OpsRunEvidenceEntry["next_status"];
+  batch?: string;
+  completion_signal?: string;
+  health_verification?: string;
+  rollback_or_cleanup_disposition?: string;
+  dryRun?: boolean;
+}
+
+const PROD_ENVS = new Set(["prod", "production"]);
+
+function isProdEnv(env: string): boolean {
+  return PROD_ENVS.has(env.trim().toLowerCase());
+}
+
+const UNSAFE_EVIDENCE_PATTERNS = [
+  /\bpassword\s*=/i,
+  /\bapi[_-]?key\s*=/i,
+  /\bsecret\s*=/i,
+  /\btoken\s*=/i,
+  /-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/i,
+];
+
+function evidenceTextLooksUnsafe(text: string): boolean {
+  return UNSAFE_EVIDENCE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function normalizeRunStatusForProfile(
+  status: OpsRunStatus,
+): OpsFollowupStatus | undefined {
+  if (
+    status === "not_started" ||
+    status === "running" ||
+    status === "partial" ||
+    status === "failed" ||
+    status === "rerun_needed" ||
+    status === "rollback_needed" ||
+    status === "cleanup_needed" ||
+    status === "complete"
+  ) {
+    return status;
+  }
+  return undefined;
+}
+
+function buildRun(
+  input: UpsertRunInput,
+  existing: OpsRun | undefined,
+  now: string,
+): OpsRun {
+  const envIsProd = isProdEnv(input.env);
+  const steps = (input.steps ?? []).map((step) => ({
+    id: step.id,
+    title: step.title,
+    kind: step.kind,
+    status: step.status ?? "pending",
+    ...(step.approval_policy
+      ? { approval_policy: step.approval_policy }
+      : envIsProd && step.kind === "execute"
+        ? { approval_policy: { mode: "approval_required" as const } }
+        : {}),
+  }));
+
+  return {
+    id: input.runId,
+    title: input.title,
+    status: input.status ?? existing?.status ?? "planned",
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+    plan: {
+      env: input.env,
+      action: input.action,
+      bounds: input.bounds,
+      evidence_policy: input.evidence_policy,
+      rollback_or_cleanup_plan: input.rollback_or_cleanup_plan,
+    },
+    steps,
+    evidence: existing?.evidence ?? [],
+  };
 }
 
 async function getChangeHandleForChangeId(
@@ -182,6 +317,250 @@ export const opsEvidenceTools = {
       return formatToolOutput({
         success: true,
         changeId: input.changeId,
+        entry,
+        status: profileStatus,
+        evidence_count: priorCount + 1,
+      });
+    },
+  },
+  adv_ops_run_upsert: {
+    description:
+      "Create or replace a typed ops runbook run on a change's ops_followup profile. " +
+      "Production execute steps without an explicit bounded-autonomous policy default to approval-required.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID that owns the ops_followup profile."),
+      runId: z.string().min(1).describe("Stable ops run ID."),
+      title: z.string().min(1).describe("Human-readable run title."),
+      env: z.string().min(1).describe("Target environment (for example prod)."),
+      action: z.string().min(1).describe("Planned operational action."),
+      bounds: z
+        .array(z.string().min(1))
+        .min(1)
+        .describe(
+          "Explicit execution bounds such as env, batch, scope, or limits.",
+        ),
+      evidence_policy: z
+        .string()
+        .min(1)
+        .describe("Evidence policy required for the run."),
+      rollback_or_cleanup_plan: z
+        .string()
+        .min(1)
+        .describe("Rollback or cleanup plan required before execution."),
+      status: OpsRunToolStatusSchema.optional().describe(
+        "Optional run status. Defaults to planned or preserves existing status.",
+      ),
+      steps: z
+        .array(OpsRunStepInputSchema)
+        .default([])
+        .describe(
+          "Optional run steps. Prod execute steps default to approval-required.",
+        ),
+      dryRun: z.boolean().optional().describe("Preview without signaling."),
+    },
+    execute: async (input: UpsertRunInput, store: Store): Promise<string> => {
+      const load = await store.changes.get(input.changeId);
+      if (!load.success || !load.data) {
+        return formatToolOutput({
+          error: `Change not found: ${input.changeId}`,
+        });
+      }
+
+      const change = load.data as Change;
+      if (!change.ops_followup) {
+        return formatToolOutput({
+          error: `Change ${input.changeId} has no ops_followup profile. Promote or seed an ops follow-up before adding a runbook.`,
+          code: "NO_OPS_FOLLOWUP_PROFILE",
+        });
+      }
+
+      const now = new Date().toISOString();
+      const existing = (change.ops_followup.runs ?? []).find(
+        (run) => run.id === input.runId,
+      );
+      const run = buildRun(input, existing, now);
+      const priorCount = change.ops_followup.runs?.length ?? 0;
+
+      if (input.dryRun) {
+        return formatToolOutput({
+          success: true,
+          dryRun: true,
+          changeId: input.changeId,
+          run,
+          run_count: priorCount,
+        });
+      }
+
+      const handle = await getChangeHandleForChangeId(store, input.changeId);
+      await fireSignalAndRefresh(
+        handle,
+        store,
+        input.changeId,
+        opsRunUpsertedSignal,
+        { run, upsertedAt: now },
+      );
+
+      return formatToolOutput({
+        success: true,
+        changeId: input.changeId,
+        run,
+        run_count: existing ? priorCount : priorCount + 1,
+      });
+    },
+  },
+  adv_ops_run_evidence_add: {
+    description:
+      "Append typed, secret-safe evidence to an ops runbook run and update run/profile status. " +
+      "Approval-required production execute steps must carry approval evidence before completion can be recorded.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID that owns the ops_followup profile."),
+      runId: z.string().min(1).describe("Ops run ID to append evidence to."),
+      step_id: z.string().min(1).optional().describe("Optional run step ID."),
+      step_kind: OpsRunStepKindSchema.describe(
+        "Kind of run step this evidence proves.",
+      ),
+      env: z.string().min(1).describe("Environment where the step ran."),
+      status: OpsRunEvidenceStatusSchema.describe("Evidence result status."),
+      summary: z
+        .string()
+        .min(1)
+        .describe("Bounded secret-safe evidence summary."),
+      artifact: OpsRunArtifactRefSchema.describe(
+        "Secret-safe artifact pointer or explicit no-artifact rationale.",
+      ),
+      next_status: OpsRunStatusSchema.describe(
+        "Run status after this evidence.",
+      ),
+      batch: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Optional batch/run identifier."),
+      completion_signal: z.string().min(1).optional(),
+      health_verification: z.string().min(1).optional(),
+      rollback_or_cleanup_disposition: z.string().min(1).optional(),
+      dryRun: z.boolean().optional().describe("Preview without signaling."),
+    },
+    execute: async (
+      input: AddRunEvidenceInput,
+      store: Store,
+    ): Promise<string> => {
+      if (evidenceTextLooksUnsafe(input.summary)) {
+        return formatToolOutput({
+          error:
+            "Ops run evidence summary appears to contain secret material. Store a bounded summary and safe artifact pointer instead.",
+          code: "UNSAFE_OPS_EVIDENCE",
+        });
+      }
+
+      const load = await store.changes.get(input.changeId);
+      if (!load.success || !load.data) {
+        return formatToolOutput({
+          error: `Change not found: ${input.changeId}`,
+        });
+      }
+
+      const change = load.data as Change;
+      const profile = change.ops_followup;
+      if (!profile) {
+        return formatToolOutput({
+          error: `Change ${input.changeId} has no ops_followup profile. Promote or seed an ops follow-up before appending run evidence.`,
+          code: "NO_OPS_FOLLOWUP_PROFILE",
+        });
+      }
+
+      const run = (profile.runs ?? []).find(
+        (candidate) => candidate.id === input.runId,
+      );
+      if (!run) {
+        return formatToolOutput({
+          error: `Ops run not found on ${input.changeId}: ${input.runId}`,
+          code: "OPS_RUN_NOT_FOUND",
+        });
+      }
+
+      const step = input.step_id
+        ? run.steps.find((candidate) => candidate.id === input.step_id)
+        : undefined;
+      const prodExecute = input.step_kind === "execute" && isProdEnv(input.env);
+      if (
+        prodExecute &&
+        (!step?.approval_policy ||
+          (step.approval_policy.mode === "approval_required" &&
+            !step.approval_policy.approval_evidence))
+      ) {
+        return formatToolOutput({
+          error:
+            "Production-impacting execute evidence requires matching approval evidence or bounded autonomous classification before completion authority is recorded.",
+          code: "OPS_RUN_APPROVAL_REQUIRED",
+        });
+      }
+
+      const recordedAt = new Date().toISOString();
+      const entry: OpsRunEvidenceEntry = {
+        id: `ore-${nanoid(12)}`,
+        recorded_at: recordedAt,
+        ...(input.step_id ? { step_id: input.step_id } : {}),
+        step_kind: input.step_kind,
+        env: input.env,
+        run_id: input.runId,
+        ...(input.batch ? { batch: input.batch } : {}),
+        status: input.status,
+        summary: input.summary,
+        artifact: input.artifact,
+        next_status: input.next_status,
+        ...(input.completion_signal
+          ? { completion_signal: input.completion_signal }
+          : {}),
+        ...(input.health_verification
+          ? { health_verification: input.health_verification }
+          : {}),
+        ...(input.rollback_or_cleanup_disposition
+          ? {
+              rollback_or_cleanup_disposition:
+                input.rollback_or_cleanup_disposition,
+            }
+          : {}),
+      };
+      const profileStatus = normalizeRunStatusForProfile(input.next_status);
+      const priorCount = run.evidence?.length ?? 0;
+
+      if (input.dryRun) {
+        return formatToolOutput({
+          success: true,
+          dryRun: true,
+          changeId: input.changeId,
+          runId: input.runId,
+          entry,
+          status: profileStatus,
+          evidence_count: priorCount,
+        });
+      }
+
+      const handle = await getChangeHandleForChangeId(store, input.changeId);
+      await fireSignalAndRefresh(
+        handle,
+        store,
+        input.changeId,
+        opsRunEvidenceAppendedSignal,
+        {
+          runId: input.runId,
+          entry,
+          ...(profileStatus ? { status: profileStatus } : {}),
+          appendedAt: recordedAt,
+        },
+      );
+
+      return formatToolOutput({
+        success: true,
+        changeId: input.changeId,
+        runId: input.runId,
         entry,
         status: profileStatus,
         evidence_count: priorCount + 1,

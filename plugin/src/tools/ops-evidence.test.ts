@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { opsEvidenceTools } from "./ops-evidence";
 import { parseToolOutput } from "../__tests__/setup";
-import { opsEvidenceAppendedSignal } from "../temporal/messages";
+import {
+  opsEvidenceAppendedSignal,
+  opsRunEvidenceAppendedSignal,
+  opsRunUpsertedSignal,
+} from "../temporal/messages";
 import type { Store } from "../storage/store";
 import type { Change, OpsFollowupProfile } from "../types";
 
@@ -56,6 +60,7 @@ function makeProfile(
     status: "not_started",
     created_at: "2026-06-20T04:00:00.000Z",
     evidence: [],
+    runs: [],
     ...overrides,
   };
 }
@@ -291,5 +296,209 @@ describe("adv_ops_evidence_add", () => {
     expect(result.entry.batch).toBe("batch-42");
     expect(result.entry.next_step).toBe("Run manual rollback playbook");
     expect(result.entry.completion_signal).toBe("rollback-pr-merged");
+  });
+});
+
+describe("ops runbook tools", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("upserts a production run and defaults unclassified execute steps to approval-required", async () => {
+    const store = makeStore();
+    const result = parseToolOutput(
+      await opsEvidenceTools.adv_ops_run_upsert.execute(
+        {
+          changeId: "childChange",
+          runId: "run-1",
+          title: "Run prod cleanup",
+          env: "prod",
+          action: "cleanup temp rows",
+          bounds: ["batch=001"],
+          evidence_policy: "summary_and_pointer",
+          rollback_or_cleanup_plan: "rerun cleanup or restore backup snapshot",
+          steps: [
+            {
+              id: "step-1",
+              title: "Execute cleanup",
+              kind: "execute",
+            },
+          ],
+        },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.run.plan.env).toBe("prod");
+    expect(result.run.steps[0].approval_policy).toMatchObject({
+      mode: "approval_required",
+    });
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.fireSignalAndRefresh.mock.calls[0][3]).toBe(
+      opsRunUpsertedSignal,
+    );
+  });
+
+  test("rejects bounded autonomous step without bounds", () => {
+    const parsed = opsEvidenceTools.adv_ops_run_upsert.args.steps.safeParse([
+      {
+        id: "step-1",
+        title: "Read-only check",
+        kind: "execute",
+        approval_policy: {
+          mode: "bounded_low_risk_autonomous",
+          rationale: "allowlisted health read",
+          bounds: [],
+        },
+      },
+    ]);
+
+    expect(parsed.success).toBe(false);
+  });
+
+  test("rejects approval-required execution evidence without approval", async () => {
+    const store = makeStore(
+      makeChange({
+        ops_followup: makeProfile({
+          runs: [
+            {
+              id: "run-1",
+              title: "Run prod cleanup",
+              status: "running",
+              created_at: "2026-06-20T04:00:00.000Z",
+              plan: {
+                env: "prod",
+                action: "cleanup temp rows",
+                bounds: ["batch=001"],
+                evidence_policy: "summary_and_pointer",
+                rollback_or_cleanup_plan:
+                  "rerun cleanup or restore backup snapshot",
+              },
+              steps: [
+                {
+                  id: "step-1",
+                  title: "Execute cleanup",
+                  kind: "execute",
+                  status: "pending",
+                  approval_policy: { mode: "approval_required" },
+                },
+              ],
+              evidence: [],
+            },
+          ],
+        }),
+      }),
+    );
+
+    const result = parseToolOutput(
+      await opsEvidenceTools.adv_ops_run_evidence_add.execute(
+        {
+          changeId: "childChange",
+          runId: "run-1",
+          step_id: "step-1",
+          step_kind: "execute",
+          env: "prod",
+          status: "complete",
+          summary: "Cleanup complete",
+          artifact: { kind: "none", rationale: "No external artifact emitted" },
+          next_status: "complete",
+        },
+        store,
+      ),
+    );
+
+    expect(result.error).toMatch(/approval/i);
+    expect(result.code).toBe("OPS_RUN_APPROVAL_REQUIRED");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("appends secret-safe run evidence and updates status", async () => {
+    const store = makeStore(
+      makeChange({
+        ops_followup: makeProfile({
+          runs: [
+            {
+              id: "run-1",
+              title: "Run prod cleanup",
+              status: "running",
+              created_at: "2026-06-20T04:00:00.000Z",
+              plan: {
+                env: "prod",
+                action: "cleanup temp rows",
+                bounds: ["batch=001"],
+                evidence_policy: "summary_and_pointer",
+                rollback_or_cleanup_plan:
+                  "rerun cleanup or restore backup snapshot",
+              },
+              steps: [
+                {
+                  id: "step-1",
+                  title: "Execute cleanup",
+                  kind: "execute",
+                  status: "pending",
+                  approval_policy: {
+                    mode: "approval_required",
+                    approval_evidence: "User approved batch=001 cleanup",
+                  },
+                },
+              ],
+              evidence: [],
+            },
+          ],
+        }),
+      }),
+    );
+
+    const result = parseToolOutput(
+      await opsEvidenceTools.adv_ops_run_evidence_add.execute(
+        {
+          changeId: "childChange",
+          runId: "run-1",
+          step_id: "step-1",
+          step_kind: "execute",
+          env: "prod",
+          status: "complete",
+          summary: "Cleanup complete",
+          artifact: { kind: "none", rationale: "No external artifact emitted" },
+          next_status: "complete",
+          completion_signal: "cleanup job finished",
+          health_verification: "row count is zero",
+          rollback_or_cleanup_disposition:
+            "cleanup complete; no rollback needed",
+        },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.entry.artifact.kind).toBe("none");
+    expect(result.status).toBe("complete");
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.fireSignalAndRefresh.mock.calls[0][3]).toBe(
+      opsRunEvidenceAppendedSignal,
+    );
+  });
+
+  test("rejects evidence summaries that look like secret material", async () => {
+    const store = makeStore();
+    const result = parseToolOutput(
+      await opsEvidenceTools.adv_ops_run_evidence_add.execute(
+        {
+          changeId: "childChange",
+          runId: "run-1",
+          step_kind: "execute",
+          env: "prod",
+          status: "partial",
+          summary: "password=super-secret-value",
+          artifact: { kind: "none", rationale: "No external artifact emitted" },
+          next_status: "partial",
+        },
+        store,
+      ),
+    );
+
+    expect(result.code).toBe("UNSAFE_OPS_EVIDENCE");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 });
