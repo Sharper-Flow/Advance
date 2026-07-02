@@ -402,6 +402,7 @@ import {
   gateCompletedSignal,
   gateReenteredSignal,
   getGateStatusQuery,
+  originRepairedSignal,
   phase9StatusUpdatedSignal,
 } from "../temporal/messages";
 import { getOpenOpsFollowupObligations } from "../temporal/gate-readiness";
@@ -5142,6 +5143,292 @@ export const changeTools = {
         changeId,
         outcome,
       });
+    },
+  },
+
+  adv_change_repair_origin: {
+    description:
+      "Repair the origin linkage of an active/open ADV change. Audited and claim-safe: requires approval evidence and a reason, validates the origin kind/linkage matrix, rejects conflicting open issue claims with existing claimant evidence, and refuses archived/closed changes.",
+    args: {
+      changeId: z.string().describe("Change ID to repair"),
+      origin_kind: ChangeOriginKindSchema.describe(
+        "New origin provenance kind ('roadmap', 'discovery', 'triage', or 'adhoc')",
+      ),
+      origin_issue_number: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe(
+          "GitHub issue number for kind=roadmap (required) or kind=triage (optional). Rejected for discovery and adhoc origins.",
+        ),
+      origin_source_artifact: z
+        .string()
+        .optional()
+        .describe(
+          "Stable upstream artifact reference for kind=triage or kind=discovery.",
+        ),
+      approvalEvidence: z
+        .string()
+        .min(1)
+        .describe("Audited evidence of operator approval for this repair"),
+      approvedByUser: z
+        .literal(true)
+        .describe(
+          "Must be true — confirms operator explicitly approved the origin repair",
+        ),
+      reason: z
+        .string()
+        .min(1)
+        .describe("Non-blank rationale for the origin repair"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview the repair without firing a signal"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, routes the repair through that project's Temporal-backed target store.",
+        ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
+    },
+    execute: async (
+      {
+        changeId,
+        origin_kind,
+        origin_issue_number,
+        origin_source_artifact,
+        approvalEvidence,
+        approvedByUser,
+        reason,
+        dryRun,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
+      }: {
+        changeId: string;
+        origin_kind: ChangeOrigin["kind"];
+        origin_issue_number?: number;
+        origin_source_artifact?: string;
+        approvalEvidence: string;
+        approvedByUser: true;
+        reason: string;
+        dryRun?: boolean;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+      },
+      store: Store,
+      _maybeOverridePath?: string,
+      providers: { claimChecker?: typeof defaultClaimChecker } = {},
+    ) => {
+      if (approvedByUser !== true) {
+        return formatToolOutput({
+          error: "approvedByUser must be true for origin repair",
+          changeId,
+          hint: "Explicit operator approval is required for this audited repair path.",
+        });
+      }
+
+      const originLinkageError = validateCreateOriginLinkage({
+        origin_kind,
+        origin_issue_number,
+        origin_source_artifact,
+      });
+      if (originLinkageError) {
+        return formatToolOutput(originLinkageError);
+      }
+
+      const evidence = approvalEvidence?.trim() ?? "";
+      if (evidence.length === 0) {
+        return formatToolOutput({
+          error: "approvalEvidence is required for origin repair",
+          changeId,
+          hint: "Cite the operator approval or audit evidence for this repair.",
+        });
+      }
+
+      const repairReason = reason?.trim() ?? "";
+      if (repairReason.length === 0) {
+        return formatToolOutput({
+          error: "reason is required for origin repair",
+          changeId,
+          hint: "Provide a non-blank rationale for changing the origin.",
+        });
+      }
+
+      const newOrigin: ChangeOrigin = {
+        kind: origin_kind,
+        ...(origin_issue_number !== undefined
+          ? { issue_number: origin_issue_number }
+          : {}),
+        ...(origin_source_artifact
+          ? { source_artifact: origin_source_artifact }
+          : {}),
+      };
+
+      const runRepair = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        const result = await activeStore.changes.get(changeId);
+        if (!result.success) {
+          return formatToolOutput({ error: result.error });
+        }
+        if (!result.data) {
+          return formatToolOutput({ error: `Change not found: ${changeId}` });
+        }
+
+        const change = result.data;
+
+        // rq-activeOriginRepair01: active/open changes only. Archived/closed
+        // origin repair is out of scope (OOS2).
+        if (change.status === "archived" || change.status === "closed") {
+          return formatToolOutput({
+            error: `Cannot repair origin of ${change.status} change ${changeId}. Origin repair is for active/open changes only.`,
+            changeId,
+            status: change.status,
+            hint: "Archived/closed origin repair is out of scope.",
+          });
+        }
+
+        const previousOrigin = change.origin;
+
+        // rq-backlogCoord02: claim-safe repair. If the new origin carries a
+        // concrete issue number, ensure no other open change already holds the
+        // claim. The change itself may already hold the claim (idempotent).
+        if (newOrigin.issue_number !== undefined) {
+          const projectId = (await getProjectId(activeStore.paths.root)) ?? "";
+          const claimChecker = providers.claimChecker ?? defaultClaimChecker;
+          const existing = await claimChecker(
+            projectId,
+            newOrigin.issue_number,
+          );
+          const conflicting = existing.filter(
+            (candidate) => candidate.changeId !== changeId,
+          );
+          if (conflicting.length > 0) {
+            const first = conflicting[0];
+            return formatToolOutput({
+              error: `Issue #${newOrigin.issue_number} is already claimed by change ${first.changeId} (status: ${first.status})`,
+              code: "ORIGIN_CLAIM_CONFLICT",
+              issue_number: newOrigin.issue_number,
+              existing_change_id: first.changeId,
+              existing_change_status: first.status,
+              changeId,
+              hint: `Resolve the conflicting claim before assigning this issue to ${changeId}, or use a different origin_issue_number.`,
+            });
+          }
+        }
+
+        if (dryRun) {
+          return formatToolOutput({
+            success: true,
+            dryRun: true,
+            changeId,
+            previousOrigin,
+            origin: newOrigin,
+            approvalEvidence: evidence,
+            reason: repairReason,
+            message: `Would repair origin of ${changeId} (${change.status})`,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        }
+
+        const bundle = getService();
+        if (!bundle) {
+          return formatToolOutput({
+            error: "Temporal service not available",
+            changeId,
+          });
+        }
+        const projectId = (await getProjectId(activeStore.paths.root)) ?? "";
+        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        await fireSignalAndRefresh(
+          handle,
+          activeStore,
+          changeId,
+          originRepairedSignal,
+          {
+            origin: newOrigin,
+            repairedBy: "agent",
+            repairedAt: new Date().toISOString(),
+            approvalEvidence: evidence,
+            reason: repairReason,
+            previousOrigin,
+          },
+        );
+
+        const readback = await activeStore.changes.get(changeId);
+        const readbackOrigin =
+          readback.success && readback.data ? readback.data.origin : undefined;
+        return formatToolOutput({
+          success: true,
+          changeId,
+          status: change.status,
+          previousOrigin,
+          origin: readbackOrigin ?? newOrigin,
+          approvalEvidence: evidence,
+          reason: repairReason,
+          message: `Repaired origin of ${changeId}`,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        });
+      };
+
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: dryRun ? "snapshot-ok" : "temporal-required",
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runRepair(targetStore, formatTargetProjectContext(context)),
+          );
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project origin repair unavailable: ${errorText}`,
+            changeId,
+            target_path,
+            targetRepairPacket: {
+              workdir: target_path,
+              tool: "adv_change_repair_origin",
+              args: {
+                changeId,
+                origin_kind,
+                ...(origin_issue_number !== undefined
+                  ? { origin_issue_number }
+                  : {}),
+                ...(origin_source_artifact ? { origin_source_artifact } : {}),
+                approvalEvidence: evidence,
+                approvedByUser: true,
+                reason: repairReason,
+                ...(dryRun ? { dryRun } : {}),
+              },
+            },
+          });
+        }
+      }
+
+      return runRepair(store);
     },
   },
 

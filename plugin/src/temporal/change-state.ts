@@ -30,6 +30,7 @@ import type {
   OpsEvidenceAppendedSignalPayload,
   OpsFollowupLinkAddedSignalPayload,
   OpsFollowupSeededSignalPayload,
+  OriginRepairedSignalPayload,
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
@@ -213,6 +214,21 @@ export function applyCrossProjectCoordinationUpdatedToState(
     state.external_dependencies = payload.external_dependencies;
   }
   setLastSignalAt(state, payload.updatedAt);
+  return state;
+}
+
+/**
+ * rq-activeOriginRepair01: apply an audited origin repair to workflow state.
+ * Updates state.origin and persists the audit payload in the workflow signal
+ * history. Previous origin is captured when provided so callers can surface
+ * before/after evidence.
+ */
+export function applyOriginRepairedToState(
+  state: ChangeWorkflowState,
+  payload: OriginRepairedSignalPayload,
+): ChangeWorkflowState {
+  state.origin = payload.origin;
+  setLastSignalAt(state, payload.repairedAt);
   return state;
 }
 

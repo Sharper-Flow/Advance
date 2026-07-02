@@ -88,6 +88,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     operator(`Repair change status${suffix(args, "changeId")}`),
   adv_change_update_issues: (args) =>
     write(`Update change issues${suffix(args, "changeId")}`),
+  adv_change_repair_origin: (args) =>
+    operator(`Repair change origin${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>
     write(`Re-enter change${suffix(args, "changeId")}`),
   adv_change_forget: (args) =>

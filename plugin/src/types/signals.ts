@@ -30,6 +30,7 @@ import {
 } from "./subagent-reports";
 import {
   ChangeContractSchema,
+  ChangeOriginSchema,
   ContractAmendmentSchema,
   ContractReviewMatrixSchema,
   Phase9FinalizationStatusSchema,
@@ -461,6 +462,22 @@ export const ChangeCancelledSignalPayloadSchema = z.object({
 });
 export type ChangeCancelledSignalPayload = z.infer<
   typeof ChangeCancelledSignalPayloadSchema
+>;
+
+/**
+ * rq-activeOriginRepair01: audited, claim-safe origin repair for active/open
+ * changes. Archived/closed origin repair is intentionally out of scope (OOS2).
+ */
+export const OriginRepairedSignalPayloadSchema = z.object({
+  origin: ChangeOriginSchema,
+  repairedBy: z.string(),
+  repairedAt: IsoTimestampSchema,
+  approvalEvidence: z.string().min(1),
+  reason: z.string().min(1),
+  previousOrigin: ChangeOriginSchema.optional(),
+});
+export type OriginRepairedSignalPayload = z.infer<
+  typeof OriginRepairedSignalPayloadSchema
 >;
 
 // =============================================================================

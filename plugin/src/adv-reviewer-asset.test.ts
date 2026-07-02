@@ -156,6 +156,7 @@ const REQUIRED_BLOCKED_TOOLS = [
   "adv_change_reenter",
   "adv_change_close",
   "adv_change_update_issues",
+  "adv_change_repair_origin",
   "adv_change_validate",
   // Task mutations
   "adv_task_add",

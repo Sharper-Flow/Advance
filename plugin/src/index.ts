@@ -587,6 +587,7 @@ const advancePluginImpl: Plugin = async (input) => {
     "adv_change_reenter",
     "adv_change_update",
     "adv_change_update_issues",
+    "adv_change_repair_origin",
     "adv_contract_mint",
     "adv_contract_review_matrix_set",
     "adv_subagent_report_submit",

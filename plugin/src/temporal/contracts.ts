@@ -112,6 +112,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   epicMembershipSet: "adv.change.epicMembershipSet",
   epicMembershipCleared: "adv.change.epicMembershipCleared",
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
+  originRepaired: "adv.change.originRepaired",
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
 } as const;

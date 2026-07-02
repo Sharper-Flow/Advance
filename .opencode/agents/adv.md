@@ -51,6 +51,7 @@ tools:
   adv_change_validate: true
   adv_change_archive: true
   adv_change_update_issues: true
+  adv_change_repair_origin: true
   adv_change_reenter: true
   adv_archive_repair: true
   adv_change_status_repair: true

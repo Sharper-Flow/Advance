@@ -61,6 +61,7 @@ tools:
   adv_change_reenter: false
   adv_change_close: false
   adv_change_update_issues: false
+  adv_change_repair_origin: false
   adv_change_validate: false
   adv_task_add: false
   adv_task_update: false

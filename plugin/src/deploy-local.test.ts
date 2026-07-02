@@ -831,8 +831,10 @@ describe("deploy-local.sh", () => {
       // adv.md is identical to trunk, which already accepts 371).
       // Ceiling raised from 371 → 372 after addDesignQualityGates shipped
       // adv_design_concern_disposition and we added it to the allowlists.
+      // Ceiling raised from 400 → 410 after adding adv_change_repair_origin to
+      // the canonical ADV agent allowlist.
       // Re-ratchet here once the prompt has been audited for excess.
-      expect(lines).toBeLessThanOrEqual(400);
+      expect(lines).toBeLessThanOrEqual(410);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {

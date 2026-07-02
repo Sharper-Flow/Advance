@@ -286,6 +286,9 @@ export const updateArtifactMetadataSignal = wf.defineSignal<
     },
   ]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.updateArtifactMetadata);
+export const originRepairedSignal = wf.defineSignal<
+  [import("../types").OriginRepairedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.originRepaired);
 export const archiveChangeSignal = wf.defineSignal(
   CHANGE_WORKFLOW_SIGNAL_NAMES.archiveChange,
 );

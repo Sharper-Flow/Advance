@@ -9,6 +9,7 @@ import {
   applyContractAmendedToState,
   applyDesignConcernDispositionedToState,
   applyGateReenteredToState,
+  applyOriginRepairedToState,
   applyProposalUpdatedToState,
   applyTaskAddedToState,
   applyTaskCompletedToState,
@@ -889,6 +890,26 @@ describe("change-state pure mutation helpers", () => {
     };
 
     expect(input.seedState?.origin?.issue_number).toBe(51);
+  });
+
+  it("applyOriginRepairedToState updates origin and lastSignalAt", () => {
+    const state = createChangeWorkflowState({
+      changeId: "origin-repair-test",
+      title: "Origin repair test",
+      createdAt: "2026-05-11T00:00:00.000Z",
+    });
+    state.origin = { kind: "adhoc" };
+
+    applyOriginRepairedToState(state, {
+      origin: { kind: "roadmap", issue_number: 77 },
+      repairedBy: "agent",
+      repairedAt: "2026-05-11T01:00:00.000Z",
+      approvalEvidence: "operator approved",
+      reason: "origin was missing issue number",
+    });
+
+    expect(state.origin).toEqual({ kind: "roadmap", issue_number: 77 });
+    expect(state.lastSignalAt).toBe("2026-05-11T01:00:00.000Z");
   });
 });
 

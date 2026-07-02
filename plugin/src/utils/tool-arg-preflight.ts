@@ -283,6 +283,13 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     scopeDelta: { blank: "omit" },
     approvalEvidence: { blank: "omit" },
   },
+  adv_change_repair_origin: {
+    approvalEvidence: { blank: "reject" }, // audit
+    reason: { blank: "reject" }, // audit
+    origin_source_artifact: { blank: "omit" },
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+  },
   adv_followup_promote: {
     source_report_key: { blank: "omit" },
     source_agenda_id: { blank: "omit" },
@@ -550,6 +557,51 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
       ];
     }
     return [];
+  },
+  adv_change_repair_origin: (args) => {
+    const invalid: ToolArgPreflightIssue[] = [];
+    const hasIssueNumber = args.origin_issue_number !== undefined;
+    const hasSourceArtifact = args.origin_source_artifact !== undefined;
+    const originKind = args.origin_kind;
+
+    if (originKind === "roadmap") {
+      if (!hasIssueNumber) {
+        invalid.push({
+          field: "origin_issue_number",
+          message: "origin_issue_number is required for roadmap origins.",
+        });
+      }
+      if (hasSourceArtifact) {
+        invalid.push({
+          field: "origin_source_artifact",
+          message:
+            "origin_source_artifact is only allowed for triage or discovery origins.",
+        });
+      }
+    } else if (originKind === "discovery") {
+      if (hasIssueNumber) {
+        invalid.push({
+          field: "origin_issue_number",
+          message:
+            "origin_issue_number is only allowed for roadmap or triage origins.",
+        });
+      }
+    } else if (originKind === "adhoc") {
+      if (hasIssueNumber) {
+        invalid.push({
+          field: "origin_issue_number",
+          message: "origin linkage fields are not allowed for adhoc origins.",
+        });
+      }
+      if (hasSourceArtifact) {
+        invalid.push({
+          field: "origin_source_artifact",
+          message: "origin linkage fields are not allowed for adhoc origins.",
+        });
+      }
+    }
+
+    return invalid;
   },
 };
 

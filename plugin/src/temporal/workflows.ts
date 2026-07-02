@@ -51,6 +51,7 @@ import {
   applyGateStuckToState,
   applyOpsEvidenceAppendedToState,
   applyOpsFollowupLinkAddedToState,
+  applyOriginRepairedToState,
   applyDesignConcernDispositionedToState,
   applyOpsFollowupSeededToState,
   applyProblemStatementUpdatedToState,
@@ -397,6 +398,9 @@ const updateArtifactMetadataSignal = wf.defineSignal<
     },
   ]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.updateArtifactMetadata);
+const originRepairedSignal = wf.defineSignal<
+  [import("../types").OriginRepairedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.originRepaired);
 const archiveChangeSignal = wf.defineSignal(
   CHANGE_WORKFLOW_SIGNAL_NAMES.archiveChange,
 );
@@ -1506,6 +1510,12 @@ export async function changeWorkflow(
         });
         return state;
       },
+    ),
+  );
+  wf.setHandler(
+    originRepairedSignal,
+    signalMutation("originRepaired", (payload) =>
+      applyOriginRepairedToState(state, payload),
     ),
   );
   wf.setHandler(

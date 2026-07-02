@@ -325,6 +325,11 @@ export function createToolMap(
       "adv_change_update_issues",
       store,
     ),
+    adv_change_repair_origin: bindTool(
+      changeTools.adv_change_repair_origin,
+      "adv_change_repair_origin",
+      store,
+    ),
     adv_change_reenter: bindTool(
       changeTools.adv_change_reenter,
       "adv_change_reenter",
@@ -858,6 +863,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_archive_repair",
   "adv_change_status_repair",
   "adv_change_update_issues",
+  "adv_change_repair_origin",
   "adv_change_reenter",
   "adv_change_forget",
   "adv_epic_create",
