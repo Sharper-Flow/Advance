@@ -473,6 +473,16 @@ For each non-code task, create or verify `contract.reviewMatrix` rows using the 
 
 Each applicable `AC*`/`SC*` row must have `pass` or `fail` status (or `not_applicable` with rationale). Failing, `unknown`, or missing evidence blocks acceptance.
 
+#### Ops Runbook Acceptance Proof
+
+For ops/enabler changes, acceptance proof must inspect `ops_followup` source state and compact link readbacks, not parent snapshots alone.
+
+- Verify any runbook-shaped ops task has an `ops_followup.runs[]` entry with env, action, bounds, evidence policy, rollback/cleanup plan, and append-only `adv_ops_run_evidence_add` evidence.
+- For production-impacting execute steps, confirm either approval evidence exists for `approval_required` or the step is explicitly `bounded_low_risk_autonomous` with rationale and bounds.
+- For completion claims, require completion signal, health verification, and rollback/cleanup disposition.
+- For linked obligations, read compact `ops_followup_links[].status_source` and `ops_followup_links[].completion_proof`; `status_source: "parent_snapshot"` or `completion_proof: "unverified"` is not acceptance proof for blocking/required-handoff work.
+- Evidence in the review matrix must be bounded and secret-safe; cite run IDs/artifact pointers/summaries, not raw prod logs or credentials.
+
 #### Designer Concern Enforcement (structural)
 
 <!-- rq-designQualityEvidence01 -->

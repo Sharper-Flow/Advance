@@ -15,6 +15,11 @@ describe("formatAdvToolTitle", () => {
     expect(
       formatAdvToolTitle("adv_run_test", { command: "pnpm test" }).title,
     ).toBe("Run test: pnpm test");
+    expect(
+      formatAdvToolTitle("adv_ops_run_upsert", {
+        runId: "run-1",
+      }).title,
+    ).toBe("Upsert ops run: run-1");
     expect(formatAdvToolTitle("adv_status", {}).title).toBe("Show ADV status");
   });
 

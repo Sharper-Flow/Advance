@@ -60,6 +60,7 @@ describe("subagent reports spec assets", () => {
       "rq-subagentNonCodeEvidence01",
       "rq-subagentReports18",
       "rq-subagentReports19",
+      "rq-subagentReports20",
     ]);
   });
 
@@ -308,6 +309,119 @@ describe("subagent reports spec assets", () => {
     ]) {
       expect(text).toContain(anchor);
     }
+  });
+
+  test("researcher architecture judgement law pins typed fields, verdict consistency, and advisory semantics", () => {
+    const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
+    const text = JSON.stringify(spec);
+
+    for (const anchor of [
+      "architecture_judgement",
+      "applicability",
+      "not_applicable",
+      "risk",
+      "tradeoffs",
+      "alternatives_considered",
+      "spec_law_implications",
+      "validation.status",
+      "pass|caution|fail|unknown",
+      "legacy",
+      "advisory-only",
+      "MUST NOT complete gates",
+      "advisory-only fail",
+    ]) {
+      expect(text).toContain(anchor);
+    }
+  });
+
+  test("design validator command maps dimensions into researcher Architecture Judgement", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-design.md"),
+      "utf8",
+    );
+
+    for (const anchor of [
+      "Architecture Judgement",
+      "architecture_judgement",
+      "validation.status: pass | caution | fail | unknown",
+      "CORRECTNESS",
+      "maps to architecture_judgement.risk",
+      "SPEC-LAW COMPLIANCE",
+      "maps to architecture_judgement.spec_law_implications",
+      "SIMPLICITY",
+      "maps to architecture_judgement.tradeoffs[]",
+      "KEY ALTERNATIVES",
+      "maps to architecture_judgement.alternatives_considered[]",
+      "Researcher `fail` is advisory-only",
+    ]) {
+      expect(content).toContain(anchor);
+    }
+
+    expect(content).not.toContain("verdict: VALIDATED | CAUTION | CONFLICT");
+  });
+
+  test("research command uses validation.status crosswalk and visible Architecture Judgement output", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-research.md"),
+      "utf8",
+    );
+
+    for (const anchor of [
+      "Architecture Judgement",
+      "architecture_judgement",
+      "validation.status: pass | caution | fail | unknown",
+      "VALIDATED → pass",
+      "CONCERNS → caution",
+      "ANTI-PATTERN → fail",
+      "NEEDS_MORE_INFO → unknown",
+    ]) {
+      expect(content).toContain(anchor);
+    }
+
+    expect(content).not.toContain(
+      "VALIDATION: VALIDATED | CONCERNS | ANTI-PATTERN | NEEDS_MORE_INFO",
+    );
+  });
+
+  test("delegation-defaults design validator has typed adv-researcher report packet contract", () => {
+    const spec = readJson(DELEGATION_DEFAULTS_SPEC) as {
+      delegation_matrix: Array<{
+        step: string;
+        delegated_substeps?: Array<{
+          name: string;
+          packet_contracts?: Array<{
+            agent: string;
+            report_transport: string;
+            required_packet_anchors: string[];
+            warn_packet_anchors?: string[];
+          }>;
+        }>;
+      }>;
+    };
+    const design = spec.delegation_matrix.find((row) => row.step === "design");
+    const validator = (design?.delegated_substeps ?? []).find(
+      (substep) => substep.name === "Independent Design Validator",
+    );
+
+    const researcherContract = validator?.packet_contracts?.find(
+      (contract) => contract.agent === "adv-researcher",
+    );
+    expect(researcherContract).toBeDefined();
+    expect(researcherContract!.report_transport).toBe("typed_persisted_worker");
+    expect(researcherContract!.required_packet_anchors).toEqual([
+      "WORKING DIRECTORY",
+      "CHANGE",
+      "SCOPE KEY",
+      "ATTEMPT",
+    ]);
+    expect(researcherContract!.warn_packet_anchors).toEqual([
+      "TASK_SCOPE",
+      "IN_SCOPE",
+      "OUT_OF_SCOPE",
+      "DONE_WHEN",
+      "STOP_WHEN",
+      "VERIFICATION",
+    ]);
   });
 
   test("verify-only burst has orchestrator-submitted verification bundle packet contract", () => {

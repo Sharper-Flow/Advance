@@ -397,6 +397,7 @@ function buildOpsFollowupProfile(
     status: "not_started",
     created_at: linkedAt,
     evidence: [],
+    runs: [],
   };
 }
 

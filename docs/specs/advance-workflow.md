@@ -1,6 +1,6 @@
 # Advance Workflow
 
-> **Version:** 1.24.0
+> **Version:** 1.25.0
 > **Updated:** 2026-07-02
 
 ## Purpose
@@ -3863,6 +3863,200 @@ Parent release/archive reporting MUST surface open linked ops obligations and re
 - The output includes the open ops follow-up list
 - Each entry shows relationship, status, and handoff note
 - The open obligation is not silently dropped
+
+---
+
+### Runbook-Shaped Production Ops State
+
+**ID:** `rq-opsRunbook01` | **Priority:** **[MUST]**
+
+Production-impacting ops work represented in ADV MUST have durable runbook-shaped state under the owning ops_followup profile before execution authority is granted. The runbook state MUST include environment, action, explicit bounds, approval policy, evidence policy, rollback or cleanup plan, and current run status. Agents MUST be able to resume from typed workflow state rather than chat history, while legacy ops_followup profiles and evidence remain readable.
+
+**Tags:** `workflow`, `ops-follow-up`, `ops-runbook`, `state`, `production`
+
+#### Scenarios
+
+**Runbook presents execution-critical fields** (`rq-opsRunbook01.1`)
+
+**Given:**
+- A production-impacting ops run is planned for an ops_followup change
+
+**When:** The run is presented for execution
+
+**Then:**
+- ADV shows the target environment, action, explicit bounds, approval policy, evidence policy, and rollback or cleanup plan
+- The run state is stored in typed workflow state under the ops_followup profile
+- Execution authority does not depend on chat transcript memory
+
+**Runbook state supports resume** (`rq-opsRunbook01.2`)
+
+**Given:**
+- An ops run has been planned and partially executed
+- The agent session is interrupted
+
+**When:** A later session reads the ADV change state
+
+**Then:**
+- The run status, next required action, evidence policy, approval policy, and rollback or cleanup plan are queryable from ADV state
+- The agent does not need the original chat transcript to resume safely
+
+**Legacy profiles remain readable** (`rq-opsRunbook01.3`)
+
+**Given:**
+- An existing ops_followup profile has only legacy evidence fields
+
+**When:** ADV reads or renders the profile after ops runbook support is added
+
+**Then:**
+- The profile remains readable with no data loss
+- Missing runbook fields are rendered as absent or legacy-only state, not as malformed data
+
+---
+
+### Production Ops Approval Authority
+
+**ID:** `rq-opsRunApproval01` | **Priority:** **[MUST]**
+
+Production-impacting execute steps MUST be structurally classified before completion authority is granted. Unclassified production-impacting execution defaults to approval-required. A bounded low-risk autonomous classification is valid only when it cites an allowlist or rationale and explicit bounds. Approval-required steps MUST carry matching approval evidence before execution completion can be recorded.
+
+**Tags:** `workflow`, `ops-follow-up`, `ops-runbook`, `approval`, `production-safety`
+
+#### Scenarios
+
+**Unclassified prod execution requires approval** (`rq-opsRunApproval01.1`)
+
+**Given:**
+- An ops run contains a production-impacting execute step
+- The step has no bounded low-risk autonomous classification
+
+**When:** An agent attempts to record the step as complete without matching approval evidence
+
+**Then:**
+- ADV rejects or blocks completion authority for that execute step
+- The run remains in a non-complete state
+- The blocker states that production-impacting execution requires explicit approval
+
+**Low-risk autonomous classification is bounded** (`rq-opsRunApproval01.2`)
+
+**Given:**
+- An ops run marks a production-impacting step as bounded low-risk autonomous
+
+**When:** The classification is inspected or persisted
+
+**Then:**
+- It includes an allowlist or rationale
+- It includes explicit bounds such as environment, scope, command/action, batch limit, or rollback-safe limit
+- The classification is typed state, not free-text-only permission
+
+**Approval evidence authorizes required step** (`rq-opsRunApproval01.3`)
+
+**Given:**
+- An ops run execute step is approval-required
+
+**When:** Matching approval evidence is recorded before execution completion
+
+**Then:**
+- ADV can record the step outcome if other evidence requirements pass
+- The approval evidence is queryable from run state
+- The approval does not authorize unrelated steps outside the recorded bounds
+
+---
+
+### Secret-Safe Ops Run Evidence Ledger
+
+**ID:** `rq-opsRunEvidence01` | **Priority:** **[MUST]**
+
+Ops run evidence MUST be append-only, bounded, and secret-safe. Evidence entries for run status changes MUST record step kind, environment, run or batch identifier, status, bounded summary, secret-safe artifact pointer or explicit no-artifact rationale, timestamp, and next state. Completion evidence MUST include completion signal, health verification, and rollback or cleanup disposition. Evidence that contains credentials or raw sensitive production logs MUST be rejected, redacted, or represented only by safe pointers and summaries.
+
+**Tags:** `workflow`, `ops-follow-up`, `ops-runbook`, `evidence`, `secret-safety`
+
+#### Scenarios
+
+**Status-changing evidence records required fields** (`rq-opsRunEvidence01.1`)
+
+**Given:**
+- An ops run step changes run status
+
+**When:** Evidence is appended
+
+**Then:**
+- The evidence records step kind, environment, run or batch identifier, status, timestamp, and next state
+- The evidence records a bounded summary
+- The evidence records a secret-safe artifact pointer or explicit no-artifact rationale
+
+**Sensitive values are not persisted** (`rq-opsRunEvidence01.2`)
+
+**Given:**
+- Evidence input contains credentials or raw sensitive production logs
+
+**When:** The evidence append is validated
+
+**Then:**
+- ADV rejects the input, redacts the sensitive value, or stores only a bounded safe pointer
+- Persisted ops evidence contains no secret values or raw sensitive logs
+- The rejection or redaction outcome is visible to the caller
+
+**Completion requires operational proof** (`rq-opsRunEvidence01.3`)
+
+**Given:**
+- An ops run is being marked complete
+
+**When:** Readiness or completion authority is evaluated
+
+**Then:**
+- Evidence includes a completion signal
+- Evidence includes health verification
+- Evidence includes rollback or cleanup disposition
+
+---
+
+### Verified Ops Child State Release Authority
+
+**ID:** `rq-opsRunReleaseReadiness01` | **Priority:** **[MUST]**
+
+Acceptance, release, archive, and approval consequence context MUST derive linked ops obligation status from child/source-of-truth state or a fresh verified reconciliation proof. A stale parent ops_followup_link status alone MUST NOT authorize release or archive. Unreachable child state MUST be rendered as warning or blocker according to relationship and required-handoff semantics, never as N/A.
+
+**Tags:** `workflow`, `ops-follow-up`, `ops-runbook`, `release`, `archive`, `readiness`
+
+#### Scenarios
+
+**Stale parent status is not release authority** (`rq-opsRunReleaseReadiness01.1`)
+
+**Given:**
+- A parent change has an ops_followup_link with status complete
+- The linked child ops_followup source-of-truth state is incomplete or lacks required completion evidence
+
+**When:** Release readiness is evaluated
+
+**Then:**
+- The stale parent status alone does not authorize release
+- The readiness result follows child state or fresh verified reconciliation
+- A blocking or required-handoff obligation remains unresolved when child proof is incomplete
+
+**Unreachable blocking child blocks release** (`rq-opsRunReleaseReadiness01.2`)
+
+**Given:**
+- A parent change has a blocking or required-handoff ops link
+- The linked child state cannot be read or verified
+
+**When:** Release or archive readiness is evaluated
+
+**Then:**
+- ADV emits an unverified ops follow-up blocker
+- The gate is not completed from stale parent data
+- The user-facing report identifies the unreachable child as warning or blocker, not N/A
+
+**Readbacks render verified obligations** (`rq-opsRunReleaseReadiness01.3`)
+
+**Given:**
+- A parent change has linked ops obligations
+
+**When:** Acceptance, archive, WIP, status, or compact readback context renders linked ops state
+
+**Then:**
+- The rendered status comes from child/source-of-truth state or a fresh reconciliation proof
+- Open non-blocking obligations are listed with handoff context
+- Missing or unreadable harden/ops evidence is explicit and is not rendered as N/A
 
 ---
 

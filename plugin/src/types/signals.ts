@@ -38,6 +38,8 @@ import {
   OpsFollowupLinkSchema,
   OpsFollowupProfileSchema,
   OpsFollowupStatusSchema,
+  OpsRunEvidenceEntrySchema,
+  OpsRunSchema,
 } from "./changes";
 
 const IsoTimestampSchema = z.string();
@@ -472,6 +474,25 @@ export const OpsEvidenceAppendedSignalPayloadSchema = z.object({
 });
 export type OpsEvidenceAppendedSignalPayload = z.infer<
   typeof OpsEvidenceAppendedSignalPayloadSchema
+>;
+
+export const OpsRunUpsertedSignalPayloadSchema = z.object({
+  run: OpsRunSchema,
+  upsertedAt: IsoTimestampSchema,
+});
+export type OpsRunUpsertedSignalPayload = z.infer<
+  typeof OpsRunUpsertedSignalPayloadSchema
+>;
+
+export const OpsRunEvidenceAppendedSignalPayloadSchema = z.object({
+  runId: z.string().min(1),
+  entry: OpsRunEvidenceEntrySchema,
+  /** Optional child-profile status override. Run status follows entry.next_status. */
+  status: OpsFollowupStatusSchema.optional(),
+  appendedAt: IsoTimestampSchema,
+});
+export type OpsRunEvidenceAppendedSignalPayload = z.infer<
+  typeof OpsRunEvidenceAppendedSignalPayloadSchema
 >;
 
 export const ChangeCancelledSignalPayloadSchema = z.object({

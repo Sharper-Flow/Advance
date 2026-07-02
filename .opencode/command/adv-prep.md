@@ -128,6 +128,17 @@ Rules:
 - Every non-code task MUST have `contract_refs` (`implements`/`verifies`/`respects`) or a bounded `not_applicable_reason`.
 - Use the shared `ContractEvidencePolicy` vocabulary: `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, `static_check`, `review`, `test`, `design_proof`, `not_applicable`.
 
+#### Ops Runbook Task Policy
+
+When agreement/design requires production-impacting ops work, prep MUST create explicit `ops` tasks that drive a durable ops runbook instead of relying on chat history.
+
+- Task body must name env, action, bounds, evidence policy, rollback/cleanup expectation, and whether execution is `approval_required` or `bounded_low_risk_autonomous`.
+- Add task refs to the relevant ops AC/SC/constraint items; do not make ops approval/evidence prose-only.
+- The apply task must create/update run state with `adv_ops_run_upsert` before execution evidence is recorded.
+- Unclassified production-impacting execute steps default to `approval_required`; low-risk autonomous tasks must include rationale plus explicit bounds.
+- Evidence expectation: `adv_ops_run_evidence_add` records bounded summaries and artifact pointers/rationales only; no credentials or raw production logs.
+- Review/harden/archive tasks must verify child/source-of-truth state or fresh reconciliation proof; stale parent `ops_followup_links.status` is display/cache only.
+
 ### Contract Traceability
 
 When `ChangeContract` exists, `/adv-prep` must synthesize task refs alongside task graph decisions:

@@ -149,7 +149,7 @@ IN_SCOPE:
 OUT_OF_SCOPE:
   - rewriting the design, adding unapproved scope, user-value tradeoff decisions
 DONE_WHEN:
-  - validator verdict and findings are supported by sources or explicit inconclusive notes
+  - validator Architecture Judgement is supported by sources or explicit inconclusive notes
 STOP_WHEN:
   - contract compromise, security/release blocker, or conflict requiring orchestrator decision
 VERIFICATION:
@@ -166,39 +166,56 @@ Acceptance Criteria: {numbered AC}
 Constraints: {constraints}
 Avoidances: {avoidances}
 
-VALIDATION DIMENSIONS:
-1. CORRECTNESS — Does this design solve the stated objectives? Are there logical gaps?
-2. SIMPLICITY — Is there a materially simpler approach achieving the same objectives?
-3. SPEC-LAW COMPLIANCE — Does this design contradict any existing spec requirement? Use adv_spec to check.
-4. KEY ALTERNATIVES — Was a significant viable alternative overlooked?
+ARCHITECTURE JUDGEMENT DIMENSIONS:
+1. CORRECTNESS — Does this design solve the stated objectives? Are there logical gaps? → maps to architecture_judgement.risk
+2. SIMPLICITY — Is there a materially simpler approach achieving the same objectives? → maps to architecture_judgement.tradeoffs[]
+3. SPEC-LAW COMPLIANCE — Does this design contradict any existing spec requirement? Use adv_spec to check. → maps to architecture_judgement.spec_law_implications
+4. KEY ALTERNATIVES — Was a significant viable alternative overlooked? → maps to architecture_judgement.alternatives_considered[]
 
 OUTPUT_SCHEMA:
-DESIGN_VALIDATION:
-  verdict: VALIDATED | CAUTION | CONFLICT
-  findings:
-    - dimension: {1-4}
-      level: info | caution | conflict
-      summary: {one sentence}
-      detail: {explanation}
-  recommendation: {one paragraph}
+architecture_judgement:
+  applicability: applicable | not_applicable
+  summary: {one sentence}
+  risk: {non-empty string}
+  tradeoffs: [{short text}]      # OPTIONAL — derived from SIMPLICITY findings
+  alternatives_considered: [{short text}]  # REQUIRED — may be empty list
+  spec_law_implications: {string} # OPTIONAL — derived from SPEC-LAW findings
+  required_validation_consistency:
+    status: pass | caution | fail | unknown  # MUST equal validation.status
+validation:
+  # validation.status: pass | caution | fail | unknown — single source of truth verdict
+  status: pass | caution | fail | unknown   # single source of truth verdict
+  blockers: [{short text}]
+  notes: {string}
+recommendation: {one paragraph}
+
+RESEARCHER VERDICT CROSSWALK:
+  validation.status pass + CONCERNS absent → display "Validated"
+  validation.status caution → display "Caution"
+  validation.status fail → display "Anti-Pattern"   # advisory-only, not gate-blocking
+  validation.status unknown → display "Needs More Info"
 
 BUDGET: Focus on the 4 dimensions only. Do not rewrite the design.
-STOP_WHEN: You have a verdict with evidence for each dimension.
-EXPECTED OUTPUT: return DESIGN_VALIDATION and call adv_subagent_report_submit with RESEARCHER_REPORT per .opencode/agents/adv-researcher.md
+STOP_WHEN: Architecture Judgement is complete with evidence for each dimension.
+EXPECTED OUTPUT: call adv_subagent_report_submit with RESEARCHER_REPORT per .opencode/agents/adv-researcher.md (architecture_judgement is required).
 ```
+
+Researcher `fail` is advisory-only — it surfaces `architecture_judgement.risk` and `validation.status: fail` but MUST NOT auto-block the design gate. Other gates may apply (e.g. contract compromise, security/release blockers).
 
 ---
 
 ## Phase 3.6: Handle Verdict
 
-Process the validator output and determine whether to proceed:
+Process the validator output (crosswalking `validation.status` against the legacy verdict vocabulary) and determine whether to proceed:
 
-| Verdict                               | Action                                                                                                                                                                                                                                           |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `VALIDATED`                           | Record "Validator: clean pass" in design notes; proceed to Phase 4                                                                                                                                                                               |
-| `CAUTION`                             | Record caution findings in design notes; proceed to Phase 4                                                                                                                                                                                      |
-| `CONFLICT`                            | Present conflict findings; attempt inline resolution if technical fix is obvious; if unresolved, flag in design notes for the design summary to surface to user before planning; if resolved inline, record the conflict as resolved and proceed |
-| `INCONCLUSIVE` (empty/failed/timeout) | Record "Validation attempted but inconclusive" warning; proceed to Phase 4                                                                                                                                                                       |
+| Verdict (`validation.status`)         | Legacy label    | Action                                                                                                                                                                                                                                          |
+| ------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pass` (no `CONCERNS`)                | `VALIDATED`     | Record "Validator: clean pass" in design notes; proceed to Phase 4                                                                                                                                                                              |
+| `caution`                             | `CAUTION`       | Record caution findings in design notes; proceed to Phase 4                                                                                                                                                                                     |
+| `fail`                                | `ANTI-PATTERN`  | Present `architecture_judgement.risk` findings; advisory-only — NEVER auto-block the design gate; record in design notes for surfacing; proceed to Phase 4 unless another gate blocker applies                                                |
+| `unknown`                             | `NEEDS_MORE_INFO` | Record "Validation attempted but inconclusive" warning; proceed to Phase 4                                                                                                                                                                    |
+
+Researcher `fail` / anti-pattern judgement is advisory-only in this change. It surfaces via `architecture_judgement.required_validation_consistency.status: fail` and does NOT add a new machine gate blocker.
 
 Record the validation result via `adv_change_update` as a compact summary appended to `design.md`.
 
@@ -214,19 +231,20 @@ Show a compact summary with:
 - major risks / tradeoffs
 - optional visual comparison block when side-by-side design alternatives are easier to judge than prose alone. Load `skill("adv-user-intuit")` for the structured comparison presentation protocol if skill is available; otherwise continue with existing inline comparison workflow
 - **Validator Result** — always display validator outcome from Phase 3.5/3.6 when validation data exists:
-  - `VALIDATED` → one-line note: "Validator: clean pass ✓"
-  - `CAUTION` → list caution findings inline (brief, one sentence each)
-  - `CONFLICT` → show conflict details with unresolved items highlighted
-  - `INCONCLUSIVE` → show warning: "Validation attempted but inconclusive"
+  - `validation.status: pass` (no `CONCERNS`) → one-line note: "Validator: clean pass ✓" (legacy label `VALIDATED`)
+  - `validation.status: caution` → list caution findings inline (brief, one sentence each) (legacy label `CAUTION`)
+  - `validation.status: fail` → show `architecture_judgement.risk` and `architecture_judgement.spec_law_implications` with unresolved items highlighted; mark advisory-only (legacy label `ANTI-PATTERN`)
+  - `validation.status: unknown` → show warning: "Validation attempted but inconclusive" (legacy label `NEEDS_MORE_INFO`)
   - No validation data (legacy design with no validator markers) → omit section silently
 
 After displaying the validator result:
 
 - Visual comparison block: keep text-readable; align with inline choices.
 - Real user-value tradeoffs → emit **Inline Approval prompt (Tier A)** before `/adv-prep`.
-- Unresolved `CONFLICT` → pause for user resolution before planning.
+- Unresolved `CONFLICT` (user-discovered cross-validation conflict) → pause for user resolution before planning.
 - Contract-compromise risk → always pause; surface route discussion before planning, any validator verdict.
-- Straightforward design + no tradeoff + no unresolved `CONFLICT` + no contract-compromise risk + validator `VALIDATED`/`CAUTION`/`INCONCLUSIVE` → proceed to `/adv-prep`; no pause.
+- Straightforward design + no tradeoff + no unresolved `CONFLICT` + no contract-compromise risk + validator `pass`/`caution`/`unknown` → proceed to `/adv-prep`; no pause.
+- Researcher `fail` judgement surfaces risk but MUST NOT auto-block the design gate; pause only if another gate blocker (contract compromise, security/release blocker, user-discovered `CONFLICT`) applies.
 
 **Inline Approval prompt when pausing** (Tier A per `docs/command-voice-standard.md` § Inline Approval Voice):
 

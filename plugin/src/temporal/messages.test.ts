@@ -53,6 +53,8 @@ import {
   OpsEvidenceAppendedSignalPayloadSchema,
   OpsFollowupLinkAddedSignalPayloadSchema,
   OpsFollowupSeededSignalPayloadSchema,
+  OpsRunEvidenceAppendedSignalPayloadSchema,
+  OpsRunUpsertedSignalPayloadSchema,
 } from "../types";
 
 const designSignalKeys = [
@@ -98,6 +100,8 @@ const designSignalKeys = [
   "opsFollowupSeeded",
   "opsFollowupLinkAdded",
   "opsEvidenceAppended",
+  "opsRunUpserted",
+  "opsRunEvidenceAppended",
   "epicMembershipSet",
   "epicMembershipCleared",
   "updateArtifactMetadata",
@@ -116,11 +120,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 48 signal surface", () => {
+  it("defines the 50 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(48);
+    expect(surfacedKeys).toHaveLength(50);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -442,6 +446,46 @@ describe("change workflow message contract", () => {
             action: "run migration",
             status: "started",
             summary: "migration started",
+          },
+          appendedAt: timestamp,
+        },
+      ],
+      [
+        OpsRunUpsertedSignalPayloadSchema,
+        {
+          run: {
+            id: "run-1",
+            title: "Run prod cleanup",
+            status: "planned",
+            created_at: timestamp,
+            plan: {
+              env: "prod",
+              action: "cleanup temp rows",
+              bounds: ["batch=001"],
+              evidence_policy: "summary_and_pointer",
+              rollback_or_cleanup_plan:
+                "rerun cleanup or restore backup snapshot",
+            },
+          },
+          upsertedAt: timestamp,
+        },
+      ],
+      [
+        OpsRunEvidenceAppendedSignalPayloadSchema,
+        {
+          runId: "run-1",
+          entry: {
+            id: "run-ev-1",
+            recorded_at: timestamp,
+            step_kind: "execute",
+            env: "prod",
+            status: "complete",
+            summary: "cleanup complete",
+            artifact: {
+              kind: "none",
+              rationale: "No external artifact emitted",
+            },
+            next_status: "complete",
           },
           appendedAt: timestamp,
         },

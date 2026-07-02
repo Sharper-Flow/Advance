@@ -393,6 +393,21 @@ TodoWrite is a projection over ADV tasks, not the task source of truth. Copy `_t
 - Entries without `tk-*` IDs are scratchpad-only / warning-first.
 - Non-ADV work, early gates without tasks, degraded ADV state, and subagent scratchpads remain allowed.
 
+### Ops Runbook Execution
+
+For `ops` tasks or tasks whose contract refs require production ops evidence, ADV state is the source of truth. Do not treat chat transcript, shell scrollback, or stale parent `ops_followup_links.status` as approval/completion proof.
+
+Required flow for runbook-shaped ops work:
+
+1. Load child ops follow-up profile from `adv_change_show`; if no `ops_followup` profile exists, promote/seed one before recording ops evidence.
+2. Before execution, call `adv_ops_run_upsert` with env, action, bounds, evidence policy, rollback/cleanup plan, and execute step approval policy.
+3. Production-impacting execute steps without explicit low-risk classification MUST use `approval_required`; do not run or record execute evidence until matching approval evidence is present.
+4. `bounded_low_risk_autonomous` is valid only with rationale and explicit bounds. Heuristics may identify candidates, never authorize execution.
+5. Append step evidence with `adv_ops_run_evidence_add`; record only bounded summary plus safe artifact pointer or no-artifact rationale. Never paste credentials or raw production logs.
+6. Completion for release/sign-off requires completion signal, health verification, and rollback/cleanup disposition.
+
+If any required approval/evidence field is missing, keep the task `in_progress` and surface the blocker; do not mark the task done and do not downgrade it to generic `adv_ops_evidence_add` unless the contract explicitly allows legacy compact evidence.
+
 ### Anti-Patterns (PROHIBITED)
 
 | × Anti-Pattern                                                                                 | ✓ Correct                                                                                                  |

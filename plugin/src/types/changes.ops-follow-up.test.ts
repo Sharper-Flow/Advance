@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import {
   ChangeSchema,
   OpsEvidenceEntrySchema,
+  OpsRunApprovalPolicySchema,
+  OpsRunSchema,
   OpsFollowupLinkSchema,
   OpsFollowupProfileSchema,
   OpsFollowupSourceSchema,
@@ -30,6 +32,7 @@ describe("ops follow-up schemas", () => {
       relationship: "blocks",
       status: "not_started",
       evidence: [],
+      runs: [],
     });
   });
 
@@ -68,6 +71,111 @@ describe("ops follow-up schemas", () => {
       status: "started",
       batch: "batch-001",
     });
+  });
+
+  it("parses a profile with typed ops runbook state", () => {
+    const result = OpsFollowupProfileSchema.parse({
+      kind: "migration",
+      source: {
+        source_change_id: "parent-runbook",
+        source_kind: "required_follow_up",
+      },
+      relationship: "blocks",
+      status: "running",
+      created_at: timestamp,
+      runs: [
+        {
+          id: "run-1",
+          title: "Apply prod migration",
+          status: "running",
+          created_at: timestamp,
+          plan: {
+            env: "prod",
+            action: "apply schema migration",
+            bounds: ["tenant=batch-001", "max_rows=500"],
+            evidence_policy: "command_output_summary",
+            rollback_or_cleanup_plan:
+              "rollback migration and verify schema version",
+          },
+          steps: [
+            {
+              id: "step-1",
+              title: "Apply migration batch",
+              kind: "execute",
+              status: "running",
+              approval_policy: {
+                mode: "approval_required",
+                approval_evidence: "User approved prod batch batch-001",
+              },
+            },
+          ],
+          evidence: [
+            {
+              id: "run-ev-1",
+              recorded_at: timestamp,
+              step_kind: "execute",
+              env: "prod",
+              run_id: "run-1",
+              batch: "batch-001",
+              status: "partial",
+              summary: "Migration applied to batch-001; health check pending",
+              artifact: {
+                kind: "pointer",
+                uri: "gh-run://12345",
+              },
+              next_status: "partial",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.runs).toHaveLength(1);
+    expect(result.runs?.[0]?.plan.env).toBe("prod");
+    expect(result.runs?.[0]?.steps[0]?.approval_policy.mode).toBe(
+      "approval_required",
+    );
+    expect(result.runs?.[0]?.evidence[0]?.artifact.kind).toBe("pointer");
+  });
+
+  it("rejects bounded autonomous approval without explicit bounds", () => {
+    expect(() =>
+      OpsRunApprovalPolicySchema.parse({
+        mode: "bounded_low_risk_autonomous",
+        rationale: "Read-only health check is allowlisted",
+        bounds: [],
+      }),
+    ).toThrow();
+  });
+
+  it("requires secret-safe artifact pointer or no-artifact rationale", () => {
+    expect(() =>
+      OpsRunSchema.parse({
+        id: "run-bad-artifact",
+        title: "Bad artifact",
+        status: "running",
+        created_at: timestamp,
+        plan: {
+          env: "prod",
+          action: "inspect deployment",
+          bounds: ["read-only"],
+          evidence_policy: "summary",
+          rollback_or_cleanup_plan: "no cleanup needed",
+        },
+        evidence: [
+          {
+            id: "ev-bad-artifact",
+            recorded_at: timestamp,
+            step_kind: "execute",
+            env: "prod",
+            status: "pass",
+            summary: "raw logs omitted",
+            artifact: { kind: "none" },
+            next_status: "complete",
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it("parses an outbound ops follow-up link", () => {

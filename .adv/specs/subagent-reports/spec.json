@@ -10,7 +10,7 @@
     {
       "id": "rq-subagentReports01",
       "title": "Typed tool-call report ingest",
-      "body": "ADV worker reports MUST be submitted through adv_subagent_report_submit using strict Zod-validated payloads. Version 1 supports adv-engineer, adv-reviewer, adv-designer, adv-researcher, adv-tron, adv-scanner-bundle, and orchestrator-submitted adv-verification-triage-bundle payload variants, and rejects malformed or unsupported payloads before persistence.",
+      "body": "ADV worker reports MUST be submitted through adv_subagent_report_submit using strict Zod-validated payloads. Version 1 supports adv-engineer, adv-reviewer, adv-designer, adv-researcher, adv-tron, adv-scanner-bundle, and orchestrator-submitted adv-verification-triage-bundle payload variants, and rejects malformed or unsupported payloads before persistence. adv-researcher payloads additionally include an Architecture Judgement object per rq-subagentReports20 with status consistency against validation.status.",
       "priority": "must",
       "tags": ["subagents", "reports", "zod", "ingest"],
       "scenarios": [
@@ -700,6 +700,76 @@
           "given": ["A triage bundle recommends route_adv_engineer"],
           "when": "The schema and orchestrator evaluate routing predicates",
           "then": ["error_class is SEMANTIC", "scope_risk is false", "confidence is high or medium", "suggested_handoff is present", "Main ADV independently validates scope before spawning adv-engineer"]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports20",
+      "title": "Researcher Architecture Judgement Typed Contract",
+      "body": "New adv-researcher reports MUST include an Architecture Judgement object as durable typed report data, in addition to validation and recommendation fields. The payload MUST be a discriminated union keyed on applicability. applicable judgements MUST carry applicability applicable, a one-sentence summary, a non-empty risk string, optional tradeoffs array, required alternatives_considered array, optional spec_law_implications string, and required_validation_consistency with a single source of truth status field pass|caution|fail|unknown that matches validation.status. not_applicable judgements MUST carry applicability not_applicable and a one-sentence rationale that explains why the research has no architecture judgement dimensions. The architecture_judgement object is advisory-only: it MUST NOT complete gates, mutate tasks, change scope, or block research submission, and consumer tools MUST treat researcher fail as advisory architecture judgement with validation.status fail crosswalking to ANTI-PATTERN. The advisory-only fail verdict surfaces as architecture_judgement.risk and MUST NOT introduce a second verdict field. Legacy persisted researcher reports missing architecture_judgement MUST remain readable through adv_change_show include.subagentReports; adv_subagent_report_submit MUST NOT accept legacy-shaped submissions as new ingest.",
+      "priority": "must",
+      "tags": [
+        "subagents",
+        "researcher",
+        "judgement",
+        "validation",
+        "verdict",
+        "zod",
+        "legacy"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports20.1",
+          "title": "Applicable architecture judgement validates structurally",
+          "given": [
+            "A new adv-researcher report is submitted with applicability applicable"
+          ],
+          "when": "adv_subagent_report_submit validates the payload",
+          "then": [
+            "The report includes architecture_judgement.summary, risk, and required_validation_consistency",
+            "architecture_judgement.required_validation_consistency.status matches validation.status",
+            "alternatives_considered is present and may be empty only when none were considered",
+            "Missing summary, risk, or mismatching status is rejected as INVALID_REPORT"
+          ]
+        },
+        {
+          "id": "rq-subagentReports20.2",
+          "title": "Not-applicable judgement covers docs/API/examples research",
+          "given": [
+            "A researcher reports on docs/API/examples research with no architecture judgement dimensions"
+          ],
+          "when": "adv_subagent_report_submit validates the payload",
+          "then": [
+            "The report includes architecture_judgement.applicability not_applicable",
+            "The report includes a non-blank rationale",
+            "Missing rationale or applicable shape mismatch is rejected as INVALID_REPORT"
+          ]
+        },
+        {
+          "id": "rq-subagentReports20.3",
+          "title": "Researcher fail judgement remains advisory-only",
+          "given": [
+            "An adv-researcher report carries validation.status fail and architecture_judgement.applicability applicable"
+          ],
+          "when": "The orchestrator processes the report",
+          "then": [
+            "Architecture Judgement surfaces as risk with required_validation_consistency.status fail",
+            "No gate is auto-completed or block-listed by the researcher judgement",
+            "User-visible labels crosswalk fail to ANTI-PATTERN via the validation.status source of truth"
+          ]
+        },
+        {
+          "id": "rq-subagentReports20.4",
+          "title": "Legacy researcher reports remain readable without judgement",
+          "given": [
+            "A persisted researcher report predates rq-subagentReports20 and lacks architecture_judgement"
+          ],
+          "when": "adv_change_show runs with include.subagentReports true",
+          "then": [
+            "The report is still returned with source metadata",
+            "Missing architecture_judgement is treated as not_applicable with a normalized legacy_rationale",
+            "adv_subagent_report_submit MUST NOT accept the legacy shape as new ingest"
+          ]
         }
       ]
     }
