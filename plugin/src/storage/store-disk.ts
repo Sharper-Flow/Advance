@@ -74,6 +74,23 @@ import {
 import { generateChangeId } from "../utils/change-id";
 import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
+import { createLogger } from "../utils/debug-log";
+
+const logger = createLogger("store-disk");
+
+let lastMonotonicTs = 0;
+let monotonicSeq = 0;
+
+function monotonicId(prefix: string): string {
+  const now = Date.now();
+  if (now !== lastMonotonicTs) {
+    lastMonotonicTs = now;
+    monotonicSeq = 0;
+  } else {
+    monotonicSeq++;
+  }
+  return `${prefix}-${now}-${monotonicSeq}`;
+}
 
 /**
  * Disk-only `Store` implementation.
@@ -671,7 +688,7 @@ export async function createDiskStore(
           throw new Error(`Change not found: ${changeId}`);
         }
         const task: Task = {
-          id: `tk-${Math.random().toString(36).slice(2, 10)}`,
+          id: monotonicId("tk"),
           title: content,
           type: options?.type ?? "code",
           status: "pending",
@@ -756,7 +773,7 @@ export async function createDiskStore(
           throw new Error(`Change not found: ${changeId}`);
         }
         const entry: WisdomEntry = WisdomEntrySchema.parse({
-          id: `ws-${Math.random().toString(36).slice(2, 10)}`,
+          id: monotonicId("ws"),
           type,
           content,
           source_task: sourceTask,
@@ -802,8 +819,12 @@ export async function createDiskStore(
               origin_repo_path: entry.origin_repo_path,
             } as WisdomEntry & { scope: string });
           }
-        } catch {
-          // Empty/missing project wisdom is fine.
+        } catch (err) {
+          const summary = err instanceof Error ? err.message : String(err);
+          logger.warn(
+            `Project wisdom read failed; skipping project entries: ${summary.slice(0, 200)}`,
+            { path: paths.wisdom },
+          );
         }
         return searchWisdom(all, query, options) as never;
       },
@@ -839,8 +860,12 @@ export async function createDiskStore(
               origin_repo_path: entry.origin_repo_path,
             } as WisdomEntry & { scope: string });
           }
-        } catch {
-          // Empty/missing project wisdom is fine.
+        } catch (err) {
+          const summary = err instanceof Error ? err.message : String(err);
+          logger.warn(
+            `Project wisdom read failed; skipping project entries: ${summary.slice(0, 200)}`,
+            { path: paths.wisdom },
+          );
         }
         return all;
       },
