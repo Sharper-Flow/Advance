@@ -69,6 +69,50 @@ describe("ops-follow-up traceability spec law", () => {
     expect(req!.scenarios).toHaveLength(3);
   });
 
+  test("rq-opsRunbook01 exists in advance-workflow with 3 scenarios", () => {
+    const spec = loadSpec("advance-workflow");
+    const req = findReq(spec, "rq-opsRunbook01");
+    expect(req, "rq-opsRunbook01 must exist").toBeDefined();
+    expect(req!.priority).toBe("must");
+    expect(req!.tags).toContain("ops-runbook");
+    expect(req!.body).toMatch(/runbook-shaped state/);
+    expect(req!.body).toMatch(/chat history/);
+    expect(req!.scenarios).toHaveLength(3);
+  });
+
+  test("rq-opsRunApproval01 exists in advance-workflow with 3 scenarios", () => {
+    const spec = loadSpec("advance-workflow");
+    const req = findReq(spec, "rq-opsRunApproval01");
+    expect(req, "rq-opsRunApproval01 must exist").toBeDefined();
+    expect(req!.priority).toBe("must");
+    expect(req!.body).toMatch(
+      /Unclassified production-impacting execution defaults to approval-required/,
+    );
+    expect(req!.body).toMatch(/bounded low-risk autonomous/);
+    expect(req!.scenarios).toHaveLength(3);
+  });
+
+  test("rq-opsRunEvidence01 exists in advance-workflow with 3 scenarios", () => {
+    const spec = loadSpec("advance-workflow");
+    const req = findReq(spec, "rq-opsRunEvidence01");
+    expect(req, "rq-opsRunEvidence01 must exist").toBeDefined();
+    expect(req!.priority).toBe("must");
+    expect(req!.body).toMatch(/append-only/);
+    expect(req!.body).toMatch(/secret-safe/);
+    expect(req!.body).toMatch(/health verification/);
+    expect(req!.scenarios).toHaveLength(3);
+  });
+
+  test("rq-opsRunReleaseReadiness01 exists in advance-workflow with 3 scenarios", () => {
+    const spec = loadSpec("advance-workflow");
+    const req = findReq(spec, "rq-opsRunReleaseReadiness01");
+    expect(req, "rq-opsRunReleaseReadiness01 must exist").toBeDefined();
+    expect(req!.priority).toBe("must");
+    expect(req!.body).toMatch(/fresh verified reconciliation proof/);
+    expect(req!.body).toMatch(/stale parent ops_followup_link status alone/);
+    expect(req!.scenarios).toHaveLength(3);
+  });
+
   test("rq-opsFollowPromotion01 exists in subagent-reports with 3 scenarios", () => {
     const spec = loadSpec("subagent-reports");
     const req = findReq(spec, "rq-opsFollowPromotion01");
@@ -93,7 +137,7 @@ describe("ops-follow-up traceability spec law", () => {
 describe("ops-follow-up spec versions bumped", () => {
   test("advance-workflow version is at least 1.22.0", () => {
     const spec = loadSpec("advance-workflow");
-    expect(spec.version).toBe("1.23.0");
+    expect(spec.version).toBe("1.25.0");
   });
 
   test("subagent-reports version is at least 1.3.0", () => {
