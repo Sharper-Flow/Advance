@@ -377,4 +377,223 @@ describe("contract archive traceability", () => {
       expect(existsSync(join(archivePath, "ARCHIVE_SUMMARY.md"))).toBe(true);
     });
   });
+
+  describe("archive briefing digest (AC7)", () => {
+    test("archiveChange writes BRIEFING_DIGEST.md with identity, status, and terminal gate summary", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "digest-change",
+        status: "active",
+        gates: {
+          proposal: { status: "done", completed_at: createdAt },
+          discovery: { status: "done", completed_at: createdAt },
+          design: { status: "done", completed_at: createdAt },
+          planning: { status: "done", completed_at: createdAt },
+          execution: { status: "done", completed_at: createdAt },
+          acceptance: { status: "done", completed_at: createdAt },
+          release: { status: "done", completed_at: createdAt },
+        },
+      });
+
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths: {
+          specs: join(root, "specs"),
+          docs: join(root, "docs"),
+          archive: join(root, "archive"),
+        },
+      });
+
+      expect(result.success).toBe(true);
+      const digestPath = join(result.archivePath, "BRIEFING_DIGEST.md");
+      expect(existsSync(digestPath)).toBe(true);
+      const digest = await readFile(digestPath, "utf8");
+      expect(digest).toContain("Archive Briefing Digest");
+      expect(digest).toContain("digest-change");
+      expect(digest).toContain("TERMINAL_GATE_SUMMARY");
+      expect(digest).toContain("release");
+      expect(digest).toContain("archived");
+    });
+
+    test("digest excludes transient prompt context and includes durable fact outcomes", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "digest-facts",
+        status: "active",
+        contract: undefined,
+        tasks: [
+          {
+            id: "tk-digest",
+            title: "Digest task",
+            type: "code",
+            status: "done",
+            priority: 0,
+            created_at: createdAt,
+            subagent_reports: [
+              {
+                schema_version: "1.0",
+                change_id: "digest-facts",
+                task_id: "tk-digest",
+                attempt: 1,
+                workdir_used: "/tmp/wt",
+                scope: { kind: "task", task_id: "tk-digest" },
+                agent: "adv-engineer",
+                status: "complete",
+                files_touched: ["src/a.ts"],
+                verification: [
+                  {
+                    command: "pnpm test",
+                    exit_code: 0,
+                    summary: "All tests pass",
+                  },
+                ],
+                decisions: [{ what: "Use renderer", why: "Pure function" }],
+                blockers: [],
+                scope_drift: null,
+                follow_ups: [],
+                required_follow_ups: [],
+                required_main_agent_actions: ["Review digest"],
+                related_scan: "none",
+                context_update_for_adv: {
+                  what_ads_needs_to_know: "Digest ready",
+                  suggested_next_action: "Review digest",
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths: {
+          specs: join(root, "specs"),
+          docs: join(root, "docs"),
+          archive: join(root, "archive"),
+        },
+      });
+
+      expect(result.success).toBe(true);
+      const digest = await readFile(
+        join(result.archivePath, "BRIEFING_DIGEST.md"),
+        "utf8",
+      );
+      expect(digest).toContain("Review digest");
+      expect(digest).toContain("Use renderer");
+      expect(digest).not.toContain("Digest ready");
+      expect(digest).not.toContain("context_update_for_adv");
+    });
+
+    test("digest includes Epic terminal note when present", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "digest-epic",
+        status: "active",
+        contract: undefined,
+        epic_membership: {
+          epic_id: "epicCleanup",
+          entry_id: "entry-1",
+          order: 2,
+          title: "Cleanup initiative",
+          linked_at: createdAt,
+        },
+      });
+
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths: {
+          specs: join(root, "specs"),
+          docs: join(root, "docs"),
+          archive: join(root, "archive"),
+        },
+      });
+
+      expect(result.success).toBe(true);
+      const digest = await readFile(
+        join(result.archivePath, "BRIEFING_DIGEST.md"),
+        "utf8",
+      );
+      expect(digest).toContain("epicCleanup");
+      expect(digest).toContain("Cleanup initiative");
+    });
+
+    test("digest includes contract / AC coverage summary when contract present", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({ id: "digest-contract" });
+
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths: {
+          specs: join(root, "specs"),
+          docs: join(root, "docs"),
+          archive: join(root, "archive"),
+        },
+      });
+
+      expect(result.success).toBe(true);
+      const digest = await readFile(
+        join(result.archivePath, "BRIEFING_DIGEST.md"),
+        "utf8",
+      );
+      expect(digest).toContain("Contract / AC Coverage");
+      expect(digest).toContain("AC1");
+    });
+
+    test("repeated archive overwrites deterministic digest path and does not duplicate durable promotions", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "digest-idempotent",
+        status: "active",
+        contract: undefined,
+        wisdom: [
+          {
+            type: "convention",
+            content: "Always write tests first",
+            source_task: "tk-1",
+          },
+        ],
+      });
+
+      const paths = {
+        specs: join(root, "specs"),
+        docs: join(root, "docs"),
+        archive: join(root, "archive"),
+        wisdom: join(root, "wisdom.json"),
+      };
+
+      const result1 = await archiveChange({
+        change,
+        specs: new Map(),
+        paths,
+      });
+      expect(result1.success).toBe(true);
+      expect(result1.wisdomPromoted).toBe(1);
+      const digestPath1 = join(result1.archivePath, "BRIEFING_DIGEST.md");
+      expect(existsSync(digestPath1)).toBe(true);
+      const digest1 = await readFile(digestPath1, "utf8");
+
+      const result2 = await archiveChange({
+        change,
+        specs: new Map(),
+        paths,
+      });
+      expect(result2.success).toBe(true);
+      expect(result2.wisdomPromoted).toBeFalsy();
+      const digestPath2 = join(result2.archivePath, "BRIEFING_DIGEST.md");
+      expect(digestPath1).toBe(digestPath2);
+      const digest2 = await readFile(digestPath2, "utf8");
+      expect(digest2.length).toBe(digest1.length);
+
+      const wisdomContent = await readFile(paths.wisdom, "utf8");
+      const wisdomEntries = wisdomContent
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line));
+      expect(wisdomEntries).toHaveLength(1);
+    });
+  });
 });

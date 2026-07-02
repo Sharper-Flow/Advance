@@ -22,6 +22,10 @@ import {
   compactProjectWisdom,
 } from "../storage/project-wisdom";
 import { execGit, getDefaultBranch } from "../utils/git";
+import { renderBriefingPacket } from "../utils/briefing-packet-renderer";
+import { classifyBriefingFacts } from "../utils/briefing-fact-classifier";
+import type { BriefingFact } from "../types";
+import { GATE_ORDER, createDefaultGates } from "../types";
 import type {
   MultiRepoArchiveMetadata,
   MultiRepoArchiveRepoMetadata,
@@ -41,6 +45,243 @@ function sortedScopeRepos(change: Change): NonNullable<Change["scope_repos"]> {
     if (aOrder !== bOrder) return aOrder - bOrder;
     return a.repo_id.localeCompare(b.repo_id);
   });
+}
+
+const BRIEFING_DIGEST_FILE = "BRIEFING_DIGEST.md";
+
+function buildTerminalGateSummary(change: Change): Record<string, string> {
+  const gates = change.gates ?? createDefaultGates();
+  const summary: Record<string, string> = {};
+  for (const gateId of GATE_ORDER) {
+    summary[gateId] = gates[gateId]?.status ?? "pending";
+  }
+  return summary;
+}
+
+function collectArchiveBriefingFacts(change: Change): BriefingFact[] {
+  const facts: BriefingFact[] = [];
+  const seenIds = new Set<string>();
+
+  const pushUnique = (fact: BriefingFact): void => {
+    if (seenIds.has(fact.id)) return;
+    seenIds.add(fact.id);
+    facts.push(fact);
+  };
+
+  for (const task of change.tasks ?? []) {
+    for (const report of task.subagent_reports ?? []) {
+      for (const fact of classifyBriefingFacts({ report })) {
+        pushUnique(fact);
+      }
+    }
+  }
+
+  for (const report of change.subagent_reports ?? []) {
+    for (const fact of classifyBriefingFacts({ report })) {
+      pushUnique(fact);
+    }
+  }
+
+  if (change.epic_membership) {
+    pushUnique({
+      id: `epic.membership:${change.epic_membership.epic_id}`,
+      outcome: "epic_terminal_note",
+      source_label: "epic.membership",
+      content: `${change.epic_membership.epic_id} · ${change.epic_membership.title} (order ${change.epic_membership.order})`,
+      dispositioned: false,
+    });
+  }
+
+  return facts;
+}
+
+function renderBriefingDigestMarkdown(
+  packet: ReturnType<typeof renderBriefingPacket>,
+  change: Change,
+): string {
+  const lines: string[] = [];
+
+  lines.push("# Archive Briefing Digest");
+  lines.push("");
+  lines.push(`**Change ID:** ${packet.change_id}`);
+  lines.push(`**Title:** ${change.title}`);
+  lines.push(
+    `**Status:** ${packet.lane === "archive" ? "archived" : packet.lane}`,
+  );
+  lines.push(
+    `**Generated:** ${packet.generated_at ?? new Date().toISOString()}`,
+  );
+  lines.push("");
+
+  for (const section of packet.sections) {
+    const title = section.kind
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+    lines.push(`## ${title}`);
+    lines.push("");
+
+    if (section.kind === "identity_anchors") {
+      const content = section.content as {
+        anchors?: string[];
+        origin?: unknown;
+      };
+      for (const anchor of content.anchors ?? []) {
+        lines.push(`- ${anchor}`);
+      }
+      if (content.origin && typeof content.origin === "object") {
+        const origin = content.origin as {
+          kind?: string;
+          issue_number?: number;
+        };
+        if (origin.kind) {
+          lines.push(
+            `- Origin: ${origin.kind}${origin.issue_number ? ` #${origin.issue_number}` : ""}`,
+          );
+        }
+      }
+    } else if (section.kind === "archive_digest") {
+      const content = section.content as {
+        status?: string;
+        terminal_gate_summary?: Record<string, string>;
+      };
+      lines.push(`**Status:** ${content.status ?? "unknown"}`);
+      lines.push("");
+      lines.push("| Gate | Status |");
+      lines.push("| --- | --- |");
+      for (const [gate, status] of Object.entries(
+        content.terminal_gate_summary ?? {},
+      )) {
+        lines.push(`| ${gate} | ${status} |`);
+      }
+    } else if (section.kind === "epic_context") {
+      const content = section.content as {
+        present: boolean;
+        epic_id?: string;
+        title?: string;
+        order?: number;
+        summary?: string;
+      };
+      if (content.present && content.epic_id) {
+        lines.push(
+          `Epic: ${content.epic_id} · ${content.title} (order ${content.order})`,
+        );
+      } else {
+        lines.push(content.summary ?? "No Epic membership");
+      }
+    } else if (section.kind === "durable_facts") {
+      const content = section.content as {
+        total?: number;
+        included?: number;
+        omitted?: number;
+        facts?: BriefingFact[];
+      };
+      if (content.total !== undefined && content.included !== undefined) {
+        lines.push(
+          `Showing ${content.included} of ${content.total} durable facts${content.omitted ? ` (${content.omitted} omitted)` : ""}.`,
+        );
+        lines.push("");
+      }
+      for (const fact of content.facts ?? []) {
+        lines.push(
+          `- **[${fact.outcome}]** ${fact.source_label}: ${fact.content}`,
+        );
+      }
+    } else if (section.kind === "unavailable_state") {
+      const content = section.content as {
+        missing?: Array<{ label: string; reason: string }>;
+      };
+      if (content.missing && content.missing.length > 0) {
+        for (const item of content.missing) {
+          lines.push(`- ${item.label}: ${item.reason}`);
+        }
+      } else {
+        lines.push("None");
+      }
+    } else {
+      lines.push("```json");
+      lines.push(JSON.stringify(section.content, null, 2));
+      lines.push("```");
+    }
+
+    lines.push("");
+  }
+
+  // Contract / AC coverage summary is rendered separately because the archive
+  // lane intentionally excludes transient live slices (scope, contract, tasks).
+  const contract = change.contract;
+  lines.push("## Contract / AC Coverage");
+  lines.push("");
+  if (contract && contract.items.length > 0) {
+    const rowsById = new Map(
+      contract.reviewMatrix?.rows.map((row) => [row.contractId, row]) ?? [],
+    );
+    lines.push("| ID | Kind | Status |");
+    lines.push("| --- | --- | --- |");
+    for (const item of contract.items) {
+      const row = rowsById.get(item.id);
+      lines.push(`| ${item.id} | ${item.kind} | ${row?.status ?? "missing"} |`);
+    }
+  } else {
+    lines.push("No contract items.");
+  }
+  lines.push("");
+
+  // Unresolved actions are rendered explicitly so the digest always reports
+  // "none" when no actions remain — satisfying the archive digest contract.
+  const unresolvedActions = packet.facts.filter(
+    (f) => f.outcome === "unresolved_action",
+  );
+  lines.push("## Unresolved Actions");
+  lines.push("");
+  if (unresolvedActions.length > 0) {
+    for (const action of unresolvedActions) {
+      lines.push(`- ${action.content}`);
+    }
+  } else {
+    lines.push("None");
+  }
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+export function generateBriefingDigest(change: Change): string {
+  const facts = collectArchiveBriefingFacts(change);
+  const durableFacts = facts.filter(
+    (f) => f.outcome !== "transient_prompt_context",
+  );
+
+  const packet = renderBriefingPacket({
+    change_id: change.id,
+    title: change.title,
+    lane: "archive",
+    origin: change.origin
+      ? {
+          kind: change.origin.kind,
+          issue_number: change.origin.issue_number,
+          source_artifact: change.origin.source_artifact,
+        }
+      : undefined,
+    epic_membership: change.epic_membership
+      ? {
+          epic_id: change.epic_membership.epic_id,
+          entry_id: change.epic_membership.entry_id,
+          title: change.epic_membership.title,
+          order: change.epic_membership.order,
+          linked_at: change.epic_membership.linked_at,
+        }
+      : null,
+    durable_facts: durableFacts,
+    archive_digest: {
+      status: "archived",
+      terminal_gate_summary: buildTerminalGateSummary(change),
+    },
+    unavailable: [],
+    generated_at: new Date().toISOString(),
+  });
+
+  return renderBriefingDigestMarkdown(packet, change);
 }
 
 function collectVerificationEvidence(
@@ -570,6 +811,10 @@ async function createArchive(
     const summary = generateArchiveSummary(change);
     await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
 
+    // Write archive-lane briefing digest (idempotent overwrite)
+    const digest = generateBriefingDigest(change);
+    await atomicWriteFile(join(archivePath, BRIEFING_DIGEST_FILE), digest);
+
     const traceability = generateContractTraceability(change);
     if (traceability) {
       await atomicWriteFile(
@@ -702,6 +947,10 @@ export async function createInRepoArchive(
   // Write archive summary
   const summary = generateArchiveSummary(change);
   await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
+
+  // Write archive-lane briefing digest (idempotent overwrite)
+  const digest = generateBriefingDigest(change);
+  await atomicWriteFile(join(archivePath, BRIEFING_DIGEST_FILE), digest);
 
   const traceability = generateContractTraceability(change);
   if (traceability) {
