@@ -83,6 +83,9 @@ Archive-time row rules:
 
 - Delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action must all appear before the `Reply sign off` Tier B instructions.
 - Read harden `Release Readiness Summary`; if needed harden evidence is missing or unreadable, render `warning` or `blocked` with evidence `harden evidence unavailable`, never `n/a`.
+- For ops runbooks and linked ops obligations, render `getOpenOpsFollowupObligations` output with authority fields: `status_source`, `completion_proof`, `verified_at`, and any `resolution_error`. An unreachable child is a warning/blocker per relationship and handoff requirement; never render unreachable child state as N/A.
+- Stale parent `ops_followup_links.status` is display/cache only. Archive sign-off context must cite child/source-of-truth state or fresh verified reconciliation before treating blocking/required-handoff ops work as complete.
+- Ops completion proof must include completion signal, health verification, and rollback/cleanup disposition. Missing proof blocks archive sign-off for blocking/required-handoff obligations.
 - Use `n/a` only for genuinely not-applicable categories with a brief source-backed rationale.
 - Do not include raw logs, diffs, task spam, or full scanner reports.
 - If a row is `blocked`, stop before Tier B sign-off and surface remediation.

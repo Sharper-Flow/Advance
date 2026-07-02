@@ -34,6 +34,10 @@ function findReq(spec: SpecJson, id: string) {
   return spec.requirements.find((r) => r.id === id);
 }
 
+function readRepoFile(path: string): string {
+  return readFileSync(join(REPO_ROOT, path), "utf8");
+}
+
 describe("ops-follow-up traceability spec law", () => {
   test("rq-opsFollowTrace01 exists in advance-workflow with 3 scenarios", () => {
     const spec = loadSpec("advance-workflow");
@@ -148,5 +152,29 @@ describe("ops-follow-up spec versions bumped", () => {
   test("backlog-coordination version is at least 1.4.0", () => {
     const spec = loadSpec("backlog-coordination");
     expect(spec.version).toBe("1.4.0");
+  });
+});
+
+describe("ops runbook command contracts", () => {
+  test("prep/apply/review/harden/archive document ops runbook authority", () => {
+    const prep = readRepoFile(".opencode/command/adv-prep.md");
+    const apply = readRepoFile(".opencode/command/adv-apply.md");
+    const review = readRepoFile(".opencode/command/adv-review.md");
+    const harden = readRepoFile(".opencode/command/adv-harden.md");
+    const archive = readRepoFile(".opencode/command/adv-archive.md");
+
+    expect(prep).toMatch(/ops runbook/i);
+    expect(prep).toContain("adv_ops_run_upsert");
+    expect(apply).toContain("adv_ops_run_upsert");
+    expect(apply).toContain("adv_ops_run_evidence_add");
+    expect(apply).toContain("bounded_low_risk_autonomous");
+    expect(apply).toContain("approval_required");
+    expect(review).toContain("status_source");
+    expect(review).toContain("completion_proof");
+    expect(harden).toContain("completion signal");
+    expect(harden).toContain("health verification");
+    expect(harden).toContain("rollback/cleanup disposition");
+    expect(archive).toContain("getOpenOpsFollowupObligations");
+    expect(archive).toContain("unreachable child");
   });
 });
