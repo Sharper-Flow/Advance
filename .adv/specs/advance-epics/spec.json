@@ -3,8 +3,8 @@
   "name": "advance-epics",
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
-  "version": "1.6.0",
-  "updated_at": "2026-07-02T03:30:00.000Z",
+  "version": "1.7.0",
+  "updated_at": "2026-07-02T18:00:00.000Z",
   "requirements": [
     {
       "id": "rq-epicEntity01",
@@ -739,6 +739,29 @@
             "The entry appears in compact terminal history",
             "The entry does not show projection_missing, projection_stale, or repair-needed markers"
           ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicBriefingContext01",
+      "title": "Epic Briefing Context Is Compact and Optional",
+      "body": "When an ADV change has Epic membership, briefing packets MAY include a compact Epic context section. Epic membership MUST remain optional and advisory; packet rendering MUST NOT block on Epic order alone or require Epic membership for non-Epic changes. The Epic context section MUST include the Epic ID, title, and a compact membership status summary, and MUST NOT include the full Epic entry list or replace the authoritative Epic read surfaces.",
+      "priority": "must",
+      "tags": ["epics", "briefing_packets", "optional", "compact"],
+      "scenarios": [
+        {
+          "id": "rq-epicBriefingContext01.1",
+          "title": "Non-Epic change renders a valid briefing packet",
+          "given": ["An ADV change has no Epic membership"],
+          "when": "A briefing packet is rendered",
+          "then": ["The packet is valid", "No Epic context section is required", "Rendering does not fail due to missing Epic"]
+        },
+        {
+          "id": "rq-epicBriefingContext01.2",
+          "title": "Epic change includes compact membership context",
+          "given": ["An ADV change is linked to an Epic"],
+          "when": "A briefing packet is rendered",
+          "then": ["The packet MAY include a compact Epic context section", "The section includes Epic ID, title, and membership status", "The section does not dump the full Epic entry list"]
         }
       ]
     }

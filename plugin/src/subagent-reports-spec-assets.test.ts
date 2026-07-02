@@ -60,7 +60,7 @@ describe("subagent reports spec assets", () => {
       "rq-subagentNonCodeEvidence01",
       "rq-subagentReports18",
       "rq-subagentReports19",
-      "rq-subagentReports20",
+      "rq-subagentReports21",
     ]);
   });
 

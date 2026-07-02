@@ -42,6 +42,7 @@ describe("Advance Epics spec documentation", () => {
       "rq-epicProductScope01",
       "rq-epicNoJiraClone01",
       "rq-epicTemporalConstraints01",
+      "rq-epicBriefingContext01",
     ]) {
       expect(doc).toContain(reqId);
     }

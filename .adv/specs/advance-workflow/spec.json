@@ -4,7 +4,7 @@
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
   "version": "1.25.0",
-  "updated_at": "2026-07-02T17:45:00.000Z",
+  "updated_at": "2026-07-02T18:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -4400,6 +4400,52 @@
             "The existing bundle is reused instead of rewritten",
             "The status transition completes in the durable store"
           ]
+        }
+      ]
+    },
+    {
+      "id": "rq-briefingPacketReadProjection01",
+      "title": "Briefing Packets Are Read Projections Without a Standalone Tool",
+      "body": "ADV MUST generate briefing packets as read-only projections from existing structured workflow state when requested through existing change/handoff read surfaces. A standalone adv_briefing_packet tool MUST NOT be introduced. Packet generation MUST NOT mutate workflow state, complete gates, override release proof, or independently persist live packet bodies. Session and tool-read metadata MUST remain audit-only and MUST NOT become live briefing packet state.",
+      "priority": "must",
+      "tags": ["workflow", "briefing_packets", "read_projection", "no_tool"],
+      "scenarios": [
+        {
+          "id": "rq-briefingPacketReadProjection01.1",
+          "title": "Existing read surfaces expose briefing packets",
+          "given": ["A caller requests a briefing packet through an existing ADV read surface"],
+          "when": "The surface renders the response",
+          "then": ["The packet is included as a generated projection", "No new adv_briefing_packet tool is invoked"]
+        },
+        {
+          "id": "rq-briefingPacketReadProjection01.2",
+          "title": "Packet generation does not mutate state",
+          "given": ["A briefing packet is rendered for an active change"],
+          "when": "The packet is requested repeatedly",
+          "then": ["Gates remain unchanged", "Tasks remain unchanged", "No live packet state is persisted"]
+        }
+      ]
+    },
+    {
+      "id": "rq-briefingPacketArchiveDigest01",
+      "title": "Archive Briefing Digest Is Compact and Idempotent",
+      "body": "At archive, ADV MUST generate a compact archive-lane briefing digest from final structured state and write it into the archive bundle as a deterministic generated artifact. The digest MUST contain change identity, terminal gate summary, durable fact outcomes, Epic terminal note inputs when present, unresolved actions or an explicit none, and unavailable-state warnings if evidence was incomplete. Transient prompt-only slices MUST stop being exposed. Repeated archive, finalization, or replay MUST overwrite the deterministic digest path instead of appending duplicate records or duplicating durable promotions.",
+      "priority": "must",
+      "tags": ["workflow", "briefing_packets", "archive", "digest", "idempotency"],
+      "scenarios": [
+        {
+          "id": "rq-briefingPacketArchiveDigest01.1",
+          "title": "Archive digest is compact and terminal-state focused",
+          "given": ["A change reaches archive"],
+          "when": "The archive-lane digest is rendered",
+          "then": ["The digest includes CHANGE, STATUS, and TERMINAL_GATE_SUMMARY anchors", "Raw report bodies are not included", "Transient prompt context is not included"]
+        },
+        {
+          "id": "rq-briefingPacketArchiveDigest01.2",
+          "title": "Repeated archive does not duplicate digest or promotions",
+          "given": ["An archive digest already exists in the bundle"],
+          "when": "Archive is retried or replayed",
+          "then": ["The existing digest path is overwritten deterministically", "No duplicate digest records are created", "Durable promotions are not duplicated"]
         }
       ]
     }

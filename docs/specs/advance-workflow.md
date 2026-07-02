@@ -4439,3 +4439,74 @@ adv_change_archive MUST detect when a change is already archived and the archive
 - The status transition completes in the durable store
 
 ---
+
+### Briefing Packets Are Read Projections Without a Standalone Tool
+
+**ID:** `rq-briefingPacketReadProjection01` | **Priority:** **[MUST]**
+
+ADV MUST generate briefing packets as read-only projections from existing structured workflow state when requested through existing change/handoff read surfaces. A standalone `adv_briefing_packet` tool MUST NOT be introduced. Packet generation MUST NOT mutate workflow state, complete gates, override release proof, or independently persist live packet bodies. Session and tool-read metadata MUST remain audit-only and MUST NOT become live briefing packet state.
+
+**Tags:** `workflow`, `briefing_packets`, `read_projection`, `no_tool`
+
+#### Scenarios
+
+**Existing read surfaces expose briefing packets** (`rq-briefingPacketReadProjection01.1`)
+
+**Given:**
+- A caller requests a briefing packet through an existing ADV read surface
+
+**When:** The surface renders the response
+
+**Then:**
+- The packet is included as a generated projection
+- No new `adv_briefing_packet` tool is invoked
+
+**Packet generation does not mutate state** (`rq-briefingPacketReadProjection01.2`)
+
+**Given:**
+- A briefing packet is rendered for an active change
+
+**When:** The packet is requested repeatedly
+
+**Then:**
+- Gates remain unchanged
+- Tasks remain unchanged
+- No live packet state is persisted
+
+---
+
+### Archive Briefing Digest Is Compact and Idempotent
+
+**ID:** `rq-briefingPacketArchiveDigest01` | **Priority:** **[MUST]**
+
+At archive, ADV MUST generate a compact archive-lane briefing digest from final structured state and write it into the archive bundle as a deterministic generated artifact. The digest MUST contain change identity, terminal gate summary, durable fact outcomes, Epic terminal note inputs when present, unresolved actions or an explicit none, and unavailable-state warnings if evidence was incomplete. Transient prompt-only slices MUST stop being exposed. Repeated archive, finalization, or replay MUST overwrite the deterministic digest path instead of appending duplicate records or duplicating durable promotions.
+
+**Tags:** `workflow`, `briefing_packets`, `archive`, `digest`, `idempotency`
+
+#### Scenarios
+
+**Archive digest is compact and terminal-state focused** (`rq-briefingPacketArchiveDigest01.1`)
+
+**Given:**
+- A change reaches archive
+
+**When:** The archive-lane digest is rendered
+
+**Then:**
+- The digest includes CHANGE, STATUS, and TERMINAL_GATE_SUMMARY anchors
+- Raw report bodies are not included
+- Transient prompt context is not included
+
+**Repeated archive does not duplicate digest or promotions** (`rq-briefingPacketArchiveDigest01.2`)
+
+**Given:**
+- An archive digest already exists in the bundle
+
+**When:** Archive is retried or replayed
+
+**Then:**
+- The existing digest path is overwritten deterministically
+- No duplicate digest records are created
+- Durable promotions are not duplicated
+
+---

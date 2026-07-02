@@ -3,8 +3,8 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.5.0",
-  "updated_at": "2026-06-25T00:00:00.000Z",
+  "version": "1.6.0",
+  "updated_at": "2026-07-02T18:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
@@ -770,6 +770,36 @@
             "Missing architecture_judgement is treated as not_applicable with a normalized legacy_rationale",
             "adv_subagent_report_submit MUST NOT accept the legacy shape as new ingest"
           ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports21",
+      "title": "Briefing Packets Derive from Structured Sub-Agent Report State",
+      "body": "Briefing packets MUST be generated read-only projections derived from persisted sub-agent reports and workflow structured state. Lane identity anchors MUST match SUBAGENT_REPORT_FIELD_SOURCES / getSubagentReportPacketAnchors() for each supported persisted worker or bundle lane. Packet slices MUST be bounded and lane-specific; raw report bodies, raw artifacts, and raw transcripts MUST NOT be dumped into every packet. Missing structured state MUST render explicit unavailable markers or warnings instead of heuristically fabricating correctness-critical fields. Session/tool-read metadata MUST remain audit-only and MUST NOT be persisted as live briefing packet state.",
+      "priority": "must",
+      "tags": ["subagents", "reports", "briefing_packets", "projection", "anchors"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports21.1",
+          "title": "Engineer lane anchors match task-scoped identity fields",
+          "given": ["A briefing packet is requested for the engineer lane"],
+          "when": "Lane identity anchors are derived from report field sources",
+          "then": ["Anchors include CHANGE, TASK, ATTEMPT, WORKING DIRECTORY", "Anchors do not include warn-first scope/done/stop/verification anchors"]
+        },
+        {
+          "id": "rq-subagentReports21.2",
+          "title": "Reviewer lane anchors match phase and task-scoped identity fields",
+          "given": ["A briefing packet is requested for the reviewer lane"],
+          "when": "Lane identity anchors are derived from report field sources",
+          "then": ["Anchors include CHANGE, TASK, PHASE, ATTEMPT, WORKING DIRECTORY"]
+        },
+        {
+          "id": "rq-subagentReports21.3",
+          "title": "Archive lane is not a worker lane",
+          "given": ["A briefing packet is requested for the archive lane"],
+          "when": "The lane is classified",
+          "then": ["The archive lane does not map to a persisted sub-agent report agent", "Archive digest anchors are deterministic and terminal-state focused"]
         }
       ]
     }

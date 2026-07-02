@@ -173,6 +173,28 @@ export {
 } from "./subagent-reports";
 
 // =============================================================================
+// Briefing Packets
+// =============================================================================
+export {
+  BRIEFING_PACKET_LANE_SCHEMA_VERSION,
+  BriefingPacketLaneSchema,
+  type BriefingPacketLane,
+  BRIEFING_PACKET_LANE_TO_AGENT,
+  BriefingFactOutcomeSchema,
+  type BriefingFactOutcome,
+  BriefingFactSchema,
+  type BriefingFact,
+  BriefingPacketSectionKindSchema,
+  type BriefingPacketSectionKind,
+  BriefingPacketSectionSchema,
+  type BriefingPacketSection,
+  BriefingPacketSchema,
+  type BriefingPacket,
+  getBriefingPacketLaneAnchors,
+  getBriefingPacketArchiveAnchors,
+} from "./briefing-packets";
+
+// =============================================================================
 // Gates
 // =============================================================================
 export {

@@ -1,6 +1,6 @@
 # Advance Epics
 
-> **Version:** 1.6.0
+> **Version:** 1.7.0
 > **Updated:** 2026-07-02
 
 ## Purpose
@@ -921,5 +921,41 @@ adv_epic_link_change MUST project the terminal state of an archived or closed ch
 **Then:**
 - The entry appears in compact terminal history
 - The entry does not show projection_missing, projection_stale, or repair-needed markers
+
+---
+
+### Epic Briefing Context Is Compact and Optional
+
+**ID:** `rq-epicBriefingContext01` | **Priority:** **[MUST]**
+
+When an ADV change has Epic membership, briefing packets MAY include a compact Epic context section. Epic membership MUST remain optional and advisory; packet rendering MUST NOT block on Epic order alone or require Epic membership for non-Epic changes. The Epic context section MUST include the Epic ID, title, and a compact membership status summary, and MUST NOT include the full Epic entry list or replace the authoritative Epic read surfaces.
+
+**Tags:** `epics`, `briefing_packets`, `optional`, `compact`
+
+#### Scenarios
+
+**Non-Epic change renders a valid briefing packet** (`rq-epicBriefingContext01.1`)
+
+**Given:**
+- An ADV change has no Epic membership
+
+**When:** A briefing packet is rendered
+
+**Then:**
+- The packet is valid
+- No Epic context section is required
+- Rendering does not fail due to missing Epic
+
+**Epic change includes compact membership context** (`rq-epicBriefingContext01.2`)
+
+**Given:**
+- An ADV change is linked to an Epic
+
+**When:** A briefing packet is rendered
+
+**Then:**
+- The packet MAY include a compact Epic context section
+- The section includes Epic ID, title, and membership status
+- The section does not dump the full Epic entry list
 
 ---
