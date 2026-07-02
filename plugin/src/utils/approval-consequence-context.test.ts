@@ -168,6 +168,15 @@ describe("buildApprovalConsequenceContext", () => {
     expect(output).toContain("[...truncated");
   });
 
+  test("enforces byte budget even when the budget is shorter than the truncation marker", () => {
+    const output = buildApprovalConsequenceContext({
+      ...buildInput({}),
+      maxBytes: 20,
+    });
+
+    expect(new TextEncoder().encode(output).length).toBeLessThanOrEqual(20);
+  });
+
   test("does not include raw dump phrasing in the rendered output", () => {
     const output = buildApprovalConsequenceContext(buildInput({}));
 

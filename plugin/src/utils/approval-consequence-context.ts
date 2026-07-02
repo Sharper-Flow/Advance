@@ -155,6 +155,18 @@ function applyByteBudget(text: string, maxBytes: number): string {
   const marker =
     "\n\n[...truncated for approval consequence context budget...]";
   const markerBytes = UTF8_ENCODER.encode(marker).length;
+  if (maxBytes <= markerBytes) {
+    let usedBytes = 0;
+    let truncatedMarker = "";
+    for (const char of marker) {
+      const charBytes = UTF8_ENCODER.encode(char).length;
+      if (usedBytes + charBytes > maxBytes) break;
+      truncatedMarker += char;
+      usedBytes += charBytes;
+    }
+    return truncatedMarker;
+  }
+
   const contentByteBudget = Math.max(0, maxBytes - markerBytes);
   let usedBytes = 0;
   let truncated = "";
