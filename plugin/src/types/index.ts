@@ -178,6 +178,7 @@ export {
 // =============================================================================
 export {
   BRIEFING_PACKET_LANE_SCHEMA_VERSION,
+  BRIEFING_PACKET_SESSION_METADATA_MAX_LENGTH,
   BriefingPacketLaneSchema,
   type BriefingPacketLane,
   BRIEFING_PACKET_LANE_TO_AGENT,

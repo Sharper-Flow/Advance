@@ -1526,6 +1526,49 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed._briefingPacket.lane).toBe("reviewer");
     });
 
+    test("bounds briefing packet request metadata", async () => {
+      const store = createMockStore({
+        documents: {
+          proposal: "# Test Change\n",
+        },
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        {
+          changeId: "test-change",
+          include: {
+            briefingPacket: true,
+            briefingPacketRequest: "x".repeat(500),
+          },
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._briefingPacket.session_metadata.generated_by).toHaveLength(
+        200,
+      );
+      expect(parsed._briefingPacket.session_metadata.generated_by).toMatch(
+        /^adv_change_show:engineer:x+$/,
+      );
+    });
+
+    test("surfaces briefing packet generation failures without failing change read", async () => {
+      const store = createMockStore({
+        documents: { proposal: "# Test Change\n" },
+      });
+      (store.paths as { root?: string }).root = undefined;
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { briefingPacket: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._briefingPacket).toBeUndefined();
+      expect(parsed._briefingPacketError).toEqual(expect.any(String));
+      expect(parsed.id).toBe("test-change");
+    });
+
     test("includes structurally classified durable facts from persisted reports", async () => {
       const store = createMockStore({
         subagent_reports: [

@@ -13,6 +13,7 @@ import {
 } from "./subagent-reports";
 
 export const BRIEFING_PACKET_LANE_SCHEMA_VERSION = "1.0";
+export const BRIEFING_PACKET_SESSION_METADATA_MAX_LENGTH = 200;
 
 export const BriefingPacketLaneSchema = z.enum([
   "researcher",
@@ -102,7 +103,11 @@ export const BriefingPacketSchema = z
     unavailable_markers: z.array(z.string().min(1)).default([]),
     session_metadata: z
       .object({
-        generated_by: z.string().min(1).optional(),
+        generated_by: z
+          .string()
+          .min(1)
+          .max(BRIEFING_PACKET_SESSION_METADATA_MAX_LENGTH)
+          .optional(),
         audit_only: z.literal(true),
       })
       .optional(),
