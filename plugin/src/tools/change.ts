@@ -4240,6 +4240,25 @@ export const changeTools = {
           }
         }
 
+        // rq-archiveRetryIdempotence01 (AC7): If the change is already
+        // archived and the archive bundle is present, return a bounded no-op
+        // success. Do not repeat finalization, branch deletion, issue closure,
+        // or cleanup.
+        if (
+          !dryRun &&
+          change.status === "archived" &&
+          existingBundlePath !== null
+        ) {
+          return formatToolOutput({
+            success: true,
+            changeId,
+            archivePath: existingBundlePath,
+            noOp: true,
+            message: `Change ${changeId} is already archived with an existing bundle; no finalization, cleanup, or issue closure was repeated.`,
+            ...openOpsObligationsPayload,
+          });
+        }
+
         // rq-archiveOrdering01: Archive State Transition Must Be Resilient
         // to Failed Disk Bundle Write. Idempotent retry: if the bundle already
         // exists on disk, skip the disk write. Two sub-cases:

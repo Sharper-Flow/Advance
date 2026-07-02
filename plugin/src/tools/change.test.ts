@@ -7,12 +7,15 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { changeTools, closeLinkedIssue } from "./change";
 import type { Store } from "../storage/store";
 import type { Change, Spec } from "../types";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
+import * as gitFinalize from "./archive-helpers/git-finalize";
+import * as phase9Queue from "./archive-helpers/phase9-queue";
+import * as worktree from "./worktree";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -2600,6 +2603,69 @@ describe("change tools — signal-driven lifecycle", () => {
 
         expect(parsed.success).toBe(true);
         expect(parsed._recoveryMutation).toBe(true);
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
+    });
+
+    test("is a bounded no-op when change is already archived and archive bundle exists", async () => {
+      const tempDir = await createTempDir(
+        "adv-change-archive-idempotent-noop-",
+      );
+      try {
+        await prepareNoRemoteReleaseProof(tempDir, "test-change");
+        const archiveDir = `${tempDir}/.adv/archive`;
+        const bundleDir = `${archiveDir}/2026-07-01-test-change`;
+        await mkdir(bundleDir, { recursive: true });
+        await writeFile(
+          `${bundleDir}/change.json`,
+          JSON.stringify({ id: "test-change", status: "archived" }),
+        );
+
+        const store = createMockStore({
+          status: "archived",
+          gates: allDoneGates,
+        });
+        store.paths.root = tempDir;
+        store.paths.changes = `${tempDir}/.adv/changes`;
+        store.paths.archive = archiveDir;
+
+        const finalizeSpy = vi
+          .spyOn(gitFinalize, "finalizeRelease")
+          .mockResolvedValue({
+            status: "shipped",
+            mainCheckout: tempDir,
+            defaultBranch: "main",
+            pushStatus: "pushed",
+          } as Awaited<ReturnType<typeof gitFinalize.finalizeRelease>>);
+        const deleteBranchSpy = vi
+          .spyOn(gitFinalize, "deleteChangeBranch")
+          .mockReturnValue({ localDeleted: true, remoteDeleted: false });
+        const dispatchSpy = vi
+          .spyOn(phase9Queue, "dispatchPhase9Finalization")
+          .mockReturnValue(undefined);
+        const worktreeCleanupSpy = vi
+          .spyOn(worktree, "advWorktreeCleanup")
+          .mockResolvedValue(undefined);
+
+        const result = await changeTools.adv_change_archive.execute(
+          { changeId: "test-change" },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(true);
+        expect(parsed.noOp).toBe(true);
+        expect(parsed.archivePath).toContain("test-change");
+        expect(finalizeSpy).not.toHaveBeenCalled();
+        expect(deleteBranchSpy).not.toHaveBeenCalled();
+        expect(dispatchSpy).not.toHaveBeenCalled();
+        expect(worktreeCleanupSpy).not.toHaveBeenCalled();
+        expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+        expect(mocks.execGh).not.toHaveBeenCalled();
+        expect(mocks.execGit).not.toHaveBeenCalled();
+        const saveMock = store.changes.save as ReturnType<typeof vi.fn>;
+        expect(saveMock).not.toHaveBeenCalled();
       } finally {
         await cleanupTempDir(tempDir);
       }
