@@ -4319,6 +4319,119 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "architecture_judgement": {
+                    "oneOf": [
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "alternatives_considered": {
+                            "items": {
+                              "additionalProperties": false,
+                              "properties": {
+                                "disposition": {
+                                  "enum": [
+                                    "preferred",
+                                    "rejected",
+                                    "deferred"
+                                  ],
+                                  "type": "string"
+                                },
+                                "option": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                },
+                                "rationale": {
+                                  "minLength": 1,
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "option",
+                                "disposition",
+                                "rationale"
+                              ],
+                              "type": "object"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                          },
+                          "applicability": {
+                            "const": "applicable",
+                            "type": "string"
+                          },
+                          "confidence": {
+                            "enum": [
+                              "high",
+                              "medium",
+                              "low"
+                            ],
+                            "type": "string"
+                          },
+                          "recommendation": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "risk": {
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high"
+                            ],
+                            "type": "string"
+                          },
+                          "tradeoffs": {
+                            "items": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "applicability",
+                          "confidence",
+                          "risk",
+                          "tradeoffs",
+                          "alternatives_considered",
+                          "recommendation"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "additionalProperties": false,
+                        "properties": {
+                          "applicability": {
+                            "const": "not_applicable",
+                            "type": "string"
+                          },
+                          "confidence": {
+                            "enum": [
+                              "high",
+                              "medium",
+                              "low"
+                            ],
+                            "type": "string"
+                          },
+                          "reason": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "recommendation": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "applicability",
+                          "confidence",
+                          "reason",
+                          "recommendation"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
                   "attempt": {
                     "maximum": 9007199254740991,
                     "minimum": 1,
@@ -4466,6 +4579,7 @@
                   "sources",
                   "architecture_assessment",
                   "validation",
+                  "architecture_judgement",
                   "recommendation",
                   "follow_ups"
                 ],

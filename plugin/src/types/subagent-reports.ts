@@ -422,7 +422,8 @@ export const ResearcherSubagentReportSchema =
         ctx.addIssue({
           code: "custom",
           path: ["architecture_judgement", "applicability"],
-          message: "design validation requires applicable architecture judgement",
+          message:
+            "design validation requires applicable architecture judgement",
         });
       }
     });
@@ -644,7 +645,8 @@ function normalizeLegacySubagentReportRow(value: unknown): [unknown, boolean] {
         architecture_judgement: {
           applicability: "not_applicable",
           confidence: "low",
-          reason: "Legacy persisted adv-researcher report predates typed architecture judgement.",
+          reason:
+            "Legacy persisted adv-researcher report predates typed architecture judgement.",
           recommendation:
             typeof row.recommendation === "string" && row.recommendation.trim()
               ? row.recommendation
