@@ -5,6 +5,8 @@ import { describe, expect, test } from "vitest";
 const REPO_ROOT = resolve(__dirname, "../..");
 const REVIEW_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-review.md");
 const HARDEN_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-harden.md");
+const ARCHIVE_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-archive.md");
+const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv.md");
 
 const REQUIRED_CATEGORIES = [
   "delivered value",
@@ -62,5 +64,24 @@ describe("approval consequence context command assets", () => {
     ]) {
       expect(harden).toContain(category);
     }
+  });
+
+  test("adv-archive and ADV sign-off render consequence context before Tier B approval", () => {
+    const archive = readFileSync(ARCHIVE_COMMAND_PATH, "utf8");
+    const advAgent = readFileSync(ADV_AGENT_PATH, "utf8");
+
+    for (const content of [archive, advAgent]) {
+      expect(content).toContain("Approval Consequence Context");
+      expect(content).toContain("Release Readiness Summary");
+      expect(content).toContain("harden evidence unavailable");
+      expect(content).toContain("checkOpsFollowupReleaseBlockers");
+      expect(content).toContain("getOpenOpsFollowupObligations");
+    }
+
+    const contextIndex = archive.indexOf("Approval Consequence Context");
+    const tierBIndex = archive.indexOf("Reply `sign off`");
+    expect(contextIndex).toBeGreaterThan(-1);
+    expect(tierBIndex).toBeGreaterThan(-1);
+    expect(contextIndex).toBeLessThan(tierBIndex);
   });
 });

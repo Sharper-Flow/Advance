@@ -30,7 +30,7 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 
 ## Phase 1: Pre-Archive Checks
 
-1. `adv_change_show changeId: {id} include: { executiveSummary: true }` → verify status "active", load executive summary for sign-off report
+1. `adv_change_show changeId: {id} include: { executiveSummary: true, subagentReports: true }` → verify status "active", load executive summary, Release Readiness Summary, and harden evidence for sign-off report
    - If the returned change has `epic_membership`, load compact parent context with `adv_epic_show epic_id: {epic_id}` before archive execution. Record Epic ID, entry ID/title/order, and member status when available.
    - Epic order remains advisory: earlier incomplete Epic entries MAY be warned about but MUST NOT block archive solely by order.
 2. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
@@ -76,6 +76,16 @@ If `--dry-run` → emit DRY RUN COMPLETE → stop.
 ## Phase 5: User Signoff (Inline — Tier B)
 
 Present change report inline (per `.opencode/agents/adv.md` § Sign-Off Boundary), followed by the **Inline Approval prompt (Tier B)** per `docs/command-voice-standard.md` § Inline Approval Voice. Archive is irreversible — Tier B uses whitelist-only with no LLM fallback. On whitelist match, the agent executes archive workflow inline in same response (no separate confirmation-echo turn).
+
+Before the Tier B prompt, render archive-time `Approval Consequence Context` from the current executive summary, harden `Release Readiness Summary`, `adv_change_show include:{subagentReports:true}`, archive preflight results, and follow-up blockers. Reuse the shared renderer/model contract (`buildApprovalConsequenceContext`) for all 8 categories. Use `checkOpsFollowupReleaseBlockers` and `getOpenOpsFollowupObligations` semantics for follow-up rows: blocking obligations block release; non-blocking obligations are shown as coming next / needs done after closure.
+
+Archive-time row rules:
+
+- Delivered value, enabling-only/follow-up dependency, ops readiness, migration/data impact, frontend/preview impact, collision/release risk, open follow-ups, and next action must all appear before the `Reply sign off` Tier B instructions.
+- Read harden `Release Readiness Summary`; if needed harden evidence is missing or unreadable, render `warning` or `blocked` with evidence `harden evidence unavailable`, never `n/a`.
+- Use `n/a` only for genuinely not-applicable categories with a brief source-backed rationale.
+- Do not include raw logs, diffs, task spam, or full scanner reports.
+- If a row is `blocked`, stop before Tier B sign-off and surface remediation.
 
 After change report:
 
@@ -188,6 +198,8 @@ Use archive terminal variant of the Gate Handoff Voice spine (see `docs/command-
 - **Merged locally.** — no `origin` remote configured and local merge proof exists
 - **Pending auto-merge.** — PR opened/reused and GitHub auto-merge armed; release remains incomplete
 - **Blocked.** — remote-backed release proof missing, PR/auto-merge unavailable, fetch/push/conflict failure, or validation failed
+
+Include the final `Approval Consequence Context` summary status in the archive report, using the carried-forward `Release Readiness Summary`; if harden evidence was unavailable, surface `harden evidence unavailable` rather than changing the row to `n/a`.
 
 ```
 ## {Shipped. | Merged locally. | Pending auto-merge. | Blocked.}
