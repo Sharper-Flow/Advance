@@ -83,7 +83,6 @@ import {
   removeSession,
   removeWorktree,
   setPendingDelete,
-  updateWorktreeRecord,
 } from "./state";
 import { openTerminal } from "./terminal";
 import { scanGitWorkspaceFacts } from "./census";
@@ -116,6 +115,7 @@ import { fireSignalAndRefresh, getChangeHandle } from "../_adapters";
 import {
   worktreeCreatedSignal,
   worktreeDeletedSignal,
+  worktreeSetupFailedSignal,
 } from "../../temporal/messages";
 import type { Store } from "../../storage/store";
 import { withTimeout, TimeoutError } from "../../utils/with-timeout";
@@ -1119,23 +1119,6 @@ export async function advWorktreeCreate(
     await mkdir(path.dirname(worktreePath), { recursive: true });
     const sourceVersion = Date.now();
 
-    // Strict setup readiness: rq-wl-setupReadiness01.
-    await updateWorktreeRecord(deps.database, {
-      branch,
-      path: worktreePath,
-      materialized: false,
-      changeId: inferChangeIdFromBranch(branch),
-      status: "materializing",
-      baseRef: resolvedBase,
-      headSha: "",
-      source: "tool",
-      now: new Date(sourceVersion).toISOString(),
-      sourceVersion,
-      setupReady: false,
-      cleanupEligible: false,
-      cleanupBlockedBy: ["materializing"],
-    });
-
     const exists = await branchExists(repoRoot, branch);
     let gitResult: Result<string, string>;
     if (exists) {
@@ -1150,22 +1133,22 @@ export async function advWorktreeCreate(
       );
     }
     if (!gitResult.ok) {
-      await updateWorktreeRecord(deps.database, {
-        branch,
-        path: worktreePath,
-        materialized: false,
-        changeId: inferChangeIdFromBranch(branch),
-        status: "setup_failed",
-        baseRef: resolvedBase,
-        headSha: "",
-        source: "tool",
-        now: new Date(sourceVersion + 1).toISOString(),
-        sourceVersion: sourceVersion + 1,
-        setupReady: false,
-        setupFailureReason: gitResult.error,
-        cleanupEligible: false,
-        cleanupBlockedBy: ["git_failed"],
-      });
+      const failedAt = new Date(sourceVersion + 1).toISOString();
+      await fireWorktreeSignal(
+        repoRoot,
+        deps.store,
+        inferChangeIdFromBranch(branch) ?? undefined,
+        worktreeSetupFailedSignal,
+        {
+          branch,
+          path: worktreePath,
+          changeId: inferChangeIdFromBranch(branch) ?? undefined,
+          baseRef: resolvedBase,
+          setupFailureReason: gitResult.error,
+          failedAt,
+          stage: "git_failed",
+        },
+      );
       return { ok: false, error: "GIT_FAILED", reason: gitResult.error };
     }
 
@@ -1199,22 +1182,23 @@ export async function advWorktreeCreate(
         await runHooksWithSafety("postCreate", worktreePath, postCreateHooks);
       } catch (err) {
         const reason = String(err instanceof Error ? err.message : err);
-        await updateWorktreeRecord(deps.database, {
-          branch,
-          path: worktreePath,
-          materialized: true,
-          changeId: inferChangeIdFromBranch(branch),
-          status: "setup_failed",
-          baseRef: resolvedBase,
-          headSha,
-          source: "tool",
-          now: new Date(sourceVersion + 1).toISOString(),
-          sourceVersion: sourceVersion + 1,
-          setupReady: false,
-          setupFailureReason: reason,
-          cleanupEligible: false,
-          cleanupBlockedBy: ["setup_failed"],
-        });
+        const failedAt = new Date(sourceVersion + 1).toISOString();
+        await fireWorktreeSignal(
+          repoRoot,
+          deps.store,
+          inferChangeIdFromBranch(branch) ?? undefined,
+          worktreeSetupFailedSignal,
+          {
+            branch,
+            path: worktreePath,
+            changeId: inferChangeIdFromBranch(branch) ?? undefined,
+            baseRef: resolvedBase,
+            headSha,
+            setupFailureReason: reason,
+            failedAt,
+            stage: "hook_failed",
+          },
+        );
         deps.log.warn(
           `[worktree] postCreate hook failed for ${branch}: ${err}`,
         );

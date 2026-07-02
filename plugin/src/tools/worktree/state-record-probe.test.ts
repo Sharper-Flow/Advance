@@ -154,6 +154,30 @@ describe("getWorktreeRecord", () => {
     expect(record).toBeNull();
   });
 
+  it("returns a setup_failed record with setupFailureReason", async () => {
+    queryFn.mockResolvedValueOnce(
+      stateWithWorktree("failedChange", "change/failedChange", {
+        branch: "change/failedChange",
+        path: "/wt/change/failedChange",
+        status: "setup_failed",
+        setupReady: false,
+        materialized: true,
+        setupFailureReason: "postCreate hook failed",
+        createdAt: "2026-01-01T00:00:00Z",
+        lastSeenAt: "2026-01-01T00:00:00Z",
+        baseRef: "trunk",
+        headSha: "abc123",
+        source: "adv",
+        sourceVersion: 1,
+      }),
+    );
+
+    const record = await getWorktreeRecord(access, "change/failedChange");
+    expect(record).not.toBeNull();
+    expect(record?.status).toBe("setup_failed");
+    expect(record?.setupFailureReason).toBe("postCreate hook failed");
+  });
+
   it("returns null when the Temporal service is unavailable", async () => {
     getServiceFn.mockReturnValueOnce(undefined as never);
     const record = await getWorktreeRecord(access, "change/myChange");

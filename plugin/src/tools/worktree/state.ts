@@ -1004,29 +1004,6 @@ export async function getWorktreePath(
   return worktreePath;
 }
 
-export async function updateWorktreeRecord(
-  _access: WorktreeStateAccess,
-  _update: {
-    branch: string;
-    status?: WorktreeRecord["status"];
-    path?: string;
-    materialized?: boolean;
-    changeId?: string | null;
-    baseRef?: string;
-    headSha?: string;
-    source?: WorktreeRecord["source"];
-    now?: string;
-    sourceVersion?: number;
-    setupReady?: boolean;
-    setupFailureReason?: string;
-    merged?: boolean;
-    cleanupEligible?: boolean;
-    cleanupBlockedBy?: string[];
-  },
-): Promise<void> {
-  // no-op until per-change workflow integration
-}
-
 export async function getChangeSummaries(
   access: WorktreeStateAccess,
 ): Promise<

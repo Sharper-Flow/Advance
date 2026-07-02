@@ -58,7 +58,10 @@ vi.mock("../../temporal/service", () => ({
     connection: { close: vi.fn() },
     client: {
       workflow: {
-        getHandle: vi.fn(() => ({ signal: workflowSignal, query: vi.fn() })),
+        getHandle: vi.fn(() => ({
+          signal: workflowSignal,
+          query: workflowQuery,
+        })),
         list: workflowList,
       },
     },
@@ -91,7 +94,10 @@ import {
 } from "./index";
 
 import { runHooksWithSafety } from "./hooks";
-import { worktreeCreatedSignal } from "../../temporal/messages";
+import {
+  worktreeCreatedSignal,
+  worktreeSetupFailedSignal,
+} from "../../temporal/messages";
 import { getWorktreePath } from "./state";
 
 const isLinux = process.platform === "linux";
@@ -476,43 +482,6 @@ describe.skipIf(!isLinux)(
       );
     });
 
-    it("SETUP_FAILED — blocks ADV routing when postCreate hook fails", async () => {
-      const deps = createMockDeps(repoRoot);
-      deps.resolveDefaultBranch = async () => "main";
-      deps.detectStaleBasis = async () => ({ stale: false });
-      deps.hooks = { postCreate: ["exit 1"] };
-      vi.mocked(runHooksWithSafety).mockRejectedValueOnce(new Error("boom"));
-
-      const result = await advWorktreeCreate("change/setup-fail", {}, deps);
-
-      expect(result).toMatchObject({
-        ok: false,
-        error: "SETUP_FAILED",
-        branch: "change/setup-fail",
-      });
-      // Project-workflow executeUpdate is retired; updateWorktreeRecordUpdate
-      // no longer dispatched.
-    });
-
-    it("GIT_FAILED — exits materializing state when git worktree add fails", async () => {
-      const blockedPath = await getWorktreePath(repoRoot, "change/git-fail");
-      execSync(`mkdir -p ${JSON.stringify(blockedPath)}`);
-      writeFileSync(join(blockedPath, "occupied"), "not a git worktree");
-      cleanupPaths.push(blockedPath);
-      const deps = createMockDeps(repoRoot);
-      deps.resolveDefaultBranch = async () => "main";
-      deps.detectStaleBasis = async () => ({ stale: false });
-
-      const result = await advWorktreeCreate("change/git-fail", {}, deps);
-
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.error).toBe("GIT_FAILED");
-      }
-      // Project-workflow executeUpdate is retired; updateWorktreeRecordUpdate
-      // no longer dispatched.
-    });
-
     it("resume materializes a branch-only registry record", async () => {
       execSync("git branch change/unmade main", { cwd: repoRoot });
       workflowQuery.mockResolvedValueOnce({
@@ -568,6 +537,195 @@ describe.skipIf(!isLinux)(
 
       // Falls through to create because getWorktreeRecord returns null here.
       expect(result.ok).toBe(true);
+    });
+
+    it("SETUP_FAILED persists across sessions via worktreeSetupFailedSignal (hook_failed)", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+      deps.hooks = { postCreate: ["exit 1"] };
+      vi.mocked(runHooksWithSafety).mockRejectedValueOnce(new Error("boom"));
+
+      const liveState = {
+        session_registry: {},
+        worktree_registry: {},
+        pending_worktree_deletes: {},
+        change_summaries: {},
+        worktrees: {} as Record<string, unknown>,
+      };
+      workflowQuery.mockImplementation(async () => liveState);
+      workflowSignal.mockImplementation(async (signal, payload) => {
+        if (signal === worktreeSetupFailedSignal) {
+          liveState.worktrees[payload.branch] = {
+            branch: payload.branch,
+            path: payload.path,
+            changeId: payload.changeId,
+            status: "setup_failed",
+            setupReady: false,
+            materialized: payload.stage === "hook_failed",
+            baseRef: payload.baseRef,
+            headSha: payload.headSha ?? "",
+            setupFailureReason: payload.setupFailureReason,
+            source: "tool",
+            sourceVersion: 1,
+            createdAt: payload.failedAt,
+            lastSeenAt: payload.failedAt,
+            cleanupEligible: false,
+            cleanupBlockedBy: [payload.stage],
+          };
+        }
+      });
+
+      const createResult = await advWorktreeCreate(
+        "change/setup-fail-cross",
+        {},
+        deps,
+      );
+      expect(createResult.ok).toBe(false);
+      if (createResult.ok) return;
+      expect(createResult.error).toBe("SETUP_FAILED");
+      expect(workflowSignal).toHaveBeenCalledWith(
+        worktreeSetupFailedSignal,
+        expect.objectContaining({
+          branch: "change/setup-fail-cross",
+          stage: "hook_failed",
+          setupFailureReason: "boom",
+        }),
+      );
+
+      // Simulate a new session resuming the same change.
+      const resumeDeps = createMockDeps(repoRoot);
+      const resumeResult = await advWorktreeResume(
+        { branch: "change/setup-fail-cross" },
+        {},
+        resumeDeps,
+      );
+      expect(resumeResult.ok).toBe(false);
+      if (resumeResult.ok) return;
+      expect(resumeResult.error).toBe("SETUP_FAILED");
+      expect(resumeResult.reason).toBe("boom");
+    });
+
+    it("GIT_FAILED persists across sessions via worktreeSetupFailedSignal (git_failed)", async () => {
+      const blockedPath = await getWorktreePath(
+        repoRoot,
+        "change/git-fail-cross",
+      );
+      execSync(`mkdir -p ${JSON.stringify(blockedPath)}`);
+      writeFileSync(join(blockedPath, "occupied"), "not a git worktree");
+      cleanupPaths.push(blockedPath);
+
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+
+      const liveState = {
+        session_registry: {},
+        worktree_registry: {},
+        pending_worktree_deletes: {},
+        change_summaries: {},
+        worktrees: {} as Record<string, unknown>,
+      };
+      workflowQuery.mockImplementation(async () => liveState);
+      workflowSignal.mockImplementation(async (signal, payload) => {
+        if (signal === worktreeSetupFailedSignal) {
+          liveState.worktrees[payload.branch] = {
+            branch: payload.branch,
+            path: payload.path,
+            changeId: payload.changeId,
+            status: "setup_failed",
+            setupReady: false,
+            materialized: payload.stage === "hook_failed",
+            baseRef: payload.baseRef,
+            headSha: payload.headSha ?? "",
+            setupFailureReason: payload.setupFailureReason,
+            source: "tool",
+            sourceVersion: 1,
+            createdAt: payload.failedAt,
+            lastSeenAt: payload.failedAt,
+            cleanupEligible: false,
+            cleanupBlockedBy: [payload.stage],
+          };
+        }
+      });
+
+      const createResult = await advWorktreeCreate(
+        "change/git-fail-cross",
+        {},
+        deps,
+      );
+      expect(createResult.ok).toBe(false);
+      if (createResult.ok) return;
+      expect(createResult.error).toBe("GIT_FAILED");
+      expect(workflowSignal).toHaveBeenCalledWith(
+        worktreeSetupFailedSignal,
+        expect.objectContaining({
+          branch: "change/git-fail-cross",
+          stage: "git_failed",
+          setupFailureReason: expect.any(String),
+        }),
+      );
+
+      const resumeDeps = createMockDeps(repoRoot);
+      const resumeResult = await advWorktreeResume(
+        { branch: "change/git-fail-cross" },
+        {},
+        resumeDeps,
+      );
+      expect(resumeResult.ok).toBe(false);
+      if (resumeResult.ok) return;
+      expect(resumeResult.error).toBe("SETUP_FAILED");
+    });
+
+    it("SETUP_FAILED — fires worktreeSetupFailedSignal and surfaces original hook error", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+      deps.hooks = { postCreate: ["exit 1"] };
+      vi.mocked(runHooksWithSafety).mockRejectedValueOnce(new Error("boom"));
+
+      const result = await advWorktreeCreate("change/setup-fail", {}, deps);
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: "SETUP_FAILED",
+        branch: "change/setup-fail",
+        reason: "boom",
+      });
+      expect(workflowSignal).toHaveBeenCalledWith(
+        worktreeSetupFailedSignal,
+        expect.objectContaining({
+          branch: "change/setup-fail",
+          stage: "hook_failed",
+          setupFailureReason: "boom",
+        }),
+      );
+    });
+
+    it("GIT_FAILED — fires worktreeSetupFailedSignal with stage git_failed", async () => {
+      const blockedPath = await getWorktreePath(repoRoot, "change/git-fail");
+      execSync(`mkdir -p ${JSON.stringify(blockedPath)}`);
+      writeFileSync(join(blockedPath, "occupied"), "not a git worktree");
+      cleanupPaths.push(blockedPath);
+
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+
+      const result = await advWorktreeCreate("change/git-fail", {}, deps);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe("GIT_FAILED");
+      }
+      expect(workflowSignal).toHaveBeenCalledWith(
+        worktreeSetupFailedSignal,
+        expect.objectContaining({
+          branch: "change/git-fail",
+          stage: "git_failed",
+          setupFailureReason: expect.any(String),
+        }),
+      );
     });
 
     it("BRANCH_LOCKED — blocks when flock is held by another session", async () => {

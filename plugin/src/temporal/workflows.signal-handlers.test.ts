@@ -49,6 +49,7 @@ import {
   wisdomAddedSignal,
   worktreeCreatedSignal,
   worktreeDeletedSignal,
+  worktreeSetupFailedSignal,
 } from "./messages";
 import { withTestWorkflowEnvironment } from "./__tests__/with-test-env";
 import { inspectArtifactActivity, writeArtifactActivity } from "./activities";
@@ -284,6 +285,57 @@ function extractSetHandlerBlocks(source: string): string[] {
 
   return blocks;
 }
+
+describe("changeWorkflow worktree signals", () => {
+  it("applies worktreeSetupFailedSignal with stage discriminator and reason", async () => {
+    await withSignalWorker("worktree-setup-failed", async (handle) => {
+      await handle.signal(worktreeSetupFailedSignal, {
+        branch: "change/setup-fail",
+        path: "/wt/change/setup-fail",
+        changeId: "setup-fail",
+        baseRef: "main",
+        setupFailureReason: "git worktree add failed",
+        failedAt: "2026-05-05T00:04:00.000Z",
+        stage: "git_failed",
+      });
+
+      let state = await queryState(handle);
+      expect((state as any).worktrees["change/setup-fail"]).toMatchObject({
+        branch: "change/setup-fail",
+        path: "/wt/change/setup-fail",
+        changeId: "setup-fail",
+        status: "setup_failed",
+        setupReady: false,
+        materialized: false,
+        setupFailureReason: "git worktree add failed",
+        cleanupBlockedBy: ["git_failed"],
+      });
+
+      await handle.signal(worktreeSetupFailedSignal, {
+        branch: "change/hook-fail",
+        path: "/wt/change/hook-fail",
+        changeId: "hook-fail",
+        baseRef: "main",
+        headSha: "abc1234",
+        setupFailureReason: "postCreate hook failed",
+        failedAt: "2026-05-05T00:04:01.000Z",
+        stage: "hook_failed",
+      });
+
+      state = await queryState(handle);
+      expect((state as any).worktrees["change/hook-fail"]).toMatchObject({
+        branch: "change/hook-fail",
+        path: "/wt/change/hook-fail",
+        status: "setup_failed",
+        setupReady: false,
+        materialized: true,
+        headSha: "abc1234",
+        setupFailureReason: "postCreate hook failed",
+        cleanupBlockedBy: ["hook_failed"],
+      });
+    });
+  }, 30_000);
+});
 
 describe("changeWorkflow signal handlers", () => {
   it("applies document, task, gate, wisdom, worktree, and conformance signals to workflow state", async () => {

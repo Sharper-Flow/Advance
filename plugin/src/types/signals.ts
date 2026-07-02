@@ -334,6 +334,27 @@ export type WorktreeDeletedSignalPayload = z.infer<
 >;
 
 /**
+ * rq-wl-setupReadiness01.1 — durable setup-failure persistence.
+ *
+ * Fired when git worktree add fails (stage: "git_failed", materialized:false)
+ * or when postCreate hooks fail after the git worktree exists
+ * (stage: "hook_failed", materialized:true, headSha present).
+ */
+export const WorktreeSetupFailedSignalPayloadSchema = z.object({
+  branch: z.string(),
+  path: z.string(),
+  changeId: z.string().optional(),
+  baseRef: z.string(),
+  headSha: z.string().optional(),
+  setupFailureReason: z.string(),
+  failedAt: IsoTimestampSchema,
+  stage: z.enum(["git_failed", "hook_failed"]),
+});
+export type WorktreeSetupFailedSignalPayload = z.infer<
+  typeof WorktreeSetupFailedSignalPayloadSchema
+>;
+
+/**
  * rq-autoManageAdvWorktrees AC3 — per-change marker signal.
  *
  * `source: "create"` fires at change creation with `value: true`.

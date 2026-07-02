@@ -72,6 +72,7 @@ import {
   applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
   applyWorktreeDeletedToState,
+  applyWorktreeSetupFailedToState,
   archiveChangeInChangeState,
   closeChangeInChangeState,
   createChangeWorkflowState,
@@ -348,6 +349,9 @@ const worktreeCreatedSignal = wf.defineSignal<
 const worktreeDeletedSignal = wf.defineSignal<
   [import("../types").WorktreeDeletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);
+const worktreeSetupFailedSignal = wf.defineSignal<
+  [import("../types").WorktreeSetupFailedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeSetupFailed);
 const worktreeAutoManagedSignal = wf.defineSignal<
   [import("../types").WorktreeAutoManagedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAutoManaged);
@@ -1373,6 +1377,12 @@ export async function changeWorkflow(
     worktreeDeletedSignal,
     signalMutation("worktreeDeleted", (payload) =>
       applyWorktreeDeletedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    worktreeSetupFailedSignal,
+    signalMutation("worktreeSetupFailed", (payload) =>
+      applyWorktreeSetupFailedToState(state, payload),
     ),
   );
   wf.setHandler(

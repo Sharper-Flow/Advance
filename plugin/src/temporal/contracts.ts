@@ -97,6 +97,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   reflectionRecorded: "adv.change.reflectionRecorded",
   worktreeCreated: "adv.change.worktreeCreated",
   worktreeDeleted: "adv.change.worktreeDeleted",
+  worktreeSetupFailed: "adv.change.worktreeSetupFailed",
   worktreeAutoManaged: "adv.change.worktreeAutoManaged",
   worktreeAttached: "adv.change.worktreeAttached",
   crossProjectCoordinationUpdated: "adv.change.crossProjectCoordinationUpdated",
@@ -440,10 +441,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     {
       branch: string;
       path?: string;
+      changeId?: string;
       baseRef?: string;
       headSha?: string;
-      status: "created" | "deleted";
+      materialized?: boolean;
+      status: "created" | "deleted" | "setup_failed";
       createdAt?: string;
+      lastSeenAt?: string;
       deletedAt?: string;
       deleteReason?: string;
       // Stamped true by applyWorktreeCreatedToState because
@@ -451,6 +455,11 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
       // Step 7). worktreeExistsForChange requires setupReady===true for the
       // isolation existing-worktree ALLOW probe (rq-worktreeMutationGuard01.4).
       setupReady?: boolean;
+      setupFailureReason?: string;
+      cleanupEligible?: boolean;
+      cleanupBlockedBy?: string[];
+      source?: "tool" | "git_census";
+      sourceVersion?: number;
     }
   >;
   conformance?: {

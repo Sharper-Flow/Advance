@@ -49,6 +49,7 @@ import {
   WorktreeAutoManagedSignalPayloadSchema,
   WorktreeCreatedSignalPayloadSchema,
   WorktreeDeletedSignalPayloadSchema,
+  WorktreeSetupFailedSignalPayloadSchema,
   OpsEvidenceAppendedSignalPayloadSchema,
   OpsFollowupLinkAddedSignalPayloadSchema,
   OpsFollowupSeededSignalPayloadSchema,
@@ -84,6 +85,7 @@ const designSignalKeys = [
   "reflectionRecorded",
   "worktreeCreated",
   "worktreeDeleted",
+  "worktreeSetupFailed",
   "worktreeAutoManaged",
   "worktreeAttached",
   "crossProjectCoordinationUpdated",
@@ -99,6 +101,7 @@ const designSignalKeys = [
   "epicMembershipSet",
   "epicMembershipCleared",
   "updateArtifactMetadata",
+  "originRepaired",
   "archiveChange",
   "closeChange",
 ] as const;
@@ -113,11 +116,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 46 signal surface", () => {
+  it("defines the 48 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(46);
+    expect(surfacedKeys).toHaveLength(48);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -346,6 +349,18 @@ describe("change workflow message contract", () => {
       [
         WorktreeDeletedSignalPayloadSchema,
         { branch: "change/x", reason: "merged", deletedAt: timestamp },
+      ],
+      [
+        WorktreeSetupFailedSignalPayloadSchema,
+        {
+          branch: "change/x",
+          path: "/repo-x",
+          baseRef: "main",
+          headSha: "abc",
+          setupFailureReason: "git worktree add failed",
+          failedAt: timestamp,
+          stage: "git_failed",
+        },
       ],
       [
         WorktreeAutoManagedSignalPayloadSchema,

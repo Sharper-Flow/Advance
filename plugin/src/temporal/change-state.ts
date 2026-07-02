@@ -51,6 +51,7 @@ import type {
   WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
+  WorktreeSetupFailedSignalPayload,
 } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
 import { normalizePersistedSubagentReportState } from "../types";
@@ -1179,6 +1180,43 @@ export function applyWorktreeDeletedToState(
     },
   };
   setLastSignalAt(state, payload.deletedAt);
+  return state;
+}
+
+/**
+ * rq-wl-setupReadiness01.1 — durable setup-failure persistence.
+ *
+ * Applied when git worktree add fails (stage:"git_failed") or postCreate
+ * hooks fail (stage:"hook_failed"). Sets status:"setup_failed", records
+ * the reason, and marks materialized:true only when the git worktree itself
+ * exists (hook_failed). The setupReady guard stays false so resume blocks.
+ */
+export function applyWorktreeSetupFailedToState(
+  state: ChangeWorkflowState,
+  payload: WorktreeSetupFailedSignalPayload,
+): ChangeWorkflowState {
+  const now = payload.failedAt;
+  state.worktrees = {
+    ...(state.worktrees ?? {}),
+    [payload.branch]: {
+      branch: payload.branch,
+      path: payload.path,
+      changeId: payload.changeId,
+      status: "setup_failed",
+      createdAt: now,
+      lastSeenAt: now,
+      baseRef: payload.baseRef,
+      headSha: payload.headSha ?? "",
+      source: "tool",
+      sourceVersion: 1,
+      setupReady: false,
+      materialized: payload.stage === "hook_failed",
+      setupFailureReason: payload.setupFailureReason,
+      cleanupEligible: false,
+      cleanupBlockedBy: [payload.stage],
+    },
+  };
+  setLastSignalAt(state, now);
   return state;
 }
 

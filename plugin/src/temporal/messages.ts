@@ -73,6 +73,7 @@ import type {
   WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
+  WorktreeSetupFailedSignalPayload,
 } from "../types";
 import type {
   ChangeWorkflowBootstrapState,
@@ -236,6 +237,9 @@ export const worktreeCreatedSignal = wf.defineSignal<
 export const worktreeDeletedSignal = wf.defineSignal<
   [WorktreeDeletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);
+export const worktreeSetupFailedSignal = wf.defineSignal<
+  [WorktreeSetupFailedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeSetupFailed);
 export const worktreeAutoManagedSignal = wf.defineSignal<
   [WorktreeAutoManagedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAutoManaged);
