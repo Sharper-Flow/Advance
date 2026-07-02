@@ -11,7 +11,18 @@ Validate architectural decisions via sub-agents using Context7 and web search. S
 
 ## Command Boundary
 
-**Produces:** Research report, architecture health assessment (SOUND/DRIFTED/ANTI-PATTERN), simplification opportunities, `## Research Validation` in proposal.md.
+**Produces:** Research report, architecture health assessment (SOUND/DRIFTED/ANTI-PATTERN), Architecture Judgement surfaced from the `adv-researcher` typed report, simplification opportunities, `## Research Validation` in proposal.md.
+
+**Verdict crosswalk (display only, source-of-truth remains `validation.status`):**
+
+| validation.status | Legacy display label | Advisory-only? |
+| --- | --- | --- |
+| `pass` | VALIDATED | no |
+| `caution` | CAUTION | no |
+| `fail` | ANTI-PATTERN | yes (researcher `fail` MUST NOT auto-block gates) |
+| `unknown` | NEEDS_MORE_INFO | no |
+
+`validation.status: pass | caution | fail | unknown` is the single source of truth for the researcher verdict. Legacy labels (VALIDATED | CAUTION | ANTI-PATTERN | NEEDS_MORE_INFO) remain accepted on input and are crosswalked to the typed status for display only. A second verdict field MUST NOT be introduced.
 
 **× MUST NOT:** Create tasks, complete non-research gates, modify task graph, make task decomposition decisions.
 
@@ -57,7 +68,7 @@ Before validating individual decisions, audit existing codebase architecture:
 
 Phase dependency: Phase 3 MUST NOT execute until this audit is complete and `EXISTING CODEBASE PATTERNS` has been summarized for sub-agent prompts.
 
-If DRIFTED/ANTI-PATTERN → research output MUST recommend corrections. Change should leave architecture better, not perpetuate problems.
+If DRIFTED/ANTI-PATTERN → research output MUST recommend corrections. Change should leave architecture better, not perpetuate problems. The Architecture Judgement returned by the sub-agent carries `validation.status: fail` and `architecture_judgement.applicability: applicable` with non-empty `risk`; this judgement is advisory-only and does not block the research gate on its own.
 
 ---
 
@@ -93,6 +104,8 @@ For each decision, formulate questions across:
 | Simplicity (critical) | Could be simpler? Built-in solution? Most boring approach? Over-engineering? |
 | Security | OWASP risks? Common vulnerabilities? |
 
+Architecture Judgement applies when the question determines architecture, design, or specs. Use `architecture_judgement.applicability: applicable` with `risk`, `tradeoffs[]`, `alternatives_considered[]`, and optional `spec_law_implications`. Use `architecture_judgement.applicability: not_applicable` with `rationale` for docs/API/examples research that carries no architecture judgement dimensions.
+
 ---
 
 ## Sub-Agent Resilience
@@ -101,10 +114,11 @@ For each decision, formulate questions across:
 
 A sub-agent result is **empty/failed** if:
 - The result string is empty, whitespace-only, or `null`
-- The result does not contain the expected `VALIDATION:` or `FINDINGS:` section
+- The result does not contain the expected `validation.status` or `FINDINGS:` section
 - The result contains only error message with no research content
 - The result contains headers but no actionable content beneath them
 - The result is entirely inconclusive and provides no sourced findings
+- Architecture Judgement is missing or its `required_validation_consistency.status` does not match `validation.status`
 
 Treat timeout/no-response same as failure.
 
@@ -145,7 +159,7 @@ Check agent availability: `glob .opencode/agents/adv-researcher.md`. If `adv-res
 
 ### adv-researcher Prompt
 
-System prompt already contains behavioral instructions (research protocol, citation requirements, simplicity bias, response format, anti-hallucination controls). Do NOT duplicate these. Pass only task-specific context:
+System prompt already contains behavioral instructions (research protocol, citation requirements, simplicity bias, response format, anti-hallucination controls, Architecture Judgement Contract). Do NOT duplicate these. Pass only task-specific context:
 
 ```
 RESEARCH QUESTION: {question}
@@ -165,7 +179,15 @@ CODEBASE FILES:
 EXECUTION CONSTRAINT:
 Do all research inline with your own tools. Do NOT spawn additional research sub-agents or delegates.
 Do NOT invoke `/adv-*` slash commands from inside this worker.
+
+ARCHITECTURE JUDGEMENT (REQUIRED):
+Return architecture_judgement (advisory-only):
+- applicability applicable when this question drives architecture, design, or spec decisions
+- applicability not_applicable with rationale when this is docs/API/examples research with no architecture judgement dimensions
+- required_validation_consistency.status MUST equal validation.status
 ```
+
+The worker returns Architecture Judgement as typed report data — pass only task-specific context here.
 
 **CRITICAL**: Include the FULL project context, not a summary. The sub-agent needs to know:
 - Component libraries (e.g., shadcn-svelte) to look up component-specific docs
@@ -228,12 +250,25 @@ RESEARCH QUESTION: {question}
 FINDINGS:
 - {finding with source URL}
 
+ARCHITECTURE JUDGEMENT:
+  applicability: applicable | not_applicable
+  summary: {one sentence}
+  risk: {non-empty string}
+  tradeoffs: [{short text}]
+  alternatives_considered: [{short text}]
+  spec_law_implications: {string}     # optional
+  required_validation_consistency:
+    status: pass | caution | fail | unknown
+
 ARCHITECTURE ASSESSMENT:
 - Existing pattern: {what the codebase currently does}
 - Reference pattern: {what the by-the-book approach is}
 - Deviation: {NONE | MINOR | MAJOR}
 
-VALIDATION: VALIDATED | CONCERNS | ANTI-PATTERN | NEEDS_MORE_INFO
+VALIDATION:
+  status: pass | caution | fail | unknown
+  blockers: [{short text}]
+  notes: {string}
 
 RECOMMENDATION: {specific action}
 
@@ -253,7 +288,23 @@ SOURCES:
 # Architecture Research: {target}
 
 ## Summary
-## Architecture Health Assessment
+## Architecture Judgement
+### Verdict: {crosswalk legacy label}
+VALIDATED → pass
+CAUTION → caution
+CONCERNS → caution
+ANTI-PATTERN → fail (advisory-only)
+NEEDS_MORE_INFO → unknown
+
+| validation.status | Legacy label |
+|---|---|
+| pass | VALIDATED |
+| caution | CAUTION |
+| fail | ANTI-PATTERN (advisory-only) |
+| unknown | NEEDS_MORE_INFO |
+| Researcher `fail` / ANTI-PATTERN is advisory-only and MUST NOT auto-block gate completion.
+
+### Architecture Health Assessment
 ### Classification: {SOUND | DRIFTED | ANTI-PATTERN}
 | Area | Existing | Reference | Deviation | Impact |
 ### Corrections Required (if DRIFTED/ANTI-PATTERN)
@@ -268,6 +319,8 @@ SOURCES:
 ## Action Items (corrections → simplifications → features)
 ## Confidence (high/low aspects)
 ```
+
+Architecture Judgement is rendered from `architecture_judgement` and `validation.status` fields returned by `adv-researcher`. The single source of truth for the user-visible verdict is `validation.status`; the legacy label crosswalk is for display only.
 
 ---
 
@@ -302,6 +355,10 @@ CONTRACT ACTIVE
 CONTRACT FULFILLED
 - Evidence: {what was validated or updated}
 - Status: COMPLETE | REPORT_ONLY
+
+ARCHITECTURE JUDGEMENT
+- validation.status: {pass | caution | fail | unknown}
+- advisory-only: {true when fail/anti-pattern, else false}
 ```
 
 Prioritize findings as: architecture corrections → security → simplifications → anti-patterns → improvements.
