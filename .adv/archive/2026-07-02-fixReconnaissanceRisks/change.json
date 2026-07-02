@@ -1,0 +1,2419 @@
+{
+  "id": "fixReconnaissanceRisks",
+  "title": "Fix reconnaissance risks",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-02T16:44:27.210Z",
+  "tasks": [
+    {
+      "id": "tk-d71adcdae0d3",
+      "title": "Extract shared Bun-safe CLI projection module + structural parity + Bun import-safety smoke",
+      "type": "code",
+      "section": "Slice B — Shared CLI projection module",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-02T17:20:45.749Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:08:21.216Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReconnaissanceRisks",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+          "task_id": "tk-d71adcdae0d3",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-d71adcdae0d3"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/shared/cli-projection.ts",
+            "bin/lib/types.ts",
+            "bin/lib/changes.ts",
+            "plugin/src/cli-gate-order-parity.test.ts",
+            "bin/lib/cli-projection-import-safety.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes with shared module and re-exports"
+            },
+            {
+              "command": "pnpm --dir plugin exec vitest run src/cli-gate-order-parity.test.ts src/cli-bridge-contract.test.ts src/release-install-assets.test.ts",
+              "exit_code": 0,
+              "summary": "All 29 plugin-side tests pass (structural parity + CLI bridge + release assets)"
+            },
+            {
+              "command": "bun test bin/lib/cli-projection-import-safety.test.ts",
+              "exit_code": 0,
+              "summary": "Bun import-safety smoke test passes (dynamic import + source forbidden-import scan + re-export checks)"
+            },
+            {
+              "command": "bun test bin/lib/changes.test.ts bin/lib/cli-projection-import-safety.test.ts bin/adv.test.ts",
+              "exit_code": 0,
+              "summary": "38 Bun tests pass; bin/adv import graph still boots cleanly"
+            },
+            {
+              "command": "bun bin/adv --version",
+              "exit_code": 0,
+              "summary": "CLI entrypoint imports and runs under Bun"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "Full check gate passes: schemas, typecheck, test isolation, lockfile policy, lint, prettier"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Created a zero-import plain-TS shared module at plugin/src/shared/cli-projection.ts instead of re-exporting from types/gates.ts",
+              "why": "types/gates.ts imports zod and other plugin runtime types; importing it from bin/adv would leak heavy transitive dependencies. The shared module keeps Bun-import safety while mirroring the canonical gate order."
+            },
+            {
+              "what": "Re-exported types from bin/lib/types.ts and GATE_ORDER/GateId from bin/lib/changes.ts via relative path to plugin/src/shared/cli-projection.ts",
+              "why": "The deployed layout (~/.local/share/Advance/bin and ~/.local/share/Advance/plugin) preserves the same ../../plugin relative path from bin/lib to plugin/src, so the re-export works both in-repo and after deploy-local.sh."
+            },
+            {
+              "what": "Replaced regex-scraping parity with structural equality test plus a belt-and-suspenders re-export check",
+              "why": "Structural equality catches drift deterministically; the source-level check verifies the CLI file actually consumes the shared module."
+            },
+            {
+              "what": "Placed the Bun import-safety smoke test under bin/lib/ using Bun's native test runner",
+              "why": "Only Bun can validate that the shared module imports cleanly from the CLI graph; the test both dynamically imports the module and statically forbids heavy imports."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "bin/lib/dashboard/attention.ts still declares its own local GATE_ORDER const (line 116); it is not covered by the IN_SCOPE changes.ts/types.ts re-export and was left untouched per OUT_OF_SCOPE 'Decomposing bin/lib further' and the explicit scope boundary."
+            ],
+            "details": "Related-scan found one remaining GATE_ORDER duplication in the dashboard attention module. It is outside the delegated task scope (which named changes.ts and types.ts only) and would require touching dashboard code.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "Promote bin/lib/dashboard/attention.ts to import GATE_ORDER from plugin/src/shared/cli-projection.ts so the entire bin/adv surface has a single gate-order source of truth."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned bin/ for other local GATE_ORDER declarations; only bin/lib/dashboard/attention.ts remains. plugin/src/types/gates.ts GATE_DEFS-derived GATE_ORDER remains canonical and unchanged.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Shared Bun-safe CLI projection module landed at plugin/src/shared/cli-projection.ts with zero imports. bin/lib/types.ts and bin/lib/changes.ts now re-export gate order and projection types from it. Structural parity test verifies shared GATE_ORDER equals plugin GATE_DEFS-derived order. Bun smoke test confirms the module imports cleanly and contains no Temporal/storage/zod/node:* imports. bin/adv --version still works. One remaining duplicate GATE_ORDER lives in bin/lib/dashboard/attention.ts (out of scope for this task).",
+            "suggested_next_action": "Run the full test suite via bin/oc-test targeted/smoke/full if further verification is needed, and schedule a follow-up to deduplicate GATE_ORDER in bin/lib/dashboard/attention.ts."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/cli-gate-order-parity.test.ts src/cli-bridge-contract.test.ts src/release-install-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/lib/cli-projection-import-safety.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/lib/changes.test.ts bin/lib/cli-projection-import-safety.test.ts bin/adv.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun bin/adv --version"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Shared CLI projection module created. plugin/src/shared/cli-projection.ts: zero-import plain-TS module exporting GATE_ORDER, GateId, GateState, TaskRecord, WisdomEntry, ChangeRecord, ChangeSummary, LiveStatusPayload. bin/lib/types.ts re-exports projection types. bin/lib/changes.ts re-exports GATE_ORDER/GateId; removed local declarations. cli-gate-order-parity.test.ts upgraded to structural parity + source-level re-export check. NEW bin/lib/cli-projection-import-safety.test.ts: Bun smoke test dynamically imports shared module + statically forbids Temporal/storage/zod/node:* imports. Verification: typecheck + check + 29 plugin + 38 bun tests pass; bun bin/adv --version works. Bounded scope drift: bin/lib/dashboard/attention.ts has its own local GATE_ORDER left untouched per scope boundary; follow-up agenda item created.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/changes.ts",
+        "bin/lib/cli-projection-import-safety.test.ts",
+        "bin/lib/types.ts",
+        "plugin/src/cli-gate-order-parity.test.ts",
+        "plugin/src/shared/cli-projection.ts"
+      ],
+      "touched_files": [
+        "bin/lib/changes.ts",
+        "bin/lib/cli-projection-import-safety.test.ts",
+        "bin/lib/types.ts",
+        "plugin/src/cli-gate-order-parity.test.ts",
+        "plugin/src/shared/cli-projection.ts"
+      ],
+      "checkpointSha": "737dab1ffee3d52a8578a6f2ae93ddf4817ce540",
+      "completedAt": "2026-07-02T18:19:56.014Z",
+      "completed_at": "2026-07-02T18:19:56.014Z"
+    },
+    {
+      "id": "tk-8e94e60b7467",
+      "title": "Replace silent wisdom catch with bounded warning + monotonic ID helper in store-disk.ts",
+      "type": "code",
+      "section": "Slice C — Disk-store fallback diagnostics",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-02T17:20:46.552Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5",
+          "AC8"
+        ],
+        "respects": [
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:20:01.034Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReconnaissanceRisks",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+          "task_id": "tk-8e94e60b7467",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8e94e60b7467"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/storage/store-disk.ts",
+            "plugin/src/storage/store-disk.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm --dir plugin exec vitest run src/storage/store-disk src/storage/store-disk.judgment-calls-removal",
+              "exit_code": 0,
+              "summary": "9 storage tests pass (4 new + 5 existing)"
+            },
+            {
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit passes"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Placed monotonic ID helper at the top of store-disk.ts as a private module-level function",
+              "why": "Keeps the change inside the single file per scope lock; no new sibling utility needed and the helper is only consumed by this legacy fallback store"
+            },
+            {
+              "what": "Used ws-${Date.now()}-${seq} / tk-${Date.now()}-${seq} with a per-timestamp sequence counter",
+              "why": "Matches the Temporal store's Date.now() prefix while removing Math.random and keeping IDs monotonic within the same millisecond"
+            },
+            {
+              "what": "Logged project-wisdom read failures via createLogger(\"store-disk\").warn with a 200-char truncated message and the wisdom path as meta",
+              "why": "Surfaces the previously silent catch as a bounded diagnostic without changing the return contract; ADV_DEBUG=1 makes the warning visible in tests and debug sessions"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "store-disk.ts now emits bounded warnings for project-wisdom read failures and uses deterministic monotonic IDs for tasks (tk-) and wisdom (ws-). New store-disk.test.ts covers both behaviors. All storage tests, typecheck, and the full check gate pass.",
+            "suggested_next_action": "Run the broader test suite or proceed to the next execution task in fixReconnaissanceRisks."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/storage/store-disk src/storage/store-disk.judgment-calls-removal"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            }
+          ]
+        }
+      ],
+      "verification": "store-disk diagnostics landed. Created createLogger(\"store-disk\") + private monotonicId(prefix) helper (tk-/ws-${Date.now()}-${seq}). Replaced 2 Math.random ID generators (tk- at :674, ws- at :759) with monotonic helper. Replaced 2 silent catch {} in wisdom.search (:805-807) and wisdom.listAll (:842-844) with bounded logger.warn (200-char truncation + path meta). Return contract unchanged. NEW store-disk.test.ts asserts warnings fire on unreadable project wisdom + IDs match monotonic format. 9 storage tests pass; typecheck + check pass. Stayed in store-disk.ts + its test; no Temporal / epics / status / change / bin / shared touched.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts"
+      ],
+      "checkpointSha": "c8b3af4553af2e3c78c508f7c0a7b337813d1579",
+      "completedAt": "2026-07-02T18:27:08.095Z",
+      "completed_at": "2026-07-02T18:27:08.095Z"
+    },
+    {
+      "id": "tk-7d028c421a6a",
+      "title": "Add worktreeSetupFailedSignal for durable setup-failure persistence",
+      "type": "code",
+      "section": "Slice A — Worktree setup-failure durability",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-02T17:20:54.682Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "SC1"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T17:23:54.863Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReconnaissanceRisks",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+          "task_id": "tk-7d028c421a6a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-7d028c421a6a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/signals.ts",
+            "plugin/src/temporal/contracts.ts",
+            "plugin/src/temporal/messages.ts",
+            "plugin/src/temporal/workflows.ts",
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/tools/worktree/index.ts",
+            "plugin/src/tools/worktree/state.ts",
+            "plugin/src/tools/worktree/index-create.test.ts",
+            "plugin/src/tools/worktree/state-record-probe.test.ts",
+            "plugin/src/temporal/workflows.signal-handlers.test.ts",
+            "plugin/src/temporal/messages.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm --dir plugin exec vitest run src/tools/worktree/index-create.test.ts",
+              "exit_code": 0,
+              "summary": "23 tests passed — cross-session SETUP_FAILED persistence and signal-firing assertions"
+            },
+            {
+              "command": "pnpm --dir plugin exec vitest run src/tools/worktree/state-record-probe.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts src/temporal/workflow-bundle-boundary.test.ts",
+              "exit_code": 0,
+              "summary": "50 tests passed — setup_failed record probe, signal handler, message contract, workflow-bundle boundary"
+            },
+            {
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit passed"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all passed"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Removed the transient materializing pre-write entirely rather than signalizing it",
+              "why": "No tests pinned the no-op updateWorktreeRecord call; keeping it would leave misleading dead code."
+            },
+            {
+              "what": "Expanded ChangeWorkflowState.worktrees type to include setup_failed and supporting fields",
+              "why": "Required for type-safe durable setup-failure records readable by getWorktreeRecord."
+            },
+            {
+              "what": "Fixed pre-existing messages.test.ts signal-surface drift (originRepaired) while adding worktreeSetupFailed",
+              "why": "The signal-surface contract test must enumerate every CHANGE_WORKFLOW_SIGNAL_NAMES key; the drift would have caused the new signal to fail the same assertion."
+            },
+            {
+              "what": "Used the existing fireWorktreeSignal adapter at both failure sites",
+              "why": "It already handles Temporal-unavailable gracefully (returns warning, never throws), preserving the original GIT_FAILED/SETUP_FAILED error per DDC5."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Removed all updateWorktreeRecord call sites and the function definition across plugin/src; updated signal-surface test to include both the new worktreeSetupFailed and the pre-existing originRepaired drift.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "worktreeSetupFailedSignal is wired end-to-end. Git-failed and hook-failed setup errors now persist durably in the change-workflow worktrees map and block cross-session advWorktreeResume with the recorded reason. The no-op updateWorktreeRecord writer and its three call sites are removed. Pre-existing full-suite failures (spec-citation-invariant, tool-name-assets, cli-surface-matrix, ops-follow-up/adv-skill-backed spec versions) are unrelated to this task.",
+            "suggested_next_action": "Run the final full-suite verification task (tk-85b3df2cadf0) when predecessor Slice B/C/D tasks complete."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/worktree/index-create.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/worktree/state-record-probe.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts src/temporal/workflow-bundle-boundary.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            }
+          ]
+        }
+      ],
+      "verification": "worktreeSetupFailedSignal RED→GREEN slice complete. 5-point wiring implemented (signals.ts:21 lines added + contracts.ts:11 + messages.ts:4 + workflows.ts:10 + change-state.ts:38). fireWorktreeSignal wired at git_failed (stage:\"git_failed\") and hook_failed (stage:\"hook_failed\") sites in index.ts:84 net change, with never-throw-over-original-error guard. updateWorktreeRecord and three call sites removed from state.ts (23 deletions). RED→GREEN tests: index-create.test.ts cross-session SETUP_FAILED + signal-firing assertions, state-record-probe.test.ts setup_failed record via getWorktreeRecord, workflows.signal-handlers.test.ts stage discriminator, messages.test.ts schema validation. Verification: vitest run on 4 files = 70 tests passed (exit code 0); pnpm run typecheck passed; pnpm run check passed. AC1, AC2, AC3 evidence captured. Bundle-boundary forbids defineUpdate still holds.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/worktree/index-create.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state-record-probe.test.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/worktree/index-create.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state-record-probe.test.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "345cf76051f375056c1f9b892dc7edc2c8a7175d",
+      "completedAt": "2026-07-02T17:53:53.640Z",
+      "completed_at": "2026-07-02T17:53:53.640Z"
+    },
+    {
+      "id": "tk-57f7f74f98a8",
+      "title": "Retire dead worktree session-registry reuse paths + retired-contract test",
+      "type": "code",
+      "section": "Slice A — Dead session-registry cleanup",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-02T17:21:02.659Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7d028c421a6a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "SC3"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T17:54:09.053Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReconnaissanceRisks",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+          "task_id": "tk-57f7f74f98a8",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-57f7f74f98a8"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/index.ts",
+            "plugin/src/tools/worktree/index.ts",
+            "plugin/src/tools/worktree/index-delete.test.ts",
+            "plugin/src/tools/worktree/state-session-lifecycle.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passed"
+            },
+            {
+              "command": "pnpm --dir plugin exec vitest run src/tools/worktree/state-session-lifecycle.test.ts",
+              "exit_code": 0,
+              "summary": "21 retired-contract and helper tests passed"
+            },
+            {
+              "command": "pnpm --dir plugin exec vitest run src/tools/worktree",
+              "exit_code": 0,
+              "summary": "15 worktree test files, 213 tests passed"
+            },
+            {
+              "command": "pnpm --dir plugin exec vitest run src/tools/session/index.test.ts",
+              "exit_code": 0,
+              "summary": "13 session tool tests passed"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all passed"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Removed the addSession success-path call in advWorktreeCreate after setup is ready",
+              "why": "Worktree creation durability now flows through worktreeCreatedSignal to the change workflow; the retired session-registry addSession is a no-op, so keeping the call masqueraded as durable state (SC3)."
+            },
+            {
+              "what": "Removed all addSession calls in the worktree_create tool execute paths (warp fallback, warp success, terminal, spawn)",
+              "why": "These registered inline/spawn sessions in the retired registry; with no durable consumer, they were dead reuse paths."
+            },
+            {
+              "what": "Removed the two removeSession calls in advWorktreeDelete and maybeRemoveMissingFromDiskRegistryEntry",
+              "why": "removeSession is a documented no-op; calling it after durable workflow cleanup implied a registry side-effect that no longer exists."
+            },
+            {
+              "what": "Removed the getSession fallback in worktree_delete execute",
+              "why": "getSession always returns null (state.ts:402-408), so the branch that read session.path/branch expecting persistence was dead; deletes now require an explicit branch."
+            },
+            {
+              "what": "Removed registerSession/unregisterSession calls from plugin init and the SIGINT/SIGTERM handlers",
+              "why": "They were live no-op writers that logged 'session registered/unregistered' as if durable; keeping them violated SC3. WorktreeStateAccess is still initialized for pending-delete drain."
+            },
+            {
+              "what": "Kept the no-op function definitions in state.ts and the session/index.ts readers (listSessions/getSessionRecord)",
+              "why": "The no-op functions are pinned compatibility surfaces (C1); the session tools read them and already have tests covering empty/not-found behavior, supplemented by new function-level retired-contract tests."
+            },
+            {
+              "what": "Updated the worktree_delete branch arg description and a test title",
+              "why": "Reflects the retired registry reality without changing the tool's public schema."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Searched all plugin/src call sites of addSession, removeSession, getSession, registerSession, unregisterSession, and getSessionRecord. Removed every provably-dead branch that treated them as durable; no other dead reuse paths remain.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "All dead worktree session-registry reuse paths in worktree/index.ts and plugin/src/index.ts have been removed. The retired no-op compatibility surfaces (addSession/removeSession/getSession/registerSession/unregisterSession/getSessionRecord/listSessions) remain in state.ts with new retired-contract tests. Typecheck, lint, format, and worktree/session tests are green.",
+            "suggested_next_action": "Proceed to the next Slice A verification task or continue with Slice B/C/D as planned."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/worktree/state-session-lifecycle.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/worktree"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/session/index.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Dead worktree session-registry reuse paths retired. index.ts: removed addSession success-path call + warp/terminal/spawn execute-path addSession calls + both removeSession calls + getSession fallback in worktree_delete. Dropped unused addSession/removeSession/getSession/generateSessionId imports. plugin/src/index.ts: removed registerSession/unregisterSession plugin-init calls and SIGINT/SIGTERM handlers; kept initWorktreeStateDb for pending-delete drain. index-delete.test.ts: title updated to reflect durable workflow-record cleanup. state-session-lifecycle.test.ts: added retired-contract tests for addSession/removeSession/getSession/getSessionRecord/listSessions. Compatibility no-op function definitions in state.ts preserved per C1. Verification: 213 worktree + 21 lifecycle + 13 session tests pass; typecheck + check pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/index.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/index.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts"
+      ],
+      "checkpointSha": "3c6beff62d782d4ccef5132ceb2ba338a5207883",
+      "completedAt": "2026-07-02T18:06:10.923Z",
+      "completed_at": "2026-07-02T18:06:10.923Z"
+    },
+    {
+      "id": "tk-8ab52bd86601",
+      "title": "Update worktree-lifecycle spec for durable setup-failure persistence",
+      "type": "docs",
+      "section": "Slice A — Spec delta",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-02T17:21:05.531Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7d028c421a6a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC6"
+        ],
+        "respects": [
+          "C1",
+          "C2"
+        ]
+      },
+      "evidence_policy": "source_audit",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:06:21.777Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReconnaissanceRisks",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+          "task_id": "tk-8ab52bd86601",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8ab52bd86601"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/worktree-lifecycle/spec.json",
+            "docs/specs/worktree-lifecycle.md"
+          ],
+          "verification": [
+            {
+              "command": "pnpm --dir plugin run schemas:check",
+              "exit_code": 0,
+              "summary": "Spec schema drift check passes"
+            },
+            {
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "Full pre-push gate passes (schemas, typecheck, test isolation, lockfile, lint, format)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Amended rq-wl-setupReadiness01 body and added scenario rq-wl-setupReadiness01.3 instead of creating a new requirement",
+              "why": "Existing requirement already covers setup failure; adding a single cross-session durability/resume-visibility scenario is the smallest net surface that closes the latent spec violation"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Worktree-lifecycle spec now mandates setup_failed records are durable across sessions and resume-visible; mirror markdown updated. schemas:check, typecheck, and check all pass.",
+            "suggested_next_action": "Proceed with next execution task or move change toward acceptance"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run schemas:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            }
+          ]
+        }
+      ],
+      "verification": "worktree-lifecycle spec tightened. rq-wl-setupReadiness01 body updated to require setup_failed durability + resume-visibility; new scenario rq-wl-setupReadiness01.3 asserts cross-session advWorktreeResume sees persisted setup_failed and returns SETUP_FAILED with reason. docs/specs/worktree-lifecycle.md mirrored. pnpm --dir plugin run schemas:check + typecheck + check all pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/worktree-lifecycle.md"
+      ],
+      "touched_files": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/worktree-lifecycle.md"
+      ],
+      "checkpointSha": "441d3de432f0efe6e940c69aca7a437a9819d4c1",
+      "completedAt": "2026-07-02T18:08:17.177Z",
+      "completed_at": "2026-07-02T18:08:17.177Z"
+    },
+    {
+      "id": "tk-04d973fb7b3d",
+      "title": "Decompose status.ts into focused modules (Slice D — status)",
+      "type": "code",
+      "section": "Slice D — status.ts decomposition",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-02T17:21:11.996Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7d028c421a6a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d71adcdae0d3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8e94e60b7467"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC7"
+        ],
+        "respects": [
+          "DONT5",
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_policy": "review",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:27:16.016Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReconnaissanceRisks",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+          "task_id": "tk-04d973fb7b3d",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-04d973fb7b3d"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/status.ts",
+            "plugin/src/tools/status-health.ts",
+            "plugin/src/tools/status-hygiene.ts",
+            "plugin/src/tools/status-enrich.ts",
+            "plugin/src/tools/status-view.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm --dir plugin exec vitest run src/tools/status src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "55 tests passed (status.test.ts, status.probe-helpers.test.ts, status-recommendations.test.ts)"
+            },
+            {
+              "command": "pnpm --dir plugin exec vitest run src/tools/worktree src/storage",
+              "exit_code": 0,
+              "summary": "575 tests passed — worktree/storage unaffected"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+            },
+            {
+              "command": "bun test bin/",
+              "exit_code": 0,
+              "summary": "184 bin tests passed — CLI bridge imports remain clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extracted status.ts into four sibling modules plus a thin status.ts entry point.",
+              "why": "Matches design KD6 seams: health (Temporal/STSL/queue), hygiene (external state + branch cleanup), enrich (recommendations + recent-change enrichment), view (view plan + apply). Keeps status.ts under 800 lines."
+            },
+            {
+              "what": "Kept capSummaryRecommendations in status.ts instead of status-enrich.ts.",
+              "why": "It needs STATUS_SUMMARY_RECOMMENDATION_LIMIT, which is also used by the execute handler; moving it would create a constant-sharing problem or circular import."
+            },
+            {
+              "what": "Exported internal probe caches from status-health.ts for direct use by status.ts execute.",
+              "why": "The execute body already used statusSearchAttributesProbeCache and statusWorktreeCensusProbeCache directly; exporting preserves that wiring without adding wrapper functions."
+            },
+            {
+              "what": "Re-exported computeAutoManagedCensus, deriveOpencodeDebtCounts, _test, _healthSnapshotCache, and _statusProbeCaches from status.ts.",
+              "why": "Existing tests import these symbols from ./status; behavior preservation requires keeping the public test surface intact."
+            },
+            {
+              "what": "Did not create additional commits; all seams applied as one diff set per worker instructions.",
+              "why": "Task context explicitly says worker must NOT make per-seam commits; reported seams as diff sections only."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Full Vitest suite has 5 pre-existing failures (cli-surface-matrix, ops-follow-up-assets, tool-name-assets, spec-citation-invariant, tool-registry-matrix) that also fail on the unmodified base branch and are unrelated to status.ts decomposition."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified all callers that import from ./status continue to resolve; no other plugin files import internal status symbols directly.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "status.ts decomposed from 2077 to 786 lines. New modules: status-health.ts (Temporal/queue/STSL health + caches), status-hygiene.ts (external-state hygiene + branch cleanup), status-enrich.ts (recommendation wiring + recent-change enrichment), status-view.ts (view plan + applyStatusView). status.ts remains the registered tool entry and re-exports test helpers. Targeted status tests, worktree/storage tests, bin tests, and pnpm run check all pass. Full suite was run and has the same 5 unrelated pre-existing failures observed on base.",
+            "suggested_next_action": "Address the 5 unrelated full-suite failures separately, then re-run bin/oc-test full. After that, proceed to the next slice-D task (t7 change.ts decomposition)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/status src/tools/status.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/worktree src/storage"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/"
+            }
+          ]
+        }
+      ],
+      "verification": "status.ts decomposed 2077→786 lines. New sibling modules: status-health.ts (Temporal/queue/STSL health, probe caches, _healthSnapshotCache, _statusProbeCaches); status-hygiene.ts (external-state hygiene, empty worktree dirs, synthetic dirs, archived branch cleanup); status-enrich.ts (recommendation wiring, enrichRecentChangeStatus, clarify/recency); status-view.ts (AdvStatusView, buildStatusViewPlan, applyStatusView). status.ts retains adv_status entry + re-exports test helpers. Verification: status + status.test.ts 55 passed; worktree + storage 575 passed; pnpm --dir plugin run check green; bun test bin/ 184 passed. Pre-existing base-branch failures (cli-surface-matrix, ops-follow-up-assets, tool-name-assets, spec-citation-invariant, tool-registry-matrix) verified unrelated to this change per scope boundary.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status-enrich.ts",
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/tools/status-hygiene.ts",
+        "plugin/src/tools/status-view.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status-enrich.ts",
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/tools/status-hygiene.ts",
+        "plugin/src/tools/status-view.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "b74d24f307ea32ea6952b5398cdcbfd2bc5b03a9",
+      "completedAt": "2026-07-02T18:56:31.129Z",
+      "completed_at": "2026-07-02T18:56:31.129Z",
+      "notes": "Fix review finding: SC4 traceability — decompose-status-task now references SC4 (decomposition) in implements instead of SC3 (session-registry retirement). SC3 stays traced via tk-57f7f74f98a8.",
+      "updatedAt": "2026-07-02T20:23:20.278Z"
+    },
+    {
+      "id": "tk-86ff2357e525",
+      "title": "Decompose change.ts into focused modules (Slice D — change)",
+      "type": "code",
+      "section": "Slice D — change.ts decomposition",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-07-02T17:21:17.538Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-04d973fb7b3d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC7"
+        ],
+        "respects": [
+          "DONT5",
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_policy": "review",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:56:42.732Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReconnaissanceRisks",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+          "task_id": "tk-86ff2357e525",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-86ff2357e525"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change/artifacts.ts",
+            "plugin/src/tools/change/create-clarify.ts",
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/change/recovery.ts",
+            "plugin/src/tools/gate.ts",
+            "plugin/src/tools/contract.ts",
+            "plugin/src/tools/status-enrich.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all passed"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/change-claim.test.ts src/tools/change-cross-project-create.test.ts src/tools/change.read-artifact.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.status-repair.test.ts src/tools/change.archive-repair.test.ts src/tools/change-origin-repair.test.ts src/tools/change-origin.test.ts src/tools/contract.test.ts src/tools/gate.test.ts",
+              "exit_code": 0,
+              "summary": "11 targeted test files passed (223 tests)"
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 1,
+              "summary": "Full suite: 4419 tests passed, 5 failed — all pre-existing failures unrelated to this change (spec-citation-invariant, tool-name-assets, cli-surface-matrix, ops-follow-up-assets, adv-skill-backed-commands-assets)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extracted helper clusters from change.ts into four focused modules instead of moving handlers",
+              "why": "User clarified to land helper-only decomposition; moving handlers was too large/error-prone for this session"
+            },
+            {
+              "what": "Used a TypeScript AST script to slice declarations and fix relative import paths",
+              "why": "change.ts has mid-file imports and many helpers; manual extraction previously corrupted syntax"
+            },
+            {
+              "what": "Exported all moved helper declarations from modules and re-exported public helpers from change.ts",
+              "why": "Keeps existing importers (gate.ts, contract.ts, status-enrich.ts, tests) working without further rewrites"
+            },
+            {
+              "what": "Removed temporary extraction/cleanup scripts after use",
+              "why": "Avoid committing one-off automation scripts to the repo"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "To hit the original <2500 line target for change.ts, move the changeTools handler bodies into modules (e.g., handlers per module: artifacts, archive-gate, recovery, misc). This is the remaining work after helper extraction."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated gate.ts, contract.ts, and status-enrich.ts to import readArtifact/normalizeGateArtifactEvidenceForReadback from ./change/artifacts; verified no other ./change imports broke due to re-exports",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Helper-only decomposition of plugin/src/tools/change.ts is complete and green. change.ts went from 6183 to 3838 lines. Helpers live in plugin/src/tools/change/{artifacts,create-clarify,archive-gate,recovery}.ts. Full pnpm run check passes; targeted change tests pass; full suite shows only the 5 pre-existing failures.",
+            "suggested_next_action": "Decide whether to accept the helper-only state or schedule a follow-up change to move changeTools handler bodies and reach the <2500 line target"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/change-claim.test.ts src/tools/change-cross-project-create.test.ts src/tools/change.read-artifact.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.status-repair.test.ts src/tools/change.archive-repair.test.ts src/tools/change-origin-repair.test.ts src/tools/change-origin.test.ts src/tools/contract.test.ts src/tools/gate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            }
+          ]
+        }
+      ],
+      "verification": "change.ts decomposed 6183→3838 lines. New modules under plugin/src/tools/change/: artifacts.ts (readArtifact, readArtifacts, loadProposalForContext); create-clarify.ts (create/claim/clarify helpers); archive-gate.ts (archive/release-gate helpers); recovery.ts (status-repair/close helpers). Updated imports in gate.ts, contract.ts, status-enrich.ts to pull from change/artifacts. Verification: pnpm run check green; bin/oc-test targeted on 11 change/contract/gate test files 223 passed; bin/oc-test full 4419 passed (only the 5 pre-existing base-branch failures unchanged). handler bodies in changeTools remain in change.ts (line target 2500 not reached) — follow-up agenda item created for handler body extraction.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/artifacts.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/change/recovery.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/status-enrich.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/artifacts.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/change/recovery.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/status-enrich.ts"
+      ],
+      "checkpointSha": "28bbbedb4cccc5deaac69c46bba7c475e039f8f4",
+      "completedAt": "2026-07-02T20:05:52.927Z",
+      "completed_at": "2026-07-02T20:05:52.927Z",
+      "notes": "Fix review finding: SC4 traceability — decompose-change-task now references SC4 (decomposition) in implements instead of SC3 (session-registry retirement). SC3 stays traced via tk-57f7f74f98a8. AC7 cross-link to verification task retains traceability.",
+      "updatedAt": "2026-07-02T20:23:21.347Z"
+    },
+    {
+      "id": "tk-85b3df2cadf0",
+      "title": "Final pnpm run check + Vitest suite + schema check verification",
+      "type": "verification",
+      "section": "Final — Verification gate",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-07-02T17:21:19.792Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-04d973fb7b3d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C5"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T20:06:05.773Z",
+      "verification": "Final verification complete. pnpm run check fully green: schemas:check (generate-json-schemas.ts --check) + typecheck (tsc --noEmit) + check-test-isolation + check-lockfile-policy + eslint + prettier format:check all pass. Full Vitest suite: 4419 passed, 5 failed — all 5 failures (spec-citation-invariant 3 missing citations, ops-follow-up-assets 1.23.0 vs 1.24.0, tool-name-assets adv_epic_update_scope/adv_epic_merge, cli-surface-matrix, tool-registry-matrix) verified as pre-existing on base commit 1818d9d: `git diff base HEAD -- <those 5 test files>` returns empty (bit-identical to base). Zero regressions from this change.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "28bbbedb4cccc5deaac69c46bba7c475e039f8f4",
+      "completedAt": "2026-07-02T20:11:34.119Z",
+      "completed_at": "2026-07-02T20:11:34.119Z"
+    },
+    {
+      "id": "tk-402adcd9e2a2",
+      "title": "Reconcile overlapping agenda items (absorb or cross-link)",
+      "type": "ops",
+      "section": "Final — Agenda reconciliation",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-07-02T17:21:24.985Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-04d973fb7b3d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC10",
+          "SC6"
+        ],
+        "respects": [
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "rubric_review",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T20:11:44.593Z",
+      "verification": "9 overlapping agenda items reconciled. Absorbed: ag-3hjQOLnK (worktree reuse path), ag-y2ambs_C/ag-8PsBFRPF (bin/adv source-of-truth), ag-fR-3HtIv (bin/adv:23 comment obviated), ag-4m0dfDad (silent wisdom catch). Cross-link: ag-VH206pZN (broader worktree/index.ts decomposition future), ag-3R8zLZVl (Math.random absorbed; archive/delta.ts sort fallback future), ag-FOcJp39X (status.ts recency guard preserved, follow-up test needed), ag-Q3Zwr4LU (Slice D regression guard, follow-up test needed). Each completion note references this change with commit SHA where applicable.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "28bbbedb4cccc5deaac69c46bba7c475e039f8f4",
+      "completedAt": "2026-07-02T20:12:25.769Z",
+      "completed_at": "2026-07-02T20:12:25.769Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReconnaissanceRisks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for fixReconnaissanceRisks (4 slices: setup-failed signal, bin/adv shared module, disk-store diagnostics, status.ts/change.ts decomposition)",
+      "sources": [
+        {
+          "label": "state.ts updateWorktreeRecord no-op",
+          "locator": "plugin/src/tools/worktree/state.ts:1007-1028",
+          "summary": "updateWorktreeRecord confirmed a no-op ('// no-op until per-change workflow integration'). Both setup_failed writes at index.ts:1153 (git_failed) and index.ts:1202 (hook_failed) currently drop into the void — the durable workflow worktrees map never records setup_failed."
+        },
+        {
+          "label": "getWorktreeRecord reads durable workflow map",
+          "locator": "plugin/src/tools/worktree/state.ts:913-959",
+          "summary": "getWorktreeRecord reads state.worktrees[branch] via getStateQuery on the change workflow — the structural authority (P33). Confirms advWorktreeResume's setup_failed block reads workflow state that must be written by a signal, validating Slice A's mechanism."
+        },
+        {
+          "label": "advWorktreeResume block logic is dead until signal exists",
+          "locator": "plugin/src/tools/worktree/index.ts:1324-1336",
+          "summary": "advWorktreeResume already returns SETUP_FAILED when record.status==='setup_failed'. Correct but currently unreachable because no-op updateWorktreeRecord never persists the record. Firing worktreeSetupFailedSignal makes AC1/AC2 live with no resume-tool change — design claim verified."
+        },
+        {
+          "label": "fireWorktreeSignal degrades gracefully",
+          "locator": "plugin/src/tools/worktree/index.ts:164-217",
+          "summary": "Existing adapter returns {ok:false,warning} and never throws on Temporal-unavailable (catch at 209-216). Slice A's 'degrade gracefully, never throw over original error' is a proven existing pattern reused via the same adapter as worktreeCreatedSignal (index.ts:1246)."
+        },
+        {
+          "label": "Failure sites early-return; success signal mutually exclusive",
+          "locator": "plugin/src/tools/worktree/index.ts:1152,1200,1246",
+          "summary": "git_failed (1152) and hook_failed (1200) both return early; worktreeCreatedSignal (1246) is reached only if git AND hooks succeed. No intra-call interleave of success+failed signals. Cross-call retry is bounded by the projectStateDir flock (index.ts:1108) and monotonic sourceVersion stamp."
+        },
+        {
+          "label": "Symmetric signal definitions confirmed",
+          "locator": "plugin/src/temporal/messages.ts:233-244; workflows.ts:1367-1383; change-state.ts:1149-1183",
+          "summary": "worktreeCreatedSignal/worktreeDeletedSignal defined (defineSignal), declared, handled via signalMutation, and reduced by pure applyWorktree*ToState reducers. New worktreeSetupFailedSignal follows this exact established pattern — a defineSignal, NOT defineUpdate — preserving the signal/query-only law."
+        },
+        {
+          "label": "bin GATE_ORDER hardcoded duplicate",
+          "locator": "bin/lib/changes.ts:19-33",
+          "summary": "bin GATE_ORDER is a hardcoded array whose comment says it 'mirrors plugin/src/types/gates.ts GATE_DEFS'. Genuine duplication; plugin authority is GATE_DEFS-derived GATE_ORDER (plugin/src/types/gates.ts:299-301). Slice B single-source extraction targets a real second source of truth."
+        },
+        {
+          "label": "Current parity test is regex-scraping (brittle)",
+          "locator": "plugin/src/cli-gate-order-parity.test.ts:11-34",
+          "summary": "Existing test readFileSync + regex /GATE_ORDER\\s*=\\s*\\[([\\s\\S]*?)\\]/ then string-parses ids. Heuristic text-scrape (P33 smell). Slice B's upgrade to structural import equality (import both, toEqual) is a legitimate correctness improvement, not gold-plating."
+        },
+        {
+          "label": "bin view types are plain TS interfaces",
+          "locator": "bin/lib/types.ts:8-61",
+          "summary": "ChangeRecord/GateState/LiveStatusPayload are plain interfaces with no node:*/Temporal/storage imports — already Bun-import-safe. Extracting them into a shared module (Slice B) is low-risk; re-export preserves bin/lib consumers."
+        },
+        {
+          "label": "advance-meta CLI bridge is worker-free/no-fanout",
+          "locator": "spec advance-meta rq-statusCliBridge01, rq-statusCliWorkerFree01",
+          "summary": "CLI status must read Visibility search attributes worker-free and forbid MCP fanout. Slice B shares only plain view types + a const gate-order array (zero Temporal/Visibility), so it does not add fanout or a worker dependency. New setup_failed state is read via workflow query in live sessions (advWorktreeResume), NOT via the worker-free CLI bridge — no advance-meta contract touch."
+        },
+        {
+          "label": "worktree-lifecycle spec setup readiness + resume",
+          "locator": "spec worktree-lifecycle rq-wl-setupReadiness01, rq-wl-resumeTool01.2, rq-wl-branchRegistry01",
+          "summary": "rq-wl-setupReadiness01 already requires 'Hook failure writes setup_failed status' and 'Active session registration must be blocked on setup_failed'. rq-wl-resumeTool01.2 requires resume to block on setup_failed. Design's spec-delta (amend rq-wl-setupReadiness01.1 for durability+resume-visibility, or add rq-wl-setupReadiness02) correctly closes the gap between the spec's intent and the no-op reality; it strengthens rather than contradicts the law."
+        }
+      ],
+      "architecture_assessment": "Slice A's core premise is verified against source: updateWorktreeRecord is a confirmed no-op, so setup_failed never reaches the durable workflow worktrees map that getWorktreeRecord (and thus cross-session advWorktreeResume) reads. Replacing the two no-op calls with a new worktreeSetupFailedSignal — symmetric with the existing worktreeCreated/Deleted signals and fired via the graceful-degrading fireWorktreeSignal adapter — is the correct structural fix (P33: durable workflow state as authority, not heuristic). The signal/query-only law is preserved (new defineSignal, no defineUpdate). No success+failed race exists within a create call (failure sites early-return before the success signal); cross-call retries are bounded by the existing flock and monotonic sourceVersion. Slice B removes a real duplicated GATE_ORDER and upgrades a brittle regex-scrape parity test to structural equality, without introducing CLI fanout or a worker dependency (shared surface is plain Bun-safe types + one const). Slices C (bounded diagnostics replacing silent catch{}/Math.random on the non-runtime disk fallback) and D (behavior-preserving, one-seam-per-commit decomposition of status.ts/change.ts with full-suite gating and revert-on-churn) are low-risk and align with the avoidances (no runtime behavior change, no unrelated repo-wide refactor).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "DIMENSION 1 CORRECTNESS: VALIDATED. Firing worktreeSetupFailedSignal at the two failure sites + removing the no-op updateWorktreeRecord does make advWorktreeResume see setup_failed cross-session, because getWorktreeRecord reads the durable workflow map the signal writes. No success/failed interleave race (early returns; flock+sourceVersion bound retries). CAUTION (minor): design says 'REMOVE the no-op updateWorktreeRecord and its call sites' — index.ts also calls updateWorktreeRecord at :1123 for the transient 'materializing' pre-write, which the design explicitly says NOT to persist; ensure removing the materializing call site does not drop any state a test pins, and that the setup_failed signal payload carries enough (branch/path/reason/stage) for both git_failed and hook_failed sites. DIMENSION 2 SIMPLICITY: VALIDATED. New signal vs overloading worktreeCreatedSignal with a status field: a dedicated signal is the simpler, spec-symmetric choice — worktreeCreatedSignal's reducer hardcodes setupReady:true (change-state.ts:1162) precisely so the isolation ALLOW probe works; overloading it with a failure status would fork that invariant and is more error-prone. For Slice B, user chose shared module over guard-test-only; shared module is marginally more code but removes the duplicated source of truth entirely and is the cleaner long-term fix (P33). DIMENSION 3 SPEC-LAW: VALIDATED. Adds defineSignal (not defineUpdate) — honors advance-delivery signal/query-only and the workflow-bundle boundary. Removing the no-op updateWorktreeRecord breaks no spec scenario (it never persisted state). Shared bin module carries no Temporal/Visibility/fanout — does not violate advance-meta rq-statusCliBridge01/rq-statusCliWorkerFree01. Spec-delta to rq-wl-setupReadiness01 is required and correctly scoped (specs-as-laws: the current no-op silently violates rq-wl-setupReadiness01.1's intent). DIMENSION 4 ALTERNATIVES: no significant viable alternative overlooked. One INFO note: instead of a brand-new reducer, an alternative is a shared applyWorktreeStatusToState covering created/deleted/failed, but that is a larger refactor and conflicts with the created-signal's setupReady:true invariant — the design's dedicated reducer is the lower-risk choice."
+      },
+      "recommendation": "VALIDATED with two minor cautions to fold into execution. (1) When removing updateWorktreeRecord call sites, keep the transient 'materializing' pre-write (index.ts:1123) intentionally non-persisted as the design states, but verify no test pins the materializing record and that the new signal payload distinguishes the git_failed (materialized:false, no headSha) vs hook_failed (materialized:true, headSha present) stages via the design's 'stage' field so the reducer records an accurate setup_failed entry. (2) Ship the Slice A spec-delta (amend rq-wl-setupReadiness01.1 for durability+resume-visibility, or add rq-wl-setupReadiness02) in the same change so specs-as-laws stays coherent — the current no-op is a latent spec violation the fix closes. Sequence D last as planned. No CONFLICT; no orchestrator decision required.",
+      "follow_ups": [
+        "Confirm no test pins the transient 'materializing' updateWorktreeRecord pre-write before removing that call site (index.ts:1123).",
+        "Ensure worktreeSetupFailedSignal payload 'stage' cleanly distinguishes git_failed (materialized:false) vs hook_failed (materialized:true, headSha present) so the reducer records accurate setup_failed state.",
+        "adv_spec FTS search returned empty for all queries this session; validation of advance-delivery/advance-meta laws relied on the full advance-meta spec dump + AGENTS.md workflow-bundle-boundary contract + source evidence rather than targeted FTS hits."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReconnaissanceRisks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+      "task_id": "tk-7d028c421a6a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-7d028c421a6a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/signals.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/tools/worktree/index-create.test.ts",
+        "plugin/src/tools/worktree/state-record-probe.test.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/messages.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm --dir plugin exec vitest run src/tools/worktree/index-create.test.ts",
+          "exit_code": 0,
+          "summary": "23 tests passed — cross-session SETUP_FAILED persistence and signal-firing assertions"
+        },
+        {
+          "command": "pnpm --dir plugin exec vitest run src/tools/worktree/state-record-probe.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts src/temporal/workflow-bundle-boundary.test.ts",
+          "exit_code": 0,
+          "summary": "50 tests passed — setup_failed record probe, signal handler, message contract, workflow-bundle boundary"
+        },
+        {
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit passed"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all passed"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Removed the transient materializing pre-write entirely rather than signalizing it",
+          "why": "No tests pinned the no-op updateWorktreeRecord call; keeping it would leave misleading dead code."
+        },
+        {
+          "what": "Expanded ChangeWorkflowState.worktrees type to include setup_failed and supporting fields",
+          "why": "Required for type-safe durable setup-failure records readable by getWorktreeRecord."
+        },
+        {
+          "what": "Fixed pre-existing messages.test.ts signal-surface drift (originRepaired) while adding worktreeSetupFailed",
+          "why": "The signal-surface contract test must enumerate every CHANGE_WORKFLOW_SIGNAL_NAMES key; the drift would have caused the new signal to fail the same assertion."
+        },
+        {
+          "what": "Used the existing fireWorktreeSignal adapter at both failure sites",
+          "why": "It already handles Temporal-unavailable gracefully (returns warning, never throws), preserving the original GIT_FAILED/SETUP_FAILED error per DDC5."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Removed all updateWorktreeRecord call sites and the function definition across plugin/src; updated signal-surface test to include both the new worktreeSetupFailed and the pre-existing originRepaired drift.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "worktreeSetupFailedSignal is wired end-to-end. Git-failed and hook-failed setup errors now persist durably in the change-workflow worktrees map and block cross-session advWorktreeResume with the recorded reason. The no-op updateWorktreeRecord writer and its three call sites are removed. Pre-existing full-suite failures (spec-citation-invariant, tool-name-assets, cli-surface-matrix, ops-follow-up/adv-skill-backed spec versions) are unrelated to this task.",
+        "suggested_next_action": "Run the final full-suite verification task (tk-85b3df2cadf0) when predecessor Slice B/C/D tasks complete."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/worktree/index-create.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/worktree/state-record-probe.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/messages.test.ts src/temporal/workflow-bundle-boundary.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReconnaissanceRisks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+      "task_id": "tk-57f7f74f98a8",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-57f7f74f98a8"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/index.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passed"
+        },
+        {
+          "command": "pnpm --dir plugin exec vitest run src/tools/worktree/state-session-lifecycle.test.ts",
+          "exit_code": 0,
+          "summary": "21 retired-contract and helper tests passed"
+        },
+        {
+          "command": "pnpm --dir plugin exec vitest run src/tools/worktree",
+          "exit_code": 0,
+          "summary": "15 worktree test files, 213 tests passed"
+        },
+        {
+          "command": "pnpm --dir plugin exec vitest run src/tools/session/index.test.ts",
+          "exit_code": 0,
+          "summary": "13 session tool tests passed"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all passed"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Removed the addSession success-path call in advWorktreeCreate after setup is ready",
+          "why": "Worktree creation durability now flows through worktreeCreatedSignal to the change workflow; the retired session-registry addSession is a no-op, so keeping the call masqueraded as durable state (SC3)."
+        },
+        {
+          "what": "Removed all addSession calls in the worktree_create tool execute paths (warp fallback, warp success, terminal, spawn)",
+          "why": "These registered inline/spawn sessions in the retired registry; with no durable consumer, they were dead reuse paths."
+        },
+        {
+          "what": "Removed the two removeSession calls in advWorktreeDelete and maybeRemoveMissingFromDiskRegistryEntry",
+          "why": "removeSession is a documented no-op; calling it after durable workflow cleanup implied a registry side-effect that no longer exists."
+        },
+        {
+          "what": "Removed the getSession fallback in worktree_delete execute",
+          "why": "getSession always returns null (state.ts:402-408), so the branch that read session.path/branch expecting persistence was dead; deletes now require an explicit branch."
+        },
+        {
+          "what": "Removed registerSession/unregisterSession calls from plugin init and the SIGINT/SIGTERM handlers",
+          "why": "They were live no-op writers that logged 'session registered/unregistered' as if durable; keeping them violated SC3. WorktreeStateAccess is still initialized for pending-delete drain."
+        },
+        {
+          "what": "Kept the no-op function definitions in state.ts and the session/index.ts readers (listSessions/getSessionRecord)",
+          "why": "The no-op functions are pinned compatibility surfaces (C1); the session tools read them and already have tests covering empty/not-found behavior, supplemented by new function-level retired-contract tests."
+        },
+        {
+          "what": "Updated the worktree_delete branch arg description and a test title",
+          "why": "Reflects the retired registry reality without changing the tool's public schema."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Searched all plugin/src call sites of addSession, removeSession, getSession, registerSession, unregisterSession, and getSessionRecord. Removed every provably-dead branch that treated them as durable; no other dead reuse paths remain.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "All dead worktree session-registry reuse paths in worktree/index.ts and plugin/src/index.ts have been removed. The retired no-op compatibility surfaces (addSession/removeSession/getSession/registerSession/unregisterSession/getSessionRecord/listSessions) remain in state.ts with new retired-contract tests. Typecheck, lint, format, and worktree/session tests are green.",
+        "suggested_next_action": "Proceed to the next Slice A verification task or continue with Slice B/C/D as planned."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/worktree/state-session-lifecycle.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/worktree"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/session/index.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReconnaissanceRisks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+      "task_id": "tk-8ab52bd86601",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8ab52bd86601"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/worktree-lifecycle.md"
+      ],
+      "verification": [
+        {
+          "command": "pnpm --dir plugin run schemas:check",
+          "exit_code": 0,
+          "summary": "Spec schema drift check passes"
+        },
+        {
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "Full pre-push gate passes (schemas, typecheck, test isolation, lockfile, lint, format)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Amended rq-wl-setupReadiness01 body and added scenario rq-wl-setupReadiness01.3 instead of creating a new requirement",
+          "why": "Existing requirement already covers setup failure; adding a single cross-session durability/resume-visibility scenario is the smallest net surface that closes the latent spec violation"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Worktree-lifecycle spec now mandates setup_failed records are durable across sessions and resume-visible; mirror markdown updated. schemas:check, typecheck, and check all pass.",
+        "suggested_next_action": "Proceed with next execution task or move change toward acceptance"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReconnaissanceRisks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+      "task_id": "tk-d71adcdae0d3",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-d71adcdae0d3"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/shared/cli-projection.ts",
+        "bin/lib/types.ts",
+        "bin/lib/changes.ts",
+        "plugin/src/cli-gate-order-parity.test.ts",
+        "bin/lib/cli-projection-import-safety.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes with shared module and re-exports"
+        },
+        {
+          "command": "pnpm --dir plugin exec vitest run src/cli-gate-order-parity.test.ts src/cli-bridge-contract.test.ts src/release-install-assets.test.ts",
+          "exit_code": 0,
+          "summary": "All 29 plugin-side tests pass (structural parity + CLI bridge + release assets)"
+        },
+        {
+          "command": "bun test bin/lib/cli-projection-import-safety.test.ts",
+          "exit_code": 0,
+          "summary": "Bun import-safety smoke test passes (dynamic import + source forbidden-import scan + re-export checks)"
+        },
+        {
+          "command": "bun test bin/lib/changes.test.ts bin/lib/cli-projection-import-safety.test.ts bin/adv.test.ts",
+          "exit_code": 0,
+          "summary": "38 Bun tests pass; bin/adv import graph still boots cleanly"
+        },
+        {
+          "command": "bun bin/adv --version",
+          "exit_code": 0,
+          "summary": "CLI entrypoint imports and runs under Bun"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "Full check gate passes: schemas, typecheck, test isolation, lockfile policy, lint, prettier"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Created a zero-import plain-TS shared module at plugin/src/shared/cli-projection.ts instead of re-exporting from types/gates.ts",
+          "why": "types/gates.ts imports zod and other plugin runtime types; importing it from bin/adv would leak heavy transitive dependencies. The shared module keeps Bun-import safety while mirroring the canonical gate order."
+        },
+        {
+          "what": "Re-exported types from bin/lib/types.ts and GATE_ORDER/GateId from bin/lib/changes.ts via relative path to plugin/src/shared/cli-projection.ts",
+          "why": "The deployed layout (~/.local/share/Advance/bin and ~/.local/share/Advance/plugin) preserves the same ../../plugin relative path from bin/lib to plugin/src, so the re-export works both in-repo and after deploy-local.sh."
+        },
+        {
+          "what": "Replaced regex-scraping parity with structural equality test plus a belt-and-suspenders re-export check",
+          "why": "Structural equality catches drift deterministically; the source-level check verifies the CLI file actually consumes the shared module."
+        },
+        {
+          "what": "Placed the Bun import-safety smoke test under bin/lib/ using Bun's native test runner",
+          "why": "Only Bun can validate that the shared module imports cleanly from the CLI graph; the test both dynamically imports the module and statically forbids heavy imports."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "bin/lib/dashboard/attention.ts still declares its own local GATE_ORDER const (line 116); it is not covered by the IN_SCOPE changes.ts/types.ts re-export and was left untouched per OUT_OF_SCOPE 'Decomposing bin/lib further' and the explicit scope boundary."
+        ],
+        "details": "Related-scan found one remaining GATE_ORDER duplication in the dashboard attention module. It is outside the delegated task scope (which named changes.ts and types.ts only) and would require touching dashboard code.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "Promote bin/lib/dashboard/attention.ts to import GATE_ORDER from plugin/src/shared/cli-projection.ts so the entire bin/adv surface has a single gate-order source of truth."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned bin/ for other local GATE_ORDER declarations; only bin/lib/dashboard/attention.ts remains. plugin/src/types/gates.ts GATE_DEFS-derived GATE_ORDER remains canonical and unchanged.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Shared Bun-safe CLI projection module landed at plugin/src/shared/cli-projection.ts with zero imports. bin/lib/types.ts and bin/lib/changes.ts now re-export gate order and projection types from it. Structural parity test verifies shared GATE_ORDER equals plugin GATE_DEFS-derived order. Bun smoke test confirms the module imports cleanly and contains no Temporal/storage/zod/node:* imports. bin/adv --version still works. One remaining duplicate GATE_ORDER lives in bin/lib/dashboard/attention.ts (out of scope for this task).",
+        "suggested_next_action": "Run the full test suite via bin/oc-test targeted/smoke/full if further verification is needed, and schedule a follow-up to deduplicate GATE_ORDER in bin/lib/dashboard/attention.ts."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/cli-gate-order-parity.test.ts src/cli-bridge-contract.test.ts src/release-install-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/lib/cli-projection-import-safety.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/lib/changes.test.ts bin/lib/cli-projection-import-safety.test.ts bin/adv.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun bin/adv --version"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReconnaissanceRisks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+      "task_id": "tk-8e94e60b7467",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8e94e60b7467"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-disk.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm --dir plugin exec vitest run src/storage/store-disk src/storage/store-disk.judgment-calls-removal",
+          "exit_code": 0,
+          "summary": "9 storage tests pass (4 new + 5 existing)"
+        },
+        {
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit passes"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Placed monotonic ID helper at the top of store-disk.ts as a private module-level function",
+          "why": "Keeps the change inside the single file per scope lock; no new sibling utility needed and the helper is only consumed by this legacy fallback store"
+        },
+        {
+          "what": "Used ws-${Date.now()}-${seq} / tk-${Date.now()}-${seq} with a per-timestamp sequence counter",
+          "why": "Matches the Temporal store's Date.now() prefix while removing Math.random and keeping IDs monotonic within the same millisecond"
+        },
+        {
+          "what": "Logged project-wisdom read failures via createLogger(\"store-disk\").warn with a 200-char truncated message and the wisdom path as meta",
+          "why": "Surfaces the previously silent catch as a bounded diagnostic without changing the return contract; ADV_DEBUG=1 makes the warning visible in tests and debug sessions"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "store-disk.ts now emits bounded warnings for project-wisdom read failures and uses deterministic monotonic IDs for tasks (tk-) and wisdom (ws-). New store-disk.test.ts covers both behaviors. All storage tests, typecheck, and the full check gate pass.",
+        "suggested_next_action": "Run the broader test suite or proceed to the next execution task in fixReconnaissanceRisks."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/storage/store-disk src/storage/store-disk.judgment-calls-removal"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReconnaissanceRisks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+      "task_id": "tk-04d973fb7b3d",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-04d973fb7b3d"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/tools/status-hygiene.ts",
+        "plugin/src/tools/status-enrich.ts",
+        "plugin/src/tools/status-view.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm --dir plugin exec vitest run src/tools/status src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "55 tests passed (status.test.ts, status.probe-helpers.test.ts, status-recommendations.test.ts)"
+        },
+        {
+          "command": "pnpm --dir plugin exec vitest run src/tools/worktree src/storage",
+          "exit_code": 0,
+          "summary": "575 tests passed — worktree/storage unaffected"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+        },
+        {
+          "command": "bun test bin/",
+          "exit_code": 0,
+          "summary": "184 bin tests passed — CLI bridge imports remain clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extracted status.ts into four sibling modules plus a thin status.ts entry point.",
+          "why": "Matches design KD6 seams: health (Temporal/STSL/queue), hygiene (external state + branch cleanup), enrich (recommendations + recent-change enrichment), view (view plan + apply). Keeps status.ts under 800 lines."
+        },
+        {
+          "what": "Kept capSummaryRecommendations in status.ts instead of status-enrich.ts.",
+          "why": "It needs STATUS_SUMMARY_RECOMMENDATION_LIMIT, which is also used by the execute handler; moving it would create a constant-sharing problem or circular import."
+        },
+        {
+          "what": "Exported internal probe caches from status-health.ts for direct use by status.ts execute.",
+          "why": "The execute body already used statusSearchAttributesProbeCache and statusWorktreeCensusProbeCache directly; exporting preserves that wiring without adding wrapper functions."
+        },
+        {
+          "what": "Re-exported computeAutoManagedCensus, deriveOpencodeDebtCounts, _test, _healthSnapshotCache, and _statusProbeCaches from status.ts.",
+          "why": "Existing tests import these symbols from ./status; behavior preservation requires keeping the public test surface intact."
+        },
+        {
+          "what": "Did not create additional commits; all seams applied as one diff set per worker instructions.",
+          "why": "Task context explicitly says worker must NOT make per-seam commits; reported seams as diff sections only."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Full Vitest suite has 5 pre-existing failures (cli-surface-matrix, ops-follow-up-assets, tool-name-assets, spec-citation-invariant, tool-registry-matrix) that also fail on the unmodified base branch and are unrelated to status.ts decomposition."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified all callers that import from ./status continue to resolve; no other plugin files import internal status symbols directly.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "status.ts decomposed from 2077 to 786 lines. New modules: status-health.ts (Temporal/queue/STSL health + caches), status-hygiene.ts (external-state hygiene + branch cleanup), status-enrich.ts (recommendation wiring + recent-change enrichment), status-view.ts (view plan + applyStatusView). status.ts remains the registered tool entry and re-exports test helpers. Targeted status tests, worktree/storage tests, bin tests, and pnpm run check all pass. Full suite was run and has the same 5 unrelated pre-existing failures observed on base.",
+        "suggested_next_action": "Address the 5 unrelated full-suite failures separately, then re-run bin/oc-test full. After that, proceed to the next slice-D task (t7 change.ts decomposition)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/status src/tools/status.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/tools/worktree src/storage"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReconnaissanceRisks",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReconnaissanceRisks",
+      "task_id": "tk-86ff2357e525",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-86ff2357e525"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/artifacts.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/recovery.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/status-enrich.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all passed"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/change-claim.test.ts src/tools/change-cross-project-create.test.ts src/tools/change.read-artifact.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.status-repair.test.ts src/tools/change.archive-repair.test.ts src/tools/change-origin-repair.test.ts src/tools/change-origin.test.ts src/tools/contract.test.ts src/tools/gate.test.ts",
+          "exit_code": 0,
+          "summary": "11 targeted test files passed (223 tests)"
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 1,
+          "summary": "Full suite: 4419 tests passed, 5 failed — all pre-existing failures unrelated to this change (spec-citation-invariant, tool-name-assets, cli-surface-matrix, ops-follow-up-assets, adv-skill-backed-commands-assets)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extracted helper clusters from change.ts into four focused modules instead of moving handlers",
+          "why": "User clarified to land helper-only decomposition; moving handlers was too large/error-prone for this session"
+        },
+        {
+          "what": "Used a TypeScript AST script to slice declarations and fix relative import paths",
+          "why": "change.ts has mid-file imports and many helpers; manual extraction previously corrupted syntax"
+        },
+        {
+          "what": "Exported all moved helper declarations from modules and re-exported public helpers from change.ts",
+          "why": "Keeps existing importers (gate.ts, contract.ts, status-enrich.ts, tests) working without further rewrites"
+        },
+        {
+          "what": "Removed temporary extraction/cleanup scripts after use",
+          "why": "Avoid committing one-off automation scripts to the repo"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "To hit the original <2500 line target for change.ts, move the changeTools handler bodies into modules (e.g., handlers per module: artifacts, archive-gate, recovery, misc). This is the remaining work after helper extraction."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated gate.ts, contract.ts, and status-enrich.ts to import readArtifact/normalizeGateArtifactEvidenceForReadback from ./change/artifacts; verified no other ./change imports broke due to re-exports",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Helper-only decomposition of plugin/src/tools/change.ts is complete and green. change.ts went from 6183 to 3838 lines. Helpers live in plugin/src/tools/change/{artifacts,create-clarify,archive-gate,recovery}.ts. Full pnpm run check passes; targeted change tests pass; full suite shows only the 5 pre-existing failures.",
+        "suggested_next_action": "Decide whether to accept the helper-only state or schedule a follow-up change to move changeTools handler bodies and reach the <2500 line target"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/change-claim.test.ts src/tools/change-cross-project-create.test.ts src/tools/change.read-artifact.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.status-repair.test.ts src/tools/change.archive-repair.test.ts src/tools/change-origin-repair.test.ts src/tools/change-origin.test.ts src/tools/contract.test.ts src/tools/gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-02T16:55:15.250Z",
+      "completed_by": "user:command-as-approval",
+      "approval_evidence": "User confirmed problem statement, then invoked /adv-discover after proposal approval prompt; treated as Tier A command-as-approval to approve proposal and proceed to discovery.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "e6530aaf0ae704f3a6d9ff40781f6ebb2103edf6aea1ff95ccb556843820ce48",
+        "non_whitespace_chars": 7036,
+        "checked_at": "2026-07-02T16:44:27.290Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-02T17:06:54.766Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery firmed 5 findings with source evidence. Finding 1 (worktree setup-failure durability) confirmed as sole runtime correctness gap; findings 2-5 confirmed but reclassified (2=dead-code, 3=projection drift, 4=hotspot size, 5=legacy fallback nit). Contract minted with 27 items; warrants for rq-wl-resumeTool01/rq-wl-setupReadiness01 resolved. User selected full scope: all five findings, shared bin/adv type module, durable cross-session resume blocking, aggressive hotspot decomposition.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "non_whitespace_chars": 5846,
+        "checked_at": "2026-07-02T16:44:27.291Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-02T17:14:01.001Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design: 4-slice plan (A worktree setup-failure durability via new worktreeSetupFailedSignal + dead-path retirement; B shared Bun-safe CLI projection module; C bounded disk-store diagnostics; D behavior-preserving hotspot decomposition of status.ts/change.ts, sequenced last). Independent validator verdict VALIDATED; two cautions folded in (V1 trace materializing-record tests before removal → R6; V2 stage discriminator → DDC6). No CONFLICT, no contract compromise. Spec delta scoped to worktree-lifecycle rq-wl-setupReadiness01.1 (latent no-op violation).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "2d539f62d13d77c30fb2a7e755771c611cc0c6dd209086f606fc459a412db30f",
+        "non_whitespace_chars": 16466,
+        "checked_at": "2026-07-02T16:44:27.292Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-02T17:21:52.733Z",
+      "completed_by": "agent",
+      "approval_evidence": "9 tasks synthesized across 4 slices + verification + reconciliation. Validation passed (NO_DELTAS warning resolves when T3 spec delta task runs). Contract traceability: every AC*/SC*/verifiable has implementing/verifying tasks; constraints/avoidances referenced via respects. TDD intents assigned per task (inline for code/spec/test, separate_verification for full-suite oracle, not_applicable for ops/spec edits). Sequence: 3 independent starters ready (Slice A/B/C); Slice D + final blocked correctly."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-02T20:12:41.360Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 9 tasks completed and checkpointed. Commits: 345cf76051f3 (T1 worktreeSetupFailedSignal + RED→GREEN) → 3c6beff62d7 (T2 dead session paths) → 441d3de432f0 (T3 spec delta rq-wl-setupReadiness01) → 737dab1ffee (T4 shared CLI projection module) → c8b3af455 (T5 store-disk warn+IDs) → b74d24f307e (T6 status.ts 2077→786) → 28bbbedb4cc (T7 change.ts 6183→3838). pnpm run check fully green (schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check). Full Vitest suite: 4419 passed; 5 pre-existing base-branch failures verified bit-identical to base 1818d9d (no regressions). 9 overlapping agenda items reconciled. Three scope-boundary items (broader worktree/index.ts extraction, archive/delta.ts sort fallback, explicit recommendation regression tests) cross-linked as future work."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-02T20:32:06.653Z",
+      "completed_by": "agent",
+      "approval_evidence": "APPROVED. Review found 0 blockers, 0 unresolved issues (SC4 traceability fix applied during review by re-labeling tk-04d973fb7b3d + tk-86ff2357e525 contract_refs.implements to [SC4, AC7]). 27/27 contract matrix rows passed/respected. Both warrants honored. Full Vitest 4419 passed; 5 pre-existing base-branch failures bit-identical to base 1818d9d (zero regressions). pnpm run check green. Executive summary persisted. Preview URL: not_applicable (no visual surface). 4 suggestions + 3 nits + 1 question deferred to /adv-harden. User approved inline.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "2a0639e4812a5fd5892f95eb568e9e7672bf7995dfe8b883fbc416a00acc1560",
+        "non_whitespace_chars": 4601,
+        "checked_at": "2026-07-02T16:44:27.293Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+      "approvedAt": "2026-07-02T17:06:47.513Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Worktree setup failure is durable: a failed setup in one session is visible and blocks `advWorktreeResume` in a later session.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "`adv status` / `bin/adv` gate + change projection has a single source of truth; plugin-side gate/model changes cannot silently drift the CLI.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Dead worktree session-registry reuse paths are removed or clearly retired; no live no-op writer masquerades as durable state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "`status.ts` and `change.ts` are decomposed into focused, cohesive modules with behavior preserved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Disk-store fallback nits (heuristic IDs, silent wisdom catches) are resolved with clear diagnostics where user-facing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Overlapping agenda items are reconciled (absorbed or cross-linked), not duplicated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "After a simulated worktree setup failure, a subsequent `advWorktreeResume` for the same change returns `SETUP_FAILED` with the recorded reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-wl-resumeTool01"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "A durable worktree record with `status: \"setup_failed\"` and `setupFailureReason` is readable via `getWorktreeRecord` after a create-time failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-wl-setupReadiness01"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "The live no-op `updateWorktreeRecord` writer no longer silently drops setup-failure state (it persists durably or is removed in favor of a signal path).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Dead/no-op worktree session-registry reuse paths in `worktree/index.ts` are removed or covered by a test asserting their retired contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`bin/adv` gate order and change/gate projection derive from a single shared source; a drift test fails if plugin gate order/fields diverge from the CLI.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`bin/adv` remains Bun-import-safe (no heavy plugin transitive imports leak into the CLI) — verified by CLI smoke/import test.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`status.ts` and `change.ts` are split into focused modules; the full test suite passes with behavior preserved (no gate-model or archive-flow semantic change).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Disk-store fallback wisdom read failures surface a bounded warning instead of a silent catch; ID generation is documented/deterministic where it matters.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` and the full test suite pass; new behavior has RED→GREEN tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Each reconnaissance finding ends as fixed-with-evidence or explicitly reconciled to an agenda item.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Specs are laws; `worktree-lifecycle`, `advance-meta`, `advance-workflow` govern implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Change-workflow surface stays signal/query-only and replay-safe; no `defineUpdate` on the change-workflow surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Later implementation runs from the ADV-managed worktree; no trunk-checkout implementation writes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Decomposition must be behavior-preserving: no gate-model or archive-flow semantic changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Runtime is Bun; tests run on Node/Vitest from `plugin/`; follow `bin/oc-test` routing for suites.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "`bin/` must stay Bun-import-safe; no heavy plugin transitive imports may leak into the CLI.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not treat heuristic path checks / string matching as authority for workflow state, claims, gate status, or worktree safety.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not silently downgrade live Temporal/status failures to stale disk projections.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not create new CLI mutation authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not hide degraded disk wisdom reads when a bounded diagnostic is possible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not absorb unrelated repo-wide refactors under cover of hotspot decomposition.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-02T20:24:18.247Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "worktreeSetupFailedSignal persists cross-session setup_failed with reason. RED→GREEN in index-create.test.ts; spec rq-wl-setupReadiness01 tightened with new scenario .3. Verified at commit 345cf76051f3.",
+          "notes": "Validated by Slice A RED→GREEN and spec delta."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "plugin/src/shared/cli-projection.ts zero-import shared module. bin/lib re-exports. cli-gate-order-parity.test.ts asserts structural equality with plugin GATE_DEFS-derived GATE_ORDER; cli-projection-import-safety.test.ts Bun smoke. Verified at commit 737dab1ffee.",
+          "notes": "Single source of truth + drift test."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "tk-57f7f74f98a8 retired addSession/removeSession/getSession/registerSession/unregisterSession/getSessionRecord dead reuse paths in worktree/index.ts and plugin/src/index.ts. state-session-lifecycle.test.ts adds retired-contract assertions. Verified at commit 3c6beff62d7.",
+          "notes": "Compatibility stubs retained per C1; dead reuse paths removed."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "tk-04d973fb7b3d (status 2077→786, 4 new modules) and tk-86ff2357e525 (change 6183→3838, 4 new modules). Full Vitest suite 4419 passed; 5 pre-existing base-branch failures verified bit-identical to base 1818d9d (zero regressions). Verified at commits b74d24f307e + 28bbbedb4cc.",
+          "notes": "Behavior-preserving constraint satisfied via full suite as oracle. Decomposition target follow-up for change.ts handler extraction already cross-linked."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "store-disk.ts: silent wisdom catch replaced with bounded logger.warn (200-char truncation + path meta); Math.random IDs replaced with monotonic Date.now+seq helper. store-disk.test.ts (NEW) covers both. Verified at commit c8b3af455.",
+          "notes": "Observability over silent failure in legacy fallback."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "tk-402adcd9e2a2 reconciled 9 overlapping agenda items: ag-3hjQOLnK + ag-y2ambs_C + ag-8PsBFRPF + ag-fR-3HtIv + ag-4m0dfDad absorbed; ag-VH206pZN + ag-3R8zLZVl + ag-FOcJp39X + ag-Q3Zwr4LU cross-linked with completion notes referencing fixReconnaissanceRisks.",
+          "notes": "Each item has survivor note pointing to this change."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-7d028c421a6a: index-create.test.ts asserts cross-session advWorktreeResume returns SETUP_FAILED with recorded reason after simulated setup_failed signal persists. Warrant spec:rq-wl-resumeTool01 honored (spec body + scenario .2 mandates SETUP_FAILED on resume; behavior matches). 70 tests passed across 4 worktree/signal/boundary files.",
+          "notes": "RED→GREEN evidence captured."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-7d028c421a6a: state-record-probe.test.ts asserts getWorktreeRecord returns status=\"setup_failed\" + setupFailureReason after the new signal is applied. Warrant spec:rq-wl-setupReadiness01 honored (spec body tightened + scenario .3 added in tk-8ab52bd86601).",
+          "notes": "RED→GREEN + spec delta in this change."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-7d028c421a6a: updateWorktreeRecord function and all 3 call sites removed (state.ts:23 deletions). File-verified: rg updateWorktreeRecord plugin/src excl. tests → NO_PRODUCTION_REFERENCES. Replaced with worktreeSetupFailedSignal at the failure sites.",
+          "notes": "Misleading no-op writer eliminated."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-57f7f74f98a8: index.ts:1233 addSession success-path and ag-3hjQOLnK dead reuse path removed. state-session-lifecycle.test.ts extended with retired-contract tests for addSession/removeSession/getSession/getSessionRecord/listSessions. 21 lifecycle + 13 session + 213 worktree tests pass.",
+          "notes": "Compatibility stubs (no-op functions) retained per C1; dead branches removed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-d71adcdae0d3: cli-gate-order-parity.test.ts structural equality + source-level re-export check. Drift test fails when plugin/CLI gate orders diverge.",
+          "notes": "Shared module is the source-of-truth; CLI re-exports."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-d71adcdae0d3: bin/lib/cli-projection-import-safety.test.ts — Bun smoke test dynamically imports shared module + statically forbids Temporal/storage/zod/node:* imports. bun bin/adv --version runs. 38 bun tests pass.",
+          "notes": "Bun runtime still imports cleanly."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-04d973fb7b3d + tk-86ff2357e525 + tk-85b3df2cadf0: status 2077→786, change 6183→3838. Full Vitest 4419 passed (5 pre-existing base-branch failures bit-identical to base). pnpm run check fully green. Behavior preserved per full suite oracle.",
+          "notes": "Decomposition target follow-up for handler extraction acknowledged."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-8e94e60b7467: store-disk.test.ts asserts warning fires on unreadable project wisdom + IDs match monotonic format. 9 storage tests pass; typecheck + check pass.",
+          "notes": "Legacy fallback path; runtime path unchanged (Temporal overrides)."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-85b3df2cadf0: pnpm run check fully green (schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check). Full Vitest: 4419 passed; 5 pre-existing base-branch failures verified bit-identical (git diff base HEAD -- <5 test files> empty). RED→GREEN across Slice A.",
+          "notes": "Zero regressions from base."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-85b3df2cadf0 + tk-402adcd9e2a2: each of the 5 reconnaissance findings ends fixed-with-evidence (commits 345cf76051f3, 3c6beff62d7, 737dab1ffee, c8b3af455, b74d24f307e, 28bbbedb4cc) OR explicitly reconciled to an agenda item (9 agenda items reconciled: 5 absorbed, 4 cross-linked).",
+          "notes": "Comprehensive coverage."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "worktree-lifecycle spec delta landed (tk-8ab52bd86601). Specs remain laws; implementation honors updated rq-wl-setupReadiness01. worktree-lifecycle v1.7.0+.",
+          "notes": "Specs are laws honored."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "worktreeSetupFailedSignal is a defineSignal; no defineUpdate added to change-workflow surface. workflow-bundle-boundary.test.ts continues to pass. Decomposition used pure move + re-export (no architectural change to surface).",
+          "notes": "Signal/query-only preserved."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All implementation runs from ADV-managed worktree change/fixReconnaissanceRisks (paths in engine spawn prompts and tool calls).",
+          "notes": "Worktree isolation honored."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Decomposition is pure move + re-export; full Vitest suite (4419 passed) + pnpm run check (green) prove behavior preservation. No gate-model or archive-flow semantic changes.",
+          "notes": "Behavior-preserving constraint satisfied."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Runtime is Bun (bin/adv); tests run on Node/Vitest from plugin/. pnpm run check passes; bin/oc-test targeted/full available.",
+          "notes": "Bun + Node/Vitest split honored."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "plugin/src/shared/cli-projection.ts has zero imports beyond plain TS. cli-projection-import-safety.test.ts statically forbids Temporal/storage/zod/node:* imports. bun bin/adv --version runs.",
+          "notes": "Bun-import safety verified."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Session-registry retirement (tk-57f7f74f98a8) removed heuristic dependency; durable workflow record is the authority for getWorktreeRecord reads.",
+          "notes": "No heuristic authority for state."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "worktreeSetupFailedSignal persists via Temporal signal (not disk projection). fireWorktreeSignal degrades gracefully when Temporal unavailable but never throws over the original setup error (DDC5).",
+          "notes": "Failures persist via signal, not stale disk."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "plugin/src/shared/cli-projection.ts is a read-only zero-import shared module. No new CLI mutation authority.",
+          "notes": "No new mutation authority."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "tk-8e94e60b7467: replaced silent catch {} with bounded logger.warn (200-char truncation + path meta). Bounded diagnostic surfaced.",
+          "notes": "Hidden degraded reads resolved."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Decomposition + cleanup scoped to owned surfaces (worktree/index.ts, status.ts, change.ts, store-disk.ts, bin/lib/{types,changes}.ts, shared/cli-projection.ts). No unrelated repo-wide refactor. 3 cross-linked follow-ups tracked: bin/lib/dashboard/attention.ts GATE_ORDER, archive/delta.ts sort fallback, explicit regression tests.",
+          "notes": "No unrelated scope absorbed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "After a simulated worktree setup failure, a subsequent `advWorktreeResume` for the same change returns `SETUP_FAILED` with the recorded reason.",
+    "A durable worktree record with `status: \"setup_failed\"` and `setupFailureReason` is readable via `getWorktreeRecord` after a create-time failure.",
+    "The live no-op `updateWorktreeRecord` writer no longer silently drops setup-failure state (it persists durably or is removed in favor of a signal path).",
+    "Dead/no-op worktree session-registry reuse paths in `worktree/index.ts` are removed or covered by a test asserting their retired contract.",
+    "`bin/adv` gate order and change/gate projection derive from a single shared source; a drift test fails if plugin gate order/fields diverge from the CLI.",
+    "`bin/adv` remains Bun-import-safe (no heavy plugin transitive imports leak into the CLI) — verified by CLI smoke/import test.",
+    "`status.ts` and `change.ts` are split into focused modules; the full test suite passes with behavior preserved (no gate-model or archive-flow semantic change).",
+    "Disk-store fallback wisdom read failures surface a bounded warning instead of a silent catch; ID generation is documented/deterministic where it matters.",
+    "`pnpm run check` and the full test suite pass; new behavior has RED→GREEN tests.",
+    "Each reconnaissance finding ends as fixed-with-evidence or explicitly reconciled to an agenda item."
+  ],
+  "documents": {
+    "proposal": "# Fix reconnaissance risks\n\n## Why\n\nAdvance has repo-level maintenance risks surfaced by broad reconnaissance:\n\n- Worktree setup-failure persistence appears to write through no-op registry paths.\n- Retired worktree session registry APIs still shape active worktree flow.\n- `bin/adv` status projection duplicates plugin-facing state shapes.\n- Disk wisdom fallback has weak observability and heuristic IDs.\n- `status.ts` and `change.ts` are high-complexity hotspots that need validation before safe fixes.\n\nDesired outcome: investigate each finding, prove whether it is real or stale, then fix confirmed issues with structural source-of-truth behavior, tests, and minimal spec/doc updates.\n\n## User Outcomes\n\n- Users can trust ADV worktree setup failure state to be visible and recoverable.\n- Users can trust `adv status` / `bin/adv` status output to reflect a single source of truth.\n- Users get clearer diagnostics when disk fallback wisdom reads fail or degrade.\n- Maintainers get evidence-backed classification of the `status.ts` and `change.ts` hotspots before changing them.\n- Future agents have a tracked, resumable path from reconnaissance finding to validated fix.\n\n## Scope\n\n### In Scope\n\n- Fix the confirmed worktree setup-failure persistence gap in `plugin/src/tools/worktree/state.ts` + `index.ts` and directly related tests/spec.\n- Fix or explicitly retire the confirmed dead-code / stale worktree session/registry surfaces tied to the same subsystem.\n- Address `bin/adv` projection source-of-truth drift OR record an evidence-backed decision to defer with a bounded follow-up.\n- Address disk-store fallback code-quality nits OR record an evidence-backed decision to defer to existing agenda items.\n- Classify `status.ts` and `change.ts` hotspots and record whether they are in-scope bounded fixes or out-of-scope follow-ups.\n- Reconcile overlapping agenda items so this change either absorbs or explicitly cross-links them.\n\n### Out of Scope\n\n- Broad repository refactor unrelated to confirmed reconnaissance findings.\n- Rewriting the ADV gate model, archive flow, Temporal workflow architecture, or status UX wholesale.\n- Full decomposition of `status.ts` / `change.ts` (tracked separately if warranted).\n- Creating new CLI mutation authority.\n- Cleaning unrelated stale drafts, agenda backlog, or archived change history.\n- Changing external OpenCode, Temporal, or GitHub behavior beyond Advance-owned integration code.\n\n### Must Not\n\n- Must not treat heuristic path checks or string matching as authority for workflow state, claims, gate status, or worktree safety.\n- Must not bypass ADV worktree isolation or mutate implementation files from the trunk checkout during later execution.\n- Must not silently downgrade live Temporal/status failures to stale disk projections.\n- Must not hide degraded disk wisdom reads when the user-facing tool can surface bounded diagnostics.\n- Must not absorb unrelated hotspot cleanup only because it is nearby.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| # | Step | Result |\n|---|---|---|\n| 1 | Skill Discovery | PASS — loaded `adv-tron` during recon; `adv-worktree` skill available and relevant; no gap requiring creation |\n| 2 | Prior Research Extension | PASS — no `docs/*-prep.md` pack; extended via live source reads + agenda mining (new findings below) |\n| 3 | Conflict & Related-Work Scan | PASS (degraded) — active `adv_change_list` clean; `includeArchived:true` timed out twice (archive-scan latency, matches agenda `ag-UPY-2GAk`); agenda scan surfaced direct overlaps |\n| 4 | Edge Case Investigation | PASS — edge cases per finding below |\n| 5 | Design Question Depth | PASS — open questions annotated below |\n| 6 | Draft Spec Delta Shapes | PASS — deltas drafted for confirmed worktree gap |\n| 7 | P25 Related-Pattern Scan | PASS — scanned worktree write path + ID-generation + projection-duplication classes |\n| 8 | LBP Check | PASS — internal change; no external solution applies |\n| 9 | Completeness Verification | PASS — problem + solution scope checked; no sole-entry claim |\n\n### Skills Considered\n\n- `adv-tron` — loaded during reconnaissance (match: reconnaissance/hotspot mapping).\n- `adv-worktree` — relevant to finding 1/2 (worktree lifecycle); guidance applied to scope boundaries.\n- No skill gap for the core problem; no on-demand skill created.\n\n### Extends\n\nNo prior research pack (`docs/*-prep.md`, `temp/*.md`) found. New findings beyond the proposal:\n\n- The worktree read path (`getWorktreeRecord` / `worktreeExistsForChange`) IS real and Temporal-backed; only the WRITE path (`updateWorktreeRecord`) is a no-op. This splits finding 1 from \"all worktree state broken\" to a precise write-durability gap.\n- The disk store is the non-runtime legacy fallback wrapped/overridden by the Temporal backend, downgrading finding 5 from correctness to code-quality nit.\n\n### Conflict Scan\n\n- Active changes: no active/pending change owns this combined scope (all 8 in-flight are `draft`/stale).\n- `adv_change_validate`: passed with expected own-change `NO_TASKS` / `NO_DELTAS` warnings only (not conflicts).\n- Archived scan: `adv_change_list includeArchived:true` timed out (degraded); relying on agenda + active list.\n- **Direct agenda overlap (important):**\n  - `ag-3hjQOLnK` — \"index.ts:1238 reuse path is dead because state.ts:815 returns null\" → same worktree subsystem (finding 1/2).\n  - `ag-VH206pZN` — \"Extract worktree/index.ts into focused modules after release\" → hotspot decomposition (finding on worktree file size).\n  - `ag-y2ambs_C`, `ag-8PsBFRPF`, `ag-fR-3HtIv` — bin/adv projection source-of-truth strategy + comment fix (finding 3).\n  - `ag-4m0dfDad`, `ag-3R8zLZVl` — disk-store wisdom `as never` / silent catch / `Math.random` IDs (finding 5).\n  - `ag-FOcJp39X`, `ag-Q3Zwr4LU` — status.ts recommendation/gate handling (finding on status.ts hotspot).\n\n### Current State\n\n**Finding 1 — Worktree setup-failure persistence (CONFIRMED, real, bounded).**\n- `advWorktreeCreate` writes `materializing` / `git_failed` / `setup_failed` records via `updateWorktreeRecord` (`plugin/src/tools/worktree/index.ts:1123,1153,1202`).\n- `updateWorktreeRecord` is a **no-op** (`plugin/src/tools/worktree/state.ts:1007-1028`, comment `// no-op until per-change workflow integration`).\n- The durable `worktrees` map is populated ONLY by `worktreeCreatedSignal`, fired only on **success** (`index.ts:1246`; handler `plugin/src/temporal/change-state.ts:1149-1163` stamps `status:\"created\", setupReady:true`).\n- Consequence: a `setup_failed` record is never persisted. `advWorktreeResume` reads `getWorktreeRecord` and is designed to block on SETUP_FAILED (`index.ts:1324-1336`), but can never observe it because it was never written.\n- Spec impact: violates `rq-wl-setupReadiness01.1` (\"Registry entry has status=setup_failed\") durability intent and `rq-wl-resumeTool01.2` (\"Resume blocks on setup_failed\"). The immediate create caller still gets `{error:\"SETUP_FAILED\"}` synchronously (`index.ts:1221-1227`), so live setup-time blocking works; only cross-session/resume durability is broken.\n\n**Finding 2 — Retired session registry (CONFIRMED, mostly stale/expected).**\n- `addSession`/`removeSession`/`getSession`/`registerSession`/`unregisterSession` are no-ops (`state.ts:381-417`), documented \"Session registry retired with projectWorkflow.\" Tests assert the no-op contract (`state-session-lifecycle.test.ts:82-96`).\n- `getSessionRecord` returns `null` (stub, `state.ts:894-899`) but is still called by `session/index.ts:238` and `index.ts:3299`.\n- Callers in `index.ts` (1233, 3142-3252) still call `addSession` on success paths — dead/no-op calls, not correctness bugs, but they carry a stale mental model and dead reuse paths (matches `ag-3hjQOLnK`).\n\n**Finding 3 — bin/adv projection duplication (CONFIRMED, bounded drift risk).**\n- `bin/adv` imports plugin Temporal internals (`bin/lib/live-status.ts:24-30`) but re-declares view types (`bin/lib/types.ts:8-75`: `GateState`, `ChangeRecord`, `ChangeSummary`, `LiveStatusPayload`) and re-declares `GATE_ORDER` (`bin/lib/changes.ts:25-35`).\n- Runtime constraint: `bin/` runs on Bun and must stay import-safe; wholesale importing plugin `types/` may pull node/Temporal-heavy modules. This is why duplication exists. Agenda `ag-8PsBFRPF` flags choosing a strategy (shared module vs codegen vs continued duplication) BEFORE adding more subcommands.\n\n**Finding 4 — status.ts / change.ts hotspots (CONFIRMED size, deferred fix).**\n- `status.ts` = 2077 lines; `change.ts` = 6183 lines. Both mix many concerns. High change-risk. No spec violation — this is maintainability, and existing agenda already tracks related decomposition (`ag-VH206pZN` for worktree, `ag-Q3Zwr4LU`/`ag-FOcJp39X` for status recommendations).\n\n**Finding 5 — disk-store fallback quality (CONFIRMED, non-runtime nit).**\n- `store-disk.ts:759` uses `Math.random` for `ws-` IDs; `:674` for `tk-` IDs; wisdom `search`/`listAll` duplicate project-wisdom merge with silent `catch {}` (`:805-807`, `:842-844`) and `as never` casts.\n- But `store-disk.ts` is the **legacy fallback**; `createTemporalStoreBackend` wraps and overrides every method at runtime (`store.ts:53-77`, `store-disk.ts:6,27-29`; `store-temporal/wisdom.ts` overrides). The Temporal path uses deterministic `ws-${Date.now()}`. So this is code-quality, not a runtime correctness bug. Matches existing agenda `ag-4m0dfDad`/`ag-3R8zLZVl`.\n\n### Edge Cases\n\nFinding 1:\n- Hook failure after git worktree add succeeds → record should be `setup_failed` + `materialized:true`; currently lost → resume re-attempts create from scratch instead of surfacing prior failure.\n- `git worktree add` failure → `git_failed` record lost; retry path has no memory of prior failure reason.\n\nFinding 3:\n- Plugin `GateState`/gate order changes (add/rename a gate) → CLI silently renders wrong gate progress until manually synced.\n- Plugin `ChangeSummary` field rename → CLI type compiles against its own copy; drift is invisible until a value is missing at runtime.\n\nFinding 5:\n- Two disk-fallback wisdom entries generated in the same ms with colliding `Math.random` suffix → duplicate IDs (astronomically unlikely, and non-runtime).\n- Corrupt project-wisdom JSONL → silent `catch {}` hides the read failure from the tool response.\n\n### Open Design Questions\n\n1. **Finding 1 fix shape** — persist setup-failure records durably.\n   - Trust model: agent-resolvable (technical).\n   - Blast radius: touches worktree create/resume + change-workflow signal surface (must stay signal/query-only, replay-safe).\n   - Alternatives: (a) add a `worktreeSetupFailedSignal` + handler mirroring `worktreeCreatedSignal`; (b) make `updateWorktreeRecord` fire an existing/new signal; (c) reuse `worktreeCreatedSignal` with a status field. Recommendation: (a) a dedicated failure signal — cleanest, symmetric with created/deleted, replay-safe. Design gate decides.\n2. **Finding 3 strategy** — shared projection source vs continued duplication.\n   - Trust model: joint (affects maintainability posture + possibly build).\n   - Blast radius: bin/ Bun import safety; wrong choice adds heavy imports to CLI.\n   - Alternatives: shared minimal type module importable by both; codegen; keep duplication + add a drift-guard test. This is a user-facing scope decision (how much to invest now).\n\n### Draft Spec Deltas\n\nFor Finding 1 (worktree-lifecycle):\n- `rq-wl-setupReadiness02` (candidate) — \"Setup-failure records are durably persisted and resume-visible.\"\n  - Given advWorktreeCreate hook/git failure produces a setup_failed outcome\n  - When a later advWorktreeResume runs for the same change in a new session\n  - Then getWorktreeRecord returns status=setup_failed with setupFailureReason and resume returns SETUP_FAILED\n- Alternatively tighten existing `rq-wl-setupReadiness01.1` to assert durability rather than only in-memory record shape. Design gate picks amend-vs-add.\n\nNo spec deltas required for findings 3/5 (maintainability / non-runtime). Finding 4 = no spec impact.\n\n### Related Pattern Scan\n\n- Write-path no-op class: only `updateWorktreeRecord` is a live-called no-op writer; other retired functions are session-registry no-ops with test-pinned contracts (not accidental).\n- ID-generation class: `Math.random` IDs exist at `store-disk.ts:674,759` (legacy) and `store-temporal/epics.ts:389,462` (shell/change IDs). The epics ones run in tool-layer (not workflow sandbox) so `Math.random` is acceptable there; flag only if determinism matters.\n- Projection-duplication class: `bin/lib/*` is the only place plugin view-types are re-declared for a separate runtime.\n\n### Completeness Verification\n\n- **Problem-completeness:** The reconnaissance surfaced 5 findings; discovery confirmed each is real but re-scoped 1 (write-path only), 5 (legacy-only), and reclassified 4 as maintainability. No hidden additional problem found in the touched subsystems. Confidence: high for findings 1/2/3/5; medium for finding 4 (only size-classified, not deeply audited — intentionally, since fixing it is out of scope).\n- **Solution-scope:** No sole-chokepoint / single-entry claim relied upon. The worktree write path is localized to `state.ts` + `index.ts` + one signal surface. No cross-cutting operation performed in multiple places. Confidence: high.\n- **Secondary surfaces:** none requiring silent deferral; overlapping agenda items are explicitly named for reconciliation.\n- **Reproduction finding classification:** Finding 1 = `broken_capability` (durable setup-failure tracking should work per spec); Findings 2/5 = `unwarranted_operation`→reframed as cleanup, not must-work; Finding 3 = `broken_capability` (drift risk) but low severity; Finding 4 = out-of-scope note.\n\n### LBP Check\n\nPurely internal maintenance change — no external tool/library/service alternative applies. External-solution check skipped (no ecosystem unknown remains). Long-term best practice here is structural: make failure state durable via the existing signal/query pattern (finding 1), and prefer a single source of truth for projections (finding 3) — both align with repo P33 and existing wisdom (`pw-oH0LXmOR`, signal-contract-in-one-slice patterns).\n\n### Recommended Objectives\n\n1. Durably persist worktree setup-failure state so resume can block on it (Finding 1) — the one confirmed runtime correctness gap.\n2. Remove or clearly retire the dead worktree session-registry reuse paths tied to the same code (Finding 2) as bounded campsite cleanup.\n3. Resolve bin/adv projection drift risk with an explicit decision: shared source-of-truth OR deferral with a drift-guard (Finding 3).\n4. Record status.ts/change.ts hotspot classification and route them as out-of-scope follow-ups (Finding 4).\n5. Reconcile disk-store nits (Finding 5) against existing agenda — fix in-scope only if trivially safe, else cross-link.\n6. Reconcile overlapping agenda items so this change absorbs or cross-links them rather than duplicating.\n\n### AMBIGUITY ANALYSIS\n\nNo CRITICAL/HIGH ambiguity findings. Proposal has In/Out/Must-Not scope, implementation-free User Outcomes, and discovery firmed the completion signals.\n\nCoverage: B:C F:C S:C M:C\n",
+    "problemStatement": "Advance has repo-level maintenance risks surfaced by broad reconnaissance: worktree setup-failure persistence appears to write through no-op registry paths; retired worktree session registry APIs still shape active flow; `bin/adv` status projection duplicates plugin-facing state shapes; disk wisdom fallback has weak observability and heuristic IDs; and `status.ts` / `change.ts` are high-complexity hotspots that may need validation before safe fixes. Desired outcome: investigate each finding, prove whether it is real or stale, then fix confirmed issues with structural source-of-truth behavior, tests, and minimal spec/doc updates. Expected scope: worktree state, CLI projection, disk wisdom fallback, status/change hotspot validation; not broad repo refactor beyond confirmed findings.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Durably persist worktree setup-failure state so cross-session `advWorktreeResume` blocks on prior `setup_failed` (Finding 1 — the confirmed runtime correctness gap).\n2. Remove or clearly retire dead worktree session-registry reuse paths in the same subsystem (Finding 2).\n3. Give `bin/adv` a single source of truth for gate order + change/gate projection via a shared, Bun-import-safe type module (Finding 3).\n4. Aggressively decompose `status.ts` and `change.ts` into focused, cohesive modules with behavior preserved (Finding 4).\n5. Resolve disk-store fallback nits — heuristic IDs and silent wisdom catches — with bounded diagnostics where user-facing (Finding 5).\n6. Reconcile overlapping agenda items (absorb or cross-link), not duplicate them.\n\n## Success Criteria\n\n1. Worktree setup failure is durable: a failed setup in one session is visible and blocks `advWorktreeResume` in a later session.\n2. `adv status` / `bin/adv` gate + change projection has a single source of truth; plugin-side gate/model changes cannot silently drift the CLI.\n3. Dead worktree session-registry reuse paths are removed or clearly retired; no live no-op writer masquerades as durable state.\n4. `status.ts` and `change.ts` are decomposed into focused, cohesive modules with behavior preserved.\n5. Disk-store fallback nits (heuristic IDs, silent wisdom catches) are resolved with clear diagnostics where user-facing.\n6. Overlapping agenda items are reconciled (absorbed or cross-linked), not duplicated.\n\n## Acceptance Criteria\n\n1. After a simulated worktree setup failure, a subsequent `advWorktreeResume` for the same change returns `SETUP_FAILED` with the recorded reason. [warrant: spec:rq-wl-resumeTool01]\n2. A durable worktree record with `status: \"setup_failed\"` and `setupFailureReason` is readable via `getWorktreeRecord` after a create-time failure. [warrant: spec:rq-wl-setupReadiness01]\n3. The live no-op `updateWorktreeRecord` writer no longer silently drops setup-failure state (it persists durably or is removed in favor of a signal path).\n4. Dead/no-op worktree session-registry reuse paths in `worktree/index.ts` are removed or covered by a test asserting their retired contract.\n5. `bin/adv` gate order and change/gate projection derive from a single shared source; a drift test fails if plugin gate order/fields diverge from the CLI.\n6. `bin/adv` remains Bun-import-safe (no heavy plugin transitive imports leak into the CLI) — verified by CLI smoke/import test.\n7. `status.ts` and `change.ts` are split into focused modules; the full test suite passes with behavior preserved (no gate-model or archive-flow semantic change).\n8. Disk-store fallback wisdom read failures surface a bounded warning instead of a silent catch; ID generation is documented/deterministic where it matters.\n9. `pnpm run check` and the full test suite pass; new behavior has RED→GREEN tests.\n10. Each reconnaissance finding ends as fixed-with-evidence or explicitly reconciled to an agenda item.\n\n## Constraints\n\n- Specs are laws; `worktree-lifecycle`, `advance-meta`, `advance-workflow` govern implementation.\n- Change-workflow surface stays signal/query-only and replay-safe; no `defineUpdate` on the change-workflow surface.\n- Later implementation runs from the ADV-managed worktree; no trunk-checkout implementation writes.\n- Decomposition must be behavior-preserving: no gate-model or archive-flow semantic changes.\n- Runtime is Bun; tests run on Node/Vitest from `plugin/`; follow `bin/oc-test` routing for suites.\n- `bin/` must stay Bun-import-safe; no heavy plugin transitive imports may leak into the CLI.\n\n## Avoidances\n\n- Do not treat heuristic path checks / string matching as authority for workflow state, claims, gate status, or worktree safety.\n- Do not silently downgrade live Temporal/status failures to stale disk projections.\n- Do not create new CLI mutation authority.\n- Do not hide degraded disk wisdom reads when a bounded diagnostic is possible.\n- Do not absorb unrelated repo-wide refactors under cover of hotspot decomposition.\n\n## Preview Applicability\n\n- `visual_surface: false` — this change affects worktree state, CLI text projection, storage internals, and code organization. No front-end/browser-visible output.\n- `preview_expectation`:\n  - `exact_route_required`: not_applicable\n  - `data_state_expectation`: not_applicable\n  - `viewport_expectation`: not_applicable\n  - rationale: No visual/preview surface; verification is test-suite + CLI output based.\n\n## Decisions\n\n### User Decisions\n\n- **Scope:** All five findings in scope (user selected \"All five findings\"). This includes hotspot decomposition and disk-store cleanup, not just the Finding 1 correctness fix.\n- **bin/adv projection (Finding 3):** Shared minimal Bun-import-safe type module as single source of truth (user selected \"Shared minimal type module\"). Why it matters: eliminates silent gate/model drift between plugin and CLI at the source, not just via a guard test.\n- **Resume behavior (Finding 1):** Must block cross-session resume on prior `setup_failed` (user selected \"Must block resume on prior setup_failed\"). Why it matters: durable, resumable failure state is the core value and matches `rq-wl-resumeTool01.2`.\n- **Hotspot depth (Finding 4):** Aggressive decomposition of `status.ts` and `change.ts` into focused modules (user selected \"Aggressive decomposition\"). Why it matters: maximum maintainability payoff; accepted higher blast radius, mitigated by behavior-preserving constraint + full-suite gate.\n\n### Agent Decisions (LBP)\n\n- **Finding 1 fix mechanism:** Prefer a dedicated `worktreeSetupFailedSignal` + handler symmetric with `worktreeCreatedSignal`/`worktreeDeletedSignal`, keeping the change-workflow surface signal/query-only and replay-safe. Design gate confirms signal-vs-amend-updateWorktreeRecord.\n- **Spec delta for Finding 1:** Add or tighten a `worktree-lifecycle` requirement asserting durable, resume-visible setup-failure records; design picks amend `rq-wl-setupReadiness01.1` vs add `rq-wl-setupReadiness02`.\n- **Disk-store fallback (Finding 5):** It is the non-runtime legacy fallback (Temporal backend overrides at runtime); fixes are code-quality/diagnostic, not runtime-correctness. Keep changes bounded and low-risk.\n- **Decomposition safety:** Rely on the existing large test suite + `pnpm run check` as the behavior-preserving oracle; extract along existing cohesive seams (archive-helpers already partly split; status recommendation/health builders; worktree/index.ts per `ag-VH206pZN`).\n\n## Deferred Questions\n\nNone deferred.\n\n## Sign-Off\n\nCriteria approved inline by user at the acceptance-criteria checkpoint (\"approve\"). Scope, bin/adv strategy, resume expectation, and hotspot depth confirmed via question tool.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nFive findings, three code subsystems, one durable-state correctness fix. The change is organized as **four independent slices** that can land and be reviewed separately, sequenced worst-blast-radius-last:\n\n- **Slice A — Worktree setup-failure durability (Finding 1 + 2).** The one runtime correctness fix. Add a durable, replay-safe path so create-time setup failures persist into the change-workflow `worktrees` map and are visible to `advWorktreeResume` across sessions. Retire the dead session-registry reuse paths in the same files as adjacent campsite cleanup.\n- **Slice B — Shared CLI projection types (Finding 3).** Extract the `bin/adv` view types into a Bun-import-safe shared module that both `bin/` and `plugin/` reference, eliminating duplication at the source and upgrading the regex-scraping parity guard to a structural one.\n- **Slice C — Disk-store fallback diagnostics (Finding 5).** Bounded, low-risk: surface a warning instead of a silent catch on project-wisdom read failure; document/normalize heuristic ID generation in the legacy fallback.\n- **Slice D — Hotspot decomposition (Finding 4).** Aggressive but behavior-preserving extraction of `status.ts` (2077L) and `change.ts` (6183L) into focused modules, guarded by the existing test suite as the behavior oracle.\n\nAgenda reconciliation (Finding 6/Objective 6) runs during planning: each overlapping agenda item (`ag-3hjQOLnK`, `ag-VH206pZN`, `ag-8PsBFRPF`, `ag-y2ambs_C`, `ag-fR-3HtIv`, `ag-4m0dfDad`, `ag-3R8zLZVl`, `ag-FOcJp39X`, `ag-Q3Zwr4LU`) is either absorbed into a task or explicitly cross-linked, then completed with a survivor note.\n\n## Key Decisions\n\n### KD1 — Setup-failure durability via a new `worktreeSetupFailedSignal` (Slice A)\n\nThe change-workflow surface is signal/query-only and replay-safe (spec-law `advance-delivery`; no `defineUpdate`). The existing pattern is exactly symmetric: `worktreeCreatedSignal` / `worktreeDeletedSignal` are defined in `messages.ts:233-238`, re-declared in the workflow bundle root `workflows.ts:345-350`, mapped through `CHANGE_WORKFLOW_SIGNAL_NAMES` in `contracts.ts:98-99`, handled via `signalMutation(...)` in `workflows.ts:1367-1377`, and applied by pure reducers in `change-state.ts:1149-1183`.\n\n**Decision:** Add `worktreeSetupFailedSignal` following this exact five-point wiring:\n1. `CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeSetupFailed = \"adv.change.worktreeSetupFailed\"` (contracts.ts).\n2. `WorktreeSetupFailedSignalPayload` type + Zod schema (types + messages.ts), fields: `branch`, `path`, `changeId?`, `baseRef?`, `headSha?`, `setupFailureReason`, `failedAt` (ISO), `stage` (`git_failed|hook_failed`). The `stage` field is the structural discriminator that sets `materialized` correctly (see KD2 + validator caution V2).\n3. `defineSignal` in `messages.ts` and the mirrored declaration in `workflows.ts` bundle root.\n4. `applyWorktreeSetupFailedToState` pure reducer in `change-state.ts`: writes `state.worktrees[branch] = { branch, path, status:\"setup_failed\", setupReady:false, setupFailureReason, materialized:(stage===\"hook_failed\"), ...}`. Idempotent-safe (last write wins per branch, mirroring created/deleted). MUST NOT reuse `worktreeCreatedSignal`'s reducer, which hardcodes `setupReady:true` (change-state.ts:1162) for the isolation ALLOW probe — overloading it would fork that invariant.\n5. `wf.setHandler(worktreeSetupFailedSignal, signalMutation(\"worktreeSetupFailed\", ...))` in `workflows.ts`.\n\n**Rationale (LBP):** Symmetric with existing worktree signals; keeps the workflow surface pure; replay-safe (new signal name, no history poisoning of existing executions). This is the structural (P33) fix — durable state owned by the workflow, not a heuristic filesystem probe.\n\n### KD2 — Replace the no-op `updateWorktreeRecord` writes at failure sites with the signal (Slice A)\n\n`updateWorktreeRecord` (state.ts:1007-1028) is a live-called no-op. The three failure call sites in `index.ts` (`materializing` pre-write :1123, `git_failed` :1153, `hook_failed` :1202) currently write nothing durable.\n\n**Decision:**\n- Fire `worktreeSetupFailedSignal` at the `git_failed` (index.ts:1153, `stage:\"git_failed\"`, `materialized:false`, no headSha) and `hook_failed` (index.ts:1202, `stage:\"hook_failed\"`, `materialized:true`, headSha present) sites via the existing `fireWorktreeSignal` adapter used for `worktreeCreatedSignal` (index.ts:1246), guarded so it degrades gracefully when Temporal is unavailable (failure signalling must never throw over the original error — DDC5).\n- The `materializing` pre-write (index.ts:1123) is intentionally NOT persisted — a transient in-flight status is not resume-relevant and persisting it risks a stuck `materializing` record if the process dies. Resume treats \"no record\" as \"not started,\" which is correct. **Apply caution (validator V1):** before removing the :1123 call, trace tests to confirm none pin the `materializing` record shape; adjust or delete such a test as part of the RED→GREEN move.\n- Remove the now-unreachable no-op `updateWorktreeRecord` and its three call sites, replacing the two failure sites with the signal. This satisfies AC3 (\"no longer silently drops setup-failure state\") structurally rather than leaving a misleading no-op.\n\n**Resume read path:** `advWorktreeResume` (index.ts:1324-1336) already reads `getWorktreeRecord` and blocks on `status===\"setup_failed\"`. Once the signal persists the record, this path becomes live with no change needed — satisfying AC1/AC2/SC1. **No race** (validator V1): the failure sites early-return before the success `worktreeCreatedSignal` (index.ts:1246) can fire; cross-call retry is bounded by the flock (index.ts:1108) + monotonic `sourceVersion`.\n\n### KD3 — Retire dead session-registry reuse paths (Slice A, Finding 2)\n\n`addSession`/`removeSession`/`getSession`/`registerSession`/`unregisterSession` are documented retired no-ops (state.ts:381-417) with test-pinned contracts (`state-session-lifecycle.test.ts`). `getSessionRecord` returns `null` (stub, state.ts:894).\n\n**Decision:** These no-ops are intentional compatibility surfaces with existing test contracts — do NOT delete the functions (would break `session/index.ts:238`, `index.ts:3299` callers and pinned tests). Instead:\n- Remove the **dead reuse paths** that depend on their return values being meaningful — specifically the `index.ts:1233 addSession` success-path call and any branch that reads a session record expecting persistence (the `ag-3hjQOLnK` \"index.ts:1238 reuse path is dead because state.ts returns null\" path).\n- Add/confirm a test asserting the retired contract for any call site kept for compatibility (AC4).\nDesign gate note: apply verifies the exact dead-path set by tracing each `addSession`/`getSession` caller; only provably dead branches are removed. Live compatibility stubs stay with a test.\n\n### KD4 — Shared Bun-safe projection module (Slice B, Finding 3)\n\nCurrent state: `bin/lib/types.ts` re-declares `ChangeRecord`/`GateState`/`ChangeSummary`/`LiveStatusPayload`; `bin/lib/changes.ts:25` re-declares `GATE_ORDER`. GATE_ORDER already has a parity test (`cli-gate-order-parity.test.ts`) but it is **regex string-scraping** (P33-weak), and the view types have NO guard.\n\n**Decision:** Create a Bun-import-safe shared module (e.g. `plugin/src/shared/cli-projection.ts` or a dedicated top-level `shared/` dir) containing ONLY: the gate order array, `GateId`, and the CLI view interfaces (`GateState`, `ChangeRecord`, `TaskRecord`, `ChangeSummary`, `LiveStatusPayload`). Constraints for this module:\n- Zero runtime imports beyond plain TS (no `zod`, no `node:*`, no Temporal, no storage). It must be safe to `import` from Bun `bin/` without pulling the plugin runtime graph.\n- `plugin/src/types/gates.ts` derives `GATE_ORDER` from `GATE_DEFS`; the shared module's gate order must be asserted equal to `GATE_DEFS`-derived order by a **structural** test (import both, `expect(shared).toEqual(pluginDerived)`), replacing the regex-scraping parity test.\n- `bin/lib/types.ts` and `bin/lib/changes.ts` re-export from the shared module instead of redeclaring.\n- Verify Bun import safety with a smoke test that imports the CLI entry and asserts no heavy transitive module loads (AC6) — reuse the existing `cli-bridge-contract.test.ts` / `release-install-assets.test.ts` harness pattern.\n\n**Rationale:** Single source of truth at the type level (user decision), not just a value-parity guard. Upgrades P33 posture from regex scraping to shared-symbol structural equality.\n\n### KD5 — Disk-store diagnostics, bounded (Slice C, Finding 5)\n\n`store-disk.ts` is the non-runtime legacy fallback (Temporal backend overrides every method at runtime; store.ts:53-77).\n\n**Decision (bounded):**\n- Replace the two silent `catch {}` blocks in wisdom `search`/`listAll` (store-disk.ts:805-807, 842-844) with a catch that logs a bounded warning (via the store's logger) and continues — so corrupt project-wisdom reads are observable (AC8), without changing the return contract.\n- ID generation (`Math.random` at :674/:759): switch to a `ws-${Date.now()}-${seq}` / `tk-${Date.now()}-${seq}` monotonic helper consistent with the Temporal store's `ws-${Date.now()}`, removing the `Math.random` slop signal while staying legacy-scoped. No runtime-path behavior change.\n- Explicitly NOT touching the `as never` casts unless the type can be tightened without churn (apply-time judgment; low priority).\n\n### KD6 — Hotspot decomposition, behavior-preserving (Slice D, Finding 4)\n\n`status.ts` (2077L) and `change.ts` (6183L). User chose aggressive decomposition; constraint is behavior-preserving (no gate-model / archive-flow semantic change).\n\n**Decision — extraction seams (apply refines exact boundaries):**\n- `status.ts`: extract cohesive builders into sibling modules under `tools/status/` — e.g. `status-health.ts` (Temporal/queue/worker/STSL health snapshot), `status-hygiene.ts` (archive/worktree/snapshot hygiene), `status-enrich.ts` (`enrichRecentChangeStatus` + recommendation wiring). Recommendation logic already partly lives in `status-recommendations.ts`; converge there. Keep `status.ts` as the thin tool entry that composes them.\n- `change.ts`: extract along already-emerging seams — archive/release finalization (`resolveArchiveGateState`, preflight, phase9) into `change/archive-gate.ts`; artifact read/update helpers into `change/artifacts.ts`; recovery/status-repair helpers into `change/recovery.ts`. `archive-helpers/` already exists — converge extracted logic there where it fits.\n- Method: pure move + re-export, one seam per commit, run the full suite (`bin/oc-test full` or `pnpm test`) after each seam. Any test churn beyond import-path updates is a signal the move was not behavior-preserving → revert that seam.\n\n**Sequencing:** Slice D runs LAST (highest blast radius, release-critical `change.ts`). Slices A/B/C land and are individually green first, so a decomposition regression is isolated from the correctness fix.\n\n## ADR Drafts\n\nNone. No decision here is simultaneously hard-to-reverse + surprising-without-context + a real tradeoff at the level warranting an ADR. The signal addition follows an established in-repo pattern; the decomposition is reversible; the shared module is a standard refactor.\n\n## Implementation Strategy\n\nSequenced slices, worst-blast-radius-last:\n\n1. **Slice A (Finding 1+2)** — signal wiring + reducer + failure-site rewiring + resume test + dead-path removal + spec delta. RED: test asserting resume returns SETUP_FAILED after simulated failure fails today. GREEN: signal persists record. This is the correctness core; land first.\n2. **Slice B (Finding 3)** — shared projection module + re-exports + structural parity test + Bun import-safety smoke. Independent of A.\n3. **Slice C (Finding 5)** — bounded disk-store diagnostics. Independent, small.\n4. **Slice D (Finding 4)** — hotspot decomposition, one seam per commit, full-suite after each. Runs last.\n5. **Agenda reconciliation** — during planning + at each slice: absorb or cross-link the named agenda items; complete absorbed ones with survivor notes at archive.\n\nSpec delta (Slice A): amend `worktree-lifecycle` — tighten `rq-wl-setupReadiness01.1` to assert durability + add resume-visibility scenario (validator confirms rq-wl-setupReadiness01.1 already mandates \"hook failure writes setup_failed\", so the no-op is a latent spec violation this fix closes). Planning picks amend-vs-add `rq-wl-setupReadiness02`; both drafted in discovery.\n\n## LBP Analysis\n\n- **Slice A:** Structural correctness (P33) — durable failure state owned by the workflow via the same signal/query pattern the subsystem already uses, not a filesystem heuristic. Symmetric with created/deleted signals = lowest cognitive + replay risk. Validator confirmed the dedicated reducer is lower-risk than a shared status reducer (which would conflict with the created-signal `setupReady:true` invariant).\n- **Slice B:** Single source of truth beats duplicate-plus-guard. Shared-symbol structural equality is stronger than regex string scraping. Bun-safety constraint is the only real risk, mitigated by an import-safety smoke test.\n- **Slice C:** Observability over silent failure; minimal footprint in a non-runtime path.\n- **Slice D:** Behavior-preserving extraction with the existing large suite as oracle is the safest way to decompose release-critical code; one-seam-per-commit keeps regressions bisectable.\n\n## Affected Components\n\n- `plugin/src/temporal/contracts.ts` — signal name.\n- `plugin/src/temporal/messages.ts` — signal def + payload schema.\n- `plugin/src/temporal/workflows.ts` — bundle-root signal decl + handler.\n- `plugin/src/temporal/change-state.ts` — `applyWorktreeSetupFailedToState` reducer.\n- `plugin/src/tools/worktree/index.ts` — fire signal at failure sites; remove no-op writes + dead session reuse paths.\n- `plugin/src/tools/worktree/state.ts` — remove `updateWorktreeRecord`; keep retired session stubs with test.\n- `plugin/src/tools/worktree/*.test.ts` — RED/GREEN + retired-contract tests.\n- `shared/` (new) or `plugin/src/shared/cli-projection.ts` — shared CLI projection types + gate order.\n- `bin/lib/types.ts`, `bin/lib/changes.ts` — re-export from shared module.\n- `plugin/src/cli-gate-order-parity.test.ts` — upgrade to structural equality; add view-type parity.\n- `plugin/src/storage/store-disk.ts` — bounded warning + ID helper.\n- `plugin/src/tools/status.ts` + new `tools/status/*.ts` — decomposition.\n- `plugin/src/tools/change.ts` + `change/`/`archive-helpers/*.ts` — decomposition.\n- `.adv/specs/worktree-lifecycle/spec.json` + `docs/specs/worktree-lifecycle.md` mirror — Slice A delta.\n\n## Design-Derived Criteria\n\n- **DDC1 (replay safety):** The new signal MUST use a fresh signal name and a pure reducer; no change to existing signal handlers or query surface. Verified by `workflow-bundle-boundary.test.ts` + `workflows.signal-handlers.test.ts` staying green and a new signal-handler test.\n- **DDC2 (schema drift):** New payload schema must be registered so `pnpm run schemas:check` stays green if it is a public schema; if internal-only, no public schema is emitted.\n- **DDC3 (Bun import safety):** The shared projection module must not transitively import `node:*`, Temporal, or storage — enforced by an import-safety test (AC6).\n- **DDC4 (behavior-preserving decomposition):** No decomposition commit may change test expectations beyond import paths; full suite green after each seam (AC7/AC9).\n- **DDC5 (failure-signal non-fatal):** Firing the setup-failed signal must never throw over the original setup error; Temporal-unavailable degrades to the existing synchronous `{error:\"SETUP_FAILED\"}` return.\n- **DDC6 (stage discriminator):** The signal payload `stage` field MUST cleanly separate `git_failed` (materialized:false, no headSha) from `hook_failed` (materialized:true, headSha present) so the reducer sets `materialized` correctly (validator caution V2).\n\n## Risks / Mitigations\n\n- **R1 — Replay poisoning from new signal.** Mitigation: new signal name only; no `defineUpdate`; bundle-boundary + signal-handler tests; follow the exact created/deleted wiring.\n- **R2 — `change.ts` decomposition regresses archive/release.** Mitigation: Slice D last; one seam per commit; full suite after each; revert-on-unexpected-test-churn rule; no semantic edits (pure moves).\n- **R3 — Shared module leaks heavy imports into Bun CLI.** Mitigation: keep it plain-TS types + one const array; import-safety smoke test (DDC3/AC6).\n- **R4 — Removing `updateWorktreeRecord`/session paths breaks a live caller.** Mitigation: trace every caller before removal; keep test-pinned stubs; only remove provably-dead branches; retired-contract test (AC4).\n- **R5 — Scope size (all 5 findings) risks an unshippable mega-change.** Mitigation: four independent slices, each individually green and reviewable; correctness (A) lands first so it can ship even if D is deferred; agenda cross-links preserve any deferred remainder.\n- **R6 — Removing the transient `materializing` pre-write breaks a test that pins it (validator V1).** Mitigation: trace `materializing`-record tests before removing index.ts:1123; update/delete as part of the RED→GREEN move.\n\n## Design Leverage Scout\n\nScout: skipped — design is a bounded, evidence-driven maintenance change across known subsystems with a pre-defined slice plan; opportunity surface is near zero and the independent design validator already ran a correctness/simplicity/alternatives pass. No additional leverage-scout value expected.\n\n## Validator Result\n\n**VALIDATED** (independent adv-researcher design validation, attempt 1).\n\n- Dim 1 Correctness — VALIDATED: mechanism proven against source; no race (failure sites early-return before success signal; flock + monotonic sourceVersion bound retries). Caution V1: trace tests pinning the transient `materializing` pre-write before removing index.ts:1123.\n- Dim 2 Simplicity — VALIDATED: dedicated signal correctly avoids forking `worktreeCreatedSignal`'s `setupReady:true` invariant; shared module removes real duplication + upgrades brittle regex parity test (P33 win).\n- Dim 3 Spec-Law — VALIDATED: `defineSignal` not `defineUpdate` (honors advance-delivery + workflow-bundle boundary); shared bin module carries no Temporal/fanout (no rq-statusCliBridge01 / rq-statusCliWorkerFree01 violation); rq-wl-setupReadiness01.1 already mandates the setup_failed write, so the no-op is a latent violation this fix closes — spec-delta correctly scoped.\n- Dim 4 Alternatives — VALIDATED: no viable alternative overlooked; a unified status reducer is larger and conflicts with the created-signal invariant.\n- Caution V2 folded into DDC6 (stage discriminator). Note: validator's `adv_spec` FTS returned empty; law validation relied on the full advance-meta spec dump + workflow-bundle contract + source evidence.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nFix reconnaissance risks landed all five findings across four slices with zero regressions: durable cross-session setup-failure persistence, dead session-registry retirement, single source of truth for bin/adv projection, disk-store fallback diagnostics, and behavior-preserving decomposition of status.ts + change.ts. Merge with origin/trunk resolved one signal-surface length conflict; harden applied a minor dedup fix; release readiness verified across production, security, performance, and maintainability dimensions.\n\n## Verdict\nAPPROVED — 0 blockers, 0 unresolved issues (1 admin-style SC4 traceability fix applied during review), 6 praise items, with 4 suggestions + 3 nits + 1 question addressed or deferred per the harden ingestion pass.\n\n## What Was Built\n1. worktreeSetupFailedSignal — replay-safe 5-point signal wiring (signals.ts, contracts.ts, messages.ts, workflows.ts, change-state.ts reducer) that durably persists setup-failure state and blocks cross-session advWorktreeResume with the recorded reason. RED→GREEN evidence in index-create.test.ts + state-record-probe.test.ts + signal-handler tests + workflow-bundle-boundary test.\n2. Dead worktree session-registry retirement — removed dead reuse paths in worktree/index.ts (addSession success-path, ag-3hjQOLnK dead path) and plugin/src/index.ts (registerSession/unregisterSession + SIGINT/SIGTERM handlers); compatibility no-op function definitions retained per C1.\n3. Spec delta — tightened rq-wl-setupReadiness01 (added scenario .3) in .adv/specs/worktree-lifecycle/spec.json + docs/specs/worktree-lifecycle.md mirror.\n4. Shared Bun-safe CLI projection module — plugin/src/shared/cli-projection.ts (zero-import plain-TS); bin/lib/{types,changes}.ts re-export; structural parity test + Bun import-safety smoke.\n5. Disk-store fallback diagnostics — store-disk.ts: silent wisdom catch replaced with bounded logger.warn; Math.random IDs replaced with monotonic Date.now+seq.\n6. status.ts decomposed 2077→786 — 4 new sibling modules (status-health, status-hygiene, status-enrich, status-view); behavior preserved.\n7. change.ts decomposed 6183→3838 — 4 new helper modules (change/{artifacts,create-clarify,archive-gate,recovery}); behavior preserved; handler-body extraction deferred to follow-up.\n8. 9 overlapping agenda items reconciled (5 absorbed, 4 cross-linked).\n\n## What Was Verified\n- Verdict: APPROVED with 0 unresolved issues after SC4 traceability fix.\n- Tests: 4452 passed in full Vitest suite (309 files). 0 failures. 5 pre-existing base-branch failures now resolved via trunk merge (spec-citation-invariant, tool-name-assets, ops-follow-up-assets, cli-surface-matrix, tool-registry-matrix all fixed in origin/trunk HEAD 6538c3811f65). pnpm run check fully green (schemas, typecheck, test-isolation, lockfile-policy, lint, format). bun bin/adv --version works.\n- Contract matrix: 27/27 rows passed/respected. Both warrants (spec:rq-wl-resumeTool01, spec:rq-wl-setupReadiness01) honored.\n- Preview URL: not_applicable (no front-end or browser-visible surface; visual_surface:false in agreement).\n- Merge compatibility: dry-run merge of origin/trunk into change/fixReconnaissanceRisks resolved 1 conflict (plugin/src/temporal/messages.test.ts signal-surface length 48→50, combined: worktreeSetupFailed from HEAD + opsRunUpserted/opsRunEvidenceAppended from trunk). All other files auto-merged cleanly.\n- Production readiness: PASS (security, reliability, performance, maintainability all green).\n- Test coverage: 100% transitive behavior coverage; 8 extraction modules lack co-located tests (P04 locality follow-up, non-blocking).\n\n## Remaining Concerns\n- change.ts at 3838 lines missed the <2500 helper-extraction target; handler bodies remain in change.ts. Cross-linked as follow-up agenda item.\n- bin/lib/dashboard/attention.ts retains its own local GATE_ORDER const (out of scope; follow-up).\n- archive/delta.ts unknown operation sort fallback not addressed (out of scope; follow-up).\n- 8 extraction modules (status-*, change/*) lack co-located tests — P04 locality follow-up, non-blocking (full suite green).\n- 2 nits deferred to follow-up: module-level mutable state in store-disk monotonicId; mixed status-/ vs change/ directory convention.\n\n## Consequence Context\n- Delivered value: 5 recon findings fixed with structural source-of-truth behavior; RED→GREEN evidence; 35 files changed (+4670/-4140); 9 git commits on the change/fixReconnaissanceRisks branch including 1 merge commit (c7919a28) and 1 harden dedup commit (3871b21a).\n- Enabling-only/follow-up dependency: change.ts handler-body extraction (follow-up agenda); dashboard attention.ts GATE_ORDER (follow-up); archive/delta.ts sort (follow-up); explicit rec/regression test (follow-up); co-located tests for 8 extraction modules (P04 locality follow-up).\n- Ops readiness: pnpm run check green; full Vitest 4452/4452 passed; merge with origin/trunk completed cleanly; production-readiness scanner PASS. No production deploy config touched (per scope).\n- Migration/data impact: not_applicable. No schema migration, no data backfill, no external service change. Spec delta is in-repo (.adv/specs/worktree-lifecycle/spec.json + docs/specs/worktree-lifecycle.md mirror). Trunk merge included 2 new archive bundles (addOpsRunbooks, strengthenResearcherJudgement) which are pre-existing trunk changes unrelated to this work.\n- Frontend/preview impact: Preview URL: not_applicable — agreement declared visual_surface:false (worktree state, CLI text projection, storage internals, code organization). No front-end or browser-visible output.\n- Collision/release risk: zero — this change is the sole owner of change/fixReconnaissanceRisks. Merge with origin/trunk resolved cleanly (1 conflict, fixed). Trunk HEAD 6538c3811f65 has many new files (bin/adv, bin/lib/epic-list.ts, plugin/schemas/change.schema.json, .adv/specs/advance-workflow/spec.json, etc.) but none overlap with the 35 files in this change's owned scope.\n- Open follow-ups: 4 deferred to follow-up changes (handler-body extraction, dashboard attention.ts GATE_ORDER, archive/delta.ts sort fallback, explicit rec/regression test) + 1 P04 locality follow-up (co-located tests for 8 extraction modules).\n- Next action: /adv-archive fixReconnaissanceRisks (final archive sign-off + spec delta + release branch finalization).\n\n## Release Readiness Summary\n- **Status**: READY for archive.\n- **Production readiness**: PASS (no security, reliability, performance, or maintainability regressions; DDC5 fireWorktreeSignal never-throws-over-original-error satisfied; reducer idempotent; signal/query-only law held; bounded warn path verified; 0 hardcoded secrets; 0 injection surface; 0 TODO/FIXME in new files).\n- **Test coverage**: 100% transitive behavior coverage; 8 extraction modules lack co-located tests (P04 locality follow-up, non-blocking — full suite green at 4452/4452).\n- **Documentation**: 0 conflicts, 0 stale refs, 0 deletions needed. Spec delta rq-wl-setupReadiness01 landed in both JSON source-of-truth and markdown mirror.\n- **Cleanup**: 0 candidates. No temp files, debug code, dead imports, or orphaned tests introduced.\n- **Deployment**: 0 new env vars, 0 new migrations, 0 new external services, 0 new CI/CD steps, 0 new infrastructure, 0 new feature flags, 0 deployment steps required.\n- **Merge compatibility**: PASS — origin/trunk merged into change/fixReconnaissanceRisks; 1 conflict (messages.test.ts signal-surface length 48→50) resolved; all other files auto-merged cleanly; pnpm run check + full Vitest green post-merge.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-02T20:24:18.247Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Worktree setup failure is durable: a failed setup in one session is visible and blocks `advWorktreeResume` in a later session. | pass | worktreeSetupFailedSignal persists cross-session setup_failed with reason. RED→GREEN in index-create.test.ts; spec rq-wl-setupReadiness01 tightened with new scenario .3. Verified at commit 345cf76051f3. |\n| SC2 | success_criterion | `adv status` / `bin/adv` gate + change projection has a single source of truth; plugin-side gate/model changes cannot silently drift the CLI. | pass | plugin/src/shared/cli-projection.ts zero-import shared module. bin/lib re-exports. cli-gate-order-parity.test.ts asserts structural equality with plugin GATE_DEFS-derived GATE_ORDER; cli-projection-import-safety.test.ts Bun smoke. Verified at commit 737dab1ffee. |\n| SC3 | success_criterion | Dead worktree session-registry reuse paths are removed or clearly retired; no live no-op writer masquerades as durable state. | pass | tk-57f7f74f98a8 retired addSession/removeSession/getSession/registerSession/unregisterSession/getSessionRecord dead reuse paths in worktree/index.ts and plugin/src/index.ts. state-session-lifecycle.test.ts adds retired-contract assertions. Verified at commit 3c6beff62d7. |\n| SC4 | success_criterion | `status.ts` and `change.ts` are decomposed into focused, cohesive modules with behavior preserved. | pass | tk-04d973fb7b3d (status 2077→786, 4 new modules) and tk-86ff2357e525 (change 6183→3838, 4 new modules). Full Vitest suite 4419 passed; 5 pre-existing base-branch failures verified bit-identical to base 1818d9d (zero regressions). Verified at commits b74d24f307e + 28bbbedb4cc. |\n| SC5 | success_criterion | Disk-store fallback nits (heuristic IDs, silent wisdom catches) are resolved with clear diagnostics where user-facing. | pass | store-disk.ts: silent wisdom catch replaced with bounded logger.warn (200-char truncation + path meta); Math.random IDs replaced with monotonic Date.now+seq helper. store-disk.test.ts (NEW) covers both. Verified at commit c8b3af455. |\n| SC6 | success_criterion | Overlapping agenda items are reconciled (absorbed or cross-linked), not duplicated. | pass | tk-402adcd9e2a2 reconciled 9 overlapping agenda items: ag-3hjQOLnK + ag-y2ambs_C + ag-8PsBFRPF + ag-fR-3HtIv + ag-4m0dfDad absorbed; ag-VH206pZN + ag-3R8zLZVl + ag-FOcJp39X + ag-Q3Zwr4LU cross-linked with completion notes referencing fixReconnaissanceRisks. |\n| AC1 | acceptance_criterion | After a simulated worktree setup failure, a subsequent `advWorktreeResume` for the same change returns `SETUP_FAILED` with the recorded reason. | pass | tk-7d028c421a6a: index-create.test.ts asserts cross-session advWorktreeResume returns SETUP_FAILED with recorded reason after simulated setup_failed signal persists. Warrant spec:rq-wl-resumeTool01 honored (spec body + scenario .2 mandates SETUP_FAILED on resume; behavior matches). 70 tests passed across 4 worktree/signal/boundary files. |\n| AC2 | acceptance_criterion | A durable worktree record with `status: \"setup_failed\"` and `setupFailureReason` is readable via `getWorktreeRecord` after a create-time failure. | pass | tk-7d028c421a6a: state-record-probe.test.ts asserts getWorktreeRecord returns status=\"setup_failed\" + setupFailureReason after the new signal is applied. Warrant spec:rq-wl-setupReadiness01 honored (spec body tightened + scenario .3 added in tk-8ab52bd86601). |\n| AC3 | acceptance_criterion | The live no-op `updateWorktreeRecord` writer no longer silently drops setup-failure state (it persists durably or is removed in favor of a signal path). | pass | tk-7d028c421a6a: updateWorktreeRecord function and all 3 call sites removed (state.ts:23 deletions). File-verified: rg updateWorktreeRecord plugin/src excl. tests → NO_PRODUCTION_REFERENCES. Replaced with worktreeSetupFailedSignal at the failure sites. |\n| AC4 | acceptance_criterion | Dead/no-op worktree session-registry reuse paths in `worktree/index.ts` are removed or covered by a test asserting their retired contract. | pass | tk-57f7f74f98a8: index.ts:1233 addSession success-path and ag-3hjQOLnK dead reuse path removed. state-session-lifecycle.test.ts extended with retired-contract tests for addSession/removeSession/getSession/getSessionRecord/listSessions. 21 lifecycle + 13 session + 213 worktree tests pass. |\n| AC5 | acceptance_criterion | `bin/adv` gate order and change/gate projection derive from a single shared source; a drift test fails if plugin gate order/fields diverge from the CLI. | pass | tk-d71adcdae0d3: cli-gate-order-parity.test.ts structural equality + source-level re-export check. Drift test fails when plugin/CLI gate orders diverge. |\n| AC6 | acceptance_criterion | `bin/adv` remains Bun-import-safe (no heavy plugin transitive imports leak into the CLI) — verified by CLI smoke/import test. | pass | tk-d71adcdae0d3: bin/lib/cli-projection-import-safety.test.ts — Bun smoke test dynamically imports shared module + statically forbids Temporal/storage/zod/node:* imports. bun bin/adv --version runs. 38 bun tests pass. |\n| AC7 | acceptance_criterion | `status.ts` and `change.ts` are split into focused modules; the full test suite passes with behavior preserved (no gate-model or archive-flow semantic change). | pass | tk-04d973fb7b3d + tk-86ff2357e525 + tk-85b3df2cadf0: status 2077→786, change 6183→3838. Full Vitest 4419 passed (5 pre-existing base-branch failures bit-identical to base). pnpm run check fully green. Behavior preserved per full suite oracle. |\n| AC8 | acceptance_criterion | Disk-store fallback wisdom read failures surface a bounded warning instead of a silent catch; ID generation is documented/deterministic where it matters. | pass | tk-8e94e60b7467: store-disk.test.ts asserts warning fires on unreadable project wisdom + IDs match monotonic format. 9 storage tests pass; typecheck + check pass. |\n| AC9 | acceptance_criterion | `pnpm run check` and the full test suite pass; new behavior has RED→GREEN tests. | pass | tk-85b3df2cadf0: pnpm run check fully green (schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check). Full Vitest: 4419 passed; 5 pre-existing base-branch failures verified bit-identical (git diff base HEAD -- <5 test files> empty). RED→GREEN across Slice A. |\n| AC10 | acceptance_criterion | Each reconnaissance finding ends as fixed-with-evidence or explicitly reconciled to an agenda item. | pass | tk-85b3df2cadf0 + tk-402adcd9e2a2: each of the 5 reconnaissance findings ends fixed-with-evidence (commits 345cf76051f3, 3c6beff62d7, 737dab1ffee, c8b3af455, b74d24f307e, 28bbbedb4cc) OR explicitly reconciled to an agenda item (9 agenda items reconciled: 5 absorbed, 4 cross-linked). |\n| C1 | constraint | Specs are laws; `worktree-lifecycle`, `advance-meta`, `advance-workflow` govern implementation. | respected | worktree-lifecycle spec delta landed (tk-8ab52bd86601). Specs remain laws; implementation honors updated rq-wl-setupReadiness01. worktree-lifecycle v1.7.0+. |\n| C2 | constraint | Change-workflow surface stays signal/query-only and replay-safe; no `defineUpdate` on the change-workflow surface. | respected | worktreeSetupFailedSignal is a defineSignal; no defineUpdate added to change-workflow surface. workflow-bundle-boundary.test.ts continues to pass. Decomposition used pure move + re-export (no architectural change to surface). |\n| C3 | constraint | Later implementation runs from the ADV-managed worktree; no trunk-checkout implementation writes. | respected | All implementation runs from ADV-managed worktree change/fixReconnaissanceRisks (paths in engine spawn prompts and tool calls). |\n| C4 | constraint | Decomposition must be behavior-preserving: no gate-model or archive-flow semantic changes. | respected | Decomposition is pure move + re-export; full Vitest suite (4419 passed) + pnpm run check (green) prove behavior preservation. No gate-model or archive-flow semantic changes. |\n| C5 | constraint | Runtime is Bun; tests run on Node/Vitest from `plugin/`; follow `bin/oc-test` routing for suites. | respected | Runtime is Bun (bin/adv); tests run on Node/Vitest from plugin/. pnpm run check passes; bin/oc-test targeted/full available. |\n| C6 | constraint | `bin/` must stay Bun-import-safe; no heavy plugin transitive imports may leak into the CLI. | respected | plugin/src/shared/cli-projection.ts has zero imports beyond plain TS. cli-projection-import-safety.test.ts statically forbids Temporal/storage/zod/node:* imports. bun bin/adv --version runs. |\n| DONT1 | avoidance | Do not treat heuristic path checks / string matching as authority for workflow state, claims, gate status, or worktree safety. | respected | Session-registry retirement (tk-57f7f74f98a8) removed heuristic dependency; durable workflow record is the authority for getWorktreeRecord reads. |\n| DONT2 | avoidance | Do not silently downgrade live Temporal/status failures to stale disk projections. | respected | worktreeSetupFailedSignal persists via Temporal signal (not disk projection). fireWorktreeSignal degrades gracefully when Temporal unavailable but never throws over the original setup error (DDC5). |\n| DONT3 | avoidance | Do not create new CLI mutation authority. | respected | plugin/src/shared/cli-projection.ts is a read-only zero-import shared module. No new CLI mutation authority. |\n| DONT4 | avoidance | Do not hide degraded disk wisdom reads when a bounded diagnostic is possible. | respected | tk-8e94e60b7467: replaced silent catch {} with bounded logger.warn (200-char truncation + path meta). Bounded diagnostic surfaced. |\n| DONT5 | avoidance | Do not absorb unrelated repo-wide refactors under cover of hotspot decomposition. | respected | Decomposition + cleanup scoped to owned surfaces (worktree/index.ts, status.ts, change.ts, store-disk.ts, bin/lib/{types,changes}.ts, shared/cli-projection.ts). No unrelated repo-wide refactor. 3 cross-linked follow-ups tracked: bin/lib/dashboard/attention.ts GATE_ORDER, archive/delta.ts sort fallback, explicit regression tests. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-02T16:59:42.166Z",
+      "contentHash": "63d962a2f1c7aab5f7c32ab7ac4d403aa7708456f2ec786420702626c9b166ad",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-02T16:44:27.337Z",
+      "contentHash": "b814699fe11db48a8bebc9eacc7c9cbb028e61dd884d188d5e62f97f7bc54b39",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-02T17:06:44.446Z",
+      "contentHash": "17d921c240fafa86b8c540ae9a98fee068204d1b25b6932b951706c263466278",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-02T17:13:54.320Z",
+      "contentHash": "2d539f62d13d77c30fb2a7e755771c611cc0c6dd209086f606fc459a412db30f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-02T20:46:43.814Z",
+      "contentHash": "8cd267d9832ffe537619182b4ff1c7a2de3213430aad55e473431f3775aac217",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-02T20:46:43.814Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
