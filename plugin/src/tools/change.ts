@@ -17,11 +17,14 @@ import {
   ChangeListStatusFilterSchema,
   ChangeOriginKindSchema,
   ChangeRepoScopeSchema,
+  BriefingPacketLaneSchema,
+  BRIEFING_PACKET_SESSION_METADATA_MAX_LENGTH,
   type GateId,
   type ArtifactKind,
   type Change,
   type ChangeRepoScope,
   type ScopedSubagentReport,
+  type BriefingPacketLane,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { getReflection } from "../storage/reflection";
@@ -110,6 +113,140 @@ function subagentReportReadbackKey(report: ScopedSubagentReport): string {
     attempt: report.attempt,
   });
 }
+
+
+const DEFAULT_BRIEFING_PACKET_LANE: BriefingPacketLane = "engineer";
+
+function briefingPacketGeneratedBy(
+  lane: BriefingPacketLane,
+  request?: string,
+): string {
+  const generatedBy = request
+    ? `adv_change_show:${lane}:${request}`
+    : `adv_change_show:${lane}`;
+  return generatedBy.slice(0, BRIEFING_PACKET_SESSION_METADATA_MAX_LENGTH);
+}
+
+function collectBriefingFactsForReadback(change: Change) {
+  const facts: BriefingPacketRendererInput["durable_facts"] = [];
+  const seenIds = new Set<string>();
+
+  const pushUnique = (
+    fact: NonNullable<BriefingPacketRendererInput["durable_facts"]>[number],
+  ): void => {
+    if (seenIds.has(fact.id)) return;
+    seenIds.add(fact.id);
+    facts.push(fact);
+  };
+
+  for (const task of change.tasks ?? []) {
+    for (const report of task.subagent_reports ?? []) {
+      for (const fact of classifyBriefingFacts({ report })) {
+        pushUnique(fact);
+      }
+    }
+  }
+
+  for (const report of change.subagent_reports ?? []) {
+    for (const fact of classifyBriefingFacts({ report })) {
+      pushUnique(fact);
+    }
+  }
+
+  return facts;
+}
+
+async function buildBriefingPacketForChange(
+  store: Store,
+  change: Change,
+  lane: BriefingPacketLane = DEFAULT_BRIEFING_PACKET_LANE,
+  request?: string,
+): Promise<BriefingPacketRendererInput> {
+  const changeId = change.id;
+  const artifacts = await readArtifacts(store, changeId, [
+    "proposal",
+    "problemStatement",
+    "acceptance",
+  ]);
+
+  const verificationExpectations: string[] = [];
+  if (change.contract) {
+    for (const item of change.contract.items) {
+      if (item.kind === "acceptance_criterion") {
+        verificationExpectations.push(item.text);
+      }
+    }
+  }
+  if (artifacts.acceptance) {
+    for (const line of artifacts.acceptance.split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed && !verificationExpectations.includes(trimmed)) {
+        verificationExpectations.push(trimmed);
+      }
+    }
+  }
+
+  const affectedFiles = new Set<string>();
+  if (change.affectedPaths) {
+    for (const f of change.affectedPaths) affectedFiles.add(f);
+  }
+  for (const task of change.tasks ?? []) {
+    for (const f of task.touched_files ?? []) affectedFiles.add(f);
+  }
+
+  const reviewMatrixById = new Map(
+    change.contract?.reviewMatrix?.rows.map((row) => [row.contractId, row]),
+  );
+  const contractItems: NonNullable<
+    BriefingPacketRendererInput["contract"]
+  >["items"] =
+    change.contract?.items.map((item) => {
+      const row = reviewMatrixById.get(item.id);
+      const status =
+        row?.status ??
+        (item.status === "approved" ? ("pass" as const) : ("unknown" as const));
+      return {
+        id: item.id,
+        kind: item.kind,
+        text: item.text,
+        status,
+      };
+    }) ?? [];
+
+  return {
+    change_id: changeId,
+    title: change.title,
+    lane,
+    origin: change.origin
+      ? {
+          kind: change.origin.kind,
+          issue_number: change.origin.issue_number,
+          source_artifact: change.origin.source_artifact,
+        }
+      : undefined,
+    scope: {
+      proposal: artifacts.proposal,
+      problem_statement: artifacts.problemStatement,
+    },
+    contract: contractItems.length ? { items: contractItems } : undefined,
+    tasks: change.tasks?.map((task) => ({
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      touched_files: task.touched_files,
+    })),
+    affected_files: Array.from(affectedFiles),
+    epic_membership: change.epic_membership ?? null,
+    verification_expectations:
+      verificationExpectations.length > 0
+        ? verificationExpectations
+        : undefined,
+    durable_facts: collectBriefingFactsForReadback(change),
+    archive_digest: undefined,
+    generated_by: briefingPacketGeneratedBy(lane, request),
+    generated_at: new Date().toISOString(),
+  };
+}
 import { fileExists, removeChangeDir } from "../storage/json";
 import {
   archiveChange,
@@ -125,6 +262,11 @@ import {
 } from "../utils/tool-formatters";
 import { checkRequirementSmells } from "../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
+import {
+  renderBriefingPacket,
+  type BriefingPacketRendererInput,
+} from "../utils/briefing-packet-renderer";
+import { classifyBriefingFacts } from "../utils/briefing-fact-classifier";
 import { resolveChangeSelection } from "../storage/change-selection";
 import { sweepClosedChangesFromDisk } from "../storage/disk-sweep";
 import { BulkCloseSelectorSchema } from "../types";
@@ -421,6 +563,28 @@ export const changeTools = {
             .describe(
               "When true, attaches persisted task sub-agent reports as `_subagentReports`.",
             ),
+          briefingPacket: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches a generated lane-specific briefing packet as `_briefingPacket`.",
+            ),
+          briefingPacketLane: z
+            .preprocess(
+              (value) => (value === "" ? undefined : value),
+              BriefingPacketLaneSchema.optional(),
+            )
+            .optional()
+            .describe(
+              "Lane to render when include.briefingPacket is true. Defaults to engineer.",
+            ),
+          briefingPacketRequest: z
+            .string()
+            .max(BRIEFING_PACKET_SESSION_METADATA_MAX_LENGTH)
+            .optional()
+            .describe(
+              "Optional request context included in the generated packet metadata.",
+            ),
         })
         .optional()
         .describe(
@@ -452,6 +616,9 @@ export const changeTools = {
           executiveSummary?: boolean;
           acceptance?: boolean;
           subagentReports?: boolean;
+          briefingPacket?: boolean;
+          briefingPacketLane?: BriefingPacketLane;
+          briefingPacketRequest?: string;
         };
       },
       store: Store,
@@ -657,6 +824,25 @@ export const changeTools = {
                   e instanceof Error ? e.message : String(e);
               }
             }
+            // Briefing packet — generated read projection over existing
+            // structured state. No live packet state is persisted.
+            if (include.briefingPacket) {
+              try {
+                const lane =
+                  include.briefingPacketLane ?? DEFAULT_BRIEFING_PACKET_LANE;
+                const packetInput = await buildBriefingPacketForChange(
+                  activeStore,
+                  change,
+                  lane,
+                  include.briefingPacketRequest,
+                );
+                output._briefingPacket = renderBriefingPacket(packetInput);
+              } catch (e) {
+                output._briefingPacketError =
+                  e instanceof Error ? e.message : String(e);
+              }
+            }
+
             // GH #21: Artifact content include flags — read raw markdown
             // from the change directory. Only reads when explicitly
             // requested to avoid unnecessary I/O. Falls back to the

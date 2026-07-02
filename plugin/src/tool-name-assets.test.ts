@@ -75,4 +75,8 @@ describe("tool-name assets", () => {
       expect(content).toMatch(/exact schema identifiers|exact tool names/i);
     }
   });
+
+  test("canonical tool list does not include a standalone adv_briefing_packet tool", () => {
+    expect(ADV_TOOL_NAMES).not.toContain("adv_briefing_packet");
+  });
 });

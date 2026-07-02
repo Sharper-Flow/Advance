@@ -1448,6 +1448,97 @@ describe("change tools — signal-driven lifecycle", () => {
       // Default hot path must not call Epic store hydration.
       expect(store.epics.get).not.toHaveBeenCalled();
     });
+
+    test("returns generated briefing packet when include.briefingPacket is set", async () => {
+      const store = createMockStore({
+        origin: { kind: "discovery", source_artifact: "test-source" },
+        documents: {
+          proposal:
+            "# Test Change\n\n## Scope\n\n- in scope item\n\n## User Outcomes\n\n- outcome one\n",
+        },
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: {
+            artifact: "agreement",
+            approvedAt: "2026-01-01T00:00:00Z",
+          },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Packet is returned",
+              sourceArtifact: "agreement",
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+        },
+        tasks: [
+          {
+            id: "tk-1",
+            title: "Wire packet",
+            status: "in_progress",
+            priority: 0,
+            created_at: "2026-01-01T00:00:00Z",
+            touched_files: ["plugin/src/tools/change.ts"],
+          } as Change["tasks"][number],
+        ],
+        affectedPaths: ["plugin/src/tools/change.ts"],
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { briefingPacket: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._briefingPacket).toBeDefined();
+      expect(parsed._briefingPacket.change_id).toBe("test-change");
+      expect(parsed._briefingPacket.lane).toBe("engineer");
+      expect(parsed._briefingPacket.schema_version).toBe("1.0");
+      expect(parsed._briefingPacket.sections).toEqual(expect.any(Array));
+      expect(parsed._briefingPacket.facts).toEqual([]);
+      const sectionKinds = parsed._briefingPacket.sections.map(
+        (s: { kind: string }) => s.kind,
+      );
+      expect(sectionKinds).toContain("identity_anchors");
+      expect(sectionKinds).toContain("scope");
+      expect(sectionKinds).toContain("contract");
+      expect(sectionKinds).toContain("tasks");
+      expect(sectionKinds).toContain("affected_files");
+    });
+
+    test("honors include.briefingPacketLane when generating packet", async () => {
+      const store = createMockStore({
+        documents: {
+          proposal: "# Test Change\n\n## Scope\n\n- in scope item\n",
+        },
+      });
+      const result = await changeTools.adv_change_show.execute(
+        {
+          changeId: "test-change",
+          include: { briefingPacket: true, briefingPacketLane: "reviewer" },
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._briefingPacket).toBeDefined();
+      expect(parsed._briefingPacket.lane).toBe("reviewer");
+    });
+
+    test("default adv_change_show output omits _briefingPacket", async () => {
+      const store = createMockStore({
+        documents: {
+          proposal: "# Test Change\n",
+        },
+      });
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed._briefingPacket).toBeUndefined();
+    });
   });
 
   describe("adv_change_create", () => {
