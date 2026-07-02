@@ -451,6 +451,12 @@ describe("change tools — signal-driven lifecycle", () => {
             ],
             architecture_assessment: "ok",
             validation: { status: "pass", blockers: [], notes: "ok" },
+            architecture_judgement: {
+              applicability: "not_applicable",
+              confidence: "high",
+              reason: "Docs-only research readback fixture.",
+              recommendation: "continue",
+            },
             recommendation: "continue",
             follow_ups: [],
           },

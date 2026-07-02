@@ -70,6 +70,14 @@ describe("optimized handoff agent contracts", () => {
     expect(body).toContain("adv_subagent_report_submit");
     expect(body).toContain('"agent": "adv-researcher"');
     expect(body).toContain('"scope_key"');
+    expect(body).toContain("Architecture Judgement Contract");
+    expect(body).toContain('"architecture_judgement"');
+    expect(body).toContain('"validation"');
+    expect(body).toContain('"status": "pass"');
+    expect(body).toContain("validation.status");
+    expect(body).toContain("Cite everything");
+    expect(body).toContain("I don't know");
+    expect(body).toContain("docs/API/examples");
     expectAnchors(
       body,
       getSubagentReportPacketAnchors("adv-researcher"),

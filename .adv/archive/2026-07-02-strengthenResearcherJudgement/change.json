@@ -1,0 +1,1028 @@
+{
+  "id": "strengthenResearcherJudgement",
+  "title": "Strengthen researcher judgement",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-02T17:59:56.389Z",
+  "tasks": [
+    {
+      "id": "tk-17ebaad76d74",
+      "title": "Implement typed researcher architecture judgement schema and legacy compatibility",
+      "type": "code",
+      "section": "Schema and compatibility",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-02T18:40:04.885Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC4",
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C6",
+          "DONT2",
+          "DONT3",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:43:13.748Z",
+      "verification": "RED: `bin/oc-test targeted -- src/types/subagent-reports.test.ts` failed because missing `architecture_judgement` did not throw. GREEN: `bin/oc-test targeted -- src/types/subagent-reports.test.ts` passed (49 tests). VERIFY: `bin/oc-test targeted -- src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts src/tools/change.test.ts src/temporal/change-state.test.ts` passed (199 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added required typed `architecture_judgement` for new `adv-researcher` reports, with applicable/not_applicable discriminated schema, verdict consistency checks keyed to `validation.status`, researcher field-source metadata, and deterministic legacy persisted researcher report normalization. Updated researcher fixtures/readback tests. Verified targeted schema/readback tests pass.",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "c0422bf7de88936b209e23a664babc9c33f5e956",
+      "completedAt": "2026-07-02T18:48:22.945Z",
+      "completed_at": "2026-07-02T18:48:22.945Z",
+      "notes": "Checkpoint c0422bf7de88936b209e23a664babc9c33f5e956. RED/GREEN/VERIFY evidence recorded via adv_run_test.",
+      "updatedAt": "2026-07-02T18:48:34.635Z"
+    },
+    {
+      "id": "tk-2f0fd93c8398",
+      "title": "Update adv-researcher prompt/report contract for Architecture Judgement",
+      "type": "code",
+      "section": "Researcher prompt contract",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-02T18:40:24.771Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-17ebaad76d74"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC3",
+          "AC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:49:13.781Z",
+      "verification": "RED: `bin/oc-test targeted -- src/optimized-handoff-assets.test.ts` failed because researcher prompt lacked Architecture Judgement Contract. GREEN: same command passed (6 tests) after prompt/report example update.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `adv-researcher` prompt to make Architecture Judgement first-class, preserve docs/API/examples research and citation/uncertainty requirements, document `validation.status` as the single verdict, and include `architecture_judgement` in the RESEARCHER_REPORT example. Added asset assertions for the prompt contract.",
+      "filesTouched": [
+        ".opencode/agents/adv-researcher.md",
+        "plugin/src/optimized-handoff-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-researcher.md",
+        "plugin/src/optimized-handoff-assets.test.ts"
+      ],
+      "checkpointSha": "652ac1830cfc758302ccf77151d87c81ec8481b7",
+      "completedAt": "2026-07-02T18:51:07.072Z",
+      "completed_at": "2026-07-02T18:51:07.072Z",
+      "notes": "Checkpoint 652ac1830cfc758302ccf77151d87c81ec8481b7. RED/GREEN evidence recorded via adv_run_test.",
+      "updatedAt": "2026-07-02T18:51:21.646Z"
+    },
+    {
+      "id": "tk-f8b8ee3d062d",
+      "title": "Update command/spec judgement contract and drift tests",
+      "type": "code",
+      "section": "Command and spec contract",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-02T18:40:49.894Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-17ebaad76d74"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C5",
+          "C6",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T18:51:59.863Z",
+      "verification": "RED: bin/oc-test targeted -- src/subagent-reports-spec-assets.test.ts initially failed on missing rq-subagentReports20 and missing Architecture Judgement anchors. GREEN: same command passed (20 tests) after spec/command/test updates. VERIFY: bin/oc-test targeted -- src/subagent-reports-spec-assets.test.ts src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts src/tools/change.test.ts src/temporal/change-state.test.ts src/optimized-handoff-assets.test.ts passed (225 tests across 6 files).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8274e69cb150f4e894ce28ee2771bb2d92570856",
+      "completedAt": "2026-07-02T19:02:26.749Z",
+      "completed_at": "2026-07-02T19:02:26.749Z"
+    },
+    {
+      "id": "tk-2f5759b354af",
+      "title": "Regenerate schemas and run final contract verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-02T18:41:10.800Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-17ebaad76d74"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2f0fd93c8398"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f8b8ee3d062d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-02T19:34:52.174Z",
+      "verification": "RED: pnpm run schemas:check failed with 'change.schema.json stale'. GREEN: pnpm run schemas:generate wrote 114-line schema additions covering architecture_judgement discriminated union (applicability, alternatives_considered, confidence, recommendation, risk, tradeoffs). VERIFY: pnpm run check passed (schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, format:check); bin/oc-test targeted -- src/subagent-reports-spec-assets.test.ts src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts src/tools/change.test.ts src/temporal/change-state.test.ts src/optimized-handoff-assets.test.ts passed (225/225). Broader pnpm test sweep surfaced 6 pre-existing failures on baseline 1818d9da (signal surface, ADV tool matrix, advance-workflow version, citation invariant, skill-backed commands, epic membership signal handlers) unrelated to this change; this change is clean against those surfaces.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "b8baddf5ba3fbf46f90ab5162e4001ba64e2007c",
+      "completedAt": "2026-07-02T19:42:58.349Z",
+      "completed_at": "2026-07-02T19:42:58.349Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "strengthenResearcherJudgement",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:judgement-contract"
+      },
+      "agent": "adv-researcher",
+      "topic": "Strengthen adv-researcher into an explicit architecture-judgement lane while preserving full research/tool responsibility",
+      "sources": [
+        {
+          "label": "adv-researcher agent prompt",
+          "locator": ".opencode/agents/adv-researcher.md:49-201",
+          "summary": "Mission already framed as 'architectural research agent' with simplicity bias, canonical-reference comparison, and a VALIDATED|CONCERNS|ANTI-PATTERN|NEEDS_MORE_INFO judgement verdict. Judgement exists but is prose-only in the free-text Response Format, not in the typed report transport."
+        },
+        {
+          "label": "ResearcherSubagentReportSchema (typed report)",
+          "locator": "plugin/src/types/subagent-reports.ts:337-355",
+          "summary": "Strict change-scoped payload: topic, sources[min1], architecture_assessment(string), validation{status: pass|caution|fail|unknown, blockers[], notes}, recommendation, follow_ups. No typed object for tradeoffs, alternatives-considered, risk, or confidence. .strict() rejects unknown fields — free-text judgement in the final message is NOT persisted."
+        },
+        {
+          "label": "adv-design.md validator lane",
+          "locator": ".opencode/command/adv-design.md:132-188",
+          "summary": "adv-researcher is the MANDATORY independent design validator across CORRECTNESS, SIMPLICITY, SPEC-LAW COMPLIANCE, KEY ALTERNATIVES with verdict VALIDATED|CAUTION|CONFLICT. This is the strongest existing judgement lane, but its rich per-dimension findings render only into free-text DESIGN_VALIDATION, not into the typed ResearcherSubagentReport."
+        },
+        {
+          "label": "adv-research.md orchestrator",
+          "locator": ".opencode/command/adv-research.md:140,49-60,246-270",
+          "summary": "adv-researcher owns docs/API/examples AND architecture validation/simplicity analysis. Architecture Audit classifies SOUND|DRIFTED|ANTI-PATTERN; synthesis report has Simplification Opportunities, Over-Engineering Flags, Confidence. Judgement is command-prose, not schema-enforced."
+        },
+        {
+          "label": "delegation-defaults spec",
+          "locator": ".adv/specs/delegation-defaults (rq-delDefaults03.4, rq-delDefaults05)",
+          "summary": "design allows adv-researcher (mandatory for validation); discovery/review route research/validation to adv-researcher. rq-delDefaults05.3 requires every persisted worker report to carry evidence, scope/impact assessment, blockers, and recommended next action — the existing researcher fields already satisfy this floor."
+        },
+        {
+          "label": "subagent-reports spec",
+          "locator": ".adv/specs/subagent-reports (rq-subagentReports01,05,06,07,10)",
+          "summary": "Reports are strict Zod at ingest (unknown fields rejected); adv-researcher is change-scoped only; packet anchors WORKING DIRECTORY/CHANGE/SCOPE KEY/ATTEMPT are required-identity; TASK_SCOPE..VERIFICATION are warn-first. rq-subagentReports10.2: new required fields would reject older payloads at ingest (no back-compat normalizer for new ingest) — argues for optional additive field, not required."
+        },
+        {
+          "label": "Field-source map + packet-anchor test",
+          "locator": "plugin/src/types/subagent-reports.ts:728-742,801-819; plugin/src/optimized-handoff-assets.test.ts:63-131",
+          "summary": "SUBAGENT_REPORT_FIELD_SOURCES['adv-researcher'] classifies every field as packet_anchor|worker_derived|tool_enriched. A new judgement field must be added here as worker_derived, and getSubagentReportPacketAnchors + optimized-handoff-assets/subagent-reports.test must stay green."
+        },
+        {
+          "label": "Reviewer/Verification-bundle judgement precedent",
+          "locator": "plugin/src/types/subagent-reports.ts:318-319,466,502-506",
+          "summary": "In-schema precedent for typed judgement: reviewer verdict enum + confidence enum on verification-triage bundle with a structural superRefine gating route_adv_engineer on confidence. Demonstrates ADV's canonical pattern is a typed enum verdict + structural refinement, not free prose."
+        }
+      ],
+      "architecture_assessment": "adv-researcher is ALREADY the architecture/design-judgement lane by responsibility and routing (design.md mandatory validator; research.md architecture audit; delegation-defaults design→adv-researcher). The gap is representational, not role-based: judgement richness (tradeoffs, alternatives-considered, risk, confidence) lives only in FREE-TEXT command output (DESIGN_VALIDATION block, synthesis report sections) and is DISCARDED at the typed report boundary because ResearcherSubagentReportSchema is .strict() and has no field for it. This violates ADV's own structural-correctness convention (P33) that the codebase applies everywhere else — reviewer verdict enum, verification-bundle confidence enum + superRefine. The by-the-book ADV pattern is: durable judgement = typed field with enum verdict + structural refinement, warn-first packet anchor, worker_derived field-source entry. Renaming to adv-architect is unnecessary and contra-indicated: the researcher already carries the full docs/API/examples + academic + code-search tool grant (agent frontmatter lines 6-45) and the design/review/discovery routing all name adv-researcher — a rename would create phantom-agent routing drift caught by phantom-subagent-roster.test.ts and delegation-matrix.test.ts. Deviation: MINOR (additive schema + prompt/packet strengthening), not a structural rebuild.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Proposal direction is VALIDATED. Keep canonical adv-researcher; preserve all tools/duties; strengthen judgement via an OPTIONAL typed judgement object (verdict enum already exists as validation.status; add alternatives_considered[], tradeoffs[], risk, confidence) plus prompt/packet emphasis. Recommend OPTIONAL (not required) schema field: rq-subagentReports10.2 makes a required field reject legacy/minimal payloads at strict ingest and raises regression surface across change-state seed, projection, and 5+ asset tests; optional preserves back-compat while making judgement durable and queryable. Prompt-only was considered and rejected as insufficient — it leaves judgement non-durable (discarded at .strict() boundary) and unqueryable via include.subagentReports, repeating the exact current gap. No contract/security/release blocker. No conflicting active change on this schema (addBriefingPackets owns the generated-packet renderer, a separate layer — do not touch it)."
+      },
+      "recommendation": "Adopt the OPTIONAL typed judgement field path. Exact surfaces to change: (1) plugin/src/types/subagent-reports.ts:345-355 — extend ResearcherSubagentReportSchema with an optional strict `judgement` object: { verdict: reuse/align with validation.status semantics OR add explicit VALIDATED|CONCERNS|ANTI-PATTERN|NEEDS_MORE_INFO enum, alternatives_considered: array of {option, why_not}, tradeoffs: array of strings, risk: enum(low|medium|high) or string, confidence: enum(high|medium|low) }. Keep .strict() and keep it .optional() for back-compat. (2) plugin/src/types/subagent-reports.ts:728-742 — add the new field to SUBAGENT_REPORT_FIELD_SOURCES['adv-researcher'] as 'worker_derived'. (3) .opencode/agents/adv-researcher.md — add a 'Judgement Contract' section and the judgement object to the RESEARCHER_REPORT JSON example (lines 131-156) + Response Format (162-186), emphasizing tradeoffs/alternatives/risk/confidence WITHOUT reducing any tool/citation/research duty. (4) .opencode/command/adv-design.md:175-188 — map the 4 validator dimensions into the typed judgement object so DESIGN_VALIDATION richness persists. (5) .adv/specs/subagent-reports/spec.json — extend rq-subagentReports07 (optimized handoff variants) to state the researcher judgement object is optional/additive and back-compat-normalized on readback per rq-subagentReports10. (6) Tests: update plugin/src/types/subagent-reports.test.ts (researcherReport fixture + strict-parse cases), optimized-handoff-assets.test.ts, subagent-reports-spec-assets.test.ts; run schemas:generate + schemas:check. Optionally add a structural superRefine (mirroring verification-bundle confidence gating at lines 502-506) e.g. ANTI-PATTERN verdict requires non-empty blockers. Do NOT rename to adv-architect; do NOT add TASK-scoped researcher variant (rq-subagentReports06.1 rejects it); do NOT reduce tool grants.",
+      "follow_ups": [
+        "Decide verdict representation: reuse existing validation.status (pass|caution|fail|unknown) as the single verdict source vs add a parallel architecture-verdict enum (VALIDATED|CONCERNS|ANTI-PATTERN|NEEDS_MORE_INFO) that already appears in the prompt's Response Format — a parallel enum risks two-verdict drift; reusing/aligning validation.status is simpler (P19).",
+        "Confirm whether judgement should be a warn-first packet anchor (JUDGEMENT / ALTERNATIVES) added to design.md + research.md researcher packets, tracked in optimized-handoff-assets.test.ts warn-first anchor assertions.",
+        "Run pnpm run schemas:generate then pnpm run schemas:check after schema edit; both are CI-enforced by pnpm run check."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "strengthenResearcherJudgement",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout — missed leverage points for strengthening adv-researcher architecture judgement",
+      "sources": [
+        {
+          "label": "ResearcherSubagentReportSchema (strict typed transport)",
+          "locator": "plugin/src/types/subagent-reports.ts:337-355",
+          "summary": "Researcher report is .strict() with validation{status:pass|caution|fail|unknown, blockers[], notes} + string architecture_assessment + recommendation. No typed home for tradeoffs, alternatives-considered, risk, or confidence. Free-text judgement is DISCARDED at ingest — this is the core representational gap."
+        },
+        {
+          "label": "Verification-triage bundle superRefine (canonical ADV judgement precedent)",
+          "locator": "plugin/src/types/subagent-reports.ts:480-516",
+          "summary": "ADV's by-the-book durable-judgement pattern: typed enum (confidence high|medium|low) + structural superRefine that gates recommended_next_action (route_adv_engineer requires SEMANTIC error_class, scope_risk false, confidence not low, suggested_handoff present). Directly reusable shape for a researcher judgement verdict+refinement."
+        },
+        {
+          "label": "adv-design.md Phase 3.5 validator OUTPUT_SCHEMA",
+          "locator": ".opencode/command/adv-design.md:169-188",
+          "summary": "Mandatory validator emits DESIGN_VALIDATION{verdict:VALIDATED|CAUTION|CONFLICT, findings[dimension 1-4, level, summary, detail], recommendation} as FREE-TEXT command prose. Rich 4-dimension judgement has NO typed home in ResearcherSubagentReportSchema — richest existing judgement lane loses structure at report boundary."
+        },
+        {
+          "label": "change-state.ts blocker-extraction consumer switch",
+          "locator": "plugin/src/temporal/change-state.ts:886-890",
+          "summary": "adv-researcher returns null in extractBlockerFromReport — a caution/fail validation or ANTI-PATTERN verdict is NOT auto-surfaced as a change blocker like reviewer blocking_findings are (871-884). Missed leverage: researcher judgement currently cannot register a structural blocker."
+        },
+        {
+          "label": "adv_change_show include.subagentReports readback",
+          "locator": "plugin/src/tools/change.ts:2834-2852",
+          "summary": "include.subagentReports returns full typed report objects (sidecar + legacy task) deduped by readback key. Confirms a NEW typed judgement field is durable AND visible on readback — the durable→visible path exists with zero new plumbing."
+        },
+        {
+          "label": "SUBAGENT_REPORT_FIELD_SOURCES['adv-researcher'] + anchor derivation",
+          "locator": "plugin/src/types/subagent-reports.ts:728-742,801-819",
+          "summary": "Every researcher field classified packet_anchor|worker_derived|tool_enriched; getSubagentReportPacketAnchors() derives the packet slice. A new judgement field must be added here as worker_derived or its ingest/asset tests (optimized-handoff-assets, subagent-reports.test) go red."
+        },
+        {
+          "label": "addBriefingPackets contract (scope boundary)",
+          "locator": "change:addBriefingPackets contract items AC2, C2, DONT7; researcher report scope_key researcher:discovery-opportunity-scout",
+          "summary": "addBriefingPackets owns packet RENDERING (invert FIELD_SOURCES→packet_anchor slices), DELIVERY (include.briefingPacket), and durable-fact PROMOTION taxonomy. C2 keeps report ingest strict; AC2 consumes getSubagentReportPacketAnchors() output. It does NOT own the researcher report schema SHAPE — clean boundary: this change adds the field, addBriefingPackets later renders it."
+        }
+      ],
+      "architecture_assessment": "Attempt-1 already validated the core path (optional typed judgement field, keep canonical adv-researcher, no rename). This scout pass surfaces the missed LEVERAGE POINTS beyond that headline. Five candidates, ranked by leverage/risk. (1) ADOPT_NOW: verdict-alignment decision — reuse existing validation.status as the single verdict source vs a parallel VALIDATED|CONCERNS|ANTI-PATTERN enum. Two parallel verdicts WILL drift (no invariant binds them); a superRefine that keeps validation.status authoritative and treats the judgement object as enrichment is the boring, P19/P33-aligned choice. Evidence: subagent-reports.ts:337-343 vs prompt Response Format enum. (2) ADOPT_NOW: structural superRefine mirroring the verification-bundle precedent (480-516) — e.g. validation.status:'fail' (or ANTI-PATTERN) requires non-empty blockers, and confidence:'low' cannot pair with validation.status:'pass'. This makes judgement self-consistent structurally, not by prose. Highest-leverage, lowest-risk: it is the exact canonical pattern the codebase already ships. (3) DESIGN_AROUND: map adv-design.md Phase 3.5's 4 validator dimensions (correctness/simplicity/spec-law/alternatives) into the typed judgement object so DESIGN_VALIDATION richness persists to readback instead of dying as command prose. Ties the richest judgement lane to the new field — but requires design.md packet OUTPUT_SCHEMA edits + asset-test updates, so it is design-shaped not auto-adopt. (4) SURFACE_TO_USER: whether an ANTI-PATTERN/fail researcher verdict should register a structural change blocker via extractBlockerFromReport (886-890 currently returns null). This is real leverage (judgement gains teeth) but crosses into gate/blocking semantics the proposal marks out-of-scope ('does not autonomously approve/override human checkpoints') — needs orchestrator/user decision on whether researcher may block. (5) REJECT: adding a warn-first JUDGEMENT/ALTERNATIVES packet ANCHOR now. Packet anchors are addBriefingPackets' rendering surface (AC2); adding researcher packet anchors here risks duplicate packet scope the proposal explicitly forbids. Deviation from proposal: NONE — all candidates live inside approved scope; #4 correctly flagged as scope-edge.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blocker. Candidates 1-2 are auto-adopt (contract-tied to existing P33 structural pattern, low risk, no compat break — field stays optional per rq-subagentReports10.2). Candidate 3 is design-shaped (packet + asset edits). Candidate 4 touches blocking/gate semantics the proposal fences out-of-scope — must be a user/orchestrator decision, not researcher default. Candidate 5 rejected to avoid addBriefingPackets packet-anchor scope overlap (DONT7/AC2). Scope boundary with addBriefingPackets is clean: this change owns the researcher report SHAPE (optional judgement object); addBriefingPackets owns RENDERING/DELIVERY/PROMOTION of it."
+      },
+      "recommendation": "Adopt candidates 1+2 now as the structural core: extend ResearcherSubagentReportSchema with an OPTIONAL .strict() judgement object {alternatives_considered:[{option,why_not}], tradeoffs:string[], risk:enum(low|medium|high), confidence:enum(high|medium|low)}, keep validation.status as the single authoritative verdict (no parallel enum), and add a superRefine binding judgement self-consistency (fail⇒blockers non-empty; low-confidence⊄pass) mirroring subagent-reports.ts:480-516. Add the field to SUBAGENT_REPORT_FIELD_SOURCES['adv-researcher'] as worker_derived; run schemas:generate + schemas:check. Pursue candidate 3 (design.md 4-dimension→judgement mapping) in design phase. Escalate candidate 4 (researcher verdict as structural blocker via extractBlockerFromReport) to the user at design gate as an explicit scope-edge decision — do not adopt silently. Do NOT add researcher packet anchors (candidate 5) — leave packet rendering to addBriefingPackets.",
+      "follow_ups": [
+        "Design-gate user decision: may an adv-researcher ANTI-PATTERN/fail verdict register a structural change blocker (extractBlockerFromReport currently returns null for researcher), or does judgement stay advisory-only per proposal out-of-scope fence?",
+        "Confirm verdict single-source: reuse validation.status (pass|caution|fail|unknown) as the authoritative verdict and treat the prompt's VALIDATED|CONCERNS|ANTI-PATTERN|NEEDS_MORE_INFO wording as a display alias, to avoid two-verdict drift (P19/P33).",
+        "Sequencing note for addBriefingPackets: once the optional judgement field lands, addBriefingPackets may add it to the researcher packet_anchor/worker_derived slice — coordinate so field-source classification is added once, not twice."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "strengthenResearcherJudgement",
+      "attempt": 3,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — strengthen researcher judgement",
+      "sources": [
+        {
+          "label": "subagent-reports.ts legacy-fill agent gate",
+          "locator": "plugin/src/types/subagent-reports.ts:550-588",
+          "summary": "LEGACY_DEFAULT_NORMALIZED_REPORT_AGENTS = {adv-engineer, adv-reviewer, adv-designer} explicitly EXCLUDES adv-researcher. Comment (550-553): change-scoped agents 'must not receive legacy default-filling on ingest'. normalizeLegacySubagentReportRow early-returns unchanged for adv-researcher rows."
+        },
+        {
+          "label": "readback passthrough (no strict re-validate)",
+          "locator": "plugin/src/storage/store-temporal/shared.ts:61-89",
+          "summary": "mapTemporalChangeStateToChange runs normalizePersistedSubagentReportState then assigns safeState.subagent_reports directly to the Change without strict per-report Zod parse. Readback tolerance is structural here, not schema-enforced."
+        },
+        {
+          "label": "Researcher validation status enum",
+          "locator": "plugin/src/types/subagent-reports.ts:337-355",
+          "summary": "ResearcherValidationSchema.status = pass|caution|fail|unknown. ResearcherSubagentReportSchema is .strict() with no superRefine today; adding a required object needs its own consistency refine."
+        },
+        {
+          "label": "adv-research.md vs adv-design.md verdict vocab",
+          "locator": ".opencode/command/adv-research.md:236 ; .opencode/command/adv-design.md:177,201",
+          "summary": "adv-research.md prints VALIDATED|CONCERNS|ANTI-PATTERN|NEEDS_MORE_INFO. adv-design.md prints VALIDATED|CAUTION|CONFLICT|INCONCLUSIVE. Schema uses pass|caution|fail|unknown. Three distinct vocabularies over one verdict concept."
+        },
+        {
+          "label": "Designer dimensions superRefine precedent",
+          "locator": "plugin/src/types/subagent-reports.ts:191-225",
+          "summary": "DesignerDesignDimensionsSchema uses .strict().superRefine to require notes when any dimension is concern/n-a. Proven in-repo pattern for conditional-required + self-consistency the researcher judgement should mirror."
+        },
+        {
+          "label": "adv-design 4 validator dimensions",
+          "locator": ".opencode/command/adv-design.md:170-185",
+          "summary": "Four dimensions: 1 CORRECTNESS, 2 SIMPLICITY, 3 SPEC-LAW COMPLIANCE, 4 KEY ALTERNATIVES. AC4 requires these map into the judgement contract; design.md only names the mapping abstractly."
+        },
+        {
+          "label": "extractBlockerFromReport absence",
+          "locator": "plugin/src/ (grep: no match)",
+          "summary": "No function named extractBlockerFromReport exists in the codebase. Design Decision 4 pins advisory-only behavior to leaving that function 'unchanged' — the anchor is fictitious."
+        }
+      ],
+      "architecture_assessment": "Draft design is directionally sound (typed judgement, single validation.status verdict, discriminated applicable/not_applicable, superRefine self-consistency, no packet-renderer scope). But it leans on two anchors that do not match the code as written, and it under-specifies two concrete surfaces the ACs require. Five leverage points below; none require rewriting the design.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No release/security/contract blocker. Advisory design-quality leverage points that will surface as rework or test-drift if unaddressed before planning. Candidates ranked by fate: 2 design_around, 2 adopt_now, 1 surface_to_user."
+      },
+      "recommendation": "Adopt candidates C1 and C2 (design_around) before planning: (C1) legacy compat for researcher rows cannot use normalizeLegacySubagentReportRow because adv-researcher is deliberately excluded and change-scoped agents are barred from ingest default-fill — instead scope the fill to the persisted-state readback path (normalizePersistedSubagentReportState / mapTemporalChangeStateToChange, which already passes subagent_reports through without strict re-parse), and treat AC2 as a readback-tolerance guarantee, not an ingest-schema one. (C2) Rewrite Design Decision 4 to drop the fictitious extractBlockerFromReport anchor and instead pin advisory-only to the real facts: no researcher blocker path exists today and checkUnresolvedDesignConcerns is designer-scoped only. Adopt C3 and C4: (C3) mirror DesignerDesignDimensionsSchema.superRefine explicitly as the named precedent for the judgement self-consistency refine; (C4) make AC4's 4-dimension→judgement mapping concrete in design.md (correctness/spec-law→risk+recommendation, simplicity+alternatives→tradeoffs+alternatives_considered). Surface C5 to user: the three-way verdict-vocabulary mismatch (schema pass/caution/fail/unknown vs research.md VALIDATED/CONCERNS/ANTI-PATTERN/NEEDS_MORE_INFO vs design.md VALIDATED/CAUTION/CONFLICT/INCONCLUSIVE) — decide whether this change normalizes vocab or documents the mapping, since DONT2 (no second verdict) is at risk if prose verdicts drift from typed status.",
+      "follow_ups": [
+        "C1 [design_around]: Legacy researcher compat must target the readback/persisted-normalization path, NOT normalizeLegacySubagentReportRow (adv-researcher excluded by LEGACY_DEFAULT_NORMALIZED_REPORT_AGENTS; change-scoped ingest default-fill is explicitly forbidden by the line 550-553 comment). Evidence: subagent-reports.ts:550-588, shared.ts:61-89.",
+        "C2 [design_around]: Design Decision 4 cites extractBlockerFromReport which does not exist. Re-anchor advisory-only to real evidence: no researcher→gate blocker exists, and checkUnresolvedDesignConcerns is designer-only. Evidence: grep no-match; adv-design.md:480.",
+        "C3 [adopt_now]: Name DesignerDesignDimensionsSchema.superRefine (subagent-reports.ts:191-225) as the canonical in-repo precedent for the judgement consistency refine (conditional-required + strict). Avoids inventing a parallel validation style; strengthens AC6 test drift coverage.",
+        "C4 [adopt_now]: Make AC4 mapping concrete in design.md — bind the 4 adv-design dimensions (CORRECTNESS/SIMPLICITY/SPEC-LAW/ALTERNATIVES, adv-design.md:170-185) to specific judgement fields (risk, confidence, tradeoffs[], alternatives_considered[], recommendation) so the /adv-design validator prompt and schema stay traceable.",
+        "C5 [surface_to_user]: Three verdict vocabularies over one concept (schema status vs adv-research.md verdict labels vs adv-design.md verdict labels). Decide: normalize to one mapping table or explicitly document the crosswalk. Risk to DONT2 if prose verdict labels can drift from typed validation.status. Evidence: subagent-reports.ts:339, adv-research.md:236, adv-design.md:177/201.",
+        "Warning: packet anchors present; TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION all supplied — no scope inference needed."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "strengthenResearcherJudgement",
+      "attempt": 4,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: typed architecture_judgement contract for adv-researcher reports",
+      "sources": [
+        {
+          "label": "subagent-reports spec v1.5.0 (rq-subagentReports01, 06, 07, 10)",
+          "locator": "adv_spec show subagent-reports",
+          "summary": "adv-researcher is change-scoped; new ingest strict, legacy readback normalized deterministically at readback/seed/projection; validation object already the researcher verdict carrier."
+        },
+        {
+          "label": "delegation-defaults spec v1.1.0 (rq-delDefaults03.4, 05.1)",
+          "locator": "adv_spec show delegation-defaults",
+          "summary": "design step allows adv-researcher (mandatory validation); researcher optimized handoff must include SOURCES/ARCHITECTURE ASSESSMENT/VALIDATION/RECOMMENDATION. Advisory, no machine gate blocker for researcher."
+        },
+        {
+          "label": "plugin/src/types/subagent-reports.ts:337-355",
+          "locator": "ResearcherValidationSchema + ResearcherSubagentReportSchema",
+          "summary": "validation.status enum is exactly pass|caution|fail|unknown, matching design's single-verdict decision D2. architecture_judgement field does not yet exist (net-new)."
+        },
+        {
+          "label": "plugin/src/types/subagent-reports.ts:204,485",
+          "locator": "existing superRefine self-consistency precedent",
+          "summary": "Two superRefine blocks exist (designer dimensions, verification-triage route consistency). D4 self-consistency-via-superRefine follows established file precedent."
+        },
+        {
+          "label": "plugin/src/types/subagent-reports.ts:518-531",
+          "locator": "discriminatedUnion agent precedent",
+          "summary": "Discriminated unions on kind/agent used throughout; D3 applicability discriminated union has direct precedent."
+        },
+        {
+          "label": "plugin/src/types/subagent-reports.ts:550-588",
+          "locator": "LEGACY_DEFAULT_NORMALIZED_REPORT_AGENTS + normalizeLegacySubagentReportRow",
+          "summary": "CRITICAL: legacy-normalization set is task-scoped only (adv-engineer/reviewer/designer) and code comment explicitly says change-scoped agents must NOT receive legacy default-filling. Researcher legacy-compat (impl step 4, D1, AC2) requires extending this exact mechanism."
+        },
+        {
+          "label": "storage/json.ts:446-448, temporal/change-state.ts:140, store-temporal/shared.ts:64",
+          "locator": "normalizePersistedSubagentReportState call sites",
+          "summary": "The three boundaries the design names (readback/seed/projection) already invoke the normalizer; generic recursion over subagent_reports keys covers both task and change level."
+        }
+      ],
+      "architecture_assessment": "Design is well-grounded in existing code and spec structure. validation.status enum (pass|caution|fail|unknown) already matches the proposed single verdict, eliminating drift risk (D2/AC3). superRefine (D4) and discriminatedUnion (D3) both have direct in-file precedent, so the typed judgement + self-consistency + applicability union are boring, proven patterns. worker_derived field-source map already lists researcher fields, so impl step 3 is a one-line extension. The legacy-compatibility strategy (D1/AC2) targets the correct real mechanism (normalizeLegacySubagentReportRow at the three named boundaries), BUT the design under-specifies one concrete correctness detail: making architecture_judgement REQUIRED on ResearcherSubagentReportSchema means old persisted researcher change-scoped sidecars will FAIL strict whole-change ChangeSchema parsing unless the normalizer injects a default. The current normalizer explicitly EXCLUDES change-scoped agents (comment lines 550-553), so the design must extend LEGACY_DEFAULT_NORMALIZED_REPORT_AGENTS (or an analogous researcher-specific injector) to fill a default architecture_judgement for adv-researcher rows. Design prose gestures at this ('researcher-specific persisted-state compatibility') but does not pin the mechanism, which is where prior attempts likely churned.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No spec conflict, no simpler viable alternative, no anti-pattern. One material implementation-precision caution: legacy readback compatibility (AC2/DC1) requires extending the existing task-scoped-only legacy normalizer to inject a default architecture_judgement for change-scoped adv-researcher rows; otherwise strict whole-change parse breaks on old researcher sidecars. This is advisory, not a contract compromise — the design's intent is correct and the mechanism exists."
+      },
+      "recommendation": "Proceed. The design is correct against all four dimensions and simpler alternatives are already rejected on sound grounds (prompt-only repeats the gap; separate adv-architect adds churn violating the 'keep canonical' constraint; new gate blocker violates the user's advisory-only decision). Before/during prep, make ONE mechanism explicit in design.md impl step 4: legacy readback compat for researcher requires a deterministic default architecture_judgement injector at the normalizeLegacySubagentReportRow boundary — either add adv-researcher to the normalization path with a researcher-specific default, or a dedicated researcher normalizer — because the current set (adv-engineer/reviewer/designer) intentionally excludes change-scoped agents and strict whole-change ChangeSchema parse will reject old researcher sidecars lacking the now-required field. Pin this with a test (DC1/AC2/AC6): persist a pre-migration researcher report without architecture_judgement, then assert it survives adv_change_show include.subagentReports AND strict change parse. Everything else (D2/D3/D4/AC1/AC3) rides on existing precedent and is low-risk.",
+      "follow_ups": [
+        "prep: add explicit design.md note + test pinning the legacy default-injection mechanism for change-scoped researcher sidecars (AC2/DC1/AC6)",
+        "prep: verify architecture_judgement is added to the worker_derived field-source map (line ~741) alongside existing researcher fields (impl step 3)"
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-02T18:10:27.874Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via inline approval checkpoint: approve",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "2498bb2d4f4964786d6e741a7cc8dc46d131863b41cdcbcb7b5288f26703907e",
+        "non_whitespace_chars": 6737,
+        "checked_at": "2026-07-02T17:59:56.462Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-02T18:25:32.082Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved criteria/agreement via inline checkpoint: approve. Agreement persisted and contract minted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "non_whitespace_chars": 4032,
+        "checked_at": "2026-07-02T17:59:56.463Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-02T18:39:01.306Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Design leverage scout and independent validator completed. Validator verdict CAUTION with legacy normalizer boundary pinned in design; no conflict or contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "fc7c320a802bdce97e593b08574cd5c9c23f732038d34b2293beb8c0a9dea6df",
+        "non_whitespace_chars": 12299,
+        "checked_at": "2026-07-02T17:59:56.464Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-02T18:42:40.978Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep task graph via inline checkpoint: approve"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-02T19:43:09.580Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-02T19:55:57.151Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "d18daf3e08f4ce2ef97011e9c07052146b2b38274a7976b0388fb8d9f6409701",
+        "non_whitespace_chars": 4816,
+        "checked_at": "2026-07-02T17:59:56.465Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+      "approvedAt": "2026-07-02T18:25:25.867Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "New `adv-researcher` submissions expose architecture judgement as durable typed report data, not only final-message prose.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Researcher breadth is preserved: docs/API/examples research, citation requirements, local code inspection, and architecture validation remain available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Design/research summaries visibly label and surface “architecture judgement” when researcher judgement affects a decision.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Legacy persisted researcher reports remain readable after the new judgement contract lands.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_subagent_report_submit` accepts new `adv-researcher` reports only when typed judgement data is present and consistent with `validation.status`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_subagent_report_submit"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Existing persisted researcher reports without judgement data remain readable through `adv_change_show include.subagentReports`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_show"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`adv-researcher` prompt/report guidance preserves current tool use, citation, and “I don’t know” requirements while adding architecture judgement duties.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-design` validator output maps correctness, simplicity, spec-law, and alternatives findings into the researcher judgement contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Researcher fail/anti-pattern judgement is surfaced as advisory architecture judgement and does not add a new machine gate blocker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Specs and tests fail if researcher judgement fields, verdict consistency, or `adv-researcher` routing coverage are removed or drift.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Keep canonical worker name `adv-researcher`; do not rename or add a separate `adv-architect` worker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve all current researcher tools, citation duties, docs/API/examples research duties, local code inspection, and architecture validation responsibility.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Strict sub-agent report validation remains strict; missing identity anchors must not be inferred heuristically.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Legacy compatibility for persisted researcher reports must be deterministic and structurally tested.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not duplicate the generated briefing-packet delivery/lane-slice scope owned by `addBriefingPackets`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Researcher fail/anti-pattern judgement is advisory-only in this change unless another existing gate blocker applies.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not reduce `adv-researcher` tool grants or research surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not create a second verdict field that can drift from `validation.status`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not make researcher judgement a new machine-enforced gate blocker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not create phantom or primary-agent routing drift.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not rely on prose-only judgement where typed report data is required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not implement the broader `addBriefingPackets` packet renderer in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-02T19:44:30.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/types/subagent-reports.ts lines 379-429 — ResearcherSubagentReportSchema requires architecture_judgement via ResearcherArchitectureJudgementSchema. Targeted RED: missing architecture_judgement raises. GREEN: present architecture_judgement validates. Bin/oc-test targeted sweep 225/225 across 6 test files.",
+          "notes": "researcher schema enforces typed judgement persistence"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": ".opencode/agents/adv-researcher.md — Architecture Judgement Contract section appended; Research Protocol + Citation Principles + Local Code Discovery unchanged; tools grants unchanged. C2 respected.",
+          "notes": "researcher breadth preserved"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": ".opencode/command/adv-design.md Phase 3.5 prompt + Phase 3.6 verdict table + Phase 4 Validator Result; .opencode/command/adv-research.md Command Boundary crosswalk + Architecture Judgement section + verdict crosswalk table.",
+          "notes": "design + research summaries visibly label architecture judgement"
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/types/subagent-reports.ts normalizeLegacySubagentReportRow function (lines ~600-700) + src/temporal/change-state.test.ts legacy readback fixture. Bin/oc-test targeted 225/225 includes legacy normalization paths.",
+          "notes": "legacy persisted researcher reports remain readable"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/types/subagent-reports.ts ResearcherSubagentReportSchema.superRefine enforces pass requires non-low confidence and design-validation scope requires applicable judgement; src/tools/subagent-report.test.ts covers accept/reject cases; src/types/subagent-reports.test.ts 49 tests; 225/225 pass across contract sweep.",
+          "notes": "adv_subagent_report_submit validates typed judgement consistency with validation.status"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "src/temporal/change-state.test.ts + src/tools/change.test.ts include legacy researcher fixture without architecture_judgement; readback preserves source metadata. Targeted sweep 76+42 tests pass.",
+          "notes": "adv_change_show include.subagentReports reads legacy reports"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".opencode/agents/adv-researcher.md Architecture Judgement Contract section + updated RESEARCHER_REPORT JSON example; src/optimized-handoff-assets.test.ts asserts Architecture Judgement contract + report shape; 6/6 tests pass.",
+          "notes": "prompt/report guidance preserves research duties and adds judgement"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".opencode/command/adv-design.md ARCHITECTURE JUDGEMENT DIMENSIONS mapping (CORRECTNESS→risk, SIMPLICITY→tradeoffs[], SPEC-LAW COMPLIANCE→spec_law_implications, KEY ALTERNATIVES→alternatives_considered[]); src/subagent-reports-spec-assets.test.ts research command + design command assertions; 20/20 tests pass.",
+          "notes": "design validator output maps dimensions into researcher judgement"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".adv/specs/subagent-reports/spec.json rq-subagentReports20 body: 'architecture_judgement object is advisory-only: it MUST NOT complete gates'; .opencode/command/adv-design.md Phase 3.6 fail row marked advisory-only NEVER auto-block; .opencode/command/adv-research.md crosswalk table fail→ANTI-PATTERN advisory-only yes.",
+          "notes": "researcher fail surfaced advisory-only; no new gate blocker"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".adv/specs/subagent-reports/spec.json rq-subagentReports01 references rq-subagentReports20; rq-subagentReports20 scenarios; .adv/specs/delegation-defaults/spec.json Independent Design Validator declares typed_persisted_worker packet contract for adv-researcher. Spec/command tests pin via src/subagent-reports-spec-assets.test.ts (20 tests including the four new Architecture Judgement assertions); bin/oc-test targeted 225/225; pnpm run check (schemas:check, typecheck, lint, format:check) passes.",
+          "notes": "specs + tests fail on drift"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": ".opencode/agents/adv-researcher.md unchanged name; no adv-architect alias introduced; .adv/specs/delegation-defaults/spec.json researcher rows use adv-researcher agent.",
+          "notes": "canonical worker preserved"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": ".opencode/agents/adv-researcher.md tool grants unchanged (Context7, Exa, searchcode, arxiv, lgrep, firecrawl, webfetch); Research Protocol + Citation + Local Code Discovery sections unchanged; Architecture Judgement Contract adds structure without narrowing responsibility.",
+          "notes": "researcher surface preserved"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "src/types/subagent-reports.ts ResearcherSubagentReportSchema uses .strict() and ChangeScopedBaseSubagentReportSchema superset; architecture_judgement required (not inferred); superRefine throws on missing/inconsistent fields; 49 schema tests cover reject paths.",
+          "notes": "strict validation preserved"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "src/types/subagent-reports.ts normalizeLegacySubagentReportRow is deterministic (pure function over already-loaded data, no IO); src/types/subagent-reports.test.ts + src/temporal/change-state.test.ts + src/tools/change.test.ts cover legacy readback; 225/225 targeted pass.",
+          "notes": "legacy normalization deterministic and structurally tested"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No addBriefingPackets references; scope is limited to architecture_judgement typed payload + prompt + command + spec; no packet renderer or lane-slice work introduced.",
+          "notes": "briefing-packet scope not duplicated"
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": ".adv/specs/subagent-reports/spec.json rq-subagentReports20 body explicitly states MUST NOT complete gates; .opencode/command/adv-design.md Phase 3.6 fail row marked advisory-only NEVER auto-block; no new gate machinery added to plugin runtime.",
+          "notes": "advisory-only fail semantics enforced"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": ".opencode/agents/adv-researcher.md tool grants unchanged; Research Protocol unchanged.",
+          "notes": "tool grants preserved"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "schema ResearcherValidationSchema.status is the only verdict source; ResearcherArchitectureJudgementSchema does not introduce a verdict field; adv-design/adv-research commands derive legacy labels via crosswalk only; adv-researcher prompt explicitly forbids a second judgement verdict field.",
+          "notes": "single source of truth verdict"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new machine-enforced gate blocker; checkUnresolvedDesignConcerns evaluator unaffected (researcher reports do not raise DESIGN_CONCERN_UNRESOLVED); /adv-design Phase 3.6 explicitly marks fail advisory-only; spec rq-subagentReports20 body + .opencode/command/adv-design.md 'Researcher `fail` / anti-pattern judgement is advisory-only in this change'.",
+          "notes": "no new machine gate blocker"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": ".adv/specs/delegation-defaults/spec.json Independent Design Validator row uses agent adv-researcher; no phantom routing; .opencode/agents/adv-researcher.md unchanged; no primary-agent routing drift introduced.",
+          "notes": "no phantom routing"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "researcher judgement enforced by Zod schema ResearcherArchitectureJudgementSchema, not prose; prompt/report guidance requires typed JSON via adv_subagent_report_submit.",
+          "notes": "typed report data required"
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No addBriefingPackets references; no packet renderer or briefing-packet delivery/lane-slice implementation introduced; change limited to researcher architecture_judgement + command spec contract.",
+          "notes": "briefing-packet renderer not implemented"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_subagent_report_submit` accepts new `adv-researcher` reports only when typed judgement data is present and consistent with `validation.status`.",
+    "Existing persisted researcher reports without judgement data remain readable through `adv_change_show include.subagentReports`.",
+    "`adv-researcher` prompt/report guidance preserves current tool use, citation, and “I don’t know” requirements while adding architecture judgement duties.",
+    "`/adv-design` validator output maps correctness, simplicity, spec-law, and alternatives findings into the researcher judgement contract.",
+    "Researcher fail/anti-pattern judgement is surfaced as advisory architecture judgement and does not add a new machine gate blocker.",
+    "Specs and tests fail if researcher judgement fields, verdict consistency, or `adv-researcher` routing coverage are removed or drift."
+  ],
+  "documents": {
+    "proposal": "## Why\n\nADV relies on `adv-researcher` for design validation and non-trivial architectural research, but its judgement role is under-emphasized and loosely structured. Architecture verdicts, tradeoffs, risks, confidence, and alternatives can be buried in prose instead of becoming clear, reusable signals for design/review decisions.\n\n## What Changes\n\n- Strengthen `adv-researcher` identity and prompt guidance so architecture judgement is first-class alongside docs/API/examples research.\n- Make design/research validator packets ask for clear architecture judgement outputs: verdict, tradeoffs, alternatives considered, risk, confidence, and recommendation.\n- Add durable typed researcher judgement support and update specs/tests to keep the contract structural.\n- Improve downstream synthesis so researcher judgement is visible to the orchestrator and user rather than buried in prose.\n\n## User Outcomes\n\n- Users can tell when `adv-researcher` is acting as an evidence-backed architecture judgement lane, not only a source gatherer.\n- Users see clearer tradeoff and risk summaries before design or review decisions continue.\n- Users keep current researcher breadth: docs, web, code examples, local code inspection, and architecture validation all remain available.\n- Users avoid disruptive agent rename while still getting stronger architect-style judgement where it matters.\n- Users can rely on ADV preserving architecture judgement in durable report/readback surfaces.\n\n## Affected Code\n\n- `.opencode/agents/adv-researcher.md` — mission, judgement contract, response/report example.\n- `.opencode/command/adv-design.md` — independent validator packet and displayed validator result.\n- `.opencode/command/adv-research.md` — research synthesis and architecture health output.\n- `.opencode/command/adv-review.md` and `.opencode/command/adv-task.md` — non-trivial architecture/research routing language where `adv-researcher` is used.\n- `plugin/src/types/subagent-reports.ts` — researcher judgement schema, field-source metadata, consistency checks.\n- `plugin/src/temporal/change-state.ts` — only if design adopts researcher fail/anti-pattern blocker extraction; discovery recommends advisory-only for now.\n- `plugin/src/subagent-reports-spec-assets.test.ts`, `plugin/src/optimized-handoff-assets.test.ts`, `plugin/src/delegation-matrix.test.ts`, and schema/report tests.\n- `.adv/specs/subagent-reports`, `.adv/specs/delegation-defaults`, possibly `.adv/specs/advance-workflow`.\n\n## Related Repositories\n\n- Current repository only: `advance`.\n- No cross-repo implementation scope is expected.\n\n## Scope\n\n### In Scope\n\n- Keep canonical worker name `adv-researcher`.\n- Preserve full researcher tools, surface, capability, citation requirements, and responsibility.\n- Use the visible label “architecture judgement” in relevant researcher/design summaries.\n- Add typed researcher judgement for all new researcher reports, with compatibility handling for legacy persisted reports.\n- Reuse `validation.status` as the single authoritative verdict to avoid parallel verdict drift.\n- Add consistency validation for judgement/status combinations.\n- Ensure specs/tests cover the judgement contract.\n- Coordinate with active `addBriefingPackets` by treating generated packet delivery as related context, not duplicating its scope.\n\n### Out of Scope\n\n- Renaming `adv-researcher` to `adv-architect`.\n- Creating a separate `adv-architect` worker.\n- Reducing research duties, citation requirements, or tool grants.\n- Changing gate ownership or making researcher judgement override human approval checkpoints.\n- Implementing the broader generated briefing-packet layer owned by `addBriefingPackets`.\n- Making fail/anti-pattern researcher judgement a machine-enforced gate blocker in this change.\n\n### Must Not\n\n- Must not reduce `adv-researcher` tool access or responsibility.\n- Must not infer missing report identity fields heuristically.\n- Must not create phantom or primary-agent routing drift.\n- Must not duplicate active `addBriefingPackets` generated packet scope.\n- Must not introduce a second verdict field that can drift from `validation.status`.\n\n## Constraints\n\n- Structural correctness first: schemas, packet anchors, validators, and tests own the report contract.\n- Existing strict report validation must remain strict; legacy compatibility must be explicit and deterministic.\n- Prompt changes must keep citation and “I don’t know” requirements intact.\n- Researcher fail/anti-pattern judgement is advisory by default in this change; it is surfaced strongly but does not introduce new machine gate blocking.\n- User-facing decisions remain with the orchestrator/user; researcher judgement informs but does not autonomously approve tradeoffs.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | `adv-agent-tool-contracts` matched schema/packet/report contract work and was loaded. No pending-review skill frontmatter found. |\n| Prior Research Extension | PASS | No `temp/*.md` notes. `docs/*-prep.md` packs exist but are not directly relevant to this internal researcher report contract. Own research reports added new findings. |\n| Conflict & Related-Work Scan | PASS with warning | Active `addBriefingPackets` overlaps packet delivery/lane slices; this change is bounded to researcher judgement report shape/prompt/command synthesis. Broad `adv_change_list` and `adv_status view:\"changes\"` timed out while Temporal diagnosed healthy; targeted read of `addBriefingPackets` succeeded. |\n| Edge Case Investigation | PASS | Edge cases recorded below. |\n| Design Question Depth | PASS | Open design questions annotated below. |\n| Draft Spec Delta Shapes | PASS | Draft deltas recorded below. |\n| P25 Related-Pattern Scan | PASS | Similar patterns found in typed reviewer/verifier report verdicts and design validator prose. |\n| LBP Check | PASS | Typed judgement with deterministic compatibility beats prompt-only prose and immediate hard blocker behavior. |\n| Completeness Verification | PASS | Problem and solution scope cover the researcher judgement contract; generated packet delivery remains out of scope. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts`: loaded; directly applies to modifying sub-agent report schemas, packets, prompts, specs, and tests.\n- `adv-arch-detection`: considered; not loaded because this is report-contract design, not architecture inconsistency scanning.\n- No new skill needed.\n\n### Extends\n\n- Research report `researcher:judgement-contract` found current-state gap: `adv-researcher` already has judgement responsibility, but typed transport lacks a judgement object.\n- Discovery scout `researcher:discovery-opportunity-scout` found leverage points: reuse `validation.status`, add self-consistency checks, map design validator dimensions into judgement, keep fail/anti-pattern advisory for this change, reject new packet anchor now.\n- No prior `temp/*.md` or directly relevant `docs/*-prep.md` research pack found.\n\n### Conflict Scan\n\n- Related active change: `addBriefingPackets` owns generated briefing packet delivery, lane slices, and packet lifecycle. Boundary: this change owns researcher judgement shape and prompt/command consumption only.\n- Own-change validation previously passed with expected proposal-stage warnings: `NO_TASKS`, `NO_DELTAS`.\n- Agenda contains many historic sub-agent follow-ups; no surfaced item directly supersedes this scope. Three new researcher-created follow-ups were recorded during research/scout for design/planning attention.\n- Tool warning: broad `adv_change_list` / `adv_status view:\"changes\"` timed out; `adv_temporal_diagnose` reported Temporal healthy and target workflow reachable.\n\n### Current State\n\n- `adv-researcher` already self-describes as an architectural research agent with simplicity bias and canonical reference comparison.\n- `/adv-design` already requires `adv-researcher` as independent validator across correctness, simplicity, spec-law, and key alternatives.\n- `/adv-research` already says `adv-researcher` owns docs/API/examples plus architecture validation and simplicity analysis.\n- `ResearcherSubagentReportSchema` persists `sources`, string `architecture_assessment`, `validation`, `recommendation`, and `follow_ups`; tradeoffs, alternatives, risk, and confidence are not durable fields.\n- `include.subagentReports` already returns persisted typed report objects, so a new field becomes visible without a new read tool.\n\n### Edge Cases\n\n- Legacy persisted researcher reports lack typed judgement; readback/migration must not fail strict whole-change parsing.\n- New generic research reports may be about docs/API/examples, not architecture; required judgement must still be meaningful without fabricating architecture claims.\n- `validation.status` and judgement fields could drift unless one verdict source is authoritative.\n- Low-confidence reports should not claim `pass` without notes or rationale.\n- `fail` / anti-pattern findings may be important but should remain advisory unless a later change adds explicit gate blocking.\n- Generated packet work may land from `addBriefingPackets`; this change must not create duplicate packet-anchor delivery machinery.\n\n### Open Design Questions\n\n1. Exact judgement object shape.\n   - Trust model: agent-owned technical design.\n   - Blast radius: schema churn, JSON schema generation, fixture/test updates.\n   - Alternatives: compact arrays/enum fields vs nested per-dimension structure. Recommendation: compact required object for all new researcher reports, plus optional/normalized compatibility for legacy persisted reports.\n2. Compatibility model for required-everywhere rollout.\n   - Trust model: agent-owned technical design within user-selected strictness.\n   - Blast radius: legacy reports, schema tests, public JSON schemas.\n   - Alternatives: optional forever, required only for validator, required for new reports with legacy normalization. Recommendation: required for new researcher submissions; legacy persisted reports normalize to unavailable/unknown compatibility shape.\n3. Advisory versus blocking fail/anti-pattern behavior.\n   - Trust model: user decision already resolved.\n   - Blast radius: gate readiness and workflow state.\n   - Alternatives: advisory only, pause for user, structural blocker. Decision: advisory only for this change.\n\n### Draft Spec Deltas\n\n- `rq-subagentReportsXX`: New researcher reports MUST include typed architecture judgement fields derived by the worker, while legacy persisted reports normalize deterministically at readback/seed/projection boundaries.\n  - Given a new `adv-researcher` report, when `adv_subagent_report_submit` validates it, then the report contains typed judgement fields for alternatives/tradeoffs/risk/confidence/recommendation aligned with `validation.status`.\n- `rq-subagentReportsYY`: Researcher judgement MUST reuse `validation.status` as the authoritative verdict and reject inconsistent payloads.\n  - Given a researcher report with `validation.status: fail`, when validated, then blocker/notes requirements and judgement consistency are enforced structurally.\n- `rq-delDefaultsXX` or update `rq-delDefaults05`: Worker report coverage for `adv-researcher` includes typed architecture judgement as evidence/impact/next-action support.\n  - Given delegation matrix report coverage tests run, when `adv-researcher` coverage is checked, then the typed judgement field is represented in specs/tests.\n- `rq-advanceWorkflowXX` only if design finds command behavior should be spec-law: design/research summaries display “architecture judgement” findings but fail/anti-pattern remains advisory unless another gate blocker exists.\n  - Given a researcher judgement returns fail, when the design/research summary is rendered, then the finding is surfaced clearly and does not by itself complete or block a gate.\n\n### Related Pattern Scan\n\n- Similar typed-report pattern: verification bundle already uses typed confidence/status and structural validation.\n- Similar command-output gap: design validator currently asks for rich `DESIGN_VALIDATION` prose, but typed researcher report cannot preserve it structurally.\n- Similar routing contract: `delegation-defaults` already pins `adv-researcher` as design validator and non-trivial fix research path.\n\n### Completeness Verification\n\n- Problem-completeness: full problem is not lack of architecture expertise; it is mismatch between existing judgement responsibility and durable typed representation. Confidence: high.\n- Solution-scope: full intended solution is report/prompt/spec/test contract change, not generated packet delivery or gate-blocking policy. Confidence: high.\n- Sole-entry claim: none. The change does not rely on one code chokepoint; design must inspect schema, report submit/readback, prompt, command, and spec/test surfaces.\n- Secondary surfaces: `addBriefingPackets` is out of scope with rationale; `change-state.ts` blocker extraction is advisory-only in this change unless design explicitly proposes a non-blocking display/readback use.\n\n### LBP Check\n\nPreferred direction: required typed judgement for new researcher reports with explicit legacy compatibility, visible “architecture judgement” label, advisory fail/anti-pattern behavior.\n\nWhy this is LBP:\n\n- Prompt-only repeats the current non-durable prose gap.\n- Optional forever under-delivers the user’s selected strictness.\n- Required everywhere without compatibility risks legacy breakage; required for new submissions plus deterministic legacy normalization satisfies strictness and safety.\n- Structural validation avoids parallel verdict drift by making `validation.status` authoritative.\n\n### Discovery Opportunity Scout\n\n- Candidate 1: reuse `validation.status` as single verdict — adopt now.\n- Candidate 2: add self-consistency validation — adopt now.\n- Candidate 3: map design validator dimensions into typed judgement — design around.\n- Candidate 4: researcher fail/anti-pattern as structural blocker — advisory only for this change per user decision.\n- Candidate 5: add researcher packet anchor now — reject; belongs to `addBriefingPackets` scope.\n\n### AMBIGUITY ANALYSIS\n\nNo blocking ambiguity findings.\nCoverage: B:C F:C S:C M:C\n\nAdvisory note: broad conflict-scan tools timed out, but targeted overlap evidence and Temporal health check were sufficient for this proposal. Carry tool-timeout evidence into design as a workflow-risk note, not a scope ambiguity.\n\n## Agent-Resolved Decisions\n\n- Keep `adv-researcher` canonical; do not rename or alias.\n- Use `validation.status` as the single authoritative verdict.\n- Add typed judgement to researcher reports; design determines exact schema and compatibility implementation.\n- Treat fail/anti-pattern researcher judgement as advisory by default in this change.\n- Do not create new packet-anchor delivery machinery; coordinate with `addBriefingPackets`.\n\n## User Decisions\n\n- Use the visible label “architecture judgement” in relevant summaries.\n- Researcher `fail` / anti-pattern judgement is advisory-only by default for this change.\n- Typed judgement rollout should be required everywhere for new researcher reports, with legacy compatibility handled structurally.\n\n## Impact\n\n- Improves clarity and reuse of architecture judgement in ADV design/review workflows.\n- Touches agent/command prompt contracts, report schema/types, specs, generated schemas, and tests.\n- Does not reduce researcher breadth or affect non-researcher workers except through clearer researcher report readback/consumption.\n",
+    "problemStatement": "ADV relies on `adv-researcher` for design validation and non-trivial architectural research, but its judgement role is under-emphasized and only loosely structured. As a result, architecture verdicts, tradeoffs, risks, confidence, and alternatives can be buried in prose instead of becoming clear, reusable signals for design/review decisions. We need to strengthen `adv-researcher` as an evidence-backed architecture judgement lane while preserving its full research/tooling responsibility.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make `adv-researcher` an explicit evidence-backed architecture judgement lane while preserving its full research responsibility.\n2. Persist architecture judgement as typed researcher report data for new researcher submissions.\n3. Keep `validation.status` as the single authoritative researcher verdict to prevent parallel verdict drift.\n4. Surface architecture judgement clearly in design/research summaries without introducing a new machine gate blocker.\n5. Preserve compatibility for legacy researcher reports that lack the new judgement data.\n\n## Success Criteria\n\n- SC1: New `adv-researcher` submissions expose architecture judgement as durable typed report data, not only final-message prose.\n- SC2: Researcher breadth is preserved: docs/API/examples research, citation requirements, local code inspection, and architecture validation remain available.\n- SC3: Design/research summaries visibly label and surface “architecture judgement” when researcher judgement affects a decision.\n- SC4: Legacy persisted researcher reports remain readable after the new judgement contract lands.\n\n## Acceptance Criteria\n\n- AC1: `adv_subagent_report_submit` accepts new `adv-researcher` reports only when typed judgement data is present and consistent with `validation.status`. [warrant: tool:adv_subagent_report_submit]\n- AC2: Existing persisted researcher reports without judgement data remain readable through `adv_change_show include.subagentReports`. [warrant: tool:adv_change_show]\n- AC3: `adv-researcher` prompt/report guidance preserves current tool use, citation, and “I don’t know” requirements while adding architecture judgement duties.\n- AC4: `/adv-design` validator output maps correctness, simplicity, spec-law, and alternatives findings into the researcher judgement contract.\n- AC5: Researcher fail/anti-pattern judgement is surfaced as advisory architecture judgement and does not add a new machine gate blocker.\n- AC6: Specs and tests fail if researcher judgement fields, verdict consistency, or `adv-researcher` routing coverage are removed or drift.\n\n## Constraints\n\n- C1: Keep canonical worker name `adv-researcher`; do not rename or add a separate `adv-architect` worker.\n- C2: Preserve all current researcher tools, citation duties, docs/API/examples research duties, local code inspection, and architecture validation responsibility.\n- C3: Strict sub-agent report validation remains strict; missing identity anchors must not be inferred heuristically.\n- C4: Legacy compatibility for persisted researcher reports must be deterministic and structurally tested.\n- C5: Do not duplicate the generated briefing-packet delivery/lane-slice scope owned by `addBriefingPackets`.\n- C6: Researcher fail/anti-pattern judgement is advisory-only in this change unless another existing gate blocker applies.\n\n## Avoidances\n\n- DONT1: Do not reduce `adv-researcher` tool grants or research surface.\n- DONT2: Do not create a second verdict field that can drift from `validation.status`.\n- DONT3: Do not make researcher judgement a new machine-enforced gate blocker.\n- DONT4: Do not create phantom or primary-agent routing drift.\n- DONT5: Do not rely on prose-only judgement where typed report data is required.\n- DONT6: Do not implement the broader `addBriefingPackets` packet renderer in this change.\n\n## Preview Applicability\n\nvisual_surface: false — change affects ADV workflow/tooling behavior, prompts, report schemas, specs, and tests only; no browser-visible or visual output can be affected.\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: no frontend/browser surface.\n\n## Decisions\n\n### User Decisions\n\n- Use visible “architecture judgement” label in relevant researcher/design summaries.\n- Keep fail/anti-pattern architecture judgement advisory-only by default for this change.\n- Roll typed judgement out as required for new researcher reports, with explicit compatibility handling for legacy persisted reports.\n\n### Agent Decisions (LBP)\n\n- Keep `adv-researcher` canonical; no rename or alias.\n- Use `validation.status` as the single authoritative researcher verdict.\n- Add typed judgement to researcher reports rather than prompt-only prose.\n- Treat generated packet delivery as out of scope and coordinate with `addBriefingPackets`.\n- Design should inspect schema, report submit/readback, prompt, command, and spec/test surfaces; no sole-entry chokepoint is assumed.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nApproved by user via inline criteria/agreement checkpoint (reply: `approve`) on 2026-07-02.",
+    "design": "# Design\n\n## Architecture Overview\n\nAdd a typed `architecture_judgement` contract to `adv-researcher` reports so architecture judgement becomes durable, queryable, and testable instead of final-message prose. New researcher submissions must include the field; legacy persisted researcher reports remain readable through explicit compatibility handling.\n\nThe design keeps `adv-researcher` canonical and preserves its full research role. It does not add an `adv-architect` worker and does not reduce docs/API/examples research, citation requirements, local code inspection, or architecture validation responsibilities.\n\nCore model:\n\n- `ResearcherArchitectureJudgementSchema` — strict typed judgement object.\n- `validation.status` — single authoritative verdict enum: `pass | caution | fail | unknown`.\n- Display labels — derived from `validation.status`; user-facing summaries may render “Architecture Judgement: caution” or friendly labels, but tests pin the typed source of truth.\n- Legacy readback compatibility — persisted researcher reports without `architecture_judgement` remain readable and are normalized or tolerated deterministically at readback/seed/projection boundaries.\n\n## Key Decisions\n\n### D1 — Required for new reports, compatible for legacy persisted reports\n\n`architecture_judgement` is required for new `adv-researcher` submissions through `adv_subagent_report_submit`. This satisfies the user-selected strict rollout and AC1.\n\nLegacy reports are handled separately from new ingest. The current normalizer intentionally default-fills only older task-scoped agents (`adv-engineer`, `adv-reviewer`, `adv-designer`), while change-scoped researcher reports were introduced with strict shapes. Implementation must add a researcher-specific legacy compatibility path without weakening new ingest validation.\n\nDesign implication:\n\n- New ingest: strict schema requires `architecture_judgement`.\n- Legacy state/readback: deterministic compatibility value or tolerance is applied before strict whole-change parsing/readback as needed.\n- Tests prove new missing field is rejected while legacy persisted rows remain readable.\n\n### D2 — `validation.status` is the only verdict\n\nDo not introduce `architecture_judgement.verdict`. That would create drift risk against existing `validation.status`.\n\nCanonical verdict enum:\n\n- `pass` — evidence supports the researched/validated direction.\n- `caution` — direction can work, but meaningful tradeoffs/risks/alternatives exist.\n- `fail` — evidence advises against the direction or identifies an anti-pattern.\n- `unknown` — evidence is inconclusive or source access is insufficient.\n\nUser-facing output should derive display labels from that enum. Existing command vocabularies (`VALIDATED`, `CONCERNS`, `ANTI-PATTERN`, `NEEDS_MORE_INFO`, `CONFLICT`, `INCONCLUSIVE`) should either be normalized to the canonical enum or covered by a tested crosswalk where compatibility text remains. Best practice for implementation is canonical enum first; display strings derived.\n\n### D3 — Judgement shape supports architecture and non-architecture research\n\nBecause `adv-researcher` must keep broad research duties, the schema must not force fabricated architecture claims for purely docs/API/example research.\n\nRecommended shape:\n\n```ts\nconst ResearcherArchitectureJudgementSchema = z.discriminatedUnion(\"applicability\", [\n  z.object({\n    applicability: z.literal(\"applicable\"),\n    confidence: z.enum([\"high\", \"medium\", \"low\"]),\n    risk: z.enum([\"low\", \"medium\", \"high\"]),\n    tradeoffs: z.array(z.string().min(1)).min(1),\n    alternatives_considered: z.array(\n      z.object({\n        option: z.string().min(1),\n        disposition: z.enum([\"preferred\", \"rejected\", \"deferred\"]),\n        rationale: z.string().min(1),\n      }).strict(),\n    ).min(1),\n    recommendation: z.string().min(1),\n  }).strict(),\n  z.object({\n    applicability: z.literal(\"not_applicable\"),\n    confidence: z.enum([\"high\", \"medium\", \"low\"]),\n    reason: z.string().min(1),\n    recommendation: z.string().min(1),\n  }).strict(),\n]);\n```\n\nFor design validation and architecture/pattern research, packets should require `applicability: \"applicable\"`. For generic docs/API/example research where architecture judgement is genuinely not applicable, reports still include typed judgement with `applicability: \"not_applicable\"` and a reason.\n\n### D4 — Self-consistency validation follows existing schema precedent\n\nUse `.superRefine()` on `ResearcherSubagentReportSchema`, following in-repo precedent from conditional/self-consistency validation patterns such as designer design dimensions and verification triage bundles.\n\nMinimum consistency rules:\n\n- `validation.status === \"pass\"` cannot pair with applicable judgement confidence `low`.\n- `validation.status === \"fail\"` requires non-empty `validation.blockers` and a non-empty judgement recommendation.\n- `validation.status === \"unknown\"` requires notes explaining inconclusive evidence or source limitation.\n- `applicability === \"applicable\"` requires non-empty tradeoffs and alternatives considered.\n- `applicability === \"not_applicable\"` is allowed only when the report scope is not a design/architecture validation scope; design/research command packets should instruct applicable judgement for architecture lanes.\n\n### D5 — Fail/anti-pattern remains advisory in this change\n\nDo not add a new machine-enforced gate blocker for researcher fail/anti-pattern judgement. The finding is surfaced as “Architecture Judgement: fail” or equivalent advisory output, but gate readiness remains governed by existing gate rules and human checkpoints.\n\nImplementation should avoid adding researcher report logic to gate-readiness blockers. If report-level `validation.blockers` is populated for schema consistency, those blockers remain report evidence and advisory context unless an existing gate rule independently blocks.\n\n### D6 — Coordinate with `addBriefingPackets`, do not duplicate packet delivery\n\n`addBriefingPackets` owns generated packet delivery, lane slices, and packet lifecycle. This change owns report shape, prompt/report guidance, and command synthesis language.\n\nAllowed here:\n\n- Update `adv-researcher.md` report example and response format.\n- Update command prompt text for design/research validator expectations.\n- Update specs/tests for researcher judgement fields and verdict consistency.\n\nNot allowed here:\n\n- Add new packet-rendering infrastructure.\n- Add new briefing packet include flags or lane-slice machinery.\n- Add a new standalone packet tool.\n\n## ADR Drafts\n\nNone. The choice is important but not hard to reverse enough to require an ADR: it is an additive report-contract evolution with compatibility handling, not a new subsystem boundary.\n\n## Implementation Strategy\n\n1. **Schema and types**\n   - Add `ResearcherArchitectureJudgementSchema` near `ResearcherValidationSchema` in `plugin/src/types/subagent-reports.ts`.\n   - Add required `architecture_judgement` to `ResearcherSubagentReportSchema`.\n   - Add `.superRefine()` consistency rules on `ResearcherSubagentReportSchema`.\n   - Add `architecture_judgement: \"worker_derived\"` to `SUBAGENT_REPORT_FIELD_SOURCES[\"adv-researcher\"]`.\n\n2. **Legacy compatibility**\n   - Add researcher-specific persisted-state compatibility for sidecar `adv-researcher` reports missing `architecture_judgement`.\n   - The implementation must pin the exact boundary: current `normalizeLegacySubagentReportRow` is task-scoped-only, so the engineer must either extend it deliberately for `adv-researcher` or add a dedicated researcher normalizer at the persisted sidecar readback/seed/projection boundary.\n   - Keep new ingest strict: `adv_subagent_report_submit` rejects new researcher reports without the field.\n   - Ensure `adv_change_show include.subagentReports` can read legacy reports without breaking strict whole-change parse.\n\n3. **Prompt/report contracts**\n   - Update `.opencode/agents/adv-researcher.md` mission/response format/report example with an “Architecture Judgement Contract” section.\n   - Preserve all existing tool grants and citation/uncertainty rules.\n   - Make the report example include `architecture_judgement`.\n\n4. **Command synthesis**\n   - Update `.opencode/command/adv-design.md` validator prompt so the four dimensions map into the typed judgement object:\n     - Correctness + spec-law → `risk` and `recommendation`.\n     - Simplicity + key alternatives → `tradeoffs[]` and `alternatives_considered[]`.\n     - Overall confidence → `confidence`.\n   - Update `.opencode/command/adv-research.md` to display “Architecture Judgement” while deriving verdict wording from `validation.status`.\n   - Review `.opencode/command/adv-review.md` and `.opencode/command/adv-task.md` for routing language only; avoid broader scope.\n\n5. **Specs and tests**\n   - Update `.adv/specs/subagent-reports` for required new researcher judgement, legacy compatibility, and verdict consistency.\n   - Update `.adv/specs/delegation-defaults` report coverage if needed so researcher judgement is part of structured report coverage.\n   - Update `plugin/src/types/subagent-reports.test.ts` for valid, invalid, consistency, and legacy normalization cases.\n   - Update `plugin/src/optimized-handoff-assets.test.ts` and `plugin/src/subagent-reports-spec-assets.test.ts` to pin prompt/spec contract.\n   - Update public schemas via `pnpm run schemas:generate`; verify with `pnpm run schemas:check`.\n\n## LBP Analysis\n\nThe selected approach is the long-term best path because it makes architecture judgement structural without shrinking researcher responsibilities.\n\nRejected alternatives:\n\n- Prompt-only: fastest, but repeats the current non-durable prose gap.\n- Optional forever: compatible, but under-delivers the user-selected strict rollout and leaves new reports able to omit judgement.\n- Separate `adv-architect`: clearer label, but creates routing/schema/docs churn and risks reducing researcher breadth.\n- New gate blocker for researcher fail: stronger enforcement, but violates the user decision that fail/anti-pattern should remain advisory in this change.\n- Packet-anchor change here: overlaps `addBriefingPackets` and violates scope boundary.\n\n## Affected Components\n\n- `plugin/src/types/subagent-reports.ts`\n- `plugin/src/types/subagent-reports.test.ts`\n- `plugin/src/tools/subagent-report.ts` if consumer warning/readback behavior needs awareness of the new field\n- `plugin/src/tools/change.ts` readback tests, but no new read surface expected\n- `.opencode/agents/adv-researcher.md`\n- `.opencode/command/adv-design.md`\n- `.opencode/command/adv-research.md`\n- `.opencode/command/adv-review.md` and `.opencode/command/adv-task.md` for routing wording only if needed\n- `plugin/src/optimized-handoff-assets.test.ts`\n- `plugin/src/subagent-reports-spec-assets.test.ts`\n- `plugin/src/delegation-matrix.test.ts` only if report coverage text changes\n- `.adv/specs/subagent-reports`\n- `.adv/specs/delegation-defaults` if report coverage requirement text needs extension\n- Generated public schemas in `plugin/schemas/`\n\n## Design-Derived Criteria\n\n- DC1: New researcher report ingest rejects missing `architecture_judgement`; legacy persisted reports without it remain readable.\n- DC2: `validation.status` is the only stored verdict; display wording derives from it or is covered by tested mapping.\n- DC3: Applicable architecture judgement requires non-empty tradeoffs and alternatives considered.\n- DC4: `fail` judgement remains advisory and does not create a new gate-readiness blocker.\n- DC5: Prompt changes preserve existing citation, uncertainty, and full-tool-use duties.\n- DC6: Spec and asset tests pin researcher judgement fields and prompt/report guidance.\n- DC7: Generated JSON schemas are updated and schema drift check passes.\n\n## Risks / Mitigations\n\n- Risk: required field breaks legacy reports.\n  - Mitigation: add deterministic legacy compatibility before strict whole-change parsing/readback; test both legacy and new-ingest paths.\n- Risk: generic research reports fabricate architecture content.\n  - Mitigation: discriminated `not_applicable` shape with required reason and recommendation.\n- Risk: verdict labels drift across commands.\n  - Mitigation: canonical `validation.status`; derived display labels or tested crosswalk.\n- Risk: fail/anti-pattern becomes hidden gate blocker.\n  - Mitigation: do not add researcher gate-readiness blocker; keep advisory behavior explicit in specs/tests.\n- Risk: overlap with `addBriefingPackets`.\n  - Mitigation: no new packet delivery machinery; report shape only.\n\n## Design Leverage Scout\n\nScout result: CONCERNS, no blocker.\n\nAdopted:\n\n- Scope legacy compatibility to the actual persisted researcher readback/normalization path, not the existing task-scoped legacy default-fill comment without design review.\n- Use existing `.superRefine()` conditional validation precedent.\n- Concretely map `/adv-design` validator dimensions into judgement fields.\n- Normalize verdict wording around `validation.status` as source of truth.\n\nRejected/deferred:\n\n- New researcher packet anchor now — rejected as `addBriefingPackets` scope.\n- Researcher fail/anti-pattern as structural gate blocker — rejected for this change per user decision.\n\n## Validator Result\n\nValidator result: CAUTION, no conflict.\n\nFindings:\n\n- Correctness caution: required `architecture_judgement` will break strict whole-change parsing of old researcher sidecars unless implementation adds deterministic researcher legacy compatibility. This is now pinned in Implementation Strategy step 2 and DC1.\n- Simplicity: no materially simpler viable approach; `validation.status`, `.superRefine()`, discriminated unions, and field-source metadata all have existing in-file precedent.\n- Spec-law: no conflict with `subagent-reports` or `delegation-defaults`; design matches strict ingest plus deterministic legacy compatibility.\n- Alternatives: no significant viable alternative overlooked; applicability discriminated union handles non-architecture research without fabricated architecture content.\n\nRecommendation: proceed to planning with the legacy normalizer boundary pinned as explicit task/test scope.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nStrengthened `adv-researcher` into an explicit Architecture Judgement lane with a typed report contract (applicability discriminated union + validation.status consistency + legacy readability + advisory-only fail semantics). All four tasks done; build/test/lint/schemas/typecheck clean; merge compatibility clean; no release-readiness findings.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Schema: added `ResearcherArchitectureJudgementSchema` discriminated union on `applicability` with applicable/not_applicable variants, plus `ResearcherSubagentReportSchema.superRefine` enforcing `validation.status: pass` ⇒ non-low confidence, `validation.status: fail` ⇒ ≥1 blocker, design-validation scope ⇒ applicable judgement. Source: `plugin/src/types/subagent-reports.ts`.\n2. Legacy normalization: `normalizeLegacySubagentReportRow` deterministically fills missing `architecture_judgement` for persisted reports (so `adv_change_show include.subagentReports` remains readable without backfill).\n3. Worker prompt: appended Architecture Judgement Contract section to `.opencode/agents/adv-researcher.md`, preserved all research/citation/local-code/I-don't-know duties, added explicit typed `RESEARCHER_REPORT` example with `architecture_judgement` payload.\n4. Spec law: added `rq-subagentReports20` (Researcher Architecture Judgement Typed Contract) and updated `rq-subagentReports01` body; updated `.adv/specs/delegation-defaults/spec.json` Independent Design Validator to declare typed_persisted_worker packet contract for adv-researcher.\n5. Command contracts: `.opencode/command/adv-design.md` Phase 3.5 prompt maps validator dimensions (CORRECTNESS→risk, SIMPLICITY→tradeoffs[], SPEC-LAW→spec_law_implications, KEY-ALTERNATIVES→alternatives_considered[]); Phase 3.6 + Phase 4 use validation.status crosswalk with advisory-only `fail`. `.opencode/command/adv-research.md` declares Architecture Judgement Contract on every sub-agent prompt and renders validation.status crosswalk in synthesis report.\n6. Drift tests: extended `plugin/src/subagent-reports-spec-assets.test.ts` with four Architecture Judgement assertions pinning rq-subagentReports20 presence, design-command mapping, research-command crosswalk, and delegation-defaults packet contract.\n\n## What Was Verified\n- Verdict: APPROVED with 0 blockers / 0 issues / 0 suggestions / 0 nits across 12 dimensions (inline narrow-scope review; no scanner fan-out triggered).\n- Tests: 225/225 pass across 6 targeted test files (`subagent-reports-spec-assets.test.ts`, `types/subagent-reports.test.ts`, `tools/subagent-report.test.ts`, `tools/change.test.ts`, `temporal/change-state.test.ts`, `optimized-handoff-assets.test.ts`).\n- Build: `pnpm run check` passes (schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, format:check).\n- Schema regeneration: `pnpm run schemas:generate` produced 114-line additions covering `architecture_judgement` discriminated union; drift check (`schemas:check`) clean.\n- Broader test surface: 6 pre-existing failures on baseline `1818d9da` confirmed unrelated (signal surface, ADV tool matrix, advance-workflow version, citation invariant, skill-backed commands, epic membership signals) — not regressed by this change.\n- Contract matrix: 22 rows (SC1-SC4, AC1-AC6, C1-C6, DONT1-DONT6) all `pass` or `respected`; 0 failing rows.\n- Merge compatibility: `git merge --no-commit --no-ff origin/trunk` clean; auto-merged `plugin/schemas/change.schema.json` and `plugin/src/tools/change.test.ts`; no conflicts.\n- Preview URL: not_applicable — no front-end, browser-visible, or visual-output work in this change. Rationale: scope is typed sub-agent report payload + prompt + spec + command contract for backend tool runtime.\n\n## Remaining Concerns\nNone.\n\n## Consequence Context\n1. delivered value: Architecture Judgement is now durable typed report data with applicability discriminator and validation.status consistency checks; legacy researcher reports remain readable; design/research command summaries visibly surface the Architecture Judgement label; advisory-only fail semantics enforce contract-consistency without new gate blockers. Source: 22-row contract review matrix; 225/225 contract tests; pnpm run check clean.\n2. enabling-only/follow-up dependency: none. No follow-up changes created. Source: ops_followup_links empty.\n3. ops readiness: pending — release hardening owns deploy/config/monitoring readiness per the review-vs-harden split. Source: change gates.release.status = pending.\n4. migration/data impact: n/a — change is additive to sub-agent report schema; legacy normalizer is deterministic readback-only; no data shape migration. Source: rq-subagentReports20 + normalizeLegacySubagentReportRow pure-function signature.\n5. frontend/preview impact: n/a — no visual surface. Source: agreement scope is schema/prompt/spec/command contract only; no frontend, browser-visible, or visual-output tasks.\n6. collision/release risk: low. Branch is isolated under `change/strengthenResearcherJudgement`; cross-change overlap audit (adv_change_list at task start) returned no other active changes touching sub-agent-reports schemas or prompt contracts; merge compatibility check clean. Source: `git diff 1818d9da..HEAD --stat` 13 files / 715 insertions; `git merge --no-commit --no-ff origin/trunk` clean.\n7. open follow-ups: n/a — no required follow-ups, no ops obligations, no agenda items routed from researcher reports. Source: ops_followup empty; follow_ups empty across all submitted reports.\n8. next action: acceptance approval proceeds inline to `/adv-harden strengthenResearcherJudgement` for release-stage hardening (CI green + spec delta application + archive preparation).\n\n## Release Readiness Summary\nHarden verdict: **READY**. Inline release-readiness checks complete (no risk triggers requiring dedicated scanner fan-out — narrow schema/prompt/spec/command contract change with no deployment surface).\n\n| Dimension | Result | Evidence |\n|---|---|---|\n| Test Coverage | ✓ pass | 6 test files updated; 225/225 contract tests pass; RED/GREEN/VERIFY evidence recorded per task; full `pnpm run check` clean |\n| AI-Slop Detection | ✓ pass | No console.log/debugger/TODO/FIXME/placeholder/stub in diff (git diff -G scan: 0 matches); prettier clean; structural schema additions not prose-heavy |\n| Documentation Hygiene | ✓ pass | `.opencode/command/adv-design.md` + `adv-research.md` updated with crosswalk tables and Architecture Judgement sections; `.opencode/agents/adv-researcher.md` updated with Architecture Judgement Contract; spec scenarios carry \"why\" prose |\n| Cleanup | ✓ pass | No temp files, debug code, marked files, dead imports, or orphaned tests introduced; pre-existing `temp/` dir is on trunk baseline (timestamp predates this change) — out-of-scope for this agreement |\n| Production Readiness | ✓ pass | No auth/secrets/external-input surface; no new I/O; deterministic pure-function additions (`normalizeLegacySubagentReportRow`); legacy reports read via deterministic normalizer |\n| Deployment Readiness | ✓ pass | No env vars added/removed; no migrations; no external services; no CI/CD changes; no infrastructure changes; no feature flags needed |\n\nMerge compatibility: clean (`git merge --no-commit --no-ff origin/trunk` auto-merged 2 files; no conflicts). Report-created agenda audit: no subagent-followup items routed from this change's reports (follow_ups empty across all submitted reports).\n\n### Approval Consequence Context (release-stage)\n\n1. delivered value — ✓ ready. Typed `architecture_judgement` schema, prompt contract, command crosswalk, spec law, drift tests. 22-row contract matrix all pass/respected. 225/225 contract tests. pnpm run check clean.\n2. enabling-only/follow-up dependency — n/a. No follow-up changes created (ops_followup_links empty).\n3. ops readiness — ✓ ready. No env vars, no migrations, no external services, no CI/CD changes, no infrastructure changes introduced by this change. Source: git diff --stat shows only schema/prompt/spec/command/test files.\n4. migration/data impact — n/a. Additive to sub-agent report schema; legacy normalizer is deterministic readback-only; no data shape migration. Source: rq-subagentReports20 body + normalizeLegacySubagentReportRow pure-function signature.\n5. frontend/preview impact — n/a. No visual surface. Source: agreement scope is schema/prompt/spec/command contract only.\n6. collision/release risk — ✓ ready. Low. Branch isolated under `change/strengthenResearcherJudgement`; merge compatibility clean; cross-change overlap audit returned no other active changes touching sub-agent-reports schemas or prompt contracts. Source: git merge --no-commit --no-ff origin/trunk clean; adv_change_list at task start returned single active change.\n7. open follow-ups — n/a. No required follow-ups, no ops obligations, no agenda items routed from researcher reports. Source: ops_followup empty; follow_ups empty across all submitted reports.\n8. next action — `/adv-archive strengthenResearcherJudgement` for archive-time spec delta application + PR/handoff preparation.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-02T19:44:30.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | New `adv-researcher` submissions expose architecture judgement as durable typed report data, not only final-message prose. | pass | src/types/subagent-reports.ts lines 379-429 — ResearcherSubagentReportSchema requires architecture_judgement via ResearcherArchitectureJudgementSchema. Targeted RED: missing architecture_judgement raises. GREEN: present architecture_judgement validates. Bin/oc-test targeted sweep 225/225 across 6 test files. |\n| SC2 | success_criterion | Researcher breadth is preserved: docs/API/examples research, citation requirements, local code inspection, and architecture validation remain available. | pass | .opencode/agents/adv-researcher.md — Architecture Judgement Contract section appended; Research Protocol + Citation Principles + Local Code Discovery unchanged; tools grants unchanged. C2 respected. |\n| SC3 | success_criterion | Design/research summaries visibly label and surface “architecture judgement” when researcher judgement affects a decision. | pass | .opencode/command/adv-design.md Phase 3.5 prompt + Phase 3.6 verdict table + Phase 4 Validator Result; .opencode/command/adv-research.md Command Boundary crosswalk + Architecture Judgement section + verdict crosswalk table. |\n| SC4 | success_criterion | Legacy persisted researcher reports remain readable after the new judgement contract lands. | pass | src/types/subagent-reports.ts normalizeLegacySubagentReportRow function (lines ~600-700) + src/temporal/change-state.test.ts legacy readback fixture. Bin/oc-test targeted 225/225 includes legacy normalization paths. |\n| AC1 | acceptance_criterion | `adv_subagent_report_submit` accepts new `adv-researcher` reports only when typed judgement data is present and consistent with `validation.status`. | pass | src/types/subagent-reports.ts ResearcherSubagentReportSchema.superRefine enforces pass requires non-low confidence and design-validation scope requires applicable judgement; src/tools/subagent-report.test.ts covers accept/reject cases; src/types/subagent-reports.test.ts 49 tests; 225/225 pass across contract sweep. |\n| AC2 | acceptance_criterion | Existing persisted researcher reports without judgement data remain readable through `adv_change_show include.subagentReports`. | pass | src/temporal/change-state.test.ts + src/tools/change.test.ts include legacy researcher fixture without architecture_judgement; readback preserves source metadata. Targeted sweep 76+42 tests pass. |\n| AC3 | acceptance_criterion | `adv-researcher` prompt/report guidance preserves current tool use, citation, and “I don’t know” requirements while adding architecture judgement duties. | pass | .opencode/agents/adv-researcher.md Architecture Judgement Contract section + updated RESEARCHER_REPORT JSON example; src/optimized-handoff-assets.test.ts asserts Architecture Judgement contract + report shape; 6/6 tests pass. |\n| AC4 | acceptance_criterion | `/adv-design` validator output maps correctness, simplicity, spec-law, and alternatives findings into the researcher judgement contract. | pass | .opencode/command/adv-design.md ARCHITECTURE JUDGEMENT DIMENSIONS mapping (CORRECTNESS→risk, SIMPLICITY→tradeoffs[], SPEC-LAW COMPLIANCE→spec_law_implications, KEY ALTERNATIVES→alternatives_considered[]); src/subagent-reports-spec-assets.test.ts research command + design command assertions; 20/20 tests pass. |\n| AC5 | acceptance_criterion | Researcher fail/anti-pattern judgement is surfaced as advisory architecture judgement and does not add a new machine gate blocker. | pass | .adv/specs/subagent-reports/spec.json rq-subagentReports20 body: 'architecture_judgement object is advisory-only: it MUST NOT complete gates'; .opencode/command/adv-design.md Phase 3.6 fail row marked advisory-only NEVER auto-block; .opencode/command/adv-research.md crosswalk table fail→ANTI-PATTERN advisory-only yes. |\n| AC6 | acceptance_criterion | Specs and tests fail if researcher judgement fields, verdict consistency, or `adv-researcher` routing coverage are removed or drift. | pass | .adv/specs/subagent-reports/spec.json rq-subagentReports01 references rq-subagentReports20; rq-subagentReports20 scenarios; .adv/specs/delegation-defaults/spec.json Independent Design Validator declares typed_persisted_worker packet contract for adv-researcher. Spec/command tests pin via src/subagent-reports-spec-assets.test.ts (20 tests including the four new Architecture Judgement assertions); bin/oc-test targeted 225/225; pnpm run check (schemas:check, typecheck, lint, format:check) passes. |\n| C1 | constraint | Keep canonical worker name `adv-researcher`; do not rename or add a separate `adv-architect` worker. | respected | .opencode/agents/adv-researcher.md unchanged name; no adv-architect alias introduced; .adv/specs/delegation-defaults/spec.json researcher rows use adv-researcher agent. |\n| C2 | constraint | Preserve all current researcher tools, citation duties, docs/API/examples research duties, local code inspection, and architecture validation responsibility. | respected | .opencode/agents/adv-researcher.md tool grants unchanged (Context7, Exa, searchcode, arxiv, lgrep, firecrawl, webfetch); Research Protocol + Citation + Local Code Discovery sections unchanged; Architecture Judgement Contract adds structure without narrowing responsibility. |\n| C3 | constraint | Strict sub-agent report validation remains strict; missing identity anchors must not be inferred heuristically. | respected | src/types/subagent-reports.ts ResearcherSubagentReportSchema uses .strict() and ChangeScopedBaseSubagentReportSchema superset; architecture_judgement required (not inferred); superRefine throws on missing/inconsistent fields; 49 schema tests cover reject paths. |\n| C4 | constraint | Legacy compatibility for persisted researcher reports must be deterministic and structurally tested. | respected | src/types/subagent-reports.ts normalizeLegacySubagentReportRow is deterministic (pure function over already-loaded data, no IO); src/types/subagent-reports.test.ts + src/temporal/change-state.test.ts + src/tools/change.test.ts cover legacy readback; 225/225 targeted pass. |\n| C5 | constraint | Do not duplicate the generated briefing-packet delivery/lane-slice scope owned by `addBriefingPackets`. | respected | No addBriefingPackets references; scope is limited to architecture_judgement typed payload + prompt + command + spec; no packet renderer or lane-slice work introduced. |\n| C6 | constraint | Researcher fail/anti-pattern judgement is advisory-only in this change unless another existing gate blocker applies. | respected | .adv/specs/subagent-reports/spec.json rq-subagentReports20 body explicitly states MUST NOT complete gates; .opencode/command/adv-design.md Phase 3.6 fail row marked advisory-only NEVER auto-block; no new gate machinery added to plugin runtime. |\n| DONT1 | avoidance | Do not reduce `adv-researcher` tool grants or research surface. | respected | .opencode/agents/adv-researcher.md tool grants unchanged; Research Protocol unchanged. |\n| DONT2 | avoidance | Do not create a second verdict field that can drift from `validation.status`. | respected | schema ResearcherValidationSchema.status is the only verdict source; ResearcherArchitectureJudgementSchema does not introduce a verdict field; adv-design/adv-research commands derive legacy labels via crosswalk only; adv-researcher prompt explicitly forbids a second judgement verdict field. |\n| DONT3 | avoidance | Do not make researcher judgement a new machine-enforced gate blocker. | respected | No new machine-enforced gate blocker; checkUnresolvedDesignConcerns evaluator unaffected (researcher reports do not raise DESIGN_CONCERN_UNRESOLVED); /adv-design Phase 3.6 explicitly marks fail advisory-only; spec rq-subagentReports20 body + .opencode/command/adv-design.md 'Researcher `fail` / anti-pattern judgement is advisory-only in this change'. |\n| DONT4 | avoidance | Do not create phantom or primary-agent routing drift. | respected | .adv/specs/delegation-defaults/spec.json Independent Design Validator row uses agent adv-researcher; no phantom routing; .opencode/agents/adv-researcher.md unchanged; no primary-agent routing drift introduced. |\n| DONT5 | avoidance | Do not rely on prose-only judgement where typed report data is required. | respected | researcher judgement enforced by Zod schema ResearcherArchitectureJudgementSchema, not prose; prompt/report guidance requires typed JSON via adv_subagent_report_submit. |\n| DONT6 | avoidance | Do not implement the broader `addBriefingPackets` packet renderer in this change. | respected | No addBriefingPackets references; no packet renderer or briefing-packet delivery/lane-slice implementation introduced; change limited to researcher architecture_judgement + command spec contract. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-02T18:23:48.629Z",
+      "contentHash": "c1f6868200d43139fc46bc8e2b5d4143846fcd4a6893eec3d059b52c7af38cc5",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-02T17:59:56.512Z",
+      "contentHash": "fac3a6a2ccab2c6a15595dcd769754cba67cfe52469ea6a683b8017fddb35a18",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-02T18:25:19.994Z",
+      "contentHash": "319ac2c6a993c86334c791fa023168fc6b2db99a16fed8b0a0342d8e5d0342f3",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-02T18:38:53.736Z",
+      "contentHash": "fc7c320a802bdce97e593b08574cd5c9c23f732038d34b2293beb8c0a9dea6df",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-02T19:58:04.494Z",
+      "contentHash": "4af13f9dbb08d5a49a9a21fbf43117b0588726919c721fd3d3c5353280673d6e",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-02T19:58:04.494Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
