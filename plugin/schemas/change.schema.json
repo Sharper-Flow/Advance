@@ -2417,6 +2417,346 @@
           ],
           "type": "string"
         },
+        "runs": {
+          "default": [],
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "created_at": {
+                "type": "string"
+              },
+              "evidence": {
+                "default": [],
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "artifact": {
+                      "oneOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "pointer",
+                              "type": "string"
+                            },
+                            "summary": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "uri": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "uri"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "const": "none",
+                              "type": "string"
+                            },
+                            "rationale": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "rationale"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "batch": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "completion_signal": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "env": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "health_verification": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "next_status": {
+                      "enum": [
+                        "not_started",
+                        "planned",
+                        "approval_required",
+                        "approved",
+                        "running",
+                        "partial",
+                        "failed",
+                        "rerun_needed",
+                        "rollback_needed",
+                        "cleanup_needed",
+                        "complete"
+                      ],
+                      "type": "string"
+                    },
+                    "recorded_at": {
+                      "type": "string"
+                    },
+                    "rollback_or_cleanup_disposition": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "run_id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "started",
+                        "partial",
+                        "pass",
+                        "fail",
+                        "rerun_needed",
+                        "rollback_needed",
+                        "cleanup_needed",
+                        "complete"
+                      ],
+                      "type": "string"
+                    },
+                    "step_id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "step_kind": {
+                      "enum": [
+                        "plan",
+                        "approval",
+                        "execute",
+                        "health_check",
+                        "rollback",
+                        "cleanup"
+                      ],
+                      "type": "string"
+                    },
+                    "summary": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "recorded_at",
+                    "step_kind",
+                    "env",
+                    "status",
+                    "summary",
+                    "artifact",
+                    "next_status"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "plan": {
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "bounds": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "env": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_policy": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rollback_or_cleanup_plan": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "env",
+                  "action",
+                  "bounds",
+                  "evidence_policy",
+                  "rollback_or_cleanup_plan"
+                ],
+                "type": "object"
+              },
+              "status": {
+                "enum": [
+                  "not_started",
+                  "planned",
+                  "approval_required",
+                  "approved",
+                  "running",
+                  "partial",
+                  "failed",
+                  "rerun_needed",
+                  "rollback_needed",
+                  "cleanup_needed",
+                  "complete"
+                ],
+                "type": "string"
+              },
+              "steps": {
+                "default": [],
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "approval_policy": {
+                      "oneOf": [
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "approval_evidence": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "mode": {
+                              "const": "approval_required",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "mode"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "bounds": {
+                              "items": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "minItems": 1,
+                              "type": "array"
+                            },
+                            "mode": {
+                              "const": "bounded_low_risk_autonomous",
+                              "type": "string"
+                            },
+                            "rationale": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "mode",
+                            "rationale",
+                            "bounds"
+                          ],
+                          "type": "object"
+                        },
+                        {
+                          "additionalProperties": false,
+                          "properties": {
+                            "mode": {
+                              "const": "not_prod_impacting",
+                              "type": "string"
+                            },
+                            "rationale": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "mode"
+                          ],
+                          "type": "object"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": [
+                        "plan",
+                        "approval",
+                        "execute",
+                        "health_check",
+                        "rollback",
+                        "cleanup"
+                      ],
+                      "type": "string"
+                    },
+                    "status": {
+                      "default": "pending",
+                      "enum": [
+                        "pending",
+                        "running",
+                        "pass",
+                        "fail",
+                        "skipped"
+                      ],
+                      "type": "string"
+                    },
+                    "title": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "kind",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "title": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "status",
+              "created_at",
+              "plan",
+              "steps",
+              "evidence"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
         "source": {
           "additionalProperties": false,
           "properties": {
@@ -2491,7 +2831,8 @@
         "relationship",
         "status",
         "created_at",
-        "evidence"
+        "evidence",
+        "runs"
       ],
       "type": "object"
     },
@@ -2522,6 +2863,60 @@
           "required_handoff": {
             "default": false,
             "type": "boolean"
+          },
+          "resolution": {
+            "additionalProperties": false,
+            "properties": {
+              "completion_signal": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "error": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "evidence_summary": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "health_verification": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "rollback_or_cleanup_disposition": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "source": {
+                "enum": [
+                  "child_profile",
+                  "unreachable"
+                ],
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "not_started",
+                  "running",
+                  "partial",
+                  "failed",
+                  "rerun_needed",
+                  "rollback_needed",
+                  "cleanup_needed",
+                  "complete"
+                ],
+                "type": "string"
+              },
+              "verified_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "verified_at",
+              "source"
+            ],
+            "type": "object"
           },
           "source_artifact": {
             "type": "string"

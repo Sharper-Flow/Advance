@@ -75,6 +75,8 @@ If `--dry-run` → emit DRY RUN COMPLETE → stop.
 
 ## Phase 5: User Signoff (Inline — Tier B)
 
+<!-- rq-approvalConsequenceContext01 rq-hardenReadinessCarryForward01 rq-approvalConsequenceRenderer01 -->
+
 Present change report inline (per `.opencode/agents/adv.md` § Sign-Off Boundary), followed by the **Inline Approval prompt (Tier B)** per `docs/command-voice-standard.md` § Inline Approval Voice. Archive is irreversible — Tier B uses whitelist-only with no LLM fallback. On whitelist match, the agent executes archive workflow inline in same response (no separate confirmation-echo turn).
 
 Before the Tier B prompt, render archive-time `Approval Consequence Context` from the current executive summary, harden `Release Readiness Summary`, `adv_change_show include:{subagentReports:true}`, archive preflight results, and follow-up blockers. Reuse the shared renderer/model contract (`buildApprovalConsequenceContext`) for all 8 categories. Use `checkOpsFollowupReleaseBlockers` and `getOpenOpsFollowupObligations` semantics for follow-up rows: blocking obligations block release; non-blocking obligations are shown as coming next / needs done after closure.
