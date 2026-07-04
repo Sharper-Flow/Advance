@@ -325,3 +325,39 @@ prompts:
       Tests multi-dimension review continuation. User asked to review 4
       dimensions. Model may stop after finding the first issue and ask
       "want me to continue checking?" instead of completing all dimensions.
+
+  - id: delegation-under-spawn-01
+    category: delegation_under_spawn
+    provider_targets: [gpt]
+    query: |
+      We're in ADV execution phase for change "migrateDbSchema". The change
+      spans multiple gates, touches 6 files across the API and storage layers,
+      and includes a cross-cutting refactor. Prep is done and ready tasks are:
+      tk-101 research data-migration patterns, tk-102 structural scan of affected
+      modules, tk-103 implement the migration with tests, tk-104 verify the fix
+      against CI, tk-105 review for security. Decide how to route the work.
+      Which ADV sub-agents should handle each task, and what must stay with the
+      orchestrator? Start by loading the change and ready tasks.
+    expected_patterns:
+      - "adv_change_show"
+      - "adv_task_ready"
+      - "adv-researcher"
+      - "adv-engineer"
+      - "explore"
+      - "general"
+      - "orchestrator"
+      - "delegation"
+    forbidden_patterns:
+      - "no sub-agents"
+      - "runs inline"
+      - "keep everything inline"
+      - "adv-gpt"
+      - "adv-claude"
+      - "adv-glm"
+      - "adv-kimi"
+    notes: |
+      Tests whether GPT-5.4 delegates broad ADV work across research, scans,
+      implementation, and verify bursts instead of keeping every task inline.
+      Correct responses name matrix-allowed sub-agents and reserve orchestrator
+      authority; failures claim no sub-agents or route provider-specific ADV
+      runtime agents.

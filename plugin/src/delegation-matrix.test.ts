@@ -19,6 +19,11 @@ import { SUBAGENT_WARN_FIRST_PACKET_ANCHORS } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const SPEC_PATH = join(REPO_ROOT, ".adv/specs/delegation-defaults/spec.json");
+const PROVIDER_EVAL_PROMPT_PATH = join(
+  REPO_ROOT,
+  "scripts/provider-eval-prompts/gpt.yaml",
+);
+const DOCS_SPEC_PATH = join(REPO_ROOT, "docs/specs/delegation-defaults.md");
 
 // rq-delDefaults01: canonical 9 workflow steps
 const WORKFLOW_STEPS = [
@@ -671,6 +676,95 @@ describe("delegation matrix coverage", () => {
     ]) {
       expect(text).toContain(expected);
     }
+  });
+
+  // rq-delDefaults09: bounded ready-task routing metadata projection.
+  test("bounded ready-task routing metadata projection is represented in the spec", () => {
+    const spec = loadSpec();
+    const requirement = spec.requirements?.find(
+      (entry) => entry.id === "rq-delDefaults09",
+    );
+    expect(requirement, "rq-delDefaults09 must exist").toBeDefined();
+
+    const scenarioIds =
+      requirement?.scenarios?.map((scenario) => scenario.id) ?? [];
+    expect(scenarioIds).toEqual([
+      "rq-delDefaults09.1",
+      "rq-delDefaults09.2",
+      "rq-delDefaults09.3",
+    ]);
+
+    const text = [
+      requirement?.body ?? "",
+      ...(requirement?.scenarios ?? []).flatMap(
+        (scenario) => scenario.then ?? [],
+      ),
+    ].join("\n");
+
+    for (const expected of [
+      "adv_task_ready",
+      "delegation_hint",
+      "frontend",
+      "formatted",
+      "bounded",
+      "raw ready[]",
+    ]) {
+      expect(text).toContain(expected);
+    }
+  });
+
+  // rq-delDefaults06: provider-eval GPT prompt anchors a delegation regression test.
+  test("provider-eval GPT prompt anchors a delegation under-spawn regression test", () => {
+    const content = readFileSync(PROVIDER_EVAL_PROMPT_PATH, "utf8");
+
+    expect(content).toContain("delegation-under-spawn-01");
+    expect(content).toContain("delegation_under_spawn");
+
+    // Slice the individual prompt block so assertions are scoped to the
+    // delegation regression prompt, not the whole file.
+    const blockStart = content.indexOf("- id: delegation-under-spawn-01");
+    expect(blockStart).toBeGreaterThanOrEqual(0);
+    const nextPrompt = content.indexOf("\n  - id:", blockStart + 1);
+    const block =
+      nextPrompt > 0
+        ? content.slice(blockStart, nextPrompt)
+        : content.slice(blockStart);
+
+    // Expected patterns must reference matrix-allowed sub-agents and the
+    // delegation decision surface.
+    for (const agent of [
+      "adv-researcher",
+      "adv-engineer",
+      "explore",
+      "general",
+    ]) {
+      expect(block).toContain(agent);
+    }
+    expect(block).toContain("adv_change_show");
+    expect(block).toContain("adv_task_ready");
+
+    // Forbidden patterns guard against inline fallback.
+    expect(block).toMatch(/no\s+sub[- ]?agents/i);
+    expect(block).toMatch(/runs\s+inline/i);
+
+    // Provider-specific ADV runtime agents must be forbidden, not expected.
+    for (const forbidden of ["adv-gpt", "adv-claude", "adv-glm", "adv-kimi"]) {
+      expect(block).toMatch(
+        new RegExp(
+          `forbidden_patterns:[\\s\\S]*${forbidden.replace(/-/g, "\\-")}`,
+        ),
+      );
+    }
+  });
+
+  // Spec/doc sync: changed requirements are mirrored in docs/specs.
+  test("docs/specs/delegation-defaults.md mirrors changed requirements", () => {
+    const doc = readFileSync(DOCS_SPEC_PATH, "utf8");
+    expect(doc).toContain("rq-delDefaults09");
+    expect(doc).toContain("Bounded Ready-Task Routing Metadata Projection");
+    expect(doc).toContain(
+      "Provider-hint delegation cues preserve matrix roster",
+    );
   });
 });
 

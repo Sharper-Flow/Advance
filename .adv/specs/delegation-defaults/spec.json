@@ -3,8 +3,8 @@
   "name": "delegation-defaults",
   "title": "Delegation Defaults",
   "purpose": "Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.",
-  "version": "1.1.0",
-  "updated_at": "2026-06-25T00:00:00.000Z",
+  "version": "1.2.0",
+  "updated_at": "2026-07-04T00:00:00.000Z",
   "delegation_matrix": [
     {
       "step": "proposal",
@@ -407,7 +407,7 @@
     {
       "id": "rq-delDefaults06",
       "title": "Test Coverage for Matrix and Agent Routing",
-      "body": "Tests MUST validate: (1) all 9 matrix steps are present with valid modes and gate affinities, (2) sub-agent references exist as agent files or known global workers, (3) no phantom or primary agents appear in sub-agent routing, (4) matrix classifications are consistent with command contracts, (5) wide-scan delegated sub-steps are structurally represented, and (6) structured report field coverage is represented. The phantom-subagent-roster test MUST also detect forbidden routing to primary agents (adv, plan, build) in addition to phantom agents (librarian, mechanic, prioritizer).",
+      "body": "Tests MUST validate: (1) all 9 matrix steps are present with valid modes and gate affinities, (2) sub-agent references exist as agent files or known global workers, (3) no phantom or primary agents appear in sub-agent routing, (4) matrix classifications are consistent with command contracts, (5) wide-scan delegated sub-steps are structurally represented, (6) structured report field coverage is represented, and (7) provider-specific runtime hints (for example the GPT provider hint) preserve the matrix roster and delegation cues for research/discovery, scans, implementation, and verify bursts. Provider-hint content and provider-eval prompt anchors MUST NOT introduce disallowed agents, duplicate the allowed sub-agent roster, or weaken the no-primary/no-phantom invariant. The phantom-subagent-roster test MUST also detect forbidden routing to primary agents (adv, plan, build) in addition to phantom agents (librarian, mechanic, prioritizer).",
       "priority": "must",
       "tags": ["delegation", "tests", "coverage"],
       "scenarios": [
@@ -443,6 +443,18 @@
             "If a step is inline_required in the spec, its command file does not mandate sub-agent usage",
             "If a step is hybrid in the spec, its command file does not say 'no sub-agents'",
             "Contradictions are caught by the test suite"
+          ]
+        },
+        {
+          "id": "rq-delDefaults06.4",
+          "title": "Provider-hint delegation cues preserve matrix roster",
+          "given": ["A provider-specific runtime hint (for example the GPT provider hint)"],
+          "when": "The hint text and provider-eval prompt anchors are evaluated against the delegation-defaults matrix",
+          "then": [
+            "The hint names only sub-agents that appear in the matrix allowed_subagents lists",
+            "The hint does not route primary agents (adv, plan, build) as sub-agents",
+            "The hint does not route phantom agents (librarian, mechanic, prioritizer)",
+            "Provider-eval prompt anchors include a delegation under-spawn regression test"
           ]
         }
       ]
@@ -507,6 +519,48 @@
             "The packet keeps backend logic, storage, APIs, Temporal behavior, business rules, review, and harden out of scope",
             "The packet does not route review or harden work to adv-designer",
             "The packet does not require Storybook as an Advance plugin dependency"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-delDefaults09",
+      "title": "Bounded Ready-Task Routing Metadata Projection",
+      "body": "When ADV presents formatted ready-task output (for example via adv_task_ready), the formatted projection MUST include bounded routing metadata keys needed for delegation decisions, specifically `delegation_hint` and `frontend` when those keys are present in task metadata. The projection MUST remain backward compatible when metadata is absent: missing keys are omitted rather than emitted as empty placeholders, and the raw ready[] payload is unchanged. Only bounded, delegation-relevant metadata keys are projected; arbitrary metadata MUST NOT be surfaced in the formatted chat output.",
+      "priority": "must",
+      "tags": ["delegation", "routing", "task-ready", "metadata", "bounded"],
+      "scenarios": [
+        {
+          "id": "rq-delDefaults09.1",
+          "title": "Present routing metadata appears in formatted ready output",
+          "given": ["A ready task carries metadata.delegation_hint and metadata.frontend"],
+          "when": "ADV formats the ready-task projection",
+          "then": [
+            "The formatted output includes delegation_hint when metadata.delegation_hint is present",
+            "The formatted output includes frontend when metadata.frontend is present",
+            "The keys appear as bounded, delegation-relevant annotations rather than raw metadata dumps"
+          ]
+        },
+        {
+          "id": "rq-delDefaults09.2",
+          "title": "Absent routing metadata is omitted without breaking compatibility",
+          "given": ["A ready task has no delegation_hint or frontend metadata"],
+          "when": "ADV formats the ready-task projection",
+          "then": [
+            "The formatted output does not include placeholder delegation_hint or frontend keys",
+            "The raw ready[] payload remains unchanged",
+            "Existing consumers of the formatted output continue to parse it correctly"
+          ]
+        },
+        {
+          "id": "rq-delDefaults09.3",
+          "title": "Projection stays bounded to delegation-relevant keys",
+          "given": ["A ready task carries arbitrary additional metadata fields"],
+          "when": "ADV formats the ready-task projection",
+          "then": [
+            "Only delegation_hint and frontend are projected into the formatted output",
+            "Other arbitrary metadata fields are not surfaced in the chat-facing formatted projection",
+            "The bounded projection respects the default top-N ready-task slice limits"
           ]
         }
       ]
