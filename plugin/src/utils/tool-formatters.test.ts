@@ -77,6 +77,57 @@ describe("tool-formatters", () => {
       const line = result.readyList.split("\n")[0];
       expect(line.length).toBeLessThan(80);
     });
+
+    it("projects bounded routing metadata into ready list", () => {
+      const result = formatTaskReadyOutput({
+        ready: [
+          {
+            id: "tk-route",
+            content: "Route me",
+            status: "pending",
+            metadata: {
+              delegation_hint: "delegate_preferred",
+              frontend: "true",
+            },
+          },
+        ],
+        blocked: [],
+      });
+      expect(result.readyList).toContain("delegation_hint=delegate_preferred");
+      expect(result.readyList).toContain("frontend=true");
+    });
+
+    it("omits absent routing metadata without placeholders", () => {
+      const result = formatTaskReadyOutput({
+        ready: [{ id: "tk-plain", content: "Plain task", status: "pending" }],
+        blocked: [],
+      });
+      expect(result.readyList).not.toContain("delegation_hint");
+      expect(result.readyList).not.toContain("frontend");
+      expect(result.readyList).not.toContain("()");
+    });
+
+    it("ignores arbitrary metadata beyond delegation_hint and frontend", () => {
+      const result = formatTaskReadyOutput({
+        ready: [
+          {
+            id: "tk-bounded",
+            content: "Bounded task",
+            status: "pending",
+            metadata: {
+              delegation_hint: "delegate_allowed",
+              frontend: "false",
+              arbitrary_key: "should_not_appear",
+            },
+          },
+        ],
+        blocked: [],
+      });
+      expect(result.readyList).toContain("delegation_hint=delegate_allowed");
+      expect(result.readyList).toContain("frontend=false");
+      expect(result.readyList).not.toContain("arbitrary_key");
+      expect(result.readyList).not.toContain("should_not_appear");
+    });
   });
 
   describe("buildTodoProjection", () => {

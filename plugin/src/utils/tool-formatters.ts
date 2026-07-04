@@ -71,8 +71,18 @@ export interface FormattedSmellReport {
 
 // Input types for formatters
 
+export interface TaskReadyRoutingMetadata {
+  delegation_hint?: string;
+  frontend?: string;
+}
+
 export interface TaskReadyInput {
-  ready: Array<{ id: string; content: string; status: string }>;
+  ready: Array<{
+    id: string;
+    content: string;
+    status: string;
+    metadata?: TaskReadyRoutingMetadata;
+  }>;
   blocked: Array<{
     task: { id: string; content: string; status: string };
     blockedBy: string[];
@@ -328,10 +338,25 @@ function formatWorkerProcessStatus(input: StatusInput): string {
 export function formatTaskReadyOutput(
   input: TaskReadyInput,
 ): FormattedTaskReady {
+  const annotation = (metadata?: TaskReadyRoutingMetadata): string => {
+    if (!metadata) return "";
+    const parts: string[] = [];
+    if (metadata.delegation_hint) {
+      parts.push(`delegation_hint=${metadata.delegation_hint}`);
+    }
+    if (metadata.frontend) {
+      parts.push(`frontend=${metadata.frontend}`);
+    }
+    return parts.length ? ` (${parts.join(", ")})` : "";
+  };
+
   const readyList =
     input.ready.length > 0
       ? input.ready
-          .map((t) => `- ${t.id}: ${truncate(t.content, 60)}`)
+          .map(
+            (t) =>
+              `- ${t.id}: ${truncate(t.content, 60)}${annotation(t.metadata)}`,
+          )
           .join("\n")
       : "(no tasks ready)";
 

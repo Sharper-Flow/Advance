@@ -402,6 +402,39 @@ describe("task tools — signal/query adapters", () => {
         expect.anything(),
       );
     });
+
+    test("projects bounded routing metadata into formatted ready output", async () => {
+      const store = createMockStore();
+      const mockResult = {
+        ready: [
+          {
+            id: "tk-route",
+            title: "Routing Task",
+            status: "pending",
+            metadata: {
+              delegation_hint: "delegate_preferred",
+              frontend: "true",
+              noise: "ignored",
+            },
+          },
+        ],
+        blocked: [],
+      };
+      mocks.querySignal.mockResolvedValue(mockResult);
+
+      const result = await taskTools.adv_task_ready.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.ready[0].metadata).toEqual(mockResult.ready[0].metadata);
+      expect(parsed.formatted.readyList).toContain(
+        "delegation_hint=delegate_preferred",
+      );
+      expect(parsed.formatted.readyList).toContain("frontend=true");
+      expect(parsed.formatted.readyList).not.toContain("noise");
+    });
   });
 
   describe("adv_task_update", () => {

@@ -510,6 +510,7 @@ export const taskTools = {
               id: t.id,
               content: t.title,
               status: t.status,
+              metadata: t.metadata,
             })),
             blocked: result.blocked.map((b) => ({
               task: {
