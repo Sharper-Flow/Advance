@@ -3211,4 +3211,480 @@ describe("Epic owner routing", () => {
     expect(err.code).toBe("OWNER_ROUTING_REQUIRED");
     expect(err.name).toBe("EpicOwnerRoutingError");
   });
+
+  test("adv_epic_link_change proves same-owner child by loading change from owner store", async () => {
+    const ownerStore = makeStore();
+    const currentStore = makeStore();
+    currentStore.paths.root = "/workspace/current";
+    mockedWithTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/workspace/owner",
+          projectId: "project-owner",
+          externalRoot: "/xdg/project-owner",
+          trusted: true,
+          trustSource: "related_repos",
+          stateMode: "temporal",
+        },
+        store: ownerStore,
+      }),
+    );
+
+    const output = await epicTools.adv_epic_link_change.execute(
+      {
+        epic_id: "addAuthEpic",
+        change_id: "change-2",
+        link_evidence: "User linked same-owner change.",
+        epic_owner_target_path: "/workspace/owner",
+        epic_owner_target_confirmed: true,
+        epic_owner_confirmationEvidence: "owner approved",
+      },
+      currentStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(ownerStore.epics.linkChange).toHaveBeenCalledWith(
+      "addAuthEpic",
+      expect.any(Object),
+    );
+    expect(ownerStore.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-2",
+      expect.any(Object),
+    );
+    expect(parsed._childProjectContext).toBeUndefined();
+  });
+
+  test("adv_epic_move_change requires explicit child route when same-owner proof fails", async () => {
+    const fromEpic = makeEpic({
+      id: "fromEpic",
+      entries: [
+        makeChangeEntry({
+          entry_id: "from-entry",
+          change_id: "missing-change",
+        }),
+      ],
+    });
+    const toEpic = makeEpic({ id: "toEpic", entries: [] });
+    const ownerStore = makeStore();
+    ownerStore.epics.get = vi.fn(async (epicId: string) => ({
+      success: true,
+      data: epicId === "fromEpic" ? fromEpic : toEpic,
+    }));
+    ownerStore.changes.get = vi.fn(async () => ({
+      success: true,
+      data: null,
+    }));
+    const currentStore = makeStore();
+    currentStore.paths.root = "/workspace/current";
+    mockedWithTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/workspace/owner",
+          projectId: "project-owner",
+          externalRoot: "/xdg/project-owner",
+          trusted: true,
+          trustSource: "related_repos",
+          stateMode: "temporal",
+        },
+        store: ownerStore,
+      }),
+    );
+
+    const output = await epicTools.adv_epic_move_change.execute(
+      {
+        from_epic_id: "fromEpic",
+        to_epic_id: "toEpic",
+        change_id: "missing-change",
+        move_evidence: "Move in remote-owner Epic.",
+        epic_owner_target_path: "/workspace/owner",
+        epic_owner_target_confirmed: true,
+        epic_owner_confirmationEvidence: "owner approved",
+      },
+      currentStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.code).toBe("CHILD_ROUTING_REQUIRED");
+    expect(ownerStore.epics.linkChange).not.toHaveBeenCalled();
+  });
+
+  test("adv_epic_move_change proves same-owner child by loading change from owner store", async () => {
+    const fromEpic = makeEpic({
+      id: "fromEpic",
+      entries: [
+        makeChangeEntry({ entry_id: "from-entry", change_id: "change-2" }),
+      ],
+    });
+    const toEpic = makeEpic({ id: "toEpic", entries: [] });
+    const ownerStore = makeStore();
+    ownerStore.epics.get = vi.fn(async (epicId: string) => ({
+      success: true,
+      data: epicId === "fromEpic" ? fromEpic : toEpic,
+    }));
+    ownerStore.epics.linkChange = vi.fn(async () =>
+      makeChangeEntry({
+        entry_id: "to-entry",
+        order: 2,
+        change_ref: { change_id: "change-2", project_id: "project-1" },
+        title: "Linked Change",
+        linked_at: "2026-06-25T00:01:00.000Z",
+        membership_status: "projection_pending",
+      }),
+    );
+    ownerStore.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "active",
+        gates: {},
+        tasks: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership: {
+          epic_id: "fromEpic",
+          entry_id: "from-entry",
+          order: 0,
+          title: "Linked Change",
+          linked_at: "2026-06-25T00:00:00.000Z",
+        },
+      } as Change,
+    }));
+    const currentStore = makeStore();
+    currentStore.paths.root = "/workspace/current";
+    mockedWithTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/workspace/owner",
+          projectId: "project-owner",
+          externalRoot: "/xdg/project-owner",
+          trusted: true,
+          trustSource: "related_repos",
+          stateMode: "temporal",
+        },
+        store: ownerStore,
+      }),
+    );
+
+    const output = await epicTools.adv_epic_move_change.execute(
+      {
+        from_epic_id: "fromEpic",
+        to_epic_id: "toEpic",
+        change_id: "change-2",
+        move_evidence: "Move same-owner change in remote-owner Epic.",
+        epic_owner_target_path: "/workspace/owner",
+        epic_owner_target_confirmed: true,
+        epic_owner_confirmationEvidence: "owner approved",
+      },
+      currentStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(ownerStore.epics.linkChange).toHaveBeenCalledWith(
+      "toEpic",
+      expect.any(Object),
+    );
+    expect(ownerStore.changes.setEpicMembership).toHaveBeenCalledWith(
+      "change-2",
+      expect.any(Object),
+    );
+    expect(parsed._childProjectContext).toBeUndefined();
+  });
+
+  test("adv_epic_repair_membership requires explicit child route when same-owner proof fails", async () => {
+    const ownerStore = makeStore({
+      entries: [
+        makeChangeEntry({ entry_id: "entry-2", change_id: "missing-change" }),
+      ],
+    });
+    ownerStore.changes.get = vi.fn(async () => ({
+      success: true,
+      data: null,
+    }));
+    const currentStore = makeStore();
+    currentStore.paths.root = "/workspace/current";
+    mockedWithTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/workspace/owner",
+          projectId: "project-owner",
+          externalRoot: "/xdg/project-owner",
+          trusted: true,
+          trustSource: "related_repos",
+          stateMode: "temporal",
+        },
+        store: ownerStore,
+      }),
+    );
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "entry-2",
+        change_id: "missing-change",
+        mode: "sync_child_projection",
+        evidence: "Sync missing same-owner child.",
+        epic_owner_target_path: "/workspace/owner",
+        epic_owner_target_confirmed: true,
+        epic_owner_confirmationEvidence: "owner approved",
+      },
+      currentStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.code).toBe("CHILD_ROUTING_REQUIRED");
+    expect(ownerStore.epics.setEntryMembershipStatus).not.toHaveBeenCalled();
+  });
+
+  test("adv_epic_link_change fails before mutation when remote child lacks trust confirmation", async () => {
+    const ownerStore = makeStore();
+    const currentStore = makeStore();
+    currentStore.paths.root = "/workspace/current";
+    mockedWithTargetPathStore
+      .mockImplementationOnce(async (_input, fn) =>
+        fn({
+          context: {
+            root: "/workspace/owner",
+            projectId: "project-owner",
+            externalRoot: "/xdg/project-owner",
+            trusted: true,
+            trustSource: "related_repos",
+            stateMode: "temporal",
+          },
+          store: ownerStore,
+        }),
+      )
+      .mockImplementationOnce(async (_input, _fn) => {
+        throw new EpicOwnerRoutingError(
+          EPIC_OWNER_ROUTING_ERROR_CODES.OWNER_ROUTING_REQUIRED,
+          "Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence",
+        );
+      });
+
+    const output = await epicTools.adv_epic_link_change.execute(
+      {
+        epic_id: "addAuthEpic",
+        change_id: "change-2",
+        link_evidence: "User linked remote child.",
+        epic_owner_target_path: "/workspace/owner",
+        epic_owner_target_confirmed: true,
+        epic_owner_confirmationEvidence: "owner approved",
+        target_path: "/workspace/child",
+      },
+      currentStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.code).toBe("OWNER_ROUTING_REQUIRED");
+    expect(ownerStore.epics.linkChange).not.toHaveBeenCalled();
+  });
+
+  test("adv_epic_link_change returns deterministic partial state when child projection fails after owner mutation", async () => {
+    const ownerStore = makeStore();
+    const childStore = makeStore();
+    childStore.changes.setEpicMembership = vi.fn(async () => {
+      throw new Error("child projection unavailable");
+    });
+    const currentStore = makeStore();
+    currentStore.paths.root = "/workspace/current";
+    mockedWithTargetPathStore
+      .mockImplementationOnce(async (_input, fn) =>
+        fn({
+          context: {
+            root: "/workspace/owner",
+            projectId: "project-owner",
+            externalRoot: "/xdg/project-owner",
+            trusted: true,
+            trustSource: "related_repos",
+            stateMode: "temporal",
+          },
+          store: ownerStore,
+        }),
+      )
+      .mockImplementationOnce(async (_input, fn) =>
+        fn({
+          context: {
+            root: "/workspace/child",
+            projectId: "project-child",
+            externalRoot: "/xdg/project-child",
+            trusted: false,
+            trustSource: "explicit",
+            stateMode: "temporal",
+          },
+          store: childStore,
+        }),
+      );
+
+    const output = await epicTools.adv_epic_link_change.execute(
+      {
+        epic_id: "addAuthEpic",
+        change_id: "change-2",
+        link_evidence: "User linked remote child to remote-owner Epic.",
+        epic_owner_target_path: "/workspace/owner",
+        epic_owner_target_confirmed: true,
+        epic_owner_confirmationEvidence: "owner approved",
+        target_path: "/workspace/child",
+        target_confirmed: true,
+        confirmationEvidence: "child approved",
+      },
+      currentStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.owner_mutated).toBe(true);
+    expect(parsed.child_projection_failed).toBe(true);
+    expect(parsed.code).toBe("CHILD_PROJECTION_FAILED");
+    expect(ownerStore.epics.linkChange).toHaveBeenCalled();
+  });
+
+  test("adv_epic_move_change returns deterministic partial state when source unlink fails after child projection", async () => {
+    const fromEpic = makeEpic({
+      id: "fromEpic",
+      entries: [
+        makeChangeEntry({ entry_id: "from-entry", change_id: "change-2" }),
+      ],
+    });
+    const toEpic = makeEpic({ id: "toEpic", entries: [] });
+    const ownerStore = makeStore();
+    ownerStore.epics.get = vi.fn(async (epicId: string) => ({
+      success: true,
+      data: epicId === "fromEpic" ? fromEpic : toEpic,
+    }));
+    ownerStore.epics.linkChange = vi.fn(async () =>
+      makeChangeEntry({
+        entry_id: "to-entry",
+        order: 2,
+        change_ref: { change_id: "change-2", project_id: "project-1" },
+        title: "Linked Change",
+        linked_at: "2026-06-25T00:01:00.000Z",
+        membership_status: "projection_pending",
+      }),
+    );
+    ownerStore.epics.unlinkChange = vi.fn(async () => {
+      throw new Error("owner unlink unavailable");
+    });
+    const childStore = makeStore();
+    childStore.changes.get = vi.fn(async () => ({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "active",
+        gates: {},
+        tasks: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-25T00:00:00.000Z",
+        epic_membership: {
+          epic_id: "fromEpic",
+          entry_id: "from-entry",
+          order: 0,
+          title: "Linked Change",
+          linked_at: "2026-06-25T00:00:00.000Z",
+        },
+      } as Change,
+    }));
+    const currentStore = makeStore();
+    currentStore.paths.root = "/workspace/current";
+    mockedWithTargetPathStore
+      .mockImplementationOnce(async (_input, fn) =>
+        fn({
+          context: {
+            root: "/workspace/owner",
+            projectId: "project-owner",
+            externalRoot: "/xdg/project-owner",
+            trusted: true,
+            trustSource: "related_repos",
+            stateMode: "temporal",
+          },
+          store: ownerStore,
+        }),
+      )
+      .mockImplementationOnce(async (_input, fn) =>
+        fn({
+          context: {
+            root: "/workspace/child",
+            projectId: "project-child",
+            externalRoot: "/xdg/project-child",
+            trusted: false,
+            trustSource: "explicit",
+            stateMode: "temporal",
+          },
+          store: childStore,
+        }),
+      );
+
+    const output = await epicTools.adv_epic_move_change.execute(
+      {
+        from_epic_id: "fromEpic",
+        to_epic_id: "toEpic",
+        change_id: "change-2",
+        move_evidence: "Move in remote-owner Epic.",
+        epic_owner_target_path: "/workspace/owner",
+        epic_owner_target_confirmed: true,
+        epic_owner_confirmationEvidence: "owner approved",
+        target_path: "/workspace/child",
+        target_confirmed: true,
+        confirmationEvidence: "child approved",
+      },
+      currentStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.owner_partially_mutated).toBe(true);
+    expect(parsed.source_unlink_failed).toBe(true);
+    expect(parsed.code).toBe("MEMBERSHIP_PARTIAL_FAILURE");
+    expect(ownerStore.epics.linkChange).toHaveBeenCalled();
+    expect(childStore.changes.setEpicMembership).toHaveBeenCalled();
+    expect(ownerStore.epics.unlinkChange).toHaveBeenCalled();
+  });
+
+  test("adv_epic_unlink_change returns deterministic partial state when owner unlink fails after child projection cleared", async () => {
+    const ownerStore = makeStore({
+      entries: [
+        makeChangeEntry({ entry_id: "entry-2", change_id: "change-2" }),
+      ],
+    });
+    ownerStore.epics.unlinkChange = vi.fn(async () => {
+      throw new Error("owner unlink unavailable");
+    });
+    const currentStore = makeStore();
+    currentStore.paths.root = "/workspace/current";
+    mockedWithTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/workspace/owner",
+          projectId: "project-owner",
+          externalRoot: "/xdg/project-owner",
+          trusted: true,
+          trustSource: "related_repos",
+          stateMode: "temporal",
+        },
+        store: ownerStore,
+      }),
+    );
+
+    const output = await epicTools.adv_epic_unlink_change.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "entry-2",
+        unlink_evidence: "Remove from remote-owner Epic.",
+        epic_owner_target_path: "/workspace/owner",
+        epic_owner_target_confirmed: true,
+        epic_owner_confirmationEvidence: "owner approved",
+      },
+      currentStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.child_projection_cleared).toBe(true);
+    expect(parsed.owner_unlink_failed).toBe(true);
+    expect(parsed.code).toBe("MEMBERSHIP_PARTIAL_FAILURE");
+    expect(ownerStore.changes.clearEpicMembership).toHaveBeenCalled();
+    expect(ownerStore.epics.unlinkChange).toHaveBeenCalled();
+  });
 });

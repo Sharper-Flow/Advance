@@ -478,6 +478,64 @@ function formatEpicRoutingOutput(
   });
 }
 
+function childRoutingRequiredForSameOwnerChange(changeId: string): string {
+  return formatToolOutput({
+    error: `Change not found in Epic owner project. Provide target_path for the child project: ${changeId}`,
+    code: EPIC_OWNER_ROUTING_ERROR_CODES.CHILD_ROUTING_REQUIRED,
+  });
+}
+
+function formatChildProjectionFailureOutput(
+  owner: EpicRoutingStore,
+  child: EpicRoutingStore,
+  input: {
+    entry: Extract<EpicEntry, { kind: "change" }>;
+    membership: NonNullable<Change["epic_membership"]>;
+    cause: unknown;
+  },
+): string {
+  const causeMessage =
+    input.cause instanceof Error ? input.cause.message : String(input.cause);
+  return formatEpicRoutingOutput(
+    formatToolOutput({
+      success: false,
+      error: `Owner Epic mutated but child projection failed: ${causeMessage}. Run adv_epic_repair_membership mode=sync_child_projection to reconcile.`,
+      code: EPIC_OWNER_ROUTING_ERROR_CODES.CHILD_PROJECTION_FAILED,
+      owner_mutated: true,
+      child_projection_failed: true,
+      entry: mapEpicEntry(input.entry),
+      epic_membership: input.membership,
+      repair_action: "adv_epic_repair_membership mode=sync_child_projection",
+    }),
+    owner,
+    child,
+  );
+}
+
+async function applyChildEpicMembership(
+  childStore: EpicRoutingStore,
+  owner: EpicRoutingStore,
+  changeId: string,
+  membership: NonNullable<Change["epic_membership"]>,
+  entry: Extract<EpicEntry, { kind: "change" }>,
+  expectedCurrent?: { epic_id: string; entry_id: string },
+): Promise<string | null> {
+  try {
+    await childStore.store.changes.setEpicMembership(changeId, {
+      ...(expectedCurrent ? { expectedCurrent } : {}),
+      membership,
+      setAt: membership.linked_at,
+    });
+    return null;
+  } catch (err) {
+    return formatChildProjectionFailureOutput(owner, childStore, {
+      entry,
+      membership,
+      cause: err,
+    });
+  }
+}
+
 async function clearMissingEpicProjection(
   childStore: EpicRoutingStore,
   args: {
@@ -1505,10 +1563,14 @@ export const epicTools = {
               title ?? change.title,
               "link_existing",
             );
-            await childStore.store.changes.setEpicMembership(change_id, {
-              membership: rebuiltMembership,
-              setAt: rebuiltMembership.linked_at,
-            });
+            const projectionError = await applyChildEpicMembership(
+              childStore,
+              routing.owner,
+              change_id,
+              rebuiltMembership,
+              entry,
+            );
+            if (projectionError) return projectionError;
             const output = formatToolOutput({
               success: true,
               rebuilt: true,
@@ -1556,7 +1618,7 @@ export const epicTools = {
               terminalSummary,
               projected,
             } = await projectTerminalStateForLinkedEntry(
-              store,
+              ownerStore,
               epic_id,
               retargetedLinkedEntry,
               change,
@@ -1568,10 +1630,14 @@ export const epicTools = {
               title ?? change.title,
               "link_existing",
             );
-            await childStore.store.changes.setEpicMembership(change_id, {
-              membership: retargetedMembership,
-              setAt: retargetedMembership.linked_at,
-            });
+            const projectionError = await applyChildEpicMembership(
+              childStore,
+              routing.owner,
+              change_id,
+              retargetedMembership,
+              retargetedEntry,
+            );
+            if (projectionError) return projectionError;
             const output = formatToolOutput({
               success: true,
               retargeted: true,
@@ -1610,10 +1676,14 @@ export const epicTools = {
             title ?? change.title,
             "link_existing",
           );
-          await childStore.store.changes.setEpicMembership(change_id, {
-            membership: refreshedMembership,
-            setAt: refreshedMembership.linked_at,
-          });
+          const projectionError = await applyChildEpicMembership(
+            childStore,
+            routing.owner,
+            change_id,
+            refreshedMembership,
+            refreshedEntry,
+          );
+          if (projectionError) return projectionError;
           const output = formatToolOutput({
             success: true,
             idempotent: true,
@@ -1664,10 +1734,14 @@ export const epicTools = {
             title ?? change.title,
             "link_existing",
           );
-          await childStore.store.changes.setEpicMembership(change_id, {
+          const projectionError = await applyChildEpicMembership(
+            childStore,
+            routing.owner,
+            change_id,
             membership,
-            setAt: membership.linked_at,
-          });
+            finalEntry,
+          );
+          if (projectionError) return projectionError;
           const output = formatToolOutput({
             success: true,
             idempotent: true,
@@ -1699,7 +1773,7 @@ export const epicTools = {
         );
         const { entry, terminalSummary, projected } =
           await projectTerminalStateForLinkedEntry(
-            store,
+            ownerStore,
             epic_id,
             linkedEntry,
             change,
@@ -1711,10 +1785,14 @@ export const epicTools = {
           title ?? change.title,
           "link_existing",
         );
-        await childStore.store.changes.setEpicMembership(change_id, {
+        const projectionError = await applyChildEpicMembership(
+          childStore,
+          routing.owner,
+          change_id,
           membership,
-          setAt: membership.linked_at,
-        });
+          entry,
+        );
+        if (projectionError) return projectionError;
         const output = formatToolOutput({
           success: true,
           entry: mapEpicEntry(entry),
@@ -1848,11 +1926,30 @@ export const epicTools = {
         await childStore.store.changes.clearEpicMembership(finalChangeId, {
           expected: { epic_id, entry_id: entry.entry_id },
         });
-        await ownerStore.epics.unlinkChange(
-          epic_id,
-          entry.entry_id,
-          unlink_evidence,
-        );
+        try {
+          await ownerStore.epics.unlinkChange(
+            epic_id,
+            entry.entry_id,
+            unlink_evidence,
+          );
+        } catch (err) {
+          const causeMessage = err instanceof Error ? err.message : String(err);
+          return formatEpicRoutingOutput(
+            formatToolOutput({
+              success: false,
+              error: `Child projection cleared but Epic unlink failed: ${causeMessage}. Run adv_epic_repair_membership mode=sync_child_projection to reconcile.`,
+              code: EPIC_OWNER_ROUTING_ERROR_CODES.MEMBERSHIP_PARTIAL_FAILURE,
+              child_projection_cleared: true,
+              owner_unlink_failed: true,
+              entry_id: entry.entry_id,
+              change_id: finalChangeId,
+              repair_action:
+                "adv_epic_repair_membership mode=sync_child_projection",
+            }),
+            routing.owner,
+            routing.child,
+          );
+        }
         const output = formatToolOutput({
           success: true,
           entry_id: entry.entry_id,
@@ -1996,6 +2093,9 @@ export const epicTools = {
         }
         const change = await loadChange(childStore.store, change_id);
         if (!change) {
+          if (routing.owner.context !== null && !target_path) {
+            return childRoutingRequiredForSameOwnerChange(change_id);
+          }
           return formatToolOutput({
             error: `Change not found: ${change_id}`,
             code: "CHANGE_NOT_FOUND",
@@ -2031,19 +2131,43 @@ export const epicTools = {
           change.title,
           "move",
         );
-        await childStore.store.changes.setEpicMembership(change_id, {
-          expectedCurrent: {
+        const projectionError = await applyChildEpicMembership(
+          childStore,
+          routing.owner,
+          change_id,
+          membership,
+          destEntry,
+          {
             epic_id: from_epic_id,
             entry_id: sourceEntry.entry_id,
           },
-          membership,
-          setAt: membership.linked_at,
-        });
-        await ownerStore.epics.unlinkChange(
-          from_epic_id,
-          sourceEntry.entry_id,
-          move_evidence,
         );
+        if (projectionError) return projectionError;
+        try {
+          await ownerStore.epics.unlinkChange(
+            from_epic_id,
+            sourceEntry.entry_id,
+            move_evidence,
+          );
+        } catch (err) {
+          const causeMessage = err instanceof Error ? err.message : String(err);
+          return formatEpicRoutingOutput(
+            formatToolOutput({
+              success: false,
+              error: `Child projection updated but source Epic unlink failed: ${causeMessage}. Run adv_epic_repair_membership mode=sync_child_projection to reconcile.`,
+              code: EPIC_OWNER_ROUTING_ERROR_CODES.MEMBERSHIP_PARTIAL_FAILURE,
+              owner_partially_mutated: true,
+              source_unlink_failed: true,
+              from_entry_id: sourceEntry.entry_id,
+              to_entry: mapEpicEntry(destEntry),
+              epic_membership: membership,
+              repair_action:
+                "adv_epic_repair_membership mode=sync_child_projection",
+            }),
+            routing.owner,
+            routing.child,
+          );
+        }
         const output = formatToolOutput({
           success: true,
           from_entry_id: sourceEntry.entry_id,
@@ -2713,6 +2837,9 @@ export const epicTools = {
         }
         const change = await loadChange(childStore.store, finalChangeId);
         if (!change) {
+          if (routing.owner.context !== null && !target_path) {
+            return childRoutingRequiredForSameOwnerChange(finalChangeId);
+          }
           return formatToolOutput({
             error: `Change not found: ${finalChangeId}`,
             code: "CHANGE_NOT_FOUND",
