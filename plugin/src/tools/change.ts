@@ -1869,6 +1869,9 @@ export const changeTools = {
         .describe(
           "Required when recoveryMode='poisoned_history'. Must cite precise completed-workflow evidence such as WorkflowExecutionAlreadyCompleted, WorkflowNotFoundError, or `workflow execution already completed`.",
         ),
+      target_path: targetPathSchema.shape.target_path,
+      target_confirmed: targetPathSchema.shape.target_confirmed,
+      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
     },
     execute: async (
       {
@@ -1880,6 +1883,9 @@ export const changeTools = {
         dryRun,
         recoveryMode,
         recoveryEvidence,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         selector: import("../types").BulkCloseSelector;
         reason: "cancelled" | "superseded" | "not_planned";
@@ -1889,6 +1895,9 @@ export const changeTools = {
         dryRun?: boolean;
         recoveryMode?: ChangeCloseRecoveryMode;
         recoveryEvidence?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
@@ -1905,159 +1914,211 @@ export const changeTools = {
           });
         }
       }
-      const selection = await resolveChangeSelection(selector, {
-        list: store.changes.list.bind(store.changes),
-        get: store.changes.get.bind(store.changes),
-      });
-      if (!selection.ok) {
-        return formatToolOutput({ error: selection.error });
-      }
-      const recoveryValidation = await validateChangeCloseRecoveryArgs({
-        recoveryMode,
-        recoveryEvidence,
-      });
-      if (recoveryValidation) {
-        return formatToolOutput(recoveryValidation);
-      }
-      if (selection.changeIds.length === 0) {
-        return formatToolOutput({
-          error: "SELECTION_ERROR: No changes matched the provided criteria.",
+      const runBulkClose = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        const contextOutput = projectContext
+          ? { _projectContext: projectContext }
+          : {};
+        const selection = await resolveChangeSelection(selector, {
+          list: activeStore.changes.list.bind(activeStore.changes),
+          get: activeStore.changes.get.bind(activeStore.changes),
         });
-      }
-      if (dryRun) {
-        return formatToolOutput({
-          success: true,
-          dryRun: true,
-          closed: 0,
-          wouldClose: selection.changeIds,
-          results: selection.changeIds.map((id) => ({
-            changeId: id,
+        if (!selection.ok) {
+          return formatToolOutput({
+            error: selection.error,
+            ...contextOutput,
+          });
+        }
+        const recoveryValidation = await validateChangeCloseRecoveryArgs({
+          recoveryMode,
+          recoveryEvidence,
+        });
+        if (recoveryValidation) {
+          return formatToolOutput({
+            ...recoveryValidation,
+            ...contextOutput,
+          });
+        }
+        if (selection.changeIds.length === 0) {
+          return formatToolOutput({
+            error: "SELECTION_ERROR: No changes matched the provided criteria.",
+            ...contextOutput,
+          });
+        }
+        if (dryRun) {
+          return formatToolOutput({
             success: true,
             dryRun: true,
-          })),
-          diskRemoved: [],
-          diskFailed: [],
-          message: `Would close ${selection.changeIds.length} change(s).`,
-        });
-      }
-      try {
-        const bundle = getService();
-        if (!bundle) {
-          return formatToolOutput({
-            error: "Temporal service not available",
+            closed: 0,
+            wouldClose: selection.changeIds,
+            results: selection.changeIds.map((id) => ({
+              changeId: id,
+              success: true,
+              dryRun: true,
+            })),
+            diskRemoved: [],
+            diskFailed: [],
+            message: `Would close ${selection.changeIds.length} change(s).`,
+            ...contextOutput,
           });
         }
-        const projectId = await getProjectId(store.paths.root);
-        if (!projectId) {
-          return formatToolOutput({
-            error: "Could not resolve project ID",
-          });
-        }
-        const results: {
-          changeId: string;
-          success: boolean;
-          error?: string;
-          recovered?: boolean;
-        }[] = [];
-        let closed = 0;
-        for (const id of selection.changeIds) {
-          try {
-            const handle = getChangeHandle(bundle.client, projectId, id);
-            const closeInput = {
-              approvalEvidence,
-              reason,
-              supersededBy,
-              cancelledAt: new Date().toISOString(),
-            };
-            // rq-cacheRefresh01: refresh per-change after each cancel
-            // so subsequent reads of any cancelled change see closed state.
-            await fireSignalAndRefresh(
-              handle,
-              store,
-              id,
-              changeCancelledSignal,
-              buildChangeClosePayload(closeInput),
-            );
-            results.push({ changeId: id, success: true });
-            closed++;
-          } catch (err) {
-            const existing = await store.changes.get(id);
-            if (existing.success && existing.data) {
+        try {
+          const bundle = getService();
+          if (!bundle) {
+            return formatToolOutput({
+              error: "Temporal service not available",
+              ...contextOutput,
+            });
+          }
+          const projectId =
+            projectContext?.projectId ??
+            (await getProjectId(activeStore.paths.root));
+          if (!projectId) {
+            return formatToolOutput({
+              error: "Could not resolve project ID",
+              ...contextOutput,
+            });
+          }
+          const results: {
+            changeId: string;
+            success: boolean;
+            error?: string;
+            recovered?: boolean;
+          }[] = [];
+          let closed = 0;
+          for (const id of selection.changeIds) {
+            try {
+              const handle = getChangeHandle(bundle.client, projectId, id);
               const closeInput = {
                 approvalEvidence,
                 reason,
                 supersededBy,
                 cancelledAt: new Date().toISOString(),
               };
-              const recovery = await recoverCompletedWorkflowClose({
-                store,
-                change: existing.data,
-                closeInput,
-                recoveryMode,
-                recoveryEvidence,
-                signalError: err,
-              });
-              if (recovery.recovered) {
-                results.push({ changeId: id, success: true, recovered: true });
-                closed++;
-                continue;
+              // rq-cacheRefresh01: refresh per-change after each cancel
+              // so subsequent reads of any cancelled change see closed state.
+              await fireSignalAndRefresh(
+                handle,
+                activeStore,
+                id,
+                changeCancelledSignal,
+                buildChangeClosePayload(closeInput),
+              );
+              results.push({ changeId: id, success: true });
+              closed++;
+            } catch (err) {
+              const existing = await activeStore.changes.get(id);
+              if (existing.success && existing.data) {
+                const closeInput = {
+                  approvalEvidence,
+                  reason,
+                  supersededBy,
+                  cancelledAt: new Date().toISOString(),
+                };
+                const recovery = await recoverCompletedWorkflowClose({
+                  store: activeStore,
+                  change: existing.data,
+                  closeInput,
+                  recoveryMode,
+                  recoveryEvidence,
+                  signalError: err,
+                });
+                if (recovery.recovered) {
+                  results.push({
+                    changeId: id,
+                    success: true,
+                    recovered: true,
+                  });
+                  closed++;
+                  continue;
+                }
               }
+              results.push({
+                changeId: id,
+                success: false,
+                error: err instanceof Error ? err.message : String(err),
+              });
             }
-            results.push({
-              changeId: id,
-              success: false,
-              error: err instanceof Error ? err.message : String(err),
-            });
           }
+          // D3: Compose with sweepClosedChangesFromDisk for unified per-id
+          // disk-removal reporting. Only run when close succeeded overall
+          // — partial workflow-close failures preserve source dirs as the
+          // rollback / recovery path. (rq-bulkCloseDiskSweep01)
+          let diskRemoved: string[] = [];
+          let diskFailed: Array<{
+            id: string;
+            error: string;
+          }> = [];
+          const successfulIds = results
+            .filter((r) => r.success && !r.recovered)
+            .map((r) => r.changeId);
+          if (successfulIds.length > 0 && activeStore.paths?.changes) {
+            const sweep = await sweepClosedChangesFromDisk(
+              successfulIds,
+              activeStore.paths.changes,
+            );
+            diskRemoved = sweep.removed;
+            diskFailed = sweep.failed;
+          }
+          const allSuccess = closed === selection.changeIds.length;
+          let message = allSuccess
+            ? `Successfully closed ${closed} change(s).`
+            : `Closed ${closed} of ${selection.changeIds.length} change(s). See results for details.`;
+          if (diskFailed.length > 0) {
+            const warnings = diskFailed
+              .map(
+                (f) =>
+                  `Source cleanup warning: failed to remove changes/${f.id}: ${f.error}`,
+              )
+              .join(" ");
+            message += ` ${warnings}`;
+          }
+          return formatToolOutput({
+            success: allSuccess,
+            closed,
+            results,
+            diskRemoved,
+            diskFailed,
+            message,
+            ...contextOutput,
+          });
+        } catch (error) {
+          const contextMismatch = extractContextMismatch(error);
+          return formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+            ...contextMismatch,
+            ...contextOutput,
+          });
         }
-        // D3: Compose with sweepClosedChangesFromDisk for unified per-id
-        // disk-removal reporting. Only run when close succeeded overall
-        // — partial workflow-close failures preserve source dirs as the
-        // rollback / recovery path. (rq-bulkCloseDiskSweep01)
-        let diskRemoved: string[] = [];
-        let diskFailed: Array<{
-          id: string;
-          error: string;
-        }> = [];
-        const successfulIds = results
-          .filter((r) => r.success && !r.recovered)
-          .map((r) => r.changeId);
-        if (successfulIds.length > 0 && store.paths?.changes) {
-          const sweep = await sweepClosedChangesFromDisk(
-            successfulIds,
-            store.paths.changes,
+      };
+
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              mutation: !dryRun,
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runBulkClose(targetStore, formatTargetProjectContext(context)),
           );
-          diskRemoved = sweep.removed;
-          diskFailed = sweep.failed;
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project bulk close unavailable: ${errorText}`,
+            target_path,
+          });
         }
-        const allSuccess = closed === selection.changeIds.length;
-        let message = allSuccess
-          ? `Successfully closed ${closed} change(s).`
-          : `Closed ${closed} of ${selection.changeIds.length} change(s). See results for details.`;
-        if (diskFailed.length > 0) {
-          const warnings = diskFailed
-            .map(
-              (f) =>
-                `Source cleanup warning: failed to remove changes/${f.id}: ${f.error}`,
-            )
-            .join(" ");
-          message += ` ${warnings}`;
-        }
-        return formatToolOutput({
-          success: allSuccess,
-          closed,
-          results,
-          diskRemoved,
-          diskFailed,
-          message,
-        });
-      } catch (error) {
-        const contextMismatch = extractContextMismatch(error);
-        return formatToolOutput({
-          error: error instanceof Error ? error.message : String(error),
-          ...contextMismatch,
-        });
       }
+      return runBulkClose(store);
     },
   },
   adv_change_validate: {

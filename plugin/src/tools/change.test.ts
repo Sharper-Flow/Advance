@@ -2538,6 +2538,220 @@ describe("change tools — signal-driven lifecycle", () => {
         store.paths.changes,
       );
     });
+
+    describe("target_path routing", () => {
+      const targetDraftChange = (id: string): Change =>
+        ({
+          id,
+          title: `Target ${id}`,
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          created_by: "test",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "pending" },
+            discovery: { status: "pending" },
+            design: { status: "pending" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+        }) as Change;
+
+      beforeEach(() => {
+        vi.mocked(mocks.targetStore.changes.get).mockReset();
+        vi.mocked(mocks.targetStore.changes.list).mockReset();
+        vi.mocked(mocks.targetStore.changes.get).mockImplementation(
+          async (id: string) => ({
+            success: true,
+            data: targetDraftChange(id),
+          }),
+        );
+        vi.mocked(mocks.targetStore.changes.list).mockResolvedValue({
+          changes: [],
+        });
+        mocks.withTargetPathStore.mockClear();
+        mocks.fireSignalAndRefresh.mockClear();
+        mocks.sweepClosedChangesFromDisk.mockClear();
+      });
+
+      test("resolves selection from target store and uses target project ID", async () => {
+        const store = createMockStore();
+
+        const result = await changeTools.adv_change_bulk_close.execute(
+          {
+            selector: {
+              kind: "explicit",
+              changeIds: ["chg-t1", "chg-t2"],
+            },
+            reason: "not_planned",
+            approvedByUser: true,
+            approvalEvidence: "user approved target bulk close",
+            target_path: "/tmp/target",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target bulk close",
+          } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: "/tmp/target",
+            stateRequirement: "temporal-required",
+            mutation: true,
+            target_confirmed: true,
+            confirmationEvidence: "user approved target bulk close",
+          }),
+          expect.any(Function),
+        );
+        expect(mocks.targetStore.changes.get).toHaveBeenCalledWith("chg-t1");
+        expect(mocks.targetStore.changes.get).toHaveBeenCalledWith("chg-t2");
+        expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
+        expect(mocks.getChangeHandle).toHaveBeenCalledWith(
+          mocks.temporalBundle.client,
+          "target-project-id",
+          "chg-t1",
+        );
+        expect(mocks.getChangeHandle).toHaveBeenCalledWith(
+          mocks.temporalBundle.client,
+          "target-project-id",
+          "chg-t2",
+        );
+        const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+        expect(signalCall[1]).toBe(mocks.targetStore);
+        expect(mocks.sweepClosedChangesFromDisk).toHaveBeenCalledWith(
+          ["chg-t1", "chg-t2"],
+          mocks.targetStore.paths.changes,
+        );
+      });
+
+      test("untrusted target bulk close fails before signaling when confirmation missing", async () => {
+        const store = createMockStore();
+        mocks.withTargetPathStore.mockRejectedValueOnce(
+          new Error(
+            "Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence before changing target state: /tmp/target",
+          ),
+        );
+
+        const result = await changeTools.adv_change_bulk_close.execute(
+          {
+            selector: {
+              kind: "explicit",
+              changeIds: ["chg-t1"],
+            },
+            reason: "not_planned",
+            approvedByUser: true,
+            approvalEvidence: "user approved target bulk close",
+            target_path: "/tmp/target",
+          } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.error).toContain("target_confirmed");
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+        expect(mocks.sweepClosedChangesFromDisk).not.toHaveBeenCalled();
+      });
+
+      test("dry-run performs target selection but no signal or cleanup and stays read-only", async () => {
+        const store = createMockStore();
+
+        const result = await changeTools.adv_change_bulk_close.execute(
+          {
+            selector: {
+              kind: "explicit",
+              changeIds: ["chg-t1", "chg-t2"],
+            },
+            reason: "not_planned",
+            approvedByUser: true,
+            approvalEvidence: "user approved target bulk close",
+            dryRun: true,
+            target_path: "/tmp/target",
+          } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed.dryRun).toBe(true);
+        expect(parsed.wouldClose).toEqual(["chg-t1", "chg-t2"]);
+        expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: "/tmp/target",
+            stateRequirement: "temporal-required",
+            mutation: false,
+          }),
+          expect.any(Function),
+        );
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+        expect(mocks.sweepClosedChangesFromDisk).not.toHaveBeenCalled();
+        expect(parsed._projectContext).toMatchObject({
+          projectId: "target-project-id",
+          stateMode: "temporal",
+        });
+      });
+
+      test("recovery path uses target store for completed-workflow close", async () => {
+        const store = createMockStore();
+        mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+          Object.assign(new Error("workflow execution already completed"), {
+            name: "WorkflowExecutionAlreadyCompleted",
+          }),
+        );
+
+        const result = await changeTools.adv_change_bulk_close.execute(
+          {
+            selector: {
+              kind: "explicit",
+              changeIds: ["chg-t1", "chg-t2"],
+            },
+            reason: "not_planned",
+            approvedByUser: true,
+            approvalEvidence: "user approved target bulk close",
+            target_path: "/tmp/target",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target bulk close",
+            recoveryMode: "poisoned_history",
+            recoveryEvidence:
+              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+          } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed.closed).toBe(2);
+        expect(parsed.results[0]).toMatchObject({
+          changeId: "chg-t1",
+          success: true,
+          recovered: true,
+        });
+        expect(parsed.results[1]).toMatchObject({
+          changeId: "chg-t2",
+          success: true,
+        });
+        expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
+        expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledWith(
+          expect.objectContaining({
+            store: mocks.targetStore,
+            change: expect.objectContaining({ id: "chg-t1" }),
+            status: "closed",
+          }),
+        );
+        expect(mocks.sweepClosedChangesFromDisk).toHaveBeenCalledWith(
+          ["chg-t2"],
+          mocks.targetStore.paths.changes,
+        );
+        expect(parsed._projectContext).toMatchObject({
+          projectId: "target-project-id",
+        });
+      });
+    });
   });
 
   describe("adv_change_validate", () => {
