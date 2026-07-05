@@ -53,6 +53,7 @@ describe("adv-slop-scan anti-recursion assets", () => {
   test("documents required coverage fail-fast boundary", () => {
     const command = readFileSync(COMMAND_PATH, "utf8");
     const spec = readFileSync(SLOP_SPEC_PATH, "utf8");
+    const smells = readFileSync(SLOP_SMELLS_PATH, "utf8");
 
     expect(command).toContain("Required Coverage Failure Boundary");
     expect(command).toContain("SLOP_SCAN_DEGRADED");
@@ -64,6 +65,8 @@ describe("adv-slop-scan anti-recursion assets", () => {
     expect(spec).not.toContain("[DEGRADED: AST tool unavailable]");
     expect(spec).not.toContain("[DEGRADED: AST timeout]");
     expect(spec).not.toContain("brace/indent counter");
+    expect(smells).toContain("SLOP_SCAN_DEGRADED");
+    expect(smells).not.toContain("brace/indent counter");
   });
 
   test("documents canonical slop-scan threshold keys", () => {

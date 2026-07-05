@@ -493,7 +493,7 @@ categories:
           javascript: "eslint --rule '{max-depth: [error, {max: N}], complexity: [error, N]}'"
           python: "radon cc -n C <file>"
           go: "gocyclo -over N <file>"
-        fallback: "Brace/indent counter (annotated as detectionMethod: 'degraded')"
+        coverage_failure: "Required structural detector degraded/failed/timed-out/unavailable/skipped coverage fails with SLOP_SCAN_DEGRADED"
         example: |
           // 5 levels deep — AI-generated guard-clause inversion failure
           function process(data) {
