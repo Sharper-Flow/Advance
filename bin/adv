@@ -215,7 +215,7 @@ async function runSlopScanCommand(
   if (json) process.stdout.write(emitJson(report) + "\n");
   else
     process.stdout.write(renderSlopScanReport(report, shouldUseColor(noColor)));
-  return 0;
+  return report.failure?.code === "SLOP_SCAN_DEGRADED" ? 1 : 0;
 }
 
 async function runEpicListCommand(json: boolean): Promise<number> {

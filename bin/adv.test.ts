@@ -167,19 +167,22 @@ describe("adv roadmap dispatcher", () => {
 });
 
 describe("adv slop-scan dispatcher", () => {
-  test("--json outputs typed report with detector coverage", async () => {
+  test("--json exits 1 with parseable degraded failure when required detectors are unavailable", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "adv-slop-scan-"));
     await mkdir(join(tmp, "src"), { recursive: true });
     await writeFile(join(tmp, "src/app.ts"), "export function ok() { return 1; }\n");
 
     const { exitCode, stdout } = await runAdv(["slop-scan", "src", "--json", "--no-color"], tmp);
 
-    expect(exitCode).toBe(0);
+    expect(exitCode).toBe(1);
     const parsed = JSON.parse(stdout);
     expect(parsed.schema_version).toBe("slop_scan_report.v1");
     expect(parsed.scope.requestedPath).toBe("src");
     expect(parsed.scope.languages).toContain("typescript");
     expect(parsed.coverage.detectors.length).toBeGreaterThan(0);
+    expect(parsed.failure.code).toBe("SLOP_SCAN_DEGRADED");
+    expect(parsed.failure.failedDetectors.length).toBeGreaterThan(0);
+    expect(parsed.failure.failedDetectors.every((detector: any) => detector.important)).toBe(true);
     expect(parsed.summary.total).toBe(parsed.findings.length);
   });
 });
