@@ -1,0 +1,1701 @@
+{
+  "id": "fixGptSubagentRouting",
+  "title": "Fix GPT subagent routing",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-04T17:47:04.273Z",
+  "tasks": [
+    {
+      "id": "tk-3ca8a49c7d71",
+      "title": "Update Advance delegation spec/test anchors",
+      "type": "code",
+      "section": "Advance spec/test anchors",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-04T18:24:57.460Z",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "C1",
+          "C3"
+        ],
+        "verifies": [
+          "AC2"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-04T18:28:46.922Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixGptSubagentRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixGptSubagentRouting",
+          "task_id": "tk-3ca8a49c7d71",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3ca8a49c7d71"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/delegation-defaults/spec.json",
+            "docs/specs/delegation-defaults.md",
+            "plugin/src/delegation-matrix.test.ts",
+            "scripts/provider-eval-prompts/gpt.yaml"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/phantom-subagent-roster.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts",
+              "exit_code": 0,
+              "summary": "All 139 tests passed (delegation-matrix 25, subagent-reports 20, phantom-roster 92, no-retired-refs 2)"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, format:check all passed"
+            },
+            {
+              "command": "bun -e \"Bun.YAML.parse(require('fs').readFileSync('scripts/provider-eval-prompts/gpt.yaml','utf8'))\"",
+              "exit_code": 0,
+              "summary": "Provider-eval prompt YAML parses successfully"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added a new rq-delDefaults09 requirement for bounded ready-task routing metadata projection",
+              "why": "No existing spec law covered the formatted adv_task_ready projection surface; advance-delivery covers adv_change_show include flags but not the task-ready formatter."
+            },
+            {
+              "what": "Reused existing rq-delDefaults03/rq-delDefaults06 roster/boundary invariants for provider-hint parity instead of creating a duplicate roster law",
+              "why": "The matrix already defines allowed sub-agents and the no-primary/no-phantom rule; provider-hint parity is anchored by amending rq-delDefaults06 and adding a provider-eval prompt regression test."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Reused existing no-primary/no-phantom roster invariant from rq-delDefaults03/06 for provider-hint parity; added narrow rq-delDefaults09 for ready-task metadata projection. Provider-eval prompt block checked against matrix-allowed sub-agents and forbidden inline/provider-agent patterns.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Delegation-defaults spec now requires bounded ready-task routing metadata projection (rq-delDefaults09) and provider-hint delegation parity (amended rq-delDefaults06). Tests, docs/specs mirror, and provider-eval prompt anchors are in place. Formatter implementation remains for separate task tk-002ea224b1d4.",
+            "suggested_next_action": "Run the full test suite or proceed to task tk-002ea224b1d4 to implement bounded routing metadata projection in adv_task_ready formatting."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/phantom-subagent-roster.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun -e \"Bun.YAML.parse(require('fs').readFileSync('scripts/provider-eval-prompts/gpt.yaml','utf8'))\""
+            }
+          ]
+        }
+      ],
+      "verification": "Sub-agent reported: bin/oc-test targeted -- src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/phantom-subagent-roster.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts passed (139 passed); pnpm run check passed; Bun YAML parse of gpt.yaml passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/delegation-defaults/spec.json",
+        "docs/specs/delegation-defaults.md",
+        "plugin/src/delegation-matrix.test.ts",
+        "scripts/provider-eval-prompts/gpt.yaml"
+      ],
+      "touched_files": [
+        ".adv/specs/delegation-defaults/spec.json",
+        "docs/specs/delegation-defaults.md",
+        "plugin/src/delegation-matrix.test.ts",
+        "scripts/provider-eval-prompts/gpt.yaml"
+      ],
+      "checkpointSha": "c7a1501302ee4d01da7c1ade98d825383a02b6b5",
+      "completedAt": "2026-07-04T18:48:38.731Z",
+      "completed_at": "2026-07-04T18:48:38.731Z"
+    },
+    {
+      "id": "tk-002ea224b1d4",
+      "title": "Expose bounded routing metadata in adv_task_ready formatting",
+      "type": "code",
+      "section": "Advance task-ready formatter",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-04T18:25:13.611Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "SC3"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C3",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-04T18:49:05.627Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixGptSubagentRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixGptSubagentRouting",
+          "task_id": "tk-002ea224b1d4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-002ea224b1d4"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/utils/tool-formatters.ts",
+            "plugin/src/utils/tool-formatters.test.ts",
+            "plugin/src/tools/task.ts",
+            "plugin/src/tools/task.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/utils/tool-formatters.test.ts src/tools/task.test.ts",
+              "exit_code": 1,
+              "summary": "RED: 3 failures — new formatter/task tests expected routing metadata annotations that were not yet implemented"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/utils/tool-formatters.test.ts src/tools/task.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 77 passed — bounded routing metadata projected in readyList, arbitrary keys omitted, raw ready[] unchanged"
+            },
+            {
+              "command": "pnpm run typecheck && pnpm run lint && pnpm run format:check",
+              "exit_code": 0,
+              "summary": "typecheck, lint, and format:check pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Projected only delegation_hint and frontend into readyList as key=value suffixes inside parentheses",
+              "why": "Keeps chat output compact and bounded; omits cleanly when absent and ignores arbitrary metadata per rq-delDefaults09"
+            },
+            {
+              "what": "Passed full task metadata object into formatter input and let formatter select bounded keys",
+              "why": "Preserves raw ready[] payload compatibility while centralizing bounded-projection policy in the formatter"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Bounded routing metadata projection implemented for adv_task_ready: delegation_hint and frontend appear in formatted.readyList when present, absent metadata is omitted, and the raw ready[] payload remains unchanged. Typecheck, lint, and format:check pass.",
+            "suggested_next_action": "Proceed to remaining execution tasks or run full bin/oc-test smoke/full for broader regression check."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/tool-formatters.test.ts src/tools/task.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/tool-formatters.test.ts src/tools/task.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck && pnpm run lint && pnpm run format:check"
+            }
+          ]
+        }
+      ],
+      "verification": "Sub-agent reported RED: bin/oc-test targeted -- src/utils/tool-formatters.test.ts src/tools/task.test.ts failed with 3 expected metadata projection failures. GREEN: same command passed (77 passed). Additional: pnpm run typecheck && pnpm run lint && pnpm run format:check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ],
+      "checkpointSha": "319b2e59b897aff7d0c9c96c4939746413380a32",
+      "completedAt": "2026-07-04T18:56:14.551Z",
+      "completed_at": "2026-07-04T18:56:14.551Z"
+    },
+    {
+      "id": "tk-b3b611916649",
+      "title": "Add GPT under-spawn provider-eval prompt",
+      "type": "docs",
+      "section": "Advance provider eval",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-04T18:25:27.658Z",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "AC1",
+          "SC1"
+        ],
+        "respects": [
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-04T18:56:28.826Z",
+      "verification": "Implemented and committed in checkpoint c7a1501302ee4d01da7c1ade98d825383a02b6b5 as part of spec/test anchor work. Verification from that task: Bun YAML parse of scripts/provider-eval-prompts/gpt.yaml passed; targeted tests and pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "319b2e59b897aff7d0c9c96c4939746413380a32",
+      "completedAt": "2026-07-04T18:56:39.829Z",
+      "completed_at": "2026-07-04T18:56:39.829Z"
+    },
+    {
+      "id": "tk-022eb5d04a93",
+      "title": "Update GPT provider hint and provider-hints tests in toolbox",
+      "type": "code",
+      "section": "Toolbox provider hints",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-04T18:25:46.686Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "target_repo": "toolbox",
+        "target_path": "/home/jon/toolbox/plugins/opencode-provider-hints"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC6",
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-04T18:56:59.797Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixGptSubagentRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree-adhoc/toolbox/fix-gpt-subagent-routing/plugins/opencode-provider-hints",
+          "task_id": "tk-022eb5d04a93",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-022eb5d04a93"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "providers/gpt.md",
+            "test/plugin.test.js"
+          ],
+          "verification": [
+            {
+              "command": "npm test (RED after adding cross-gate/research assertion)",
+              "exit_code": 1,
+              "summary": "1 failure: GPT hint missing multi-gate/multi-file/cross-cutting scope mention"
+            },
+            {
+              "command": "npm test (GREEN after hint update)",
+              "exit_code": 0,
+              "summary": "All 21 tests pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added GLM-parity cross-gate delegation lines adapted for GPT after the existing ADV apply-task line",
+              "why": "Keeps ADV routing guidance together and preserves all existing GPT-specific rules (sequential deps, schema correctness, no general for code-writing)"
+            },
+            {
+              "what": "Wrote phantom-routing test that allows 'Do not spawn general' while rejecting positive general-routing instructions",
+              "why": "Existing GPT rule already negates general routing; the test must not falsely flag that negation as a phantom route"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Toolbox GPT provider hint now includes GLM-parity baseline delegation guidance for multi-gate/multi-file/cross-cutting ADV work. Provider-hints tests assert apply-task cue, cross-gate/research cue, and absence of phantom/primary routing. All 21 tests pass.",
+            "suggested_next_action": "Run toolbox-wide validation if available, then proceed to Advance-side sibling task if any."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npm test (RED after adding cross-gate/research assertion)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npm test (GREEN after hint update)"
+            }
+          ]
+        }
+      ],
+      "verification": "Acceptance reviewer remediation added explicit main-orchestrator authority boundary and regression assertion. Verification: npm test in plugins/opencode-provider-hints passed all 21 tests after remediation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugins/opencode-provider-hints/providers/gpt.md",
+        "plugins/opencode-provider-hints/test/plugin.test.js"
+      ],
+      "touched_files": [
+        "plugins/opencode-provider-hints/providers/gpt.md",
+        "plugins/opencode-provider-hints/test/plugin.test.js"
+      ],
+      "checkpointSha": "add53ed98abf12022940b57c0c15854c6c23d125",
+      "completedAt": "2026-07-04T19:09:47.347Z",
+      "completed_at": "2026-07-04T19:09:47.347Z"
+    },
+    {
+      "id": "tk-6ba0eb8edd5e",
+      "title": "Run repo-scoped verification and record deploy/restart status",
+      "type": "verification",
+      "section": "Verification and release notes",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-04T18:26:21.491Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3ca8a49c7d71"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-002ea224b1d4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b3b611916649"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-022eb5d04a93"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7",
+          "SC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-04T19:00:28.440Z",
+      "verification": "Post-review verification update: toolbox provider-hints npm test passed all 21 tests after reviewer remediation/checkpoint add53ed98abf12022940b57c0c15854c6c23d125. Previous Advance targeted tests and pnpm run check passed. Live OpenCode behavior still requires provider-hint deploy + restart/fresh session.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "319b2e59b897aff7d0c9c96c4939746413380a32",
+      "completedAt": "2026-07-04T19:10:06.054Z",
+      "completed_at": "2026-07-04T19:10:06.054Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixGptSubagentRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Opportunity scout: GPT sub-agent under-delegation — provider hint parity + task-ready delegation salience",
+      "sources": [
+        {
+          "label": "gpt.md provider hint",
+          "locator": "/home/jon/toolbox/plugins/opencode-provider-hints/providers/gpt.md:16,22",
+          "summary": "GPT hint carries only apply/metadata-conditioned adv-engineer nudge (line 16) plus a general-not-for-code guard (line 22). No unconditional cross-gate/multi-file delegation wording; does not name adv-researcher/explore for cross-cutting work."
+        },
+        {
+          "label": "glm.md provider hint",
+          "locator": "/home/jon/toolbox/plugins/opencode-provider-hints/providers/glm.md:9,15,17,18",
+          "summary": "GLM hint has unconditional cross-gate/multi-file delegation wording: prefer spawning adv-researcher/adv-engineer for multi-file/multi-gate/cross-cutting work (line 17), inline-edit ceiling (line 9), cross-cutting mapping (line 15), cross-gate invariant restatement (line 18)."
+        },
+        {
+          "label": "claude.md provider hint",
+          "locator": "/home/jon/toolbox/plugins/opencode-provider-hints/providers/claude.md:1-7",
+          "summary": "Claude hint is minimal (3 bullets) — act-directly + apply delegation nudge only. Establishes that per-provider hint depth is intentionally tuned to model weakness, not uniform; parity means addressing GPT's specific under-delegation, not copying GLM verbatim."
+        },
+        {
+          "label": "provider-hints plugin test",
+          "locator": "/home/jon/toolbox/plugins/opencode-provider-hints/test/plugin.test.js:39-240",
+          "summary": "Tests assert marker emission ([ADV:PROVIDER_HINT:*]), provider switch detection, system-block append, and 6-file loading. No assertion locks delegation-content parity — a GPT hint could silently lose the adv-engineer bullet and tests stay green."
+        },
+        {
+          "label": "adv_task_ready formatting",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/task.ts:508-542",
+          "summary": "formatTaskReadyOutput input maps ready[] to {id,content,status} (508-522); _todoProjection maps to {id,title,status} (531-538). Raw ready[] with full metadata is still returned (529-530), so delegation_hint/frontend are present as raw data but absent from both salience surfaces."
+        },
+        {
+          "label": "tool-formatters projection",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/tool-formatters.ts:234-266,328-353",
+          "summary": "buildTodoProjection and formatTaskReadyOutput carry no metadata fields; formatted lines are id + truncated title only. No delegation-hint/frontend passthrough."
+        },
+        {
+          "label": "tool-formatters tests",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/tool-formatters.test.ts:31-160",
+          "summary": "formatTaskReadyOutput and buildTodoProjection tests cover readyList/blockedList/nextSuggested/todoFormat and projection rows, but no test asserts delegation metadata projection — regression guard absent for any future passthrough."
+        },
+        {
+          "label": "adv-apply delegation routing",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-apply.md:433-460",
+          "summary": "Delegation routing consumes metadata.delegation_hint (Priority 1) and metadata.frontend (Priority 1.5) at the exact decision point. These are the fields stripped from task-ready formatted output."
+        },
+        {
+          "label": "prep-readiness frontend metadata spec",
+          "locator": "/home/jon/dev/advance/docs/specs/prep-readiness.md:111-158",
+          "summary": "rq-PR009frontendApplicability structurally requires metadata.frontend on relevant tasks before planning completes — confirms delegation_hint/frontend are first-class structural routing signals, not incidental."
+        },
+        {
+          "label": "delegation-defaults / context-shed spec",
+          "locator": "/home/jon/dev/advance/docs/specs/advance-meta.md:944-1124",
+          "summary": "Context-shed (rq-contextShed) and orchestrator-ops-delegation (rq-orchestratorOpsDelegation) specs define delegate_allowed heuristics and worker-lane routing across gates; code-edit rows route to adv-engineer/adv-designer. Confirms discovery/design/apply/review/harden lanes exist."
+        }
+      ],
+      "architecture_assessment": "Two independent leverage points, both bounded to approved scope. (1) Provider-hint parity: GPT under-delegates because gpt.md lacks the unconditional cross-gate/multi-file delegation wording that glm.md carries (glm.md:17), and no test asserts delegation-content parity so drift is undetected. The fix is content addition to gpt.md plus a parity/content-presence test — boring, proven, mirrors the existing per-provider tuning model (each hint is tuned to model weakness, not uniform). (2) Task-ready delegation salience: delegation_hint and frontend metadata are the exact fields the apply routing table reads (adv-apply.md:433-460) and prep-readiness structurally enforces (prep-readiness.md:111), yet both formatted salience surfaces (formatTaskReadyOutput readyList, buildTodoProjection _todoProjection) strip them. This is a salience gap, not hard data loss — raw ready[] still carries metadata (task.ts:529-530) — but it forces the orchestrator to parse raw payload to make the delegation decision, which is precisely where a weaker-delegating model fails to look. Adding a bounded metadata projection (delegation_hint, frontend) to the formatted output, guarded by a formatter test, is a low-risk, high-payoff structural nudge. No novel abstraction required; both fixes are additive and reversible.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract/security/release blockers. Both candidates sit inside approved proposal scope (provider hint parity + task-ready metadata visibility at delegation decision points). Raw metadata is not lost today, so candidate #3 is an ergonomics/salience improvement, correctly classified follow_up-eligible rather than a defect. Provider-hint file lives in a separate repo (toolbox/plugins/opencode-provider-hints) — cross-repo edit; orchestrator should confirm scope_repos covers it before adopting candidate #1's edit."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Adding delegation wording to gpt.md lengthens the GPT system block every turn — minor token cost against improved routing; acceptable given glm.md already carries comparable length.",
+          "A delegation-content parity test raises coupling between provider-hint files and the test suite: intentional additions to hint content must update the assertion. This is the desired guard, not accidental brittleness.",
+          "Projecting delegation_hint/frontend into formatted task-ready output slightly widens the formatter contract and its test surface; kept bounded to two known routing fields avoids scope creep.",
+          "Cross-repo edit (toolbox provider-hints) adds a second review/CI surface vs a single-repo change."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Copy glm.md delegation bullets verbatim into gpt.md",
+            "disposition": "rejected",
+            "rationale": "Provider hints are tuned per model weakness (claude.md is 3 bullets, glm.md is 13). Verbatim copy imports GLM-specific framing (inline-edit ceiling, Chinese-context guard) irrelevant to GPT. Author GPT-appropriate unconditional cross-gate/multi-file delegation wording instead."
+          },
+          {
+            "option": "Fix under-delegation purely in ADV command prose (adv.md/adv-apply.md) without touching gpt.md",
+            "disposition": "rejected",
+            "rationale": "Command prose is provider-agnostic and already carries delegation routing; the observed gap is provider-hint-level (GPT-specific). Provider hint is the correct, minimal lever for a model-specific behavior deficit."
+          },
+          {
+            "option": "Rebuild adv_task_ready to embed a full delegation-routing verdict per task",
+            "disposition": "rejected",
+            "rationale": "Over-engineered. Routing verdict logic lives in adv-apply.md and depends on runtime risk signals; duplicating it in the read tool violates single-source-of-truth. Surfacing the two structural metadata fields is sufficient to close the salience gap."
+          },
+          {
+            "option": "Add delegation-content parity test only, no gpt.md content change",
+            "disposition": "deferred",
+            "rationale": "A parity test without the content fix would either pass trivially or lock the current insufficient GPT hint. The test must accompany the content addition (candidate #1 + #2 together)."
+          }
+        ],
+        "recommendation": "Adopt candidate #1 (add GPT-appropriate unconditional cross-gate/multi-file delegation wording naming adv-researcher/adv-engineer to gpt.md) paired with candidate #2 (delegation-content parity/presence test in provider-hints test suite). Surface candidate #3 (project delegation_hint + frontend into formatted task-ready output, guarded by a tool-formatters test) to the orchestrator as an in-scope follow_up — high payoff, low risk, but confirm it is inside the approved proposal's task-ready-visibility scope before task creation. Confirm scope_repos covers toolbox/plugins/opencode-provider-hints for the cross-repo hint edit."
+      },
+      "recommendation": "Scout candidates (≤5):\n\n1. candidate: GPT provider-hint delegation wording gap | evidence: gpt.md:16,22 vs glm.md:9,17 | payoff: high (direct root-cause of under-delegation) | risk: low | contract_tie: provider hint parity for sub-agent routing (IN_SCOPE) | prior_consideration: named in briefing packet | recommended_fate: auto-adopt | fate_rationale: additive content fix, mirrors existing per-provider tuning, directly closes the reported deficit.\n\n2. candidate: No delegation-content parity test in provider-hints suite | evidence: plugin.test.js:39-240 asserts markers/loading only | payoff: high (drift guard) | risk: low | contract_tie: spec/test opportunities to prevent drift (IN_SCOPE) | prior_consideration: named in briefing packet | recommended_fate: auto-adopt | fate_rationale: must accompany #1 to prevent silent regression of the GPT delegation bullet.\n\n3. candidate: adv_task_ready formatted output strips delegation_hint/frontend | evidence: task.ts:508-542, tool-formatters.ts:234-266,328-353; consumed by adv-apply.md:433-460 | payoff: high (surfaces routing signal at decision point) | risk: low (raw metadata still present — salience gap, not data loss) | contract_tie: task-ready metadata visibility at delegation decision points (IN_SCOPE) | prior_consideration: named in briefing packet | recommended_fate: user-surface | fate_rationale: high-value but confirm it is inside approved proposal scope before adding tasks; bounded projection of exactly two routing fields.\n\n4. candidate: No metadata-projection test in tool-formatters.test.ts | evidence: tool-formatters.test.ts:31-160 | payoff: medium (regression guard for #3) | risk: low | contract_tie: spec/test opportunities to prevent drift (IN_SCOPE) | prior_consideration: named in briefing packet | recommended_fate: follow_up | fate_rationale: adopt only if #3 is accepted; otherwise no code path to guard.\n\n5. candidate: Extend GPT hint to name explore/general routing roles (cross-cutting scans, verify bursts) | evidence: adv.md:289 worker-routing table; gpt.md names neither | payoff: medium | risk: low-medium (broadens hint content; risk of over-nudging general for code) | contract_tie: provider hint parity (IN_SCOPE, adjacent) | prior_consideration: partially in packet (gpt.md 'does not name adv-researcher/explore/general') | recommended_fate: follow_up | fate_rationale: valuable but secondary to #1; gpt.md:22 already guards general-for-code, so add explore/general routing carefully to avoid contradicting that guard.",
+      "follow_ups": [
+        "Confirm scope_repos includes /home/jon/toolbox/plugins/opencode-provider-hints before editing gpt.md and its test (cross-repo edit).",
+        "Orchestrator decision needed: is candidate #3 (task-ready metadata projection) inside the approved proposal scope, or a separate follow_up change?",
+        "If #3 adopted, pair with #4 (formatter metadata-projection test) and keep projection bounded to delegation_hint + frontend to avoid formatter scope creep."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixGptSubagentRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — GPT subagent routing fix (provider-hint parity + bounded adv_task_ready metadata projection)",
+      "sources": [
+        {
+          "label": "plugin/src/utils/tool-formatters.ts formatTaskReadyOutput + buildTodoProjection",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/tool-formatters.ts:74-80,234-266,328-357",
+          "summary": "TaskReadyInput.ready types {id,content,status} only; both formatTaskReadyOutput and buildTodoProjection map Task->{id,content/title,status} and drop t.metadata. Salience gap is real and localized to two projections."
+        },
+        {
+          "label": "plugin/src/tools/task.ts adv_task_ready execute",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/task.ts:508-542",
+          "summary": "Formatter/projection call sites strip metadata but raw result.ready:Task[] is spread verbatim via ...result, so AC4 raw backward-compat already holds; only formatted+_todoProjection lose keys."
+        },
+        {
+          "label": "plugin/src/types/tasks.ts Task.metadata schema",
+          "locator": "/home/jon/dev/advance/plugin/src/types/tasks.ts:213-215",
+          "summary": "metadata: z.record(z.string(),z.string()).optional() — open string map. delegation_hint and frontend are already valid keys; formatter can read them off Task.metadata with NO schema change."
+        },
+        {
+          "label": "delegation_hint/frontend already first-class delegation signals",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/reflection.ts:741-742; /home/jon/dev/advance/plugin/src/adv-designer-assets.test.ts:388-389; /home/jon/dev/advance/.adv/specs/delegation-defaults/spec.json:484-505 (rq-delDefaults08)",
+          "summary": "reflection.ts reads metadata.delegation_hint (delegate_allowed/delegate_preferred); adv-apply routing pins metadata.delegation_hint Priority 1 and metadata.frontend Priority 1.5; rq-delDefaults08 makes metadata.frontend true a designer trigger. Bounded key choice is already the canonical routing vocabulary."
+        },
+        {
+          "label": "scripts/provider-eval-prompts/gpt.yaml already exists",
+          "locator": "/home/jon/dev/advance/scripts/provider-eval-prompts/gpt.yaml:1-327",
+          "summary": "GPT provider-eval harness exists with 12+ prompts incl continuation_discipline categories, but NO delegation/under-spawn category. Design's 'add gpt.yaml if adopted' is really 'add one prompt to an existing file', lower risk than implied."
+        },
+        {
+          "label": "delegation-defaults spec rq-delDefaults03/06 warrants",
+          "locator": "/home/jon/dev/advance/.adv/specs/delegation-defaults/spec.json:269-324,408-450",
+          "summary": "rq-delDefaults03.3 already forbids primary(adv,plan,build)/phantom agents in sub-agent lists and pins the spawnable roster; rq-delDefaults06 anchors typed reports. AC1/AC2 warrants point at existing requirements — spec delta may be an amendment, not net-new law."
+        }
+      ],
+      "architecture_assessment": "The draft two-layer design is well-matched to the codebase. Layer 2 (bounded adv_task_ready metadata projection) is a genuine, tightly localized salience gap: two pure formatters strip Task.metadata while raw payload preserves it, so AC3/AC4 are satisfiable with a small typed extension and zero schema churn (metadata is already an open string map and delegation_hint/frontend are already the canonical routing keys used by reflection.ts, adv-apply routing, and rq-delDefaults08). Layer 1 (GPT provider-hint parity) is lower-blast-radius than the design implies: the GPT provider-eval file already exists, so the under-spawn eval is an added prompt not a new harness, and rq-delDefaults03.3 already encodes the no-primary/no-phantom invariant the design wants tests to guard. Main leverage: reuse existing routing vocabulary and existing eval/spec anchors rather than introducing parallel structures. Main risk to watch: spec-law placement (amend existing rq-delDefaults vs net-new requirement) to avoid duplicate/competing invariants.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blocking issues. Design is implementable as scoped with bounded, backward-compatible edits. All leverage candidates are refinements that reduce risk/scope; none require redesign. Advisory: prefer amending existing delegation-defaults requirements over adding net-new spec law, and extend the existing gpt.yaml eval rather than treating it as conditional new work."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Reading metadata directly off Task.metadata in the formatter keeps zero schema change but couples two pure formatters to specific routing keys (delegation_hint, frontend) — acceptable because those keys are already the canonical vocabulary and the design mandates a bounded allowlist.",
+          "Behavioral (token/forbidden-agent) provider-hint tests avoid brittleness but cannot prove live model spawning behavior; must be paired with the deploy/restart note (AC7).",
+          "Extending existing gpt.yaml lowers scope but the provider-eval harness risks overfitting a single under-spawn prompt; keep the prompt semantic, not exact-wording."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Add metadata to raw ready payload only (no formatter change)",
+            "disposition": "rejected",
+            "rationale": "Raw ...result already carries metadata (AC4 holds); the actual defect is the formatted/_todoProjection salience surface, so raw-only work would not satisfy AC3."
+          },
+          {
+            "option": "Net-new spec requirement for provider-hint delegation parity",
+            "disposition": "deferred",
+            "rationale": "rq-delDefaults03.3 already forbids primary/phantom agents and pins the roster; prefer amending existing requirements to avoid duplicate/competing invariants. Surface exact placement to orchestrator at planning."
+          },
+          {
+            "option": "Treat gpt.yaml under-spawn eval as conditional new file",
+            "disposition": "rejected",
+            "rationale": "gpt.yaml already exists with a continuation_discipline pattern; adding one delegation/under-spawn prompt to it is lower-risk and more consistent than a conditional new harness."
+          },
+          {
+            "option": "Extend TaskReadyInput.ready element type with optional delegation_hint/frontend",
+            "disposition": "preferred",
+            "rationale": "Minimal, typed, backward-compatible: optional fields default absent, format missing as absent per AC3/AC4, and both call sites can pass t.metadata?.delegation_hint / t.metadata?.frontend with no store or schema change."
+          }
+        ],
+        "recommendation": "Proceed to independent design validation. Fold these leverage refinements into planning: (1) extend TaskReadyInput.ready (and buildTodoProjection input) with optional delegation_hint/frontend read from Task.metadata — no schema change; (2) reuse delegation_hint/frontend as the bounded allowlist (already canonical); (3) add the GPT under-spawn eval as one prompt inside the existing scripts/provider-eval-prompts/gpt.yaml; (4) prefer amending existing delegation-defaults requirements (rq-delDefaults03/06) over net-new spec law, surfacing exact placement as a planning decision; (5) reuse the rq-delDefaults03.3 no-primary/no-phantom invariant as the assertion basis for GPT hint-content tests."
+      },
+      "recommendation": "AUTO-ADOPT candidates 1,2,4 (typed optional formatter fields reading Task.metadata; reuse delegation_hint/frontend bounded allowlist; add under-spawn prompt to existing gpt.yaml). SURFACE_TO_USER candidate 5 (amend existing delegation-defaults requirement vs net-new spec law — spec-law placement is an orchestrator/user planning decision). No REJECT or INCONCLUSIVE candidates. All candidates reduce scope/risk versus the draft; none require redesign. Design validation may proceed with status=pass.",
+      "follow_ups": [
+        "Planning must decide spec-law placement: amend rq-delDefaults03/06 vs add net-new provider-hint parity requirement (candidate 5, surface_to_user).",
+        "Confirm at planning that the GPT under-spawn eval prompt is added to the existing scripts/provider-eval-prompts/gpt.yaml rather than a new file.",
+        "Ensure GPT hint-content tests assert against the existing rq-delDefaults03.3 forbidden primary/phantom agent set to avoid a second competing agent-roster list."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixGptSubagentRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for GPT subagent routing fix (provider-hint GLM-parity + bounded adv_task_ready routing metadata projection)",
+      "sources": [
+        {
+          "label": "delegation-defaults spec rq-delDefaults03 (allowed sub-agents / no-primary-no-phantom law)",
+          "locator": "/home/jon/dev/advance/.adv/specs/delegation-defaults/spec.json:269-324",
+          "summary": "rq-delDefaults03.3 pins spawnable roster (explore, general, adv-researcher, adv-engineer, adv-reviewer, adv-designer, adv-tron) and forbids primary (adv/plan/build) and phantom (librarian/mechanic/prioritizer) in any allowed-subagents list. rq-delDefaults03.4 fixes per-step assignments. AC1 warrant confirmed: design reuses this law rather than duplicating a roster."
+        },
+        {
+          "label": "delegation-defaults spec rq-delDefaults06 (test coverage / no-primary-no-phantom routing tests)",
+          "locator": "/home/jon/dev/advance/.adv/specs/delegation-defaults/spec.json:408-448",
+          "summary": "rq-delDefaults06.2 requires phantom-subagent-roster tests to detect forbidden primary+phantom routing on active guidance surfaces and pin PRIMARIES list. AC2 warrant confirmed: GPT hint-content parity test can attach to this existing invariant instead of inventing a new roster."
+        },
+        {
+          "label": "adv_task_ready formatter drop of metadata (task.ts)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/task.ts:508-542",
+          "summary": "formatTaskReadyOutput is fed only {id,content:title,status}; raw result.ready[] (with Task.metadata) is still returned in formatToolOutput. Confirms design's salience-gap framing: metadata present in raw payload, absent in formatted/_todoProjection. AC3/AC4 target surface verified exactly."
+        },
+        {
+          "label": "TaskReadyInput + formatTaskReadyOutput shape (tool-formatters.ts)",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/tool-formatters.ts:74-80,328-357",
+          "summary": "TaskReadyInput.ready is {id,content,status} only; formatter renders readyList/blockedList/nextSuggested/todoFormat with no metadata. Extending the interface with optional bounded keys is additive and preserves raw-payload compatibility (AC4)."
+        },
+        {
+          "label": "delegation_hint is a canonical Task.metadata routing key",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/reflection.ts:741-742; /home/jon/dev/advance/plugin/src/adv-designer-assets.test.ts:388-389",
+          "summary": "reflection routing keys off t.metadata.delegation_hint == delegate_allowed|delegate_preferred; designer-assets test pins metadata.delegation_hint as Priority 1 apply-routing override. Design's choice of delegation_hint as a projected key is source-backed, not invented."
+        },
+        {
+          "label": "frontend is a canonical Task.metadata routing key",
+          "locator": "/home/jon/dev/advance/plugin/src/validator/prep-readiness.ts:384-432; /home/jon/dev/advance/plugin/src/adv-designer-assets.test.ts:383-385",
+          "summary": "prep-readiness validates structured metadata.frontend (true/false + rationale); designer-assets test pins metadata.frontend as Priority 1.5 adv-designer routing branch. Confirms delegation_hint+frontend are exactly the two structural worker-lane signals at task selection — bounded projection is well-targeted."
+        },
+        {
+          "label": "GPT provider hint current state (toolbox)",
+          "locator": "/home/jon/toolbox/plugins/opencode-provider-hints/providers/gpt.md:16,22",
+          "summary": "GPT hint has only apply-task conditional delegate_allowed/delegate_preferred adv-engineer nudge (line 16) plus no-general-for-code rule (line 22). It lacks GLM's unconditional cross-gate/multi-file/cross-cutting spawn nudge. Confirms the under-spawn defect and GPT-only edit scope (AC5)."
+        },
+        {
+          "label": "GLM provider hint parity baseline (toolbox)",
+          "locator": "/home/jon/toolbox/plugins/opencode-provider-hints/providers/glm.md:17",
+          "summary": "GLM line 17 gives the cross-gate/multi-file/cross-cutting nudge naming adv-researcher/adv-engineer while preserving orchestrator judgment (prefer spawning ... rather than doing inline). This is the concrete GLM-parity target; it names only allowed workers and asserts no primary/phantom routing — consistent with rq-delDefaults03."
+        }
+      ],
+      "architecture_assessment": "Design is a correct, minimal two-layer fix matching the verified defect. Layer 1 (toolbox gpt.md) raises GPT prompt salience to GLM parity for broad ADV work; the parity target (glm.md:17) already respects the no-primary/no-phantom roster, so lifting equivalent wording into gpt.md cannot by construction violate rq-delDefaults03 provided the test asserts forbidden agent names. Layer 2 (advance formatter) closes a real salience gap: task.ts:508-542 strips Task.metadata before formatting while returning it raw, so agents choosing next work from formatted output never see the routing signal. The two projected keys — delegation_hint (reflection.ts:741, Priority 1 apply override) and frontend (prep-readiness.ts:384, Priority 1.5 designer branch) — are the exact canonical structural routing keys, so the bounded projection is precisely scoped, not arbitrary. Spec-law placement (extend rq-delDefaults03/06 for the roster invariant, add a narrow projection requirement only if uncovered) avoids competing sources of truth and honors C1. Backward compatibility (AC4) holds because the raw result.ready[] path is untouched and the interface extension is optional. No new workers, no runtime auto-spawn, no primary/phantom routing, no adv-gpt variant — all avoidances respected.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blocking spec contradiction or logical gap. Two non-blocking cautions for prep: (1) The design must confirm during implementation that no EXISTING delegation-defaults requirement already covers formatted ready-task metadata projection before adding a NEW requirement; adding a duplicate/overlapping projection law would itself create the competing-source-of-truth problem the design warns against (C1/decision 6). Prefer amending an existing requirement or, if genuinely uncovered, add one narrowly-scoped requirement id. (2) AC2/design-derived-criterion 2 must assert behavioral tokens (forbidden primary/phantom agent names present-absent; presence of a cross-gate/research spawn cue) rather than exact GLM prose, to avoid a brittle test that breaks on benign GPT-specific wording differences — the design already states this mitigation; ensure the test actually encodes it. Neither caution changes the approved architecture; both are execution-discipline notes."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Provider hints remain sovereign prose; durability depends on the content test asserting the right semantic tokens without over-fitting exact wording (brittleness vs regression-protection balance).",
+          "GPT-only content edit leaves potential future parity work for Kimi/Claude/Qwen/MiniMax; accepted per contract AC5/OOS5.",
+          "Bounded projection shows only delegation_hint+frontend; if a future third routing signal emerges the formatter must be re-extended, but adding keys later is additive and low-cost.",
+          "Stronger GPT delegation wording carries an over-spawn risk on trivial tasks; mitigated by GLM-parity (not hard auto-delegation) plus retained narrow-task eval coverage."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Prose-only GPT hint edit with no test guard",
+            "disposition": "rejected",
+            "rationale": "Provider-hint content is otherwise unguarded prose and can silently regress; instruction-audit guidance and SC2 require deterministic protection. Design correctly rejects."
+          },
+          {
+            "option": "Runtime auto-spawn enforcement of delegation",
+            "disposition": "rejected",
+            "rationale": "Would change delegation AUTHORITY rather than salience/visibility, violating DONT4 and the orchestrator-owned-boundary objective. Correctly out of scope."
+          },
+          {
+            "option": "Require adv_task_show before every routing decision instead of projecting metadata",
+            "disposition": "rejected",
+            "rationale": "Adds tool churn and still leaves adv_task_ready formatted output misleading at the first decision point; projection at the salient surface is the leverage point. Correct."
+          },
+          {
+            "option": "New standalone provider-hint spec requirement carrying its own agent roster",
+            "disposition": "rejected",
+            "rationale": "Duplicates rq-delDefaults03/06 invariants and creates competing sources of truth (C1). Reuse of existing law is the right call."
+          },
+          {
+            "option": "Project all Task.metadata keys into formatted ready output",
+            "disposition": "rejected",
+            "rationale": "Unbounded metadata dump inflates context and violates AC3's bounded-keys requirement; delegation_hint+frontend are the only two structurally-verified routing keys."
+          }
+        ],
+        "recommendation": "Proceed to planning. Design is architecturally sound, spec-compliant, and matches verified source facts. In prep: (a) grep delegation-defaults for any existing requirement covering ready-task formatted projection before minting a new requirement id, and amend-in-place if one exists; (b) make the GPT hint-content test assert forbidden primary/phantom agent names AND presence of a cross-gate/research spawn cue as tokens, not exact GLM prose; (c) create explicit repo-scoped tasks/verification for advance (plugin/ targeted tests) and toolbox (provider-hints npm test) with a deploy+restart note per AC7/SC4."
+      },
+      "recommendation": "PASS. The design correctly solves all four objectives with the simplest viable two-layer approach and no spec-law contradiction. Every load-bearing discovery fact was independently verified against source: the adv_task_ready formatter genuinely strips Task.metadata (task.ts:508-542) while returning it raw; delegation_hint and frontend are the canonical Priority-1 and Priority-1.5 routing keys (reflection.ts:741, prep-readiness.ts:384, adv-designer-assets.test.ts:383-389); rq-delDefaults03/06 own the no-primary/no-phantom roster invariant the design reuses; and GPT vs GLM hint drift is real (gpt.md:16 apply-only vs glm.md:17 cross-gate parity). SIMPLICITY: no materially simpler approach achieves durability — a prose-only edit fails SC2, and runtime enforcement over-reaches DONT4. SPEC-LAW: reusing rq-delDefaults03/06 instead of duplicating a roster is the correct source-of-truth discipline. No significant viable alternative was overlooked. Two non-blocking execution cautions (confirm-before-adding a projection requirement; assert semantic tokens not exact prose) should be carried into prep but do not gate design.",
+      "follow_ups": [
+        "Prep: verify whether any existing delegation-defaults requirement already covers formatted ready-task metadata projection before adding a new narrow requirement id, to avoid competing sources of truth.",
+        "Prep: encode the GPT hint-content test as semantic-token + forbidden-agent-name assertions (not exact GLM prose) to prevent brittleness while still catching under-delegation regression.",
+        "Prep: create separate repo-scoped tasks + verification steps for advance (plugin/ targeted tests) and toolbox (opencode-provider-hints npm test) with an explicit deploy/restart note (AC7/SC4)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixGptSubagentRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixGptSubagentRouting",
+      "task_id": "tk-3ca8a49c7d71",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3ca8a49c7d71"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/delegation-defaults/spec.json",
+        "docs/specs/delegation-defaults.md",
+        "plugin/src/delegation-matrix.test.ts",
+        "scripts/provider-eval-prompts/gpt.yaml"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/phantom-subagent-roster.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts",
+          "exit_code": 0,
+          "summary": "All 139 tests passed (delegation-matrix 25, subagent-reports 20, phantom-roster 92, no-retired-refs 2)"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, format:check all passed"
+        },
+        {
+          "command": "bun -e \"Bun.YAML.parse(require('fs').readFileSync('scripts/provider-eval-prompts/gpt.yaml','utf8'))\"",
+          "exit_code": 0,
+          "summary": "Provider-eval prompt YAML parses successfully"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added a new rq-delDefaults09 requirement for bounded ready-task routing metadata projection",
+          "why": "No existing spec law covered the formatted adv_task_ready projection surface; advance-delivery covers adv_change_show include flags but not the task-ready formatter."
+        },
+        {
+          "what": "Reused existing rq-delDefaults03/rq-delDefaults06 roster/boundary invariants for provider-hint parity instead of creating a duplicate roster law",
+          "why": "The matrix already defines allowed sub-agents and the no-primary/no-phantom rule; provider-hint parity is anchored by amending rq-delDefaults06 and adding a provider-eval prompt regression test."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Reused existing no-primary/no-phantom roster invariant from rq-delDefaults03/06 for provider-hint parity; added narrow rq-delDefaults09 for ready-task metadata projection. Provider-eval prompt block checked against matrix-allowed sub-agents and forbidden inline/provider-agent patterns.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Delegation-defaults spec now requires bounded ready-task routing metadata projection (rq-delDefaults09) and provider-hint delegation parity (amended rq-delDefaults06). Tests, docs/specs mirror, and provider-eval prompt anchors are in place. Formatter implementation remains for separate task tk-002ea224b1d4.",
+        "suggested_next_action": "Run the full test suite or proceed to task tk-002ea224b1d4 to implement bounded routing metadata projection in adv_task_ready formatting."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts src/phantom-subagent-roster.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun -e \"Bun.YAML.parse(require('fs').readFileSync('scripts/provider-eval-prompts/gpt.yaml','utf8'))\""
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixGptSubagentRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixGptSubagentRouting",
+      "task_id": "tk-002ea224b1d4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-002ea224b1d4"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/utils/tool-formatters.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/tools/task.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/utils/tool-formatters.test.ts src/tools/task.test.ts",
+          "exit_code": 1,
+          "summary": "RED: 3 failures — new formatter/task tests expected routing metadata annotations that were not yet implemented"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/utils/tool-formatters.test.ts src/tools/task.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 77 passed — bounded routing metadata projected in readyList, arbitrary keys omitted, raw ready[] unchanged"
+        },
+        {
+          "command": "pnpm run typecheck && pnpm run lint && pnpm run format:check",
+          "exit_code": 0,
+          "summary": "typecheck, lint, and format:check pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Projected only delegation_hint and frontend into readyList as key=value suffixes inside parentheses",
+          "why": "Keeps chat output compact and bounded; omits cleanly when absent and ignores arbitrary metadata per rq-delDefaults09"
+        },
+        {
+          "what": "Passed full task metadata object into formatter input and let formatter select bounded keys",
+          "why": "Preserves raw ready[] payload compatibility while centralizing bounded-projection policy in the formatter"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Bounded routing metadata projection implemented for adv_task_ready: delegation_hint and frontend appear in formatted.readyList when present, absent metadata is omitted, and the raw ready[] payload remains unchanged. Typecheck, lint, and format:check pass.",
+        "suggested_next_action": "Proceed to remaining execution tasks or run full bin/oc-test smoke/full for broader regression check."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/tool-formatters.test.ts src/tools/task.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/tool-formatters.test.ts src/tools/task.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck && pnpm run lint && pnpm run format:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixGptSubagentRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree-adhoc/toolbox/fix-gpt-subagent-routing/plugins/opencode-provider-hints",
+      "task_id": "tk-022eb5d04a93",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-022eb5d04a93"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "providers/gpt.md",
+        "test/plugin.test.js"
+      ],
+      "verification": [
+        {
+          "command": "npm test (RED after adding cross-gate/research assertion)",
+          "exit_code": 1,
+          "summary": "1 failure: GPT hint missing multi-gate/multi-file/cross-cutting scope mention"
+        },
+        {
+          "command": "npm test (GREEN after hint update)",
+          "exit_code": 0,
+          "summary": "All 21 tests pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added GLM-parity cross-gate delegation lines adapted for GPT after the existing ADV apply-task line",
+          "why": "Keeps ADV routing guidance together and preserves all existing GPT-specific rules (sequential deps, schema correctness, no general for code-writing)"
+        },
+        {
+          "what": "Wrote phantom-routing test that allows 'Do not spawn general' while rejecting positive general-routing instructions",
+          "why": "Existing GPT rule already negates general routing; the test must not falsely flag that negation as a phantom route"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Toolbox GPT provider hint now includes GLM-parity baseline delegation guidance for multi-gate/multi-file/cross-cutting ADV work. Provider-hints tests assert apply-task cue, cross-gate/research cue, and absence of phantom/primary routing. All 21 tests pass.",
+        "suggested_next_action": "Run toolbox-wide validation if available, then proceed to Advance-side sibling task if any."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npm test (RED after adding cross-gate/research assertion)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npm test (GREEN after hint update)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixGptSubagentRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixGptSubagentRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "../worktree-adhoc/toolbox/fix-gpt-subagent-routing/plugins/opencode-provider-hints/providers/gpt.md",
+          "summary": "Added explicit GPT provider-hint boundary preserving ADV orchestration authority with the main orchestrator while allowing scoped adv-researcher/adv-engineer delegation.",
+          "verification": "npm test in plugins/opencode-provider-hints passed 21/21 tests."
+        },
+        {
+          "file": "../worktree-adhoc/toolbox/fix-gpt-subagent-routing/plugins/opencode-provider-hints/test/plugin.test.js",
+          "summary": "Strengthened GPT cross-gate/research delegation test to fail if the hint loses the orchestrator-authority boundary.",
+          "verification": "npm test in plugins/opencode-provider-hints passed 21/21 tests."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Provider-hint routing tests should assert both positive delegation cues and negative authority boundaries; otherwise hints can encourage subagent use while silently weakening orchestrator-only ADV mutations."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/delegation-matrix.test.ts src/utils/tool-formatters.test.ts src/tools/task.test.ts src/subagent-reports-spec-assets.test.ts src/phantom-subagent-roster.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts",
+          "npm test (workdir: /home/jon/.local/share/opencode/worktree-adhoc/toolbox/fix-gpt-subagent-routing/plugins/opencode-provider-hints)"
+        ],
+        "results": "pass",
+        "evidence": "Advance targeted suite passed 6 files / 216 tests. Toolbox provider-hints npm test passed 21/21 tests. Source inspection confirmed adv_task_ready formatted output projects only delegation_hint/frontend while preserving raw ready[] metadata, GPT provider-eval prompt forbids provider-specific phantom agents, and GPT provider hint now preserves main-orchestrator authority."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live OpenCode behavior remains unverified in this running session; deploy/restart/fresh session still required before claiming runtime behavior changed.",
+        "Toolbox worktree now has review remediation edits that main agent must checkpoint/commit before release/archive flow."
+      ],
+      "required_main_agent_actions": [
+        "Review and checkpoint/commit the toolbox remediation edits in plugins/opencode-provider-hints/providers/gpt.md and plugins/opencode-provider-hints/test/plugin.test.js.",
+        "Before any live-behavior claim, deploy provider hints and restart/open a fresh OpenCode session per delivered AC7.",
+        "Proceed with acceptance evidence using rerun Advance targeted suite and toolbox npm test results; no remaining acceptance blockers found."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixGptSubagentRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixGptSubagentRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Provider-hint source changes cannot prove live OpenCode behavior in the current already-running session; source/tests can be release-ready, but runtime behavior must be claimed only after build/deploy and a fresh OpenCode session."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Advance path preflight for 8 referenced files: all OK",
+          "Toolbox path preflight for 2 referenced files: all OK",
+          "git diff --name-status origin/trunk...HEAD (Advance)",
+          "git diff --name-status origin/master...HEAD (Toolbox)",
+          "bin/oc-test targeted -- src/delegation-matrix.test.ts src/tools/task.test.ts src/utils/tool-formatters.test.ts",
+          "npm --prefix plugins/opencode-provider-hints test",
+          "git status --short (Advance and Toolbox)"
+        ],
+        "results": "pass",
+        "evidence": "Inspected Advance diff: delegation-defaults spec/docs, delegation matrix tests, adv_task_ready routing metadata projection, GPT provider eval prompt. Inspected Toolbox diff: GPT provider hint plus provider-hints tests. Corrected initial verification command path/package-root mistakes, then Advance targeted tests passed: 3 files, 102 tests. Toolbox provider-hints npm test passed: 21 tests. Both worktrees reported clean git status after verification. Prior full evidence from context remains applicable: Advance targeted suite 216 passed plus pnpm run check passed; Toolbox npm test 21 passed; merge dry-runs clean. Scope key submitted as harden:release because report schema rejects harden:release-readiness."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live OpenCode behavior remains unverified in this running session; provider-hint deploy plus OpenCode restart/fresh session required before claiming runtime behavior changed.",
+        "Release readiness relies on source/test evidence and provided merge-dry-run evidence; no archive, merge, or sign-off action performed by this reviewer."
+      ],
+      "required_main_agent_actions": [
+        "Before claiming deployed runtime behavior changed, build/deploy provider hint assets and verify in a fresh OpenCode session after restart.",
+        "Proceed with release/archive decision only from orchestrator; no unresolved reviewer blocker found in harden scope."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-04T17:50:45.832Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by command-as-approval: user invoked exact continuation command /adv-discover fixGptSubagentRouting while proposal approval was pending.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "3263adb7864db8c540faefa90c24a9738db8000b61566e1f4aaa738b136756ba",
+        "non_whitespace_chars": 7154,
+        "checked_at": "2026-07-04T17:47:04.333Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-04T18:12:28.386Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings persisted; criteria approved by user reply `approve`; agreement.md captured; ChangeContract minted with SC/AC/constraints/avoidances/out-of-scope spine.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "non_whitespace_chars": 5239,
+        "checked_at": "2026-07-04T17:47:04.334Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-04T18:23:40.317Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded; leverage scout and independent researcher validation completed with pass/high-confidence verdict; no user-value tradeoff, conflict, or contract-compromise risk detected.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "4b86858d5e13af59effbca33635957e504e59eba5c729165c656b78c424fe342",
+        "non_whitespace_chars": 10169,
+        "checked_at": "2026-07-04T17:47:04.335Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-04T18:27:36.290Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep plan approved by user reply `approve`; task graph has 5 tasks with contract refs, TDD intent, dependencies, and repo-scoped verification task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-04T19:02:27.188Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 execution tasks completed with checkpoints. Advance targeted tests passed (216 tests), pnpm run check passed, toolbox provider-hints npm test passed (21 tests), both worktrees clean. Live OpenCode behavior requires provider-hint deploy + restart/fresh session and was not claimed as verified."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-05T01:01:36.469Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work with reply `approve`. Acceptance proof persisted before gate completion: contract review matrix has 27 rows with 0 failing/unknown rows; executive summary artifact present with consequence context; reviewer verdict READY; preview not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "c0c0c41a9f1e895135ba22feb672b97a10ea48c0e6744755c9e259c48cb2b2e9",
+        "non_whitespace_chars": 3232,
+        "checked_at": "2026-07-04T17:47:04.336Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+      "approvedAt": "2026-07-04T18:12:22.232Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "GPT ADV sessions have clear provider guidance for when to spawn existing workers for research/discovery, scans, implementation, and verify bursts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "GPT provider-hint delegation cues are protected by deterministic tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Ready-task routing metadata is visible in bounded formatted output when present.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Delivery notes distinguish source/test verification from live-session behavior requiring provider-hint deploy plus OpenCode restart.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "GPT provider hint includes GLM-parity baseline delegation guidance for multi-gate, multi-file, or cross-cutting ADV work, while preserving orchestrator-owned authority boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-delDefaults03"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Provider-hints tests fail if GPT loses minimum ADV delegation cues: apply-task delegation cue, cross-gate/research cue, and no primary/phantom agent routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-delDefaults06"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_ready` formatted ready output exposes only bounded routing metadata keys needed for delegation decisions, including `delegation_hint` and `frontend` when present.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_task_ready"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_ready` preserves existing raw ready-task payload compatibility; missing metadata remains valid and formats cleanly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_task_ready"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Content edits are GPT-only unless discovery/design finds a blocking parity issue in another provider; non-GPT providers may be audited but are not required to change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Coordinated delivery covers `advance` and `~/toolbox` source surfaces, with repo-scoped verification for each touched repo.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Final release notes state whether live OpenCode behavior was verified in a fresh/restarted session; if not, they explicitly call out deploy/restart required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Specs are laws; durable routing invariants must be represented in the appropriate capability spec.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Provider hint selection must remain based on structured provider/model context, not free-text model-name guessing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Worker routing must preserve the allowed ADV sub-agent roster and typed report contracts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Mutating implementation work must use isolated worktrees for each repo being changed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Focus provider-hint content edits on GPT for this change unless design finds a blocking inconsistency that affects the approved criteria.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not create new sub-agent identities.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not route primary agents (`adv`, `plan`, `build`) as sub-agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not delegate orchestrator-owned authority: user checkpoints, artifact synthesis, ADV state mutation, scope-drift decisions, or gate completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not make sub-agent spawning fully automatic or runtime-enforced without orchestrator judgment.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not revive provider-specific ADV runtime agents such as `adv-gpt` or `adv-claude`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not claim live-session behavior changed unless provider hints were deployed and OpenCode was restarted or otherwise freshly loaded.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Creating new sub-agent identities.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing nested sub-agent depth policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Reworking the full ADV gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Changing OpenCode model routing defaults beyond provider-hint/delegation behavior needed for this issue.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Required content edits for non-GPT provider hints.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-04T19:11:15.115Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "GPT provider hint updated in toolbox gpt.md with cross-gate/multi-file/cross-cutting worker guidance; reviewer verdict READY."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Toolbox provider-hints tests now assert GPT apply-task cue, cross-gate/research cue, and no primary/phantom routing; npm test passed 21 tests."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Advance formatter/task tests verify bounded delegation_hint/frontend metadata projection; targeted tests passed 216 tests."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Final verification task and acceptance notes state live OpenCode behavior requires provider-hint deploy + restart/fresh session before runtime claim."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Toolbox gpt.md updated with GLM-parity baseline and main-orchestrator authority boundary; toolbox npm test passed 21 tests after assertions."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "test/plugin.test.js includes GPT content assertions for apply cue, cross-gate/research cue, and forbidden primary/phantom routing; npm test passed 21 tests."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tool-formatters/task tests verify formatted ready output exposes delegation_hint/frontend when present; bin/oc-test targeted suite passed 216 tests."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task tests verify raw ready[] compatibility and missing metadata clean formatting; bin/oc-test targeted suite passed 216 tests."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Content edits in toolbox are limited to providers/gpt.md and tests; non-GPT provider hints unchanged."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Advance verification passed: bin/oc-test targeted suite 216 tests and pnpm run check. Toolbox verification passed: npm test 21 tests."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Verification task explicitly records live OpenCode behavior not verified in-session; provider-hint deploy + OpenCode restart/fresh session required."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "delegation-defaults spec updated and tests added; no prose-only durable invariant."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "provider-hints plugin mapping remains structured providerID-based; plugin.js not changed to free-text guessing."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Provider-hint test forbids primary/phantom routing; existing worker roster preserved; no new worker contract introduced."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Advance work used ADV worktree change/fixGptSubagentRouting; toolbox work used ad-hoc worktree fix/gpt-subagent-routing."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Provider content edit is GPT-only; non-GPT hints audited but not modified."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new sub-agent identities added; changes use existing adv-researcher/adv-engineer terms only."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Tests forbid primary/phantom routing; GPT hint does not route adv/plan/build as sub-agents."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "GPT hint explicitly keeps task/gate/archive/release authority with main orchestrator."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Design and implementation add guidance/metadata visibility only; no runtime auto-spawn enforcement added."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No provider-specific ADV runtime agents added or revived."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Runtime behavior not claimed as live-verified; deploy/restart requirement recorded."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new sub-agent identities created; out of scope respected."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Nested sub-agent depth policy unchanged."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "ADV gate lifecycle unchanged."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "OpenCode model routing defaults unchanged."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Non-GPT provider hint content not edited."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "GPT provider hint includes GLM-parity baseline delegation guidance for multi-gate, multi-file, or cross-cutting ADV work, while preserving orchestrator-owned authority boundaries.",
+    "Provider-hints tests fail if GPT loses minimum ADV delegation cues: apply-task delegation cue, cross-gate/research cue, and no primary/phantom agent routing.",
+    "`adv_task_ready` formatted ready output exposes only bounded routing metadata keys needed for delegation decisions, including `delegation_hint` and `frontend` when present.",
+    "`adv_task_ready` preserves existing raw ready-task payload compatibility; missing metadata remains valid and formats cleanly.",
+    "Content edits are GPT-only unless discovery/design finds a blocking parity issue in another provider; non-GPT providers may be audited but are not required to change.",
+    "Coordinated delivery covers `advance` and `~/toolbox` source surfaces, with repo-scoped verification for each touched repo.",
+    "Final release notes state whether live OpenCode behavior was verified in a fresh/restarted session; if not, they explicitly call out deploy/restart required."
+  ],
+  "documents": {
+    "proposal": "## Why\n\nGPT-model ADV sessions under-delegate work: they too often keep research/discovery and coding tasks inline even when sub-agent routing would preserve orchestrator context and use specialist workers.\n\nThe reported behavior is confusing because provider hints are injected, but the GPT hint is narrower and more conditional than other provider hints. Current evidence shows GPT guidance depends on `delegate_allowed` / `delegate_preferred` markers and primarily names `adv-engineer`, while GLM has an unconditional cross-gate/multi-file spawn nudge naming `adv-researcher` / `adv-engineer`. Advance-side task readiness formatting may also hide `metadata.delegation_hint` at the exact point where the orchestrator selects next work.\n\n## What Changes\n\n- Align GPT provider guidance with ADV delegation expectations so GPT sessions treat research/discovery, implementation, scans, and verify bursts as delegable when the ADV protocol allows it.\n- Preserve the existing inline-only authority boundaries: synthesis, user decisions, ADV state mutation, scope-drift handling, and gate completion remain owned by the orchestrator.\n- Improve visibility of delegation routing signals where agents decide whether to work inline or spawn a sub-agent, if discovery confirms the hidden-signal hypothesis.\n- Add or update durable spec/test coverage if provider-hint parity or routing-signal visibility becomes a product invariant.\n\n## User Outcomes\n\n- ADV users see GPT sessions use specialist sub-agents more consistently for research/discovery and coding work where delegation is appropriate.\n- ADV users keep a clear orchestrator context for decisions while delegated workers handle bounded research, scans, implementation, or verification bursts.\n- ADV users get less inline context bloat and fewer missed delegation opportunities during long-running changes.\n- ADV maintainers can reason about provider hint behavior without relying on one provider-specific prompt having accidental stronger wording than another.\n\n## Scope\n\n### In Scope\n\n- GPT provider-hint behavior for ADV sub-agent routing.\n- Parity review for other provider hints where they lack equivalent ADV delegation cues.\n- Advance-side readiness/routing display surfaces that may hide structural delegation metadata from the orchestrator.\n- Specs, tests, and docs needed to make delegation hint behavior durable.\n- Deployment/restart notes for any provider-hint or OpenCode runtime changes.\n\n### Out of Scope\n\n- Creating new sub-agent identities.\n- Changing the nested sub-agent depth policy.\n- Making sub-agent spawning fully automatic or runtime-enforced without orchestrator judgment.\n- Reworking the full ADV gate lifecycle.\n- Changing OpenCode model routing defaults beyond the provider-hint/delegation behavior needed for this issue.\n\n### Must Not\n\n- Must not route primary agents (`adv`, `plan`, `build`) as sub-agents.\n- Must not delegate orchestrator-owned authority: user checkpoints, artifact synthesis, ADV state mutation, scope-drift decisions, or gate completion.\n- Must not rely on free-text model-name guessing for provider selection.\n- Must not introduce provider-specific ADV runtime agents (`adv-gpt`, `adv-claude`, etc.).\n\n## Affected Code\n\n- `~/toolbox/plugins/opencode-provider-hints/providers/gpt.md` and potentially sibling provider hint files.\n- `~/toolbox/plugins/opencode-provider-hints/plugin.js` only if discovery finds injection/mapping behavior needs adjustment.\n- `plugin/src/utils/tool-formatters.ts` and related tests if task readiness needs to expose delegation metadata.\n- `.opencode/agents/adv.md`, `.opencode/command/adv-apply.md`, and specs only if wording/spec law needs alignment with the durable behavior.\n- Provider-eval or deploy-local tests if needed to prevent provider-hint parity drift.\n\n## Related Repositories\n\n- Current repo: `advance` — ADV specs, command contracts, task-ready formatting, tests, and docs.\n- Related local repo: `~/toolbox` — source of the standalone `opencode-provider-hints` plugin and provider hint files.\n- Product-linked scope: none detected in current `project.json`; cross-repo coordination should be resolved during discovery.\n\n## Constraints\n\n- Specs are laws; any durable routing invariant must be reflected in the appropriate spec capability.\n- Provider hint selection must remain based on structured provider/model context, not heuristic guessing.\n- Worker routing must preserve allowed ADV sub-agent roster and report contracts.\n- Mutating implementation work must use isolated worktrees for the repo being changed.\n- OpenCode must be restarted after provider-hint/runtime prompt deployment before live-session behavior can be fully observed.\n\n## Failure Handling\n\n- If a sub-agent is unavailable, returns blockers, or fails its bounded scope, the orchestrator must keep ownership and use the existing inline fallback or surface the blocker.\n- If provider-hint deployment or runtime reload cannot be verified in-session, the change must record the restart/deploy gap rather than claiming live behavior changed.\n- If discovery finds that hidden delegation metadata is not part of the normal failure path, the formatter work should be dropped or moved out of scope instead of forcing an unrelated implementation.\n\n## Impact\n\n- Higher delegation rate for GPT ADV sessions in scenarios already intended to use workers.\n- Lower orchestrator context load during research/discovery, scans, implementation, and noisy verification work.\n- Reduced provider-specific behavior drift across runtime hints.\n- Potential cross-repo coordination between Advance and toolbox provider-hints source.\n\n## Context\n\nEvidence gathered during triage:\n\n- Provider hints are injected by `~/toolbox/plugins/opencode-provider-hints/plugin.js` through `experimental.chat.system.transform`.\n- `openai` maps to the `gpt` provider hint.\n- Current GPT hint only nudges delegation for ADV apply tasks when `delegate_allowed` or `delegate_preferred` is already visible.\n- GLM hint includes an unconditional rule for multi-gate, multi-file, or cross-cutting ADV work to prefer `adv-researcher` or `adv-engineer`.\n- The ADV base prompt already lists worker routing, including `explore`, `adv-researcher`, `adv-engineer`, `adv-designer`, `adv-reviewer`, `adv-tron`, and `general` for verify bursts.\n- `formatTaskReadyOutput` currently formats ready tasks from `{ id, content, status }`, so metadata such as `delegation_hint` is not part of the formatted ready-task display.\n- `delegation-defaults` spec says discovery is hybrid with `adv-researcher`/`explore`, design uses `adv-researcher`, apply is hybrid with `adv-engineer`/`adv-designer`/`general`, review/harden use worker lanes, and proposal/prep/archive/reflect remain inline-required.\n\n## Discovery Findings\n\n### Skills Considered\n\n| Skill | Match | Action |\n| --- | --- | --- |\n| `adv-agent-tool-contracts` | Relevant: worker routing/report/prompt contract may change | Loaded |\n| `adv-instructions-audit` | Relevant: provider-hint/runtime prose needs executable anchors | Loaded |\n| `adv-opportunity-scout` | Relevant to Phase 3.5 scout | Used by researcher lane |\n| `adv-audit` | Partial: spec/implementation drift methodology, but current discovery used targeted specs/tools directly | Not loaded |\n| `adv-worktree` | Partial: will matter during implementation across repos | Deferred to design/prep |\n\nPending-review scan: no global skill frontmatter with `metadata.review_status: \"pending\"` found. No core skill gap requiring new skill creation.\n\n### Extends\n\n- `temp/brainstorm-adv-runtime-enhancements.md` identified background agent support as a long-standing need: \"Problem: Research blocks main task execution\" and \"Async research via sub-agent\". New finding: worker support now exists; current gap is provider-specific prompting and decision-point signal salience, not lack of a sub-agent mechanism.\n- `docs/repo-improve-prep.md` is not directly about delegation, but its LBP evidence supports deterministic orchestration, explicit state, and per-step observability. New finding: provider-hint delegation parity should be guarded by deterministic tests, not prose alone.\n- `docs/adv-run-test-prep.md` is adjacent for verify bursts. New finding: GPT provider hint should mention verify-only delegation to `general` only for noisy/long-running bursts, preserving focused TDD `adv_run_test` inline.\n- `temp/temporal-perf-report.md` is performance-related, not directly scoped. It reinforces avoiding unnecessary context/tool churn but does not define a delegation fix.\n\n### Conflict Scan\n\n- Active changes: `auditSlopScanFallback` is unrelated; `fixGptSubagentRouting` is current target.\n- Validation: passed. Pre-discovery warnings `NO_TASKS` and `NO_DELTAS` are expected before prep/spec deltas.\n- Agenda: no overlapping agenda before scout. Scout-created follow-ups now track scope decisions for toolbox, task-ready metadata projection, and pairing formatter tests if adopted.\n- No lineage or Epic membership detected.\n\n### Current State\n\n- `~/toolbox/plugins/opencode-provider-hints/plugin.js` maps structured provider IDs to hint keys and appends provider hints into `output.system[0]`.\n- Current OpenCode-book evidence says `experimental.chat.system.transform` runs while building the system prompt and can modify system prompt segments. Local plugin mutates `output.system[0]`, which is consistent with in-place mutation semantics.\n- `providers/gpt.md` has a conditional apply-task delegation nudge but no unconditional cross-gate/multi-file delegation trigger and no `adv-researcher`/`explore`/verify-burst cue.\n- `providers/glm.md` has the stronger rule: multi-gate/multi-file/cross-cutting ADV work should prefer `adv-researcher` or `adv-engineer`.\n- `providers/kimi.md` has no delegation cue; `claude.md`/`qwen.md` have apply-only cues; `minimax.md` has stronger but engineer-only cues.\n- `plugin/src/tools/task.ts` returns raw `ready[]` task objects with metadata, but `formatted.readyList` and `_todoProjection` narrow to id/title/status.\n- `plugin/src/utils/tool-formatters.test.ts` covers ready/blocked/truncation formatting but no routing metadata projection.\n- `~/toolbox/plugins/opencode-provider-hints/test/plugin.test.js` covers provider mapping, switch notices, and loading all six files, but not delegation-content parity.\n- `scripts/provider-eval-prompts/claude.yaml` has an over-spawn guard for one-file typo fixes. `gpt.yaml` lacks a mirror under-spawn prompt for multi-file/cross-gate work where delegation is expected.\n\n### Edge Cases\n\nGap: provider-hint parity.\n\n1. Narrow single-file edits must not over-spawn after stronger GPT delegation wording.\n2. Discovery/research tasks need `adv-researcher`/`explore` cues; apply-only wording will not help those gates.\n3. Verify bursts should route to `general` only for noisy/long-running commands, not focused red/green TDD.\n4. Provider hints must stay structured-provider-ID based; no free-text model guessing.\n\nGap: task-ready metadata salience.\n\n1. Raw task metadata may be present but ignored when the model anchors on `formatted.readyList` or `_todoProjection`.\n2. Large ready queues may trigger tool-output truncation, making the compact metadata-stripped projection more salient than raw `ready[]`.\n3. Adding all metadata to formatted output could leak noise or create prompt bloat; if adopted, project only routing-relevant keys.\n4. Missing metadata must remain valid; formatting should degrade cleanly.\n\nGap: cross-repo delivery.\n\n1. Toolbox provider-hint source and Advance specs/tests may need coordinated changes in separate repos.\n2. Live behavior cannot be fully verified in the current session unless provider-hints are deployed and OpenCode is restarted.\n3. Backups/dotfiles sync may be needed if tool/shell/terminal config-adjacent deployment state changes.\n\n### Open Design Questions\n\n1. **How strong should GPT delegation guidance be?**\n   - Trust model: joint; user preference affects behavior tolerance.\n   - Blast radius: too weak preserves under-spawn; too strong causes over-spawn/noise.\n   - Alternatives: GLM parity wording (recommended baseline), stronger hard preference, or workflow-specific cues.\n\n2. **Is task-ready routing metadata projection in scope?**\n   - Trust model: joint; affects Advance code scope beyond toolbox hint text.\n   - Blast radius: in scope means Advance formatter/test/spec work; out of scope means the first fix relies on provider hints only.\n   - Alternatives: include bounded routing keys in formatted output (recommended if this change owns structural fix), defer to follow-up, or require agents to call `adv_task_show` before routing.\n\n3. **How broad should provider parity be?**\n   - Trust model: joint.\n   - Blast radius: GPT-only fix is smaller; all provider hints reduce drift but touch more files.\n   - Alternatives: GPT-only, all provider hints minimum delegation baseline, or only provider hints used for ADV orchestration.\n\n4. **How should cross-repo implementation be represented?**\n   - Trust model: joint.\n   - Blast radius: one coordinated change can resolve behavior end-to-end; split follow-up avoids mixing repos but risks partial fix.\n   - Alternatives: same ADV change with explicit toolbox scope; current repo change plus target-project follow-up; toolbox-only direct fix with Advance spec follow-up.\n\n### Draft Spec Deltas\n\n**rq-delDefaults09 — Provider hint delegation parity**\n\n- Given supported provider hint files exist for ADV runtime providers,\n- When provider hints are inspected,\n- Then each orchestrator-capable provider hint includes delegation guidance consistent with the `delegation-defaults` matrix for hybrid and subagent-primary steps, including research/scans, implementation, and verify-burst lanes.\n\n**rq-taskReadyRoutingProjection01 — Ready-task routing metadata projection**\n\n- Given `adv_task_ready` returns ready tasks with routing metadata such as `delegation_hint` or `frontend`,\n- When the formatted ready-task projection is rendered,\n- Then bounded routing-relevant metadata is visible in the salient projection without exposing unrelated metadata or relying on heuristic title inference.\n\n**rq-providerHintParityTest01 — Deterministic provider-hint content guard**\n\n- Given the provider-hints plugin loads all supported provider hint files,\n- When tests run,\n- Then a deterministic test fails if a provider hint loses minimum ADV delegation cues required for orchestrator-capable providers.\n\n### Related Pattern Scan\n\n- Similar pattern found: provider-eval has `subagent-overspawn-01` for Claude but no GPT under-spawn mirror. This guards over-delegation but not the reported under-delegation class.\n- Similar pattern found: `formatted.readyList` and `_todoProjection` are salient summaries that omit decision-relevant routing metadata while raw data still carries it. This is a salience gap localized to task-ready display.\n- Similar pattern not found elsewhere in status/validation formatters; this appears localized to task routing.\n\n### Completeness Verification\n\nProblem-completeness: likely full problem identified with high confidence. It is not only \"GPT prompt wording is weak\"; discovery also found a decision-point metadata salience gap and absent parity tests.\n\nSolution-scope: intended solution likely includes two layers: provider-hint parity in toolbox and optional routing metadata projection in Advance. No sole-entry claim is used for all delegation behavior; provider hints are one salience layer over existing ADV delegation contracts.\n\nSecondary surfaces:\n\n- `providers/kimi.md`, `claude.md`, `qwen.md`, and `minimax.md`: in scope for parity review, exact edits pending user decision.\n- `scripts/provider-eval-prompts/*.yaml`: in scope for an under-spawn regression prompt if discovery/design chooses eval coverage.\n- `plugin/src/utils/tool-formatters.ts` and tests: unresolved user-facing scope question for this change.\n\nReproduction finding classification:\n\n- Reported GPT under-spawn: `broken_capability` for ADV orchestrator behavior; may seed criteria.\n- Hidden task metadata in formatted projection: `unverified` as a direct cause, but verified as a salience gap; may seed criteria only as bounded display/visibility behavior, not as sole root cause.\n\n### LBP Check\n\nLikely direction matches long-term best practice: use bounded provider guidance plus deterministic tests, not runtime auto-spawning. External evidence supports orchestrator-worker patterns where the orchestrator delegates bounded subtasks and synthesizes results, while retaining decision authority. OpenCode hook documentation confirms system-transform hooks are the right integration point for provider prompt additions.\n\nRejected for now:\n\n- Full automatic runtime delegation enforcement: too broad and conflicts with orchestrator judgment boundaries.\n- New sub-agent identities: unnecessary; existing `delegation-defaults` matrix already names the right worker lanes.\n- Prose-only hint edit: too regression-prone without tests.\n\n### Discovery Opportunity Scout\n\nTrigger decision: run. Scope is strategic/provider-behavior and spans cross-repo prompt/test surfaces.\n\nScout result: pass, 5 candidates.\n\n- Auto-adopt: GPT delegation wording gap.\n- Auto-adopt: provider-hint parity test.\n- Surface to user: task-ready metadata projection scope.\n- Follow-up/conditional: formatter metadata-projection test if projection adopted.\n- Follow-up: broaden wording to mention `explore`/`general` lanes where appropriate.\n\n### Recommended Objectives\n\n1. Make GPT provider guidance consistent with ADV's intended delegation model for research/discovery, implementation, scans, and verify bursts.\n2. Add deterministic guardrails so provider hints cannot silently lose minimum ADV delegation cues.\n3. Decide whether this change also owns bounded routing-metadata visibility in `adv_task_ready` formatted output.\n4. Preserve orchestrator-owned decisions and inline boundaries; delegation remains bounded, not automatic.\n5. Document/deploy the restart requirement so live behavior is not falsely claimed before provider-hint reload.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:P M:P\n\nM1 HIGH Missing Information — Cross-repo implementation scope needs user resolution.\n  Evidence: \"cross-repo coordination should be resolved during discovery\"\n  Reason: unclear because provider-hint source lives in `~/toolbox` while spec/test surfaces live in `advance`.\n\nS1 LOW Completion Signals — \"more consistently\" needs firm criteria.\n  Evidence: \"more consistently spawns appropriate sub-agents\"\n  Reason: discovery must translate this into bounded observable signals such as hint content, tests, and projection output.\n\nNo CRITICAL findings. One HIGH advisory only; continue to agreement question loop.\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n| --- | --- | --- |\n| Skill Discovery | PASS | Relevant skills inspected/loaded; no pending reviews; no skill gap |\n| Prior Research Extension | PASS | Cited brainstorm and research packs; added new current-state findings |\n| Conflict & Related-Work Scan | PASS | Active/archive list, validation, agenda checked |\n| Edge Case Investigation | PASS | Edge cases recorded for provider hints, task metadata, cross-repo delivery |\n| Design Question Depth | PASS | Open questions annotated with trust model, blast radius, alternatives |\n| Draft Spec Delta Shapes | PASS | Three draft rq-* deltas with Given/When/Then shapes |\n| P25 Related-Pattern Scan | PASS | Provider-eval overspawn-only guard and metadata salience pattern found |\n| LBP Check | PASS | Deterministic prompt+test guard preferred; external hook/orchestrator evidence cited |\n| Completeness Verification | PASS | Full problem includes prompt gap, signal salience, and test guard gap |\n\n## Discovery Agenda\n\nResolved now:\n\n- `adv_task_ready` raw output carries metadata; formatted projections omit routing metadata.\n- Provider-hints tests lack delegation-content parity.\n- Provider-eval has over-spawn but not under-spawn guard coverage.\n\nStill pending for agreement/design:\n\n- User choice on aggressiveness of GPT guidance.\n- User choice on whether task-ready metadata projection is in this change.\n- User choice on cross-repo implementation ownership.\n",
+    "problemStatement": "## Problem Statement\n\nGPT-model ADV sessions under-delegate work: they too often keep research/discovery and coding tasks inline even when sub-agent routing would preserve orchestrator context and use specialist workers.\n\nDesired outcome: GPT ADV behavior more consistently spawns appropriate sub-agents for independent research/discovery, code implementation suitable for `adv-engineer`, repo scans/structural exploration, and noisy or long-running verify bursts.\n\nExpected scope: align provider-hint guidance, make delegation routing signals visible where agents choose next work, and add durable spec/test coverage if discovery confirms the behavior should become spec law.\n",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make GPT provider guidance consistent with ADV's intended delegation model for research/discovery, scans, implementation, and verify bursts.\n2. Add deterministic guardrails so GPT provider-hint delegation cues cannot silently regress.\n3. Make bounded task-ready routing metadata visible in the formatted `adv_task_ready` output where agents choose next work.\n4. Preserve orchestrator-owned decisions and inline boundaries; delegation remains bounded and judgment-based, not automatic runtime enforcement.\n5. Deliver coordinated source changes across `advance` and `~/toolbox` with repo-scoped verification and explicit deploy/restart notes.\n\n## Success Criteria\n\n1. GPT ADV sessions have clear provider guidance for when to spawn existing workers for research/discovery, scans, implementation, and verify bursts.\n2. GPT provider-hint delegation cues are protected by deterministic tests.\n3. Ready-task routing metadata is visible in bounded formatted output when present.\n4. Delivery notes distinguish source/test verification from live-session behavior requiring provider-hint deploy plus OpenCode restart.\n\n## Acceptance Criteria\n\n1. GPT provider hint includes GLM-parity baseline delegation guidance for multi-gate, multi-file, or cross-cutting ADV work, while preserving orchestrator-owned authority boundaries. [warrant: spec:rq-delDefaults03]\n2. Provider-hints tests fail if GPT loses minimum ADV delegation cues: apply-task delegation cue, cross-gate/research cue, and no primary/phantom agent routing. [warrant: spec:rq-delDefaults06]\n3. `adv_task_ready` formatted ready output exposes only bounded routing metadata keys needed for delegation decisions, including `delegation_hint` and `frontend` when present. [warrant: tool:adv_task_ready]\n4. `adv_task_ready` preserves existing raw ready-task payload compatibility; missing metadata remains valid and formats cleanly. [warrant: tool:adv_task_ready]\n5. Content edits are GPT-only unless discovery/design finds a blocking parity issue in another provider; non-GPT providers may be audited but are not required to change.\n6. Coordinated delivery covers `advance` and `~/toolbox` source surfaces, with repo-scoped verification for each touched repo.\n7. Final release notes state whether live OpenCode behavior was verified in a fresh/restarted session; if not, they explicitly call out deploy/restart required.\n\n## Constraints\n\n1. Specs are laws; durable routing invariants must be represented in the appropriate capability spec.\n2. Provider hint selection must remain based on structured provider/model context, not free-text model-name guessing.\n3. Worker routing must preserve the allowed ADV sub-agent roster and typed report contracts.\n4. Mutating implementation work must use isolated worktrees for each repo being changed.\n5. Focus provider-hint content edits on GPT for this change unless design finds a blocking inconsistency that affects the approved criteria.\n\n## Avoidances\n\n1. Do not create new sub-agent identities.\n2. Do not route primary agents (`adv`, `plan`, `build`) as sub-agents.\n3. Do not delegate orchestrator-owned authority: user checkpoints, artifact synthesis, ADV state mutation, scope-drift decisions, or gate completion.\n4. Do not make sub-agent spawning fully automatic or runtime-enforced without orchestrator judgment.\n5. Do not revive provider-specific ADV runtime agents such as `adv-gpt` or `adv-claude`.\n6. Do not claim live-session behavior changed unless provider hints were deployed and OpenCode was restarted or otherwise freshly loaded.\n\n## Out of Scope\n\n1. Creating new sub-agent identities.\n2. Changing nested sub-agent depth policy.\n3. Reworking the full ADV gate lifecycle.\n4. Changing OpenCode model routing defaults beyond provider-hint/delegation behavior needed for this issue.\n5. Required content edits for non-GPT provider hints.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects ADV prompt/tooling behavior, specs, tests, and local provider-hint source. It does not affect front-end, browser-visible UI, or visual output.\n\npreview_expectation:\n\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: no browser or visual preview surface is expected.\n\n## Decisions\n\n### User Decisions\n\n1. Question: How strong should GPT delegation guidance become?\n   - User choice: GLM parity baseline.\n   - Why it matters: balances under-spawn fix against over-spawn risk while preserving orchestrator judgment.\n\n2. Question: Should this change include bounded `adv_task_ready` formatted routing metadata, or leave that as follow-up?\n   - User choice: Include bounded metadata.\n   - Why it matters: makes the structural routing signal visible at the decision point instead of relying on agents to inspect raw JSON or call `adv_task_show`.\n\n3. Question: Should provider-hint parity apply beyond GPT?\n   - User choice: GPT only.\n   - Why it matters: keeps content-edit scope aligned with the reported issue while allowing non-GPT audit without mandatory edits.\n\n4. Question: How should cross-repo work be handled?\n   - User choice: Coordinated same change.\n   - Why it matters: the durable behavior spans Advance specs/tests and toolbox provider-hints source.\n\n### Agent Decisions (LBP)\n\n1. Use deterministic tests for provider-hint delegation cues rather than a prose-only prompt edit.\n   - Rationale: discovery found provider-hints tests currently verify marker emission/loading but not content parity; prose-only fixes can silently regress.\n\n2. Treat `adv_task_ready` formatting as a salience gap, not raw data loss.\n   - Rationale: raw `ready[]` tasks still carry metadata, but formatted projections omit routing keys and may dominate model attention or survive truncation.\n\n3. Keep delegation bounded and judgment-based.\n   - Rationale: external orchestrator-worker patterns support delegation for bounded subtasks while the orchestrator retains synthesis and decision authority.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved by user reply: `approve`.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nUse a two-layer fix:\n\n1. **Provider-hint layer (toolbox):** update GPT provider guidance so OpenAI/GPT ADV sessions receive GLM-parity baseline delegation cues for broad ADV work. This is the model-salience layer.\n2. **Task-ready projection layer (advance):** expose bounded routing metadata in `adv_task_ready` formatted output so the routing signal is visible at the point the orchestrator picks ready work. This is the structural visibility layer.\n\nDurability comes from deterministic tests in both places. The fix does not create new workers, new routing authority, or runtime auto-spawn enforcement. It aligns prompt salience and formatted output with the existing `delegation-defaults` matrix.\n\n## Key Decisions\n\n### 1. GPT-only provider content edit\n\nDecision: edit only `providers/gpt.md` content for provider-hint wording, while adding tests that specifically guard GPT delegation cues.\n\nRationale: the reported defect is GPT under-spawning. Discovery found non-GPT drift candidates, but the approved agreement scopes required content edits to GPT only. Non-GPT hints may be audited and left unchanged.\n\nTradeoff: this leaves possible future parity work for Kimi/Claude/Qwen/MiniMax. That is acceptable because the contract explicitly says non-GPT providers are not required to change.\n\n### 2. GLM-parity baseline, not hard auto-delegation\n\nDecision: add GPT guidance equivalent in strength to GLM's cross-gate/multi-file/cross-cutting nudge, naming appropriate worker lanes while preserving orchestrator-owned authority.\n\nRationale: GLM parity addresses under-spawn without turning every broad task into mandatory delegation. The orchestrator still applies context-bound, inline boundary, and worker-routing rules.\n\n### 3. Bounded metadata projection in `adv_task_ready`\n\nDecision: extend the formatted ready-task projection to include only delegation-relevant metadata keys, specifically `delegation_hint` and `frontend` when present.\n\nRationale: raw `ready[]` tasks carry metadata, but `formatted.readyList` and `_todoProjection` are salient summaries used at task selection. Projecting only bounded keys fixes the salience gap without dumping arbitrary metadata into chat output.\n\n### 4. Test guard over prose-only fix\n\nDecision: add deterministic tests for provider-hint delegation cues and formatter metadata projection.\n\nRationale: provider-hint wording is otherwise sovereign prose and can silently regress. Tests should fail for the specific under-delegation failure mode: GPT losing apply-task or cross-gate/research delegation cues, or formatter output losing bounded routing keys.\n\n### 5. Coordinated cross-repo delivery\n\nDecision: implement Advance and toolbox changes as one coordinated delivery scope, using isolated worktrees per repo.\n\nRationale: source behavior spans both repos. Advance owns specs/formatter/tests; toolbox owns provider-hints source/tests/deploy script. Repo-scoped verification remains separate.\n\n### 6. Spec-law placement uses existing delegation invariants where possible\n\nDecision: extend existing `delegation-defaults` requirements/tests for provider-hint parity where they already own allowed sub-agents and no-primary/no-phantom routing, rather than creating duplicate agent-roster law. Add a new narrow requirement only where no existing law covers ready-task formatted metadata projection.\n\nRationale: AC1/AC2 already warrant `rq-delDefaults03` and `rq-delDefaults06`; duplicating those invariants would create competing sources of truth.\n\n## ADR Drafts\n\nNo ADR draft required. Decisions are scoped, reversible prompt/tooling changes and do not meet the full hard-to-reverse + surprising + real-tradeoff ADR rubric.\n\n## Implementation Strategy\n\n1. **Advance spec law**\n   - Amend existing `delegation-defaults` requirements/tests where possible so provider-hint delegation cues reuse the existing allowed-subagent and no-primary/no-phantom roster invariants.\n   - Add a narrow requirement for bounded ready-task routing metadata projection if no existing spec requirement covers the formatted projection surface.\n\n2. **Advance formatter**\n   - Extend `TaskReadyInput.ready` and blocked task input to accept optional routing metadata read from `Task.metadata`.\n   - Pass `delegation_hint` and `frontend` from `Task.metadata` in `adv_task_ready` into `formatTaskReadyOutput` and `_todoProjection` only if the projection structure supports it safely.\n   - Reuse the canonical keys already used by apply routing/reflection: `delegation_hint` and `frontend`.\n   - Format missing metadata as absent, not as `undefined`/empty placeholders.\n   - Keep raw `ready[]` compatibility unchanged.\n\n3. **Advance tests**\n   - Add or update `tool-formatters.test.ts` to assert bounded routing metadata appears in formatted ready output when present and is absent when missing.\n   - Add or update spec/assets tests so provider-hint parity and task-ready projection are anchored by executable checks where Advance owns the invariant.\n   - Add one GPT under-spawn provider-eval prompt to existing `scripts/provider-eval-prompts/gpt.yaml`; do not create a new prompt file.\n\n4. **Toolbox provider hints**\n   - In `~/toolbox/plugins/opencode-provider-hints/providers/gpt.md`, add GLM-parity baseline delegation guidance.\n   - Include research/discovery/scans/implementation/verify-burst wording only to the degree needed to align with existing ADV worker lanes.\n   - Preserve existing GPT-specific rules about sequential dependencies, schema correctness, and no `general` for code-writing.\n\n5. **Toolbox tests**\n   - Extend `~/toolbox/plugins/opencode-provider-hints/test/plugin.test.js` with deterministic content assertions for GPT minimum delegation cues.\n   - Reuse the existing no-primary/no-phantom roster invariant concept from `delegation-defaults` rather than inventing a separate roster.\n\n6. **Verification and deployment notes**\n   - Run Advance targeted tests for formatter/spec/assets changes.\n   - Run toolbox `npm test` or equivalent provider-hints test command.\n   - Record whether provider-hints were deployed and OpenCode restarted. If not, explicitly state live behavior is source-verified only.\n\n## LBP Analysis\n\nThis design follows the long-term best practice for this codebase: make correctness structural before relying on prose. Provider hints remain prompt guidance, but tests guard the minimum content shape. Task-ready metadata visibility uses typed task metadata already present in raw data and projects only bounded keys into the salient display surface.\n\nExternal orchestrator-worker guidance supports bounded sub-agent delegation while the orchestrator retains synthesis and decision authority. This design keeps that split: workers handle bounded research/scans/implementation/verification, while ADV owns user checkpoints, agreement/design artifacts, state mutation, and gate transitions.\n\nRejected alternatives:\n\n- **Prose-only GPT hint edit:** fastest, but regression-prone and not aligned with instruction-audit guidance.\n- **Runtime auto-spawn enforcement:** too broad; would change delegation authority rather than salience and visibility.\n- **Require `adv_task_show` before every routing decision:** adds tool churn and still leaves `adv_task_ready` formatted output misleading at the first decision point.\n- **All-provider content rewrite:** useful future cleanup, but outside approved user scope for this change.\n- **Duplicate provider-hint spec requirement with its own roster:** risks competing sources of truth; reuse existing delegation-defaults invariants instead.\n\n## Affected Components\n\n### Advance repo\n\n- `.adv/specs/delegation-defaults/spec.json` and generated/docs mirror if spec delta is adopted.\n- `docs/specs/delegation-defaults.md` if generated or manually maintained through current workflow.\n- `plugin/src/tools/task.ts` for passing bounded metadata into formatted projections.\n- `plugin/src/utils/tool-formatters.ts` for display shape.\n- `plugin/src/utils/tool-formatters.test.ts` and any relevant asset/spec tests.\n- `scripts/provider-eval-prompts/gpt.yaml` for one under-spawn prompt.\n\n### Toolbox repo\n\n- `plugins/opencode-provider-hints/providers/gpt.md`.\n- `plugins/opencode-provider-hints/test/plugin.test.js`.\n- `scripts/deploy-provider-hints.sh` only for running/deployment, not expected source change.\n\n## Design-Derived Criteria\n\n1. Formatted task-ready routing metadata must be bounded to approved routing keys; arbitrary task metadata must not be displayed.\n2. Provider-hint tests must assert behaviorally meaningful cues, not exact full prompt text.\n3. GPT hint content must not name primary agents (`adv`, `plan`, `build`) or phantom workers as sub-agents.\n4. Existing `adv_task_ready` raw JSON response shape must remain backward-compatible for consumers reading raw `ready[]`.\n5. Verification must be repo-scoped: Advance tests in `plugin/`, toolbox tests in `~/toolbox/plugins/opencode-provider-hints`.\n6. Spec changes must extend existing delegation-defaults invariants when possible instead of duplicating the sub-agent roster.\n\n## Risks / Mitigations\n\n- **Risk: over-spawn after stronger GPT wording.** Mitigation: use GLM-parity baseline, preserve context-bound/inline authority wording, and retain existing over-spawn eval coverage for narrow typo tasks.\n- **Risk: prompt-content tests become brittle.** Mitigation: assert minimum semantic tokens/phrases and forbidden agent names rather than exact prompt text.\n- **Risk: metadata projection becomes noisy.** Mitigation: only project `delegation_hint` and `frontend` when present; do not show arbitrary metadata.\n- **Risk: cross-repo coordination loses one side.** Mitigation: prep must create repo-scoped tasks and verification for both Advance and toolbox.\n- **Risk: live behavior cannot be observed in current session.** Mitigation: record deploy/restart requirement and distinguish source verification from live runtime verification.\n\n## Design Leverage Scout\n\nValidator lane: `researcher:design-leverage-scout`, status pass.\n\nCandidates considered: 5.\n\nAuto-adopted:\n\n1. Extend `TaskReadyInput.ready` / `_todoProjection` with optional `delegation_hint` and `frontend` read from `Task.metadata`.\n2. Reuse the existing canonical routing keys `delegation_hint` and `frontend`.\n3. Add GPT under-spawn eval as one prompt in existing `gpt.yaml`.\n4. Reuse existing no-primary/no-phantom delegation invariants for GPT hint-content tests.\n\nOrchestrator-resolved technical candidate:\n\n- Spec-law placement should extend existing `rq-delDefaults03` / `rq-delDefaults06` where possible, with a narrow new projection requirement only if needed. This is agent-resolved because it is technical source-of-truth placement, not a user-value tradeoff.\n\nSurfaced to user: none required after agent resolution.\n\n## Validator Result\n\nIndependent validator lane: `researcher:design-validation`, status pass, confidence high, risk low.\n\nValidator findings:\n\n- `adv_task_ready` formatter strips `Task.metadata` before formatting but returns raw `ready[]`; the salience gap is real.\n- `delegation_hint` is the canonical Priority-1 apply-routing override.\n- `frontend` is the canonical Priority-1.5 `adv-designer` routing branch.\n- Existing `rq-delDefaults03` / `rq-delDefaults06` own the no-primary/no-phantom roster law reused by the design.\n- GPT hint drift is real: GPT is apply-only while GLM has a cross-gate/multi-file cue.\n\nValidator recommendation: proceed to planning.\n\nNon-blocking prep cautions:\n\n1. Confirm no existing `delegation-defaults` requirement already covers ready-task projection before minting a new requirement ID.\n2. GPT hint-content tests should assert semantic tokens and forbidden agent names, not exact GLM prose.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nDelivered GPT sub-agent routing improvements across Advance and toolbox source: GPT provider hints now include cross-gate delegation guidance with orchestrator authority preserved, and `adv_task_ready` formatted output now exposes bounded routing metadata when present.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Advance delegation spec/test anchors: updated delegation-defaults spec/docs/tests and added GPT under-spawn provider-eval coverage.\n2. Advance task-ready formatter: added bounded `delegation_hint` / `frontend` projection in formatted ready-task output while preserving raw `ready[]` compatibility.\n3. Toolbox provider hints: updated GPT hint and tests for apply-task cue, cross-gate/research cue, orchestrator authority, and no primary/phantom routing.\n4. Verification proof: repo-scoped checks recorded for Advance and toolbox; live OpenCode runtime behavior intentionally not claimed until provider-hint deploy + restart/fresh session.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 unresolved findings. Acceptance reviewer verdict READY; remediation added one orchestrator-authority line/test and reverified.\n- Tests:\n  - Advance targeted: `bin/oc-test targeted -- src/delegation-matrix.test.ts src/utils/tool-formatters.test.ts src/tools/task.test.ts src/subagent-reports-spec-assets.test.ts src/phantom-subagent-roster.test.ts src/__tests__/no-retired-tool-spec-refs.test.ts` — 216 passed.\n  - Advance check: `pnpm run check` — passed.\n  - Toolbox provider-hints: `npm test` — 21 passed after reviewer remediation.\n  - Harden targeted: Advance `bin/oc-test targeted -- src/delegation-matrix.test.ts src/tools/task.test.ts src/utils/tool-formatters.test.ts` — 102 passed; toolbox `npm --prefix plugins/opencode-provider-hints test` — 21 passed.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; implementation affects prompt/tooling behavior, specs, tests, and local provider-hint source, not browser-visible UI or visual output.\n- Contract matrix: 27 rows persisted; required rows passed/respected/not_applicable with 0 failing/unknown rows.\n\n## Remaining Concerns\n\n- Live OpenCode behavior was not verified in this running session. Provider-hint deployment and OpenCode restart/fresh session are required before claiming runtime GPT behavior changed.\n- Cross-repo delivery uses two branches/worktrees: Advance `change/fixGptSubagentRouting` and toolbox `fix/gpt-subagent-routing`.\n\n## Consequence Context\n\n1. delivered value — pass: GPT ADV sessions now receive stronger worker-spawn guidance and task-ready formatted output shows bounded routing metadata; evidence: contract matrix SC1-SC3, AC1-AC4.\n2. enabling-only/follow-up dependency — warning: behavior is source/test verified but live runtime effect depends on provider-hint deploy + OpenCode restart/fresh session; evidence: AC7/SC4 matrix rows.\n3. ops readiness — pending: harden owns final release/deploy/production/docs/cleanup readiness; evidence: no production-impacting ops runbook required by agreement.\n4. migration/data impact — n/a: no data migration, persistence schema, or production data change; evidence: touched surfaces are specs/tests/formatter/provider-hint files.\n5. frontend/preview impact — n/a: `visual_surface: false`; no browser-visible or visual-output implementation; evidence: agreement preview applicability and contract matrix.\n6. collision/release risk — warning: cross-repo release requires coordinating Advance and toolbox branches; acceptance review found no blockers, but harden must verify branch state and release path.\n7. open follow-ups — warning: no acceptance-blocking follow-ups; runtime deploy/restart remains a release/harden caveat before claiming live behavior changed.\n8. next action — proceed: acceptance approval moves inline to `/adv-harden fixGptSubagentRouting` for release readiness, collision, and archive preflight.\n\n## Release Readiness Summary\n\n1. ops readiness — n/a: no ops_followup state, no production-impacting runbook, no migrations or deploy-time operations required.\n2. migration/data impact — n/a: no persistence schema or data changes; touched surfaces are specs, tests, prompt/provider-hint files, and formatter/tool output shaping.\n3. frontend/preview impact — n/a: `visual_surface: false`; no browser-visible UI or visual output.\n4. collision/release risk — warning: harden found no blockers and both worktrees are clean; merge compatibility checked against `origin/trunk` for Advance and `origin/master` for toolbox. Cross-repo release still requires coordinating Advance and toolbox branches.\n5. open follow-ups — warning: all current-change report-created agenda items completed; remaining caveat is provider-hint deploy + OpenCode restart/fresh session before claiming live runtime behavior changed.\n6. next action — proceed: archive sign-off may proceed; archive must preserve caveat that live runtime behavior is source/test verified only until deployment/restart verification.\n\n### Release Approval Consequence Context\n\n1. delivered value — pass: source/test work satisfies accepted contract for GPT sub-agent routing and task-ready metadata visibility.\n2. enabling-only/follow-up dependency — warning: runtime user benefit requires provider-hint deploy + restart/fresh session.\n3. ops readiness — n/a: no ops runbook or production operation required.\n4. migration/data impact — n/a: no migration/data change.\n5. frontend/preview impact — n/a: no visual/browser surface.\n6. collision/release risk — warning: no code/test blocker; cross-repo branches must be merged/deployed together to realize end-to-end behavior.\n7. open follow-ups — warning: deploy/restart verification remains after source merge; no acceptance-blocking implementation follow-up.\n8. next action — proceed to archive/release sign-off.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-04T19:11:15.115Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | GPT ADV sessions have clear provider guidance for when to spawn existing workers for research/discovery, scans, implementation, and verify bursts. | pass | GPT provider hint updated in toolbox gpt.md with cross-gate/multi-file/cross-cutting worker guidance; reviewer verdict READY. |\n| SC2 | success_criterion | GPT provider-hint delegation cues are protected by deterministic tests. | pass | Toolbox provider-hints tests now assert GPT apply-task cue, cross-gate/research cue, and no primary/phantom routing; npm test passed 21 tests. |\n| SC3 | success_criterion | Ready-task routing metadata is visible in bounded formatted output when present. | pass | Advance formatter/task tests verify bounded delegation_hint/frontend metadata projection; targeted tests passed 216 tests. |\n| SC4 | success_criterion | Delivery notes distinguish source/test verification from live-session behavior requiring provider-hint deploy plus OpenCode restart. | pass | Final verification task and acceptance notes state live OpenCode behavior requires provider-hint deploy + restart/fresh session before runtime claim. |\n| AC1 | acceptance_criterion | GPT provider hint includes GLM-parity baseline delegation guidance for multi-gate, multi-file, or cross-cutting ADV work, while preserving orchestrator-owned authority boundaries. | pass | Toolbox gpt.md updated with GLM-parity baseline and main-orchestrator authority boundary; toolbox npm test passed 21 tests after assertions. |\n| AC2 | acceptance_criterion | Provider-hints tests fail if GPT loses minimum ADV delegation cues: apply-task delegation cue, cross-gate/research cue, and no primary/phantom agent routing. | pass | test/plugin.test.js includes GPT content assertions for apply cue, cross-gate/research cue, and forbidden primary/phantom routing; npm test passed 21 tests. |\n| AC3 | acceptance_criterion | `adv_task_ready` formatted ready output exposes only bounded routing metadata keys needed for delegation decisions, including `delegation_hint` and `frontend` when present. | pass | tool-formatters/task tests verify formatted ready output exposes delegation_hint/frontend when present; bin/oc-test targeted suite passed 216 tests. |\n| AC4 | acceptance_criterion | `adv_task_ready` preserves existing raw ready-task payload compatibility; missing metadata remains valid and formats cleanly. | pass | Task tests verify raw ready[] compatibility and missing metadata clean formatting; bin/oc-test targeted suite passed 216 tests. |\n| AC5 | acceptance_criterion | Content edits are GPT-only unless discovery/design finds a blocking parity issue in another provider; non-GPT providers may be audited but are not required to change. | pass | Content edits in toolbox are limited to providers/gpt.md and tests; non-GPT provider hints unchanged. |\n| AC6 | acceptance_criterion | Coordinated delivery covers `advance` and `~/toolbox` source surfaces, with repo-scoped verification for each touched repo. | pass | Advance verification passed: bin/oc-test targeted suite 216 tests and pnpm run check. Toolbox verification passed: npm test 21 tests. |\n| AC7 | acceptance_criterion | Final release notes state whether live OpenCode behavior was verified in a fresh/restarted session; if not, they explicitly call out deploy/restart required. | pass | Verification task explicitly records live OpenCode behavior not verified in-session; provider-hint deploy + OpenCode restart/fresh session required. |\n| C1 | constraint | Specs are laws; durable routing invariants must be represented in the appropriate capability spec. | respected | delegation-defaults spec updated and tests added; no prose-only durable invariant. |\n| C2 | constraint | Provider hint selection must remain based on structured provider/model context, not free-text model-name guessing. | respected | provider-hints plugin mapping remains structured providerID-based; plugin.js not changed to free-text guessing. |\n| C3 | constraint | Worker routing must preserve the allowed ADV sub-agent roster and typed report contracts. | respected | Provider-hint test forbids primary/phantom routing; existing worker roster preserved; no new worker contract introduced. |\n| C4 | constraint | Mutating implementation work must use isolated worktrees for each repo being changed. | respected | Advance work used ADV worktree change/fixGptSubagentRouting; toolbox work used ad-hoc worktree fix/gpt-subagent-routing. |\n| C5 | constraint | Focus provider-hint content edits on GPT for this change unless design finds a blocking inconsistency that affects the approved criteria. | respected | Provider content edit is GPT-only; non-GPT hints audited but not modified. |\n| DONT1 | avoidance | Do not create new sub-agent identities. | respected | No new sub-agent identities added; changes use existing adv-researcher/adv-engineer terms only. |\n| DONT2 | avoidance | Do not route primary agents (`adv`, `plan`, `build`) as sub-agents. | respected | Tests forbid primary/phantom routing; GPT hint does not route adv/plan/build as sub-agents. |\n| DONT3 | avoidance | Do not delegate orchestrator-owned authority: user checkpoints, artifact synthesis, ADV state mutation, scope-drift decisions, or gate completion. | respected | GPT hint explicitly keeps task/gate/archive/release authority with main orchestrator. |\n| DONT4 | avoidance | Do not make sub-agent spawning fully automatic or runtime-enforced without orchestrator judgment. | respected | Design and implementation add guidance/metadata visibility only; no runtime auto-spawn enforcement added. |\n| DONT5 | avoidance | Do not revive provider-specific ADV runtime agents such as `adv-gpt` or `adv-claude`. | respected | No provider-specific ADV runtime agents added or revived. |\n| DONT6 | avoidance | Do not claim live-session behavior changed unless provider hints were deployed and OpenCode was restarted or otherwise freshly loaded. | respected | Runtime behavior not claimed as live-verified; deploy/restart requirement recorded. |\n| OOS1 | out_of_scope | Creating new sub-agent identities. | not_applicable | No new sub-agent identities created; out of scope respected. |\n| OOS2 | out_of_scope | Changing nested sub-agent depth policy. | not_applicable | Nested sub-agent depth policy unchanged. |\n| OOS3 | out_of_scope | Reworking the full ADV gate lifecycle. | not_applicable | ADV gate lifecycle unchanged. |\n| OOS4 | out_of_scope | Changing OpenCode model routing defaults beyond provider-hint/delegation behavior needed for this issue. | not_applicable | OpenCode model routing defaults unchanged. |\n| OOS5 | out_of_scope | Required content edits for non-GPT provider hints. | not_applicable | Non-GPT provider hint content not edited. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-04T18:04:42.531Z",
+      "contentHash": "25ba8fe05a5cb072d600a3cdb5fbc20ef125d29e275962e274ee93168182a953",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-04T17:47:04.398Z",
+      "contentHash": "add1ad301ff1e080dc09850c51fe91b84fdb3b05691613fb5a5ce8d8f588eca6",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-04T18:12:16.930Z",
+      "contentHash": "26efd46292801f5ab8963e24266f0ed35b47f6aec13eb05a8c9d4aada94c6ab1",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-04T18:23:30.160Z",
+      "contentHash": "4b86858d5e13af59effbca33635957e504e59eba5c729165c656b78c424fe342",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-05T01:10:32.281Z",
+      "contentHash": "ac036f764a723b9692ae6fa829d76e1c9cf2ccd090094515fb0428627da1c827",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-05T01:10:32.281Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
