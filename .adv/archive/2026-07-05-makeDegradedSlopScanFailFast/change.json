@@ -1,0 +1,1004 @@
+{
+  "id": "makeDegradedSlopScanFailFast",
+  "title": "Make degraded slop-scan fail fast",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-04T18:12:44.264Z",
+  "tasks": [
+    {
+      "id": "tk-dddd462aa0c1",
+      "title": "Add slop-scan failure envelope and required-coverage helpers",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-04T18:33:29.239Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC6",
+          "AC7",
+          "C2",
+          "C3",
+          "C4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T01:00:51.438Z",
+      "verification": "RED: bun test bin/lib/slop-scan/schema.test.ts failed with missing requiredCoverageFailures export. GREEN: bun test bin/lib/slop-scan/schema.test.ts passed (7 pass, 19 expect).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/slop-scan/schema.test.ts",
+        "bin/lib/slop-scan/schema.ts"
+      ],
+      "touched_files": [
+        "bin/lib/slop-scan/schema.test.ts",
+        "bin/lib/slop-scan/schema.ts"
+      ],
+      "checkpointSha": "ea2b467117bf8fcb11d0f9b1b142d6cbf2f5544d",
+      "completedAt": "2026-07-05T01:03:07.073Z",
+      "completed_at": "2026-07-05T01:03:07.073Z"
+    },
+    {
+      "id": "tk-de755c503dcf",
+      "title": "Attach fail-fast failure in slop-scan runtime and CLI exit code",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-04T18:33:45.661Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-dddd462aa0c1"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T01:03:54.628Z",
+      "verification": "RED: bun test bin/adv.test.ts --test-name-pattern \"adv slop-scan dispatcher\" failed because CLI still exited 0. GREEN: same command passed; degraded required detector coverage now exits 1 with parseable SLOP_SCAN_DEGRADED JSON.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "bin/lib/slop-scan/scan.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "bin/adv.test.ts",
+        "bin/lib/slop-scan/scan.ts"
+      ],
+      "checkpointSha": "e818682a3db1a919c509b3def7f08f2d1a12e471",
+      "completedAt": "2026-07-05T01:05:20.931Z",
+      "completed_at": "2026-07-05T01:05:20.931Z"
+    },
+    {
+      "id": "tk-3b53c63bcda3",
+      "title": "Render failed slop-scan reports clearly",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-04T18:33:59.690Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-dddd462aa0c1"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC6",
+          "C2",
+          "C3"
+        ],
+        "verifies": [
+          "AC3",
+          "AC6"
+        ],
+        "respects": [
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T01:05:29.616Z",
+      "verification": "RED: bun test bin/lib/slop-scan/render.test.ts failed because failure heading was still SLOP SCAN REPORT. GREEN: same command passed (3 pass, 15 expect).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/slop-scan/render.test.ts",
+        "bin/lib/slop-scan/render.ts"
+      ],
+      "touched_files": [
+        "bin/lib/slop-scan/render.test.ts",
+        "bin/lib/slop-scan/render.ts"
+      ],
+      "checkpointSha": "c9c67ab2b1b38d1709bf19401cf72bfc03332a19",
+      "completedAt": "2026-07-05T01:06:59.102Z",
+      "completed_at": "2026-07-05T01:06:59.102Z"
+    },
+    {
+      "id": "tk-37787cbbc391",
+      "title": "Update slop-scan spec and command contract to fail on degraded required coverage",
+      "type": "docs",
+      "section": "Spec and command contracts",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-04T18:34:16.740Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "AC8",
+          "C1",
+          "C5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T01:07:08.179Z",
+      "verification": "Static check passed: spec JSON parses, stale degraded fallback phrases removed from spec/command, fail-fast SLOP_SCAN_DEGRADED language present.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/slop-scan/spec.json",
+        ".opencode/command/adv-slop-scan.md"
+      ],
+      "touched_files": [
+        ".adv/specs/slop-scan/spec.json",
+        ".opencode/command/adv-slop-scan.md"
+      ],
+      "checkpointSha": "7ab8598396c70426be66cbb574f340873fa8daf2",
+      "completedAt": "2026-07-05T01:09:51.277Z",
+      "completed_at": "2026-07-05T01:09:51.277Z"
+    },
+    {
+      "id": "tk-0642bd921649",
+      "title": "Run targeted slop-scan fail-fast verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-04T18:34:33.449Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-dddd462aa0c1"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-de755c503dcf"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3b53c63bcda3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-37787cbbc391"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T01:10:14.368Z",
+      "verification": "Release harden reviewer returned READY and made scoped stale-guidance fixes in slop-smells.yaml plus asset assertion. Reviewer verification: bun test bin/ (189 passed), bin/oc-test targeted asset tests (68 passed), static stale fallback scan over spec/command/docs/skills/slop-smells passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-slop-scan-assets.test.ts",
+        "slop-smells.yaml"
+      ],
+      "touched_files": [
+        "plugin/src/adv-slop-scan-assets.test.ts",
+        "slop-smells.yaml"
+      ],
+      "checkpointSha": "797ba1fbe1a8df71f72abffc6ecd0bbe3069ef75",
+      "completedAt": "2026-07-05T01:33:15.269Z",
+      "completed_at": "2026-07-05T01:33:15.269Z",
+      "errorRecovery": {
+        "last_error": "[adv-post-commit] Deployed ADV assets to the local install (touched: plugin/src/adv-skill-backed-commands-assets.test.ts skills/adv-slop-detection/CATEGORIES.md skills/adv-slop-detection/SKILL.md )\n",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-05T01:23:14.253Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "makeDegradedSlopScanFailFast",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:slop-scan-fail-fast"
+      },
+      "agent": "adv-researcher",
+      "topic": "Fail-fast degraded slop-scan design validation",
+      "sources": [
+        {
+          "label": "bin/lib/slop-scan/schema.ts",
+          "locator": "bin/lib/slop-scan/schema.ts:78-133,188-231",
+          "summary": "SlopScanReport interface + validateSlopScanReport. No extra-key rejection, so adding optional failure envelope is non-breaking for existing reports; new envelope needs its own validation branch."
+        },
+        {
+          "label": "bin/lib/slop-scan/scan.ts",
+          "locator": "bin/lib/slop-scan/scan.ts:378-389",
+          "summary": "runSlopScan assembles report.coverage.detectors = coverage then returns. Clean single attach point for attachSlopScanFailure(report) after line 380, exactly as design states."
+        },
+        {
+          "label": "bin/lib/slop-scan/registry.ts",
+          "locator": "bin/lib/slop-scan/registry.ts:17-74",
+          "summary": "All 8 local detectors important:true; external-ci-semgrep important:false. Confirms 'required detector = applicable + important:true' and that advisory external coverage is excluded from fail-fast."
+        },
+        {
+          "label": "bin/lib/slop-scan/runner.ts",
+          "locator": "bin/lib/slop-scan/runner.ts:5-10,111-134",
+          "summary": "ToolExecutionStatus produces failed|timed_out|unavailable; normalizeCoverageFromExecution maps success/findings->run, else passes status through as coverage state. These are the states the design keys fail-fast on."
+        },
+        {
+          "label": "bin/lib/slop-scan/adapters/external-ci.ts",
+          "locator": "bin/lib/slop-scan/adapters/external-ci.ts:22-28",
+          "summary": "Only producer of state 'skipped', and it is important:false. No required/local detector ever emits 'skipped', so the design's 'applicable-required skipped' failure state is currently unreachable for required detectors (defensive-only)."
+        },
+        {
+          "label": "bin/lib/slop-scan/render.ts",
+          "locator": "bin/lib/slop-scan/render.ts:41-93",
+          "summary": "renderSlopScanReport hardcodes 'SLOP SCAN REPORT' heading and emits '[OK] No slop detected.' when findings/warnings empty. Design's failure heading + suppress-OK edits land here; existing PROMINENT COVERAGE WARNINGS block already surfaces important warning states."
+        },
+        {
+          "label": "bin/adv slop-scan dispatch",
+          "locator": "bin/adv:208-219,715-742",
+          "summary": "runSlopScanCommand always returns 0. Design's exit-1-on-failure.code lands cleanly here; stdout JSON/text emission is preserved."
+        },
+        {
+          "label": "bin/adv.test.ts existing CLI test",
+          "locator": "bin/adv.test.ts:169-184",
+          "summary": "Only slop-scan CLI integration test; runs in bare temp dir with a TS file and asserts exitCode 0. Under new behavior ESLint/knip/ast-grep/jscpd resolve unavailable/failed (required) -> exit 1. This test MUST be updated; exit-0 path must use a controlled all-run coverage/synthetic path per design test strategy."
+        },
+        {
+          "label": "slop-scan spec.json",
+          "locator": ".adv/specs/slop-scan/spec.json:12,51-65,100-109,255-264,444-473",
+          "summary": "rq-ss001 body, rq-ss001.4 (brace/indent degraded fallback findings + [DEGRADED: AST tool unavailable]), rq-ss002.3 ([DEGRADED: AST timeout] fallback), rq-ss006.3 (degraded fallback confidence:low default), rq-ss012 coverage visibility. All targeted by design; stale fallback language present exactly as agreement claims."
+        },
+        {
+          "label": "command adv-slop-scan.md fallback lines",
+          "locator": ".opencode/command/adv-slop-scan.md:57-74",
+          "summary": "Runner adapters line 61 'brace/indent fallback with detectionMethod: degraded'; line 73 'Degraded fallback findings default to confidence: low'. These are the stale fallback lines the design removes."
+        },
+        {
+          "label": "adv-slop-scan-assets.test.ts",
+          "locator": "plugin/src/adv-slop-scan-assets.test.ts:210-225",
+          "summary": "rq-ss012 asset drift test asserts command contains 'Scanner Coverage Report', 'coverage.detectors[]', 'externally_covered', 'coverage.falsePositiveProtections'. Design must preserve these tokens when editing command; test does not currently assert on fallback-removal, so a new assertion is needed to lock fail-fast contract."
+        },
+        {
+          "label": "schema.test.ts / render.test.ts",
+          "locator": "bin/lib/slop-scan/schema.test.ts:84-105, bin/lib/slop-scan/render.test.ts:7-26",
+          "summary": "Existing validator test and renderer warning test provide the fixture patterns the new failure-envelope + failure-heading tests extend. render.test already asserts no '[OK]' when important-unavailable warning present."
+        }
+      ],
+      "architecture_assessment": "Design is structurally sound and matches actual code. Failure modeled as a typed envelope on the existing report (single response shape preserved, parseable JSON, coverage retained) rather than a second format - correct per P33. Two pure helpers (requiredCoverageFailures, attachSlopScanFailure) isolate the decision from I/O and are trivially unit-testable. Integration points are exactly where claimed: single attach point at scan.ts:380, exit-code branch at bin/adv:218, heading/OK-suppression at render.ts:48/87. Required-detector definition (applicable + important:true) is directly backed by registry.ts and correctly excludes external-ci-semgrep (AC7). Failure states map 1:1 to runner ToolExecutionStatus outputs (failed/timed_out/unavailable) plus normalizeCoverageFromExecution pass-through, so no state escapes classification. validateSlopScanReport does not reject extra keys, so the optional failure field is backward-compatible; but the failure envelope must get a dedicated validation branch (code enum + failedDetectors[] as DetectorCoverage) or invalid failure codes pass silently. One real regression: the sole slop-scan CLI integration test (bin/adv.test.ts:169-184) asserts exit 0 in a bare temp dir where required detectors are unavailable; under fail-fast it flips to exit 1 and must be rewritten. 'skipped' as a required-failure state is defensively listed but unreachable for required detectors today. Spec/command edits are minimal and targeted; rq-ss012 asset tokens must be preserved and a new fail-fast assertion added.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "READY_WITH_NOTES. No blocking conflicts. Must-address in planning: (1) rewrite bin/adv.test.ts:169-184 - bare-temp-dir exit-0 assertion becomes exit-1 under fail-fast; move exit-0 coverage to a controlled all-run/synthetic path. (2) Add explicit validator branch for the failure envelope (code enum + failedDetectors validation), not just a TS type. (3) Add asset-drift assertion locking removed brace/indent + degraded-confidence fallback language and the new fail-fast rule, preserving existing rq-ss012 tokens. Non-blocking: 'skipped' required-failure state unreachable for required detectors today (only external-ci important:false emits it) - keep defensive with comment; DETECTION_METHODS still contains 'degraded' - planning should decide retain vs deprecate to avoid dead enum drift."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Optional failure envelope on the existing report keeps JSON parseable and coverage visible, but grows SlopScanReport surface and requires a matching validator branch + fixtures.",
+          "Fail-fast on any required detector unavailable/failed/timed_out hard-fails in under-provisioned environments (missing local tools now fail), trading permissive degraded output for trustworthy pass/fail semantics - the explicit product intent.",
+          "Listing 'skipped' as a required-failure state is defensively complete but currently dead for required detectors, a minor code-vs-reality gap that must be commented."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Separate failure response type instead of optional envelope on SlopScanReport",
+            "disposition": "rejected",
+            "rationale": "Would fork the output contract, break single-parse consumers, and drop coverage detail on failure. Envelope-on-report preserves schema_version slop_scan_report.v1 and all existing fields (AC2/AC6)."
+          },
+          {
+            "option": "Exit-code-only signal with unchanged JSON body",
+            "disposition": "rejected",
+            "rationale": "Fails AC2 (structured SLOP_SCAN_DEGRADED signal in JSON) and AC3. Exit code alone is not introspectable by JSON consumers."
+          },
+          {
+            "option": "Keep degraded brace/indent fallback and only downgrade confidence",
+            "disposition": "rejected",
+            "rationale": "Contradicts user-clarified product direction (fail/cancel, not fallback) and the problem statement's trust risk; keeps stale spec/command surface the change exists to remove."
+          },
+          {
+            "option": "Reuse existing bin/adv.test.ts:175 integration test unchanged for exit-0 path",
+            "disposition": "rejected",
+            "rationale": "That test runs required detectors in a bare temp dir where they are unavailable; under fail-fast it correctly becomes exit 1. Exit-0 must be proven via a controlled all-run coverage path."
+          }
+        ],
+        "recommendation": "Proceed to planning as READY_WITH_NOTES. Add planning tasks: (a) rewrite the existing slop-scan CLI test and add a controlled all-run exit-0 case; (b) implement a validator branch for the failure envelope alongside the helpers; (c) add an asset-drift assertion pinning removed fallback language while preserving rq-ss012 tokens. Comment the unreachable 'skipped' branch and decide the fate of the now-unused 'degraded' DETECTION_METHODS enum value."
+      },
+      "recommendation": "Design is READY_WITH_NOTES. No conflicts block planning. Integration points, required-detector definition, and failure-state mapping all match the actual code. Before acceptance ensure: bin/adv.test.ts:169-184 is rewritten (its exit-0 assertion is a real regression under fail-fast), the failure envelope gets a structural validator branch (not just a TS type), and an asset-drift assertion locks removed fallback language while preserving existing rq-ss012 tokens.",
+      "follow_ups": [
+        "Planning must include rewriting bin/adv.test.ts:169-184; move exit-0 coverage to a controlled all-run/synthetic report path.",
+        "Add validateSlopScanReport branch for optional failure: code in SLOP_SCAN_FAILURE_CODES and failedDetectors[] validated as DetectorCoverage; reject invalid failure code.",
+        "Decide fate of 'degraded' in DETECTION_METHODS enum (retain vs deprecate) now that no degraded fallback findings are produced.",
+        "Comment the 'skipped' required-failure branch as defensive/unreachable for required detectors (only external-ci important:false emits skipped today)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeDegradedSlopScanFailFast",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeDegradedSlopScanFailFast",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "bin/lib/slop-scan/schema.ts",
+          "line": 145,
+          "what": "Failure classification is centralized through a typed requiredCoverageFailures predicate and failure envelope.",
+          "why": "Structural predicate over DetectorCoverage.important plus explicit required failure states prevents heuristic output decisions and keeps JSON parseable."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "bin/adv",
+          "line": 218,
+          "what": "CLI exit status is derived from typed failure.code.",
+          "why": "Exit 1 behavior follows the report contract rather than string matching or renderer state."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "skills/adv-slop-detection/SKILL.md",
+          "summary": "Removed stale degraded fallback confidence guidance and aligned skill guidance with SLOP_SCAN_DEGRADED fail-fast semantics.",
+          "verification": "bun slop-scan tests passed; targeted asset tests passed; static stale degraded fallback scan passed."
+        },
+        {
+          "file": "skills/adv-slop-detection/CATEGORIES.md",
+          "summary": "Replaced brace/indent fallback guidance with required detector fail-fast guidance and removed low-confidence degraded fallback wording.",
+          "verification": "targeted asset tests passed; static stale degraded fallback scan passed."
+        },
+        {
+          "file": "plugin/src/adv-skill-backed-commands-assets.test.ts",
+          "summary": "Updated skill-backed asset assertion to require SLOP_SCAN_DEGRADED and no low-confidence fallback language.",
+          "verification": "../bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/slop-scan-false-positive-fixtures.test.ts passed: 3 files, 72 tests."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When command contracts load methodology skills, fail-fast semantic changes must update the backing skill/category docs too; otherwise slash-command guidance can still revive retired fallback behavior even if spec and command docs are correct."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight: test -e for all referenced implemented files/areas",
+          "git diff --stat trunk...HEAD",
+          "bun test bin/lib/slop-scan/schema.test.ts bin/lib/slop-scan/render.test.ts bin/adv.test.ts",
+          "../bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/slop-scan-false-positive-fixtures.test.ts",
+          "static stale degraded fallback scan across spec/command/docs/skill assets"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK. Reviewed typed schema, scan orchestration, renderer, CLI exit, docs/spec/command, registry/advisory external coverage, and tests. Corrected one initial verification invocation that used plugin cwd with root-relative bun paths; reran from repo root and passed 26 bun tests. Targeted plugin asset/fixture tests passed: 3 files, 72 tests. Static scan confirmed no stale '[DEGRADED: AST tool unavailable]', '[DEGRADED: AST timeout]', 'brace/indent counting fallback', or 'Degraded fallback findings default' wording in slop-scan spec/command/docs/skill assets."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full pnpm check/build not rerun in this review; targeted coverage matches changed slop-scan and asset surfaces.",
+        "Warn-only token budget output remains present in adv-skill-backed-commands-assets.test.ts and is unrelated to this change."
+      ],
+      "required_main_agent_actions": [
+        "Include the three review-applied skill/asset-test edits in the final change set.",
+        "Consider promoting wisdom candidate about backing skill/category docs when command semantics change."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeDegradedSlopScanFailFast",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeDegradedSlopScanFailFast",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "slop-smells.yaml",
+          "summary": "Removed stale MAINT-004 brace/indent degraded fallback contract from canonical smell catalog; replaced it with SLOP_SCAN_DEGRADED required-coverage failure language so catalog matches fail-fast behavior.",
+          "verification": "bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/adv-skill-backed-commands-assets.test.ts passed 68 tests; bun test bin/ passed 189 tests; static stale fallback scan over spec/command/docs/skills/slop-smells returned no stale hits."
+        },
+        {
+          "file": "plugin/src/adv-slop-scan-assets.test.ts",
+          "summary": "Extended slop-scan asset test to assert slop-smells.yaml contains SLOP_SCAN_DEGRADED and no longer contains brace/indent counter fallback text.",
+          "verification": "bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/adv-skill-backed-commands-assets.test.ts passed 68 tests."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bun test bin/",
+          "bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+          "rg -n \"brace/indent counter|brace/indent fallback with|\\[DEGRADED: AST tool unavailable\\]|\\[DEGRADED: AST timeout\\]\" .adv/specs/slop-scan/spec.json .opencode/command/adv-slop-scan.md docs/specs/slop-scan.md skills/adv-slop-detection slop-smells.yaml || true",
+          "git status --short --branch"
+        ],
+        "results": "pass",
+        "evidence": "bun test bin/ passed 189 tests / 0 failed after scoped fix. Targeted plugin asset tests passed 68 tests / 0 failed. Static stale fallback scan over spec, command, generated docs, skill, categories, and slop-smells surfaces produced no matches. Current git status shows only the two intentional reviewer edits: plugin/src/adv-slop-scan-assets.test.ts and slop-smells.yaml."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is no longer clean because this harden pass made two small scoped release-hardening edits; orchestrator should checkpoint/commit before release/archive cleanliness checks."
+      ],
+      "required_main_agent_actions": [
+        "Review and checkpoint/commit the two scoped reviewer hardening edits before release/archive so git worktree returns clean.",
+        "No additional code remediation required from harden review; release can proceed after checkpoint and normal release gate cleanliness verification."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-04T18:14:23.972Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved proposal/problem statement: \"approve\"",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "295430e0d8ea1a1f7cd0e51127ececb6974fc108fd73574a76d5a8bf6bdc80a3",
+        "non_whitespace_chars": 1743,
+        "checked_at": "2026-07-04T18:12:44.441Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-04T18:26:59.489Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved agreement/discovery direction: \"approve\"; typed contract minted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "non_whitespace_chars": 3967,
+        "checked_at": "2026-07-04T18:12:44.442Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-04T18:33:01.464Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Mandatory independent adv-researcher validation returned READY_WITH_NOTES; must-address notes incorporated. No validator CONFLICT, user-value tradeoff, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "a3fe7b0ed156d731a4289e0e233668d218b14b254706b29e288d52e46f71399d",
+        "non_whitespace_chars": 5554,
+        "checked_at": "2026-07-04T18:12:44.443Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-05T01:00:20.168Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved prep task graph: \"approve\""
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-05T01:14:57.219Z",
+      "completed_by": "agent",
+      "approval_evidence": "All five planned tasks done with checkpoints. Verification passed: Bun slop-scan/CLI suite 31 tests, plugin asset/fixture tests 18 tests, static stale fallback scan passed across spec/command/docs."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-05T01:25:42.928Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved acceptance after review evidence: \"approve\"",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "2c37f7b14bcafd81614e0b0dfbb7608c53b4e15c2ecbd9ceba7223945ffaa447",
+        "non_whitespace_chars": 1714,
+        "checked_at": "2026-07-04T18:12:44.444Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+      "approvedAt": "2026-07-04T18:26:50.212Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "When any applicable required detector has coverage state `degraded`, `failed`, `timed_out`, `unavailable`, or applicable-required `skipped`, `bin/adv slop-scan` exits non-zero (`1`) and does not report a successful scan.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "JSON output remains parseable on fail-fast runs and includes a structured failure signal with code `SLOP_SCAN_DEGRADED`, plus the full `coverage.detectors[]` entries that caused the failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Text output on fail-fast runs includes `SLOP SCAN FAILED` or equivalent clear failure heading, names each failed required detector, includes its coverage state and reason, and does not end with `[OK] No slop detected.`",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Fail-fast behavior does not generate brace/indent fallback findings. No finding is emitted solely because an AST tool is unavailable or timed out; stale `[DEGRADED: AST tool unavailable]` / `[DEGRADED: AST timeout]` fallback-finding language is removed from spec/command contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Slash-command contract stops after degraded required Phase 1 coverage and must not proceed to Phase 2 scanners or metadata write as a successful scan.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Successful runs where all required applicable detectors have state `run` still exit `0`, preserve `slop_scan_report.v1`, and keep existing finding normalization behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Advisory/external coverage (`important: false`, e.g. `external-ci-semgrep`) does not cause fail-fast when externally covered or unavailable; it remains visible in coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Spec and command docs are updated so degraded coverage is a hard failure for required detectors, not a fallback detection method.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not implement brace/indent degraded fallback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not hide detector coverage details when failing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not remove existing finding fields (`confidence`, `detectionMethod`, `nestingDepth`, `complexity`, `grouping`, `actionability`) for successful reports.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep behavior deterministic and schema-backed; no LLM/heuristic-owned correctness path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep change scoped to slop-scan degraded/fail-fast behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Broad slop-scan redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Performance optimization unrelated to fail-fast degraded behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Dead-code detector algorithm improvements.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "OCA-specific read-surface/API work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Later Epic entries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-05T01:24:36.125Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bun test bin/adv.test.ts --test-name-pattern \"adv slop-scan dispatcher\"` passed after RED failure; JSON CLI case now exits 1 for unavailable required detector coverage. Final targeted Bun suite passed 31 tests.",
+          "notes": "CLI exit code derives from `report.failure?.code === \"SLOP_SCAN_DEGRADED\"`."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/adv.test.ts` JSON degraded case asserts parseable `slop_scan_report.v1`, `failure.code === \"SLOP_SCAN_DEGRADED\"`, and non-empty important `failure.failedDetectors`."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bun test bin/lib/slop-scan/render.test.ts` passed; failure report test asserts `SLOP SCAN FAILED`, failure message, detector names/states/reasons, coverage visibility, and no `[OK] No slop detected.`."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Static stale fallback scan passed across `.adv/specs/slop-scan/spec.json`, `.opencode/command/adv-slop-scan.md`, and `docs/specs/slop-scan.md`; no `[DEGRADED: AST tool unavailable]`, `[DEGRADED: AST timeout]`, `brace/indent counter`, or `Degraded fallback findings default` remains."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`.opencode/command/adv-slop-scan.md` now states required coverage failure stops before Phase 2 and skips metadata success writes when `SLOP_SCAN_DEGRADED`."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bun test bin/lib/slop-scan/schema.test.ts bin/lib/slop-scan/render.test.ts bin/lib/slop-scan/runner.test.ts bin/lib/slop-scan/registry.test.ts bin/adv.test.ts` passed 31 tests; existing schema/render/runner/registry behavior remains covered."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`schema.test.ts` helper tests assert `important:false` unavailable advisory detector does not attach `SLOP_SCAN_DEGRADED`, while required detectors do."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`../bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/slop-scan-false-positive-fixtures.test.ts` passed in reviewer run (72 tests); local asset/fixture rerun passed 18 tests before reviewer expanded stale skill coverage."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No brace/indent fallback adapter or fallback finding implementation was added; stale fallback language removed. Implementation adds typed failure envelope and CLI failure behavior only."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Failure envelope keeps full `coverage.detectors[]`; JSON and render tests assert failed detectors remain visible."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Existing successful report shape and finding validation remain in `schema.ts`; targeted schema/render/runner/registry tests passed."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Failure determination is structural over typed `DetectorCoverage` fields: `important` plus enumerated coverage states. No LLM/heuristic correctness path added."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Touched files are limited to slop-scan CLI/runtime/schema/render/tests/spec/command/docs/skill surfaces and associated asset tests."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broad slop-scan redesign performed."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No unrelated performance optimization performed."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No dead-code detector algorithm improvements performed."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No OCA-specific read-surface/API work performed."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Later Epic entries were not implemented."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "When any applicable required detector has coverage state `degraded`, `failed`, `timed_out`, `unavailable`, or applicable-required `skipped`, `bin/adv slop-scan` exits non-zero (`1`) and does not report a successful scan.",
+    "JSON output remains parseable on fail-fast runs and includes a structured failure signal with code `SLOP_SCAN_DEGRADED`, plus the full `coverage.detectors[]` entries that caused the failure.",
+    "Text output on fail-fast runs includes `SLOP SCAN FAILED` or equivalent clear failure heading, names each failed required detector, includes its coverage state and reason, and does not end with `[OK] No slop detected.`",
+    "Fail-fast behavior does not generate brace/indent fallback findings. No finding is emitted solely because an AST tool is unavailable or timed out; stale `[DEGRADED: AST tool unavailable]` / `[DEGRADED: AST timeout]` fallback-finding language is removed from spec/command contract.",
+    "Slash-command contract stops after degraded required Phase 1 coverage and must not proceed to Phase 2 scanners or metadata write as a successful scan.",
+    "Successful runs where all required applicable detectors have state `run` still exit `0`, preserve `slop_scan_report.v1`, and keep existing finding normalization behavior.",
+    "Advisory/external coverage (`important: false`, e.g. `external-ci-semgrep`) does not cause fail-fast when externally covered or unavailable; it remains visible in coverage.",
+    "Spec and command docs are updated so degraded coverage is a hard failure for required detectors, not a fallback detection method."
+  ],
+  "documents": {
+    "proposal": "# Make degraded slop-scan fail fast\n\n## Summary\n\nChange `slop-scan` degraded behavior from fallback findings to fail-fast/cancel semantics when required detector coverage is degraded, unavailable, timed out, or otherwise cannot produce trustworthy structural evidence.\n\n## Problem\n\nEarlier discovery assumed the spec-law degraded fallback requirement should be implemented. User clarified the intended product behavior: `slop-scan` should not continue with degraded fallback results. If detector coverage is degraded, the command should cancel/fail clearly rather than emit low-confidence fallback findings.\n\n## Why now\n\nThis is the correct first Epic entry because it settles the scanner correctness target before broader performance or refactor work. It also prevents building and optimizing a fallback behavior the user does not want.\n\n## Intended outcome\n\n- `/adv-slop-scan` / `bin/adv slop-scan` fails or cancels with a clear degraded-coverage reason when required structural detectors are unavailable/timed out/degraded.\n- No brace/indent degraded fallback findings are generated.\n- Existing coverage detail remains visible enough to diagnose the missing detector/tool.\n- Specs/command contract are updated if they currently require degraded fallback.\n\n## Scope\n\n- Update slop-scan spec/command contract away from degraded fallback findings toward fail-fast degraded coverage handling.\n- Update deterministic runner behavior and tests accordingly.\n- Preserve non-structural detector coverage reporting where compatible with fail-fast policy.\n- Define which detectors are required vs advisory.\n\n## Out of scope\n\n- Broad slop-scan redesign.\n- Performance optimization unrelated to fail-fast degraded behavior.\n- OCA-specific read-surface work.\n- Later Epic entries.\n\n## Epic context\n\nEpic: `optimizeAdvPerformanceStructure`, entry 1 replacement.\n\nReplaces cancelled change: `auditSlopScanFallback`, closed `not_planned` after user said: \"remove and skip this change, slop-scan should just cancel/fail if its degraded\".\n",
+    "problemStatement": "## Problem\n\n`slop-scan` currently has stale or incorrect direction around degraded detector handling. The existing spec/command text requires degraded brace/indent fallback findings, but the intended behavior is to cancel/fail when required scan coverage is degraded.\n\n## User-visible risk\n\nIf degraded fallback behavior is built, `/adv-slop-scan` may present low-confidence heuristic-like results where the user expects a hard failure. That can weaken trust in scanner output and send optimization work down the wrong path.\n\n## Success Criteria\n\n- Slop-scan degraded behavior is specified as fail-fast/cancel for required detector degradation.\n- Runner/command behavior matches the updated contract.\n- Users get a clear degraded reason and remediation signal.\n- No degraded brace/indent fallback findings are generated for required detector failure.\n",
+    "agreement": "# Agreement — Make degraded slop-scan fail fast\n\n## Discovery disposition\n\nUser clarified the product direction: degraded `slop-scan` coverage should fail/cancel, not produce degraded fallback findings.\n\nThis means current spec and command contract are stale in the fallback sections. The required change is a deliberate spec/contract update plus runner behavior update.\n\n## Evidence\n\n- Current spec `rq-ss001` requires fallback: `/adv-slop-scan` attempts AST then falls back to a brace/indent counter annotated as degraded.\n- Current spec `rq-ss001.4` requires no-AST-tool fallback findings with `detectionMethod: 'degraded'` and `[DEGRADED: AST tool unavailable]` annotation.\n- Current spec `rq-ss002.3` requires AST timeout to fall back to degraded detection and annotate `[DEGRADED: AST timeout]`.\n- Command contract repeats fallback requirement: `.opencode/command/adv-slop-scan.md:57-74`.\n- Current runner records failed/unavailable/timed-out detector coverage but returns a successful report: `bin/lib/slop-scan/scan.ts:142-185`, `bin/lib/slop-scan/scan.ts:200-389`, `bin/adv:208-219`.\n- Current CLI test expects `slop-scan --json` to exit `0` even with detector coverage: `bin/adv.test.ts:169-184`.\n- Detector registry marks applicable local detectors as `important: true`, with `external-ci-semgrep` advisory/externally covered (`important: false`): `bin/lib/slop-scan/registry.ts:17-74`.\n\n## Objectives\n\n1. Replace degraded fallback semantics with fail-fast semantics for required detector degradation.\n2. Keep detector coverage details visible in JSON and text output so users can diagnose missing/failed tools.\n3. Prevent Phase 2/slash-command continuation when Phase 1 required coverage is degraded.\n4. Remove stale degraded fallback requirements from spec/command contract.\n5. Preserve normal successful scanner behavior when all required detectors run successfully or complete with findings.\n\n## Required detector policy\n\nA required detector is any applicable detector with `important: true` in the detector registry. Advisory/external coverage such as `external-ci-semgrep` must not make local slop-scan fail when externally covered or unavailable.\n\nRequired degraded states are:\n\n- `degraded`\n- `failed`\n- `timed_out`\n- `unavailable`\n- `skipped` when the detector is applicable and required\n\n## Acceptance Criteria\n\n- AC1: When any applicable required detector has coverage state `degraded`, `failed`, `timed_out`, `unavailable`, or applicable-required `skipped`, `bin/adv slop-scan` exits non-zero (`1`) and does not report a successful scan.\n- AC2: JSON output remains parseable on fail-fast runs and includes a structured failure signal with code `SLOP_SCAN_DEGRADED`, plus the full `coverage.detectors[]` entries that caused the failure.\n- AC3: Text output on fail-fast runs includes `SLOP SCAN FAILED` or equivalent clear failure heading, names each failed required detector, includes its coverage state and reason, and does not end with `[OK] No slop detected.`\n- AC4: Fail-fast behavior does not generate brace/indent fallback findings. No finding is emitted solely because an AST tool is unavailable or timed out; stale `[DEGRADED: AST tool unavailable]` / `[DEGRADED: AST timeout]` fallback-finding language is removed from spec/command contract.\n- AC5: Slash-command contract stops after degraded required Phase 1 coverage and must not proceed to Phase 2 scanners or metadata write as a successful scan.\n- AC6: Successful runs where all required applicable detectors have state `run` still exit `0`, preserve `slop_scan_report.v1`, and keep existing finding normalization behavior.\n- AC7: Advisory/external coverage (`important: false`, e.g. `external-ci-semgrep`) does not cause fail-fast when externally covered or unavailable; it remains visible in coverage.\n- AC8: Spec and command docs are updated so degraded coverage is a hard failure for required detectors, not a fallback detection method.\n\n## Constraints\n\n- Do not implement brace/indent degraded fallback.\n- Do not hide detector coverage details when failing.\n- Do not remove existing finding fields (`confidence`, `detectionMethod`, `nestingDepth`, `complexity`, `grouping`, `actionability`) for successful reports.\n- Keep behavior deterministic and schema-backed; no LLM/heuristic-owned correctness path.\n- Keep change scoped to slop-scan degraded/fail-fast behavior.\n\n## Out of scope\n\n- Broad slop-scan redesign.\n- Performance optimization unrelated to fail-fast degraded behavior.\n- Dead-code detector algorithm improvements.\n- OCA-specific read-surface/API work.\n- Later Epic entries.\n",
+    "design": "# Design — Fail-fast degraded slop-scan\n\n## Decision\n\nReplace degraded fallback semantics with schema-backed fail-fast degraded coverage handling for required detectors.\n\nNo brace/indent fallback will be implemented. This change updates spec/command contract and runtime behavior to treat degraded required coverage as an unsuccessful scan.\n\n## Independent validation\n\n`adv-researcher` verdict: `READY_WITH_NOTES`, confidence high, risk low.\n\nValidator notes incorporated:\n\n1. Existing `bin/adv.test.ts` bare-temp `slop-scan --json` test currently expects exit `0`; after fail-fast, that scenario should fail because required tools are absent. Rewrite the test instead of preserving old expectation.\n2. The failure envelope must have runtime validation, not only TypeScript types; invalid `failure.code` and malformed `failedDetectors[]` must be rejected.\n3. Asset/drift tests should lock fallback-language removal while preserving scanner coverage vocabulary from `rq-ss012`.\n4. Required `skipped` is not currently produced by the runner, but remains in failure-state policy for forward compatibility; document in helper tests/comments.\n\n## Core model\n\nAdd a typed failure envelope to the slop-scan report contract while preserving successful `slop_scan_report.v1` output shape.\n\nProposed additions in `bin/lib/slop-scan/schema.ts`:\n\n- `SLOP_SCAN_FAILURE_CODES = [\"SLOP_SCAN_DEGRADED\"]`\n- `SlopScanFailure`\n  - `code: \"SLOP_SCAN_DEGRADED\"`\n  - `message: string`\n  - `failedDetectors: DetectorCoverage[]`\n- optional `failure?: SlopScanFailure` on `SlopScanReport`\n\nValidation must be structural:\n\n- valid reports may omit `failure`\n- if present, `failure.code` must be one of `SLOP_SCAN_FAILURE_CODES`\n- `failure.message` must be non-empty\n- `failure.failedDetectors[]` must validate with the same detector coverage validator used for `coverage.detectors[]`\n\nRationale: keeping failure inside the same report preserves parseable JSON, existing coverage details, and existing finding fields without inventing a second response format.\n\n## Required degraded detector detection\n\nAdd pure helper in `bin/lib/slop-scan/schema.ts` or nearby local module:\n\n- `requiredCoverageFailures(detectors: DetectorCoverage[]): DetectorCoverage[]`\n\nRules:\n\n- include detectors with `important: true`\n- include states: `degraded`, `failed`, `timed_out`, `unavailable`, `skipped`\n- exclude `run` and `externally_covered`\n- exclude advisory detectors with `important: false`\n\nAdd another helper:\n\n- `attachSlopScanFailure(report: SlopScanReport): SlopScanReport`\n\nIf required failures exist, set:\n\n```ts\nreport.failure = {\n  code: \"SLOP_SCAN_DEGRADED\",\n  message: \"Required slop-scan detector coverage degraded; fix detector setup or narrow scope before trusting results.\",\n  failedDetectors,\n};\n```\n\n## Runtime integration\n\nIn `bin/lib/slop-scan/scan.ts`:\n\n1. Keep detector execution and finding normalization as-is.\n2. After `report.coverage.detectors = coverage`, call `attachSlopScanFailure(report)`.\n3. Keep `coverage.detectors[]` complete; do not remove findings from detectors that did run.\n4. Do not create degraded fallback findings.\n\nIn `bin/adv`:\n\n1. After `runSlopScan(...)`, render JSON or text as today.\n2. Return exit code `1` when `report.failure?.code === \"SLOP_SCAN_DEGRADED\"`.\n3. Return exit code `0` otherwise.\n\nThis preserves stdout output in both modes and makes failure machine-detectable through exit code and JSON body.\n\n## Text rendering\n\nIn `bin/lib/slop-scan/render.ts`:\n\n- If `report.failure` exists, use heading `SLOP SCAN FAILED` instead of `SLOP SCAN REPORT`.\n- Print failure message and failed detector list before summaries.\n- Keep coverage summary visible.\n- Never print `[OK] No slop detected.` when `report.failure` exists.\n\n## Spec and command contract updates\n\nUpdate `.adv/specs/slop-scan/spec.json`:\n\n- revise `rq-ss001` away from fallback language\n- replace `rq-ss001.4` with required-detector unavailable fail-fast scenario\n- revise `rq-ss002.3` from timeout fallback to timeout fail-fast scenario\n- revise `rq-ss006.3` so degraded fallback confidence default is removed\n- keep `rq-ss012` coverage visibility requirements, but state required degraded coverage is a hard failure\n\nUpdate `.opencode/command/adv-slop-scan.md`:\n\n- remove brace/indent fallback language\n- replace degraded fallback confidence default with fail-fast required coverage rule\n- state Phase 2 and metadata success write must not run after required degraded Phase 1 coverage\n- keep advisory/external coverage visible and non-failing\n\n## Test strategy\n\nAdd/update tests:\n\n1. Schema/helper tests:\n   - required `unavailable`, `timed_out`, `failed`, `degraded`, `skipped` detectors produce `SLOP_SCAN_DEGRADED`\n   - `important:false` detectors do not produce failure\n   - `run` and `externally_covered` do not produce failure\n   - report validator accepts `failure` with valid failed detector entries and rejects invalid failure code\n2. Renderer tests:\n   - failure report renders `SLOP SCAN FAILED`\n   - failed required detector names/states/reasons appear\n   - output does not contain `[OK] No slop detected.`\n3. CLI tests:\n   - missing required detector scenario exits `1` and JSON has `failure.code === \"SLOP_SCAN_DEGRADED\"`\n   - text mode exits `1` and renders failure heading\n   - rewrite old bare-temp success test; exit-0 coverage must use controlled all-run/synthetic helper/report path or a fixture with mocked required coverage, not a machine-dependent empty temp dir\n4. Command/spec asset tests as needed:\n   - stale fallback language removed from command/spec assets\n   - coverage states from `rq-ss012` remain visible in output/schema contract\n\n## Contract mapping\n\n- AC1: CLI tests assert exit `1` for required degraded coverage.\n- AC2: JSON tests assert parseable report with `failure.code` and `failure.failedDetectors`.\n- AC3: renderer tests assert failure heading and detector details, no OK line.\n- AC4: spec/command text changes plus no fallback implementation/files.\n- AC5: command contract explicitly stops before Phase 2/metadata success write on required degradation.\n- AC6: helper tests and existing normal path preserve `slop_scan_report.v1` and finding normalization.\n- AC7: `important:false` helper test proves advisory/external coverage does not fail.\n- AC8: spec and command doc updates.\n\n## Non-goals\n\n- No brace/indent counter.\n- No broad slop-scan redesign.\n- No changes to dead-code algorithm quality beyond fail-fast policy.\n- No OCA work.\n",
+    "executiveSummary": "# Executive Summary — Make degraded slop-scan fail fast\n\n## Outcome\n\n`slop-scan` now treats degraded required detector coverage as an unsuccessful scan instead of producing degraded fallback findings.\n\n## What changed\n\n- Added typed `SLOP_SCAN_DEGRADED` failure envelope to `slop_scan_report.v1`.\n- Added structural required-coverage helpers over `DetectorCoverage.important` and coverage states.\n- `bin/adv slop-scan` now exits `1` when required detector coverage is degraded/failed/timed out/unavailable/skipped.\n- JSON output remains parseable and includes `failure.code`, `failure.message`, and `failure.failedDetectors[]`.\n- Text output renders `SLOP SCAN FAILED`, names failed required detectors, and avoids `[OK]` on failed coverage.\n- Spec, command contract, generated spec docs, slop-scan skill guidance, slop-smells catalog, and asset tests now document fail-fast semantics instead of brace/indent degraded fallback.\n\n## Verification\n\n- `bun test bin/lib/slop-scan/schema.test.ts` — passed.\n- `bun test bin/adv.test.ts --test-name-pattern \"adv slop-scan dispatcher\"` — passed.\n- `bun test bin/lib/slop-scan/render.test.ts` — passed.\n- `bun test bin/lib/slop-scan/schema.test.ts bin/lib/slop-scan/render.test.ts bin/lib/slop-scan/runner.test.ts bin/lib/slop-scan/registry.test.ts bin/adv.test.ts` — 31 tests passed.\n- `../bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/slop-scan-false-positive-fixtures.test.ts` — 18 tests passed.\n- Acceptance reviewer ran `../bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/slop-scan-false-positive-fixtures.test.ts` — 72 tests passed.\n- Release harden reviewer ran `bun test bin/` — 189 tests passed.\n- Release harden reviewer ran `bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/adv-skill-backed-commands-assets.test.ts` — 68 tests passed.\n- Static stale fallback scans passed across spec, command, docs, skills, slop-smells.\n\n## Review\n\nAcceptance reviewer verdict: `READY`; no blocking findings. Reviewer removed stale fallback wording from slop-scan skill assets and updated asset tests.\n\nRelease harden reviewer verdict: `READY`; no blocking or nonblocking findings. Reviewer removed remaining stale fallback wording from `slop-smells.yaml` and added an asset assertion.\n\n## Release Readiness Summary\n\n- Worktree clean after harden checkpoint `797ba1fb`.\n- No OCA or unrelated Epic work found in diff.\n- Fail-fast contract consistent across checked release surfaces.\n- No open release blockers or required follow-ups for this change.\n- Broader Epic entries remain future work.\n\n## Remaining concerns\n\nNone for this change.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-05T01:24:36.125Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | When any applicable required detector has coverage state `degraded`, `failed`, `timed_out`, `unavailable`, or applicable-required `skipped`, `bin/adv slop-scan` exits non-zero (`1`) and does not report a successful scan. | pass | `bun test bin/adv.test.ts --test-name-pattern \"adv slop-scan dispatcher\"` passed after RED failure; JSON CLI case now exits 1 for unavailable required detector coverage. Final targeted Bun suite passed 31 tests. |\n| AC2 | acceptance_criterion | JSON output remains parseable on fail-fast runs and includes a structured failure signal with code `SLOP_SCAN_DEGRADED`, plus the full `coverage.detectors[]` entries that caused the failure. | pass | `bin/adv.test.ts` JSON degraded case asserts parseable `slop_scan_report.v1`, `failure.code === \"SLOP_SCAN_DEGRADED\"`, and non-empty important `failure.failedDetectors`. |\n| AC3 | acceptance_criterion | Text output on fail-fast runs includes `SLOP SCAN FAILED` or equivalent clear failure heading, names each failed required detector, includes its coverage state and reason, and does not end with `[OK] No slop detected.` | pass | `bun test bin/lib/slop-scan/render.test.ts` passed; failure report test asserts `SLOP SCAN FAILED`, failure message, detector names/states/reasons, coverage visibility, and no `[OK] No slop detected.`. |\n| AC4 | acceptance_criterion | Fail-fast behavior does not generate brace/indent fallback findings. No finding is emitted solely because an AST tool is unavailable or timed out; stale `[DEGRADED: AST tool unavailable]` / `[DEGRADED: AST timeout]` fallback-finding language is removed from spec/command contract. | pass | Static stale fallback scan passed across `.adv/specs/slop-scan/spec.json`, `.opencode/command/adv-slop-scan.md`, and `docs/specs/slop-scan.md`; no `[DEGRADED: AST tool unavailable]`, `[DEGRADED: AST timeout]`, `brace/indent counter`, or `Degraded fallback findings default` remains. |\n| AC5 | acceptance_criterion | Slash-command contract stops after degraded required Phase 1 coverage and must not proceed to Phase 2 scanners or metadata write as a successful scan. | pass | `.opencode/command/adv-slop-scan.md` now states required coverage failure stops before Phase 2 and skips metadata success writes when `SLOP_SCAN_DEGRADED`. |\n| AC6 | acceptance_criterion | Successful runs where all required applicable detectors have state `run` still exit `0`, preserve `slop_scan_report.v1`, and keep existing finding normalization behavior. | pass | `bun test bin/lib/slop-scan/schema.test.ts bin/lib/slop-scan/render.test.ts bin/lib/slop-scan/runner.test.ts bin/lib/slop-scan/registry.test.ts bin/adv.test.ts` passed 31 tests; existing schema/render/runner/registry behavior remains covered. |\n| AC7 | acceptance_criterion | Advisory/external coverage (`important: false`, e.g. `external-ci-semgrep`) does not cause fail-fast when externally covered or unavailable; it remains visible in coverage. | pass | `schema.test.ts` helper tests assert `important:false` unavailable advisory detector does not attach `SLOP_SCAN_DEGRADED`, while required detectors do. |\n| AC8 | acceptance_criterion | Spec and command docs are updated so degraded coverage is a hard failure for required detectors, not a fallback detection method. | pass | `../bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/slop-scan-false-positive-fixtures.test.ts` passed in reviewer run (72 tests); local asset/fixture rerun passed 18 tests before reviewer expanded stale skill coverage. |\n| C1 | constraint | Do not implement brace/indent degraded fallback. | respected | No brace/indent fallback adapter or fallback finding implementation was added; stale fallback language removed. Implementation adds typed failure envelope and CLI failure behavior only. |\n| C2 | constraint | Do not hide detector coverage details when failing. | respected | Failure envelope keeps full `coverage.detectors[]`; JSON and render tests assert failed detectors remain visible. |\n| C3 | constraint | Do not remove existing finding fields (`confidence`, `detectionMethod`, `nestingDepth`, `complexity`, `grouping`, `actionability`) for successful reports. | respected | Existing successful report shape and finding validation remain in `schema.ts`; targeted schema/render/runner/registry tests passed. |\n| C4 | constraint | Keep behavior deterministic and schema-backed; no LLM/heuristic-owned correctness path. | respected | Failure determination is structural over typed `DetectorCoverage` fields: `important` plus enumerated coverage states. No LLM/heuristic correctness path added. |\n| C5 | constraint | Keep change scoped to slop-scan degraded/fail-fast behavior. | respected | Touched files are limited to slop-scan CLI/runtime/schema/render/tests/spec/command/docs/skill surfaces and associated asset tests. |\n| OOS1 | out_of_scope | Broad slop-scan redesign. | not_applicable | No broad slop-scan redesign performed. |\n| OOS2 | out_of_scope | Performance optimization unrelated to fail-fast degraded behavior. | not_applicable | No unrelated performance optimization performed. |\n| OOS3 | out_of_scope | Dead-code detector algorithm improvements. | not_applicable | No dead-code detector algorithm improvements performed. |\n| OOS4 | out_of_scope | OCA-specific read-surface/API work. | not_applicable | No OCA-specific read-surface/API work performed. |\n| OOS5 | out_of_scope | Later Epic entries. | not_applicable | Later Epic entries were not implemented. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-04T18:13:14.602Z",
+      "contentHash": "295430e0d8ea1a1f7cd0e51127ececb6974fc108fd73574a76d5a8bf6bdc80a3",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-04T18:13:14.602Z",
+      "contentHash": "29f1e6a100f8e3ec4d1a70d7e77490bf562de3fec1d66a2c358e016eba787fbe",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-04T18:17:05.373Z",
+      "contentHash": "16ce1f320738426a7d7220abe5f57578d25bdbc144b4dd83fb431547bcbdc92a",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-04T18:32:52.529Z",
+      "contentHash": "a3fe7b0ed156d731a4289e0e233668d218b14b254706b29e288d52e46f71399d",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-05T01:34:13.512Z",
+      "contentHash": "2de34d0af58c1d49a9177f352768b1e1a99b6a07938b82741a945dedfadf1fe9",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-05T01:34:13.512Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "optimizeAdvPerformanceStructure",
+    "entry_id": "shell-1783188734775-eqtqvs",
+    "order": 0,
+    "title": "Make degraded slop-scan fail fast",
+    "linked_at": "2026-07-04T18:12:44.254Z"
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_SUBJECTIVE_LANGUAGE",
+      "severity": "warning",
+      "message": "Change title contains subjective term \"fast\": \"Make degraded slop-scan fail fast\". What specific, measurable criteria define \"fast\"?",
+      "recorded_at": "2026-07-04T18:14:36.260Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

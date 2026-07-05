@@ -115,7 +115,7 @@ Context Boundary: context packets are orientation only, not finding locations. D
 
 Source Evidence Requirement: Every finding must cite a target source file via `file:line` or scoped source evidence. No evidence → omit or mark `confidence: low`. Low-confidence findings are non-blocking by default.
 
-Confidence anchors: AST-backed structural findings default to `confidence: high`; Regex-only defensive-overkill findings default to `confidence: medium`; Degraded fallback findings default to `confidence: low`; AI-signature findings default to `confidence: low` unless paired with concrete maintainability/security impact.
+Confidence anchors: AST-backed structural findings default to `confidence: high`; Regex-only defensive-overkill findings default to `confidence: medium`; Required degraded/failed/timed-out/unavailable/applicable-skipped detector coverage fails with `SLOP_SCAN_DEGRADED` instead of becoming a low-confidence fallback finding; AI-signature findings default to `confidence: low` unless paired with concrete maintainability/security impact.
 
 Report `QUAL-012 structural_correctness_bypass` when Heuristic/fuzzy/LLM decisions owning correctness boundaries decide security, persistence, workflow state, gate completion, spec compliance, or input recognition/classification. Evidence must cite boundary + missing structural guard.
 

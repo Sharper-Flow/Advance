@@ -35,6 +35,7 @@ import {
   type ToolRunResult,
 } from "./runner";
 import {
+  attachSlopScanFailure,
   buildEmptySlopScanReport,
   summarizeFindings,
   type DetectorCoverage,
@@ -385,6 +386,7 @@ export async function runSlopScan(
   if (!configResult.ok)
     report.coverage.falsePositiveProtections.push(...configResult.errors);
   report.coverage.falsePositiveProtections.push(...configResult.warnings);
+  attachSlopScanFailure(report);
   return report;
 }
 

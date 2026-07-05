@@ -3,13 +3,13 @@
   "name": "slop-scan",
   "title": "Slop Scan",
   "purpose": "Capability: /adv-slop-scan command — detect AI-generated code quality issues including defensive overkill, deep nesting, and other slop patterns",
-  "version": "1.2.0",
-  "updated_at": "2026-05-22T00:00:00.000Z",
+  "version": "1.3.0",
+  "updated_at": "2026-07-05T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-ss001",
       "title": "AST-First Detection Strategy",
-      "body": "/adv-slop-scan must attempt AST-based analysis before falling back to regex or heuristic methods. One primary AST tool per language is used; fallback is a brace/indent counter annotated as degraded.",
+      "body": "/adv-slop-scan must attempt AST-based analysis before regex or heuristic methods. One primary AST tool per language is used; required detector degradation is a hard failure, not a fallback finding source.",
       "priority": "must",
       "tags": ["detection", "ast", "phase1"],
       "scenarios": [
@@ -49,20 +49,20 @@
         },
         {
           "id": "rq-ss001.4",
-          "title": "Fallback when no AST tool available",
+          "title": "Fail fast when no required AST tool is available",
           "given": ["No AST tool is installed for the detected language"],
           "when": "Phase 1 detection runs",
           "then": [
-            "A brace/indent counter is used as fallback",
-            "All findings from fallback have detectionMethod: 'degraded'",
-            "Report includes [DEGRADED: AST tool unavailable] annotation"
+            "No brace/indent fallback finding is generated",
+            "The scan exits non-zero with failure code SLOP_SCAN_DEGRADED",
+            "The unavailable required detector remains visible in coverage.detectors[] with its reason"
           ]
         }
       ],
       "meta": {
         "legacy_ids": ["rq-slopscan01.1", "rq-slopscan01.3"],
         "merged_from": "advance-meta",
-        "supersedes": "Legacy advance-meta slop-scan AST/degraded fallback coverage."
+        "supersedes": "Legacy advance-meta slop-scan AST/degraded fallback coverage; degraded required coverage now fails fast."
       }
     },
     {
@@ -105,8 +105,9 @@
           "when": "Phase 1 detection runs on that file",
           "then": [
             "The tool invocation is terminated",
-            "The file falls back to degraded detection",
-            "Report annotates the file with [DEGRADED: AST timeout]"
+            "No brace/indent fallback finding is generated",
+            "The scan exits non-zero with failure code SLOP_SCAN_DEGRADED",
+            "The timed-out required detector remains visible in coverage.detectors[] with its reason"
           ]
         }
       ],
@@ -255,13 +256,13 @@
           "id": "rq-ss006.3",
           "title": "Phase 1 confidence defaults are deterministic",
           "given": [
-            "Phase 1 emits findings from AST, regex, or degraded fallback detection"
+            "Phase 1 emits findings from AST or regex detection"
           ],
           "when": "Findings are normalized before reporting",
           "then": [
             "AST-backed structural findings default to confidence: 'high'",
             "Regex-only defensive-overkill findings default to confidence: 'medium' unless corroborated by same-identifier redundant guard evidence",
-            "Degraded fallback findings default to confidence: 'low' unless corroborated by another detector"
+            "Required detector degraded, failed, timed-out, unavailable, or applicable-required skipped coverage is reported as SLOP_SCAN_DEGRADED instead of as low-confidence fallback findings"
           ]
         }
       ]
@@ -443,7 +444,7 @@
     {
       "id": "rq-ss012",
       "title": "Slop Scanner Coverage Report",
-      "body": "/adv-slop-scan must summarize run, skipped, degraded, failed, timed-out, unavailable, and externally covered detectors in normal text output, and expose detailed scanner coverage in JSON metadata.",
+      "body": "/adv-slop-scan must summarize run, skipped, degraded, failed, timed-out, unavailable, and externally covered detectors in normal text output, expose detailed scanner coverage in JSON metadata, and fail hard when applicable required detector coverage is degraded.",
       "priority": "must",
       "tags": ["coverage", "output", "json", "degraded"],
       "scenarios": [
@@ -455,7 +456,8 @@
           "then": [
             "The report includes a scanner coverage summary",
             "Skipped, failed, timed-out, unavailable, degraded, and externally covered detectors are visible without verbose mode",
-            "Missing detector coverage is surfaced as a coverage gap, not hidden"
+            "Missing detector coverage is surfaced as a coverage gap, not hidden",
+            "Applicable required detector degraded, failed, timed-out, unavailable, or skipped coverage renders the scan unsuccessful"
           ]
         },
         {
@@ -466,7 +468,8 @@
           "then": [
             "The JSON object includes coverage.detectors[]",
             "Each detector includes a state of run, skipped, degraded, failed, timed_out, unavailable, or externally_covered",
-            "The JSON object includes coverage.falsePositiveProtections"
+            "The JSON object includes coverage.falsePositiveProtections",
+            "When required coverage fails, the JSON object includes failure.code: SLOP_SCAN_DEGRADED and failure.failedDetectors[]"
           ]
         }
       ]

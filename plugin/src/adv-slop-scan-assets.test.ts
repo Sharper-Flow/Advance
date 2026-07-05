@@ -41,12 +41,32 @@ describe("adv-slop-scan anti-recursion assets", () => {
     expect(content).toContain(
       "Regex-only defensive-overkill findings default to `confidence: medium`",
     );
+    expect(content).toContain("SLOP_SCAN_DEGRADED");
     expect(content).toContain(
-      "Degraded fallback findings default to `confidence: low`",
+      "not converted into low-confidence fallback findings",
     );
     expect(content).toContain(
       "Assign `actionability` and `grouping` before severity sorting",
     );
+  });
+
+  test("documents required coverage fail-fast boundary", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const spec = readFileSync(SLOP_SPEC_PATH, "utf8");
+    const smells = readFileSync(SLOP_SMELLS_PATH, "utf8");
+
+    expect(command).toContain("Required Coverage Failure Boundary");
+    expect(command).toContain("SLOP_SCAN_DEGRADED");
+    expect(command).toContain("failure.failedDetectors[]");
+    expect(command).not.toContain("[DEGRADED: AST tool unavailable]");
+    expect(command).not.toContain("[DEGRADED: AST timeout]");
+    expect(command).not.toContain("brace/indent fallback with");
+    expect(spec).toContain("SLOP_SCAN_DEGRADED");
+    expect(spec).not.toContain("[DEGRADED: AST tool unavailable]");
+    expect(spec).not.toContain("[DEGRADED: AST timeout]");
+    expect(spec).not.toContain("brace/indent counter");
+    expect(smells).toContain("SLOP_SCAN_DEGRADED");
+    expect(smells).not.toContain("brace/indent counter");
   });
 
   test("documents canonical slop-scan threshold keys", () => {
