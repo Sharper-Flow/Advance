@@ -1,7 +1,7 @@
 # Slop Scan
 
-> **Version:** 1.2.0
-> **Updated:** 2026-05-22
+> **Version:** 1.3.0
+> **Updated:** 2026-07-05
 
 ## Purpose
 
@@ -13,7 +13,7 @@ Capability: /adv-slop-scan command — detect AI-generated code quality issues i
 
 **ID:** `rq-ss001` | **Priority:** **[MUST]**
 
-/adv-slop-scan must attempt AST-based analysis before falling back to regex or heuristic methods. One primary AST tool per language is used; fallback is a brace/indent counter annotated as degraded.
+/adv-slop-scan must attempt AST-based analysis before regex or heuristic methods. One primary AST tool per language is used; required detector degradation is a hard failure, not a fallback finding source.
 
 **Legacy trace:** Supersedes `rq-slopscan01.1` and `rq-slopscan01.3` from `advance-meta`.
 
@@ -64,7 +64,7 @@ Capability: /adv-slop-scan command — detect AI-generated code quality issues i
 - gocyclo is used for cyclomatic complexity
 - Results above complexity_threshold are mapped to MAINT-004
 
-**Fallback when no AST tool available** (`rq-ss001.4`)
+**Fail fast when no required AST tool is available** (`rq-ss001.4`)
 
 **Given:**
 
@@ -74,9 +74,9 @@ Capability: /adv-slop-scan command — detect AI-generated code quality issues i
 
 **Then:**
 
-- A brace/indent counter is used as fallback
-- All findings from fallback have detectionMethod: 'degraded'
-- Report includes [DEGRADED: AST tool unavailable] annotation
+- No brace/indent fallback finding is generated
+- The scan exits non-zero with failure code SLOP_SCAN_DEGRADED
+- The unavailable required detector remains visible in coverage.detectors[] with its reason
 
 ---
 
@@ -131,8 +131,9 @@ Detection thresholds must have smart defaults and support per-project overrides 
 **Then:**
 
 - The tool invocation is terminated
-- The file falls back to degraded detection
-- Report annotates the file with [DEGRADED: AST timeout]
+- No brace/indent fallback finding is generated
+- The scan exits non-zero with failure code SLOP_SCAN_DEGRADED
+- The timed-out required detector remains visible in coverage.detectors[] with its reason
 
 ---
 
@@ -301,7 +302,7 @@ knip must be the primary dead code analyzer for TypeScript/JavaScript projects. 
 
 **Given:**
 
-- Phase 1 emits findings from AST, regex, or degraded fallback detection
+- Phase 1 emits findings from AST or regex detection
 
 **When:** Findings are normalized before reporting
 
@@ -309,7 +310,7 @@ knip must be the primary dead code analyzer for TypeScript/JavaScript projects. 
 
 - AST-backed structural findings default to confidence: 'high'
 - Regex-only defensive-overkill findings default to confidence: 'medium' unless corroborated by same-identifier redundant guard evidence
-- Degraded fallback findings default to confidence: 'low' unless corroborated by another detector
+- Required detector degraded, failed, timed-out, unavailable, or applicable-required skipped coverage is reported as SLOP_SCAN_DEGRADED instead of as low-confidence fallback findings
 
 ---
 
@@ -529,7 +530,7 @@ Phase 2 heuristic scanners must treat ADV context packets, examples, task summar
 
 **ID:** `rq-ss012` | **Priority:** **[MUST]**
 
-/adv-slop-scan must summarize run, skipped, degraded, failed, timed-out, unavailable, and externally covered detectors in normal text output, and expose detailed scanner coverage in JSON metadata.
+/adv-slop-scan must summarize run, skipped, degraded, failed, timed-out, unavailable, and externally covered detectors in normal text output, expose detailed scanner coverage in JSON metadata, and fail hard when applicable required detector coverage is degraded.
 
 **Tags:** `coverage`, `output`, `json`, `degraded`
 
@@ -548,6 +549,7 @@ Phase 2 heuristic scanners must treat ADV context packets, examples, task summar
 - The report includes a scanner coverage summary
 - Skipped, failed, timed-out, unavailable, degraded, and externally covered detectors are visible without verbose mode
 - Missing detector coverage is surfaced as a coverage gap, not hidden
+- Applicable required detector degraded, failed, timed-out, unavailable, or skipped coverage renders the scan unsuccessful
 
 **JSON output includes coverage details** (`rq-ss012.2`)
 
@@ -562,3 +564,4 @@ Phase 2 heuristic scanners must treat ADV context packets, examples, task summar
 - The JSON object includes coverage.detectors[]
 - Each detector includes a state of run, skipped, degraded, failed, timed_out, unavailable, or externally_covered
 - The JSON object includes coverage.falsePositiveProtections
+- When required coverage fails, the JSON object includes failure.code: SLOP_SCAN_DEGRADED and failure.failedDetectors[]
