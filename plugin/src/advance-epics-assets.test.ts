@@ -5,7 +5,8 @@
  * Advance Epics capability: optional Epic membership, advisory order, compact
  * context loading, and the avoidance of project-management workflow clones.
  *
- * Citations: SC1, SC2, AC7, AC9, DONT1, DONT2, DONT3, DONT5, DONT7.
+ * Citations: SC1, SC2, AC7, AC9, rq-epicCoordinateRepoFreshness01,
+ * DONT1, DONT2, DONT3, DONT5, DONT7.
  */
 
 import { describe, expect, test } from "vitest";
@@ -75,9 +76,16 @@ describe("Advance Epics spec documentation", () => {
     expect(repoFreshnessReq).toBeDefined();
     expect(JSON.stringify(repoFreshnessReq)).toContain("current repository");
     expect(JSON.stringify(repoFreshnessReq)).toContain("repository freshness");
+    expect(JSON.stringify(repoFreshnessReq)).toContain("overlap");
+    expect(JSON.stringify(repoFreshnessReq)).toContain(
+      "avoid evidence-backed conclusions",
+    );
     expect(JSON.stringify(repoFreshnessReq)).toContain("freshness_limited");
     expect(JSON.stringify(repoFreshnessReq)).toContain("repo_backed_fact");
+    expect(JSON.stringify(repoFreshnessReq)).toContain("adv_backed_fact");
     expect(JSON.stringify(repoFreshnessReq)).toContain("judgment_call");
+    expect(JSON.stringify(repoFreshnessReq)).toContain("git fetch --prune");
+    expect(JSON.stringify(repoFreshnessReq)).toContain("MUST NOT merge");
     expect(
       spec.requirements.some(
         (r: { id: string }) => r.id === "rq-epicArchiveSync01",
