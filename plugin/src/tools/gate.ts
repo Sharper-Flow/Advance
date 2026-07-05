@@ -88,6 +88,7 @@ import {
   isPreciseWorkflowRecoveryEvidence,
   RECOVERY_RECONCILIATION_WARNING,
 } from "../temporal/recovery-classification";
+import { hasGateRecoveryAudit } from "./recovery-audit";
 import {
   classifyCompletedOrPoisonedRecovery,
   workflowHasPoisonedRecoveryEvidence,
@@ -102,20 +103,7 @@ function gateDoneCount(gates: Gates): number {
 }
 
 function hasCompatibilityRecoveryEvidence(gates: Gates): boolean {
-  return GATE_ORDER.some((gateId) => {
-    const gate = gates[gateId];
-    const evidence = gate?.artifact_evidence as
-      | { compatibility_reason?: unknown }
-      | undefined;
-    const recoveryAudit = gate?.recovery_audit as
-      | { reason?: unknown; evidence?: unknown }
-      | undefined;
-    return (
-      typeof evidence?.compatibility_reason === "string" ||
-      typeof recoveryAudit?.reason === "string" ||
-      typeof recoveryAudit?.evidence === "string"
-    );
-  });
+  return GATE_ORDER.some((gateId) => hasGateRecoveryAudit(gates[gateId]));
 }
 
 async function preferRecoveredDiskGates(input: {

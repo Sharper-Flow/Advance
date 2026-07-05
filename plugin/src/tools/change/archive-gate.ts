@@ -36,6 +36,7 @@ import {
   resolveReleaseReachability,
   type GitFinalizeOutcome,
 } from "../archive-helpers/git-finalize";
+import { hasGateRecoveryAudit } from "../recovery-audit";
 const logger = createLogger("change");
 export function getArchiveTaskPreflightError(change: {
   tasks: {
@@ -709,15 +710,6 @@ export function releaseGateEvidenceMatches(
   );
 }
 
-function releaseGateHasRecoveryAudit(
-  gate: GateCompletion | undefined,
-): boolean {
-  const audit = gate?.recovery_audit;
-  return (
-    typeof audit?.reason === "string" || typeof audit?.evidence === "string"
-  );
-}
-
 async function loadAuditedDiskReleaseGate(input: {
   store: Store;
   changeId: string;
@@ -728,7 +720,7 @@ async function loadAuditedDiskReleaseGate(input: {
   const gate = disk.data.gates.release;
   if (
     gate?.status === "done" &&
-    releaseGateHasRecoveryAudit(gate) &&
+    hasGateRecoveryAudit(gate) &&
     releaseGateEvidenceMatches(gate, input.evidence)
   ) {
     return gate;
