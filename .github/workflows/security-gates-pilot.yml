@@ -35,3 +35,4 @@ jobs:
       semgrep-configs: "p/javascript p/typescript"
       semgrep-excludes: "node_modules dist coverage .adv temp test-results"
       run-trivy-fs: true
+      gitleaks-config: ".gitleaks.toml"
