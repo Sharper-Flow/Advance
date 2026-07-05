@@ -125,8 +125,56 @@ describe("getToolSurface (live surface)", () => {
     expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
   });
 
-  test("exposes Epic owner routing args on adv_change_create", () => {
-    const args = surface.get("adv_change_create");
+  test("exposes Epic owner routing args on adv_epic_create", () => {
+    const args = surface.get("adv_epic_create");
+    expect(args).toBeDefined();
+    expect(args?.has("epic_owner_target_path")).toBe(true);
+    expect(args?.has("epic_owner_target_confirmed")).toBe(true);
+    expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
+  });
+
+  test("exposes Epic owner routing args on adv_epic_show", () => {
+    const args = surface.get("adv_epic_show");
+    expect(args).toBeDefined();
+    expect(args?.has("epic_owner_target_path")).toBe(true);
+    expect(args?.has("epic_owner_target_confirmed")).toBe(true);
+    expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
+  });
+
+  test("exposes Epic owner routing args on adv_epic_list", () => {
+    const args = surface.get("adv_epic_list");
+    expect(args).toBeDefined();
+    expect(args?.has("epic_owner_target_path")).toBe(true);
+    expect(args?.has("epic_owner_target_confirmed")).toBe(true);
+    expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
+  });
+
+  test("exposes Epic owner routing args on adv_epic_update", () => {
+    const args = surface.get("adv_epic_update");
+    expect(args).toBeDefined();
+    expect(args?.has("epic_owner_target_path")).toBe(true);
+    expect(args?.has("epic_owner_target_confirmed")).toBe(true);
+    expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
+  });
+
+  test("exposes Epic owner routing args on adv_epic_reorder", () => {
+    const args = surface.get("adv_epic_reorder");
+    expect(args).toBeDefined();
+    expect(args?.has("epic_owner_target_path")).toBe(true);
+    expect(args?.has("epic_owner_target_confirmed")).toBe(true);
+    expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
+  });
+
+  test("exposes Epic owner routing args on adv_epic_add_shell", () => {
+    const args = surface.get("adv_epic_add_shell");
+    expect(args).toBeDefined();
+    expect(args?.has("epic_owner_target_path")).toBe(true);
+    expect(args?.has("epic_owner_target_confirmed")).toBe(true);
+    expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
+  });
+
+  test("exposes Epic owner routing args on adv_epic_promote_shell", () => {
+    const args = surface.get("adv_epic_promote_shell");
     expect(args).toBeDefined();
     expect(args?.has("epic_owner_target_path")).toBe(true);
     expect(args?.has("epic_owner_target_confirmed")).toBe(true);

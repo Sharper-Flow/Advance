@@ -21,6 +21,7 @@ import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
   appendEpicRoutingContexts,
   EPIC_OWNER_ROUTING_ERROR_CODES,
+  epicOwnerTargetPathSchema,
   formatEpicOwnerRoutingError,
   targetPathSchema,
   withTargetPathStore,
@@ -796,6 +797,7 @@ export const epicTools = {
           }),
         )
         .optional(),
+      ...epicOwnerTargetPathSchema,
     },
     execute: async (
       {
@@ -806,6 +808,9 @@ export const epicTools = {
         owner_project_id,
         owner_repo_id,
         scope_repos,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
       }: {
         epic_id: string;
         title: string;
@@ -816,10 +821,20 @@ export const epicTools = {
         scope_repos?: NonNullable<
           import("../types").Epic["epic_scope"]
         >["repos"];
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
       },
       store: Store,
     ) => {
       try {
+        const owner = await resolveEpicOwnerStore({
+          store,
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+        });
+        const ownerStore = owner.store;
         const epicScope = scope_kind
           ? {
               kind: scope_kind,
@@ -836,9 +851,15 @@ export const epicTools = {
           });
         }
         const epic = epicScope
-          ? await store.epics.create(epic_id, title, narrative, { epicScope })
-          : await store.epics.create(epic_id, title, narrative);
-        return formatToolOutput({ success: true, epic: formatEpic(epic) });
+          ? await ownerStore.epics.create(epic_id, title, narrative, {
+              epicScope,
+            })
+          : await ownerStore.epics.create(epic_id, title, narrative);
+        const output = formatToolOutput({
+          success: true,
+          epic: formatEpic(epic),
+        });
+        return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
         return epicError(err);
       }
@@ -857,17 +878,37 @@ export const epicTools = {
         .describe(
           'Rendering view: "compact" (default, bounded) or "full" (complete entry list).',
         ),
+      ...epicOwnerTargetPathSchema,
     },
     execute: async (
-      { epic_id, view }: { epic_id: string; view?: "compact" | "full" },
+      {
+        epic_id,
+        view,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
+      }: {
+        epic_id: string;
+        view?: "compact" | "full";
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
+      },
       store: Store,
     ) => {
       try {
-        const epic = await loadEpic(store, epic_id);
+        const owner = await resolveEpicOwnerStore({
+          store,
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+        });
+        const epic = await loadEpic(owner.store, epic_id);
         if (!epic) return epicNotFound(epic_id);
         const rendered =
           view === "full" ? formatEpic(epic) : formatEpicCompact(epic);
-        return formatToolOutput({ success: true, epic: rendered });
+        const output = formatToolOutput({ success: true, epic: rendered });
+        return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
         return epicError(err);
       }
@@ -885,23 +926,43 @@ export const epicTools = {
         .optional()
         .describe("Max Epics to return (default 50)."),
       offset: z.number().int().min(0).optional().describe("Pagination offset."),
+      ...epicOwnerTargetPathSchema,
     },
     execute: async (
-      { limit, offset }: { limit?: number; offset?: number },
+      {
+        limit,
+        offset,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
+      }: {
+        limit?: number;
+        offset?: number;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
+      },
       store: Store,
     ) => {
       try {
-        const epics = await store.epics.list();
+        const owner = await resolveEpicOwnerStore({
+          store,
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+        });
+        const epics = await owner.store.epics.list();
         const { items, pagination } = paginate(epics, {
           limit,
           offset,
           tool: "adv_epic_list",
         });
-        return formatToolOutput({
+        const output = formatToolOutput({
           success: true,
           epics: items.map(formatEpic),
           pagination,
         });
+        return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
         return epicError(err);
       }
@@ -920,6 +981,7 @@ export const epicTools = {
         .int()
         .min(0)
         .describe("Current Epic version from adv_epic_show."),
+      ...epicOwnerTargetPathSchema,
     },
     execute: async (
       {
@@ -927,11 +989,17 @@ export const epicTools = {
         title,
         narrative,
         expected_version,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
       }: {
         epic_id: string;
         title?: string;
         narrative?: string;
         expected_version: number;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
       },
       store: Store,
     ) => {
@@ -941,12 +1009,22 @@ export const epicTools = {
         });
       }
       try {
-        const epic = await store.epics.update(epic_id, {
+        const owner = await resolveEpicOwnerStore({
+          store,
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+        });
+        const epic = await owner.store.epics.update(epic_id, {
           title,
           narrative,
           expectedVersion: expected_version,
         });
-        return formatToolOutput({ success: true, epic: formatEpic(epic) });
+        const output = formatToolOutput({
+          success: true,
+          epic: formatEpic(epic),
+        });
+        return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
         return epicError(err);
       }
@@ -1098,6 +1176,7 @@ export const epicTools = {
         .describe(
           "Advisory display order; assigned next available if omitted.",
         ),
+      ...epicOwnerTargetPathSchema,
     },
     execute: async (
       {
@@ -1106,26 +1185,39 @@ export const epicTools = {
         success_hint,
         entry_id,
         order,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
       }: {
         epic_id: string;
         title: string;
         success_hint: string;
         entry_id?: string;
         order?: number;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
       },
       store: Store,
     ) => {
       try {
-        const entry = await store.epics.addShell(epic_id, {
+        const owner = await resolveEpicOwnerStore({
+          store,
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+        });
+        const entry = await owner.store.epics.addShell(epic_id, {
           entryId: entry_id,
           title,
           successHint: success_hint,
           order,
         });
-        return formatToolOutput({
+        const output = formatToolOutput({
           success: true,
           entry: mapEpicEntry(entry),
         });
+        return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
         return epicError(err);
       }
@@ -1150,6 +1242,7 @@ export const epicTools = {
         .min(1)
         .optional()
         .describe("Identity performing the promotion (defaults to 'agent')."),
+      ...epicOwnerTargetPathSchema,
     },
     execute: async (
       {
@@ -1157,16 +1250,29 @@ export const epicTools = {
         entry_id,
         change_id,
         promoted_by,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
       }: {
         epic_id: string;
         entry_id: string;
         change_id?: string;
         promoted_by?: string;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
       },
       store: Store,
     ) => {
       try {
-        const epic = await loadEpic(store, epic_id);
+        const owner = await resolveEpicOwnerStore({
+          store,
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+        });
+        const ownerStore = owner.store;
+        const epic = await loadEpic(ownerStore, epic_id);
         if (!epic) return epicNotFound(epic_id);
 
         const shell = epic.entries.find(
@@ -1181,9 +1287,17 @@ export const epicTools = {
 
         let finalChangeId = change_id;
         if (!finalChangeId) {
+          if (owner.context !== null && ownerStore !== store) {
+            return formatEpicOwnerRoutingError({
+              code: "UNSUPPORTED_EPIC_ROUTING_SHAPE",
+              error:
+                "Remote child change creation during shell promotion is not supported. Provide an existing change_id from the Epic owner project.",
+              ownerContext: owner.context,
+            });
+          }
           const proposal = `# ${shell.title}\n\n## Intent\n\n${shell.success_hint}\n\n## Scope\n\n- Promoted from Epic ${epic_id} shell ${entry_id}.\n`;
           const problemStatement = `## Problem\n\n${shell.title}\n\n## Success Criteria\n\n${shell.success_hint}\n`;
-          const createResult = await store.changes.create(shell.title, {
+          const createResult = await ownerStore.changes.create(shell.title, {
             artifacts: { proposal, problemStatement },
             initialMetadata: {
               epic_membership: {
@@ -1198,20 +1312,21 @@ export const epicTools = {
           finalChangeId = createResult.changeId;
         }
 
-        await store.epics.promoteShell(
+        await ownerStore.epics.promoteShell(
           epic_id,
           entry_id,
           finalChangeId,
           promoted_by ?? "agent",
         );
 
-        return formatToolOutput({
+        const output = formatToolOutput({
           success: true,
           entry_id,
           change_id: finalChangeId,
           promoted: true,
           note: `Shell '${shell.title}' promoted to change ${finalChangeId}.`,
         });
+        return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
         return epicError(err);
       }
@@ -2752,26 +2867,43 @@ export const epicTools = {
         .min(1)
         .describe("Entry IDs in desired order. Must include all entries."),
       expected_version: z.number().int().min(0),
+      ...epicOwnerTargetPathSchema,
     },
     execute: async (
       {
         epic_id,
         entry_ids,
         expected_version,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
       }: {
         epic_id: string;
         entry_ids: string[];
         expected_version: number;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
       },
       store: Store,
     ) => {
       try {
-        const epic = await store.epics.reorder(
+        const owner = await resolveEpicOwnerStore({
+          store,
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+        });
+        const epic = await owner.store.epics.reorder(
           epic_id,
           entry_ids,
           expected_version,
         );
-        return formatToolOutput({ success: true, epic: formatEpic(epic) });
+        const output = formatToolOutput({
+          success: true,
+          epic: formatEpic(epic),
+        });
+        return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
         return epicError(err);
       }

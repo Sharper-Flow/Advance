@@ -368,11 +368,18 @@ export function resolveTargetAwareMutationCwd(input: {
   return input.target_path ? input.store.paths.root : process.cwd();
 }
 
-export interface EpicOwnerRoutingInput {
-  epic_owner_target_path?: string;
-  epic_owner_target_confirmed?: true;
-  epic_owner_confirmationEvidence?: string;
-}
+export const epicOwnerTargetPathSchema = {
+  epic_owner_target_path: targetPathSchema.shape.target_path.describe(
+    "Optional absolute path to the Epic owner ADV project. When provided, resolves the Epic in that project instead of the current one.",
+  ),
+  epic_owner_target_confirmed: targetPathSchema.shape.target_confirmed.describe(
+    "Required for untrusted epic_owner_target_path mutation. Confirms the Epic owner project was explicitly approved.",
+  ),
+  epic_owner_confirmationEvidence:
+    targetPathSchema.shape.confirmationEvidence.describe(
+      "Required with epic_owner_target_confirmed for untrusted epic_owner_target_path mutation. Cite user approval evidence.",
+    ),
+};
 
 export const EPIC_OWNER_ROUTING_ERROR_CODES = {
   OWNER_ROUTING_REQUIRED: "OWNER_ROUTING_REQUIRED",
