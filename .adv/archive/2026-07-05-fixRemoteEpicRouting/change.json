@@ -1,0 +1,2224 @@
+{
+  "id": "fixRemoteEpicRouting",
+  "title": "Fix remote Epic routing",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-05T18:34:19.534Z",
+  "tasks": [
+    {
+      "id": "tk-869a82d30278",
+      "title": "Extend remote Epic routing specs and documentation",
+      "type": "docs",
+      "section": "Contract and docs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-05T19:16:52.504Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT2",
+          "DONT6",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixRemoteEpicRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+          "task_id": "tk-869a82d30278",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-869a82d30278"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-epics/spec.json",
+            "docs/specs/advance-epics.md",
+            "ADV_INSTRUCTIONS.md",
+            ".opencode/command/adv-epic.md",
+            "plugin/src/advance-epics-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "node -e \"JSON.parse(require('fs').readFileSync('.adv/specs/advance-epics/spec.json','utf8')); console.log('spec.json valid')\"",
+              "exit_code": 0,
+              "summary": "advance-epics spec.json parses as valid JSON"
+            },
+            {
+              "command": "cd plugin && pnpm run schemas:check && pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "JSON schemas unchanged and TypeScript typechecks"
+            },
+            {
+              "command": "cd plugin && pnpm run format:check && pnpm run lint",
+              "exit_code": 0,
+              "summary": "Prettier and ESLint pass on src/"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+              "exit_code": 0,
+              "summary": "55 Advance Epics asset/spec contract tests pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added a single requirement rq-epicOwnerRouting01 instead of scattering routing rules across existing requirements",
+              "why": "Keeps the owner/child routing matrix discoverable and testable in one place; aligns with AC6 and design KD1"
+            },
+            {
+              "what": "Used the design's field name epic_owner_target_path in specs/docs",
+              "why": "Matches the approved design and avoids overloading the existing child target_path parameter, preserving same-project and owner-local/child-remote compatibility"
+            },
+            {
+              "what": "Updated asset tests to assert the new requirement, routing matrix shapes, and error codes",
+              "why": "Provides lightweight, deterministic contract coverage without expanding into implementation tests"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Docs/spec now encode explicit Epic owner routing (epic_owner_target_path) separate from child target_path, the supported 2x2 routing matrix, and OWNER_ROUTING_AMBIGUOUS/OWNER_ROUTING_REQUIRED failure modes. Asset tests cover these contracts. No implementation code was changed.",
+            "suggested_next_action": "Proceed to code task tk-3bcc1140cc3f to add the Epic owner routing tool contract/helpers, using the documented field names and matrix as the contract source of truth."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: node -e \"JSON.parse(require('fs').readFileSync('.adv/specs/advance-epics/spec.json','utf8')); console.log('spec.json valid')\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run schemas:check && pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run format:check && pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Subagent reported: spec JSON parse pass; plugin schemas:check/typecheck/format:check/lint pass; bin/oc-test targeted -- src/advance-epics-assets.test.ts pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        ".opencode/command/adv-epic.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        ".opencode/command/adv-epic.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "checkpointSha": "d7d5189e0778b731a2eb2637036920a6aeb738a1",
+      "completedAt": "2026-07-05T19:32:43.126Z",
+      "completed_at": "2026-07-05T19:32:43.126Z"
+    },
+    {
+      "id": "tk-3bcc1140cc3f",
+      "title": "Add explicit Epic owner routing tool contract and helpers",
+      "type": "code",
+      "section": "Routing foundation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-05T19:17:12.588Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-869a82d30278"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC4"
+        ],
+        "verifies": [
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixRemoteEpicRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+          "task_id": "tk-3bcc1140cc3f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3bcc1140cc3f"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/epic.ts",
+            "plugin/src/tools/target-project.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/epic.test.ts",
+            "plugin/src/tool-registry.surface.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/epic.test.ts src/tool-registry.surface.test.ts src/tools/change.test.ts src/tools/change-cross-project-create.test.ts",
+              "exit_code": 0,
+              "summary": "172 tests passed"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+            },
+            {
+              "command": "bin/oc-test smoke",
+              "exit_code": 0,
+              "summary": "smoke suite + full check gate green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Placed resolveEpicOwnerStore in plugin/src/tools/epic.ts instead of target-project.ts",
+              "why": "Existing epic.test.ts mocks ./target-project; keeping the helper in epic.ts lets the mock intercept withTargetPathStore while still exporting resolveEpicOwnerStore for direct tests."
+            },
+            {
+              "what": "Used explicitChildStore for shape validation and resolveRepairChildStore for inferred child routing in repair",
+              "why": "Repair must preserve the legacy behavior of resolving child project from entry.change_ref.target_path when no explicit target_path is provided, while still enforcing unsupported-shape rejection."
+            },
+            {
+              "what": "Replaced maybeAppendTargetContext with formatEpicRoutingOutput for all Epic membership mutators",
+              "why": "Ensures consistent split-context output (_epicOwnerProjectContext / _childProjectContext) across link, unlink, move, and repair."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Applied owner-routing pattern consistently across adv_epic_link_change, adv_epic_unlink_change, adv_epic_move_change, and adv_epic_repair_membership; added surface + behavior tests for all four tools.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Owner-routing contract and helpers are now implemented for all Epic membership tools (link, unlink, move, repair) and adv_change_create. Tests and check/smoke gates pass. No remaining blockers.",
+            "suggested_next_action": "Run a fresh OpenCode session, build and deploy the plugin, then validate live tool calls for remote-owner Epic routing end-to-end."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/epic.test.ts src/tool-registry.surface.test.ts src/tools/change.test.ts src/tools/change-cross-project-create.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+            }
+          ]
+        }
+      ],
+      "verification": "RED adv_run_test tr_mr88jtcv_b6cdcc88 failed on owner-routing tests against pre-implementation code; GREEN adv_run_test tr_mr88kajo_1f127cef passed 172 targeted tests for epic/change/tool-registry owner routing.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "checkpointSha": "465fadb58f0ec46f17bc19a888165be2c8a6e902",
+      "completedAt": "2026-07-05T20:20:55.980Z",
+      "completed_at": "2026-07-05T20:20:55.980Z"
+    },
+    {
+      "id": "tk-6a480445f23a",
+      "title": "Fix cross-project change create Epic seed validation and forwarding",
+      "type": "code",
+      "section": "Change creation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-05T19:17:35.370Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3bcc1140cc3f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC1",
+          "AC5"
+        ],
+        "verifies": [
+          "SC3",
+          "AC1",
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT4",
+          "DONT5",
+          "DONT7",
+          "OOS1"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixRemoteEpicRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+          "task_id": "tk-6a480445f23a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6a480445f23a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change/create-clarify.ts",
+            "plugin/src/tools/change-cross-project-create.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/change-cross-project-create.test.ts src/tools/change.test.ts",
+              "exit_code": 1,
+              "summary": "RED: 3 new tests failed as expected before implementation"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change-cross-project-create.test.ts src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 99 tests pass after implementation"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "Full pre-push gate passes (schemas, typecheck, test isolation, lockfile, lint, format)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Centralized create-time Epic seed validation in create-clarify.ts via buildEpicMembershipFromSeed",
+              "why": "Ensures same completeness check runs before both same-project and cross-project create paths, keeping same-project behavior intact while preventing partial seeds from leaking to target stores"
+            },
+            {
+              "what": "Validated routed parent Epic inside createCrossProjectFollowUp before target child create",
+              "why": "Cross-project create must prove the parent Epic (in target or epic_owner_target_path project) exists and the entry_id is present; otherwise a typed error is returned and target create is never called"
+            },
+            {
+              "what": "Forwarded both cross_project_origin and epic_membership in target create initialMetadata",
+              "why": "Preserves cross-project provenance and projects Epic membership onto the new child change in one initialMetadata payload"
+            },
+            {
+              "what": "Set epic_project_id on cross-project epic_membership from resolved owner/target project context",
+              "why": "Remote Epic membership needs to record which ADV project owns the Epic, without affecting same-project seeds"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Added same-pattern cross-project Epic validation for both target-project and optional epic_owner_target-path owner routing; same-project seed path kept unchanged",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_change_create now validates complete Epic seeds before cross-project target create, checks the routed parent Epic exists in the target (or epic_owner_target_path) project, and forwards initialMetadata containing both cross_project_origin and epic_membership. Same-project Epic seed behavior is unchanged. All targeted tests and the full pnpm run check gate pass.",
+            "suggested_next_action": "Run the broader plugin test suite or proceed to the next task"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change-cross-project-create.test.ts src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change-cross-project-create.test.ts src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            }
+          ]
+        }
+      ],
+      "verification": "RED adv_run_test tr_mr891b5w_0a94d867 failed 3 create-seed tests against pre-implementation code; GREEN adv_run_test tr_mr891kfj_8f21c0b9 passed 99 change create tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change-cross-project-create.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/create-clarify.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change-cross-project-create.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/create-clarify.ts"
+      ],
+      "checkpointSha": "4ccebd96aa3a6149104e6ba060df2ad7143ead7c",
+      "completedAt": "2026-07-05T20:34:21.015Z",
+      "completed_at": "2026-07-05T20:34:21.015Z"
+    },
+    {
+      "id": "tk-93f90242b23a",
+      "title": "Route Epic owner read and owner-only mutation surfaces through owner store",
+      "type": "code",
+      "section": "Epic owner surfaces",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-05T19:17:56.824Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3bcc1140cc3f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC2",
+          "AC5"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "AC2",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C6",
+          "DONT2",
+          "DONT3",
+          "DONT5",
+          "DONT6",
+          "DONT7"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixRemoteEpicRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+          "task_id": "tk-93f90242b23a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-93f90242b23a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/target-project.ts",
+            "plugin/src/tools/epic.ts",
+            "plugin/src/tools/epic.test.ts",
+            "plugin/src/tool-registry.surface.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "../bin/oc-test targeted -- src/tools/epic.test.ts src/tool-registry.surface.test.ts",
+              "exit_code": 0,
+              "summary": "90 tests pass (70 epic + 20 surface) after implementation"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added shared epicOwnerTargetPathSchema in target-project.ts and spread it into owner-only Epic tool args.",
+              "why": "Avoids duplicating the three owner routing arg descriptions across six tools and keeps schema source in one place."
+            },
+            {
+              "what": "Routed create/show/list/update/reorder/add_shell through resolveEpicOwnerStore and used owner.store for all Epic operations.",
+              "why": "Implements the owner-only-store requirement and reuses the existing resolver already used by link/unlink/move/repair."
+            },
+            {
+              "what": "Wrapped owner-only tool outputs with formatEpicRoutingOutput.",
+              "why": "Surfaces _epicOwnerProjectContext for routed operations while keeping same-project output shape unchanged (owner.context is null)."
+            },
+            {
+              "what": "Made adv_epic_promote_shell reject remote-child creation when no change_id is provided and owner is remote.",
+              "why": "Design specifies safe same-owner shell promotion only; creating a child change in a remote project from promote_shell is not yet supported."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes beyond the targeted Epic tools; membership tools (link/move/unlink/repair) already routed correctly.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Owner-only Epic surfaces (create/show/list/update/reorder/add_shell) now route through epic_owner_target_path. promote_shell supports same-owner existing-change promotion and fails remote-child creation without change_id via UNSUPPORTED_EPIC_ROUTING_SHAPE. Targeted tests and check gate pass. Full suite has one pre-existing unrelated failure in src/tool-name-assets.test.ts (adv_backed_fact reference in adv-coordinate.md).",
+            "suggested_next_action": "Proceed to next task in the Epic routing change; no further action needed for tk-93f90242b23a."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/epic.test.ts src/tool-registry.surface.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "RED adv_run_test tr_mr89kc4r_a9bed873 failed owner-only Epic surface routing tests against pre-implementation code; GREEN adv_run_test tr_mr89kkbz_f9cfa194 passed 90 epic/surface tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "checkpointSha": "9db2944bbb5950486b9d1e7a2f2aa1c04cd9d08c",
+      "completedAt": "2026-07-05T20:49:09.003Z",
+      "completed_at": "2026-07-05T20:49:09.003Z"
+    },
+    {
+      "id": "tk-4940eca6cc6a",
+      "title": "Implement split owner/child routing for Epic membership tools",
+      "type": "code",
+      "section": "Epic membership routing",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-05T19:18:22.217Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3bcc1140cc3f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-93f90242b23a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC4",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC4",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixRemoteEpicRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+          "task_id": "tk-4940eca6cc6a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4940eca6cc6a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/epic.ts",
+            "plugin/src/tools/epic.test.ts",
+            "plugin/src/tools/target-project.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/epic.test.ts",
+              "exit_code": 0,
+              "summary": "78 Epic tool tests pass (8 new split-routing/partial-failure tests)"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Introduced applyChildEpicMembership and formatChildProjectionFailureOutput helpers",
+              "why": "Converts child projection exceptions after owner mutation into deterministic, actionable partial-failure responses instead of generic errors or silent success"
+            },
+            {
+              "what": "Wrapped child projection writes in link/move and owner unlink in move/unlink with try/catch partial-failure paths",
+              "why": "Membership mutations touch two stores; a failure in the second step must surface owner_partially_mutated / child_projection_failed flags and a repair action"
+            },
+            {
+              "what": "Enforced same-owner child omission proof for move and repair when no target_path is supplied",
+              "why": "If the child change cannot be found in the remote owner project, the tool must ask for an explicit child route rather than report CHANGE_NOT_FOUND from the wrong store"
+            },
+            {
+              "what": "Fixed two projectTerminalStateForLinkedEntry calls in link retarget/new-link paths to use ownerStore",
+              "why": "Remote-owner Epic mutations must project terminal state onto the owner entry, not the current-session store"
+            },
+            {
+              "what": "Extended EPIC_OWNER_ROUTING_ERROR_CODES with CHILD_PROJECTION_FAILED and MEMBERSHIP_PARTIAL_FAILURE",
+              "why": "Provides stable typed error codes for the new deterministic repair paths"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Applied same-owner child omission proof and partial-failure handling consistently across adv_epic_link_change, adv_epic_move_change, adv_epic_unlink_change, and adv_epic_repair_membership; fixed wrong-store terminal projection in link retarget/new-link paths",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Split owner/child routing for Epic membership tools is complete. Added tests and implementation for: same-owner child omission proof on move/repair, deterministic partial-failure responses when owner mutation succeeds but child projection or source unlink fails, and trust/readiness preflight via existing withTargetPathStore. Fixed owner-store terminal projection in link retarget/new-link. All Epic tests and the full check gate pass.",
+            "suggested_next_action": "Proceed to task tk-3d60b21309eb (contract verification and full routing regression sweep) or run bin/oc-test smoke/full for broader coverage"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/epic.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            }
+          ]
+        }
+      ],
+      "verification": "RED adv_run_test tr_mr8a1t2l_bc104fd5 failed 5 split membership/partial-failure tests against pre-implementation code; GREEN adv_run_test tr_mr8a203u_05809326 passed 78 epic tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "checkpointSha": "aa001d4250f35484a315297bb366d04dc0af04e5",
+      "completedAt": "2026-07-05T21:02:41.297Z",
+      "completed_at": "2026-07-05T21:02:41.297Z"
+    },
+    {
+      "id": "tk-3d60b21309eb",
+      "title": "Run contract verification and full routing regression sweep",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-05T19:18:46.245Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-869a82d30278"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6a480445f23a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-93f90242b23a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4940eca6cc6a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "Verification passed: adv_run_test tr_mr8a2ps9_d4479a4e targeted 5 routing/spec suites passed 252 tests; tr_mr8a2yyz_11d9afea schemas:check passed; tr_mr8a3lsp_3d03a0c0 pnpm --dir plugin run check passed; adv_change_validate strict passed with non-blocking NO_DELTAS warning.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "aa001d4250f35484a315297bb366d04dc0af04e5",
+      "completedAt": "2026-07-05T21:04:17.886Z",
+      "completed_at": "2026-07-05T21:04:17.886Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout: remote owner routing for ADV Epic/change target_path tools (issue #195)",
+      "sources": [
+        {
+          "label": "adv_change_create target_path short-circuit",
+          "locator": "plugin/src/tools/change.ts:1158-1173",
+          "summary": "When target_path is set, create routes into createCrossProjectFollowUp BEFORE the Epic seed logic at lines 1205-1231, so epic_id/entry_id/epic_title are silently dropped."
+        },
+        {
+          "label": "createCrossProjectFollowUp metadata",
+          "locator": "plugin/src/tools/change/create-clarify.ts:544-555",
+          "summary": "targetStore.changes.create is the authoritative write and IS correctly target-routed, but initialMetadata only carries cross_project_origin; epic_membership is never forwarded. Fix is narrow metadata forwarding."
+        },
+        {
+          "label": "adv_epic_create lacks target routing",
+          "locator": "plugin/src/tools/epic.ts:652-723",
+          "summary": "adv_epic_create has no target_path/target_confirmed/confirmationEvidence args, so creating an Epic in Project A from Project B is impossible. Same gap for show/list/update."
+        },
+        {
+          "label": "Owner-local Epic vs target child projection",
+          "locator": "plugin/src/tools/epic.ts:1176,1188,1246 and epic.test.ts:625",
+          "summary": "link/move/unlink/repair route only the child projection to childStore.store; Epic lookup (loadEpic(store)) and mutation (store.epics.linkChange) stay owner-local by deliberate design (test 'routes child projection through target_path while Epic remains owner-local'). Issue #195 EPIC_NOT_FOUND arises because the Epic lives in the target, not the local session store."
+        },
+        {
+          "label": "Reusable target routing primitive",
+          "locator": "plugin/src/tools/target-project.ts:70,270,355",
+          "summary": "targetPathSchema, withTargetPathStore, and appendTargetProjectContextOutput already exist and are used by Epic link/move/repair; remote-owner routing can reuse them."
+        },
+        {
+          "label": "advance-epics spec project-aware entries",
+          "locator": "spec:advance-epics rq-epicEntries01 (v1.7.0)",
+          "summary": "Change entries support a project-aware change_ref carrying change_id, project_id, optional repo_id, and optional target_path; one-Epic-per-change and optional membership invariants remain authoritative."
+        }
+      ],
+      "architecture_assessment": "The existing cross-project Epic model is a deliberate 'owner-local Epic + target child projection' split shape, encoded in epic.test.ts:625: link/move/unlink/repair route only the child change projection to the target store while the Epic itself is looked up and mutated in the current-session-local store. Issue #195 asks for a different shape — 'remote owner routing' where the Epic ALSO lives in the target project. Two concrete defects follow: (1) adv_change_create target_path silently drops Epic seed fields because it short-circuits into createCrossProjectFollowUp, which never forwards epic_membership into the (correctly target-routed) targetStore.changes.create; this is a narrow, low-risk fix. (2) adv_epic_create/show/list/update have no target_path args at all, and link/move/unlink/repair look up the Epic in the wrong (local) store for the remote-owner case, producing misleading EPIC_NOT_FOUND. The reusable withTargetPathStore/targetPathSchema primitive already exists, so the create-side fix and epic_create routing are cheap. The unresolved architectural fork is whether a single target_path can mean 'authoritative for both Epic owner and child' (colliding with the existing owner-local split-project design) or whether distinct owner/child target fields plus a supported/unsupported routing matrix are required — this needs a user/orchestrator decision before implementation.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No hard blocker, but a supported-shape decision is a prerequisite. The existing owner-local split-project design (test-encoded at epic.test.ts:625) and issue #195's remote-owner shape both key off one target_path field and cannot be disambiguated without an explicit routing matrix decision. Recommend surfacing candidate 3 to the user before implementing candidates 2-4. Candidates 1 and 5 (seed forwarding + regression fixtures) are safe to adopt now regardless of the matrix decision."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "medium",
+        "risk": "medium",
+        "tradeoffs": [
+          "Single target_path is simple but conflates two distinct shapes (owner-local child-target split vs remote-owner); distinct owner/child target fields are more explicit but add schema surface and operator complexity.",
+          "Routing the Epic owner store to target for link/move/repair fixes EPIC_NOT_FOUND for the remote-owner case but conflicts with the deliberate owner-local design in epic.test.ts:625, forcing either a shape flag or a routing matrix.",
+          "Forwarding Epic seed metadata in createCrossProjectFollowUp is low-risk and reuses the existing local seed shape, but leaves the read/list Epic tools (show/list/update) still local-only unless separately routed."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Single target_path means authoritative for both Epic owner and child (remote-owner default)",
+            "disposition": "deferred",
+            "rationale": "Cleanest for the issue #195 use case but silently changes the existing owner-local split-project behavior encoded in epic.test.ts:625; requires user decision."
+          },
+          {
+            "option": "Distinct owner/child target fields + typed supported/unsupported routing matrix with pre-mutation rejection",
+            "disposition": "preferred",
+            "rationale": "Structurally correct (P33): makes both shapes explicit, fails unsupported splits before durable mutation with an actionable error instead of misleading EPIC_NOT_FOUND or orphaned changes."
+          },
+          {
+            "option": "Only fix the create-side seed drop and leave Epic mutation tools owner-local",
+            "disposition": "rejected",
+            "rationale": "Does not satisfy the User Outcome that an operator in Project B can create/link/repair an Epic that lives in Project A; leaves EPIC_NOT_FOUND unresolved."
+          }
+        ],
+        "recommendation": "Adopt candidates 1 (forward Epic seed into createCrossProjectFollowUp metadata) and 5 (issue #195 regression fixtures) now — both low-risk and shape-agnostic. Surface candidate 3 (route Epic owner store to target) to the user to decide the routing matrix: single target_path meaning both vs distinct owner/child fields. Gate candidates 2 (add target routing to adv_epic_create/show/list/update) and 4 (typed supported/unsupported routing matrix with pre-mutation rejection) on that decision. Reuse the existing withTargetPathStore/targetPathSchema primitive throughout."
+      },
+      "recommendation": "Discovery should record 5 candidates: auto-adopt seed-forwarding (candidate 1) and regression fixtures (candidate 5); design-around adv_epic_create target routing (candidate 2) and the routing-matrix typed guard (candidate 4); and surface-to-user the owner-store routing fork (candidate 3) because it conflicts with the deliberate owner-local design in epic.test.ts:625 and matches the open Discovery Agenda question 'whether one target_path can safely mean authoritative target for all same-target operations, or whether distinct owner/child target fields are needed'.",
+      "follow_ups": [
+        "Read advance-epics spec requirements beyond rq-epicEntity01..rq-epicOnePerChange01 (12 of 24 truncated) for the authoritative cross-project target-path trust/mutation rule before design gate.",
+        "Confirm whether adv_epic_show/list/update read tools should also gain target_path routing or remain local-only in this change's scope."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout: remote Epic owner routing (issue #195) — reusable primitives, wrong-store defect surface, seed-forwarding shortcut",
+      "sources": [
+        {
+          "label": "Create-side seed drop short-circuit",
+          "locator": "plugin/src/tools/change.ts:1158-1173",
+          "summary": "target_path routes into createCrossProjectFollowUp BEFORE Epic seed logic at lines 1205-1231, so epic_id/entry_id/epic_title are silently dropped for cross-project creates (violates DONT1/AC1/SC3)."
+        },
+        {
+          "label": "Cross-project create forwards only origin metadata",
+          "locator": "plugin/src/tools/change/create-clarify.ts:544-556",
+          "summary": "targetStore.changes.create receives initialMetadata:{cross_project_origin:origin} only; epic_membership is never forwarded, yet target store is already correctly routed."
+        },
+        {
+          "label": "Storage layer already accepts epic_membership in initialMetadata",
+          "locator": "plugin/src/storage/store-disk.ts:398-399 + plugin/src/storage/store-temporal/changes.ts:152,224",
+          "summary": "Both disk scaffold and Temporal create paths already read initialMetadata.epic_membership and seed it. The create-side fix is one-line forwarding, not new plumbing."
+        },
+        {
+          "label": "Systemic owner-local Epic lookup",
+          "locator": "plugin/src/tools/epic.ts:743,893,1046,1176,1331,1464,1560,1562,1694,1696,1936 (loadEpic(store,...))",
+          "summary": "8+ loadEpic call sites all use the current-session-local store; none can target a remote owner. This is the single wrong-store root cause of misleading EPIC_NOT_FOUND (AC4/DONT4)."
+        },
+        {
+          "label": "Reusable child-store resolver pattern",
+          "locator": "plugin/src/tools/epic.ts:339-368 (resolveChildStore + maybeAppendTargetContext)",
+          "summary": "resolveChildStore already wraps withTargetPathStore with temporal-required and returns {context,store}; resolveEpicOwnerStore in the design is a direct structural clone, and maybeAppendTargetContext already emits split target context."
+        },
+        {
+          "label": "adv_epic_create has no owner routing",
+          "locator": "plugin/src/tools/epic.ts:652-708",
+          "summary": "adv_epic_create args carry no target_path/target_confirmed/confirmationEvidence and always write to local store; creating a remote-owner Epic from Project B is currently impossible (AC2)."
+        },
+        {
+          "label": "Epic change-ref already project-aware",
+          "locator": "plugin/src/types/epics.ts:184-193 (EpicChangeRefSchema)",
+          "summary": "change_ref already carries change_id, project_id, optional repo_id, optional target_path; split owner/child projection needs no schema change to the entry ref itself."
+        }
+      ],
+      "architecture_assessment": "The draft design is structurally sound and reuses the right primitives (withTargetPathStore, resolveChildStore shape, maybeAppendTargetContext). Scouting surfaced five leverage points. (1) The single highest-payoff/lowest-risk shortcut: the create-side seed-drop fix is genuinely one-line forwarding — the storage layer (store-disk.ts:398-399, changes.ts:152/224) already accepts initialMetadata.epic_membership, so createCrossProjectFollowUp only needs to receive and forward the assembled membership; no new plumbing. (2) The design's resolveEpicOwnerStore should be built as a near-verbatim clone of resolveChildStore (epic.ts:339-361) rather than a fresh helper, keeping locality (P04) and matching the existing {context,store} contract that maybeAppendTargetContext already consumes. (3) The wrong-store defect is systemic, not per-tool: 8+ loadEpic(store,...) sites share one root cause; routing them through a single ownerStore accessor is a cross-cutting improvement that fixes AC4/DONT4 in one structural move and prevents whack-a-mole. (4) The seed-drop fix has an ordering subtlety worth calling out in design: the Epic-seed assembly currently lives AFTER the target_path branch (change.ts:1205-1231), so the fix must hoist seed validation/assembly ABOVE line 1158 or duplicate it inside the cross-project branch — otherwise AC1's 'validate parent Epic before target child creation / no orphan' cannot be satisfied because the branch returns before seed logic runs. (5) Parent-Epic pre-validation for the cross-project create should reuse the owner-store loadEpic path plus the existing INVALID_EPIC_MEMBERSHIP_SEED completeness guard (change.ts:1215) so SC3 is enforced structurally with no new error taxonomy. None of these alter the approved contract; all tie to existing AC/constraints.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. Design is adoptable. Two design-around notes: (a) hoist Epic-seed validation/assembly above the target_path branch so AC1/SC3 orphan-prevention is reachable on the cross-project path; (b) route all 8+ loadEpic sites through the single owner-store accessor to close AC4/DONT4 systemically. Both are within approved scope and low risk. Candidate 5 (parent-Epic pre-validation) is contract-tied to SC3 and must land with the create-side fix; treat as one unit."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Cloning resolveChildStore into resolveEpicOwnerStore duplicates ~20 lines but preserves the proven {context,store} contract and avoids a premature shared abstraction; a later refactor could unify both behind one resolveScopedStore(kind) if a third store family appears.",
+          "Routing all loadEpic sites through an owner accessor touches 8+ call sites in one change (wider diff) but is the only way to make AC4/DONT4 structural rather than per-tool heuristic (P33); leaving any site owner-local reintroduces the misleading EPIC_NOT_FOUND.",
+          "Hoisting Epic-seed assembly above the target_path branch slightly reorders change.ts create flow, but the seed-completeness guard is pure validation with no side effects, so hoisting is safe and makes SC3 reachable on the cross-project path."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Build a fresh generic resolveScopedStore abstraction now instead of cloning resolveChildStore",
+            "disposition": "rejected",
+            "rationale": "Only two store families (owner, child) exist; a generic abstraction is speculative (YAGNI/P29). Clone the proven pattern; unify later only if a third family emerges."
+          },
+          {
+            "option": "Fix loadEpic wrong-store per-tool as each Epic operation is touched",
+            "disposition": "rejected",
+            "rationale": "Per-tool patching leaves other loadEpic(store,...) sites owner-local and reintroduces misleading EPIC_NOT_FOUND; the single owner-accessor route is structurally correct and closes AC4/DONT4 once."
+          },
+          {
+            "option": "Duplicate Epic-seed assembly inside the cross-project branch instead of hoisting it",
+            "disposition": "deferred",
+            "rationale": "Works but duplicates the completeness guard and INVALID_EPIC_MEMBERSHIP_SEED logic; hoisting above line 1158 is cleaner and keeps one seed-validation path. Design author's call, both satisfy AC1."
+          }
+        ],
+        "recommendation": "Adopt candidates 1 (seed-forwarding shortcut, trivial given storage already accepts it), 2 (clone resolveChildStore for resolveEpicOwnerStore), 3 (single owner-store accessor for all loadEpic sites), and 5 (reuse loadEpic+existing seed guard for parent-Epic pre-validation) into the design now — all contract-tied and low risk. Surface candidate 4 (unify both resolvers behind one generic helper) as follow-up only, not this change."
+      },
+      "recommendation": "Design leverage candidates (sorted payoff/risk, hard cap 5):\n\n1. ADOPT_NOW — Seed-forwarding shortcut: createCrossProjectFollowUp only needs to receive+forward epic_membership in initialMetadata; storage (store-disk.ts:398-399, changes.ts:152/224) already accepts it. payoff:high risk:low contract_tie:AC1/DONT1 prior:new.\n\n2. DESIGN_AROUND — Clone resolveChildStore (epic.ts:339-361) into resolveEpicOwnerStore rather than a fresh helper; reuses proven {context,store} contract + maybeAppendTargetContext. payoff:high risk:low contract_tie:AC2/AC3/C4 prior:new.\n\n3. DESIGN_AROUND — Route all 8+ loadEpic(store,...) sites (epic.ts:743,893,1046,1176,1331,1464,1560,1562,1694,1696,1936) through one owner-store accessor; fixes AC4/DONT4 systemically, not per-tool. payoff:high risk:low contract_tie:AC4/DONT4/C2 prior:new.\n\n4. FOLLOW_UP — Later unify owner+child resolvers behind one generic resolveScopedStore(kind); premature now (only two families). payoff:low risk:low contract_tie:untied prior:new.\n\n5. DESIGN_AROUND — Parent-Epic pre-validation for cross-project create must hoist Epic-seed assembly above change.ts:1158 (currently at 1205-1231, after the branch returns) and reuse loadEpic(ownerStore)+existing INVALID_EPIC_MEMBERSHIP_SEED guard so SC3 orphan-prevention is reachable and structural. payoff:high risk:low contract_tie:AC1/SC3/C6 prior:new.",
+      "follow_ups": [
+        "Candidate 4 (unify owner/child store resolvers) is a post-change refactor; do not expand this change's scope for it.",
+        "Confirm during planning whether adv_epic_show/list/update read tools also gain epic_owner_target_path routing or stay local-only for this change (AC2 says 'where supported' — scope the read tools explicitly)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for remote Epic owner/child routing (issue #195)",
+      "sources": [
+        {
+          "label": "epic.ts resolveChildStore (source)",
+          "locator": "plugin/src/tools/epic.ts:339 (bytes 9904-10497)",
+          "summary": "Existing resolveChildStore wraps withTargetPathStore with stateRequirement:'temporal-required'. Design's resolveEpicOwnerStore snippet is a faithful clone — confirms KD2 low-risk pattern reuse."
+        },
+        {
+          "label": "target-project.ts withTargetPathStore (source)",
+          "locator": "plugin/src/tools/target-project.ts:7876-9737",
+          "summary": "withTargetPathStore supports 'temporal-required' with ensureTargetMutationQueueReady + trust gate (target_confirmed/confirmationEvidence). Confirms owner routing can reuse trust+queue-readiness invariants (C3/C4)."
+        },
+        {
+          "label": "epic.ts membership tool call sites (source)",
+          "locator": "plugin/src/tools/epic.ts loadEpic:234, store.epics.* at 716/771/821/1188/1375/1491/1598/1819/1979/2078/2351; childStore.store.changes.* at 1214/1273/1311/1401/1488/1616/1839/2054/2224/2302",
+          "summary": "All owner Epic access (loadEpic(store,...) and store.epics.*) uses the current-session-local store; only child projection routes through resolveChildStore. This is exactly the systemic wrong-store bug #195 describes — validates KD2/KD3 diagnosis."
+        },
+        {
+          "label": "change.ts adv_change_create branch ordering (source)",
+          "locator": "plugin/src/tools/change.ts:1158-1174 vs 1205-1231",
+          "summary": "target_path short-circuits to createCrossProjectFollowUp at line 1158 BEFORE Epic seed validation/construction at 1205-1231. On the cross-project path epic_id/entry_id/epic_title are silently dropped. Confirms KD4 hoist is necessary for AC1/SC3 and DONT1."
+        },
+        {
+          "label": "create-clarify.ts createCrossProjectFollowUp (source)",
+          "locator": "plugin/src/tools/change/create-clarify.ts:467-594, initialMetadata at 555",
+          "summary": "createCrossProjectFollowUp passes only initialMetadata:{cross_project_origin} and accepts no Epic seed params. Confirms the design's claim that epic_membership forwarding is a real missing gap, and that storage already accepts initialMetadata (plumbing exists)."
+        },
+        {
+          "label": "epic.test.ts backward-compat anchor (test)",
+          "locator": "plugin/src/tools/epic.test.ts:625-679",
+          "summary": "Test 'routes child projection through target_path while Epic remains owner-local' asserts ownerStore.epics.linkChange on the local store while target_path routes only child projection. Confirms KD1: overloading target_path would break this test; separate owner field family is required."
+        },
+        {
+          "label": "advance-epics spec rq-epicMembershipRepair01 (spec-law)",
+          "locator": ".adv/specs/advance-epics/spec.json:381-409",
+          "summary": "'Cross-project membership mutations MUST follow target-path trust rules' + audit evidence + deterministic partial-failure statuses (projection_pending/stale/target_unreachable). Design KD2/KD3/DDC2 preflight and deterministic repair-status mitigation comply."
+        },
+        {
+          "label": "advance-epics spec rq-epicEntries01 / rq-epicOnePerChange01 (spec-law)",
+          "locator": ".adv/specs/advance-epics/spec.json rq-epicEntries01.2, rq-epicOnePerChange01:366",
+          "summary": "change_ref must carry change_id+project_id (+optional target_path); one-Epic-per-change preserved by one compact projection per child. Design split-routing writing change_ref.project_id/target_path for child C, and preserving single membership, is spec-compliant."
+        }
+      ],
+      "architecture_assessment": "The design correctly diagnoses issue #195 as a systemic wrong-store bug: every Epic-owner access in epic.ts membership tools uses the current-session-local store while only child projection routes via resolveChildStore, and adv_change_create silently drops Epic seed fields on the target_path branch (verified at change.ts:1158-1174 before the seed logic at 1205-1231). The proposed fix — a second explicit owner routing field family (epic_owner_target_path/target_confirmed/confirmationEvidence) resolved through a resolveEpicOwnerStore clone of the proven resolveChildStore→withTargetPathStore pattern — is structurally sound, reuses existing trust+queue-readiness+cache invariants, and keeps target_path child semantics backward-compatible (anchored by epic.test.ts:625). KD4's hoist of seed validation and epic_membership forwarding before the cross-project create branch is necessary and correctly targeted for AC1/SC3/DONT1. Typed pre-mutation error codes, distinct output contexts, and DDC store-identity assertions make correctness structural per C2/P33. No spec-law contradiction found; the design explicitly complies with rq-epicMembershipRepair01 cross-project trust rules and preserves optional membership + one-Epic-per-change invariants.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All KD claims source-verified. KD2 owner accessor, KD3 child-store independence, and KD4 hoist each map to confirmed code sites. Non-blocking cautions: (1) KD3 'omitted child route only when implementation can structurally prove same-owner child' is under-specified — planning must define the deterministic same-owner proof rather than inferring from target_path (DONT2 risk if implemented loosely). (2) Two-remote-store non-atomicity is acknowledged; preflight-before-mutation mitigates but link/move that mutate owner Epic then child projection can still leave projection_pending on child-store failure — ensure deterministic repair status is emitted on that exact partial path (rq-epicMembershipRepair01 compliance). (3) adv_epic_promote_shell remote-child case is scoped out via UNSUPPORTED_EPIC_ROUTING_SHAPE, which is acceptable but must be covered by a typed-error test so it fails before mutation, not mid-operation."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Public tool schema grows by three owner-routing fields on many Epic tools plus adv_change_create — more surface to document and schema-test, mitigated by generated schema drift checks.",
+          "Two independent target stores are not transactionally atomic; correctness depends on preflight-before-mutation and deterministic repair statuses rather than a single transaction.",
+          "Cloning resolveChildStore instead of a generic owner/child resolver adds near-term duplication in exchange for lower risk and clearer store identity; deferred generalization is a reasonable YAGNI call.",
+          "Explicit separate fields (vs overloaded target_path) increase caller verbosity but eliminate ambiguity between owner-local-child-remote and owner-remote shapes."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Overload single target_path to mean owner+child",
+            "disposition": "rejected",
+            "rationale": "Would make owner-local-child-remote (epic.test.ts:625) and owner-remote shapes indistinguishable, break existing test/operators, and violate DONT2 (infer remote owner from child-only target_path). Verified the existing test asserts owner-local store while target_path routes only the child."
+          },
+          {
+            "option": "Only fix create-side epic_membership forwarding",
+            "disposition": "rejected",
+            "rationale": "Solves the silent-drop symptom (change.ts:1158 vs 1205) but leaves remote Epic create/link/move/unlink/repair still wrong-store, failing AC2/AC3. Confirmed all store.epics.* in membership tools use the local store."
+          },
+          {
+            "option": "Generic owner/child store resolver abstraction now",
+            "disposition": "deferred",
+            "rationale": "Viable later; cloning the proven resolveChildStore shape is clearer and lower risk for this change. Deferral documented in design scout; acceptable per P19/P29."
+          },
+          {
+            "option": "Disk patching / direct ADV state edits",
+            "disposition": "rejected",
+            "rationale": "Violates ADV state access invariants and Temporal store ownership (DONT7/C2). Correctly rejected."
+          }
+        ],
+        "recommendation": "Proceed to planning. The design passes architecture validation with high confidence. During planning, harden three points as explicit tasks/DDCs: (1) define the deterministic same-owner-child proof for the KD3 'omitted child route' shape so it never infers owner intent from target_path alone; (2) add a test asserting deterministic child-projection repair status (projection_pending/stale/target_unreachable) on the exact owner-Epic-mutated-then-child-store-failure partial path; (3) add a typed-error-before-mutation test for adv_epic_promote_shell remote-child returning UNSUPPORTED_EPIC_ROUTING_SHAPE. Keep DDC4 store-identity assertions mandatory for every owner/child mutation test."
+      },
+      "recommendation": "validation.status = pass. Design is correct, spec-compliant, and the simpler alternatives were correctly rejected with source-backed rationale. Advance to design gate completion and planning; carry the three non-blocking cautions into planning as explicit hardening tasks.",
+      "follow_ups": [
+        "Planning: specify deterministic same-owner-child proof for KD3 omitted-child-route shape (avoid DONT2 inference).",
+        "Planning: add partial-failure repair-status test for two-remote-store link/move (rq-epicMembershipRepair01).",
+        "Planning: add typed UNSUPPORTED_EPIC_ROUTING_SHAPE fail-before-mutation test for adv_epic_promote_shell remote-child."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+      "task_id": "tk-869a82d30278",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-869a82d30278"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-epics/spec.json",
+        "docs/specs/advance-epics.md",
+        "ADV_INSTRUCTIONS.md",
+        ".opencode/command/adv-epic.md",
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "node -e \"JSON.parse(require('fs').readFileSync('.adv/specs/advance-epics/spec.json','utf8')); console.log('spec.json valid')\"",
+          "exit_code": 0,
+          "summary": "advance-epics spec.json parses as valid JSON"
+        },
+        {
+          "command": "cd plugin && pnpm run schemas:check && pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "JSON schemas unchanged and TypeScript typechecks"
+        },
+        {
+          "command": "cd plugin && pnpm run format:check && pnpm run lint",
+          "exit_code": 0,
+          "summary": "Prettier and ESLint pass on src/"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+          "exit_code": 0,
+          "summary": "55 Advance Epics asset/spec contract tests pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added a single requirement rq-epicOwnerRouting01 instead of scattering routing rules across existing requirements",
+          "why": "Keeps the owner/child routing matrix discoverable and testable in one place; aligns with AC6 and design KD1"
+        },
+        {
+          "what": "Used the design's field name epic_owner_target_path in specs/docs",
+          "why": "Matches the approved design and avoids overloading the existing child target_path parameter, preserving same-project and owner-local/child-remote compatibility"
+        },
+        {
+          "what": "Updated asset tests to assert the new requirement, routing matrix shapes, and error codes",
+          "why": "Provides lightweight, deterministic contract coverage without expanding into implementation tests"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Docs/spec now encode explicit Epic owner routing (epic_owner_target_path) separate from child target_path, the supported 2x2 routing matrix, and OWNER_ROUTING_AMBIGUOUS/OWNER_ROUTING_REQUIRED failure modes. Asset tests cover these contracts. No implementation code was changed.",
+        "suggested_next_action": "Proceed to code task tk-3bcc1140cc3f to add the Epic owner routing tool contract/helpers, using the documented field names and matrix as the contract source of truth."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: node -e \"JSON.parse(require('fs').readFileSync('.adv/specs/advance-epics/spec.json','utf8')); console.log('spec.json valid')\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run schemas:check && pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run format:check && pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+      "task_id": "tk-3bcc1140cc3f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3bcc1140cc3f"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/target-project.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tool-registry.surface.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/epic.test.ts src/tool-registry.surface.test.ts src/tools/change.test.ts src/tools/change-cross-project-create.test.ts",
+          "exit_code": 0,
+          "summary": "172 tests passed"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+        },
+        {
+          "command": "bin/oc-test smoke",
+          "exit_code": 0,
+          "summary": "smoke suite + full check gate green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Placed resolveEpicOwnerStore in plugin/src/tools/epic.ts instead of target-project.ts",
+          "why": "Existing epic.test.ts mocks ./target-project; keeping the helper in epic.ts lets the mock intercept withTargetPathStore while still exporting resolveEpicOwnerStore for direct tests."
+        },
+        {
+          "what": "Used explicitChildStore for shape validation and resolveRepairChildStore for inferred child routing in repair",
+          "why": "Repair must preserve the legacy behavior of resolving child project from entry.change_ref.target_path when no explicit target_path is provided, while still enforcing unsupported-shape rejection."
+        },
+        {
+          "what": "Replaced maybeAppendTargetContext with formatEpicRoutingOutput for all Epic membership mutators",
+          "why": "Ensures consistent split-context output (_epicOwnerProjectContext / _childProjectContext) across link, unlink, move, and repair."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Applied owner-routing pattern consistently across adv_epic_link_change, adv_epic_unlink_change, adv_epic_move_change, and adv_epic_repair_membership; added surface + behavior tests for all four tools.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Owner-routing contract and helpers are now implemented for all Epic membership tools (link, unlink, move, repair) and adv_change_create. Tests and check/smoke gates pass. No remaining blockers.",
+        "suggested_next_action": "Run a fresh OpenCode session, build and deploy the plugin, then validate live tool calls for remote-owner Epic routing end-to-end."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/epic.test.ts src/tool-registry.surface.test.ts src/tools/change.test.ts src/tools/change-cross-project-create.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+      "task_id": "tk-6a480445f23a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6a480445f23a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/change-cross-project-create.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/change-cross-project-create.test.ts src/tools/change.test.ts",
+          "exit_code": 1,
+          "summary": "RED: 3 new tests failed as expected before implementation"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change-cross-project-create.test.ts src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 99 tests pass after implementation"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "Full pre-push gate passes (schemas, typecheck, test isolation, lockfile, lint, format)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Centralized create-time Epic seed validation in create-clarify.ts via buildEpicMembershipFromSeed",
+          "why": "Ensures same completeness check runs before both same-project and cross-project create paths, keeping same-project behavior intact while preventing partial seeds from leaking to target stores"
+        },
+        {
+          "what": "Validated routed parent Epic inside createCrossProjectFollowUp before target child create",
+          "why": "Cross-project create must prove the parent Epic (in target or epic_owner_target_path project) exists and the entry_id is present; otherwise a typed error is returned and target create is never called"
+        },
+        {
+          "what": "Forwarded both cross_project_origin and epic_membership in target create initialMetadata",
+          "why": "Preserves cross-project provenance and projects Epic membership onto the new child change in one initialMetadata payload"
+        },
+        {
+          "what": "Set epic_project_id on cross-project epic_membership from resolved owner/target project context",
+          "why": "Remote Epic membership needs to record which ADV project owns the Epic, without affecting same-project seeds"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Added same-pattern cross-project Epic validation for both target-project and optional epic_owner_target-path owner routing; same-project seed path kept unchanged",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_change_create now validates complete Epic seeds before cross-project target create, checks the routed parent Epic exists in the target (or epic_owner_target_path) project, and forwards initialMetadata containing both cross_project_origin and epic_membership. Same-project Epic seed behavior is unchanged. All targeted tests and the full pnpm run check gate pass.",
+        "suggested_next_action": "Run the broader plugin test suite or proceed to the next task"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change-cross-project-create.test.ts src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change-cross-project-create.test.ts src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+      "task_id": "tk-93f90242b23a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-93f90242b23a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/target-project.ts",
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tool-registry.surface.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "../bin/oc-test targeted -- src/tools/epic.test.ts src/tool-registry.surface.test.ts",
+          "exit_code": 0,
+          "summary": "90 tests pass (70 epic + 20 surface) after implementation"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added shared epicOwnerTargetPathSchema in target-project.ts and spread it into owner-only Epic tool args.",
+          "why": "Avoids duplicating the three owner routing arg descriptions across six tools and keeps schema source in one place."
+        },
+        {
+          "what": "Routed create/show/list/update/reorder/add_shell through resolveEpicOwnerStore and used owner.store for all Epic operations.",
+          "why": "Implements the owner-only-store requirement and reuses the existing resolver already used by link/unlink/move/repair."
+        },
+        {
+          "what": "Wrapped owner-only tool outputs with formatEpicRoutingOutput.",
+          "why": "Surfaces _epicOwnerProjectContext for routed operations while keeping same-project output shape unchanged (owner.context is null)."
+        },
+        {
+          "what": "Made adv_epic_promote_shell reject remote-child creation when no change_id is provided and owner is remote.",
+          "why": "Design specifies safe same-owner shell promotion only; creating a child change in a remote project from promote_shell is not yet supported."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes beyond the targeted Epic tools; membership tools (link/move/unlink/repair) already routed correctly.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Owner-only Epic surfaces (create/show/list/update/reorder/add_shell) now route through epic_owner_target_path. promote_shell supports same-owner existing-change promotion and fails remote-child creation without change_id via UNSUPPORTED_EPIC_ROUTING_SHAPE. Targeted tests and check gate pass. Full suite has one pre-existing unrelated failure in src/tool-name-assets.test.ts (adv_backed_fact reference in adv-coordinate.md).",
+        "suggested_next_action": "Proceed to next task in the Epic routing change; no further action needed for tk-93f90242b23a."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/tools/epic.test.ts src/tool-registry.surface.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+      "task_id": "tk-4940eca6cc6a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4940eca6cc6a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/epic.test.ts",
+          "exit_code": 0,
+          "summary": "78 Epic tool tests pass (8 new split-routing/partial-failure tests)"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check all green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Introduced applyChildEpicMembership and formatChildProjectionFailureOutput helpers",
+          "why": "Converts child projection exceptions after owner mutation into deterministic, actionable partial-failure responses instead of generic errors or silent success"
+        },
+        {
+          "what": "Wrapped child projection writes in link/move and owner unlink in move/unlink with try/catch partial-failure paths",
+          "why": "Membership mutations touch two stores; a failure in the second step must surface owner_partially_mutated / child_projection_failed flags and a repair action"
+        },
+        {
+          "what": "Enforced same-owner child omission proof for move and repair when no target_path is supplied",
+          "why": "If the child change cannot be found in the remote owner project, the tool must ask for an explicit child route rather than report CHANGE_NOT_FOUND from the wrong store"
+        },
+        {
+          "what": "Fixed two projectTerminalStateForLinkedEntry calls in link retarget/new-link paths to use ownerStore",
+          "why": "Remote-owner Epic mutations must project terminal state onto the owner entry, not the current-session store"
+        },
+        {
+          "what": "Extended EPIC_OWNER_ROUTING_ERROR_CODES with CHILD_PROJECTION_FAILED and MEMBERSHIP_PARTIAL_FAILURE",
+          "why": "Provides stable typed error codes for the new deterministic repair paths"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Applied same-owner child omission proof and partial-failure handling consistently across adv_epic_link_change, adv_epic_move_change, adv_epic_unlink_change, and adv_epic_repair_membership; fixed wrong-store terminal projection in link retarget/new-link paths",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Split owner/child routing for Epic membership tools is complete. Added tests and implementation for: same-owner child omission proof on move/repair, deterministic partial-failure responses when owner mutation succeeds but child projection or source unlink fails, and trust/readiness preflight via existing withTargetPathStore. Fixed owner-store terminal projection in link retarget/new-link. All Epic tests and the full check gate pass.",
+        "suggested_next_action": "Proceed to task tk-3d60b21309eb (contract verification and full routing regression sweep) or run bin/oc-test smoke/full for broader coverage"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/epic.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/target-project.ts",
+          "line": 402,
+          "what": "Split routing contexts are explicit in output as _epicOwnerProjectContext and _childProjectContext.",
+          "why": "This makes owner-vs-child routing auditable and avoids child-only target_path ambiguity called out by the agreement."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "for p in <focus files>; do test -e \"$p\" ...; done",
+          "bin/oc-test targeted -- plugin/src/tools/epic.test.ts plugin/src/tools/change-cross-project-create.test.ts plugin/src/tool-registry.surface.test.ts plugin/src/advance-epics-assets.test.ts",
+          "bin/oc-test targeted -- src/tools/epic.test.ts src/tools/change-cross-project-create.test.ts src/tool-registry.surface.test.ts src/advance-epics-assets.test.ts",
+          "pnpm --dir plugin run schemas:check",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight: all 13 focus files OK. First targeted test command used repo-root-prefixed paths against plugin-local include pattern and failed with 'No test files found' (invocation issue, not code failure). Corrected targeted command passed 4 files / 159 tests. schemas:check exited 0. pnpm --dir plugin run check exited 0: schemas:check, typecheck, test isolation, lockfile policy, eslint, prettier all passed. Initial submit attempt with packet scope_key reviewer:acceptance was rejected by report schema; corrected to required review:acceptance change-scope."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Review verified source-level behavior through focused unit/asset tests and check gate; live deployed OpenCode plugin behavior still requires normal build/deploy/restart cycle before end-to-end MCP validation in a fresh session."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with acceptance/release decision; no blocking review findings remain.",
+        "If live MCP proof is required, rebuild/deploy plugin and validate remote Epic routing in a fresh OpenCode session due runtime dist caching."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "For this repo, `bin/oc-test targeted -- ...` runs from `plugin/`; pass paths like `src/tools/epic.test.ts`, not `plugin/src/tools/epic.test.ts`, or Vitest reports no matching files."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight for focused release files; git status --short; git diff --check origin/trunk...HEAD",
+          "bin/adv slop-scan plugin/src --json",
+          "bin/oc-test targeted -- plugin/src/tools/epic.test.ts plugin/src/tools/change-cross-project-create.test.ts plugin/src/tool-registry.surface.test.ts plugin/src/advance-epics-assets.test.ts",
+          "bin/oc-test targeted -- src/tools/epic.test.ts src/tools/change-cross-project-create.test.ts src/tool-registry.surface.test.ts src/advance-epics-assets.test.ts",
+          "git status --short && git merge-base --is-ancestor origin/trunk HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all focus files; git diff --check clean; git status clean. Slop scan found 0 findings but remained SLOP_SCAN_DEGRADED because eslint timed out, knip JSON parse failed, ast-grep/jscpd unavailable. Initial targeted test command used repo-root plugin/src paths and failed with 'No test files found'; diagnosed wrapper runs from plugin/. Corrected targeted command passed 4 files / 159 tests. origin/trunk is ancestor of HEAD, indicating branch includes current trunk."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Slop scan detector coverage degraded; fallback review plus passing check/build evidence mitigates release risk but detector setup remains imperfect.",
+        "Live MCP behavior cannot be validated in this already-running session after source edits; source-vs-dist reload requires build/deploy/restart before fresh-session tool validation."
+      ],
+      "required_main_agent_actions": [
+        "Before claiming fresh-session live MCP validation, run source build/deploy and restart OpenCode/plugin host per Source-vs-Dist reload gotcha, then exercise affected ADV Epic tools if release workflow requires live validation.",
+        "Optionally track slop-scan detector environment repair for eslint timeout / knip JSON parse / missing ast-grep and jscpd; not blocking this release because targeted tests, check/build evidence, and fallback review are clean."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixRemoteEpicRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixRemoteEpicRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 5,
+      "dimensions": [
+        "test-coverage",
+        "residual-slop-maintainability",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "production-readiness",
+        "deployment-readiness"
+      ],
+      "summary": "Harden scanner synthesis: test/check/build evidence passed; docs/spec/tests reviewed by harden reviewer; cleanup and git status clean; production/deployment readiness ready with release warnings for degraded slop detector coverage and required build/deploy/restart before live MCP validation.",
+      "findings": [
+        {
+          "scanner": "slop-scan",
+          "severity": "info",
+          "summary": "bin/adv slop-scan plugin/src --json reported 0 findings but degraded detector coverage (eslint timeout, knip parse failure, ast-grep/jscpd unavailable). Fallback review found no blocker/high slop findings.",
+          "evidence": [
+            {
+              "label": "slop scan",
+              "locator": "bin/adv slop-scan plugin/src --json",
+              "summary": "0 findings; SLOP_SCAN_DEGRADED due detector availability/timeouts."
+            }
+          ]
+        },
+        {
+          "scanner": "deployment-readiness",
+          "severity": "info",
+          "summary": "Source build passes; live deployed MCP behavior requires normal build/deploy/restart before fresh-session validation.",
+          "evidence": [
+            {
+              "label": "build",
+              "locator": "adv_run_test tr_mr8ajt30_ccd7bfa6",
+              "summary": "pnpm --dir plugin run build passed."
+            },
+            {
+              "label": "runtime gotcha",
+              "locator": "AGENTS.md Source-vs-Dist Reload Gotcha",
+              "summary": "Current OpenCode session caches deployed plugin code; source changes need deploy/restart for live tool validation."
+            }
+          ]
+        }
+      ],
+      "follow_ups": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-05T18:34:42.581Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal created from GitHub issue #195. Problem framing confirmed by user: ADV in Project B must be able to create or mutate changes/Epics and link/re-link Project A objects with Project A as authoritative target.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "5c75a14ea15b60996c537fc23c41b432dacb55a3129b9a801b902380744346b3",
+        "non_whitespace_chars": 5545,
+        "checked_at": "2026-07-05T18:34:19.584Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-05T18:59:42.138Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery agreement approved by user reply: approve. Contract minted with 29 items. User decisions: explicit separate owner/child routing fields, support split projects now, fail before child create when parent Epic cannot be validated.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "non_whitespace_chars": 5315,
+        "checked_at": "2026-07-05T18:34:19.585Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-05T19:15:35.843Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded and independently validated. Validator pass/high confidence/low risk; no contract compromise or user-value tradeoff. Design uses explicit epic_owner_target_path routing separate from existing child target_path routing, hoists Epic seed validation, and preserves existing child-target semantics.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "39568c02bf6965a2e6d9c78b9b6563f79ed958d61cec72952e0e57fed3102e92",
+        "non_whitespace_chars": 11748,
+        "checked_at": "2026-07-05T18:34:19.586Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-05T19:19:53.119Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan by reply: approve. Task graph contains 6 tasks covering spec/docs, owner routing contract/helpers, cross-project create seed forwarding, owner surfaces, membership routing, and verification sweep."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-05T21:04:57.347Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 planned tasks completed with checkpoints. Verification: targeted routing/spec regression sweep passed 252 tests; schemas:check passed; pnpm --dir plugin run check passed; adv_change_validate strict passed with non-blocking NO_DELTAS warning. Working tree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-05T21:14:05.622Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work by reply: accept. Reviewer verdict READY with 0 blockers; contract review matrix 29/29 passed/respected/not_applicable; executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "565b0d5286d4d86cb3a29991c88793399517f9299f10729e640b80fb01d775c6",
+        "non_whitespace_chars": 2903,
+        "checked_at": "2026-07-05T18:34:19.587Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 195
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+      "approvedAt": "2026-07-05T18:59:35.664Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Project B can orchestrate Project A Epic/change work without switching sessions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Remote Epic owner and remote child change routing are explicit, typed, and auditable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "No target child change is created when requested parent Epic membership cannot be validated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Existing same-project Epic flows remain valid.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_create` with `target_path` and complete Epic seed fields validates routed parent Epic before target child creation; missing/unreachable parent Epic creates no child change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_create#target_path"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Epic tools support explicit separate owner-project and child-project routing for create/read/update/link/move/unlink/repair operations where supported.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_epic_link_change",
+          "tool:adv_epic_move_change",
+          "tool:adv_epic_unlink_change",
+          "tool:adv_epic_repair_membership",
+          "tool:adv_epic_create"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Link/move/unlink/repair can operate when Epic owner and child change live in different routed ADV projects, with trust confirmation enforced for every untrusted mutated target.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_epic_link_change",
+          "tool:adv_epic_move_change",
+          "tool:adv_epic_unlink_change",
+          "tool:adv_epic_repair_membership"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Unsupported routing shapes fail before durable mutation with typed errors naming the owner/child routing problem; no misleading wrong-store `EPIC_NOT_FOUND`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Regression tests cover issue #195: Project B links Project A change to Project A Epic, creates Project A change with Epic seed fields, and supports split owner/child routed membership where declared supported.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Docs/spec guidance describe current supported routing matrix and remove child-only `target_path` ambiguity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Same-project Epic membership, optional membership, one-Epic-per-change, terminal projection, and audited repair behavior remain intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Specs are law; `advance-epics` optional membership, one-Epic-per-change, project-aware entry, audited repair, terminal projection, and product scope requirements remain authoritative.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Correctness must be structural: schemas, typed routing, target store selection, projection state, and regression tests own behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Mutating untrusted owner or child targets must require explicit confirmation evidence before any state mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Temporal-backed target stores and target queue readiness checks must be used for remote mutations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Change-scoped signals/cache refresh must use the store that owns the mutated change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Unsupported routing shapes must fail before durable mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Tests must use isolated project fixtures, not `/home/jon/dev/pokeedge` or `/home/jon/dev/pokeedge-business`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not silently drop create-time Epic seed fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not infer remote owner intent from child-only `target_path` heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not mutate current-session-local Epics when explicit routing selects a remote owner project.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not return `EPIC_NOT_FOUND` from a wrong-store lookup as if the requested routed Epic were absent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not bypass target trust confirmation, queue readiness, audit evidence, or cache refresh invariants.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not make Epic membership mandatory or add Jira-like planning primitives.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not use direct ADV state-file reads or disk-only patches as a workaround.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Cleaning up already-created PokeEdge changes such as `planPricingTrust`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Product planning UX redesign beyond routing/schema/docs needed for these tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Arbitrary many-project graph orchestration beyond explicit Epic owner/child routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Archive/release workflow changes unrelated to Epic membership projection evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-05T21:12:16.742Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; owner-routed Epic create/read/update/list and membership routing implemented and covered by targeted tests (252 passed)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Separate epic_owner_target_path and child target_path routing implemented; split contexts and typed errors reviewed."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Cross-project create seed tests prove missing parent Epic creates no child; adv_run_test tr_mr891kfj_8f21c0b9 passed."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Same-project and legacy child-remote regressions included in epic/change targeted tests; reviewer READY."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_run_test tr_mr891kfj_8f21c0b9 passed 99 change create tests; red tr_mr891b5w_0a94d867 showed missing behavior before fix."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_run_test tr_mr89kkbz_f9cfa194 passed 90 owner surface tests; tr_mr88kajo_1f127cef passed 172 tool contract/helper tests."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_run_test tr_mr8a203u_05809326 passed 78 Epic membership routing tests including split owner/child cases."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Typed routing error tests passed in targeted suites; red evidence showed wrong-store EPIC_NOT_FOUND before fix."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_run_test tr_mr8a2ps9_d4479a4e passed 5 targeted suites, 252 tests, covering issue #195 regressions."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "advance-epics asset/spec tests passed in tr_mr8a2ps9_d4479a4e; docs/spec updated with routing matrix."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Same-project, optional membership, one-Epic-per-change, terminal projection and repair regressions remain green in epic tests."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "advance-epics spec updated; implementation preserves optional membership and one-Epic-per-change; reviewer READY."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Typed schemas/helpers/errors and tests own routing correctness; no heuristic owner inference used."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Owner/child target routing uses withTargetPathStore trust confirmation paths; targeted tests cover trust preflight."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Remote owner/child mutations route through Temporal-required target store helpers."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Change projection writes use resolved child store; Epic owner writes use resolved owner store."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Unsupported routing shapes return typed errors before durable mutation in tests."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Tests use repo fixtures/mocks; no production PokeEdge paths used as fixtures."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Cross-project create now forwards epic_membership; no silent drop per tests."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "target_path remains child routing; epic_owner_target_path owns remote owner routing."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Owner-routed tools use ownerStore.store.epics, not current-session store."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Wrong-store EPIC_NOT_FOUND replaced with typed owner/child routing errors where applicable."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Target trust confirmation/queue readiness helpers preserved; review found no bypass."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Jira-like primitives or mandatory Epic membership added."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation uses ADV stores/tools and tests; no direct ADV state-file workaround."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No cleanup of existing PokeEdge changes performed."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No product planning UX redesign performed beyond docs/tool routing."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Implementation limited to explicit owner/child routing, not arbitrary many-project graph orchestration."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Archive/release workflows not changed except existing projection evidence semantics preserved."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_create` with `target_path` and complete Epic seed fields validates routed parent Epic before target child creation; missing/unreachable parent Epic creates no child change.",
+    "Epic tools support explicit separate owner-project and child-project routing for create/read/update/link/move/unlink/repair operations where supported.",
+    "Link/move/unlink/repair can operate when Epic owner and child change live in different routed ADV projects, with trust confirmation enforced for every untrusted mutated target.",
+    "Unsupported routing shapes fail before durable mutation with typed errors naming the owner/child routing problem; no misleading wrong-store `EPIC_NOT_FOUND`.",
+    "Regression tests cover issue #195: Project B links Project A change to Project A Epic, creates Project A change with Epic seed fields, and supports split owner/child routed membership where declared supported.",
+    "Docs/spec guidance describe current supported routing matrix and remove child-only `target_path` ambiguity.",
+    "Same-project Epic membership, optional membership, one-Epic-per-change, terminal projection, and audited repair behavior remain intact."
+  ],
+  "documents": {
+    "proposal": "# Fix remote Epic routing\n\n## Why\n\nADV running in one project cannot treat another ADV project named by `target_path` as the authoritative target for Epic ownership and related change membership mutations. Operators coordinating from a business repo need to create or mutate Epics and changes in a product repo, including link/re-link/move/unlink/repair membership, without switching the OpenCode session into the product repo.\n\nCurrent behavior observed from `/home/jon/dev/pokeedge-business` targeting `/home/jon/dev/pokeedge`:\n\n- `adv_change_create target_path` with complete Epic seed fields created `planPricingTrust` in the target project but did not seed Epic membership.\n- `adv_epic_link_change target_path` and `adv_epic_repair_membership target_path` reported `EPIC_NOT_FOUND` for `databaseOptimization`, even though related target-project child evidence referenced that Epic.\n\n## What Changes\n\n- Establish remote owner routing as a supported Epic/change operation shape.\n- Ensure cross-project create/link/re-link/move/unlink/repair flows either operate against the target project as authoritative store or fail before mutation with a clear unsupported-routing error.\n- Preserve audited trust confirmation and target project cache/projection correctness for remote mutations.\n- Clarify documentation and ADV guidance for supported cross-project Epic ownership shapes.\n\n## User Outcomes\n\n- An operator running ADV in Project B can create an Epic in Project A when Project A is provided as the target project.\n- An operator running ADV in Project B can create a Change in Project A when Project A is provided as the target project.\n- An operator running ADV in Project B can link, re-link, move, unlink, or repair Project A Epic membership for Project A changes where the operation is supported.\n- Unsupported cross-project owner/child splits fail early with actionable routing guidance instead of creating orphaned changes or returning misleading local-owner errors.\n- Existing same-project and supported cross-project Epic flows remain valid.\n\n## Scope\n\n### In Scope\n\n- Explicit separate owner/child routing fields for Epic operations that need to address Project A from Project B.\n- Support for owner and child change living in different target projects in one call where the operation semantically needs both sides.\n- Remote Epic owner routing for create/show/list/update/link/move/unlink/repair surfaces needed to operate from a coordinator repo.\n- Create-time Epic membership seeding for `adv_change_create target_path` with complete Epic seed fields, with pre-create parent Epic validation.\n- Clear pre-mutation rejection for unsupported or unserviceable routing shapes.\n- Regression coverage for target-path Epic/change create and membership mutation behavior.\n- Documentation updates that describe supported remote owner routing shapes and operator guidance.\n\n### Out of Scope\n\n- Introducing Jira-like planning primitives, assignments, sprints, estimates, or boards.\n- Making Epic membership mandatory for all changes.\n- Adding a new project-level shared workflow or replacing the per-change gate/task lifecycle.\n- Arbitrary many-project graph orchestration beyond explicit owner/child routing for Epic membership.\n- Changing archive/release gate semantics except where membership projection repair evidence is already part of Epic behavior.\n\n### Must Not\n\n- Must not silently drop create-time Epic seed fields.\n- Must not mutate a current-session-local Epic when routing inputs select a different authoritative owner project.\n- Must not return `EPIC_NOT_FOUND` for an Epic lookup performed against the wrong project store.\n- Must not bypass target-path trust confirmation, audit evidence, queue readiness, or cache refresh invariants.\n- Must not break same-project Epic membership, one-Epic-per-change, or optional membership invariants.\n\n## Affected Code\n\nLikely affected areas to verify during discovery/design:\n\n- `plugin/src/tools/epic.ts` Epic MCP tool implementations.\n- `plugin/src/tools/change.ts` and `plugin/src/tools/change/create-clarify.ts` cross-project creation path and create-time Epic seed forwarding.\n- `plugin/src/tools/target-project.ts` store routing, trust confirmation, and target queue readiness.\n- Epic membership projection and repair code.\n- Public tool schemas, tool-registry surface tests, and schema-registry entries if routing arguments change.\n- `ADV_INSTRUCTIONS.md`, `.opencode/command/adv-epic.md`, docs/spec mirrors, and asset tests that describe cross-project Epic ownership.\n\n## Related Repositories\n\n- Primary implementation repository: `advance`.\n- Reproduction target mentioned in issue: `/home/jon/dev/pokeedge`.\n- Coordination repo mentioned in issue: `/home/jon/dev/pokeedge-business`.\n\n## Constraints\n\n- Specs are law: `advance-epics` one-Epic-per-change, optional membership, audited repair, product-scope, and target-path trust requirements remain authoritative.\n- Correctness must be structural: schemas, typed routing, store selection, projections, and regression tests should own behavior.\n- Unsupported routing shapes must be rejected before durable mutation.\n- Cross-project target mutation must use the target project store/cache and preserve audited trust confirmation.\n- Existing same-project and current supported cross-project flows must remain backward-compatible unless deliberately replaced by documented explicit routing.\n\n## Impact\n\nThis change removes a coordination blocker for business/product planning sessions and prevents orphaned target changes whose proposal text claims Epic intent but whose structural membership is missing.\n\n## Context\n\nGitHub issue #195 documents the failure mode and desired remote owner routing behavior. The closest governing spec found is `advance-epics`, especially requirements for project-aware entries, optional membership, one-Epic-per-change, audited repair, and cross-project membership mutations following target-path trust rules.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Evidence |\n|---|---|---|\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`; no pending-review skill frontmatter found. |\n| Prior Research Extension | PASS | Relevant archived change `fixTargetPathRouting` (#192) inspected; it fixed target change read/close routing but not Epic owner routing. |\n| Conflict Scan | PASS | Active related change is this change only; agenda includes target_path follow-ups but no duplicate #195 implementation. `adv_change_validate` passed with expected pre-prep NO_TASKS/NO_DELTAS warnings. |\n| Edge Cases | PASS | Captured missing target Epic, untrusted owner/child targets, partial mutation, and projection mismatch cases. |\n| Design Question Depth | PASS | Main open fork resolved by user: use separate owner/child fields, support split projects now, fail before create when parent Epic cannot be validated. |\n| Draft Spec Deltas | PASS | New Epic routing law likely required for explicit remote owner/child routing. |\n| Related Pattern Scan | PASS | Similar target_path routing class exists in archived `fixTargetPathRouting`; same bug pattern: source project store leaking into target operation. |\n| LBP Check | PASS | Structural routing matrix + typed store selection is preferred over heuristic interpretation of one `target_path`. |\n| Completeness Verification | PASS | Problem spans multiple tool surfaces; no sole-entry claim relied on. |\n\n### Current State\n\n- `plugin/src/tools/change.ts:1158-1173` short-circuits to `createCrossProjectFollowUp` whenever `target_path` is present, before same-project Epic seed validation/metadata is built.\n- `plugin/src/tools/change/create-clarify.ts:544-555` creates the target change with `initialMetadata: { cross_project_origin: origin }`; it does not forward `epic_membership`.\n- `plugin/src/tools/epic.ts:652-723` implements `adv_epic_create` without `target_path`; remote Epic creation from Project B is impossible through this tool today.\n- `plugin/src/tools/epic.ts:1176`, `1188`, `1246`, `1375`, `1491`, `1598`, and related repair paths call `store.epics.*`, where `store` is the current-session owner store. `resolveChildStore` only routes the child change/projection.\n- `plugin/src/tools/epic.test.ts:625` explicitly asserts the current behavior: “routes child projection through target_path while Epic remains owner-local.”\n- `plugin/src/tools/target-project.ts:270-335` already provides reusable Temporal-backed target store routing, trust confirmation, and queue readiness.\n- `ADV_INSTRUCTIONS.md:551` documents the current child-target shape: use `target_path` when the child change lives elsewhere; create/use target change first, then link into owner Epic.\n\n### Edge Cases\n\n1. Target Epic missing/unreachable: create/link must fail before creating or partially mutating child state.\n2. One side trusted, other side untrusted: each target mutation must enforce confirmation before that side mutates.\n3. Parent Epic mutation succeeds but child projection fails: design must keep operation atomic where possible or produce deterministic repair status.\n4. Child already belongs to another Epic: preserve one-Epic-per-change with `PROJECTION_MISMATCH`/`CHANGE_ALREADY_IN_EPIC`, not overwrite.\n5. Same-project legacy calls: must still work or have documented migration semantics.\n6. Terminal child entries: terminal projection behavior from existing Epic requirements must still apply across remote child routing.\n\n### Open Design Questions\n\n- Routing surface: user selected explicit separate owner/child routing fields instead of overloading `target_path` for all meanings. Trust model: user intent + agent design. Blast radius: public tool schemas, docs, tests, operator habits. Alternatives considered: single `target_path` owns all; keep current child-only meaning.\n- Split-project support: user selected supporting owner and child in different target projects now. Trust model: joint. Blast radius: two target stores, two trust gates, partial failure handling, test fixtures. Alternative rejected: same-target only.\n- Create-time seed failure: user selected fail-before-create when target Epic missing/uncheckable. Trust model: user outcome. Blast radius: prevents orphan changes but requires pre-create target owner lookup/readiness. Alternatives rejected: create pending; create warning-only.\n\n### Draft Spec Deltas\n\n- `rq-epicRemoteOwnerRouting01`: Epic tools that mutate or read a remote Epic owner MUST support explicit owner-project routing distinct from child-change routing.\n  - Given ADV is running in Project B and explicit owner routing names Project A, when an Epic read or mutation is performed, then the Epic lookup/mutation uses Project A store/cache and not the current-session store.\n- `rq-epicSplitProjectMembership01`: Epic membership tools MUST either complete owner/child mutations across explicit routed projects or fail before durable mutation with typed unsupported/unserviceable errors.\n  - Given owner and child targets differ, when link/move/unlink/repair is supported, then both target trust gates are enforced and projection uses the child store.\n- `rq-epicCreateSeedRemote01`: `adv_change_create target_path` with complete Epic seed fields MUST validate the routed owner Epic before creating the child change and MUST seed structural membership when creation succeeds.\n  - Given the routed parent Epic cannot be found or checked, when create is requested with Epic seed fields, then no child change is created.\n\n### Related Pattern Scan\n\n- Same-pattern source/target leak exists in archived `fixTargetPathRouting`: target read/close/bulk-close once used source project identity/store in parts of target operations. This change is the Epic owner analogue.\n- Asset/docs currently codify child-only target_path semantics (`ADV_INSTRUCTIONS.md:551`, `plugin/src/advance-epics-assets.test.ts`), so docs/tests must change with implementation.\n- No external library/service alternative is relevant; this is internal tool contract and Temporal store routing.\n\n### Completeness Verification\n\n- Problem completeness: high confidence. The bug is not only `EPIC_NOT_FOUND`; it spans create-time seed drop, lack of remote Epic CRUD routing, and owner-local Epic mutation in link/move/unlink/repair.\n- Solution-scope completeness: high confidence for explicit owner/child routing across Epic surfaces and `adv_change_create` seed validation. No sole-entry claim is used; multiple surfaces are explicitly in scope.\n- Secondary surfaces: `adv_epic_show/list/update/reorder/add_shell/promote_shell` need design disposition because remote owner planning may need more than mutation-only link/repair. `adv_epic_merge` also uses owner-local store and should be considered if split-project Epic maintenance remains in scope.\n\n### LBP Check\n\nBest long-term direction is typed explicit routing, not heuristic overload of `target_path`. User selected separate fields and split-project support, matching P33 structural-correctness guidance. Reuse `withTargetPathStore` rather than building parallel target-store plumbing.\n\n### Discovery Opportunity Scout\n\nScout ran via `adv-researcher`. Auto-adopted findings:\n\n- Forward Epic seed metadata through cross-project create.\n- Add issue #195 regression fixtures.\n\nSurfaced/adopted by user decisions:\n\n- Use distinct owner/child routing fields.\n- Support split owner/child target projects now.\n- Fail before target child create when parent Epic cannot be validated.\n\n### Recommended Objectives\n\n1. Introduce explicit owner/child target routing for Epic tools and document the supported routing matrix.\n2. Extend remote Epic owner read/mutation surfaces needed for coordinator-to-product operation.\n3. Fix `adv_change_create target_path` to validate parent Epic and forward/create membership metadata atomically enough to avoid orphan changes.\n4. Preserve target trust confirmation, queue readiness, cache refresh, audit evidence, and one-Epic-per-change invariants for both owner and child sides.\n5. Add regression tests for issue #195 and same-pattern current behavior that must remain valid or intentionally migrate.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings. Coverage: B:C F:C S:C M:C\n\n- Advisory M1 HIGH: Exact public argument names remain a design decision. Evidence: proposal says “e.g. `owner_target_path` / `epic_target_path`” in issue context but user chose “Separate fields.” Reason: naming should be decided in design with schema/backward-compat analysis.\n- Advisory S1 HIGH: Success signals need explicit no-orphan proof. Evidence: proposal says “fail before mutation” and user chose “Fail before create.” Reason: design must define how tests observe absence of child creation after parent Epic validation failure.\n\n## Discovery Agenda\n\nResolved in discovery:\n\n- `target_path` current behavior mapped: current Epic tools route child only; current change create drops Epic seed on target path.\n- Owner store leak identified: `store.epics.*` is current-session store in Epic tools.\n- User chose explicit separate owner/child fields, split-project support now, and fail-before-create for create-time Epic seed failure.\n\nCarry to design:\n\n- Choose exact public argument names and compatibility behavior for existing `target_path`.\n- Define transaction/rollback/repair semantics for two-target mutations.\n- Decide whether remote owner routing covers `show/list/update/reorder/add_shell/promote_shell/merge` in same release or which unsupported shapes fail pre-mutation.\n- Pin final spec delta IDs and schema/docs/test updates.",
+    "problemStatement": "ADV running in one project cannot treat another ADV project named by `target_path` as the authoritative target for Epic ownership and related change membership mutations. Operators coordinating from a business repo need to create or mutate Epics and changes in a product repo, including link/re-link/move/unlink/repair membership, without switching the OpenCode session into the product repo. Current Epic tools can silently drop create-time Epic seed fields or return misleading `EPIC_NOT_FOUND` because the Epic owner store remains current-session-local instead of target-project authoritative.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Enable ADV running in Project B to orchestrate Epic and change operations whose authoritative ADV state lives in Project A.\n2. Introduce explicit separate routing for Epic owner project and child change project instead of overloading one `target_path` meaning.\n3. Support split-project Epic membership operations where the Epic owner and child change live in different routed ADV projects.\n4. Prevent orphan child changes by validating routed parent Epic membership before `adv_change_create target_path` creates a child change with Epic seed fields.\n5. Preserve target-path trust confirmation, queue readiness, audit evidence, cache refresh, optional Epic membership, one-Epic-per-change, terminal projection, and same-project backwards compatibility.\n6. Update specs/docs/tests so supported and unsupported routing shapes are structural and discoverable.\n\n## Success Criteria\n\n- SC1: Project B can orchestrate Project A Epic/change work without switching sessions.\n- SC2: Remote Epic owner and remote child change routing are explicit, typed, and auditable.\n- SC3: No target child change is created when requested parent Epic membership cannot be validated.\n- SC4: Existing same-project Epic flows remain valid.\n\n## Acceptance Criteria\n\n- AC1: `adv_change_create` with `target_path` and complete Epic seed fields validates routed parent Epic before target child creation; missing/unreachable parent Epic creates no child change. [warrant: tool:adv_change_create#target_path]\n- AC2: Epic tools support explicit separate owner-project and child-project routing for create/read/update/link/move/unlink/repair operations where supported. [warrant: tool:adv_epic_link_change, tool:adv_epic_move_change, tool:adv_epic_unlink_change, tool:adv_epic_repair_membership, tool:adv_epic_create]\n- AC3: Link/move/unlink/repair can operate when Epic owner and child change live in different routed ADV projects, with trust confirmation enforced for every untrusted mutated target. [warrant: tool:adv_epic_link_change, tool:adv_epic_move_change, tool:adv_epic_unlink_change, tool:adv_epic_repair_membership]\n- AC4: Unsupported routing shapes fail before durable mutation with typed errors naming the owner/child routing problem; no misleading wrong-store `EPIC_NOT_FOUND`.\n- AC5: Regression tests cover issue #195: Project B links Project A change to Project A Epic, creates Project A change with Epic seed fields, and supports split owner/child routed membership where declared supported.\n- AC6: Docs/spec guidance describe current supported routing matrix and remove child-only `target_path` ambiguity.\n- AC7: Same-project Epic membership, optional membership, one-Epic-per-change, terminal projection, and audited repair behavior remain intact.\n\n## Constraints\n\n- C1: Specs are law; `advance-epics` optional membership, one-Epic-per-change, project-aware entry, audited repair, terminal projection, and product scope requirements remain authoritative.\n- C2: Correctness must be structural: schemas, typed routing, target store selection, projection state, and regression tests own behavior.\n- C3: Mutating untrusted owner or child targets must require explicit confirmation evidence before any state mutation.\n- C4: Temporal-backed target stores and target queue readiness checks must be used for remote mutations.\n- C5: Change-scoped signals/cache refresh must use the store that owns the mutated change.\n- C6: Unsupported routing shapes must fail before durable mutation.\n- C7: Tests must use isolated project fixtures, not `/home/jon/dev/pokeedge` or `/home/jon/dev/pokeedge-business`.\n\n## Avoidances\n\n- DONT1: Do not silently drop create-time Epic seed fields.\n- DONT2: Do not infer remote owner intent from child-only `target_path` heuristics.\n- DONT3: Do not mutate current-session-local Epics when explicit routing selects a remote owner project.\n- DONT4: Do not return `EPIC_NOT_FOUND` from a wrong-store lookup as if the requested routed Epic were absent.\n- DONT5: Do not bypass target trust confirmation, queue readiness, audit evidence, or cache refresh invariants.\n- DONT6: Do not make Epic membership mandatory or add Jira-like planning primitives.\n- DONT7: Do not use direct ADV state-file reads or disk-only patches as a workaround.\n\n## Out of Scope\n\n- OOS1: Cleaning up already-created PokeEdge changes such as `planPricingTrust`.\n- OOS2: Product planning UX redesign beyond routing/schema/docs needed for these tools.\n- OOS3: Arbitrary many-project graph orchestration beyond explicit Epic owner/child routing.\n- OOS4: Archive/release workflow changes unrelated to Epic membership projection evidence.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects ADV MCP tool routing, schemas, docs, and tests; it has no frontend/browser-visible surface.\n\npreview_expectation:\n\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: verification is by unit/integration tests, schema/spec checks, and ADV tool behavior.\n\n## Decisions\n\n### User Decisions\n\n- Routing model: use separate explicit owner/child routing fields, not a single overloaded `target_path`.\n- Split projects: support Epic owner and child change living in different target projects in one call where the tool supports that operation.\n- Create seed failure: fail before creating the child change when parent Epic does not exist or cannot be checked.\n- Criteria approval: user replied `approve`.\n\n### Agent Decisions (LBP)\n\n- Reuse `withTargetPathStore` and target queue readiness primitives instead of creating parallel target store plumbing.\n- Treat issue #195 as the Epic-owner analogue of archived `fixTargetPathRouting`: source/current store leaking into target operations.\n- Add spec deltas because current docs/tests encode child-only `target_path` semantics and the selected behavior changes public tool contracts.\n- Keep same-project behavior as compatibility baseline unless design proves a typed migration is required.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance and success criteria approved by user reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nImplement explicit remote Epic-owner routing beside existing child-change routing.\n\nCurrent Epic tools have one cross-project field family, `target_path` / `target_confirmed` / `confirmationEvidence`, and existing tests define that field as **child change routing**: the Epic parent remains current-session-local while the child projection may live in another ADV project. Issue #195 needs a different shape: ADV runs in Project B, but the Epic owner may live in Project A, and the child may also live in Project A or another Project C.\n\nThe design keeps current child routing semantics for backward compatibility and adds a second explicit owner routing field family for the Epic store:\n\n- `epic_owner_target_path`\n- `epic_owner_target_confirmed`\n- `epic_owner_confirmationEvidence`\n\nExisting child routing remains:\n\n- `target_path`\n- `target_confirmed`\n- `confirmationEvidence`\n\nA shared owner-store resolver maps the owner routing family into `withTargetPathStore` so owner reads/mutations use the routed Epic owner's Temporal-backed store/cache. Link/move/unlink/repair use two scoped stores when needed: owner store for `store.epics.*`, child store for `store.changes.*` projection updates.\n\n## Key Decisions\n\n### KD1 — Add explicit owner routing, do not overload `target_path`\n\n`target_path` remains child-change routing for existing Epic membership tools. Remote Epic ownership uses `epic_owner_target_path`.\n\nRationale:\n\n- User selected separate fields during discovery.\n- `plugin/src/tools/epic.test.ts:625` currently encodes owner-local Epic + target child projection behavior.\n- Overloading `target_path` would make two valid shapes indistinguishable and would break existing operators/tests.\n\n### KD2 — Route every Epic-owner access through one owner accessor\n\nAdd an owner resolver analogous to `resolveChildStore`, for example:\n\n```ts\nasync function resolveEpicOwnerStore(store, args) {\n  if (!args.epic_owner_target_path) return { context: null, store };\n  return withTargetPathStore({\n    currentProjectPath: store.paths.root,\n    target_path: args.epic_owner_target_path,\n    stateRequirement: \"temporal-required\",\n    target_confirmed: args.epic_owner_target_confirmed,\n    confirmationEvidence: args.epic_owner_confirmationEvidence,\n  }, async ({ context, store: ownerStore }) => ({ context, store: ownerStore }));\n}\n```\n\nUse `ownerStore.store.epics.*` for every Epic lookup/mutation when owner routing is supplied. Avoid per-call one-off patches; the wrong-store bug is systemic across `loadEpic(store, ...)` and `store.epics.*` call sites.\n\n### KD3 — Keep child projection routing independent\n\nFor link/move/unlink/repair, resolve child store from existing `target_path` unless the child can be proven same-owner and no child target is supplied.\n\nSupported shapes:\n\n| Shape | Owner route | Child route | Expected behavior |\n|---|---|---|---|\n| Same project | omitted | omitted | Existing behavior unchanged |\n| Owner local, child remote | omitted | `target_path` | Existing cross-project behavior unchanged |\n| Owner remote, child same remote | `epic_owner_target_path=A` | `target_path=A` or omitted only when implementation can structurally prove same-owner child | Project B mutates Project A Epic and Project A child |\n| Owner remote, child different remote | `epic_owner_target_path=A` | `target_path=C` | Project B mutates Project A Epic and Project C child projection |\n| Unsupported / ambiguous | partial route, missing trust, no child locator when needed | any | Fail before durable mutation with typed routing error |\n\nDesign must not infer remote owner intent from `target_path` alone. Planning must include a deterministic same-owner-child proof or require an explicit child route.\n\n### KD4 — Hoist Epic seed validation before `target_path` create short-circuit\n\n`adv_change_create` currently branches to `createCrossProjectFollowUp` as soon as `target_path` exists. Therefore Epic seed validation must be hoisted before that branch, or AC1/SC3 cannot be enforced on the cross-project path.\n\nCross-project create behavior:\n\n- If `target_path` is present and any Epic seed field is present, require complete seed fields.\n- Require owner routing when parent Epic is not current project.\n- Resolve owner store and validate parent Epic exists before calling `targetStore.changes.create`.\n- If owner Epic cannot be read, target queue is unserviceable, trust confirmation is missing, or routing shape is unsupported, return a typed error and do not call child create.\n- Forward `initialMetadata.epic_membership` into `createCrossProjectFollowUp` / target child create when validation succeeds.\n\nStorage already accepts `initialMetadata.epic_membership`; the create-side fix is primarily validation ordering and metadata forwarding, not new persistence plumbing.\n\n### KD5 — Return distinct routing contexts\n\nWhen both owner and child routing are involved, output must not collapse both into one `_projectContext`. Use distinct contexts such as:\n\n- `_epicOwnerProjectContext`\n- `_childProjectContext`\n\nFor legacy single child-target operations, existing `_projectContext` may remain for compatibility, but new split-routing outputs should include explicit context names.\n\n### KD6 — Add spec deltas and schema/tool-surface tests\n\nThis change alters public tool contracts. Add or update `advance-epics` requirements and generated docs/schema tests before implementation is considered complete.\n\n## ADR Drafts\n\nNo ADR required. The routing field split is governed by ADV tool schema/spec contracts and does not need a separate ADR.\n\n## Implementation Strategy\n\n1. **Schema and helpers**\n   - Define a reusable owner routing field group near `targetPathSchema` usage.\n   - Add owner route args to relevant Epic tools and `adv_change_create`.\n   - Implement `resolveEpicOwnerStore`, `appendEpicOwnerProjectContextOutput`, and explicit split-context output helpers.\n\n2. **Remote Epic owner CRUD/read surfaces**\n   - Add owner routing to `adv_epic_create`, `adv_epic_show`, `adv_epic_list`, `adv_epic_update`, `adv_epic_reorder`, `adv_epic_add_shell`, and safe same-owner shell promotion.\n   - For owner-only tools, use owner store only.\n   - If `adv_epic_promote_shell` without `change_id` would need remote child creation and cannot satisfy atomicity/trust safely, fail with `UNSUPPORTED_EPIC_ROUTING_SHAPE` until fully supported.\n\n3. **Membership tools**\n   - Add owner routing to `adv_epic_link_change`, `adv_epic_move_change`, `adv_epic_unlink_change`, and `adv_epic_repair_membership`.\n   - Replace every `loadEpic(store, ...)` / `store.epics.*` in those tools with owner-store equivalents.\n   - Keep `resolveChildStore` for child `store.changes.*` projection mutation.\n   - Preflight owner and child target trust/readiness before first durable mutation when both sides are remote.\n   - Preserve terminal child projection by passing owner store to `projectTerminalStateForLinkedEntry` and child change data from child store.\n\n4. **Cross-project change create Epic seed**\n   - Extend `createCrossProjectFollowUp` inputs to include complete Epic seed fields and owner route fields.\n   - Hoist seed completeness and parent Epic validation before the `target_path` branch in `adv_change_create`.\n   - Return stable typed errors before child create: `INVALID_EPIC_MEMBERSHIP_SEED`, `EPIC_OWNER_TARGET_REQUIRED`, `EPIC_NOT_FOUND`, `EPIC_OWNER_UNSERVICEABLE`, or `UNSUPPORTED_EPIC_ROUTING_SHAPE`.\n   - Pass `initialMetadata: { cross_project_origin, epic_membership }` when seed validation succeeds.\n\n5. **Tests**\n   - RED: `adv_change_create target_path + Epic seed fields` validates parent and seeds membership; missing parent creates no child.\n   - RED: source session + `epic_owner_target_path=A` + `target_path=A` uses target owner store for `epics.linkChange` and target child store for `changes.setEpicMembership`.\n   - RED: split owner A / child C link or move enforces both target contexts and writes `change_ref.project_id`/`target_path` for child C.\n   - RED: missing owner Epic returns typed error and neither parent nor child mutation is called.\n   - RED: remote-child unsupported shell promotion fails before mutation with `UNSUPPORTED_EPIC_ROUTING_SHAPE`.\n   - RED: owner mutation succeeds but child projection failure yields deterministic repair status or error path without silent success.\n   - Regression: existing owner-local + child-remote test still passes.\n   - Regression: same-project link/move/unlink/repair still passes.\n\n6. **Docs/specs/schemas**\n   - Add `advance-epics` requirements for remote owner routing, split owner/child membership, and create-time remote seed validation.\n   - Update docs/spec mirrors, `ADV_INSTRUCTIONS.md`, command docs, tool descriptions, schema registry, generated JSON schemas, and asset tests.\n\n## LBP Analysis\n\nPreferred: explicit routing fields plus a supported routing matrix. This makes correctness structural:\n\n- owner store and child store are separate typed concepts;\n- trust confirmation is tied to the target being mutated;\n- wrong-store `EPIC_NOT_FOUND` becomes avoidable;\n- existing child-target semantics stay backward-compatible;\n- split-project routing can be tested deterministically.\n\nRejected alternatives:\n\n- **Single `target_path` means everything** — simpler call shape, but breaks/obscures existing owner-local child-target behavior.\n- **Only fix create seed forwarding** — solves one symptom but leaves remote Epic create/link/repair impossible.\n- **Generic resolver abstraction now** — possible later, but cloning proven `resolveChildStore` pattern is clearer and lower risk for this change.\n- **Disk patching or direct state edits** — violates ADV state access and Temporal store invariants.\n\n## Affected Components\n\n- `plugin/src/tools/epic.ts`\n- `plugin/src/tools/change.ts`\n- `plugin/src/tools/change/create-clarify.ts`\n- `plugin/src/tools/target-project.ts` or adjacent target-routing helper module\n- `plugin/src/tool-registry.surface.test.ts`\n- `plugin/src/tools/epic.test.ts`\n- `plugin/src/tools/change.test.ts`\n- `plugin/src/advance-epics-assets.test.ts`\n- `plugin/src/schema-registry.ts` and generated `plugin/schemas/*.schema.json` if public schemas change\n- `.adv/specs/advance-epics/spec.json` plus `docs/specs/advance-epics.md`\n- `ADV_INSTRUCTIONS.md` and relevant `.opencode/command/adv-*.md` guidance\n\n## Design-Derived Criteria\n\n- DDC1: Owner and child target routing must be represented by distinct tool arguments and distinct output contexts when both are present.\n- DDC2: Two-target membership tools must preflight all required target trust/readiness before first durable mutation.\n- DDC3: New routing errors must include a stable `code` and name whether owner route, child route, or unsupported owner/child shape caused the failure.\n- DDC4: Tests must assert store identity, not only success booleans, for owner and child mutations.\n- DDC5: Epic seed validation must run before `adv_change_create` enters the target-path creation branch.\n- DDC6: Same-owner-child omission must be structurally proven; otherwise require explicit child route.\n\n## Risks / Mitigations\n\n- Risk: Two remote stores are not transactionally atomic. Mitigation: preflight before mutation, preserve deterministic repair statuses, and keep projection repair tools available.\n- Risk: Public tool schema grows. Mitigation: explicit field names, generated schema tests, and docs examples.\n- Risk: Backward compatibility with child-only `target_path`. Mitigation: keep existing tests and semantics unless owner routing fields are supplied.\n- Risk: Partial loadEpic patching leaves wrong-store failures. Mitigation: route all owner access through one owner accessor and assert store identity in tests.\n\n## Design Leverage Scout\n\nScout result: pass/high confidence. Auto-adopted refinements:\n\n- Hoist Epic seed validation before the `target_path` branch in `adv_change_create`; otherwise no-orphan AC is unreachable.\n- Reuse existing `initialMetadata.epic_membership` persistence support instead of adding new storage plumbing.\n- Treat wrong-store `loadEpic(store, ...)` as systemic and route all owner accesses through one owner accessor.\n- Clone the proven `resolveChildStore` shape for owner routing rather than building a generic resolver in this change.\n\nDeferred scout candidate:\n\n- Generic owner/child resolver abstraction; defer until duplication proves problematic.\n\n## Validator Result\n\nValidator: pass, high confidence, low risk.\n\nSource-verified findings:\n\n- Wrong-store owner bug is systemic in Epic tools: membership tools call `store.epics.*` on current-session-local store while child projection alone uses `resolveChildStore`.\n- Cross-project create seed drop is real: `adv_change_create` short-circuits on `target_path` before Epic seed assembly, and `createCrossProjectFollowUp` currently passes only `cross_project_origin`.\n- Owner accessor design faithfully reuses `withTargetPathStore`/queue readiness/trust gate.\n- Backward-compat anchor holds: existing test asserts owner-local `epics.linkChange` while `target_path` routes only child.\n- Spec law is satisfied: project-aware entries, one-Epic-per-change, cross-project trust rules, and deterministic repair status requirements remain preserved.\n\nNon-blocking planning cautions:\n\n1. Define deterministic same-owner-child proof for KD3 omitted-child-route.\n2. Test deterministic child-projection repair status on owner-mutated → child-store-fail partial path.\n3. Add typed `UNSUPPORTED_EPIC_ROUTING_SHAPE` fail-before-mutation test for remote-child shell promotion.\n\nRecommendation: proceed to planning.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nImplemented explicit remote Epic owner routing for ADV cross-project Epic/change coordination. Project B can now target Project A as Epic owner through typed owner routing fields while existing child `target_path` semantics remain backward-compatible.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Extended `advance-epics` specs/docs and ADV guidance with `rq-epicOwnerRouting01`, owner/child routing matrix, and typed owner routing failure modes.\n2. Added explicit owner routing tool contract/helpers: `epic_owner_target_path`, `epic_owner_target_confirmed`, `epic_owner_confirmationEvidence`, split owner/child output contexts, and typed routing errors.\n3. Fixed `adv_change_create target_path` with Epic seed fields to validate routed parent Epic before target child creation and forward `epic_membership` metadata with `cross_project_origin`.\n4. Routed owner-only Epic surfaces through owner store: create/show/list/update/reorder/add_shell and safe promote-shell cases.\n5. Implemented split owner/child routing for link/move/unlink/repair, including deterministic partial-failure responses and preservation of same-project/legacy child-target behavior.\n6. Ran contract verification across routing/spec test suites and strict ADV validation.\n\n## What Was Verified\n\n- Verdict: READY / APPROVED with 0 blocking findings from independent reviewer.\n- Tests: targeted routing/spec regression sweep passed 252 tests (`epic.test.ts`, `change.test.ts`, `change-cross-project-create.test.ts`, `advance-epics-assets.test.ts`, `tool-registry.surface.test.ts`).\n- Tests: `pnpm --dir plugin run schemas:check` passed.\n- Tests: `pnpm --dir plugin run check` passed.\n- Build: `pnpm --dir plugin run build` passed.\n- ADV validation: `adv_change_validate strict:true` passed with one non-blocking `NO_DELTAS` warning.\n- Preview URL: not_applicable — no frontend/browser-visible surface; agreement `visual_surface: false`.\n- Contract matrix: 29/29 rows passed/respected/not_applicable; 0 failing rows.\n\n## Remaining Concerns\n\n- Live deployed MCP behavior requires normal build/deploy/restart cycle before validating in a fresh OpenCode session, because current session uses cached deployed plugin code.\n- Slop scan returned 0 findings but degraded detector coverage due eslint timeout, knip parse failure, and unavailable ast-grep/jscpd; fallback harden review found no blocker/high issue.\n\n## Consequence Context\n\n1. delivered value — pass: remote Epic owner routing and split owner/child routing implemented and verified by targeted tests + reviewer READY.\n2. enabling-only/follow-up dependency — pass: no blocking follow-up required for acceptance; fresh-session live validation noted as release/harden concern.\n3. ops readiness — pending at acceptance: harden owns release/deploy/runtime reload readiness; no production ops run performed during acceptance.\n4. migration/data impact — n/a: no data migration; changes affect tool schemas, docs, tests, and in-memory/Temporal store routing behavior.\n5. frontend/preview impact — n/a: visual_surface false; no UI/preview route affected.\n6. collision/release risk — warning: source changes touch shared ADV tool surfaces; targeted/check tests pass, but deployed plugin reload required before live MCP behavior reflects changes.\n7. open follow-ups — n/a: no required follow-up reports or ops obligations from review.\n8. next action — accept to proceed to harden/release readiness review.\n\n## Release Readiness Summary\n\nHarden verdict: READY.\n\n- Test coverage / TDD evidence: pass — all code tasks have RED/GREEN evidence; targeted routing/spec sweep passed 252 tests; build/check passed.\n- AI slop / maintainability: warning — deterministic slop scan found 0 findings but detector coverage degraded; fallback reviewer harden found no blocker/high release finding.\n- Documentation hygiene: pass — specs, docs, command guidance, and asset tests updated for routing matrix.\n- Cleanup readiness: pass — git status clean; harden reviewer found no cleanup candidates; merge compatibility clean.\n- Production readiness: pass — no secrets/env/migrations/external services; typed routing, trust checks, and partial-failure paths covered by tests.\n- Deployment readiness: warning — source build passes, but runtime plugin deploy/restart is required before live MCP validation in a fresh session.\n- Merge compatibility: pass — branch already up to date / compatible with origin/trunk.\n- Open follow-ups: none blocking; report-created agenda items from this change were completed/dispositioned.\n\n### Release Approval Consequence Context\n\n1. delivered value — pass: remote Epic owner routing and split owner/child routing are implemented, reviewed, and tested.\n2. enabling-only/follow-up dependency — pass: no blocking follow-up; live deployed validation happens after build/deploy/restart as normal plugin release operation.\n3. ops readiness — pass: no production ops, env vars, migrations, or external services introduced; build/check passed.\n4. migration/data impact — n/a: no data migration or schema migration; only ADV specs/tool code/tests/docs changed.\n5. frontend/preview impact — n/a: no frontend/browser-visible surface.\n6. collision/release risk — warning: changed public ADV tool schemas and command/docs; merge-compatible and tests pass, but OpenCode must reload deployed plugin to observe live tool changes.\n7. open follow-ups — n/a: no required follow-up reports or ops obligations remain open.\n8. next action — archive sign-off can proceed; archive should finalize release evidence and retire the change.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-05T21:12:16.742Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Project B can orchestrate Project A Epic/change work without switching sessions. | pass | Reviewer READY; owner-routed Epic create/read/update/list and membership routing implemented and covered by targeted tests (252 passed). |\n| SC2 | success_criterion | Remote Epic owner and remote child change routing are explicit, typed, and auditable. | pass | Separate epic_owner_target_path and child target_path routing implemented; split contexts and typed errors reviewed. |\n| SC3 | success_criterion | No target child change is created when requested parent Epic membership cannot be validated. | pass | Cross-project create seed tests prove missing parent Epic creates no child; adv_run_test tr_mr891kfj_8f21c0b9 passed. |\n| SC4 | success_criterion | Existing same-project Epic flows remain valid. | pass | Same-project and legacy child-remote regressions included in epic/change targeted tests; reviewer READY. |\n| AC1 | acceptance_criterion | `adv_change_create` with `target_path` and complete Epic seed fields validates routed parent Epic before target child creation; missing/unreachable parent Epic creates no child change. | pass | adv_run_test tr_mr891kfj_8f21c0b9 passed 99 change create tests; red tr_mr891b5w_0a94d867 showed missing behavior before fix. |\n| AC2 | acceptance_criterion | Epic tools support explicit separate owner-project and child-project routing for create/read/update/link/move/unlink/repair operations where supported. | pass | adv_run_test tr_mr89kkbz_f9cfa194 passed 90 owner surface tests; tr_mr88kajo_1f127cef passed 172 tool contract/helper tests. |\n| AC3 | acceptance_criterion | Link/move/unlink/repair can operate when Epic owner and child change live in different routed ADV projects, with trust confirmation enforced for every untrusted mutated target. | pass | adv_run_test tr_mr8a203u_05809326 passed 78 Epic membership routing tests including split owner/child cases. |\n| AC4 | acceptance_criterion | Unsupported routing shapes fail before durable mutation with typed errors naming the owner/child routing problem; no misleading wrong-store `EPIC_NOT_FOUND`. | pass | Typed routing error tests passed in targeted suites; red evidence showed wrong-store EPIC_NOT_FOUND before fix. |\n| AC5 | acceptance_criterion | Regression tests cover issue #195: Project B links Project A change to Project A Epic, creates Project A change with Epic seed fields, and supports split owner/child routed membership where declared supported. | pass | adv_run_test tr_mr8a2ps9_d4479a4e passed 5 targeted suites, 252 tests, covering issue #195 regressions. |\n| AC6 | acceptance_criterion | Docs/spec guidance describe current supported routing matrix and remove child-only `target_path` ambiguity. | pass | advance-epics asset/spec tests passed in tr_mr8a2ps9_d4479a4e; docs/spec updated with routing matrix. |\n| AC7 | acceptance_criterion | Same-project Epic membership, optional membership, one-Epic-per-change, terminal projection, and audited repair behavior remain intact. | pass | Same-project, optional membership, one-Epic-per-change, terminal projection and repair regressions remain green in epic tests. |\n| C1 | constraint | Specs are law; `advance-epics` optional membership, one-Epic-per-change, project-aware entry, audited repair, terminal projection, and product scope requirements remain authoritative. | respected | advance-epics spec updated; implementation preserves optional membership and one-Epic-per-change; reviewer READY. |\n| C2 | constraint | Correctness must be structural: schemas, typed routing, target store selection, projection state, and regression tests own behavior. | respected | Typed schemas/helpers/errors and tests own routing correctness; no heuristic owner inference used. |\n| C3 | constraint | Mutating untrusted owner or child targets must require explicit confirmation evidence before any state mutation. | respected | Owner/child target routing uses withTargetPathStore trust confirmation paths; targeted tests cover trust preflight. |\n| C4 | constraint | Temporal-backed target stores and target queue readiness checks must be used for remote mutations. | respected | Remote owner/child mutations route through Temporal-required target store helpers. |\n| C5 | constraint | Change-scoped signals/cache refresh must use the store that owns the mutated change. | respected | Change projection writes use resolved child store; Epic owner writes use resolved owner store. |\n| C6 | constraint | Unsupported routing shapes must fail before durable mutation. | respected | Unsupported routing shapes return typed errors before durable mutation in tests. |\n| C7 | constraint | Tests must use isolated project fixtures, not `/home/jon/dev/pokeedge` or `/home/jon/dev/pokeedge-business`. | respected | Tests use repo fixtures/mocks; no production PokeEdge paths used as fixtures. |\n| DONT1 | avoidance | Do not silently drop create-time Epic seed fields. | respected | Cross-project create now forwards epic_membership; no silent drop per tests. |\n| DONT2 | avoidance | Do not infer remote owner intent from child-only `target_path` heuristics. | respected | target_path remains child routing; epic_owner_target_path owns remote owner routing. |\n| DONT3 | avoidance | Do not mutate current-session-local Epics when explicit routing selects a remote owner project. | respected | Owner-routed tools use ownerStore.store.epics, not current-session store. |\n| DONT4 | avoidance | Do not return `EPIC_NOT_FOUND` from a wrong-store lookup as if the requested routed Epic were absent. | respected | Wrong-store EPIC_NOT_FOUND replaced with typed owner/child routing errors where applicable. |\n| DONT5 | avoidance | Do not bypass target trust confirmation, queue readiness, audit evidence, or cache refresh invariants. | respected | Target trust confirmation/queue readiness helpers preserved; review found no bypass. |\n| DONT6 | avoidance | Do not make Epic membership mandatory or add Jira-like planning primitives. | respected | No Jira-like primitives or mandatory Epic membership added. |\n| DONT7 | avoidance | Do not use direct ADV state-file reads or disk-only patches as a workaround. | respected | Implementation uses ADV stores/tools and tests; no direct ADV state-file workaround. |\n| OOS1 | out_of_scope | Cleaning up already-created PokeEdge changes such as `planPricingTrust`. | not_applicable | No cleanup of existing PokeEdge changes performed. |\n| OOS2 | out_of_scope | Product planning UX redesign beyond routing/schema/docs needed for these tools. | not_applicable | No product planning UX redesign performed beyond docs/tool routing. |\n| OOS3 | out_of_scope | Arbitrary many-project graph orchestration beyond explicit Epic owner/child routing. | not_applicable | Implementation limited to explicit owner/child routing, not arbitrary many-project graph orchestration. |\n| OOS4 | out_of_scope | Archive/release workflow changes unrelated to Epic membership projection evidence. | not_applicable | Archive/release workflows not changed except existing projection evidence semantics preserved. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-05T18:55:13.193Z",
+      "contentHash": "fe804f36b4fe09c4233f9b37187239e483328c0debdbab633d4e68f83de2a829",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-05T18:34:19.681Z",
+      "contentHash": "9177bf1b3782fdc2ac4cec81999a91a316b9ea4c8c12b98b94a1a9ee2acac281",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-05T18:56:58.423Z",
+      "contentHash": "4d53520d5b6a33a79084835c5e20f968fd2eef4cf3fcd3f2526e00f0540c6c72",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-05T19:15:28.760Z",
+      "contentHash": "39568c02bf6965a2e6d9c78b9b6563f79ed958d61cec72952e0e57fed3102e92",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-05T21:24:10.154Z",
+      "contentHash": "ef3623c344b8e2959ef596cd0941b627ed67c04e337e4ef67b9e20a6d52c1a34",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-05T21:24:10.154Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
