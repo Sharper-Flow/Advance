@@ -1641,6 +1641,9 @@ export const changeTools = {
         .describe(
           "Required when recoveryMode='poisoned_history'. Must cite precise completed-workflow evidence such as WorkflowExecutionAlreadyCompleted, WorkflowNotFoundError, or `workflow execution already completed`.",
         ),
+      target_path: targetPathSchema.shape.target_path,
+      target_confirmed: targetPathSchema.shape.target_confirmed,
+      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
     },
     execute: async (
       {
@@ -1652,6 +1655,9 @@ export const changeTools = {
         dryRun,
         recoveryMode,
         recoveryEvidence,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         changeId: string;
         reason: "cancelled" | "superseded" | "not_planned";
@@ -1661,127 +1667,167 @@ export const changeTools = {
         dryRun?: boolean;
         recoveryMode?: ChangeCloseRecoveryMode;
         recoveryEvidence?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      if (reason === "superseded" && !supersededBy) {
-        return formatToolOutput({
-          error: "supersededBy is required when reason is 'superseded'.",
-        });
-      }
-      const result = await store.changes.get(changeId);
-      if (!result.success) {
-        return formatToolOutput({ error: result.error });
-      }
-      if (!result.data) {
-        return formatToolOutput({ error: `Change not found: ${changeId}` });
-      }
-      // Tool-layer enforcement: cancellation requires explicit approval evidence
-      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
-        return formatToolOutput({
-          error: "approvalEvidence is required for change close",
-          changeId,
-          hint: "Obtain user approval via question tool, then call adv_change_close with approvalEvidence.",
-        });
-      }
-      const recoveryValidation = await validateChangeCloseRecoveryArgs({
-        changeId,
-        recoveryMode,
-        recoveryEvidence,
-      });
-      if (recoveryValidation) {
-        return formatToolOutput(recoveryValidation);
-      }
-      if (dryRun) {
-        return formatToolOutput({
-          success: true,
-          dryRun: true,
-          changeId,
-          reason,
-          supersededBy,
-          message: `Would close change ${changeId} as ${reason}.`,
-        });
-      }
-      try {
-        const bundle = getService();
-        if (!bundle) {
+      const runClose = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        if (reason === "superseded" && !supersededBy) {
           return formatToolOutput({
-            error: "Temporal service not available",
-            changeId,
+            error: "supersededBy is required when reason is 'superseded'.",
           });
         }
-        const projectId = await getProjectId(store.paths.root);
-        if (!projectId) {
+        const result = await activeStore.changes.get(changeId);
+        if (!result.success) {
+          return formatToolOutput({ error: result.error });
+        }
+        if (!result.data) {
+          return formatToolOutput({ error: `Change not found: ${changeId}` });
+        }
+        // Tool-layer enforcement: cancellation requires explicit approval evidence
+        if (!approvalEvidence || approvalEvidence.trim().length === 0) {
           return formatToolOutput({
-            error: "Could not resolve project ID",
+            error: "approvalEvidence is required for change close",
             changeId,
+            hint: "Obtain user approval via question tool, then call adv_change_close with approvalEvidence.",
           });
         }
-        const handle = getChangeHandle(bundle.client, projectId, changeId);
-        const closeInput = {
-          approvalEvidence,
-          reason,
-          supersededBy,
-          cancelledAt: new Date().toISOString(),
-        };
-        // rq-cacheRefresh01: refresh AFTER cancel so subsequent reads
-        // see the closed/cancelled state, not the stale active state.
-        await fireSignalAndRefresh(
-          handle,
-          store,
+        const recoveryValidation = await validateChangeCloseRecoveryArgs({
           changeId,
-          changeCancelledSignal,
-          buildChangeClosePayload(closeInput),
-        );
-        // Remove source `changes/<id>/` directory after successful close.
-        // Best-effort: failure surfaces as a warning but does NOT flip success
-        // to false — the closed status is durable.
-        let cleanupWarning: string | undefined;
-        if (store.paths?.changes) {
-          try {
-            await removeChangeDir(store.paths.changes, changeId);
-          } catch (err) {
-            cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
-          }
-        }
-        return formatToolOutput({
-          success: true,
-          changeId,
-          message: cleanupWarning
-            ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
-            : `Closed change ${changeId} as ${reason}.`,
-        });
-      } catch (error) {
-        const closeInput = {
-          approvalEvidence,
-          reason,
-          supersededBy,
-          cancelledAt: new Date().toISOString(),
-        };
-        const recovery = await recoverCompletedWorkflowClose({
-          store,
-          change: result.data,
-          closeInput,
           recoveryMode,
           recoveryEvidence,
-          signalError: error,
         });
-        if (recovery.recovered) {
+        if (recoveryValidation) {
+          return formatToolOutput(recoveryValidation);
+        }
+        if (dryRun) {
           return formatToolOutput({
             success: true,
-            _recoveryMutation: true,
-            diskProjectionRetained: true,
+            dryRun: true,
             changeId,
             reason,
-            message: `Closed change ${changeId} as ${reason} via completed-workflow recovery. Retained closed disk projection for stale-visibility reconciliation.`,
+            supersededBy,
+            message: `Would close change ${changeId} as ${reason}.`,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
           });
         }
-        const contextMismatch = extractContextMismatch(error);
-        return formatToolOutput({
-          error: error instanceof Error ? error.message : String(error),
-          ...contextMismatch,
-        });
+        try {
+          const bundle = getService();
+          if (!bundle) {
+            return formatToolOutput({
+              error: "Temporal service not available",
+              changeId,
+            });
+          }
+          const projectId =
+            projectContext?.projectId ??
+            (await getProjectId(activeStore.paths.root));
+          if (!projectId) {
+            return formatToolOutput({
+              error: "Could not resolve project ID",
+              changeId,
+            });
+          }
+          const handle = getChangeHandle(bundle.client, projectId, changeId);
+          const closeInput = {
+            approvalEvidence,
+            reason,
+            supersededBy,
+            cancelledAt: new Date().toISOString(),
+          };
+          // rq-cacheRefresh01: refresh AFTER cancel so subsequent reads
+          // see the closed/cancelled state, not the stale active state.
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            changeId,
+            changeCancelledSignal,
+            buildChangeClosePayload(closeInput),
+          );
+          // Remove source `changes/<id>/` directory after successful close.
+          // Best-effort: failure surfaces as a warning but does NOT flip success
+          // to false — the closed status is durable.
+          let cleanupWarning: string | undefined;
+          if (activeStore.paths?.changes) {
+            try {
+              await removeChangeDir(activeStore.paths.changes, changeId);
+            } catch (err) {
+              cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
+            }
+          }
+          return formatToolOutput({
+            success: true,
+            changeId,
+            message: cleanupWarning
+              ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
+              : `Closed change ${changeId} as ${reason}.`,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        } catch (error) {
+          const closeInput = {
+            approvalEvidence,
+            reason,
+            supersededBy,
+            cancelledAt: new Date().toISOString(),
+          };
+          const recovery = await recoverCompletedWorkflowClose({
+            store: activeStore,
+            change: result.data,
+            closeInput,
+            recoveryMode,
+            recoveryEvidence,
+            signalError: error,
+          });
+          if (recovery.recovered) {
+            return formatToolOutput({
+              success: true,
+              _recoveryMutation: true,
+              diskProjectionRetained: true,
+              changeId,
+              reason,
+              message: `Closed change ${changeId} as ${reason} via completed-workflow recovery. Retained closed disk projection for stale-visibility reconciliation.`,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          const contextMismatch = extractContextMismatch(error);
+          return formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+            ...contextMismatch,
+          });
+        }
+      };
+
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              mutation: !dryRun,
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runClose(targetStore, formatTargetProjectContext(context)),
+          );
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project close unavailable: ${errorText}`,
+            changeId,
+            target_path,
+          });
+        }
       }
+      return runClose(store);
     },
   },
   // rq-bulkClose01: Filter-Aware Bulk Close
