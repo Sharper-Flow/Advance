@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync } from "fs";
+import { mkdtempSync, readFileSync } from "fs";
 import { writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -24,6 +24,18 @@ describe("adv dashboard dispatcher", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("dashboard");
     expect(stdout).toContain("--config <path>");
+    expect(stdout).toContain("COMMAND BOUNDARY");
+    expect(stdout).toContain("Most commands are read-only diagnostics/scanners");
+    expect(stdout).toContain("dashboard install mutates local user configuration/service state");
+    expect(stdout).toContain("dashboard install     Mutating install of dashboard user service profile");
+    expect(stdout).toContain("dashboard            Run local read-only ADV/GitHub dashboard");
+    expect(stdout).toContain("Bind host (default: 127.0.0.1)");
+  });
+
+  test("source header does not claim the whole CLI is read-only", () => {
+    const source = readFileSync(ADV_PATH, "utf8");
+    expect(source).not.toContain("Read-only terminal client");
+    expect(source).toContain("dashboard install mutates local user service configuration");
   });
 
   test("requires --config", async () => {
@@ -115,8 +127,11 @@ describe("adv dashboard dispatcher", () => {
 
     expect(exitCode).toBe(0);
     expect(stderr).toBe("");
+    expect(stdout).toContain("MUTATION PLAN: dashboard install");
+    expect(stdout).toContain("No changes were made (--dry-run).");
     expect(stdout).toContain("adv-dashboard-pokeedge.service");
     expect(stdout).toContain("/home/example/.config/advance/dashboard/pokeedge.json");
+    expect(stdout).toContain("systemctl --user daemon-reload");
     expect(stdout).toContain("systemctl --user enable --now adv-dashboard-pokeedge.service");
   });
 

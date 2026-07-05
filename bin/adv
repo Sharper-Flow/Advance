@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 /**
- * adv — ADV (Advance) status CLI
+ * adv — ADV (Advance) terminal CLI
  *
- * Read-only terminal client. Status reads live Temporal state for active
- * changes; roadmap reads the generated file snapshot.
+ * Status, roadmap, slop-scan, epic list, and dashboard reads are read-only.
+ * dashboard install mutates local user service configuration.
  *
  * Runtime: Bun 1.3+
  * Dependencies: Bun built-ins + plugin Temporal client dependencies.
@@ -497,6 +497,8 @@ function renderDashboardInstallPlan(
   unit: string,
 ): string {
   return [
+    "MUTATION PLAN: dashboard install",
+    "No changes were made (--dry-run).",
     `install ${paths.serviceName}`,
     `write config: ${paths.configPath}`,
     `write unit: ${paths.servicePath}`,
@@ -540,10 +542,15 @@ function runHelp(): number {
 USAGE:
   adv [SUBCOMMAND] [FLAGS]
 
+COMMAND BOUNDARY:
+  Most commands are read-only diagnostics/scanners.
+  dashboard install mutates local user configuration/service state.
+  Use dashboard install --dry-run to preview writes/checks before mutation.
+
 SUBCOMMANDS:
   status      (default)  Show active changes table
   dashboard            Run local read-only ADV/GitHub dashboard
-  dashboard install     Install a dashboard user service profile
+  dashboard install     Mutating install of dashboard user service profile
   dashboard doctor      Check dashboard user service health
   roadmap              Show prioritized backlog from file snapshot
   slop-scan            Run deterministic slop scanner
@@ -570,7 +577,7 @@ FLAGS (dashboard only):
 
 FLAGS (dashboard install/doctor):
       --profile pokeedge   Use the PokeEdge dashboard profile
-      --dry-run            Print planned writes/checks without mutating
+      --dry-run            Preview planned writes/checks before mutation
 
 EXIT CODES:
   0  Success
