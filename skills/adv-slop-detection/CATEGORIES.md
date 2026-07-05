@@ -19,7 +19,7 @@ Load `features.slop_scan` from `project.json`.
 | Python | radon | `radon cc -n C <path>` |
 | Go | gocyclo | `gocyclo -over N <path>` |
 
-If unavailable or timed out: brace/indent counting fallback; set `detectionMethod: "degraded"`.
+If applicable required detector coverage is degraded, failed, timed out, unavailable, or skipped: fail with `SLOP_SCAN_DEGRADED`; do not emit brace/indent fallback findings.
 
 ## Regex / signal layer
 
@@ -42,7 +42,7 @@ Detect repeated null/undefined guards on same identifier. Escalate at `defensive
 
 - AST-backed structural findings default to `confidence: high`.
 - Regex-only defensive-overkill findings default to `confidence: medium` unless corroborated by same-identifier redundant guards.
-- Degraded fallback findings default to `confidence: low` unless corroborated by another detector.
+- Required degraded detector coverage fails with `SLOP_SCAN_DEGRADED` instead of becoming a low-confidence fallback finding.
 - Security secret patterns may be high confidence only when source evidence is concrete; never print secret values.
 
 ## Phase 2 scanner buckets

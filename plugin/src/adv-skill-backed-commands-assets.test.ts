@@ -116,8 +116,9 @@ describe("skill-backed command assets", () => {
     expect(content).toContain(
       "Regex-only defensive-overkill findings default to `confidence: medium`",
     );
+    expect(content).toContain("SLOP_SCAN_DEGRADED");
     expect(content).toContain(
-      "Degraded fallback findings default to `confidence: low`",
+      "instead of becoming a low-confidence fallback finding",
     );
   });
 
