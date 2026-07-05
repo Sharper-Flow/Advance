@@ -42,12 +42,27 @@ describe("Advance Epics spec documentation", () => {
       "rq-epicMembershipRepair01",
       "rq-epicArchiveSync01",
       "rq-epicProductScope01",
+      "rq-epicOwnerRouting01",
       "rq-epicNoJiraClone01",
       "rq-epicTemporalConstraints01",
+      "rq-epicTerminalChildProjection01",
       "rq-epicBriefingContext01",
     ]) {
       expect(doc).toContain(reqId);
     }
+  });
+
+  test("docs/specs/advance-epics.md documents the owner/child routing matrix", () => {
+    const doc = readRepoFile("docs/specs/advance-epics.md");
+
+    expect(doc).toContain("rq-epicOwnerRouting01");
+    expect(doc).toContain("epic_owner_target_path");
+    expect(doc).toMatch(/owner local \+ child local/i);
+    expect(doc).toMatch(/owner local \+ child remote/i);
+    expect(doc).toMatch(/owner remote \+ child same remote/i);
+    expect(doc).toMatch(/owner remote \+ child different remote/i);
+    expect(doc).toMatch(/OWNER_ROUTING_AMBIGUOUS/i);
+    expect(doc).toMatch(/OWNER_ROUTING_REQUIRED/i);
   });
 
   test(".adv/specs/advance-epics/spec.json exists and is valid JSON", () => {
@@ -91,6 +106,16 @@ describe("Advance Epics spec documentation", () => {
         (r: { id: string }) => r.id === "rq-epicArchiveSync01",
       ),
     ).toBe(true);
+    const ownerRoutingReq = spec.requirements.find(
+      (r: { id: string }) => r.id === "rq-epicOwnerRouting01",
+    );
+    expect(ownerRoutingReq).toBeDefined();
+    expect(JSON.stringify(ownerRoutingReq)).toContain("epic_owner_target_path");
+    expect(JSON.stringify(ownerRoutingReq)).toContain("target_path");
+    expect(JSON.stringify(ownerRoutingReq)).toContain(
+      "OWNER_ROUTING_AMBIGUOUS",
+    );
+    expect(JSON.stringify(ownerRoutingReq)).toContain("OWNER_ROUTING_REQUIRED");
   });
 });
 
@@ -239,6 +264,17 @@ describe("/adv-epic command contract", () => {
     expect(content).toMatch(/typed Epic tools|typed tools/i);
     expect(content).not.toMatch(/bin\/adv epic create/i);
   });
+
+  test("documents explicit owner routing separate from child target_path", () => {
+    const content = readRepoFile(".opencode/command/adv-epic.md");
+
+    expect(content).toContain("epic_owner_target_path");
+    expect(content).toMatch(/owner local \+ child local/i);
+    expect(content).toMatch(/owner local \+ child remote/i);
+    expect(content).toMatch(/owner remote \+ child same remote/i);
+    expect(content).toMatch(/owner remote \+ child different remote/i);
+    expect(content).toMatch(/MUST NOT infer the owner project/i);
+  });
 });
 
 describe("ADV_INSTRUCTIONS.md Epic contract", () => {
@@ -294,6 +330,17 @@ describe("ADV_INSTRUCTIONS.md Epic contract", () => {
     expect(instructions).toMatch(/Product Epics[\s\S]{0,600}target_path/i);
     expect(instructions).toMatch(
       /adv_epic_link_change[\s\S]{0,300}target_path/i,
+    );
+  });
+
+  test("documents explicit owner routing separate from child target_path", () => {
+    expect(instructions).toContain("epic_owner_target_path");
+    expect(instructions).toMatch(/owner local \+ child local/i);
+    expect(instructions).toMatch(/owner local \+ child remote/i);
+    expect(instructions).toMatch(/owner remote \+ child same remote/i);
+    expect(instructions).toMatch(/owner remote \+ child different remote/i);
+    expect(instructions).toMatch(
+      /OWNER_ROUTING_AMBIGUOUS|OWNER_ROUTING_REQUIRED/i,
     );
   });
 

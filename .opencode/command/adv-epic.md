@@ -99,6 +99,17 @@ After confirmation:
 4. Consolidate approved duplicate active Epics by moving/linking/unlinking entries with existing typed Epic tools (`adv_epic_move_change`, `adv_epic_unlink_change`, `adv_epic_update`, and `adv_epic_repair_membership`) after plan review. No single merge tool exists.
 5. If follow-on shell/link/merge operations fail after Epic creation, report the created Epic ID, failed operation, and safe retry/repair path.
 
+### Cross-project membership routing
+
+When linking or moving changes into an Epic that spans projects:
+
+- `target_path` routes the **child change project**.
+- `epic_owner_target_path` routes the **Epic owner project** when the Epic lives in another ADV-enabled project.
+- Supported shapes: owner local + child local; owner local + child remote (`target_path`); owner remote + child same remote (`epic_owner_target_path`); owner remote + child different remote (`epic_owner_target_path` + `target_path`).
+- Ambiguous/partial shapes (e.g. child-only `target_path` when the Epic is not local) MUST fail before mutation. Require explicit user confirmation for each untrusted remote project.
+
+× MUST NOT infer the owner project from a child-only `target_path`.
+
 × MUST NOT directly edit ADV state files.
 
 ## Output

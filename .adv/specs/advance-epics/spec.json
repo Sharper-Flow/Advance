@@ -3,8 +3,8 @@
   "name": "advance-epics",
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
-  "version": "1.7.0",
-  "updated_at": "2026-07-02T18:00:00.000Z",
+  "version": "1.8.0",
+  "updated_at": "2026-07-05T19:22:50.000Z",
   "requirements": [
     {
       "id": "rq-epicEntity01",
@@ -641,6 +641,57 @@
           "given": ["An Epic scope repo is missing repo_project_id"],
           "when": "The scope is validated",
           "then": ["Validation fails with a clear schema error"]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicOwnerRouting01",
+      "title": "Epic Membership Tools Separate Owner Routing from Child target_path",
+      "body": "Epic membership mutation tools (adv_epic_link_change, adv_epic_unlink_change, adv_epic_move_change, adv_epic_repair_membership) MUST support explicit owner project routing separate from the child change target_path. The owner Epic MUST be resolved through an epic_owner_target_path parameter or the current project when omitted, and the child change MUST be resolved through target_path or the owner project when omitted. The supported routing matrix is: owner local + child local; owner local + child remote; owner remote + child same remote; owner remote + child different remote. Ambiguous or partial shapes—such as supplying only a child target_path when the Epic is not in the current project, or supplying an owner route without a distinct child route when the child is not in the owner project—MUST fail before durable mutation with typed OWNER_ROUTING_AMBIGUOUS or OWNER_ROUTING_REQUIRED errors. Existing child-only target_path behavior MUST remain valid when the Epic owner is the current project.",
+      "priority": "must",
+      "tags": ["epics", "routing", "cross-project", "target_path"],
+      "scenarios": [
+        {
+          "id": "rq-epicOwnerRouting01.1",
+          "title": "Same-project membership routing",
+          "given": ["An Epic and child change both live in the current project"],
+          "when": "The membership tool is called with no routing parameters",
+          "then": ["The tool resolves owner and child in the current project", "The operation succeeds"]
+        },
+        {
+          "id": "rq-epicOwnerRouting01.2",
+          "title": "Owner local and child remote",
+          "given": ["An Epic lives in the current project", "A child change lives in another ADV project"],
+          "when": "The membership tool is called with target_path for the child project and no owner route",
+          "then": ["The owner Epic resolves in the current project", "The child change resolves in the target project", "The operation succeeds"]
+        },
+        {
+          "id": "rq-epicOwnerRouting01.3",
+          "title": "Owner remote and child same remote",
+          "given": ["An Epic and child change both live in the same remote ADV project"],
+          "when": "The membership tool is called with epic_owner_target_path and either the same target_path or a structural same-owner proof",
+          "then": ["Both owner and child resolve in the remote project", "The operation succeeds"]
+        },
+        {
+          "id": "rq-epicOwnerRouting01.4",
+          "title": "Owner remote and child different remote",
+          "given": ["An Epic lives in remote project A", "A child change lives in remote project C"],
+          "when": "The membership tool is called with epic_owner_target_path=A and target_path=C",
+          "then": ["Owner resolves in project A", "Child resolves in project C", "Trust confirmation is enforced for each remote project", "The operation succeeds"]
+        },
+        {
+          "id": "rq-epicOwnerRouting01.5",
+          "title": "Ambiguous child-only routing fails before mutation",
+          "given": ["A caller provides only target_path for a child project", "The Epic owner is not in the current project"],
+          "when": "The membership tool resolves the owner Epic",
+          "then": ["The tool fails before durable mutation", "The error code is OWNER_ROUTING_AMBIGUOUS or OWNER_ROUTING_REQUIRED", "No remote Epic is mutated"]
+        },
+        {
+          "id": "rq-epicOwnerRouting01.6",
+          "title": "Partial owner-only routing fails when child is not locatable",
+          "given": ["A caller provides only epic_owner_target_path", "The child change does not exist in the owner project"],
+          "when": "The membership tool resolves the child change",
+          "then": ["The tool fails before durable mutation", "The error identifies the missing child route", "No Epic is mutated with an orphan entry"]
         }
       ]
     },

@@ -1,7 +1,7 @@
 # Advance Epics
 
-> **Version:** 1.7.0
-> **Updated:** 2026-07-02
+> **Version:** 1.8.0
+> **Updated:** 2026-07-05
 
 ## Purpose
 
@@ -851,6 +851,110 @@ An Epic MAY be scoped to a single repo or to a product spanning multiple reposit
 
 **Then:**
 - Validation fails with a clear schema error
+
+---
+
+### Epic Membership Tools Separate Owner Routing from Child target_path
+
+**ID:** `rq-epicOwnerRouting01` | **Priority:** **[MUST]**
+
+Epic membership mutation tools (`adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_epic_repair_membership`) MUST support explicit owner project routing separate from the child change `target_path`. The owner Epic MUST be resolved through an `epic_owner_target_path` parameter (or the current project when omitted), and the child change MUST be resolved through `target_path` (or the owner project when omitted). The supported shapes are: owner local + child local, owner local + child remote, owner remote + child same remote, owner remote + child different remote.
+
+The supported routing matrix is:
+
+| Shape | `epic_owner_target_path` | `target_path` | Meaning |
+| --- | --- | --- | --- |
+| Same project | omitted | omitted | Owner Epic and child change are both in the current project. Existing behavior unchanged. |
+| Owner local, child remote | omitted | provided | Epic stays in the current project; child projection is written to the target project. |
+| Owner remote, child same remote | provided | omitted or equal to owner | Epic and child are both in the remote owner project; the implementation must structurally prove same-owner child resolution. |
+| Owner remote, child different remote | provided | different project | Epic is resolved in the owner project; child projection is written to a different target project. |
+
+Ambiguous or partial shapes MUST fail before durable mutation with typed errors:
+
+- Child-only `target_path` when the Epic is not in the current project → `OWNER_ROUTING_AMBIGUOUS` or `OWNER_ROUTING_REQUIRED`.
+- `epic_owner_target_path` only, when the child change cannot be located in the owner project and no `target_path` is supplied → `OWNER_ROUTING_REQUIRED`.
+- Any remote mutation without required trust confirmation → existing `target_confirmed` / `confirmationEvidence` failure semantics apply.
+
+Existing child-only `target_path` behavior MUST remain valid when the Epic owner is the current project.
+
+**Tags:** `epics`, `routing`, `cross-project`, `target_path`
+
+#### Scenarios
+
+**Same-project membership routing** (`rq-epicOwnerRouting01.1`)
+
+**Given:**
+- An Epic and child change both live in the current project
+
+**When:** The membership tool is called with no routing parameters
+
+**Then:**
+- The tool resolves owner and child in the current project
+- The operation succeeds
+
+**Owner local and child remote** (`rq-epicOwnerRouting01.2`)
+
+**Given:**
+- An Epic lives in the current project
+- A child change lives in another ADV project
+
+**When:** The membership tool is called with `target_path` for the child project and no owner route
+
+**Then:**
+- The owner Epic resolves in the current project
+- The child change resolves in the target project
+- The operation succeeds
+
+**Owner remote and child same remote** (`rq-epicOwnerRouting01.3`)
+
+**Given:**
+- An Epic and child change both live in the same remote ADV project
+
+**When:** The membership tool is called with `epic_owner_target_path` and either the same `target_path` or a structural same-owner proof
+
+**Then:**
+- Both owner and child resolve in the remote project
+- The operation succeeds
+
+**Owner remote and child different remote** (`rq-epicOwnerRouting01.4`)
+
+**Given:**
+- An Epic lives in remote project A
+- A child change lives in remote project C
+
+**When:** The membership tool is called with `epic_owner_target_path=A` and `target_path=C`
+
+**Then:**
+- Owner resolves in project A
+- Child resolves in project C
+- Trust confirmation is enforced for each remote project
+- The operation succeeds
+
+**Ambiguous child-only routing fails before mutation** (`rq-epicOwnerRouting01.5`)
+
+**Given:**
+- A caller provides only `target_path` for a child project
+- The Epic owner is not in the current project
+
+**When:** The membership tool resolves the owner Epic
+
+**Then:**
+- The tool fails before durable mutation
+- The error code is `OWNER_ROUTING_AMBIGUOUS` or `OWNER_ROUTING_REQUIRED`
+- No remote Epic is mutated
+
+**Partial owner-only routing fails when child is not locatable** (`rq-epicOwnerRouting01.6`)
+
+**Given:**
+- A caller provides only `epic_owner_target_path`
+- The child change does not exist in the owner project
+
+**When:** The membership tool resolves the child change
+
+**Then:**
+- The tool fails before durable mutation
+- The error identifies the missing child route
+- No Epic is mutated with an orphan entry
 
 ---
 
