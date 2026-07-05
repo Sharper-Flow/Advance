@@ -585,9 +585,12 @@ export function detectDefaultBranch(
     }
   }
 
-  // Then init.defaultBranch config
+  // Then repository-local init.defaultBranch config. Do not let a user's global
+  // init.defaultBranch override an already-initialized repository's local
+  // branch set during archive finalization.
   const configured = runGit(mainCheckout, [
     "config",
+    "--local",
     "--get",
     "init.defaultBranch",
   ]);
