@@ -45,12 +45,21 @@ export function renderSlopScanReport(
   const lines: string[] = [];
   const warnings = importantWarnings(report.coverage.detectors);
 
-  lines.push("SLOP SCAN REPORT");
+  lines.push(report.failure ? "SLOP SCAN FAILED" : "SLOP SCAN REPORT");
   lines.push(`Scope: ${report.scope.requestedPath}`);
   lines.push(
     `Languages: ${report.scope.languages.length > 0 ? report.scope.languages.join(", ") : "unknown"}`,
   );
   lines.push("");
+
+  if (report.failure) {
+    lines.push(report.failure.message);
+    lines.push("Failed required detectors");
+    for (const detector of report.failure.failedDetectors) {
+      lines.push(`- ${detector.label}: ${detector.state} — ${detector.reason}`);
+    }
+    lines.push("");
+  }
 
   if (warnings.length > 0) {
     lines.push("PROMINENT COVERAGE WARNINGS");
@@ -84,7 +93,9 @@ export function renderSlopScanReport(
   lines.push("");
 
   if (report.findings.length === 0) {
-    if (warnings.length === 0) lines.push("[OK] No slop detected.");
+    if (report.failure) {
+      lines.push("No findings reported because required detector coverage failed.");
+    } else if (warnings.length === 0) lines.push("[OK] No slop detected.");
     else
       lines.push(
         "No findings from completed detectors; coverage warnings require review.",

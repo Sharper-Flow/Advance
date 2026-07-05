@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildEmptySlopScanReport } from "./schema";
+import { attachSlopScanFailure, buildEmptySlopScanReport } from "./schema";
 import { renderSlopScanReport } from "./render";
 
 describe("slop-scan renderer", () => {
@@ -22,6 +22,31 @@ describe("slop-scan renderer", () => {
     expect(output).toContain("SLOP SCAN REPORT");
     expect(output).toContain("PROMINENT COVERAGE WARNINGS");
     expect(output).toContain("Vulture: unavailable — vulture not found");
+    expect(output).not.toContain("[OK] No slop detected.");
+  });
+
+  test("renders failed report heading and required detector details", () => {
+    const report = buildEmptySlopScanReport({
+      repoRoot: "/repo",
+      requestedPath: ".",
+      languages: ["typescript"],
+    });
+    report.coverage.detectors.push({
+      id: "eslint",
+      label: "ESLint",
+      state: "unavailable",
+      reason: "eslint not found",
+      important: true,
+    });
+    attachSlopScanFailure(report);
+
+    const output = renderSlopScanReport(report, false);
+
+    expect(output).toContain("SLOP SCAN FAILED");
+    expect(output).toContain("Required slop-scan detector coverage degraded");
+    expect(output).toContain("Failed required detectors");
+    expect(output).toContain("ESLint: unavailable — eslint not found");
+    expect(output).toContain("Detector Coverage");
     expect(output).not.toContain("[OK] No slop detected.");
   });
 
