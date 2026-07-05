@@ -2,16 +2,21 @@ import { describe, expect, test } from "bun:test";
 
 import {
   COVERAGE_STATES,
+  SLOP_SCAN_FAILURE_CODES,
+  attachSlopScanFailure,
   SLOP_SEVERITIES,
   buildEmptySlopScanReport,
+  requiredCoverageFailures,
   summarizeFindings,
   validateSlopScanReport,
+  type DetectorCoverage,
   type SlopScanFinding,
 } from "./schema";
 
 describe("slop-scan schema", () => {
   test("exports canonical severities and coverage states", () => {
     expect(SLOP_SEVERITIES).toEqual(["CRITICAL", "HIGH", "MEDIUM", "LOW"]);
+    expect(SLOP_SCAN_FAILURE_CODES).toEqual(["SLOP_SCAN_DEGRADED"]);
     expect(COVERAGE_STATES).toEqual([
       "run",
       "skipped",
@@ -102,5 +107,115 @@ describe("slop-scan schema", () => {
     const result = validateSlopScanReport(invalid);
     expect(result.ok).toBe(false);
     expect(result.issues.join("\n")).toContain("coverage.detectors[0].state");
+  });
+
+  test("attaches failure for required degraded coverage states only", () => {
+    const requiredStates: DetectorCoverage[] = [
+      "degraded",
+      "failed",
+      "timed_out",
+      "unavailable",
+      "skipped",
+    ].map((state) => ({
+      id: `required-${state}`,
+      label: `Required ${state}`,
+      state: state as DetectorCoverage["state"],
+      reason: state,
+      important: true,
+    }));
+    const ignoredStates: DetectorCoverage[] = [
+      {
+        id: "eslint",
+        label: "ESLint",
+        state: "run",
+        reason: "completed",
+        important: true,
+      },
+      {
+        id: "semgrep",
+        label: "Semgrep PR gate",
+        state: "unavailable",
+        reason: "advisory only",
+        important: false,
+      },
+      {
+        id: "external",
+        label: "External",
+        state: "externally_covered",
+        reason: "covered by CI",
+        important: true,
+      },
+    ];
+
+    expect(requiredCoverageFailures([...requiredStates, ...ignoredStates])).toEqual(requiredStates);
+
+    const report = buildEmptySlopScanReport({
+      repoRoot: "/repo",
+      requestedPath: "src",
+      languages: ["typescript"],
+    });
+    report.coverage.detectors.push(...requiredStates, ...ignoredStates);
+    attachSlopScanFailure(report);
+
+    expect(report.failure?.code).toBe("SLOP_SCAN_DEGRADED");
+    expect(report.failure?.failedDetectors).toEqual(requiredStates);
+    expect(validateSlopScanReport(report).ok).toBe(true);
+  });
+
+  test("does not attach failure when only advisory or run coverage is present", () => {
+    const report = buildEmptySlopScanReport({
+      repoRoot: "/repo",
+      requestedPath: "src",
+      languages: ["typescript"],
+    });
+    report.coverage.detectors.push(
+      {
+        id: "eslint",
+        label: "ESLint",
+        state: "run",
+        reason: "completed",
+        important: true,
+      },
+      {
+        id: "external-ci-semgrep",
+        label: "Semgrep PR gate",
+        state: "unavailable",
+        reason: "advisory only",
+        important: false,
+      },
+    );
+
+    attachSlopScanFailure(report);
+
+    expect(report.failure).toBeUndefined();
+    expect(validateSlopScanReport(report).ok).toBe(true);
+  });
+
+  test("validates slop-scan failure envelope", () => {
+    const report = buildEmptySlopScanReport({
+      repoRoot: "/repo",
+      requestedPath: "src",
+      languages: ["typescript"],
+    });
+    report.coverage.detectors.push({
+      id: "eslint",
+      label: "ESLint",
+      state: "unavailable",
+      reason: "eslint not found",
+      important: true,
+    });
+    attachSlopScanFailure(report);
+
+    const invalidCode = structuredClone(report) as any;
+    invalidCode.failure.code = "NOPE";
+    expect(validateSlopScanReport(invalidCode).issues.join("\n")).toContain(
+      "failure.code is invalid",
+    );
+
+    const invalidDetector = structuredClone(report) as any;
+    invalidDetector.failure.failedDetectors[0].state = "maybe";
+    expect(validateSlopScanReport(invalidDetector).issues.join("\n")).toContain(
+      "failure.failedDetectors[0].state",
+    );
   });
 });

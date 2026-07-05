@@ -42,6 +42,9 @@ export const COVERAGE_STATES = [
 ] as const;
 export type DetectorCoverageState = (typeof COVERAGE_STATES)[number];
 
+export const SLOP_SCAN_FAILURE_CODES = ["SLOP_SCAN_DEGRADED"] as const;
+export type SlopScanFailureCode = (typeof SLOP_SCAN_FAILURE_CODES)[number];
+
 export interface SlopScanFinding {
   id: string;
   name: string;
@@ -75,6 +78,12 @@ export interface SlopScanSummary {
   byCategory: Record<string, number>;
 }
 
+export interface SlopScanFailure {
+  code: SlopScanFailureCode;
+  message: string;
+  failedDetectors: DetectorCoverage[];
+}
+
 export interface SlopScanReport {
   schema_version: "slop_scan_report.v1";
   generated_at: string;
@@ -89,6 +98,7 @@ export interface SlopScanReport {
     detectors: DetectorCoverage[];
     falsePositiveProtections: string[];
   };
+  failure?: SlopScanFailure;
 }
 
 export interface ValidationResult<T> {
@@ -130,6 +140,38 @@ export function buildEmptySlopScanReport(scope: {
       falsePositiveProtections: [],
     },
   };
+}
+
+const REQUIRED_FAILURE_STATES = new Set<DetectorCoverageState>([
+  "skipped",
+  "degraded",
+  "failed",
+  "timed_out",
+  "unavailable",
+]);
+
+export function requiredCoverageFailures(
+  detectors: DetectorCoverage[],
+): DetectorCoverage[] {
+  return detectors.filter(
+    (detector) => detector.important && REQUIRED_FAILURE_STATES.has(detector.state),
+  );
+}
+
+export function attachSlopScanFailure(report: SlopScanReport): SlopScanReport {
+  const failedDetectors = requiredCoverageFailures(report.coverage.detectors);
+  if (failedDetectors.length === 0) {
+    delete report.failure;
+    return report;
+  }
+
+  report.failure = {
+    code: "SLOP_SCAN_DEGRADED",
+    message:
+      "Required slop-scan detector coverage degraded; fix detector setup or narrow scope before trusting results.",
+    failedDetectors,
+  };
+  return report;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -176,6 +218,14 @@ function validateFinding(value: unknown, index: number, issues: string[]): void 
 
 function validateCoverage(value: unknown, index: number, issues: string[]): void {
   const path = `coverage.detectors[${index}]`;
+  validateCoverageAtPath(value, path, issues);
+}
+
+function validateCoverageAtPath(
+  value: unknown,
+  path: string,
+  issues: string[],
+): void {
   if (!isObject(value)) {
     issues.push(`${path} must be an object`);
     return;
@@ -183,6 +233,25 @@ function validateCoverage(value: unknown, index: number, issues: string[]): void
   for (const key of ["id", "label", "reason"] as const) requireString(value, key, path, issues);
   if (!isOneOf(value.state, COVERAGE_STATES)) issues.push(`${path}.state is invalid`);
   if (typeof value.important !== "boolean") issues.push(`${path}.important must be boolean`);
+}
+
+function validateFailure(value: unknown, issues: string[]): void {
+  if (!isObject(value)) {
+    issues.push("failure must be an object");
+    return;
+  }
+
+  if (!isOneOf(value.code, SLOP_SCAN_FAILURE_CODES)) {
+    issues.push("failure.code is invalid");
+  }
+  requireString(value, "message", "failure", issues);
+  if (!Array.isArray(value.failedDetectors)) {
+    issues.push("failure.failedDetectors must be an array");
+  } else {
+    value.failedDetectors.forEach((detector, index) =>
+      validateCoverageAtPath(detector, `failure.failedDetectors[${index}]`, issues),
+    );
+  }
 }
 
 export function validateSlopScanReport(value: unknown): ValidationResult<SlopScanReport> {
@@ -223,6 +292,10 @@ export function validateSlopScanReport(value: unknown): ValidationResult<SlopSca
 
   if (!isObject(value.summary)) {
     issues.push("summary must be an object");
+  }
+
+  if ("failure" in value && value.failure !== undefined) {
+    validateFailure(value.failure, issues);
   }
 
   return issues.length === 0
