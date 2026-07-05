@@ -58,6 +58,7 @@ import {
   applyIssueUpdates,
   applyClarifyReadinessToChangeOutput,
   appendClarifyNeededForCreatedChange,
+  buildEpicMembershipFromSeed,
   createCrossProjectFollowUp,
   validateParentChange,
   resolveScopeRepos,
@@ -1063,8 +1064,8 @@ export const changeTools = {
         target_confirmed,
         confirmationEvidence,
         epic_owner_target_path,
-        epic_owner_target_confirmed: _epic_owner_target_confirmed,
-        epic_owner_confirmationEvidence: _epic_owner_confirmationEvidence,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
         parent_change_id,
         scope_repos,
         epic_id,
@@ -1164,6 +1165,18 @@ export const changeTools = {
             : {}),
         };
       }
+      // Validate create-time Epic membership seed fields up-front so both
+      // same-project and cross-project creates share one completeness gate.
+      const epicSeedResult = buildEpicMembershipFromSeed({
+        epic_id,
+        entry_id,
+        epic_order,
+        epic_title,
+      });
+      if (epicSeedResult.error) {
+        return formatToolOutput(epicSeedResult.error);
+      }
+      const epicMembership = epicSeedResult.membership;
       // rq-backlogCoord02 — Pre-create claim collision check.
       // Fires for any origin that carries a concrete `issue_number` (kind
       // roadmap requires it; triage may carry it when promoting from a
@@ -1208,6 +1221,10 @@ export const changeTools = {
           confirmationEvidence,
           source_project,
           source_change_id,
+          epicMembership,
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
           store,
         });
       }
@@ -1241,32 +1258,8 @@ export const changeTools = {
       if (fastFollowOf) initialMetadata.fast_follow_of = fastFollowOf;
       if (scopeResolution.scope)
         initialMetadata.scope_repos = scopeResolution.scope;
-      const epicSeedFields = [
-        ["epic_id", epic_id],
-        ["entry_id", entry_id],
-        ["epic_title", epic_title],
-      ] as const;
-      const missingEpicSeedFields = epicSeedFields
-        .filter(([, value]) => value === undefined)
-        .map(([field]) => field);
-      const hasAnyEpicSeedField =
-        epicSeedFields.length !== missingEpicSeedFields.length;
-      if (hasAnyEpicSeedField && missingEpicSeedFields.length > 0) {
-        return formatToolOutput({
-          error:
-            "Complete create-time Epic membership requires epic_id, entry_id, and epic_title; omit all Epic fields when no Epic membership is intended.",
-          code: "INVALID_EPIC_MEMBERSHIP_SEED",
-          fields: missingEpicSeedFields,
-        });
-      }
-      if (epic_id && entry_id && epic_title) {
-        initialMetadata.epic_membership = {
-          epic_id,
-          entry_id,
-          order: epic_order ?? 0,
-          title: epic_title,
-          linked_at: new Date().toISOString(),
-        };
+      if (epicMembership) {
+        initialMetadata.epic_membership = epicMembership;
       }
       const createOptions =
         Object.keys(initialMetadata).length > 0

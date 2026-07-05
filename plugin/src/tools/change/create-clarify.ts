@@ -1,7 +1,7 @@
 /**
  * create-clarify helpers extracted from change.ts.
  */
-import { basename, join } from "path";
+import { basename, join, resolve } from "path";
 import { readFile, stat, realpath } from "fs/promises";
 import { execGit, getDefaultBranch } from "../../utils/git.js";
 import type {
@@ -15,7 +15,7 @@ import {
   type ChangeRepoScope,
   type ClarifyFindingSnapshot,
 } from "../../types";
-import type { Store } from "../../storage/store";
+import type { ChangeCreateInitialMetadata, Store } from "../../storage/store";
 import { generateChangeId } from "../../utils/change-id";
 import { isSyntheticValidationDraftPattern } from "../../utils/synthetic-fixture-detector";
 import { createLogger } from "../../utils/debug-log";
@@ -24,6 +24,7 @@ import { runClarifyReadinessChecks } from "../../validator/clarify-readiness";
 import { formatToolOutput } from "../../utils/tool-output";
 import {
   formatTargetProjectContext,
+  type TargetProjectContext,
   withTargetPathStore,
 } from "../target-project";
 import { getService } from "../../temporal/service";
@@ -169,6 +170,144 @@ export function resolveClarifyFindings(
   }
   return updated;
 }
+
+export interface EpicSeedInput {
+  epic_id?: string;
+  entry_id?: string;
+  epic_order?: number;
+  epic_title?: string;
+}
+
+/**
+ * Validate create-time Epic membership seed fields for completeness and build
+ * the compact membership projection. Partial seeds are rejected before any
+ * change is created (same-project or cross-project).
+ */
+export function buildEpicMembershipFromSeed(input: EpicSeedInput): {
+  membership?: Change["epic_membership"];
+  error?: {
+    error: string;
+    code: "INVALID_EPIC_MEMBERSHIP_SEED";
+    fields: string[];
+  };
+} {
+  const seedFields = [
+    ["epic_id", input.epic_id],
+    ["entry_id", input.entry_id],
+    ["epic_title", input.epic_title],
+  ] as const;
+  const missingEpicSeedFields = seedFields
+    .filter(([, value]) => value === undefined)
+    .map(([field]) => field);
+  const hasAnyEpicSeedField = seedFields.some(
+    ([, value]) => value !== undefined,
+  );
+  if (hasAnyEpicSeedField && missingEpicSeedFields.length > 0) {
+    return {
+      error: {
+        error:
+          "Complete create-time Epic membership requires epic_id, entry_id, and epic_title; omit all Epic fields when no Epic membership is intended.",
+        code: "INVALID_EPIC_MEMBERSHIP_SEED",
+        fields: missingEpicSeedFields,
+      },
+    };
+  }
+  if (input.epic_id && input.entry_id && input.epic_title) {
+    return {
+      membership: {
+        epic_id: input.epic_id,
+        entry_id: input.entry_id,
+        order: input.epic_order ?? 0,
+        title: input.epic_title,
+        linked_at: new Date().toISOString(),
+      },
+    };
+  }
+  return {};
+}
+
+async function validateEpicInStore(
+  store: Store,
+  context: TargetProjectContext,
+  membership: NonNullable<Change["epic_membership"]>,
+): Promise<{ error?: { error: string; code: string } }> {
+  const epicResult = await store.epics.get(membership.epic_id);
+  if (!epicResult.success || !epicResult.data) {
+    return {
+      error: {
+        error: `Epic not found: ${membership.epic_id} in ${context.root}`,
+        code: "EPIC_NOT_FOUND",
+      },
+    };
+  }
+  const entry = epicResult.data.entries.find(
+    (e) => e.entry_id === membership.entry_id,
+  );
+  if (!entry) {
+    return {
+      error: {
+        error: `Epic entry not found: ${membership.entry_id} in Epic ${membership.epic_id}`,
+        code: "ENTRY_NOT_FOUND",
+      },
+    };
+  }
+  return {};
+}
+
+async function validateTargetEpic(input: {
+  epicMembership: NonNullable<Change["epic_membership"]>;
+  targetStore: Store;
+  targetContext: TargetProjectContext;
+  epic_owner_target_path?: string;
+  epic_owner_target_confirmed?: true;
+  epic_owner_confirmationEvidence?: string;
+  sourceStore: Store;
+}): Promise<{
+  error?: { error: string; code: string };
+  ownerContext?: TargetProjectContext;
+}> {
+  const ownerRoot = input.epic_owner_target_path
+    ? resolve(input.epic_owner_target_path)
+    : input.targetContext.root;
+  const targetRoot = input.targetContext.root;
+
+  if (ownerRoot === targetRoot) {
+    return validateEpicInStore(
+      input.targetStore,
+      input.targetContext,
+      input.epicMembership,
+    );
+  }
+
+  try {
+    return await withTargetPathStore(
+      {
+        currentProjectPath: input.sourceStore.paths.root,
+        target_path: input.epic_owner_target_path!,
+        stateRequirement: "temporal-required",
+        target_confirmed: input.epic_owner_target_confirmed,
+        confirmationEvidence: input.epic_owner_confirmationEvidence,
+      },
+      async ({ context, store: ownerStore }) => {
+        const result = await validateEpicInStore(
+          ownerStore,
+          context,
+          input.epicMembership,
+        );
+        if (result.error) return result;
+        return { ownerContext: context };
+      },
+    );
+  } catch (err) {
+    return {
+      error: {
+        error: `Failed to validate Epic owner project at ${input.epic_owner_target_path}: ${err instanceof Error ? err.message : String(err)}`,
+        code: "EPIC_OWNER_UNREACHABLE",
+      },
+    };
+  }
+}
+
 // rq-synthstate01: Synthetic Validation Draft Isolation
 // Pattern recognition extracted to utils/synthetic-fixture-detector for reuse
 // across both this tool-layer guard and the storage/json.ts saveChange disk
@@ -477,6 +616,10 @@ export async function createCrossProjectFollowUp({
   confirmationEvidence,
   source_project,
   source_change_id,
+  epicMembership,
+  epic_owner_target_path,
+  epic_owner_target_confirmed,
+  epic_owner_confirmationEvidence,
   store,
 }: {
   summary: string;
@@ -491,6 +634,10 @@ export async function createCrossProjectFollowUp({
   confirmationEvidence?: string;
   source_project?: string;
   source_change_id?: string;
+  epicMembership?: Change["epic_membership"];
+  epic_owner_target_path?: string;
+  epic_owner_target_confirmed?: true;
+  epic_owner_confirmationEvidence?: string;
   store: Store;
 }): Promise<string> {
   const validateNotCurrentProject = async (): Promise<string | null> => {
@@ -541,6 +688,35 @@ export async function createCrossProjectFollowUp({
         if (duplicateError) {
           return formatToolOutput(duplicateError);
         }
+
+        let ownerContext: TargetProjectContext | undefined;
+        if (epicMembership) {
+          const epicValidation = await validateTargetEpic({
+            epicMembership,
+            targetStore,
+            targetContext: context,
+            epic_owner_target_path,
+            epic_owner_target_confirmed,
+            epic_owner_confirmationEvidence,
+            sourceStore: store,
+          });
+          if (epicValidation.error) {
+            return formatToolOutput(epicValidation.error);
+          }
+          ownerContext = epicValidation.ownerContext;
+        }
+
+        const initialMetadata: ChangeCreateInitialMetadata = {
+          cross_project_origin: origin,
+        };
+        if (epicMembership) {
+          initialMetadata.epic_membership = {
+            ...epicMembership,
+            epic_project_id: ownerContext?.projectId ?? context.projectId,
+            source: "create",
+          };
+        }
+
         const result = await targetStore.changes.create(summary, {
           capability,
           artifacts: {
@@ -552,7 +728,7 @@ export async function createCrossProjectFollowUp({
             ...(design !== undefined ? { design } : {}),
             ...(executiveSummary !== undefined ? { executiveSummary } : {}),
           },
-          initialMetadata: { cross_project_origin: origin },
+          initialMetadata,
         });
         const output: Record<string, unknown> = {
           ...result,
@@ -560,6 +736,9 @@ export async function createCrossProjectFollowUp({
           target_path,
           _projectContext: formatTargetProjectContext(context),
         };
+        if (epicMembership) {
+          output.epic_membership = initialMetadata.epic_membership;
+        }
         if (result.duplicateWarning) {
           output._duplicateWarning = result.duplicateWarning;
         }

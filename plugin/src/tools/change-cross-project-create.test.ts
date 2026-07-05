@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 
 import { changeTools } from "./change";
 import { parseToolOutput } from "../__tests__/setup";
-import type { Change } from "../types";
+import type { Change, Epic } from "../types";
 import type { Store } from "../storage/store";
 
 const mocks = vi.hoisted(() => ({
@@ -257,5 +257,174 @@ describe("adv_change_create cross-project Temporal routing", () => {
     expect(targetStore.changes.get).not.toHaveBeenCalled();
     expect(parsed.error).toContain("Temporal workflow start failed");
     expect(sourceStore.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("forwards complete create-time epic seed to target project after validating parent Epic", async () => {
+    const epic: Epic = {
+      id: "addAuthEpic",
+      title: "Add OAuth",
+      narrative: "OAuth epic.",
+      entries: [
+        {
+          kind: "change",
+          entry_id: "entry-1",
+          order: 2,
+          title: "Epic Entry One",
+          change_id: "existingChange",
+          linked_at: "2026-06-06T20:00:00.000Z",
+          membership_status: "active",
+        },
+      ],
+      progress: {
+        status: "active",
+        total_entries: 1,
+        completed_entries: 0,
+        active_entries: 1,
+        next_entry_id: null,
+        updated_at: "2026-06-06T20:00:00.000Z",
+      },
+      created_at: "2026-06-06T20:00:00.000Z",
+      updated_at: "2026-06-06T20:00:00.000Z",
+      version: 0,
+    };
+    const targetCreate = vi.fn(async () => ({
+      changeId: "epicChild",
+      path: "/state/target/changes/epicChild/proposal.md",
+    }));
+    const targetStore = {
+      changes: {
+        create: targetCreate,
+        get: vi.fn(),
+        list: vi.fn(async () => ({ changes: [] })),
+      },
+      epics: {
+        get: vi.fn(async () => ({ success: true, data: epic })),
+      },
+    } as unknown as Store;
+    mocks.withTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: TARGET_ROOT,
+          projectId: "target-project-id",
+          externalRoot: "/state/target",
+          trusted: false,
+          trustSource: "explicit",
+          stateMode: "temporal",
+        },
+        store: targetStore,
+      }),
+    );
+
+    const sourceStore = makeSourceStore();
+    const output = await changeTools.adv_change_create.execute(
+      {
+        summary: "Epic child followup",
+        capability: "advance-meta",
+        target_path: TARGET_ROOT,
+        target_confirmed: true,
+        confirmationEvidence: "user approved target mutation",
+        source_change_id: "sourceChange",
+        epic_id: "addAuthEpic",
+        entry_id: "entry-1",
+        epic_order: 2,
+        epic_title: "Epic Entry One",
+      } as never,
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(targetCreate).toHaveBeenCalledWith(
+      "Epic child followup",
+      expect.objectContaining({
+        initialMetadata: {
+          cross_project_origin: expect.objectContaining({
+            source_project: "source-project",
+            source_path: SOURCE_ROOT,
+            source_change_id: "sourceChange",
+          }),
+          epic_membership: expect.objectContaining({
+            epic_id: "addAuthEpic",
+            entry_id: "entry-1",
+            order: 2,
+            title: "Epic Entry One",
+            epic_project_id: "target-project-id",
+            linked_at: expect.any(String),
+          }),
+        },
+      }),
+    );
+    expect(parsed.epic_membership).toMatchObject({
+      epic_id: "addAuthEpic",
+      entry_id: "entry-1",
+      order: 2,
+      title: "Epic Entry One",
+      epic_project_id: "target-project-id",
+    });
+  });
+
+  test("rejects cross-project create when parent Epic is missing", async () => {
+    const targetCreate = vi.fn();
+    const targetStore = {
+      changes: {
+        create: targetCreate,
+        get: vi.fn(),
+        list: vi.fn(async () => ({ changes: [] })),
+      },
+      epics: {
+        get: vi.fn(async () => ({ success: false, error: "not found" })),
+      },
+    } as unknown as Store;
+    mocks.withTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: TARGET_ROOT,
+          projectId: "target-project-id",
+          externalRoot: "/state/target",
+          trusted: false,
+          trustSource: "explicit",
+          stateMode: "temporal",
+        },
+        store: targetStore,
+      }),
+    );
+
+    const sourceStore = makeSourceStore();
+    const output = await changeTools.adv_change_create.execute(
+      {
+        summary: "Orphan epic child",
+        target_path: TARGET_ROOT,
+        target_confirmed: true,
+        confirmationEvidence: "user approved target mutation",
+        source_change_id: "sourceChange",
+        epic_id: "missingEpic",
+        entry_id: "entry-1",
+        epic_title: "Missing Epic Entry",
+      } as never,
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.code).toBe("EPIC_NOT_FOUND");
+    expect(targetCreate).not.toHaveBeenCalled();
+    expect(sourceStore.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("rejects partial create-time epic seed before cross-project create", async () => {
+    const output = await changeTools.adv_change_create.execute(
+      {
+        summary: "Partial epic child",
+        target_path: TARGET_ROOT,
+        target_confirmed: true,
+        confirmationEvidence: "user approved target mutation",
+        source_change_id: "sourceChange",
+        epic_id: "addAuthEpic",
+      } as never,
+      makeSourceStore(),
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.code).toBe("INVALID_EPIC_MEMBERSHIP_SEED");
+    expect(parsed.fields).toEqual(["entry_id", "epic_title"]);
+    expect(mocks.withTargetPathStore).not.toHaveBeenCalled();
   });
 });
