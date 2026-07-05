@@ -58,7 +58,7 @@ Run deterministic checks through the typed `bin/adv slop-scan [path] --json` run
 
 Runner adapters:
 
-- AST structural: deep nesting, complexity (`ESLint`, `radon`, `gocyclo`; brace/indent fallback with `detectionMethod: degraded`)
+- AST structural: deep nesting, complexity (`ESLint`, `radon`, `gocyclo`). Applicable required detector degradation fails the scan; no brace/indent fallback findings are generated.
 - Polyglot structural and duplication: `ast-grep`, `jscpd` when available
 - Dead code / deletion candidates: `vulture`, `knip`, `deadcode` when available; otherwise record detector coverage gap
 - External security ownership: Semgrep PR-gate coverage is `externally_covered`; do not duplicate as local slop findings
@@ -70,8 +70,12 @@ Each finding MUST include `id`, `name`, `severity`, `file`, `line`, `description
 
 - AST-backed structural findings default to `confidence: high`
 - Regex-only defensive-overkill findings default to `confidence: medium`
-- Degraded fallback findings default to `confidence: low`
+- Required detector degraded/failed/timed-out/unavailable/applicable-skipped coverage fails the scan with `SLOP_SCAN_DEGRADED`; it is not converted into low-confidence fallback findings.
 - Assign `actionability` and `grouping` before severity sorting
+
+### Required Coverage Failure Boundary
+
+Applicable required detectors are detector registry entries with `important: true`. If Phase 1 records any required detector state as `degraded`, `failed`, `timed_out`, `unavailable`, or applicable-required `skipped`, stop the command as unsuccessful before Phase 2. Preserve the typed report and coverage details for diagnosis. Advisory/external coverage such as `external-ci-semgrep` (`important: false`) remains visible but does not fail the local scan.
 
 ### Structural Correctness Bypass (QUAL-012)
 
@@ -133,7 +137,7 @@ Also include smell definitions for category, file list, novelty check, and these
 <!-- rq-ss008 -->
 Context packet text is orientation only, not a finding location. Every finding must cite a target source file and line or scoped source evidence. Do NOT emit findings against CHANGE, AFFECTED FILES summaries, TASK EVIDENCE SUMMARY, examples, or fixture descriptions.
 
-Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 findings only and suggest `--phase 1` or retry.
+Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 findings only and suggest `--phase 1` or retry. If Phase 1 required coverage has `SLOP_SCAN_DEGRADED`, do not start Phase 2.
 ## Phase 3: Report Generation
 
 > Anti-Loop: after Phase 2 → aggregate directly.
@@ -149,10 +153,12 @@ Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 fin
 Always include compact coverage in text output: `run`, `skipped`, `degraded`, `failed`, `timed_out`, `unavailable`, and `externally_covered` detectors; phase coverage; method coverage. Empty findings still report coverage.
 
 <!-- rq-ss007 -->
-Text output: `SLOP SCAN REPORT`, scope, languages, prominent coverage warnings for important failed/missing detectors, severity/category summaries, detector coverage, findings (`id`, `file:line`, description, fix, evidence). No findings + complete coverage → `[OK] No slop detected.` No findings + coverage warnings → state that warnings require review.
+Text output: `SLOP SCAN REPORT` for successful scans or `SLOP SCAN FAILED` for required degraded coverage, scope, languages, prominent coverage warnings for important failed/missing detectors, severity/category summaries, detector coverage, findings (`id`, `file:line`, description, fix, evidence). No findings + complete coverage → `[OK] No slop detected.` No findings + required degraded coverage → print the failed required detectors and do not print `[OK]`.
 
-JSON output: `schema_version: "slop_scan_report.v1"`, `generated_at`, `scope`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields + `grouping` + `actionability`, `coverage.detectors[]`, and `coverage.falsePositiveProtections`. `coverage.detectors[].state: 'run' | 'skipped' | 'degraded' | 'failed' | 'timed_out' | 'unavailable' | 'externally_covered'`. `grouping: 'actionable' | 'low-confidence' | 'user-review'`; `actionability: 'blocking' | 'actionable' | 'review_required' | 'non_blocking'`.
+JSON output: `schema_version: "slop_scan_report.v1"`, `generated_at`, `scope`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields + `grouping` + `actionability`, `coverage.detectors[]`, and `coverage.falsePositiveProtections`. Required degraded coverage additionally includes `failure.code: "SLOP_SCAN_DEGRADED"`, `failure.message`, and `failure.failedDetectors[]`. `coverage.detectors[].state: 'run' | 'skipped' | 'degraded' | 'failed' | 'timed_out' | 'unavailable' | 'externally_covered'`. `grouping: 'actionable' | 'low-confidence' | 'user-review'`; `actionability: 'blocking' | 'actionable' | 'review_required' | 'non_blocking'`.
 ## Phase 4: Write Metadata
+
+Skip metadata success writes when Phase 1 required coverage failed with `SLOP_SCAN_DEGRADED`.
 
 After successful completion, call `adv_project_metadata action:"write"`:
 
