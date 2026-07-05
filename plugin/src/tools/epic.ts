@@ -8,6 +8,7 @@
  */
 
 import { z } from "zod";
+import { resolve } from "path";
 import type { Store } from "../storage/store-types";
 import { deriveEpicScopeLabel } from "../types";
 import type {
@@ -18,7 +19,9 @@ import type {
 } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
-  appendTargetProjectContextOutput,
+  appendEpicRoutingContexts,
+  EPIC_OWNER_ROUTING_ERROR_CODES,
+  formatEpicOwnerRoutingError,
   targetPathSchema,
   withTargetPathStore,
 } from "./target-project";
@@ -360,22 +363,126 @@ async function resolveChildStore(
   );
 }
 
-function maybeAppendTargetContext(
+type EpicRoutingStore = {
+  context: import("./target-project").TargetProjectContext | null;
+  store: Store;
+};
+
+async function resolveEpicRoutingStores(
+  store: Store,
+  args: {
+    epic_owner_target_path?: string;
+    epic_owner_target_confirmed?: true;
+    epic_owner_confirmationEvidence?: string;
+    target_path?: string;
+    target_confirmed?: true;
+    confirmationEvidence?: string;
+  },
+): Promise<{ owner: EpicRoutingStore; child: EpicRoutingStore }> {
+  const owner = await resolveEpicOwnerStore({
+    store,
+    epic_owner_target_path: args.epic_owner_target_path,
+    epic_owner_target_confirmed: args.epic_owner_target_confirmed,
+    epic_owner_confirmationEvidence: args.epic_owner_confirmationEvidence,
+  });
+
+  if (args.target_path) {
+    const child = await resolveChildStore(store, {
+      target_path: args.target_path,
+      target_confirmed: args.target_confirmed,
+      confirmationEvidence: args.confirmationEvidence,
+    });
+    return { owner, child };
+  }
+
+  return { owner, child: owner };
+}
+
+export async function resolveEpicOwnerStore(input: {
+  store: Store;
+  epic_owner_target_path?: string;
+  epic_owner_target_confirmed?: true;
+  epic_owner_confirmationEvidence?: string;
+}): Promise<{
+  context: import("./target-project").TargetProjectContext | null;
+  store: Store;
+}> {
+  if (!input.epic_owner_target_path) {
+    return { context: null, store: input.store };
+  }
+
+  return withTargetPathStore(
+    {
+      currentProjectPath: input.store.paths.root,
+      target_path: input.epic_owner_target_path,
+      stateRequirement: "temporal-required",
+      target_confirmed: input.epic_owner_target_confirmed,
+      confirmationEvidence: input.epic_owner_confirmationEvidence,
+    },
+    async ({ context, store: targetStore }) => ({
+      context,
+      store: targetStore,
+    }),
+  );
+}
+
+function isSameProject(a: string, b: string): boolean {
+  return resolve(a) === resolve(b);
+}
+
+function validateEpicRoutingShape(
+  currentRoot: string,
+  owner: EpicRoutingStore,
+  child: EpicRoutingStore,
+): { error: string; code: string } | undefined {
+  const hasOwnerRoute = owner.context !== null;
+  const hasChildRoute = child.context !== null && child.store !== owner.store;
+  const ownerRoot = owner.context?.root ?? currentRoot;
+  const childRoot = child.context?.root ?? currentRoot;
+
+  if (hasOwnerRoute && hasChildRoute) {
+    if (
+      !isSameProject(ownerRoot, currentRoot) &&
+      isSameProject(childRoot, currentRoot)
+    ) {
+      return {
+        error:
+          "Owner remote + child local routing is not supported. The child change must be in the owner project or a different remote project.",
+        code: EPIC_OWNER_ROUTING_ERROR_CODES.OWNER_CHILD_ROUTING_UNSUPPORTED,
+      };
+    }
+    return undefined;
+  }
+
+  if (hasOwnerRoute && !hasChildRoute) {
+    if (!isSameProject(ownerRoot, currentRoot)) {
+      // child defaults to owner store (same remote); supported
+      return undefined;
+    }
+    return undefined;
+  }
+
+  return undefined;
+}
+
+function formatEpicRoutingOutput(
   output: string,
-  context: Awaited<ReturnType<typeof resolveChildStore>>["context"],
-) {
-  return context ? appendTargetProjectContextOutput(output, context) : output;
+  owner: EpicRoutingStore,
+  child: EpicRoutingStore,
+): string {
+  return appendEpicRoutingContexts(output, {
+    ownerContext: owner.context,
+    childContext:
+      child.context && child.store !== owner.store ? child.context : null,
+  });
 }
 
 async function clearMissingEpicProjection(
-  store: Store,
+  childStore: EpicRoutingStore,
   args: {
     epic_id: string;
     entry_id?: string;
     change_id?: string;
-    target_path?: string;
-    target_confirmed?: true;
-    confirmationEvidence?: string;
     dryRun?: boolean;
   },
 ) {
@@ -394,11 +501,6 @@ async function clearMissingEpicProjection(
     });
   }
 
-  const childStore = await resolveChildStore(store, {
-    target_path: args.target_path,
-    target_confirmed: args.target_confirmed,
-    confirmationEvidence: args.confirmationEvidence,
-  });
   const finalChangeId = args.change_id as string;
   const entryId = args.entry_id as string;
   const change = await loadChange(childStore.store, finalChangeId);
@@ -421,7 +523,7 @@ async function clearMissingEpicProjection(
         message: "Child projection already absent.",
       },
     });
-    return maybeAppendTargetContext(output, childStore.context);
+    return formatEpicRoutingOutput(output, childStore, childStore);
   }
 
   if (
@@ -443,7 +545,7 @@ async function clearMissingEpicProjection(
       change_id: finalChangeId,
       action: "clear_child_projection",
     });
-    return maybeAppendTargetContext(output, childStore.context);
+    return formatEpicRoutingOutput(output, childStore, childStore);
   }
 
   await childStore.store.changes.clearEpicMembership(finalChangeId, {
@@ -456,7 +558,28 @@ async function clearMissingEpicProjection(
     change_id: finalChangeId,
     cleared: true,
   });
-  return maybeAppendTargetContext(output, childStore.context);
+  return formatEpicRoutingOutput(output, childStore, childStore);
+}
+
+async function resolveRepairChildStore(
+  currentStore: Store,
+  routing: { owner: EpicRoutingStore; child: EpicRoutingStore },
+  entry: Extract<EpicEntry, { kind: "change" }>,
+  target_confirmed?: true,
+  confirmationEvidence?: string,
+): Promise<EpicRoutingStore> {
+  if (routing.child.store !== routing.owner.store) {
+    return routing.child;
+  }
+  const inferredTarget = entry.change_ref?.target_path;
+  if (inferredTarget) {
+    return resolveChildStore(currentStore, {
+      target_path: inferredTarget,
+      target_confirmed,
+      confirmationEvidence,
+    });
+  }
+  return routing.owner;
 }
 
 function changeAlreadyInEpic(change: import("../types").Change) {
@@ -1119,6 +1242,17 @@ export const epicTools = {
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
+      epic_owner_target_path: targetPathSchema.shape.target_path.describe(
+        "Optional absolute path to the Epic owner ADV project. When provided, resolves the Epic in that project instead of the current one.",
+      ),
+      epic_owner_target_confirmed:
+        targetPathSchema.shape.target_confirmed.describe(
+          "Required for untrusted epic_owner_target_path mutation. Confirms the Epic owner project was explicitly approved.",
+        ),
+      epic_owner_confirmationEvidence:
+        targetPathSchema.shape.confirmationEvidence.describe(
+          "Required with epic_owner_target_confirmed for untrusted epic_owner_target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
       {
@@ -1133,6 +1267,9 @@ export const epicTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
       }: {
         epic_id: string;
         change_id: string;
@@ -1145,17 +1282,48 @@ export const epicTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
       },
       store: Store,
     ) => {
       try {
-        const childStore = await resolveChildStore(store, {
+        const routing = await resolveEpicRoutingStores(store, {
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
           target_path,
           target_confirmed,
           confirmationEvidence,
         });
+        const ownerStore = routing.owner.store;
+        const childStore = routing.child;
+
+        const shapeError = validateEpicRoutingShape(
+          store.paths.root,
+          routing.owner,
+          routing.child,
+        );
+        if (shapeError) {
+          return formatEpicOwnerRoutingError({
+            ...shapeError,
+            ownerContext: routing.owner.context,
+            childContext: routing.child.context,
+          });
+        }
+
         const change = await loadChange(childStore.store, change_id);
         if (!change) {
+          if (
+            routing.owner.context !== null &&
+            childStore.store === routing.owner.store
+          ) {
+            return formatToolOutput({
+              error: `Change not found in Epic owner project. Provide target_path for the child project: ${change_id}`,
+              code: EPIC_OWNER_ROUTING_ERROR_CODES.CHILD_ROUTING_REQUIRED,
+            });
+          }
           return formatToolOutput({
             error: `Change not found: ${change_id}`,
             code: "CHANGE_NOT_FOUND",
@@ -1173,8 +1341,19 @@ export const epicTools = {
             return changeAlreadyInEpic(change);
           }
 
-          const currentEpic = await loadEpic(store, epic_id);
-          if (!currentEpic) return epicNotFound(epic_id);
+          const currentEpic = await loadEpic(ownerStore, epic_id);
+          if (!currentEpic) {
+            if (
+              routing.owner.context === null &&
+              routing.child.context !== null
+            ) {
+              return formatToolOutput({
+                error: `Epic not found in current project. Provide epic_owner_target_path for the Epic owner project: ${epic_id}`,
+                code: EPIC_OWNER_ROUTING_ERROR_CODES.OWNER_ROUTING_AMBIGUOUS,
+              });
+            }
+            return epicNotFound(epic_id);
+          }
 
           const parentEntry = findChangeEntry(currentEpic, {
             entryId: membership.entry_id,
@@ -1185,7 +1364,7 @@ export const epicTools = {
 
           if (!parentEntry) {
             const linkedEntry = requireChangeEntry(
-              await store.epics.linkChange(epic_id, {
+              await ownerStore.epics.linkChange(epic_id, {
                 entryId: membership.entry_id,
                 changeId: change_id,
                 title: title ?? change.title,
@@ -1199,7 +1378,7 @@ export const epicTools = {
             );
             const { entry, terminalSummary, projected } =
               await projectTerminalStateForLinkedEntry(
-                store,
+                ownerStore,
                 epic_id,
                 linkedEntry,
                 change,
@@ -1228,7 +1407,11 @@ export const epicTools = {
                 : {}),
               member_status: memberStatusForEntry(entry),
             });
-            return maybeAppendTargetContext(output, childStore.context);
+            return formatEpicRoutingOutput(
+              output,
+              routing.owner,
+              routing.child,
+            );
           }
 
           if (parentChangeId && parentChangeId !== change_id) {
@@ -1243,7 +1426,7 @@ export const epicTools = {
                 }
               : undefined;
             const retargetedLinkedEntry = requireChangeEntry(
-              await store.epics.retargetChange(epic_id, {
+              await ownerStore.epics.retargetChange(epic_id, {
                 entryId: membership.entry_id,
                 fromChangeId: parentChangeId,
                 toChangeId: change_id,
@@ -1288,7 +1471,11 @@ export const epicTools = {
                 : {}),
               member_status: memberStatusForEntry(retargetedEntry),
             });
-            return maybeAppendTargetContext(output, childStore.context);
+            return formatEpicRoutingOutput(
+              output,
+              routing.owner,
+              routing.child,
+            );
           }
 
           const {
@@ -1296,7 +1483,7 @@ export const epicTools = {
             terminalSummary,
             projected,
           } = await projectTerminalStateForLinkedEntry(
-            store,
+            ownerStore,
             epic_id,
             parentEntry,
             change,
@@ -1325,11 +1512,22 @@ export const epicTools = {
               : {}),
             member_status: memberStatusForEntry(refreshedEntry),
           });
-          return maybeAppendTargetContext(output, childStore.context);
+          return formatEpicRoutingOutput(output, routing.owner, routing.child);
         }
 
-        const currentEpic = await loadEpic(store, epic_id);
-        if (!currentEpic) return epicNotFound(epic_id);
+        const currentEpic = await loadEpic(ownerStore, epic_id);
+        if (!currentEpic) {
+          if (
+            routing.owner.context === null &&
+            routing.child.context !== null
+          ) {
+            return formatToolOutput({
+              error: `Epic not found in current project. Provide epic_owner_target_path for the Epic owner project: ${epic_id}`,
+              code: EPIC_OWNER_ROUTING_ERROR_CODES.OWNER_ROUTING_AMBIGUOUS,
+            });
+          }
+          return epicNotFound(epic_id);
+        }
         const existingEntry = findChangeEntry(currentEpic, {
           changeId: change_id,
         });
@@ -1339,7 +1537,7 @@ export const epicTools = {
             terminalSummary,
             projected,
           } = await projectTerminalStateForLinkedEntry(
-            store,
+            ownerStore,
             epic_id,
             existingEntry,
             change,
@@ -1368,11 +1566,11 @@ export const epicTools = {
               : {}),
             member_status: memberStatusForEntry(finalEntry),
           });
-          return maybeAppendTargetContext(output, childStore.context);
+          return formatEpicRoutingOutput(output, routing.owner, routing.child);
         }
 
         const linkedEntry = requireChangeEntry(
-          await store.epics.linkChange(epic_id, {
+          await ownerStore.epics.linkChange(epic_id, {
             entryId: entry_id,
             changeId: change_id,
             title: title ?? change.title,
@@ -1414,7 +1612,7 @@ export const epicTools = {
             : {}),
           member_status: memberStatusForEntry(entry),
         });
-        return maybeAppendTargetContext(output, childStore.context);
+        return formatEpicRoutingOutput(output, routing.owner, routing.child);
       } catch (err) {
         return epicError(err);
       }
@@ -1439,6 +1637,17 @@ export const epicTools = {
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
+      epic_owner_target_path: targetPathSchema.shape.target_path.describe(
+        "Optional absolute path to the Epic owner ADV project. When provided, resolves the Epic in that project instead of the current one.",
+      ),
+      epic_owner_target_confirmed:
+        targetPathSchema.shape.target_confirmed.describe(
+          "Required for untrusted epic_owner_target_path mutation. Confirms the Epic owner project was explicitly approved.",
+        ),
+      epic_owner_confirmationEvidence:
+        targetPathSchema.shape.confirmationEvidence.describe(
+          "Required with epic_owner_target_confirmed for untrusted epic_owner_target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
       {
@@ -1449,6 +1658,9 @@ export const epicTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
       }: {
         epic_id: string;
         entry_id?: string;
@@ -1457,12 +1669,50 @@ export const epicTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
       },
       store: Store,
     ) => {
       try {
-        const epic = await loadEpic(store, epic_id);
-        if (!epic) return epicNotFound(epic_id);
+        const routing = await resolveEpicRoutingStores(store, {
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+          target_path,
+          target_confirmed,
+          confirmationEvidence,
+        });
+        const ownerStore = routing.owner.store;
+        const childStore = routing.child;
+
+        const shapeError = validateEpicRoutingShape(
+          store.paths.root,
+          routing.owner,
+          routing.child,
+        );
+        if (shapeError) {
+          return formatEpicOwnerRoutingError({
+            ...shapeError,
+            ownerContext: routing.owner.context,
+            childContext: routing.child.context,
+          });
+        }
+
+        const epic = await loadEpic(ownerStore, epic_id);
+        if (!epic) {
+          if (
+            routing.owner.context === null &&
+            routing.child.context !== null
+          ) {
+            return formatToolOutput({
+              error: `Epic not found in current project. Provide epic_owner_target_path for the Epic owner project: ${epic_id}`,
+              code: EPIC_OWNER_ROUTING_ERROR_CODES.OWNER_ROUTING_AMBIGUOUS,
+            });
+          }
+          return epicNotFound(epic_id);
+        }
         const entry = findChangeEntry(epic, {
           entryId: entry_id,
           changeId: change_id,
@@ -1480,15 +1730,10 @@ export const epicTools = {
             code: "PROJECTION_MISSING",
           });
         }
-        const childStore = await resolveChildStore(store, {
-          target_path,
-          target_confirmed,
-          confirmationEvidence,
-        });
         await childStore.store.changes.clearEpicMembership(finalChangeId, {
           expected: { epic_id, entry_id: entry.entry_id },
         });
-        await store.epics.unlinkChange(
+        await ownerStore.epics.unlinkChange(
           epic_id,
           entry.entry_id,
           unlink_evidence,
@@ -1499,7 +1744,7 @@ export const epicTools = {
           change_id: finalChangeId,
           unlinked: true,
         });
-        return maybeAppendTargetContext(output, childStore.context);
+        return formatEpicRoutingOutput(output, routing.owner, routing.child);
       } catch (err) {
         return epicError(err);
       }
@@ -1525,6 +1770,17 @@ export const epicTools = {
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
+      epic_owner_target_path: targetPathSchema.shape.target_path.describe(
+        "Optional absolute path to the Epic owner ADV project. When provided, resolves both source and destination Epics in that project instead of the current one.",
+      ),
+      epic_owner_target_confirmed:
+        targetPathSchema.shape.target_confirmed.describe(
+          "Required for untrusted epic_owner_target_path mutation. Confirms the Epic owner project was explicitly approved.",
+        ),
+      epic_owner_confirmationEvidence:
+        targetPathSchema.shape.confirmationEvidence.describe(
+          "Required with epic_owner_target_confirmed for untrusted epic_owner_target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
       {
@@ -1540,6 +1796,9 @@ export const epicTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
       }: {
         from_epic_id: string;
         to_epic_id: string;
@@ -1553,14 +1812,63 @@ export const epicTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
       },
       store: Store,
     ) => {
       try {
-        const fromEpic = await loadEpic(store, from_epic_id);
-        if (!fromEpic) return epicNotFound(from_epic_id);
-        const toEpic = await loadEpic(store, to_epic_id);
-        if (!toEpic) return epicNotFound(to_epic_id);
+        const routing = await resolveEpicRoutingStores(store, {
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+          target_path,
+          target_confirmed,
+          confirmationEvidence,
+        });
+        const ownerStore = routing.owner.store;
+        const childStore = routing.child;
+
+        const shapeError = validateEpicRoutingShape(
+          store.paths.root,
+          routing.owner,
+          routing.child,
+        );
+        if (shapeError) {
+          return formatEpicOwnerRoutingError({
+            ...shapeError,
+            ownerContext: routing.owner.context,
+            childContext: routing.child.context,
+          });
+        }
+
+        const fromEpic = await loadEpic(ownerStore, from_epic_id);
+        if (!fromEpic) {
+          if (
+            routing.owner.context === null &&
+            routing.child.context !== null
+          ) {
+            return formatToolOutput({
+              error: `Source Epic not found in current project. Provide epic_owner_target_path for the Epic owner project: ${from_epic_id}`,
+              code: EPIC_OWNER_ROUTING_ERROR_CODES.OWNER_ROUTING_AMBIGUOUS,
+            });
+          }
+          return epicNotFound(from_epic_id);
+        }
+        const toEpic = await loadEpic(ownerStore, to_epic_id);
+        if (!toEpic) {
+          if (
+            routing.owner.context === null &&
+            routing.child.context !== null
+          ) {
+            return formatToolOutput({
+              error: `Destination Epic not found in current project. Provide epic_owner_target_path for the Epic owner project: ${to_epic_id}`,
+              code: EPIC_OWNER_ROUTING_ERROR_CODES.OWNER_ROUTING_AMBIGUOUS,
+            });
+          }
+          return epicNotFound(to_epic_id);
+        }
         const sourceEntry = findChangeEntry(fromEpic, {
           entryId: from_entry_id,
           changeId: change_id,
@@ -1571,11 +1879,6 @@ export const epicTools = {
             code: "ENTRY_NOT_FOUND",
           });
         }
-        const childStore = await resolveChildStore(store, {
-          target_path,
-          target_confirmed,
-          confirmationEvidence,
-        });
         const change = await loadChange(childStore.store, change_id);
         if (!change) {
           return formatToolOutput({
@@ -1595,7 +1898,7 @@ export const epicTools = {
           });
         }
         const destEntry = requireChangeEntry(
-          await store.epics.linkChange(to_epic_id, {
+          await ownerStore.epics.linkChange(to_epic_id, {
             entryId: to_entry_id,
             changeId: change_id,
             title: change.title,
@@ -1621,7 +1924,7 @@ export const epicTools = {
           membership,
           setAt: membership.linked_at,
         });
-        await store.epics.unlinkChange(
+        await ownerStore.epics.unlinkChange(
           from_epic_id,
           sourceEntry.entry_id,
           move_evidence,
@@ -1633,7 +1936,7 @@ export const epicTools = {
           epic_membership: membership,
           moved: true,
         });
-        return maybeAppendTargetContext(output, childStore.context);
+        return formatEpicRoutingOutput(output, routing.owner, routing.child);
       } catch (err) {
         return epicError(err);
       }
@@ -1896,6 +2199,17 @@ export const epicTools = {
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
+      epic_owner_target_path: targetPathSchema.shape.target_path.describe(
+        "Optional absolute path to the Epic owner ADV project. When provided, resolves the Epic in that project instead of the current one.",
+      ),
+      epic_owner_target_confirmed:
+        targetPathSchema.shape.target_confirmed.describe(
+          "Required for untrusted epic_owner_target_path mutation. Confirms the Epic owner project was explicitly approved.",
+        ),
+      epic_owner_confirmationEvidence:
+        targetPathSchema.shape.confirmationEvidence.describe(
+          "Required with epic_owner_target_confirmed for untrusted epic_owner_target_path mutation. Cite user approval evidence.",
+        ),
       dryRun: z.boolean().optional(),
     },
     execute: async (
@@ -1910,6 +2224,9 @@ export const epicTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
         dryRun,
       }: {
         epic_id: string;
@@ -1922,6 +2239,9 @@ export const epicTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
         dryRun?: boolean;
       },
       store: Store,
@@ -1933,17 +2253,57 @@ export const epicTools = {
             code: "MISSING_EVIDENCE",
           });
         }
-        const epic = await loadEpic(store, epic_id);
+
+        const routing = await resolveEpicRoutingStores(store, {
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+          target_path,
+          target_confirmed,
+          confirmationEvidence,
+        });
+        const ownerStore = routing.owner.store;
+        const explicitChildStore = routing.child;
+
+        const shapeError = validateEpicRoutingShape(
+          store.paths.root,
+          routing.owner,
+          explicitChildStore,
+        );
+        if (shapeError) {
+          return formatEpicOwnerRoutingError({
+            ...shapeError,
+            ownerContext: routing.owner.context,
+            childContext: explicitChildStore.context,
+          });
+        }
+
+        const epic = await loadEpic(ownerStore, epic_id);
         if (!epic) {
           if (mode === "clear_stale_projection") {
-            return clearMissingEpicProjection(store, {
+            if (
+              routing.owner.context === null &&
+              explicitChildStore.context !== null
+            ) {
+              return formatToolOutput({
+                error: `Epic not found in current project. Provide epic_owner_target_path for the Epic owner project: ${epic_id}`,
+                code: EPIC_OWNER_ROUTING_ERROR_CODES.OWNER_ROUTING_AMBIGUOUS,
+              });
+            }
+            return clearMissingEpicProjection(explicitChildStore, {
               epic_id,
               entry_id,
               change_id,
-              target_path,
-              target_confirmed,
-              confirmationEvidence,
               dryRun,
+            });
+          }
+          if (
+            routing.owner.context === null &&
+            explicitChildStore.context !== null
+          ) {
+            return formatToolOutput({
+              error: `Epic not found in current project. Provide epic_owner_target_path for the Epic owner project: ${epic_id}`,
+              code: EPIC_OWNER_ROUTING_ERROR_CODES.OWNER_ROUTING_AMBIGUOUS,
             });
           }
           return epicNotFound(epic_id);
@@ -1968,22 +2328,34 @@ export const epicTools = {
 
         if (mode === "remove_stale_entry") {
           if (dryRun) {
-            return formatToolOutput({
+            return formatEpicRoutingOutput(
+              formatToolOutput({
+                success: true,
+                dryRun: true,
+                entry_id: entry.entry_id,
+                change_id: finalChangeId,
+                action: "remove_stale_entry",
+              }),
+              routing.owner,
+              explicitChildStore,
+            );
+          }
+          await ownerStore.epics.unlinkChange(
+            epic_id,
+            entry.entry_id,
+            evidence,
+          );
+          return formatEpicRoutingOutput(
+            formatToolOutput({
               success: true,
-              dryRun: true,
+              repaired: true,
               entry_id: entry.entry_id,
               change_id: finalChangeId,
-              action: "remove_stale_entry",
-            });
-          }
-          await store.epics.unlinkChange(epic_id, entry.entry_id, evidence);
-          return formatToolOutput({
-            success: true,
-            repaired: true,
-            entry_id: entry.entry_id,
-            change_id: finalChangeId,
-            removed: true,
-          });
+              removed: true,
+            }),
+            routing.owner,
+            explicitChildStore,
+          );
         }
 
         if (mode === "retarget_stale_entry") {
@@ -1994,21 +2366,41 @@ export const epicTools = {
             });
           }
           if (dryRun) {
-            return formatToolOutput({
-              success: true,
-              dryRun: true,
-              entry_id: entry.entry_id,
-              change_id: finalChangeId,
-              new_change_id,
-              ...(new_title !== undefined ? { new_title } : {}),
-              action: "retarget_stale_entry",
-            });
+            return formatEpicRoutingOutput(
+              formatToolOutput({
+                success: true,
+                dryRun: true,
+                entry_id: entry.entry_id,
+                change_id: finalChangeId,
+                new_change_id,
+                ...(new_title !== undefined ? { new_title } : {}),
+                action: "retarget_stale_entry",
+              }),
+              routing.owner,
+              explicitChildStore,
+            );
           }
-          const childStore = await resolveChildStore(store, {
-            target_path,
+
+          const childStore = await resolveRepairChildStore(
+            store,
+            routing,
+            entry,
             target_confirmed,
             confirmationEvidence,
-          });
+          );
+          const childShapeError = validateEpicRoutingShape(
+            store.paths.root,
+            routing.owner,
+            childStore,
+          );
+          if (childShapeError) {
+            return formatEpicOwnerRoutingError({
+              ...childShapeError,
+              ownerContext: routing.owner.context,
+              childContext: childStore.context,
+            });
+          }
+
           const targetChange = await loadChange(
             childStore.store,
             new_change_id,
@@ -2035,15 +2427,19 @@ export const epicTools = {
               targetChange.status,
             );
             if (terminalStatus) {
-              return formatToolOutput({
-                success: true,
-                idempotent: true,
-                repaired: true,
-                entry_id: entry.entry_id,
-                change_id: new_change_id,
-                entry: mapEpicEntry(entry),
-                member_status: memberStatusForEntry(entry),
-              });
+              return formatEpicRoutingOutput(
+                formatToolOutput({
+                  success: true,
+                  idempotent: true,
+                  repaired: true,
+                  entry_id: entry.entry_id,
+                  change_id: new_change_id,
+                  entry: mapEpicEntry(entry),
+                  member_status: memberStatusForEntry(entry),
+                }),
+                routing.owner,
+                childStore,
+              );
             }
             const membership = membershipFromChangeEntry(
               epic_id,
@@ -2065,7 +2461,7 @@ export const epicTools = {
               epic_membership: membership,
               member_status: memberStatusForEntry(entry),
             });
-            return maybeAppendTargetContext(output, childStore.context);
+            return formatEpicRoutingOutput(output, routing.owner, childStore);
           }
           const changeRef = childStore.context
             ? {
@@ -2075,7 +2471,7 @@ export const epicTools = {
               }
             : undefined;
           const retargetedEntry = requireChangeEntry(
-            await store.epics.retargetChange(epic_id, {
+            await ownerStore.epics.retargetChange(epic_id, {
               entryId: entry.entry_id,
               fromChangeId: finalChangeId,
               toChangeId: new_change_id,
@@ -2094,7 +2490,7 @@ export const epicTools = {
               completed_at: completedAt,
             };
             const updatedEntry = requireChangeEntry(
-              await store.epics.setEntryTerminalSummary(epic_id, {
+              await ownerStore.epics.setEntryTerminalSummary(epic_id, {
                 entryId: entry.entry_id,
                 status: terminalStatus,
                 completedAt,
@@ -2111,7 +2507,7 @@ export const epicTools = {
               terminal_summary: terminalSummary,
               member_status: memberStatusForEntry(updatedEntry),
             });
-            return maybeAppendTargetContext(output, childStore.context);
+            return formatEpicRoutingOutput(output, routing.owner, childStore);
           }
           const membership = membershipFromChangeEntry(
             epic_id,
@@ -2124,7 +2520,7 @@ export const epicTools = {
             setAt: membership.linked_at,
           });
           const updatedEntry = requireChangeEntry(
-            await store.epics.setEntryMembershipStatus(epic_id, {
+            await ownerStore.epics.setEntryMembershipStatus(epic_id, {
               entryId: entry.entry_id,
               membershipStatus: "linked",
               evidence,
@@ -2140,7 +2536,7 @@ export const epicTools = {
             epic_membership: membership,
             member_status: memberStatusForEntry(updatedEntry),
           });
-          return maybeAppendTargetContext(output, childStore.context);
+          return formatEpicRoutingOutput(output, routing.owner, childStore);
         }
 
         if (mode === "mark_target_unreachable") {
@@ -2150,34 +2546,56 @@ export const epicTools = {
             membership_status: membershipStatus,
           };
           if (dryRun) {
-            return formatToolOutput({
-              success: true,
-              dryRun: true,
-              entry_id: entry.entry_id,
-              change_id: finalChangeId,
-              member_status: memberStatusForEntry(previewEntry),
-            });
+            return formatEpicRoutingOutput(
+              formatToolOutput({
+                success: true,
+                dryRun: true,
+                entry_id: entry.entry_id,
+                change_id: finalChangeId,
+                member_status: memberStatusForEntry(previewEntry),
+              }),
+              routing.owner,
+              explicitChildStore,
+            );
           }
           const updatedEntry = requireChangeEntry(
-            await store.epics.setEntryMembershipStatus(epic_id, {
+            await ownerStore.epics.setEntryMembershipStatus(epic_id, {
               entryId: entry.entry_id,
               membershipStatus,
               evidence,
             }),
           );
-          return formatToolOutput({
-            success: true,
-            repaired: true,
-            entry: mapEpicEntry(updatedEntry),
-            member_status: memberStatusForEntry(updatedEntry),
-          });
+          return formatEpicRoutingOutput(
+            formatToolOutput({
+              success: true,
+              repaired: true,
+              entry: mapEpicEntry(updatedEntry),
+              member_status: memberStatusForEntry(updatedEntry),
+            }),
+            routing.owner,
+            explicitChildStore,
+          );
         }
 
-        const childStore = await resolveChildStore(store, {
-          target_path: target_path ?? entry.change_ref?.target_path,
+        const childStore = await resolveRepairChildStore(
+          store,
+          routing,
+          entry,
           target_confirmed,
           confirmationEvidence,
-        });
+        );
+        const childShapeError = validateEpicRoutingShape(
+          store.paths.root,
+          routing.owner,
+          childStore,
+        );
+        if (childShapeError) {
+          return formatEpicOwnerRoutingError({
+            ...childShapeError,
+            ownerContext: routing.owner.context,
+            childContext: childStore.context,
+          });
+        }
         const change = await loadChange(childStore.store, finalChangeId);
         if (!change) {
           return formatToolOutput({
@@ -2199,7 +2617,7 @@ export const epicTools = {
                 message: "Child projection already absent.",
               },
             });
-            return maybeAppendTargetContext(output, childStore.context);
+            return formatEpicRoutingOutput(output, routing.owner, childStore);
           }
           if (
             change.epic_membership.epic_id !== epic_id ||
@@ -2219,7 +2637,7 @@ export const epicTools = {
               change_id: finalChangeId,
               action: "clear_child_projection",
             });
-            return maybeAppendTargetContext(output, childStore.context);
+            return formatEpicRoutingOutput(output, routing.owner, childStore);
           }
           await childStore.store.changes.clearEpicMembership(finalChangeId, {
             expected: { epic_id, entry_id: entry.entry_id },
@@ -2231,7 +2649,7 @@ export const epicTools = {
             change_id: finalChangeId,
             cleared: true,
           });
-          return maybeAppendTargetContext(output, childStore.context);
+          return formatEpicRoutingOutput(output, routing.owner, childStore);
         }
 
         if (
@@ -2262,11 +2680,11 @@ export const epicTools = {
               action: "project_terminal_summary",
               terminal_summary: terminalSummary,
             });
-            return maybeAppendTargetContext(output, childStore.context);
+            return formatEpicRoutingOutput(output, routing.owner, childStore);
           }
 
           const updatedEntry = requireChangeEntry(
-            await store.epics.setEntryTerminalSummary(epic_id, {
+            await ownerStore.epics.setEntryTerminalSummary(epic_id, {
               entryId: entry.entry_id,
               status: terminalStatus,
               completedAt,
@@ -2280,7 +2698,7 @@ export const epicTools = {
             terminal_summary: terminalSummary,
             member_status: memberStatusForEntry(updatedEntry),
           });
-          return maybeAppendTargetContext(output, childStore.context);
+          return formatEpicRoutingOutput(output, routing.owner, childStore);
         }
 
         const membership = membershipFromChangeEntry(
@@ -2297,14 +2715,14 @@ export const epicTools = {
             change_id: finalChangeId,
             epic_membership: membership,
           });
-          return maybeAppendTargetContext(output, childStore.context);
+          return formatEpicRoutingOutput(output, routing.owner, childStore);
         }
         await childStore.store.changes.setEpicMembership(finalChangeId, {
           membership,
           setAt: membership.linked_at,
         });
         const updatedEntry = requireChangeEntry(
-          await store.epics.setEntryMembershipStatus(epic_id, {
+          await ownerStore.epics.setEntryMembershipStatus(epic_id, {
             entryId: entry.entry_id,
             membershipStatus: repairModeStatus(mode),
             evidence,
@@ -2317,7 +2735,7 @@ export const epicTools = {
           epic_membership: membership,
           member_status: memberStatusForEntry(updatedEntry),
         });
-        return maybeAppendTargetContext(output, childStore.context);
+        return formatEpicRoutingOutput(output, routing.owner, childStore);
       } catch (err) {
         return epicError(err);
       }

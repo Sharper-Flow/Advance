@@ -6,7 +6,7 @@
  */
 import { z } from "zod";
 import { createHash } from "crypto";
-import { join } from "path";
+import { join, resolve } from "path";
 import { execGit } from "../utils/git.js";
 import type { FastFollowOf, ChangeOrigin } from "../types";
 import {
@@ -281,6 +281,7 @@ import {
   withTargetPathStore,
   targetPathSchema,
   appendTargetProjectContextOutput,
+  EPIC_OWNER_ROUTING_ERROR_CODES,
 } from "./target-project";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
 import { getService } from "../temporal/service";
@@ -969,6 +970,24 @@ export const changeTools = {
         .describe(
           "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
         ),
+      epic_owner_target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to the Epic owner ADV project. When provided with epic_id/entry_id/epic_title, seeds Epic membership in a remote-owner Epic instead of the current project.",
+        ),
+      epic_owner_target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted epic_owner_target_path mutation. Confirms the Epic owner project was explicitly approved.",
+        ),
+      epic_owner_confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with epic_owner_target_confirmed for untrusted epic_owner_target_path mutation. Cite user approval evidence.",
+        ),
       parent_change_id: z
         .string()
         .optional()
@@ -1043,6 +1062,9 @@ export const changeTools = {
         source_change_id,
         target_confirmed,
         confirmationEvidence,
+        epic_owner_target_path,
+        epic_owner_target_confirmed: _epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence: _epic_owner_confirmationEvidence,
         parent_change_id,
         scope_repos,
         epic_id,
@@ -1065,6 +1087,9 @@ export const changeTools = {
         source_change_id?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
         parent_change_id?: string;
         scope_repos?: ChangeRepoScope[];
         epic_id?: string;
@@ -1086,6 +1111,20 @@ export const changeTools = {
         return formatToolOutput({
           error: "target_path and parent_change_id are mutually exclusive",
         });
+      }
+      if (epic_owner_target_path) {
+        const ownerRoot = resolve(epic_owner_target_path);
+        const childRoot = resolve(target_path ?? store.paths.root);
+        if (
+          ownerRoot !== childRoot &&
+          childRoot === resolve(store.paths.root)
+        ) {
+          return formatToolOutput({
+            error:
+              "Owner remote + child local routing is not supported for change creation. Create the change in the Epic owner project or a different remote project.",
+            code: EPIC_OWNER_ROUTING_ERROR_CODES.OWNER_CHILD_ROUTING_UNSUPPORTED,
+          });
+        }
       }
       const blankCreateFields = collectBlankCreateArtifactOrLinkageFields({
         proposal,

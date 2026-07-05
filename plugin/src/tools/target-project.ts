@@ -368,6 +368,72 @@ export function resolveTargetAwareMutationCwd(input: {
   return input.target_path ? input.store.paths.root : process.cwd();
 }
 
+export interface EpicOwnerRoutingInput {
+  epic_owner_target_path?: string;
+  epic_owner_target_confirmed?: true;
+  epic_owner_confirmationEvidence?: string;
+}
+
+export const EPIC_OWNER_ROUTING_ERROR_CODES = {
+  OWNER_ROUTING_REQUIRED: "OWNER_ROUTING_REQUIRED",
+  CHILD_ROUTING_REQUIRED: "CHILD_ROUTING_REQUIRED",
+  OWNER_ROUTING_AMBIGUOUS: "OWNER_ROUTING_AMBIGUOUS",
+  OWNER_CHILD_ROUTING_UNSUPPORTED: "OWNER_CHILD_ROUTING_UNSUPPORTED",
+} as const;
+
+export class EpicOwnerRoutingError extends TargetProjectError {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "EpicOwnerRoutingError";
+    this.code = code;
+  }
+}
+
+export function appendEpicRoutingContexts(
+  output: string,
+  contexts: {
+    ownerContext?: TargetProjectContext | null;
+    childContext?: TargetProjectContext | null;
+  },
+): string {
+  const parsed = JSON.parse(output) as Record<string, unknown>;
+  if (contexts.ownerContext) {
+    parsed._epicOwnerProjectContext = formatTargetProjectContext(
+      contexts.ownerContext,
+    );
+  }
+  if (contexts.childContext) {
+    parsed._childProjectContext = formatTargetProjectContext(
+      contexts.childContext,
+    );
+  }
+  return JSON.stringify(parsed);
+}
+
+export function formatEpicOwnerRoutingError(input: {
+  code: string;
+  error: string;
+  ownerContext?: TargetProjectContext | null;
+  childContext?: TargetProjectContext | null;
+}): string {
+  const parsed: Record<string, unknown> = {
+    error: input.error,
+    code: input.code,
+  };
+  if (input.ownerContext) {
+    parsed._epicOwnerProjectContext = formatTargetProjectContext(
+      input.ownerContext,
+    );
+  }
+  if (input.childContext) {
+    parsed._childProjectContext = formatTargetProjectContext(
+      input.childContext,
+    );
+  }
+  return JSON.stringify(parsed);
+}
+
 export async function withOptionalTargetPathStore<T>(
   input: { store: Store; target_path?: string },
   fn: (store: Store, projectContext?: TargetProjectOutputContext) => Promise<T>,
