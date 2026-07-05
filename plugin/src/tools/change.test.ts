@@ -46,6 +46,30 @@ const mocks = vi.hoisted(() => {
     close: vi.fn(),
   };
 
+  const withTargetPathStore = vi.fn(async (_input: unknown, fn: unknown) => {
+    const callback = fn as (scope: {
+      context: unknown;
+      store: unknown;
+    }) => Promise<unknown>;
+    return callback({
+      context: {
+        root: "/tmp/target",
+        projectId: "target-project-id",
+        externalRoot: "/tmp/target-external",
+        trusted: false,
+        trustSource: "explicit",
+        stateMode: "temporal",
+      },
+      store: targetStore,
+    });
+  });
+  const withOptionalTargetPathStore = vi.fn(
+    async ({ store }: { store: unknown }, fn: unknown) => {
+      const callback = fn as (store: unknown) => Promise<unknown>;
+      return callback(store);
+    },
+  );
+
   return {
     signalMock,
     queryMock,
@@ -71,23 +95,8 @@ const mocks = vi.hoisted(() => {
     execGh: vi.fn(),
     readGitHubProjectConfig: vi.fn(),
     execGit: vi.fn(),
-    withTargetPathStore: vi.fn(async (_input: unknown, fn: unknown) => {
-      const callback = fn as (scope: {
-        context: unknown;
-        store: unknown;
-      }) => Promise<unknown>;
-      return callback({
-        context: {
-          root: "/tmp/target",
-          projectId: "target-project-id",
-          externalRoot: "/tmp/target-external",
-          trusted: false,
-          trustSource: "explicit",
-          stateMode: "temporal",
-        },
-        store: targetStore,
-      });
-    }),
+    withTargetPathStore,
+    withOptionalTargetPathStore,
     formatTargetProjectContext: vi.fn(
       (context: {
         root: string;
@@ -136,7 +145,7 @@ vi.mock("./target-project", async () => {
       confirmationEvidence: z.string().optional(),
     }),
     withTargetPathStore: mocks.withTargetPathStore,
-    withOptionalTargetPathStore: vi.fn(async ({ store }, fn) => fn(store)),
+    withOptionalTargetPathStore: mocks.withOptionalTargetPathStore,
     formatTargetProjectContext: mocks.formatTargetProjectContext,
     resolveTargetAwareMutationCwd: vi.fn(
       ({ store, target_path }: { store: Store; target_path?: string }) =>
@@ -406,6 +415,98 @@ describe("change tools — signal-driven lifecycle", () => {
         format: "task-id-em-dash-title",
         window: { includeCurrent: true, readyLimit: 3, omitDone: true },
       });
+    });
+
+    test("target artifact readback routes through Temporal-backed target store", async () => {
+      const store = createMockStore();
+      const sourceChange = (await store.changes.get("test-change"))
+        .data as Change;
+      const defaultImpl = mocks.targetStore.changes.get.getMockImplementation();
+      vi.mocked(mocks.targetStore.changes.get).mockResolvedValue({
+        success: true,
+        data: {
+          ...sourceChange,
+          documents: {
+            design: "target-design-from-documents",
+            proposal: "target-proposal-from-documents",
+          },
+        },
+      });
+      mocks.withTargetPathStore.mockClear();
+
+      try {
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            target_path: "/tmp/target",
+            include: { design: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._design).toBe("target-design-from-documents");
+        expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: "/tmp/target",
+            stateRequirement: "temporal-required",
+            mutation: false,
+          }),
+          expect.any(Function),
+        );
+        expect(parsed._projectContext).toMatchObject({ stateMode: "temporal" });
+      } finally {
+        mocks.targetStore.changes.get.mockReset();
+        if (defaultImpl) {
+          mocks.targetStore.changes.get.mockImplementation(defaultImpl);
+        }
+      }
+    });
+
+    test("target show without artifact include flags stays on snapshot path", async () => {
+      const store = createMockStore();
+      mocks.withTargetPathStore.mockClear();
+      mocks.withOptionalTargetPathStore.mockClear();
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", target_path: "/tmp/target" },
+        store,
+      );
+
+      expect(mocks.withTargetPathStore).not.toHaveBeenCalled();
+      expect(mocks.withOptionalTargetPathStore).toHaveBeenCalled();
+      const parsed = JSON.parse(result);
+      expect(parsed.id).toBe("test-change");
+      expect(parsed._projectContext).toBeUndefined();
+    });
+
+    test("target artifact readback fails closed when target Temporal is unreachable", async () => {
+      const store = createMockStore();
+      const defaultImpl = mocks.withTargetPathStore.getMockImplementation();
+      mocks.withTargetPathStore.mockReset();
+      mocks.withTargetPathStore.mockRejectedValueOnce(
+        new Error(
+          "Temporal service layer not initialized; target_path mutations require a Temporal-backed target store: /tmp/target",
+        ),
+      );
+
+      try {
+        await expect(
+          changeTools.adv_change_show.execute(
+            {
+              changeId: "test-change",
+              target_path: "/tmp/target",
+              include: { proposal: true },
+            },
+            store,
+          ),
+        ).rejects.toThrow("Temporal service layer not initialized");
+      } finally {
+        mocks.withTargetPathStore.mockReset();
+        if (defaultImpl) {
+          mocks.withTargetPathStore.mockImplementation(defaultImpl);
+        }
+      }
     });
 
     test("returns persisted task sub-agent reports when include.subagentReports is set", async () => {

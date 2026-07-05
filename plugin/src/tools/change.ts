@@ -490,7 +490,7 @@ export const changeTools = {
         .string()
         .optional()
         .describe(
-          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+          "Optional absolute path to another ADV project. When artifact include flags are requested, routes reads through the target project's Temporal store/documents; otherwise reads a disk snapshot and returns _projectContext.",
         ),
       include: z
         .object({
@@ -626,254 +626,271 @@ export const changeTools = {
       },
       store: Store,
     ) => {
-      return withOptionalTargetPathStore(
-        { store, target_path },
-        async (activeStore, projectContext) => {
-          const result = await activeStore.changes.get(changeId);
-          if (!result.success) {
-            return formatToolOutput({ error: result.error });
-          }
-          if (!result.data) {
-            return formatToolOutput({ error: `Change not found: ${changeId}` });
-          }
-          const change = result.data;
-          const displayChange: Change = {
-            ...change,
-            artifacts: await normalizeArtifactMetadataForReadback(
-              change.artifacts,
-            ),
-            gates: await normalizeGateArtifactEvidenceForReadback(change.gates),
-          };
-          const requestedKinds: ArtifactKind[] = [];
-          if (include?.proposal) requestedKinds.push("proposal");
-          if (include?.problemStatement)
-            requestedKinds.push("problemStatement");
-          if (include?.agreement) requestedKinds.push("agreement");
-          if (include?.design) requestedKinds.push("design");
-          if (include?.executiveSummary)
-            requestedKinds.push("executiveSummary");
-          if (include?.acceptance) requestedKinds.push("acceptance");
-          if (include?.artifactOnly) {
-            const output: Record<string, unknown> = {
-              id: displayChange.id,
-              title: displayChange.title,
-              status: displayChange.status,
-              artifacts: displayChange.artifacts,
-              _artifactOnly: true,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            };
-            if (requestedKinds.length > 0) {
-              const artifactContent = await readArtifacts(
-                activeStore,
-                changeId,
-                requestedKinds,
-              );
-              if (artifactContent.proposal !== undefined)
-                output._proposal = artifactContent.proposal;
-              if (artifactContent.problemStatement !== undefined)
-                output._problemStatement = artifactContent.problemStatement;
-              if (artifactContent.agreement !== undefined)
-                output._agreement = artifactContent.agreement;
-              if (artifactContent.design !== undefined)
-                output._design = artifactContent.design;
-              if (artifactContent.executiveSummary !== undefined)
-                output._executiveSummary = artifactContent.executiveSummary;
-              if (artifactContent.acceptance !== undefined)
-                output._acceptance = artifactContent.acceptance;
-            }
-            return formatToolOutput(output);
-          }
-          const { content: proposalText } = await loadProposalForContext(
-            activeStore,
-            changeId,
-            change.title,
-          );
-          const paged = paginate(change.tasks, {
-            limit,
-            offset,
-            tool: "adv_change_show",
-            args: `changeId: "${changeId}"`,
-          });
+      const requestedKinds: ArtifactKind[] = [];
+      if (include?.proposal) requestedKinds.push("proposal");
+      if (include?.problemStatement) requestedKinds.push("problemStatement");
+      if (include?.agreement) requestedKinds.push("agreement");
+      if (include?.design) requestedKinds.push("design");
+      if (include?.executiveSummary) requestedKinds.push("executiveSummary");
+      if (include?.acceptance) requestedKinds.push("acceptance");
+
+      const runShow = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        const result = await activeStore.changes.get(changeId);
+        if (!result.success) {
+          return formatToolOutput({ error: result.error });
+        }
+        if (!result.data) {
+          return formatToolOutput({ error: `Change not found: ${changeId}` });
+        }
+        const change = result.data;
+        const displayChange: Change = {
+          ...change,
+          artifacts: await normalizeArtifactMetadataForReadback(
+            change.artifacts,
+          ),
+          gates: await normalizeGateArtifactEvidenceForReadback(change.gates),
+        };
+        if (include?.artifactOnly) {
           const output: Record<string, unknown> = {
-            ...displayChange,
-            tasks: paged.items,
-            _taskPagination: paged.pagination,
+            id: displayChange.id,
+            title: displayChange.title,
+            status: displayChange.status,
+            artifacts: displayChange.artifacts,
+            _artifactOnly: true,
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
-          // Surface linked ops follow-up state structurally. The full profile
-          // remains on the change; this just guarantees it is visible even when
-          // downstream formatters would otherwise drop undefined keys.
-          output.ops_followup = change.ops_followup ?? null;
-          output.ops_followup_links = change.ops_followup_links ?? [];
-          const changeDir = join(activeStore.paths.changes, changeId);
-          const problemStatementPath = join(changeDir, "problem-statement.md");
-          const problemStatementExists = await fileExists(problemStatementPath);
-          output.problemStatementExists = problemStatementExists;
-          if (problemStatementExists) {
-            output.problemStatementPath = problemStatementPath;
-          }
-          await applyClarifyReadinessToChangeOutput({
-            output,
-            change,
-            proposalText,
-            changeId,
-            store: activeStore,
-          });
-          // Surface cross-project origin prominently when present
-          if (change.cross_project_origin) {
-            output._crossProjectOrigin = {
-              note: `⚠️ Cross-project follow-up from ${change.cross_project_origin.source_project}`,
-              ...change.cross_project_origin,
-            };
-          }
-          // Surface same-project fast-follow origin prominently when present
-          if (change.fast_follow_of) {
-            output._fastFollowOrigin = {
-              note: `↳ Fast-follow from ${change.fast_follow_of.parent_change_id}`,
-              ...change.fast_follow_of,
-            };
-          }
-          const dependencyStatus = await buildExternalDependencyStatus(
-            change.external_dependencies,
-          );
-          if (dependencyStatus) {
-            output._externalDependencyStatus = dependencyStatus;
-          }
-          // Include reflection data for archived changes
-          if (change.status === "archived") {
-            const reflection = await getReflection(
-              activeStore.paths.external ?? activeStore.paths.root,
+          if (requestedKinds.length > 0) {
+            const artifactContent = await readArtifacts(
+              activeStore,
               changeId,
+              requestedKinds,
             );
-            if (reflection) {
-              output._reflection = reflection;
-            }
-          }
-          // include flags (AC3) — opt-in attachments. Defaults preserve
-          // current behavior.
-          if (include) {
-            // Snapshot — matches mutation-tool convention (top-level
-            // `_contextSnapshot`). Uses the same formatter live emission
-            // and compaction use, ensuring fidelity parity.
-            if (include.snapshot) {
-              try {
-                let gates: Awaited<ReturnType<typeof activeStore.gates.get>> =
-                  null;
-                try {
-                  gates = await activeStore.gates.get(changeId);
-                } catch {
-                  // best-effort: missing gates → snapshot still useful
-                }
-                output._contextSnapshot = buildChangeContextSnapshot({
-                  change: displayChange,
-                  proposalText,
-                  gates: gates
-                    ? await normalizeGateArtifactEvidenceForReadback(gates)
-                    : undefined,
-                  workdir: activeStore.paths.root,
-                });
-              } catch (e) {
-                output._contextSnapshotError =
-                  e instanceof Error ? e.message : String(e);
-              }
-            }
-            if (include.ledger) {
-              output._ledger = null;
-            }
-            if (include.subagentReports) {
-              const legacyTaskReports = change.tasks.flatMap((task) =>
-                (task.subagent_reports ?? []).map((report) => report),
-              );
-              const reportsByKey = new Map<string, ScopedSubagentReport>();
-              for (const report of [
-                ...(change.subagent_reports ?? []),
-                ...legacyTaskReports,
-              ]) {
-                reportsByKey.set(subagentReportReadbackKey(report), report);
-              }
-              const reports = Array.from(reportsByKey.values());
-              output._subagentReports = reports;
-              output._subagentReportsMeta = {
-                total: reports.length,
-                sidecar: change.subagent_reports?.length ?? 0,
-                legacyTask: legacyTaskReports.length,
-              };
-            }
-            // Ready tasks — unblocked queue, sliced to top-N. Avoids the
-            // separate adv_task_ready round-trip on phase boundaries.
-            if (include.readyTasks) {
-              try {
-                const readyResult = await activeStore.tasks.ready(changeId);
-                const readyLimit = include.readyTasksLimit ?? 10;
-                output._readyTasks = readyResult.ready.slice(0, readyLimit);
-                output._readyTasksMeta = {
-                  total: readyResult.ready.length,
-                  limit: readyLimit,
-                  blockedCount: readyResult.blocked.length,
-                };
-                output._todoProjection = buildTodoProjection({
-                  current:
-                    change.tasks.find(
-                      (task) => task.status === "in_progress",
-                    ) ?? null,
-                  ready: readyResult.ready.map((task) => ({
-                    id: task.id,
-                    title: task.title,
-                    status: task.status,
-                  })),
-                });
-              } catch (e) {
-                output._readyTasksError =
-                  e instanceof Error ? e.message : String(e);
-              }
-            }
-            // Briefing packet — generated read projection over existing
-            // structured state. No live packet state is persisted.
-            if (include.briefingPacket) {
-              try {
-                const lane =
-                  include.briefingPacketLane ?? DEFAULT_BRIEFING_PACKET_LANE;
-                const packetInput = await buildBriefingPacketForChange(
-                  activeStore,
-                  change,
-                  lane,
-                  include.briefingPacketRequest,
-                );
-                output._briefingPacket = renderBriefingPacket(packetInput);
-              } catch (e) {
-                output._briefingPacketError =
-                  e instanceof Error ? e.message : String(e);
-              }
-            }
-
-            // GH #21: Artifact content include flags — read raw markdown
-            // from the change directory. Only reads when explicitly
-            // requested to avoid unnecessary I/O. Falls back to the
-            // latest archive bundle for archived changes.
-            // Batched multi-include read per C9 — single store.changes.get()
-            // query covers all requested kinds (KD-6 readArtifacts).
-            if (requestedKinds.length > 0) {
-              const artifactContent = await readArtifacts(
-                activeStore,
-                changeId,
-                requestedKinds,
-              );
-              if (artifactContent.proposal !== undefined)
-                output._proposal = artifactContent.proposal;
-              if (artifactContent.problemStatement !== undefined)
-                output._problemStatement = artifactContent.problemStatement;
-              if (artifactContent.agreement !== undefined)
-                output._agreement = artifactContent.agreement;
-              if (artifactContent.design !== undefined)
-                output._design = artifactContent.design;
-              if (artifactContent.executiveSummary !== undefined)
-                output._executiveSummary = artifactContent.executiveSummary;
-              if (artifactContent.acceptance !== undefined)
-                output._acceptance = artifactContent.acceptance;
-            }
+            if (artifactContent.proposal !== undefined)
+              output._proposal = artifactContent.proposal;
+            if (artifactContent.problemStatement !== undefined)
+              output._problemStatement = artifactContent.problemStatement;
+            if (artifactContent.agreement !== undefined)
+              output._agreement = artifactContent.agreement;
+            if (artifactContent.design !== undefined)
+              output._design = artifactContent.design;
+            if (artifactContent.executiveSummary !== undefined)
+              output._executiveSummary = artifactContent.executiveSummary;
+            if (artifactContent.acceptance !== undefined)
+              output._acceptance = artifactContent.acceptance;
           }
           return formatToolOutput(output);
-        },
+        }
+        const { content: proposalText } = await loadProposalForContext(
+          activeStore,
+          changeId,
+          change.title,
+        );
+        const paged = paginate(change.tasks, {
+          limit,
+          offset,
+          tool: "adv_change_show",
+          args: `changeId: "${changeId}"`,
+        });
+        const output: Record<string, unknown> = {
+          ...displayChange,
+          tasks: paged.items,
+          _taskPagination: paged.pagination,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        };
+        // Surface linked ops follow-up state structurally. The full profile
+        // remains on the change; this just guarantees it is visible even when
+        // downstream formatters would otherwise drop undefined keys.
+        output.ops_followup = change.ops_followup ?? null;
+        output.ops_followup_links = change.ops_followup_links ?? [];
+        const changeDir = join(activeStore.paths.changes, changeId);
+        const problemStatementPath = join(changeDir, "problem-statement.md");
+        const problemStatementExists = await fileExists(problemStatementPath);
+        output.problemStatementExists = problemStatementExists;
+        if (problemStatementExists) {
+          output.problemStatementPath = problemStatementPath;
+        }
+        await applyClarifyReadinessToChangeOutput({
+          output,
+          change,
+          proposalText,
+          changeId,
+          store: activeStore,
+        });
+        // Surface cross-project origin prominently when present
+        if (change.cross_project_origin) {
+          output._crossProjectOrigin = {
+            note: `⚠️ Cross-project follow-up from ${change.cross_project_origin.source_project}`,
+            ...change.cross_project_origin,
+          };
+        }
+        // Surface same-project fast-follow origin prominently when present
+        if (change.fast_follow_of) {
+          output._fastFollowOrigin = {
+            note: `↳ Fast-follow from ${change.fast_follow_of.parent_change_id}`,
+            ...change.fast_follow_of,
+          };
+        }
+        const dependencyStatus = await buildExternalDependencyStatus(
+          change.external_dependencies,
+        );
+        if (dependencyStatus) {
+          output._externalDependencyStatus = dependencyStatus;
+        }
+        // Include reflection data for archived changes
+        if (change.status === "archived") {
+          const reflection = await getReflection(
+            activeStore.paths.external ?? activeStore.paths.root,
+            changeId,
+          );
+          if (reflection) {
+            output._reflection = reflection;
+          }
+        }
+        // include flags (AC3) — opt-in attachments. Defaults preserve
+        // current behavior.
+        if (include) {
+          // Snapshot — matches mutation-tool convention (top-level
+          // `_contextSnapshot`). Uses the same formatter live emission
+          // and compaction use, ensuring fidelity parity.
+          if (include.snapshot) {
+            try {
+              let gates: Awaited<ReturnType<typeof activeStore.gates.get>> =
+                null;
+              try {
+                gates = await activeStore.gates.get(changeId);
+              } catch {
+                // best-effort: missing gates → snapshot still useful
+              }
+              output._contextSnapshot = buildChangeContextSnapshot({
+                change: displayChange,
+                proposalText,
+                gates: gates
+                  ? await normalizeGateArtifactEvidenceForReadback(gates)
+                  : undefined,
+                workdir: activeStore.paths.root,
+              });
+            } catch (e) {
+              output._contextSnapshotError =
+                e instanceof Error ? e.message : String(e);
+            }
+          }
+          if (include.ledger) {
+            output._ledger = null;
+          }
+          if (include.subagentReports) {
+            const legacyTaskReports = change.tasks.flatMap((task) =>
+              (task.subagent_reports ?? []).map((report) => report),
+            );
+            const reportsByKey = new Map<string, ScopedSubagentReport>();
+            for (const report of [
+              ...(change.subagent_reports ?? []),
+              ...legacyTaskReports,
+            ]) {
+              reportsByKey.set(subagentReportReadbackKey(report), report);
+            }
+            const reports = Array.from(reportsByKey.values());
+            output._subagentReports = reports;
+            output._subagentReportsMeta = {
+              total: reports.length,
+              sidecar: change.subagent_reports?.length ?? 0,
+              legacyTask: legacyTaskReports.length,
+            };
+          }
+          // Ready tasks — unblocked queue, sliced to top-N. Avoids the
+          // separate adv_task_ready round-trip on phase boundaries.
+          if (include.readyTasks) {
+            try {
+              const readyResult = await activeStore.tasks.ready(changeId);
+              const readyLimit = include.readyTasksLimit ?? 10;
+              output._readyTasks = readyResult.ready.slice(0, readyLimit);
+              output._readyTasksMeta = {
+                total: readyResult.ready.length,
+                limit: readyLimit,
+                blockedCount: readyResult.blocked.length,
+              };
+              output._todoProjection = buildTodoProjection({
+                current:
+                  change.tasks.find((task) => task.status === "in_progress") ??
+                  null,
+                ready: readyResult.ready.map((task) => ({
+                  id: task.id,
+                  title: task.title,
+                  status: task.status,
+                })),
+              });
+            } catch (e) {
+              output._readyTasksError =
+                e instanceof Error ? e.message : String(e);
+            }
+          }
+          // Briefing packet — generated read projection over existing
+          // structured state. No live packet state is persisted.
+          if (include.briefingPacket) {
+            try {
+              const lane =
+                include.briefingPacketLane ?? DEFAULT_BRIEFING_PACKET_LANE;
+              const packetInput = await buildBriefingPacketForChange(
+                activeStore,
+                change,
+                lane,
+                include.briefingPacketRequest,
+              );
+              output._briefingPacket = renderBriefingPacket(packetInput);
+            } catch (e) {
+              output._briefingPacketError =
+                e instanceof Error ? e.message : String(e);
+            }
+          }
+
+          // GH #21: Artifact content include flags — read raw markdown
+          // from the change directory. Only reads when explicitly
+          // requested to avoid unnecessary I/O. Falls back to the
+          // latest archive bundle for archived changes.
+          // Batched multi-include read per C9 — single store.changes.get()
+          // query covers all requested kinds (KD-6 readArtifacts).
+          if (requestedKinds.length > 0) {
+            const artifactContent = await readArtifacts(
+              activeStore,
+              changeId,
+              requestedKinds,
+            );
+            if (artifactContent.proposal !== undefined)
+              output._proposal = artifactContent.proposal;
+            if (artifactContent.problemStatement !== undefined)
+              output._problemStatement = artifactContent.problemStatement;
+            if (artifactContent.agreement !== undefined)
+              output._agreement = artifactContent.agreement;
+            if (artifactContent.design !== undefined)
+              output._design = artifactContent.design;
+            if (artifactContent.executiveSummary !== undefined)
+              output._executiveSummary = artifactContent.executiveSummary;
+            if (artifactContent.acceptance !== undefined)
+              output._acceptance = artifactContent.acceptance;
+          }
+        }
+        return formatToolOutput(output);
+      };
+
+      if (target_path && requestedKinds.length > 0) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement: "temporal-required",
+            mutation: false,
+          },
+          async ({ context, store: targetStore }) =>
+            runShow(targetStore, formatTargetProjectContext(context)),
+        );
+      }
+
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) =>
+          runShow(activeStore, projectContext),
       );
     },
   },
