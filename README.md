@@ -150,13 +150,19 @@ Advance keeps the core workflow in this repository and exposes runtime-safe seam
 
 `bin/adv dashboard` runs a local read-only web dashboard for explicitly configured projects. It binds to `127.0.0.1` by default and exposes only `GET /` plus `GET /api/state`.
 
-For the PokeEdge workspace, install the always-on local user service:
+For the PokeEdge workspace, preview the mutating install step first:
+
+```bash
+bin/adv dashboard install --profile pokeedge --dry-run
+```
+
+Then install the always-on local user service when the planned writes look right:
 
 ```bash
 bin/adv dashboard install --profile pokeedge
 ```
 
-This writes:
+This mutating install writes local user configuration/service files:
 
 - `~/.config/advance/dashboard/pokeedge.json`
 - `~/.config/systemd/user/adv-dashboard-pokeedge.service`

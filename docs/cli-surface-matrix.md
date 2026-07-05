@@ -48,6 +48,18 @@
 | `/adv-archive` | `agent-workflow-only` | Release gate workflow |
 | `/adv-refactor` | `agent-workflow-only` | Stale proposal refresh |
 
+## `bin/adv` Subcommand Boundary
+
+| Subcommand | Boundary | Rationale |
+|---|---|---|
+| `adv status` | read-only | Live active-change table; no local service writes |
+| `adv roadmap` | read-only | Reads generated backlog snapshot |
+| `adv slop-scan` | read-only scanner | Deterministic scan/report only |
+| `adv epic list` | read-only | Lists live Epic IDs from Temporal Visibility |
+| `adv dashboard` | read-only local server | Serves configured state over loopback by default |
+| `adv dashboard doctor` | read-only diagnostics | Checks service health and prints remediation |
+| `adv dashboard install` | mutates local user state | Writes dashboard config/systemd unit and enables the user service; use `--dry-run` to preview |
+
 ## Tool Matrix
 
 | Tool | Disposition | Rationale |
