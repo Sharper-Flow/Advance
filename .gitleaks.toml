@@ -1,0 +1,12 @@
+title = "Advance Gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Historical fake dashboard sanitizer token fixture already removed from HEAD"
+condition = "AND"
+commits = ["1f5e7e75fae5e5cdaae9a16fbc823e7ad146a090"]
+paths = ['''^bin/lib/dashboard/config\.test\.ts$''']
+regexTarget = "match"
+regexes = ['''token: "ghp_secret123"''']

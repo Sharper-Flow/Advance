@@ -7,7 +7,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { COMMAND_MANIFEST } from "../manifest";
@@ -1035,6 +1035,73 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.gates.discovery.status).toBe("done");
       expect(parsed._recovery).toBeUndefined();
+    });
+
+    test("prefers audited disk recovery gates over stale workflow gates", async () => {
+      const tmp = await mkdtemp(join(tmpdir(), "adv-gate-recovery-audit-"));
+      const changesDir = join(tmp, "changes");
+      const changeDir = join(changesDir, "test-change");
+
+      try {
+        const workflowGates = {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: { status: "pending" },
+        } as import("../types").Gates;
+        const recoveredDiskGates = {
+          ...workflowGates,
+          release: {
+            status: "done",
+            completed_at: "2026-01-01T00:00:00Z",
+            completed_by: "adv-archive",
+            recovery_audit: {
+              reason: "completed_workflow_release_gate_recovery",
+              evidence:
+                "workflow execution already completed | WorkflowNotFoundError",
+              recovered_at: "2026-01-01T00:00:01Z",
+            },
+          },
+        } as import("../types").Gates;
+        const store = createMockStore({ gates: recoveredDiskGates });
+        store.paths.changes = changesDir;
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(
+          join(changeDir, "change.json"),
+          JSON.stringify(
+            {
+              id: "test-change",
+              title: "Test Change",
+              status: "archived",
+              created_at: "2026-01-01T00:00:00Z",
+              created_by: "test",
+              tasks: [],
+              deltas: {},
+              wisdom: [],
+              gates: recoveredDiskGates,
+            },
+            null,
+            2,
+          ),
+        );
+
+        mocks.querySignal.mockResolvedValueOnce(workflowGates);
+
+        const result = await gateTools.adv_gate_status.execute(
+          { changeId: "test-change" },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.gates.release.status).toBe("done");
+        expect(parsed.canArchive).toBe(true);
+        expect(parsed._recovery).toEqual({ reason: "poisoned_history" });
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
     });
 
     test("strips phantom artifact evidence paths while preserving readable materialized paths", async () => {
