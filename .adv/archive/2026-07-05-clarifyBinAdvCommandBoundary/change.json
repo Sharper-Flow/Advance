@@ -1,0 +1,754 @@
+{
+  "id": "clarifyBinAdvCommandBoundary",
+  "title": "Clarify bin/adv command boundary",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-05T01:43:56.614Z",
+  "tasks": [
+    {
+      "id": "tk-c0c991e1ccc2",
+      "title": "Clarify bin/adv help/header and dry-run mutation plan",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-05T02:57:45.352Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6",
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T03:04:24.482Z",
+      "verification": "RED: bun test bin/dashboard-cli.test.ts failed on missing COMMAND BOUNDARY/help and dry-run mutation-plan wording. GREEN: bun test bin/dashboard-cli.test.ts passed (7 tests, 31 expects).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/adv",
+        "bin/dashboard-cli.test.ts"
+      ],
+      "touched_files": [
+        "bin/adv",
+        "bin/dashboard-cli.test.ts"
+      ],
+      "checkpointSha": "b62bdf87f12a789464ca937e0a9a6401a1bc3a9b",
+      "completedAt": "2026-07-05T03:06:11.489Z",
+      "completed_at": "2026-07-05T03:06:11.489Z"
+    },
+    {
+      "id": "tk-0e9f7c945a4f",
+      "title": "Update README and compact CLI boundary docs",
+      "type": "docs",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-05T02:58:01.897Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c0c991e1ccc2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC6",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T03:06:43.220Z",
+      "verification": "Static check passed: README includes mutating install wording and dry-run preview; cli-surface matrix includes bin/adv subcommand boundary and dashboard install mutation row. Initial static command failed due shell backtick quoting, retried with safe quoting and passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "README.md",
+        "docs/cli-surface-matrix.md"
+      ],
+      "touched_files": [
+        "README.md",
+        "docs/cli-surface-matrix.md"
+      ],
+      "checkpointSha": "f37e02fcbdaa0fd3cb83b084258d555e1d998602",
+      "completedAt": "2026-07-05T03:08:17.963Z",
+      "completed_at": "2026-07-05T03:08:17.963Z"
+    },
+    {
+      "id": "tk-25ae0ea8fd38",
+      "title": "Run targeted CLI boundary verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-05T02:58:18.766Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c0c991e1ccc2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0e9f7c945a4f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T03:08:26.270Z",
+      "verification": "Release harden reviewer returned READY and made scoped stale-heading fix in AGENTS.md. Reviewer checks: stale wording searches passed, bun test bin/dashboard-cli.test.ts bin/adv.test.ts passed (23 pass, 89 expects), bin/oc-test targeted -- src/cli-surface-matrix.test.ts passed (2 pass), diff scoped to expected files.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "AGENTS.md"
+      ],
+      "touched_files": [
+        "AGENTS.md"
+      ],
+      "checkpointSha": "c0e1f701c7e9cecdf07d7c8180b9747c04cc5d20",
+      "completedAt": "2026-07-05T03:21:41.500Z",
+      "completed_at": "2026-07-05T03:21:41.500Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "clarifyBinAdvCommandBoundary",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation-bin-adv-boundary"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — clarify bin/adv read-only vs mutating dashboard install boundary",
+      "sources": [
+        {
+          "label": "bin/adv header + help + install + dry-run",
+          "locator": "/home/jon/dev/advance/bin/adv:3-7,395-425,459-510,536-588",
+          "summary": "Header line 5 states 'Read-only terminal client' (overstated). runDashboardInstall (412-423) writes config/unit + runs systemctl enable --now (genuine mutation). renderDashboardInstallPlan (499-509) currently starts with 'install <svc>' — no MUTATION PLAN heading, no 'No changes were made' line. runHelp (536-588) lists read-only and mutating subcommands together with no COMMAND BOUNDARY section; --dry-run help (573) is generic."
+        },
+        {
+          "label": "bin/dashboard-cli.test.ts existing coverage",
+          "locator": "/home/jon/dev/advance/bin/dashboard-cli.test.ts:22-27,105-139",
+          "summary": "Help test only asserts 'dashboard' and '--config <path>' present. Install dry-run test asserts service name/config path/systemctl line but NOT a mutation-plan heading or no-changes line. Confirms AC3/AC5 changes are needed and testable; no existing test locks the current overstated wording."
+        },
+        {
+          "label": "README local dashboard section",
+          "locator": "/home/jon/dev/advance/README.md:149-247",
+          "summary": "Already lists write targets (161-162) and systemctl commands (167-168) and labels dashboard server read-only (151,245-247). Does NOT explicitly label 'dashboard install' as the mutating step nor show a --dry-run preview example. AC4 change needed and consistent with existing doc structure."
+        },
+        {
+          "label": "advance-meta spec — installer authority law",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-meta/spec.json:153,261-314",
+          "summary": "rq (line 153) constrains scripts/deploy-local.sh CLI installer ('must not add CLI mutation authority'); this governs the deploy-local install of the adv CLI, not the pre-existing dashboard install subcommand. rq-dashboardWorkerFree01 requires dashboard /api/state stay read-only/worker-free — unaffected since design makes no server changes. No spec-law conflict."
+        },
+        {
+          "label": "CLI surface matrix",
+          "locator": "/home/jon/dev/advance/docs/cli-surface-matrix.md:17-129",
+          "summary": "Matrix covers /adv-* commands and adv_* tools only; has no row for bin/adv 'dashboard' or 'dashboard install' subcommands. CI test cli-surface-matrix.test.ts enforces /adv-* and adv_* coverage, not bin/adv subcommands, so absence is not a CI break — but the matrix is silent on the only mutating bin/adv subcommand."
+        },
+        {
+          "label": "SETUP.md CLI description",
+          "locator": "/home/jon/dev/advance/SETUP.md:1108",
+          "summary": "Describes adv as 'Standalone terminal client' — does not overstate whole-CLI read-only, so not a blocker. Design AC scope excludes SETUP.md; low-value optional follow-up only."
+        }
+      ],
+      "architecture_assessment": "The design correctly diagnoses this as a documentation/help/test ambiguity, not a behavioral bug. Evidence confirms bin/adv:5 overstates the whole CLI as read-only while runDashboardInstall genuinely mutates (writes files + systemctl enable --now). The chosen approach — keep CLI shape, fix header/help/dry-run/README wording plus lock with tests — is the minimal boring solution and maps cleanly to all six ACs. Rejected alternatives (split binary, remove install, interactive confirm) are correctly declined: split/remove are heavier and constraint-violating; interactive confirm would change behavior/automation (violates C2/C5). No spec-law conflict: the advance-meta installer-authority law targets deploy-local.sh, not the dashboard install subcommand, and no new mutating CLI surface is added (respects C3). Server/systemd behavior is untouched beyond dry-run text (respects C2, AC6, rq-dashboardWorkerFree01). Two non-blocking gaps: (1) CLI surface matrix has no bin/adv dashboard-install row and design doesn't add one — matrix stays silent on the only mutating bin/adv subcommand though CI won't fail; (2) SETUP.md:1108 also describes the CLI but is neutral, so out-of-scope omission is acceptable.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is READY_WITH_NOTES. All six ACs are traceable to concrete file:line edits and are testable. Current tests do not lock the overstated wording, so AC2/AC3/AC5 changes will not collide with an unaccounted test. No spec-law conflict. Two non-blocking notes: consider adding a bin/adv dashboard-install disposition row to docs/cli-surface-matrix.md (it currently omits the only mutating bin/adv subcommand), and optionally align SETUP.md:1108 CLI description if the mutation boundary should be visible in the primary install doc. Neither is required to satisfy the approved contract."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "String/help/docs/test-only change keeps blast radius minimal but leaves the mutation boundary heuristic (prose in help/header) rather than structural — a reader who skips help can still invoke the mutating install; acceptable given the explicit 'install' verb + --dry-run already provide structural affordance.",
+          "Locking help/dry-run wording in tests prevents regression but couples test assertions to exact heading strings; mitigated by asserting stable substrings (e.g. 'MUTATION PLAN', 'No changes were made') rather than full output.",
+          "Not updating the CLI surface matrix keeps the change tightly scoped but leaves the governance matrix silent on the only mutating bin/adv subcommand."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Split dashboard install into a separate binary/command namespace",
+            "disposition": "rejected",
+            "rationale": "Heavier than needed; the explicit 'install' verb plus existing --dry-run already establish a structural boundary once wording is corrected. Would also expand scope beyond the clarity-only contract (C5)."
+          },
+          {
+            "option": "Add interactive confirmation before install mutation",
+            "disposition": "rejected",
+            "rationale": "Changes runtime behavior and breaks automation/systemd install flows; violates C2 (no systemd behavior change beyond wording) and C5 (scope)."
+          },
+          {
+            "option": "Add a bin/adv dashboard-install row to docs/cli-surface-matrix.md as part of this change",
+            "disposition": "deferred",
+            "rationale": "Improves governance completeness and is low-cost, but not required by any AC and CI does not enforce bin/adv subcommand matrix coverage. Surface as an optional in-scope campsite improvement or a follow-up, not a blocker."
+          }
+        ],
+        "recommendation": "Proceed to planning with verdict READY_WITH_NOTES. Keep the design as-is; during prep, (1) assert stable substrings for the mutation-plan heading and no-changes line rather than full-output equality, (2) add a static/help test for AC2 that verifies the top-of-file header no longer claims the whole CLI is read-only, and (3) optionally add a bin/adv dashboard-install disposition row to docs/cli-surface-matrix.md as an adjacent campsite improvement."
+      },
+      "recommendation": "READY_WITH_NOTES — design is architecturally sound, spec-law compliant, and maps all six ACs to concrete testable edits. No blockers. Recommend two optional non-blocking additions during planning: a bin/adv dashboard-install row in docs/cli-surface-matrix.md, and assert stable substrings in the dry-run/help tests to avoid brittle full-output coupling.",
+      "follow_ups": [
+        "Optional: add bin/adv 'dashboard install' disposition row (mutating/no-cli-dangerous-equivalent) to docs/cli-surface-matrix.md — currently the matrix omits the only mutating bin/adv subcommand.",
+        "Optional: align SETUP.md:1108 CLI description with the clarified mutation boundary if the boundary should be visible in the primary install doc (out of current AC scope)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "clarifyBinAdvCommandBoundary",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/clarifyBinAdvCommandBoundary",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bun test bin/dashboard-cli.test.ts bin/adv.test.ts",
+          "bin/oc-test targeted -- src/cli-surface-matrix.test.ts",
+          "bun bin/adv --help && bun bin/adv dashboard install --dry-run --profile pokeedge --home /home/example"
+        ],
+        "results": "pass",
+        "evidence": "Reviewed bin/adv, bin/dashboard-cli.test.ts, bin/adv.test.ts, README.md, docs/cli-surface-matrix.md, and plugin/src/cli-surface-matrix.test.ts. Bun CLI tests passed: 23 tests, 89 expects. Matrix test passed: 2 tests. Manual help/dry-run command showed COMMAND BOUNDARY, mutation-plan heading, file write targets, and systemctl --user actions; dry-run returned plan only. runDashboardInstall still gates mkdir/writeFile/systemctl behind dryRun=false, preserving non-dry-run behavior aside from wording/output."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "clarifyBinAdvCommandBoundary",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/clarifyBinAdvCommandBoundary",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "AGENTS.md",
+          "summary": "Replaced stale `bin/adv` heading that described the whole CLI as a read-only status CLI with wording that says the CLI has explicit subcommand boundaries.",
+          "verification": "`lgrep_search_text` for `read-only status CLI` returned no results; `bun test bin/dashboard-cli.test.ts bin/adv.test.ts` passed 23 tests/89 expects; `bin/oc-test targeted -- src/cli-surface-matrix.test.ts` passed 2 tests."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e checks for bin/adv, bin/dashboard-cli.test.ts, README.md, docs/cli-surface-matrix.md",
+          "git status --short; git diff --stat origin/trunk...HEAD; git diff --name-only origin/trunk...HEAD",
+          "lgrep_search_text: Read-only terminal client; read-only; read-only status CLI; OCA; performance",
+          "bun test bin/dashboard-cli.test.ts bin/adv.test.ts",
+          "bin/oc-test targeted -- src/cli-surface-matrix.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Preflight found all referenced files. Branch diff vs origin/trunk is scoped to README.md, bin/adv, bin/dashboard-cli.test.ts, docs/cli-surface-matrix.md; local hardening fix additionally updates AGENTS.md. `Read-only terminal client` remains only as a negative test assertion; `read-only status CLI` has no hits. OCA/performance scans did not show new in-scope branch content. Bun CLI tests passed: 23 pass, 0 fail, 89 expects. CLI surface matrix targeted Vitest passed: 2 pass, 0 fail."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is intentionally dirty after hardening fix to AGENTS.md; orchestrator should capture/commit/checkpoint this repo change before release/archive.",
+        "Full repo check not rerun; bounded release-hardening verification targeted touched CLI/docs surfaces."
+      ],
+      "required_main_agent_actions": [
+        "Capture the AGENTS.md hardening fix in the change before release/archive.",
+        "Do not revisit dashboard install behavior: review found only dry-run/help/docs wording changes; non-dry-run install path still writes config/unit and runs the same systemctl commands."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-05T01:47:31.305Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved proposal/problem statement: \"approve\"",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "b746f5ae2cf45a886c24de54520e1d9a8b9683e9e2eb7ca6213ab7b6be77e778",
+        "non_whitespace_chars": 2096,
+        "checked_at": "2026-07-05T01:43:56.686Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-05T02:52:35.281Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved agreement/discovery: \"approve\"; typed contract minted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "non_whitespace_chars": 2649,
+        "checked_at": "2026-07-05T01:43:56.687Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-05T02:57:22.467Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Mandatory independent adv-researcher validation returned READY_WITH_NOTES; notes incorporated. No validator CONFLICT, user-value tradeoff, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "a02fde38612b0a6ff9af9a31061cbc3fd72406c9931cfc1536b806f61b526372",
+        "non_whitespace_chars": 3559,
+        "checked_at": "2026-07-05T01:43:56.688Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-05T03:04:07.795Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved prep task graph: \"approve\""
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-05T03:09:57.827Z",
+      "completed_by": "agent",
+      "approval_evidence": "All three planned tasks done with checkpoints. Verification passed: bun dashboard/adv CLI tests 23 passed; cli-surface-matrix targeted plugin test 2 passed; static boundary check passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-05T03:16:08.953Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved acceptance after implementation/review evidence: \"approve\"",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "4adc23e8b19ea6a6b28bbb6915cbdf7aa8a3e8d1c4aa098773cb1fa795a95034",
+        "non_whitespace_chars": 1235,
+        "checked_at": "2026-07-05T01:43:56.689Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+      "approvedAt": "2026-07-05T02:52:27.199Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`bin/adv --help` includes a command-boundary statement that explicitly says most commands are read-only, while `dashboard install` mutates local user configuration/service state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "The top-of-file CLI description no longer says or implies the entire `adv` CLI is read-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`dashboard install --dry-run --profile pokeedge --home /home/example` output includes a clear mutation-plan heading and lists both file write targets and `systemctl --user` actions without performing them.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "README local dashboard docs explicitly identify `dashboard install` as the mutating install step and mention `--dry-run` as the preview path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Tests assert the help boundary language and dry-run mutation-plan language.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Existing dashboard server behavior remains read-only and its help/docs still say local dashboard binds to loopback by default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not remove `dashboard install`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not change systemd install behavior except wording/output needed to clarify mutation boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not add new mutating CLI surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not introduce OCA-specific read-surface/API work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep change scoped to command-boundary clarity and tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Dashboard service redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Status/roadmap/slop-scan performance optimization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Archived listing timeout work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Status health-probe TTL work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Broader CLI architecture refactor.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-05T03:14:33.169Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bun test bin/dashboard-cli.test.ts` and final `bun test bin/dashboard-cli.test.ts bin/adv.test.ts` passed. Help test asserts `COMMAND BOUNDARY`, `Most commands are read-only diagnostics/scanners`, and `dashboard install mutates local user configuration/service state`."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/dashboard-cli.test.ts` static test asserts `bin/adv` source no longer contains `Read-only terminal client` and contains `dashboard install mutates local user service configuration`."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Dry-run test asserts `MUTATION PLAN: dashboard install`, `No changes were made (--dry-run).`, config path, `systemctl --user daemon-reload`, and `systemctl --user enable --now adv-dashboard-pokeedge.service`."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Static check passed: README contains `preview the mutating install step first`, `bin/adv dashboard install --profile pokeedge --dry-run`, and `This mutating install writes local user configuration/service files`."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Dashboard CLI tests lock help boundary, header wording, and dry-run mutation-plan substrings. Final `bun test bin/dashboard-cli.test.ts bin/adv.test.ts` passed (23 tests, 89 expects)."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Help test still asserts `dashboard            Run local read-only ADV/GitHub dashboard` and `Bind host (default: 127.0.0.1)`. No dashboard server code changed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`dashboard install` remains present; only wording/dry-run output changed."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No `runDashboardInstall` non-dry-run behavior changed; changed header/help and `renderDashboardInstallPlan()` dry-run output only."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new CLI subcommands or mutating surfaces added."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No OCA-specific read-surface/API references added."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Touched files limited to `bin/adv`, `bin/dashboard-cli.test.ts`, `README.md`, and `docs/cli-surface-matrix.md`."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No dashboard service redesign performed."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No status/roadmap/slop-scan performance optimization performed."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No archived listing timeout work performed."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No status health-probe TTL work performed."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broader CLI architecture refactor performed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`bin/adv --help` includes a command-boundary statement that explicitly says most commands are read-only, while `dashboard install` mutates local user configuration/service state.",
+    "The top-of-file CLI description no longer says or implies the entire `adv` CLI is read-only.",
+    "`dashboard install --dry-run --profile pokeedge --home /home/example` output includes a clear mutation-plan heading and lists both file write targets and `systemctl --user` actions without performing them.",
+    "README local dashboard docs explicitly identify `dashboard install` as the mutating install step and mention `--dry-run` as the preview path.",
+    "Tests assert the help boundary language and dry-run mutation-plan language.",
+    "Existing dashboard server behavior remains read-only and its help/docs still say local dashboard binds to loopback by default."
+  ],
+  "documents": {
+    "proposal": "# Clarify bin/adv command boundary\n\n## Summary\n\nClarify `bin/adv` command boundaries so operator-facing text distinguishes read-only commands from mutating dashboard service installation.\n\n## Problem\n\n`bin/adv` identifies itself as a \"Read-only terminal client\" at the file header, but the same CLI contains `dashboard install`, which writes user config and systemd user service files, runs `systemctl --user daemon-reload`, and enables/starts the service. This creates a safety and operator-expectation mismatch: users and agents may treat the whole CLI as read-only even though one subcommand mutates local user state.\n\n## Evidence\n\n- `bin/adv:3-7` describes `adv` as a read-only terminal client.\n- `bin/adv:412-423` creates directories, writes config/unit files, reloads systemd, and enables/starts a user service.\n- `bin/adv:543-550` lists read/status commands next to `dashboard install`.\n- `bin/adv:571-573` documents `--dry-run` for install/doctor, which implies mutation exists but the top-level framing still says read-only.\n- `README.md:156` references `bin/adv dashboard install --profile pokeedge`.\n\n## Why now\n\nThis is the second Epic entry after slop-scan correctness. Before optimizing or refactoring the CLI/status path, the command boundary should be explicit so future work preserves safe operator expectations.\n\n## Intended outcome\n\nA clear, tested CLI/documentation contract:\n\n- Read-only commands remain clearly identified as read-only.\n- Mutating dashboard installation is explicitly labeled as mutating local user state.\n- Dry-run behavior remains available and documented for installation planning.\n- Help/docs/tests no longer imply the entire CLI is read-only.\n\n## Scope\n\n- Inspect current `bin/adv` command/help text and dashboard install docs/tests.\n- Update source comments/help/docs/tests to distinguish read-only vs mutating subcommands.\n- Add or update tests that lock the boundary language.\n- Keep implementation minimal unless discovery finds a real safety gap.\n\n## Out of scope\n\n- Removing `dashboard install`.\n- Redesigning dashboard service management.\n- Changing systemd behavior unless current help/docs are actively misleading about dry-run or mutation.\n- Performance optimization work from later Epic entries.\n- OCA-specific read-surface work.\n\n## Epic context\n\nEpic: `optimizeAdvPerformanceStructure`, entry 2.\n\nPrevious completed entry: `makeDegradedSlopScanFailFast` archived successfully.\n",
+    "problemStatement": "## Problem\n\n`bin/adv` has a command-boundary ambiguity: top-level source text says \"Read-only terminal client\", but `dashboard install` mutates local user state by writing dashboard config/service files and enabling a systemd user service.\n\n## User-visible risk\n\nOperators and agents may over-trust the CLI as read-only, then run a mutating subcommand without the expected mental model. This is especially risky because `dashboard install` affects user-level service configuration.\n\n## Success Criteria\n\n- Top-level CLI/help/docs no longer imply the whole `bin/adv` surface is read-only.\n- Read-only subcommands and mutating subcommands are explicitly distinguished.\n- `dashboard install` mutation targets and `--dry-run` safety path are clear in help/docs.\n- Tests or asset checks lock the wording so the ambiguity does not regress.\n",
+    "agreement": "# Agreement — Clarify bin/adv command boundary\n\n## Discovery disposition\n\nCurrent evidence supports a documentation/help/test ambiguity, not a behavioral bug. `bin/adv dashboard` itself is read-only, but `bin/adv dashboard install` is intentionally mutating. The problem is that the top-level CLI framing says the whole CLI is read-only.\n\n## Evidence\n\n- `bin/adv:3-7` describes `adv` as a \"Read-only terminal client\".\n- `bin/adv:412-423` shows `dashboard install` creates directories, writes dashboard config/service files, runs `systemctl --user daemon-reload`, and runs `systemctl --user enable --now`.\n- `bin/adv:543-550` lists read-only and mutating subcommands together.\n- `bin/adv:571-573` documents `--dry-run` for install/doctor, but does not clearly label install as mutating.\n- `README.md:149-169` documents local dashboard install and already lists write/systemctl targets.\n- `bin/dashboard-cli.test.ts:105-121` covers install dry-run output and mutation plan lines.\n- `docs/cli-surface-matrix.md:21-25` classifies `status`, `roadmap`, and `slop-scan` as CLI bridge/additive read/scanner surfaces, but does not describe `bin/adv dashboard install` as a mutating CLI subcommand.\n\n## Objectives\n\n1. Remove or qualify the misleading top-level \"Read-only terminal client\" framing.\n2. Make `bin/adv --help` explicitly distinguish read-only commands from mutating dashboard install.\n3. Make `dashboard install --dry-run` output clearly identify planned writes and systemctl actions before mutation.\n4. Keep `dashboard` server itself documented as local read-only web UI.\n5. Lock the wording with tests so future help/header changes do not regress the boundary.\n\n## Acceptance Criteria\n\n- AC1: `bin/adv --help` includes a command-boundary statement that explicitly says most commands are read-only, while `dashboard install` mutates local user configuration/service state.\n- AC2: The top-of-file CLI description no longer says or implies the entire `adv` CLI is read-only.\n- AC3: `dashboard install --dry-run --profile pokeedge --home /home/example` output includes a clear mutation-plan heading and lists both file write targets and `systemctl --user` actions without performing them.\n- AC4: README local dashboard docs explicitly identify `dashboard install` as the mutating install step and mention `--dry-run` as the preview path.\n- AC5: Tests assert the help boundary language and dry-run mutation-plan language.\n- AC6: Existing dashboard server behavior remains read-only and its help/docs still say local dashboard binds to loopback by default.\n\n## Constraints\n\n- Do not remove `dashboard install`.\n- Do not change systemd install behavior except wording/output needed to clarify mutation boundaries.\n- Do not add new mutating CLI surfaces.\n- Do not introduce OCA-specific read-surface/API work.\n- Keep change scoped to command-boundary clarity and tests.\n\n## Out of scope\n\n- Dashboard service redesign.\n- Status/roadmap/slop-scan performance optimization.\n- Archived listing timeout work.\n- Status health-probe TTL work.\n- Broader CLI architecture refactor.\n",
+    "design": "# Design — Clarify `bin/adv` read/mutate boundary\n\n## Decision\n\nKeep the existing CLI shape and behavior. Fix the ambiguity through precise command-boundary wording, dry-run output wording, README wording, and tests.\n\nNo new command split is needed for this change because `dashboard install` already has `--dry-run`, an explicit `install` verb, and existing tests around planned writes. The bug is that top-level/help text overstates the entire CLI as read-only.\n\n## Independent validation\n\n`adv-researcher` verdict: `READY_WITH_NOTES`, confidence high, risk low.\n\nValidator notes incorporated:\n\n1. Tests should assert stable substrings (`MUTATION PLAN`, `No changes were made`) rather than full output equality.\n2. Add a static/help test for AC2 so the header no longer claims the whole CLI is read-only.\n3. Optional campsite: add a small `bin/adv` subcommand boundary section to `docs/cli-surface-matrix.md`; it is not required by existing matrix tests but improves discoverability.\n\n## Implementation plan\n\n### `bin/adv`\n\n1. Replace the file header description:\n   - from: \"Read-only terminal client...\"\n   - to: wording that says status/roadmap/epic/list/dashboard reads are read-only, while `dashboard install` mutates local user service configuration.\n2. Add a `COMMAND BOUNDARY` section in `runHelp()` before `SUBCOMMANDS`:\n   - Most commands are read-only diagnostics/scanners.\n   - `dashboard install` mutates local user state by writing config/unit files and enabling a systemd user service.\n   - Use `dashboard install --dry-run` to preview writes/checks.\n3. Update the `dashboard install` subcommand row to mention it is mutating.\n4. Update `--dry-run` flag help from generic \"planned writes/checks\" to explicit preview-before-mutation wording.\n5. Update `renderDashboardInstallPlan()` to start with a clear heading, e.g. `MUTATION PLAN: dashboard install` and `No changes were made (--dry-run).`, while preserving the existing file paths and systemctl commands.\n\n### `README.md`\n\nIn Local dashboard section:\n\n- Keep `bin/adv dashboard` documented as local read-only web dashboard.\n- Label `bin/adv dashboard install --profile pokeedge` as the mutating install step.\n- Add `--dry-run` preview example before the real install command.\n- Keep existing write target and systemctl lists.\n\n### `docs/cli-surface-matrix.md`\n\nAdd a compact `bin/adv` subcommand boundary section if it fits cleanly:\n\n- read-only: `status`, `roadmap`, `slop-scan`, `epic list`, `dashboard`, `dashboard doctor`\n- mutating local user state: `dashboard install`\n\nThis is campsite documentation only; do not expand into a larger CLI architecture matrix.\n\n### Tests\n\nUpdate `bin/dashboard-cli.test.ts`:\n\n- Help test asserts command-boundary statement.\n- Help test asserts `dashboard install` is marked mutating.\n- Header/static test asserts the top file no longer claims the whole CLI is a \"Read-only terminal client\".\n- Dry-run install test asserts mutation-plan heading and no-changes line using stable substrings.\n- Existing path/systemctl assertions remain.\n\nNo runtime/systemd behavior changes are intended beyond dry-run text output.\n\n## Contract mapping\n\n- AC1: help test asserts explicit command-boundary statement.\n- AC2: source/header static test asserts no whole-CLI read-only claim.\n- AC3: dry-run test asserts mutation-plan heading, no-changes line, write targets, and systemctl actions.\n- AC4: README edit labels install as mutating and shows dry-run preview.\n- AC5: dashboard CLI tests lock help + dry-run wording.\n- AC6: existing dashboard help still says local dashboard is read-only and default host is `127.0.0.1`; no server code changes.\n\n## Alternatives considered\n\n1. Split `dashboard install` into another binary.\n   - Rejected: heavier than needed; `install` verb and `--dry-run` already provide a good boundary once wording is fixed.\n2. Remove `dashboard install`.\n   - Rejected by agreement constraint.\n3. Require an interactive confirmation before install.\n   - Rejected for now: would change behavior and automation; current scope is clarity/tests only.\n\n## Risk\n\nLow. Changes are string/help/docs/tests only, except dry-run output text. No real install behavior changes.",
+    "executiveSummary": "# Executive Summary — Clarify bin/adv command boundary\n\n## Outcome\n\n`bin/adv` now distinguishes read-only commands from mutating dashboard installation in source header, help output, dry-run output, README docs, AGENTS.md, and CLI surface docs.\n\n## What changed\n\n- Replaced top-of-file whole-CLI read-only wording with command-specific boundary language.\n- Added `COMMAND BOUNDARY` help section.\n- Marked `dashboard install` as a mutating install in help.\n- Added explicit `MUTATION PLAN: dashboard install` and `No changes were made (--dry-run).` dry-run output.\n- Updated README to show `--dry-run` preview before mutating install and identify local user config/service writes.\n- Added compact `bin/adv` subcommand boundary section to `docs/cli-surface-matrix.md`.\n- Updated AGENTS.md stale heading so developer-facing repo docs no longer call `bin/adv` read-only status CLI.\n- Added tests for help boundary, header wording, dry-run mutation plan, and loopback/read-only dashboard wording.\n\n## Verification\n\n- `bun test bin/dashboard-cli.test.ts` — passed: 7 tests, 31 expects.\n- `bun test bin/dashboard-cli.test.ts bin/adv.test.ts` — passed: 23 tests, 89 expects.\n- `../bin/oc-test targeted -- src/cli-surface-matrix.test.ts` — passed: 2 tests.\n- Static command verified old read-only header removed, help boundary present, dry-run mutation plan present, README dry-run preview present.\n- Release harden stale wording searches passed: no `read-only status CLI`; `Read-only terminal client` appears only in a negative test assertion.\n\n## Review\n\nAcceptance reviewer verdict: `READY`; no findings and no changes made.\n\nRelease harden reviewer verdict: `READY`; no blocking or nonblocking findings. Reviewer made one scoped stale-heading fix in AGENTS.md.\n\n## Release Readiness Summary\n\n- Worktree clean after harden checkpoint `c0e1f701`.\n- Diff scoped to expected command-boundary files.\n- Help/docs boundary wording present.\n- Dry-run mutation plan wording present.\n- Non-dry-run install behavior unchanged.\n- No OCA, performance, or unrelated Epic work detected.\n- No open release blockers or required follow-ups for this change.\n\n## Remaining concerns\n\nNone for this change. Later Epic entries remain future work.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-05T03:14:33.169Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `bin/adv --help` includes a command-boundary statement that explicitly says most commands are read-only, while `dashboard install` mutates local user configuration/service state. | pass | `bun test bin/dashboard-cli.test.ts` and final `bun test bin/dashboard-cli.test.ts bin/adv.test.ts` passed. Help test asserts `COMMAND BOUNDARY`, `Most commands are read-only diagnostics/scanners`, and `dashboard install mutates local user configuration/service state`. |\n| AC2 | acceptance_criterion | The top-of-file CLI description no longer says or implies the entire `adv` CLI is read-only. | pass | `bin/dashboard-cli.test.ts` static test asserts `bin/adv` source no longer contains `Read-only terminal client` and contains `dashboard install mutates local user service configuration`. |\n| AC3 | acceptance_criterion | `dashboard install --dry-run --profile pokeedge --home /home/example` output includes a clear mutation-plan heading and lists both file write targets and `systemctl --user` actions without performing them. | pass | Dry-run test asserts `MUTATION PLAN: dashboard install`, `No changes were made (--dry-run).`, config path, `systemctl --user daemon-reload`, and `systemctl --user enable --now adv-dashboard-pokeedge.service`. |\n| AC4 | acceptance_criterion | README local dashboard docs explicitly identify `dashboard install` as the mutating install step and mention `--dry-run` as the preview path. | pass | Static check passed: README contains `preview the mutating install step first`, `bin/adv dashboard install --profile pokeedge --dry-run`, and `This mutating install writes local user configuration/service files`. |\n| AC5 | acceptance_criterion | Tests assert the help boundary language and dry-run mutation-plan language. | pass | Dashboard CLI tests lock help boundary, header wording, and dry-run mutation-plan substrings. Final `bun test bin/dashboard-cli.test.ts bin/adv.test.ts` passed (23 tests, 89 expects). |\n| AC6 | acceptance_criterion | Existing dashboard server behavior remains read-only and its help/docs still say local dashboard binds to loopback by default. | pass | Help test still asserts `dashboard            Run local read-only ADV/GitHub dashboard` and `Bind host (default: 127.0.0.1)`. No dashboard server code changed. |\n| C1 | constraint | Do not remove `dashboard install`. | respected | `dashboard install` remains present; only wording/dry-run output changed. |\n| C2 | constraint | Do not change systemd install behavior except wording/output needed to clarify mutation boundaries. | respected | No `runDashboardInstall` non-dry-run behavior changed; changed header/help and `renderDashboardInstallPlan()` dry-run output only. |\n| C3 | constraint | Do not add new mutating CLI surfaces. | respected | No new CLI subcommands or mutating surfaces added. |\n| C4 | constraint | Do not introduce OCA-specific read-surface/API work. | respected | No OCA-specific read-surface/API references added. |\n| C5 | constraint | Keep change scoped to command-boundary clarity and tests. | respected | Touched files limited to `bin/adv`, `bin/dashboard-cli.test.ts`, `README.md`, and `docs/cli-surface-matrix.md`. |\n| OOS1 | out_of_scope | Dashboard service redesign. | not_applicable | No dashboard service redesign performed. |\n| OOS2 | out_of_scope | Status/roadmap/slop-scan performance optimization. | not_applicable | No status/roadmap/slop-scan performance optimization performed. |\n| OOS3 | out_of_scope | Archived listing timeout work. | not_applicable | No archived listing timeout work performed. |\n| OOS4 | out_of_scope | Status health-probe TTL work. | not_applicable | No status health-probe TTL work performed. |\n| OOS5 | out_of_scope | Broader CLI architecture refactor. | not_applicable | No broader CLI architecture refactor performed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-05T01:44:54.374Z",
+      "contentHash": "b746f5ae2cf45a886c24de54520e1d9a8b9683e9e2eb7ca6213ab7b6be77e778",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-05T01:44:54.374Z",
+      "contentHash": "8ed683ba4c24f4b9e99c528e5817fee14f7ef6cb7137d05411b8924d9f89ee5b",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-05T01:48:49.538Z",
+      "contentHash": "fde023f7e9e55f3d3ff3ee4b750b2f312ff231bba500c55c17a47160cd6fd2d5",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-05T02:57:13.284Z",
+      "contentHash": "a02fde38612b0a6ff9af9a31061cbc3fd72406c9931cfc1536b806f61b526372",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-05T03:22:22.206Z",
+      "contentHash": "0d3156b53ad24801d7296e6e241bff04f683889646f1cdf6ade4b070bf0f17e9",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-05T03:22:22.206Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "optimizeAdvPerformanceStructure",
+    "entry_id": "shell-1783186808914-sxb03b",
+    "order": 1,
+    "title": "Clarify bin/adv command boundary",
+    "linked_at": "2026-07-05T01:43:56.550Z"
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-05T01:47:43.851Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
