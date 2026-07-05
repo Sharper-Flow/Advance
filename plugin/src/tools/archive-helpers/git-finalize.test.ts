@@ -149,6 +149,37 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  it("detectDefaultBranch ignores global init.defaultBranch when local config is absent", () => {
+    const calls: string[][] = [];
+
+    const result = detectDefaultBranch("/repo", {
+      runGit: (_cwd, args) => {
+        calls.push(args);
+        if (args[0] === "symbolic-ref") {
+          return { status: 1, stdout: "", stderr: "missing origin HEAD" };
+        }
+        if (args[0] === "config" && args.includes("--local")) {
+          return { status: 1, stdout: "", stderr: "not set locally" };
+        }
+        if (args[0] === "config") {
+          return { status: 0, stdout: "main\n", stderr: "" };
+        }
+        if (args[0] === "rev-parse" && args[2] === "refs/heads/trunk") {
+          return { status: 0, stdout: "trunk-sha\n", stderr: "" };
+        }
+        return { status: 1, stdout: "", stderr: "not found" };
+      },
+    });
+
+    expect(result).toEqual({ branch: "trunk", source: "local-trunk" });
+    expect(calls).toContainEqual([
+      "config",
+      "--local",
+      "--get",
+      "init.defaultBranch",
+    ]);
+  });
+
   it("verifyMainInvariants reports branch mismatch and dirty files", async () => {
     const repo = join(tempRoot, "repo");
     await mkdir(repo);

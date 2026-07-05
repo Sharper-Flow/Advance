@@ -46,6 +46,30 @@ const mocks = vi.hoisted(() => {
     close: vi.fn(),
   };
 
+  const withTargetPathStore = vi.fn(async (_input: unknown, fn: unknown) => {
+    const callback = fn as (scope: {
+      context: unknown;
+      store: unknown;
+    }) => Promise<unknown>;
+    return callback({
+      context: {
+        root: "/tmp/target",
+        projectId: "target-project-id",
+        externalRoot: "/tmp/target-external",
+        trusted: false,
+        trustSource: "explicit",
+        stateMode: "temporal",
+      },
+      store: targetStore,
+    });
+  });
+  const withOptionalTargetPathStore = vi.fn(
+    async ({ store }: { store: unknown }, fn: unknown) => {
+      const callback = fn as (store: unknown) => Promise<unknown>;
+      return callback(store);
+    },
+  );
+
   return {
     signalMock,
     queryMock,
@@ -71,23 +95,8 @@ const mocks = vi.hoisted(() => {
     execGh: vi.fn(),
     readGitHubProjectConfig: vi.fn(),
     execGit: vi.fn(),
-    withTargetPathStore: vi.fn(async (_input: unknown, fn: unknown) => {
-      const callback = fn as (scope: {
-        context: unknown;
-        store: unknown;
-      }) => Promise<unknown>;
-      return callback({
-        context: {
-          root: "/tmp/target",
-          projectId: "target-project-id",
-          externalRoot: "/tmp/target-external",
-          trusted: false,
-          trustSource: "explicit",
-          stateMode: "temporal",
-        },
-        store: targetStore,
-      });
-    }),
+    withTargetPathStore,
+    withOptionalTargetPathStore,
     formatTargetProjectContext: vi.fn(
       (context: {
         root: string;
@@ -136,7 +145,7 @@ vi.mock("./target-project", async () => {
       confirmationEvidence: z.string().optional(),
     }),
     withTargetPathStore: mocks.withTargetPathStore,
-    withOptionalTargetPathStore: vi.fn(async ({ store }, fn) => fn(store)),
+    withOptionalTargetPathStore: mocks.withOptionalTargetPathStore,
     formatTargetProjectContext: mocks.formatTargetProjectContext,
     resolveTargetAwareMutationCwd: vi.fn(
       ({ store, target_path }: { store: Store; target_path?: string }) =>
@@ -406,6 +415,98 @@ describe("change tools — signal-driven lifecycle", () => {
         format: "task-id-em-dash-title",
         window: { includeCurrent: true, readyLimit: 3, omitDone: true },
       });
+    });
+
+    test("target artifact readback routes through Temporal-backed target store", async () => {
+      const store = createMockStore();
+      const sourceChange = (await store.changes.get("test-change"))
+        .data as Change;
+      const defaultImpl = mocks.targetStore.changes.get.getMockImplementation();
+      vi.mocked(mocks.targetStore.changes.get).mockResolvedValue({
+        success: true,
+        data: {
+          ...sourceChange,
+          documents: {
+            design: "target-design-from-documents",
+            proposal: "target-proposal-from-documents",
+          },
+        },
+      });
+      mocks.withTargetPathStore.mockClear();
+
+      try {
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            target_path: "/tmp/target",
+            include: { design: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._design).toBe("target-design-from-documents");
+        expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: "/tmp/target",
+            stateRequirement: "temporal-required",
+            mutation: false,
+          }),
+          expect.any(Function),
+        );
+        expect(parsed._projectContext).toMatchObject({ stateMode: "temporal" });
+      } finally {
+        mocks.targetStore.changes.get.mockReset();
+        if (defaultImpl) {
+          mocks.targetStore.changes.get.mockImplementation(defaultImpl);
+        }
+      }
+    });
+
+    test("target show without artifact include flags stays on snapshot path", async () => {
+      const store = createMockStore();
+      mocks.withTargetPathStore.mockClear();
+      mocks.withOptionalTargetPathStore.mockClear();
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", target_path: "/tmp/target" },
+        store,
+      );
+
+      expect(mocks.withTargetPathStore).not.toHaveBeenCalled();
+      expect(mocks.withOptionalTargetPathStore).toHaveBeenCalled();
+      const parsed = JSON.parse(result);
+      expect(parsed.id).toBe("test-change");
+      expect(parsed._projectContext).toBeUndefined();
+    });
+
+    test("target artifact readback fails closed when target Temporal is unreachable", async () => {
+      const store = createMockStore();
+      const defaultImpl = mocks.withTargetPathStore.getMockImplementation();
+      mocks.withTargetPathStore.mockReset();
+      mocks.withTargetPathStore.mockRejectedValueOnce(
+        new Error(
+          "Temporal service layer not initialized; target_path mutations require a Temporal-backed target store: /tmp/target",
+        ),
+      );
+
+      try {
+        await expect(
+          changeTools.adv_change_show.execute(
+            {
+              changeId: "test-change",
+              target_path: "/tmp/target",
+              include: { proposal: true },
+            },
+            store,
+          ),
+        ).rejects.toThrow("Temporal service layer not initialized");
+      } finally {
+        mocks.withTargetPathStore.mockReset();
+        if (defaultImpl) {
+          mocks.withTargetPathStore.mockImplementation(defaultImpl);
+        }
+      }
     });
 
     test("returns persisted task sub-agent reports when include.subagentReports is set", async () => {
@@ -2025,6 +2126,169 @@ describe("change tools — signal-driven lifecycle", () => {
       );
       expect(mocks.removeChangeDir).not.toHaveBeenCalled();
     });
+
+    describe("target_path routing", () => {
+      test("routes target close through target store with temporal-required and confirmation fields", async () => {
+        const store = createMockStore();
+        const sourceChange = (await store.changes.get("test-change"))
+          .data as Change;
+        vi.mocked(mocks.targetStore.changes.get).mockResolvedValueOnce({
+          success: true,
+          data: sourceChange,
+        });
+        mocks.withTargetPathStore.mockClear();
+
+        const result = await changeTools.adv_change_close.execute(
+          {
+            changeId: "test-change",
+            reason: "cancelled",
+            approvedByUser: true,
+            approvalEvidence: "user confirmed target cancellation",
+            target_path: "/tmp/target",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target close",
+          } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: "/tmp/target",
+            stateRequirement: "temporal-required",
+            mutation: true,
+            target_confirmed: true,
+            confirmationEvidence: "user approved target close",
+          }),
+          expect.any(Function),
+        );
+        expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+        expect(mocks.getChangeHandle).toHaveBeenCalledWith(
+          mocks.temporalBundle.client,
+          "target-project-id",
+          "test-change",
+        );
+        const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+        expect(signalCall[1]).toBe(mocks.targetStore);
+        expect(mocks.removeChangeDir).toHaveBeenCalledWith(
+          mocks.targetStore.paths.changes,
+          "test-change",
+        );
+      });
+
+      test("dry-run target close does not signal or cleanup and stays read-only", async () => {
+        const store = createMockStore();
+        const sourceChange = (await store.changes.get("test-change"))
+          .data as Change;
+        vi.mocked(mocks.targetStore.changes.get).mockResolvedValueOnce({
+          success: true,
+          data: sourceChange,
+        });
+        mocks.withTargetPathStore.mockClear();
+
+        const result = await changeTools.adv_change_close.execute(
+          {
+            changeId: "test-change",
+            reason: "cancelled",
+            approvedByUser: true,
+            approvalEvidence: "user confirmed target cancellation",
+            target_path: "/tmp/target",
+            dryRun: true,
+          } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed.dryRun).toBe(true);
+        expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: "/tmp/target",
+            stateRequirement: "temporal-required",
+            mutation: false,
+          }),
+          expect.any(Function),
+        );
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+        expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+        expect(parsed._projectContext).toMatchObject({
+          projectId: "target-project-id",
+          stateMode: "temporal",
+        });
+      });
+
+      test("untrusted target close without confirmation fails before signaling", async () => {
+        const store = createMockStore();
+        mocks.withTargetPathStore.mockRejectedValueOnce(
+          new Error(
+            "Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence before changing target state: /tmp/target",
+          ),
+        );
+
+        const result = await changeTools.adv_change_close.execute(
+          {
+            changeId: "test-change",
+            reason: "cancelled",
+            approvedByUser: true,
+            approvalEvidence: "user confirmed target cancellation",
+            target_path: "/tmp/target",
+          } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.error).toContain("target_confirmed");
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+        expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+      });
+
+      test("recovery path uses target store for completed-workflow close", async () => {
+        const store = createMockStore();
+        const sourceChange = (await store.changes.get("test-change"))
+          .data as Change;
+        vi.mocked(mocks.targetStore.changes.get).mockResolvedValueOnce({
+          success: true,
+          data: sourceChange,
+        });
+        mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+          Object.assign(new Error("workflow execution already completed"), {
+            name: "WorkflowExecutionAlreadyCompleted",
+          }),
+        );
+
+        const result = await changeTools.adv_change_close.execute(
+          {
+            changeId: "test-change",
+            reason: "not_planned",
+            approvedByUser: true,
+            approvalEvidence: "user confirmed stale target close",
+            target_path: "/tmp/target",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target close",
+            recoveryMode: "poisoned_history",
+            recoveryEvidence:
+              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+          } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledWith(
+          expect.objectContaining({
+            store: mocks.targetStore,
+            change: expect.objectContaining({ id: "test-change" }),
+            status: "closed",
+          }),
+        );
+        expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+        expect(parsed._projectContext).toMatchObject({
+          projectId: "target-project-id",
+        });
+      });
+    });
   });
 
   describe("adv_change_bulk_close", () => {
@@ -2273,6 +2537,220 @@ describe("change tools — signal-driven lifecycle", () => {
         ["chg-2"],
         store.paths.changes,
       );
+    });
+
+    describe("target_path routing", () => {
+      const targetDraftChange = (id: string): Change =>
+        ({
+          id,
+          title: `Target ${id}`,
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          created_by: "test",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "pending" },
+            discovery: { status: "pending" },
+            design: { status: "pending" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+        }) as Change;
+
+      beforeEach(() => {
+        vi.mocked(mocks.targetStore.changes.get).mockReset();
+        vi.mocked(mocks.targetStore.changes.list).mockReset();
+        vi.mocked(mocks.targetStore.changes.get).mockImplementation(
+          async (id: string) => ({
+            success: true,
+            data: targetDraftChange(id),
+          }),
+        );
+        vi.mocked(mocks.targetStore.changes.list).mockResolvedValue({
+          changes: [],
+        });
+        mocks.withTargetPathStore.mockClear();
+        mocks.fireSignalAndRefresh.mockClear();
+        mocks.sweepClosedChangesFromDisk.mockClear();
+      });
+
+      test("resolves selection from target store and uses target project ID", async () => {
+        const store = createMockStore();
+
+        const result = await changeTools.adv_change_bulk_close.execute(
+          {
+            selector: {
+              kind: "explicit",
+              changeIds: ["chg-t1", "chg-t2"],
+            },
+            reason: "not_planned",
+            approvedByUser: true,
+            approvalEvidence: "user approved target bulk close",
+            target_path: "/tmp/target",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target bulk close",
+          } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: "/tmp/target",
+            stateRequirement: "temporal-required",
+            mutation: true,
+            target_confirmed: true,
+            confirmationEvidence: "user approved target bulk close",
+          }),
+          expect.any(Function),
+        );
+        expect(mocks.targetStore.changes.get).toHaveBeenCalledWith("chg-t1");
+        expect(mocks.targetStore.changes.get).toHaveBeenCalledWith("chg-t2");
+        expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
+        expect(mocks.getChangeHandle).toHaveBeenCalledWith(
+          mocks.temporalBundle.client,
+          "target-project-id",
+          "chg-t1",
+        );
+        expect(mocks.getChangeHandle).toHaveBeenCalledWith(
+          mocks.temporalBundle.client,
+          "target-project-id",
+          "chg-t2",
+        );
+        const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+        expect(signalCall[1]).toBe(mocks.targetStore);
+        expect(mocks.sweepClosedChangesFromDisk).toHaveBeenCalledWith(
+          ["chg-t1", "chg-t2"],
+          mocks.targetStore.paths.changes,
+        );
+      });
+
+      test("untrusted target bulk close fails before signaling when confirmation missing", async () => {
+        const store = createMockStore();
+        mocks.withTargetPathStore.mockRejectedValueOnce(
+          new Error(
+            "Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence before changing target state: /tmp/target",
+          ),
+        );
+
+        const result = await changeTools.adv_change_bulk_close.execute(
+          {
+            selector: {
+              kind: "explicit",
+              changeIds: ["chg-t1"],
+            },
+            reason: "not_planned",
+            approvedByUser: true,
+            approvalEvidence: "user approved target bulk close",
+            target_path: "/tmp/target",
+          } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.error).toContain("target_confirmed");
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+        expect(mocks.sweepClosedChangesFromDisk).not.toHaveBeenCalled();
+      });
+
+      test("dry-run performs target selection but no signal or cleanup and stays read-only", async () => {
+        const store = createMockStore();
+
+        const result = await changeTools.adv_change_bulk_close.execute(
+          {
+            selector: {
+              kind: "explicit",
+              changeIds: ["chg-t1", "chg-t2"],
+            },
+            reason: "not_planned",
+            approvedByUser: true,
+            approvalEvidence: "user approved target bulk close",
+            dryRun: true,
+            target_path: "/tmp/target",
+          } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed.dryRun).toBe(true);
+        expect(parsed.wouldClose).toEqual(["chg-t1", "chg-t2"]);
+        expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: "/tmp/target",
+            stateRequirement: "temporal-required",
+            mutation: false,
+          }),
+          expect.any(Function),
+        );
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+        expect(mocks.sweepClosedChangesFromDisk).not.toHaveBeenCalled();
+        expect(parsed._projectContext).toMatchObject({
+          projectId: "target-project-id",
+          stateMode: "temporal",
+        });
+      });
+
+      test("recovery path uses target store for completed-workflow close", async () => {
+        const store = createMockStore();
+        mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+          Object.assign(new Error("workflow execution already completed"), {
+            name: "WorkflowExecutionAlreadyCompleted",
+          }),
+        );
+
+        const result = await changeTools.adv_change_bulk_close.execute(
+          {
+            selector: {
+              kind: "explicit",
+              changeIds: ["chg-t1", "chg-t2"],
+            },
+            reason: "not_planned",
+            approvedByUser: true,
+            approvalEvidence: "user approved target bulk close",
+            target_path: "/tmp/target",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target bulk close",
+            recoveryMode: "poisoned_history",
+            recoveryEvidence:
+              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+          } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed.closed).toBe(2);
+        expect(parsed.results[0]).toMatchObject({
+          changeId: "chg-t1",
+          success: true,
+          recovered: true,
+        });
+        expect(parsed.results[1]).toMatchObject({
+          changeId: "chg-t2",
+          success: true,
+        });
+        expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
+        expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledWith(
+          expect.objectContaining({
+            store: mocks.targetStore,
+            change: expect.objectContaining({ id: "chg-t1" }),
+            status: "closed",
+          }),
+        );
+        expect(mocks.sweepClosedChangesFromDisk).toHaveBeenCalledWith(
+          ["chg-t2"],
+          mocks.targetStore.paths.changes,
+        );
+        expect(parsed._projectContext).toMatchObject({
+          projectId: "target-project-id",
+        });
+      });
     });
   });
 

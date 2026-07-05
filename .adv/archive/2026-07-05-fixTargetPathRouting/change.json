@@ -1,0 +1,2143 @@
+{
+  "id": "fixTargetPathRouting",
+  "title": "Fix target path routing",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-05T01:20:02.615Z",
+  "tasks": [
+    {
+      "id": "tk-5252a673fa19",
+      "title": "Implement target artifact readback routing for adv_change_show",
+      "type": "code",
+      "section": "Artifact readback",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-05T02:01:08.975Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "SC1"
+        ],
+        "verifies": [
+          "AC1",
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C5",
+          "DONT2",
+          "DONT5",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T02:45:46.928Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTargetPathRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+          "task_id": "tk-5252a673fa19",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-5252a673fa19"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+              "exit_code": 1,
+              "summary": "RED phase: new target-artifact-routing regression tests failed before implementation (2 failed as expected)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN phase: all 85 change.test.ts tests pass after implementation"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/cross-project-coordination.test.ts",
+              "exit_code": 0,
+              "summary": "Targeted verification: 93 tests pass including cross-project coordination"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "Repo check gate passes: schemas:check, typecheck, lint, format:check, lockfile policy, test isolation"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Route target artifact reads through withTargetPathStore with stateRequirement:temporal-required and mutation:false",
+              "why": "Ensures artifact include flags read from the target project's Temporal documents and fail closed when the target Temporal layer is unreachable, instead of returning disk-snapshot scaffold content."
+            },
+            {
+              "what": "Keep no-artifact target show calls on withOptionalTargetPathStore snapshot-ok",
+              "why": "Preserves existing snapshot behavior for target show calls that do not request artifact content."
+            },
+            {
+              "what": "Reuse readArtifacts and loadProposalForContext unchanged",
+              "why": "Both helpers already operate on a Store; passing the Temporal-backed target store gives Temporal-first reads without duplicating read logic."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Unrelated pre-existing failures in src/tools/archive-helpers/git-finalize.test.ts surfaced during full-suite run (status 'blocked' due to push behavior/environment) and are out of scope for this task."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned other target_path descriptions in change.ts to ensure only adv_change_show's description was updated; adv_change_update/gate repair descriptions left untouched.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_change_show now routes target artifact readback through the target project's Temporal store when artifact include flags are requested. No-artifact target show remains snapshot-ok. Tests verify routing, snapshot preservation, and fail-closed behavior.",
+            "suggested_next_action": "Proceed to review/merge; full-suite git-finalize failures are environment-related and pre-existing."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/cross-project-coordination.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            }
+          ]
+        }
+      ],
+      "verification": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/cross-project-coordination.test.ts (93 tests passed)",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "2d447ea5cf3dc7150f10a089088957c0d967f2bb",
+      "completedAt": "2026-07-05T03:08:27.410Z",
+      "completed_at": "2026-07-05T03:08:27.410Z"
+    },
+    {
+      "id": "tk-d3bf9c1d667d",
+      "title": "Implement target_path routing for adv_change_close",
+      "type": "code",
+      "section": "Close routing",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-05T02:01:28.081Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC4",
+          "SC2"
+        ],
+        "verifies": [
+          "AC2",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT3",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T03:09:04.042Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTargetPathRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+          "task_id": "tk-d3bf9c1d667d",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-d3bf9c1d667d"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/tools/change.test.ts -t \"target_path routing\"",
+              "exit_code": 0,
+              "summary": "4 new target close tests pass (temporal-required routing, dry-run read-only, untrusted rejection, recovery path)"
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/change.test.ts -t \"adv_change_close\"",
+              "exit_code": 0,
+              "summary": "13 adv_change_close tests pass (9 same-project + 4 target_path)"
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/change*.test.ts",
+              "exit_code": 0,
+              "summary": "183 tests across change tool files pass"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes"
+            },
+            {
+              "command": "pnpm run lint",
+              "exit_code": 0,
+              "summary": "ESLint passes"
+            },
+            {
+              "command": "pnpm run format:check",
+              "exit_code": 0,
+              "summary": "Prettier formatting check passes"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extracted runClose(activeStore, projectContext?) inner function and routed target_path through withTargetPathStore with stateRequirement: 'temporal-required' and mutation: !dryRun.",
+              "why": "Matches the task contract, keeps same-project path identical, and makes the target store (not source store) own lookup, signal, refresh, cleanup, and recovery."
+            },
+            {
+              "what": "Used context.projectId for the target workflow handle, falling back to getProjectId(activeStore.paths.root) for same-project closes.",
+              "why": "Ensures getChangeHandle targets the correct project ID when operating across projects."
+            },
+            {
+              "what": "Included _projectContext directly in the close output object for target closes instead of appending via appendTargetProjectContextOutput.",
+              "why": "Consistent with runRepair/runUpdate patterns in the same file and keeps the dry-run/read paths simpler."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none; followed existing adv_change_repair_origin target_path pattern and did not need cross-tool same-pattern fixes.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_change_close now supports target_path routing with target_confirmed/confirmationEvidence fields, uses the target store for change lookup, signal+refresh, disk cleanup, and completed-workflow recovery. Same-project behavior is preserved. New tests cover routing, dry-run read-only, untrusted rejection, and target recovery.",
+            "suggested_next_action": "Run full test suite via bin/oc-test full or proceed to next task in the change."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.test.ts -t \"target_path routing\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.test.ts -t \"adv_change_close\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change*.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            }
+          ]
+        }
+      ],
+      "verification": "bin/oc-test targeted -- src/tools/change.test.ts (89 tests passed)",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "10508b4c8739981b1330be2136b322defdc00754",
+      "completedAt": "2026-07-05T03:18:23.511Z",
+      "completed_at": "2026-07-05T03:18:23.511Z"
+    },
+    {
+      "id": "tk-81dfb52cf340",
+      "title": "Implement target_path routing for adv_change_bulk_close",
+      "type": "code",
+      "section": "Bulk close routing",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-05T02:01:52.072Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d3bf9c1d667d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "SC2"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT3",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T03:18:37.845Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTargetPathRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+          "task_id": "tk-81dfb52cf340",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-81dfb52cf340"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"target_path routing\"",
+              "exit_code": 1,
+              "summary": "RED phase: 4 new target bulk-close tests failed before implementation (selection still used source store)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"target_path routing\"",
+              "exit_code": 0,
+              "summary": "GREEN phase: target bulk-close tests pass after implementation"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"adv_change_bulk_close\"",
+              "exit_code": 0,
+              "summary": "Same-project bulk-close behavior remains green"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "Full change.test.ts suite passes (93/93)"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, lint, format:check, isolation, lockfile policy all green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Mirrored adv_change_close runClose/withTargetPathStore pattern for bulk close",
+              "why": "Keeps target routing consistent: selection, signaling, recovery, and disk sweep all use the target store; dry-run stays read-only via mutation:false"
+            },
+            {
+              "what": "Resolved projectId from projectContext when available, falling back to getProjectId(activeStore.paths.root)",
+              "why": "Target close must use target project ID for getChangeHandle; same-project path keeps existing behavior"
+            },
+            {
+              "what": "Attached _projectContext to all runBulkClose outputs when targeting a project",
+              "why": "Contract requires target responses include _projectContext"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern drift beyond adv_change_bulk_close; target_path routing for single close already existed and was used as the model.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Implemented target_path routing for adv_change_bulk_close: added target_path/target_confirmed/confirmationEvidence args, routed selection/signaling/recovery/disk-sweep through target store, and included _projectContext in target outputs. All change.test.ts tests pass and pnpm check is green.",
+            "suggested_next_action": "Run a broader smoke/full test sweep if needed, then proceed to next task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts -t \"target_path routing\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts -t \"target_path routing\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts -t \"adv_change_bulk_close\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            }
+          ]
+        }
+      ],
+      "verification": "bin/oc-test targeted -- src/tools/change.test.ts (93 tests passed)",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "496bce0c4300b9df8f6d73b3991b871648764e9f",
+      "completedAt": "2026-07-05T03:29:31.677Z",
+      "completed_at": "2026-07-05T03:29:31.677Z"
+    },
+    {
+      "id": "tk-b0b0c45b04c9",
+      "title": "Run routing contract verification and related-scan checks",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-05T02:02:14.974Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5252a673fa19"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d3bf9c1d667d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-81dfb52cf340"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC5",
+          "AC6",
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T03:29:54.010Z",
+      "verification": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/cross-project-coordination.test.ts (101 tests passed); pnpm run check passed; static cache-refresh grep clean; git diff --check clean; related scan found remaining withOptionalTargetPathStore callers are non-artifact snapshot reads or intentional wisdom/status/reflection paths.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "496bce0c4300b9df8f6d73b3991b871648764e9f",
+      "completedAt": "2026-07-05T03:31:27.919Z",
+      "completed_at": "2026-07-05T03:31:27.919Z"
+    },
+    {
+      "id": "tk-85ad66127c64",
+      "title": "Repair archive-finalization default-branch detection",
+      "type": "code",
+      "section": "Archive finalization",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-05T15:41:13.332Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC7"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C7",
+          "C8",
+          "DONT7",
+          "DONT8",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T15:47:31.873Z",
+      "verification": "RED: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts -t \"finalizeRelease completes no-remote local archive\" failed as expected (tr_mr7yawpm_e9ad67c4). GREEN: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts passed 82 tests (tr_mr7yu84k_df4b9f1a).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "5b3f20e153e1a7ee06952fe1e2ecc7e1b10f3e1e",
+      "completedAt": "2026-07-05T15:49:00.969Z",
+      "completed_at": "2026-07-05T15:49:00.969Z"
+    },
+    {
+      "id": "tk-99ff012686f5",
+      "title": "Verify full release-readiness after archive-finalization repair",
+      "type": "verification",
+      "section": "Release verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-05T15:41:39.934Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-85ad66127c64"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC4",
+          "AC8",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "DONT7",
+          "DONT8",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-05T15:49:40.720Z",
+      "verification": "Archive-finalize targeted tests passed 82; target-path targeted tests passed 101; pnpm run check passed; pnpm run build passed; cache-refresh grep clean; git diff --check clean; bin/oc-test full passed (tr_mr7z02p3_1997709b).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "5b3f20e153e1a7ee06952fe1e2ecc7e1b10f3e1e",
+      "completedAt": "2026-07-05T15:53:20.770Z",
+      "completed_at": "2026-07-05T15:53:20.770Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:target-path-routing-architecture"
+      },
+      "agent": "adv-researcher",
+      "topic": "Best-practice architecture for cross-project target_path artifact readback and close/bulk-close routing over Temporal TS workflows",
+      "sources": [
+        {
+          "label": "Temporal TS message-passing (Query state)",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/message-passing",
+          "summary": "handle.query() reads workflow state from running or closed executions; a Worker must be online to serve the query. Canonical read-state mechanism — workflow state.documents, not disk, is source of truth."
+        },
+        {
+          "label": "Temporal CLI query reference",
+          "locator": "https://docs.temporal.io/cli/command-reference/workflow",
+          "summary": "Query exposes internal state and works on running AND completed workflow executions — confirms Temporal-backed readback is valid for terminal changes, not only active ones."
+        },
+        {
+          "label": "Temporal getHandle addressing (Nexus feature guide)",
+          "locator": "https://docs.temporal.io/develop/typescript/nexus/feature-guide",
+          "summary": "client.workflow.getHandle(workflowId) addresses exactly one workflow by ID; the workflow ID is derived deterministically from domain identity. Wrong ID derivation yields WorkflowNotFound."
+        },
+        {
+          "label": "Temporal WorkflowHandle API",
+          "locator": "https://typescript.temporal.io/api/interfaces/client.WorkflowHandle",
+          "summary": "WorkflowHandle is a client-side handle to a single workflow; can query running/completed and signal running workflows. Handle correctness depends entirely on the workflow ID passed to getHandle."
+        },
+        {
+          "label": "Repo: target-project.ts withTargetPathStore",
+          "locator": "plugin/src/tools/target-project.ts:270-335",
+          "summary": "stateRequirement='temporal-required' builds a Temporal-backed target store bound to the target projectId (createStore + projectIdOverride) with queue-serviceability gating; 'snapshot-ok' builds a disk-only legacy store that reads change.json projections."
+        },
+        {
+          "label": "Repo: adv_change_show target routing (readback bug)",
+          "locator": "plugin/src/tools/change.ts:629-690; withOptionalTargetPathStore at target-project.ts:371-388",
+          "summary": "adv_change_show routes target_path through withOptionalTargetPathStore → stateRequirement='snapshot-ok'. activeStore.changes.get reads target DISK change.json; readArtifacts/loadProposalForContext then return scaffold placeholders because target state.documents is never queried."
+        },
+        {
+          "label": "Repo: adv_change_close / bulk_close (WorkflowNotFound bug)",
+          "locator": "plugin/src/tools/change.ts:1593-1768 (close), 1770-1989 (bulk_close)",
+          "summary": "Neither tool declares a target_path arg. Both resolve getProjectId(store.paths.root) — the SOURCE project — then getChangeHandle(client, sourceProjectId, changeId) builds a source workflow ID via buildChangeWorkflowId. Target change lives under target projectId workflow → WorkflowNotFoundError."
+        },
+        {
+          "label": "Repo: adv_change_update correct reference pattern",
+          "locator": "plugin/src/tools/change.ts:1339-1344,1577-1590",
+          "summary": "adv_change_update declares target_path/target_confirmed/confirmationEvidence and routes through withTargetPathStore(stateRequirement='temporal-required'); all store.changes.* operations then address the target workflow correctly. This is the in-repo canonical fix pattern."
+        },
+        {
+          "label": "Spec: rq-crossProjectCoordination01",
+          "locator": "docs/specs/advance-workflow.md:1839-1959",
+          "summary": "MUST: cross-project tools use explicit target_path routing through the target project's Temporal-backed store; never read ADV state files directly; derive target identity from the target repo. Create must avoid synchronous target getState from source; readback/close are not create and legitimately query the target workflow."
+        },
+        {
+          "label": "Spec: rq-crossProjectTaskMutation01 + advance-meta target routing",
+          "locator": "docs/specs/advance-workflow.md:1965-2054; advance-meta.md:2358",
+          "summary": "Target store MUST own every lookup, signal, cache refresh, and snapshot when target_path targets project B with a changeId in project B. Establishes the governing invariant for close/bulk-close routing."
+        }
+      ],
+      "architecture_assessment": "Root cause is a store-selection / workflow-addressing mismatch, not a Temporal misuse. Temporal TS best practice is unambiguous: a change workflow's state.documents is the source of truth and is read via handle.query() (valid on running and completed executions, worker online), and a workflow is addressed by a deterministic workflow ID derived from OWNING-project identity. The repo already encodes this correctly for adv_change_update via withTargetPathStore(stateRequirement='temporal-required'), which binds a Temporal-backed store to the target projectId so buildChangeWorkflowId(targetProjectId, changeId) resolves the right workflow. Two tools deviate: (1) adv_change_show routes target_path through 'snapshot-ok' (disk legacy store), so it reads the target's change.json projection and returns scaffold placeholders instead of querying target state.documents — a wrong-source read; (2) adv_change_close and adv_change_bulk_close have no target_path arg at all and hardcode getProjectId(store.paths.root) = source projectId, producing a source-scoped workflow ID for a change that only exists under the target project's workflow → WorkflowNotFoundError — a wrong-address write. The correct, boring fix is to make show/close/bulk-close mirror the existing update routing: temporal-required target store for reads that need documents and for all close mutations, with the target confirmation/queue-serviceability gates the helper already enforces. No new abstraction, protocol, or Temporal feature is required.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "The intended fix direction (route show artifact-readback and close/bulk-close through the target project's Temporal-backed store, mirroring adv_change_update) aligns with official Temporal TS message-passing/handle-addressing guidance and with rq-crossProjectCoordination01 / rq-crossProjectTaskMutation01. It is the simplest solution consistent with specs-as-law and reuses an existing, tested in-repo pattern. Caveats are scoping details (read vs mutation state requirement; terminal-change readback path), not architectural blockers, so status is pass rather than caution."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "temporal-required readback for target adv_change_show requires the target project's Temporal worker/queue to be serviceable, adding a liveness dependency and possible fail-closed path the current 'snapshot-ok' read does not have. Mitigation: fall back to disk snapshot ONLY for terminal (archived/closed) changes whose documents live in the archive bundle, matching readArtifacts' existing archive-bundle fallback; fail closed with an actionable worker-restart message for active changes (reuse formatTargetMutationReadinessError).",
+          "Adding target_path to adv_change_close/bulk_close expands the untrusted-mutation surface; must inherit the same target_confirmed + confirmationEvidence gate and queue-serviceability check as adv_change_update, and preserve completed-workflow recovery semantics under the target store rather than the source store.",
+          "Two read paths for artifacts (Temporal-first for local + trusted-target vs snapshot for terminal) increase branching in the read path; acceptable because readArtifacts already implements Temporal→disk→archive precedence and the change is store-binding, not new logic.",
+          "bulk_close is a loop; routing it through a single target store means all selected IDs must belong to the same target project. This is a real constraint — must be validated and rejected clearly rather than silently mis-addressing mixed-project selections."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep 'snapshot-ok' for adv_change_show but hydrate documents by adding a Temporal getState query inside the disk store path",
+            "disposition": "rejected",
+            "rationale": "Re-implements what the temporal-required store already does, splits readback logic across two stores, and risks violating the 'never read ADV state files directly' spec by mixing disk + query ad hoc. withTargetPathStore('temporal-required') is the existing sanctioned path."
+          },
+          {
+            "option": "Make adv_change_show always temporal-required for target_path (no disk fallback)",
+            "disposition": "deferred",
+            "rationale": "Cleaner conceptually but breaks read-only untrusted-target snapshots and terminal-change reads when the target worker is down. Prefer temporal-first with archive-bundle/disk fallback for terminal changes, mirroring readArtifacts precedence."
+          },
+          {
+            "option": "Resolve the owning projectId from the change's adv_project_id (disk) and keep close on the source store, just fixing the workflow ID",
+            "disposition": "rejected",
+            "rationale": "Would fix the ID but leave cache refresh, disk cleanup, and recovery bound to the source store/paths — violating rq-crossProjectTaskMutation01's 'target store owns every signal, cache refresh, snapshot'. Half-routing invites projection drift. Route the whole operation through the target store instead."
+          },
+          {
+            "option": "Introduce a new cross-project close workflow/signal or a dedicated coordinator workflow",
+            "disposition": "rejected",
+            "rationale": "Over-engineered. Temporal already addresses the correct workflow by ID via the target store; no new workflow, signal, or coordination primitive is warranted (simplicity bias, P19/P29)."
+          },
+          {
+            "option": "Mirror adv_change_update: add target_path/target_confirmed/confirmationEvidence to show (temporal-required readback) and close/bulk_close (temporal-required mutation) via withTargetPathStore",
+            "disposition": "preferred",
+            "rationale": "Reuses an existing tested pattern, satisfies specs, gives correct workflow addressing and correct document readback, and keeps the diff boring and local."
+          }
+        ],
+        "recommendation": "Discovery/design should specify: (1) adv_change_show artifact-content readback for target_path routes through withTargetPathStore with a temporal-first document read (temporal-required for active changes; disk/archive-bundle fallback only for terminal archived/closed target changes), and update the tool's describe text which currently promises a disk snapshot; (2) adv_change_close and adv_change_bulk_close gain target_path/target_confirmed/confirmationEvidence and route the ENTIRE close (handle derivation, cancel signal, cache refresh, disk cleanup, completed-workflow recovery) through the target project's Temporal-backed store so buildChangeWorkflowId uses the target projectId; (3) bulk_close validates all selected changeIds resolve within the single target project and rejects mixed-project selections; (4) reuse existing target confirmation + queue-serviceability gates rather than inventing new ones."
+      },
+      "recommendation": "Fix by mirroring the existing adv_change_update target routing. For readback: route adv_change_show target_path artifact reads through a Temporal-backed target store (temporal-first documents, disk/archive-bundle fallback for terminal changes) so state.documents is queried instead of scaffold placeholders; correct the tool describe text that currently claims a disk snapshot. For close: add target_path + target_confirmed + confirmationEvidence to adv_change_close and adv_change_bulk_close and route handle derivation, cancel signal, cache refresh, disk cleanup, and completed-workflow recovery entirely through withTargetPathStore(stateRequirement='temporal-required'), so getChangeHandle uses the target projectId and WorkflowNotFoundError is eliminated. Additionally require bulk_close to reject mixed-project selections. No new Temporal primitives; this is the boring, specs-aligned, in-repo-proven pattern.",
+      "follow_ups": [
+        "Acceptance criteria (implementation-free): (a) adv_change_show target_path include.proposal/problemStatement returns real target state.documents content (not scaffold) for an active target change with a serviceable target worker; (b) adv_change_show target_path readback for an archived/closed target change returns terminal document content via archive-bundle/disk fallback without requiring a live target workflow; (c) adv_change_close target_path against a change owned by the target project completes without WorkflowNotFoundError and the target change reaches closed status; (d) adv_change_bulk_close target_path closes multiple same-project target changes and rejects a selection spanning >1 project with a clear error; (e) untrusted target close without target_confirmed+confirmationEvidence fails before any target mutation; (f) target close when the target queue is not serviceable fails closed with the target queue name + actionable worker-restart instruction (reuse formatTargetMutationReadinessError); (g) tool describe text for adv_change_show target_path no longer claims a disk snapshot for artifact content.",
+        "Open question for orchestrator: confirm desired readback semantics for an ACTIVE target change when the target worker is DOWN — fail closed (consistent with mutation readiness) vs degrade to disk-snapshot placeholders with an explicit staleness warning. Recommendation: fail closed for active changes, disk/archive fallback only for terminal changes.",
+        "Verify no other target_path read tool (e.g. adv_gate_status, adv_task_list, adv_status target_path) silently relies on snapshot-ok where document content is expected; scope this fix's related-scan (P25) to the target_path read surface."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout for target_path routing fix",
+      "sources": [
+        {
+          "label": "target-project.ts withTargetPathStore",
+          "locator": "plugin/src/tools/target-project.ts:270-388",
+          "summary": "withTargetPathStore switches store by stateRequirement. withOptionalTargetPathStore hardcodes snapshot-ok, root cause of empty active artifact readback. targetPathSchema line 70 is canonical reused arg-shape."
+        },
+        {
+          "label": "change.ts adv_change_show",
+          "locator": "plugin/src/tools/change.ts:629-877",
+          "summary": "Routes target_path through withOptionalTargetPathStore snapshot-only; readArtifacts returns empty disk documents for active changes."
+        },
+        {
+          "label": "change/artifacts.ts readArtifacts",
+          "locator": "plugin/src/tools/change/artifacts.ts:163-212",
+          "summary": "Already Temporal-first then disk/archive fallback; fix is store selection only, not readback rewrite."
+        },
+        {
+          "label": "change.ts close + bulk_close",
+          "locator": "plugin/src/tools/change.ts:1593-1989",
+          "summary": "Use source store: getProjectId(store.paths.root), getChangeHandle, fireSignalAndRefresh(handle,store), recoverCompletedWorkflowClose({store}), sweepClosedChangesFromDisk(store.paths.changes). All source-coupled."
+        },
+        {
+          "label": "targetPathSchema.shape reuse",
+          "locator": "plugin/src/tools/change.ts:2126, task.ts:962",
+          "summary": "Spread of ...targetPathSchema.shape is established idiom for target_path/target_confirmed/confirmationEvidence on mutation tools."
+        }
+      ],
+      "architecture_assessment": "Draft design is a correct tool-layer-only fix matching established ADV cross-project patterns. Root cause confirmed structural: show routes target_path through snapshot-ok store; readArtifacts on disk-snapshot has empty documents for active changes. Close/bulk_close lack target_path and are hard-coupled to source projectId/store/paths. Fix leverages existing Temporal-first readArtifacts and fireSignalAndRefresh cache discipline. Refinements tighten store-selection, projectId sourcing, and schema reuse so avoidances hold structurally.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No architectural blockers. Design reuses proven cross-project primitives; candidates are refinements not revisions."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "temporal-required show reads fail-closed when active target workflow unreachable: loses silent-empty, gains correctness, matches fail-closed AC.",
+          "Sourcing projectId from context.projectId not getProjectId(source root) removes a cross-project mis-targeting bug class.",
+          "Reusing targetPathSchema.shape keeps drift low but couples arg shape to shared schema."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Rewrite readArtifacts to accept explicit temporal handle",
+            "disposition": "rejected",
+            "rationale": "readArtifacts is already Temporal-first; bug is upstream store selection. Rewrite adds risk, no benefit."
+          },
+          {
+            "option": "Add distinct temporal-read stateRequirement mode",
+            "disposition": "deferred",
+            "rationale": "withTargetPathStore already supports temporal-required with mutation:false. No new primitive needed."
+          },
+          {
+            "option": "Keep close/bulk_close source-store, add target read only",
+            "disposition": "rejected",
+            "rationale": "Violates AC requiring target store/workflow/cache/recovery/cleanup routing and no-source-projectID avoidance."
+          }
+        ],
+        "recommendation": "Adopt draft design with five refinements: temporal-required target store for show artifact reads; reuse readArtifacts; source projectId from context.projectId; route recovery and disk cleanup through target store; spread targetPathSchema.shape for close/bulk_close args."
+      },
+      "recommendation": "Adopt the draft design. Integrate five leverage refinements: (1) branch show artifact reads to a temporal-required target store; (2) reuse readArtifacts unchanged; (3) source projectId from context.projectId not getProjectId(source root) in close/bulk_close; (4) route recovery + disk cleanup through target store.paths.changes; (5) spread ...targetPathSchema.shape for close/bulk_close args. Add negative regression tests asserting source getProjectId/store.paths never touched during target mutation.",
+      "follow_ups": [
+        "Confirm non-show withOptionalTargetPathStore callers are snapshot-safe before narrowing it."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: target_path routing fix for adv_change_show artifact reads and adv_change_close/bulk_close",
+      "sources": [
+        {
+          "label": "target-project.ts withTargetPathStore",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/target-project.ts:270-335,371-388",
+          "summary": "temporal-required branch (311-334) creates target Temporal store with projectIdOverride + queue readiness; withOptionalTargetPathStore (383) hardcodes snapshot-ok. Confirms KD1/KD3/KD5 reuse points exist and the show-path root cause."
+        },
+        {
+          "label": "artifacts.ts readArtifacts",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/change/artifacts.ts:163-212",
+          "summary": "Temporal-first: single store.changes.get().documents query, then per-kind disk/archive fallback. Proves readArtifacts already returns real workflow content when given a Temporal-backed store — no rewrite needed (KD1)."
+        },
+        {
+          "label": "change.ts show artifact branch",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/change.ts:629-688",
+          "summary": "show wraps in withOptionalTargetPathStore (snapshot-only) and calls readArtifacts against that store, so target workflow documents are never queried — confirms design problem statement and SC1/AC1 gap."
+        },
+        {
+          "label": "change.ts close/bulk-close",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/change.ts:1696-1767,1845-1848",
+          "summary": "close derives projectId from store.paths.root, getChangeHandle, fireSignalAndRefresh(handle,store), removeChangeDir(store.paths.changes), recoverCompletedWorkflowClose({store}); bulk-close resolves selection from source store.changes.list/get. All source-store-bound — confirms SC2/AC2/AC3/KD3/KD4 targets."
+        },
+        {
+          "label": "advance-workflow spec rq-crossProjectCoordination01",
+          "locator": "/home/jon/dev/advance/docs/specs/advance-workflow.md:1841,1855-1897",
+          "summary": "[MUST]: target_path tools derive target identity from the target repo, route mutation through target Temporal-backed store, never read ADV state files directly; untrusted mutation requires confirmation before any target state change. Design KD1-KD5 conform to this law."
+        },
+        {
+          "label": "Temporal TS message-passing docs",
+          "locator": "https://docs.temporal.io/develop/typescript/message-passing",
+          "summary": "A Workflow acts like a stateful service; clients use Queries to read state and Signals to control execution. Confirms the query(read)/signal(mutate) boundary the design relies on is the canonical pattern."
+        },
+        {
+          "label": "Temporal WorkflowHandle + workflow determinism",
+          "locator": "https://typescript.temporal.io/api/interfaces/client.WorkflowHandle ; https://docs.temporal.io/workflow-definition",
+          "summary": "WorkflowHandle targets exactly one workflow execution (deriving target handle from target project identity is correct); workflow code must be deterministic with I/O outside the replay path — design adds no workflow code and keeps disk cleanup in the tool layer, so no determinism risk."
+        }
+      ],
+      "architecture_assessment": "The design is a tool-layer routing correction, not a workflow redesign, and each decision is backed by repo code and the canonical Temporal read(query)/mutate(signal) model. Root cause is verified: adv_change_show routes artifact reads through withOptionalTargetPathStore (hardcoded snapshot-ok at target-project.ts:383), so readArtifacts — which IS already Temporal-first (artifacts.ts:169-180) — queries a disk snapshot store and never sees target workflow documents, producing scaffolds instead of real content (SC1/AC1). KD1 fixes this by routing the artifact-include branch through withTargetPathStore({stateRequirement:'temporal-required', mutation:false}) and reusing changes.get/loadProposalForContext/readArtifacts unchanged. close/bulk-close are verified source-store-bound (change.ts:1696 projectId from store.paths.root; :1703 getChangeHandle; :1712 fireSignalAndRefresh(handle,store); :1725 removeChangeDir; :1845 bulk selection from source store.changes.list/get), so KD3/KD4 correctly route identity, handle, signal, recovery, cleanup, and selection through the target store for target calls while leaving same-project behavior untouched. KD2 (fail-closed on unreachable active target workflow, no scaffold substitution, terminal archived/closed disk/archive fallback only when clearly identified) is consistent with the existing readArtifacts fallback ordering and with rq-crossProjectCoordination01.6 terminal-projection semantics. KD5 reuses existing primitives (withTargetPathStore, changes.get, changeCancelledSignal, fireSignalAndRefresh, recovery helpers) — no new Temporal primitives, satisfying the avoidance. Spec-law alignment holds: rq-crossProjectCoordination01 [MUST] requires target identity derivation and Temporal-backed routing with no direct state-file reads, which is exactly what the design implements. The mutation:!dryRun / mutation:false split for dry-run correctly reuses the documented target-store contract (target-project.ts:276-280 comment: dry-run may read Temporal-backed while non-mutating). One low-risk watch item: KD3 says derive projectId 'from context.projectId when available or activeStore.paths.root for same project' — for target calls the design must use the target context.projectId (target-project.ts sets context.projectId via projectIdOverride), never the source; the design text and KD4 already state this, so it is a naming-precision caution for implementation, not a design defect.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No spec-law contradiction and no logical gap that blocks planning. rq-crossProjectCoordination01 [MUST] is satisfied by KD1-KD5 (target identity, Temporal-backed routing, no direct state reads, confirmation before target mutation). AC1-AC6 each map to a verified decision: AC1→KD1 (temporal-required show branch), AC2→KD3 (close target identity/handle/refresh), AC3→KD3+KD4 (bulk target selection + close single-target-store scoped), AC4→targetPathSchema untrusted-mutation gate at withTargetPathStore mutation boundary (fails before signal), AC5→isolated tests asserting target vs source projectId/store, AC6→KD2 records unreachable-active-target fail-closed behavior. Design-derived criteria (no scaffold success for active target readback; same-project unchanged; target dry-runs no signal/cleanup; _projectContext in target responses; no workflow-bundle-boundary change; no bare fireSignal(handle)) are all consistent with observed code and cache-refresh law (fireSignalAndRefresh with owning store). Implementation-precision caution (not a blocker): ensure target close/bulk derive projectId strictly from the TARGET context.projectId, and ensure removeChangeDir/recovery/cleanup use the TARGET store paths (activeStore), never the source store — this is the exact failure the change fixes, so tests in AC5 must assert target identity for handle+signal+cleanup+selection."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Adds a second store-construction path in adv_change_show (snapshot for no-artifact reads, temporal-required for artifact-include reads), a small branch-complexity cost justified by SC1 correctness and consistent with existing dual-mode target-store design.",
+          "temporal-required target reads incur target queue-readiness checks and workflow query latency versus a cheap disk snapshot; acceptable because scaffold-as-truth is a correctness defect, not a perf tradeoff, and same-project/no-artifact paths keep the cheap route.",
+          "Extracting runShow/runClose/runBulkClose increases indirection but improves testability and keeps same-project vs target routing explicit and machine-checkable (P33 structural correctness)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Change withOptionalTargetPathStore to always use temporal-required",
+            "disposition": "rejected",
+            "rationale": "Over-broad: forces every optional target read (including non-artifact metadata-only shows) through queue-readiness + workflow query, contradicting the avoidance 'no broad target read expansion unless direct coupling' and adding latency/failure surface where snapshot suffices. KD1's scoped branch (target_path && requestedKinds.length>0) is the minimal correct fix."
+          },
+          {
+            "option": "Read target artifacts from disk/archive files directly in the target project",
+            "disposition": "rejected",
+            "rationale": "Violates rq-crossProjectCoordination01 (never read ADV state files directly) and the avoidance against direct state reads; active artifact content is canonical Temporal state.documents per docs/temporal-recovery.md, so disk is stale/absent for active changes."
+          },
+          {
+            "option": "Add a new cross-project artifact query signal/primitive",
+            "disposition": "rejected",
+            "rationale": "Unnecessary and violates 'no new Temporal primitives' avoidance; readArtifacts + store.changes.get already return workflow documents when handed a Temporal-backed target store. Reuse beats invention (P19/P35)."
+          },
+          {
+            "option": "Support mixed-project bulk-close selection",
+            "disposition": "rejected",
+            "rationale": "KD4 correctly scopes target bulk-close to a single target store; mixed selection would fan signals across projects with divergent identity/queue-readiness and no atomic guarantee — larger scope, higher risk, not required by AC3."
+          }
+        ],
+        "recommendation": "Proceed to planning as designed. Implement KD1 as the scoped temporal-required branch in adv_change_show; route KD3/KD4 close/bulk-close identity, handle, fireSignalAndRefresh, recovery, cleanup, and selection through the target (activeStore) store for target_path calls. In AC5 tests, assert the derived projectId and the store passed to getChangeHandle/fireSignalAndRefresh/removeChangeDir/selection are the TARGET's, never the source's, and add an explicit assertion that an active-but-unreachable target workflow fails closed (KD2) rather than returning a scaffold."
+      },
+      "recommendation": "Design is correct, minimal, and spec-compliant — validation PASS with high confidence and low risk. It fixes a verified root cause (show artifact reads routed through a snapshot store so Temporal-first readArtifacts never queries target workflow documents) using only existing primitives (withTargetPathStore temporal-required, store.changes.get, changeCancelledSignal, fireSignalAndRefresh, recovery helpers), and it conforms to rq-crossProjectCoordination01 [MUST] and the cache-refresh law (fireSignalAndRefresh with the owning store). The single implementation-precision caution — not a blocker — is that target close/bulk-close MUST derive projectId, workflow handle, signal, recovery, cleanup, and selection strictly from the TARGET store/context (never source), which is the exact defect being fixed; AC5 tests should assert target identity for every one of these and add a fail-closed assertion for an unreachable active target workflow (KD2). No overlooked viable alternative and no simpler correct approach: always-temporal-required is over-broad, direct disk reads violate spec law, and new primitives are unnecessary.",
+      "follow_ups": [
+        "Implementation: in KD3 projectId derivation, ensure target_path calls use target context.projectId (from projectIdOverride), and pass activeStore (not source store) to fireSignalAndRefresh, recoverCompletedWorkflowClose, and removeChangeDir.",
+        "Tests (AC5/AC6): add an explicit case where an active target change's workflow is unreachable during adv_change_show artifact readback and assert fail-closed target-scoped error/warning with no scaffold substitution (KD2)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+      "task_id": "tk-5252a673fa19",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-5252a673fa19"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+          "exit_code": 1,
+          "summary": "RED phase: new target-artifact-routing regression tests failed before implementation (2 failed as expected)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN phase: all 85 change.test.ts tests pass after implementation"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/cross-project-coordination.test.ts",
+          "exit_code": 0,
+          "summary": "Targeted verification: 93 tests pass including cross-project coordination"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "Repo check gate passes: schemas:check, typecheck, lint, format:check, lockfile policy, test isolation"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Route target artifact reads through withTargetPathStore with stateRequirement:temporal-required and mutation:false",
+          "why": "Ensures artifact include flags read from the target project's Temporal documents and fail closed when the target Temporal layer is unreachable, instead of returning disk-snapshot scaffold content."
+        },
+        {
+          "what": "Keep no-artifact target show calls on withOptionalTargetPathStore snapshot-ok",
+          "why": "Preserves existing snapshot behavior for target show calls that do not request artifact content."
+        },
+        {
+          "what": "Reuse readArtifacts and loadProposalForContext unchanged",
+          "why": "Both helpers already operate on a Store; passing the Temporal-backed target store gives Temporal-first reads without duplicating read logic."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Unrelated pre-existing failures in src/tools/archive-helpers/git-finalize.test.ts surfaced during full-suite run (status 'blocked' due to push behavior/environment) and are out of scope for this task."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned other target_path descriptions in change.ts to ensure only adv_change_show's description was updated; adv_change_update/gate repair descriptions left untouched.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_change_show now routes target artifact readback through the target project's Temporal store when artifact include flags are requested. No-artifact target show remains snapshot-ok. Tests verify routing, snapshot preservation, and fail-closed behavior.",
+        "suggested_next_action": "Proceed to review/merge; full-suite git-finalize failures are environment-related and pre-existing."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/cross-project-coordination.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+      "task_id": "tk-d3bf9c1d667d",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-d3bf9c1d667d"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/tools/change.test.ts -t \"target_path routing\"",
+          "exit_code": 0,
+          "summary": "4 new target close tests pass (temporal-required routing, dry-run read-only, untrusted rejection, recovery path)"
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/change.test.ts -t \"adv_change_close\"",
+          "exit_code": 0,
+          "summary": "13 adv_change_close tests pass (9 same-project + 4 target_path)"
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/change*.test.ts",
+          "exit_code": 0,
+          "summary": "183 tests across change tool files pass"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes"
+        },
+        {
+          "command": "pnpm run lint",
+          "exit_code": 0,
+          "summary": "ESLint passes"
+        },
+        {
+          "command": "pnpm run format:check",
+          "exit_code": 0,
+          "summary": "Prettier formatting check passes"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extracted runClose(activeStore, projectContext?) inner function and routed target_path through withTargetPathStore with stateRequirement: 'temporal-required' and mutation: !dryRun.",
+          "why": "Matches the task contract, keeps same-project path identical, and makes the target store (not source store) own lookup, signal, refresh, cleanup, and recovery."
+        },
+        {
+          "what": "Used context.projectId for the target workflow handle, falling back to getProjectId(activeStore.paths.root) for same-project closes.",
+          "why": "Ensures getChangeHandle targets the correct project ID when operating across projects."
+        },
+        {
+          "what": "Included _projectContext directly in the close output object for target closes instead of appending via appendTargetProjectContextOutput.",
+          "why": "Consistent with runRepair/runUpdate patterns in the same file and keeps the dry-run/read paths simpler."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none; followed existing adv_change_repair_origin target_path pattern and did not need cross-tool same-pattern fixes.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_change_close now supports target_path routing with target_confirmed/confirmationEvidence fields, uses the target store for change lookup, signal+refresh, disk cleanup, and completed-workflow recovery. Same-project behavior is preserved. New tests cover routing, dry-run read-only, untrusted rejection, and target recovery.",
+        "suggested_next_action": "Run full test suite via bin/oc-test full or proceed to next task in the change."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.test.ts -t \"target_path routing\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.test.ts -t \"adv_change_close\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change*.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+      "task_id": "tk-81dfb52cf340",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-81dfb52cf340"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"target_path routing\"",
+          "exit_code": 1,
+          "summary": "RED phase: 4 new target bulk-close tests failed before implementation (selection still used source store)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"target_path routing\"",
+          "exit_code": 0,
+          "summary": "GREEN phase: target bulk-close tests pass after implementation"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"adv_change_bulk_close\"",
+          "exit_code": 0,
+          "summary": "Same-project bulk-close behavior remains green"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "Full change.test.ts suite passes (93/93)"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, lint, format:check, isolation, lockfile policy all green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Mirrored adv_change_close runClose/withTargetPathStore pattern for bulk close",
+          "why": "Keeps target routing consistent: selection, signaling, recovery, and disk sweep all use the target store; dry-run stays read-only via mutation:false"
+        },
+        {
+          "what": "Resolved projectId from projectContext when available, falling back to getProjectId(activeStore.paths.root)",
+          "why": "Target close must use target project ID for getChangeHandle; same-project path keeps existing behavior"
+        },
+        {
+          "what": "Attached _projectContext to all runBulkClose outputs when targeting a project",
+          "why": "Contract requires target responses include _projectContext"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern drift beyond adv_change_bulk_close; target_path routing for single close already existed and was used as the model.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented target_path routing for adv_change_bulk_close: added target_path/target_confirmed/confirmationEvidence args, routed selection/signaling/recovery/disk-sweep through target store, and included _projectContext in target outputs. All change.test.ts tests pass and pnpm check is green.",
+        "suggested_next_action": "Run a broader smoke/full test sweep if needed, then proceed to next task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts -t \"target_path routing\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts -t \"target_path routing\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts -t \"adv_change_bulk_close\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 877,
+          "what": "target_path artifact readback switches to withTargetPathStore with stateRequirement temporal-required and mutation false when artifact include flags are requested.",
+          "why": "This directly addresses AC1 by forcing artifact content reads through the target Temporal-backed store instead of the source project snapshot path."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 1805,
+          "what": "target_path close and bulk-close route through target store before handle creation and cache refresh.",
+          "why": "Project ID comes from target project context and fireSignalAndRefresh receives the target store, matching AC2/AC3 and rq-cacheRefresh01 expectations."
+        },
+        {
+          "id": "review-praise-3",
+          "label": "praise",
+          "file": "plugin/src/tools/change.test.ts",
+          "line": 2130,
+          "what": "Target routing tests cover target project ID, target store cache refresh, untrusted confirmation failure, dry-run non-mutation, and completed-workflow recovery paths.",
+          "why": "These tests give source-vs-target identity coverage for close and bulk-close and verify AC4/AC5-relevant behavior."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "Path preflight: test -e plugin/src/tools/change.ts / change.test.ts / target-project.ts",
+          "bin/oc-test targeted -- src/tools/change.test.ts src/tools/cross-project-coordination.test.ts",
+          "git diff --check && git grep -n \"fireSignal(handle\" -- plugin/src/tools ':!plugin/src/tools/**/*.test.ts' ':!plugin/src/tools/*.test.ts' || true",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all referenced files. Targeted tests passed: 2 files, 101 tests. git diff --check clean; direct fireSignal(handle grep produced no matches. pnpm run check passed schemas:check, typecheck, test-isolation, lockfile policy, lint, and format:check."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Review used deterministic source/test inspection plus isolated tests; no live cross-project target Temporal worker was exercised in this reviewer pass.",
+        "lgrep semantic search timed out twice; review continued with lgrep text search, grep, read, git inspection, and executable tests."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with acceptance if orchestrator agrees with source-backed review evidence.",
+        "Keep release/deployment/archive readiness for harden scope as requested."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 877,
+          "what": "Target artifact readback now routes through a Temporal-required target store when artifact include flags are requested.",
+          "why": "Matches release contract by avoiding snapshot/scaffold success for active target artifact reads."
+        },
+        {
+          "id": "harden-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 1805,
+          "what": "Target close and bulk-close paths use withTargetPathStore with mutation mode tied to dryRun, target confirmation passthrough, target project id, target store signaling/cache refresh, and target disk cleanup.",
+          "why": "This makes cross-project close behavior structural instead of source-store-derived and preserves the approval boundary."
+        },
+        {
+          "id": "harden-praise-3",
+          "label": "praise",
+          "file": "plugin/src/tools/change.test.ts",
+          "line": 420,
+          "what": "Tests cover target artifact readback, target Temporal unreachable fail-closed behavior, target close/bulk-close confirmation, dryRun, project id, target store signaling, cleanup, and completed-workflow recovery.",
+          "why": "Coverage directly exercises the high-risk release contract surfaces and reduces regression risk."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e 'plugin/src/tools/change.ts' && echo OK || echo MISSING",
+          "test -e 'plugin/src/tools/change.test.ts' && echo OK || echo MISSING",
+          "bin/oc-test targeted -- src/tools/change.test.ts src/tools/cross-project-coordination.test.ts",
+          "grep -rn \"fireSignal(handle\" plugin/src/tools/ | grep -v \".test.ts\" | grep -v rq-cacheRefresh01-exempt || true",
+          "git diff --check origin/trunk...HEAD -- 'plugin/src/tools/change.ts' 'plugin/src/tools/change.test.ts'",
+          "rg -n \"TODO|FIXME|eslint-disable|@ts-ignore|as any|console\\.log|process\\.env|catch \\{\\}\" 'plugin/src/tools/change.ts' 'plugin/src/tools/change.test.ts' || true",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for both reviewed files. Targeted tests passed: 2 files, 101 tests. Cache-refresh direct fireSignal grep produced no matches. git diff --check produced no output. Scoped slop scan for TODO/FIXME/eslint-disable/@ts-ignore/as any/console.log/process.env/empty catch in reviewed files produced no output. pnpm run check passed: schemas:check, typecheck, test-isolation, lockfile policy, lint, format:check."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live ADV tool behavior is source-verified only in this session; OpenCode caches deployed plugin dist until pnpm run build, deploy-local.sh --fix, and session/plugin-host restart per AGENTS.md Source-vs-Dist Reload Gotcha.",
+        "Target artifact readback fail-closed path intentionally propagates target Temporal initialization failure instead of returning source snapshot content; callers must treat that as unavailable target state, not absence of the change."
+      ],
+      "required_main_agent_actions": [
+        "Before live tool validation or release use, run plugin build/deploy and restart OpenCode/plugin host as documented in AGENTS.md Source-vs-Dist Reload Gotcha.",
+        "Proceed with release/archive flow if other harden scanners and gate evidence remain green."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:archive-finalize-design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "detectDefaultBranch --local config fix for archive-finalize test repair",
+      "sources": [
+        {
+          "label": "git-config official docs (--local read scope)",
+          "locator": "https://git-scm.com/docs/git-config",
+          "summary": "Default read merges system+global+local config. --local restricts reads to repository .git/config only. Confirms `git config --local --get init.defaultBranch` excludes global ~/.gitconfig, which is the root cause of tests picking up global init.defaultBranch=main."
+        },
+        {
+          "label": "git/git Documentation/git-config.txt",
+          "locator": "https://github.com/git/git/blob/master/Documentation/config.txt",
+          "summary": "--local for reading options: read only from repository .git/config rather than from all available files. Missing local key returns non-zero, enabling clean fallthrough to local main/trunk branch probing."
+        },
+        {
+          "label": "Spec rq-releaseFinalization01.7 / .8",
+          "locator": "docs/specs/advance-workflow.md:542-571",
+          "summary": "Dirty default-branch checkpoint must continue to remote freshness/merge/push and record mainCheckpointCommitSha. Wrong-branch/missing-identity/in-progress/checkpoint-failure/merge-conflict blockers preserved. All keyed on the RESOLVED default branch, which detectDefaultBranch computes."
+        },
+        {
+          "label": "Current code + tests",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:566-611; git-finalize.test.ts:61-150",
+          "summary": "detectDefaultBranch order: origin/HEAD → git config --get init.defaultBranch → refs/heads/{main,trunk}. initRepo uses `git init -b trunk` and sets NO local init.defaultBranch, so global default (main) wins step 2 → MAIN_BRANCH_MISMATCH → blocked. Existing unit test sets init.defaultBranch LOCALLY (no --global), so --local read preserves that assertion."
+        }
+      ],
+      "architecture_assessment": "The blocked MAIN_BRANCH_MISMATCH is a test-environment leak, not a real safety failure: detectDefaultBranch step 2 reads global git config, so a dev/CI machine with global init.defaultBranch=main forces resolution to `main` even when the repo was created on `trunk` and has no remote. The proposed change scopes that config read to --local (repository .git/config only). Behavior by tier: (1) origin/HEAD unchanged and still first — production repos with a remote are unaffected; (2) --local init.defaultBranch only matches when the repo itself set it, matching git's own per-repo semantics; (3) fallthrough to local main/trunk branch probing correctly resolves real single-branch repos. The fix is confined to resolution; verifyMainInvariants, the dirty-checkpoint path (rq-releaseFinalization01.7), and every unsafe-state blocker (rq-releaseFinalization01.8) are downstream and unchanged, so no release-safety expectation is weakened. Genuine wrong-branch situations still block because resolution yields the true default and the actual-vs-expected comparison is preserved. This is the boring, correct fix: it aligns the heuristic with git's documented scoping instead of adding test-only shims or env overrides (respects P33 structural-correctness and P35 architecture-over-hacks).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "git --local read-scope claim verified against official git-config docs and git/git source. Fix is isolated to detectDefaultBranch resolution ordering; preserves origin/HEAD-first, preserves local main/trunk fallback, and does not touch invariant/checkpoint/blocker logic. Existing detectDefaultBranch unit test remains green because its init.defaultBranch is set locally. No weakening of C7/C8/DONT7/DONT8."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Repos that intentionally relied on a GLOBAL init.defaultBranch as the release default (and have neither origin/HEAD nor a local main/trunk branch) would now fall through to the local-branch probe or throw. This is acceptable and arguably more correct: global init.defaultBranch is a repo-creation hint, not a release-target authority, and origin/HEAD + local branch probing cover realistic production repos.",
+          "Adds one behavioral dependency on git's --local semantics; mitigated because it is documented, stable, and already the intended per-repo scope."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Set local init.defaultBranch in the test initRepo helper instead of changing production code",
+            "disposition": "rejected",
+            "rationale": "Test-only shim hides the real defect: production detectDefaultBranch would still read stale global config on any machine with init.defaultBranch set. Violates P33/P35 (mask symptom vs fix cause)."
+          },
+          {
+            "option": "Drop the init.defaultBranch config step entirely, rely only on origin/HEAD then local main/trunk",
+            "disposition": "deferred",
+            "rationale": "Slightly simpler, but removes a legitimate signal for repos that set a local default branch other than main/trunk (e.g. develop). Keeping the step but scoping it --local preserves that capability with correct scope. Reasonable future simplification if the local-default case proves unused."
+          },
+          {
+            "option": "Weaken tests to accept blocked/MAIN_BRANCH_MISMATCH",
+            "disposition": "rejected",
+            "rationale": "Directly violates DONT7/DONT8 and the contract (SC4/AC7): would make tests pass by accepting an unsafe blocked result and hiding the real resolution bug."
+          }
+        ],
+        "recommendation": "Proceed with the --local scoping of the init.defaultBranch read in detectDefaultBranch. Keep origin/HEAD first and local main/trunk fallback unchanged. Add/keep a regression test asserting that a repo on trunk with NO local init.defaultBranch resolves to trunk (source: local-trunk) even when a global init.defaultBranch=main exists — this locks the fix against the exact failure mode. Verify verifyMainInvariants, dirty-checkpoint, and unsafe-state blocker tests remain green after the change (AC8 full suite)."
+      },
+      "recommendation": "Approve design. Implement detectDefaultBranch step 2 as `git config --local --get init.defaultBranch`; leave origin/HEAD-first and main/trunk fallback intact. This repairs SC4/AC7 without weakening release safety (C7/C8/DONT7/DONT8 preserved). Add a regression test for the trunk-repo + global-main-config scenario. Confirm AC8 full suite green post-change and that any remaining red is proven unrelated.",
+      "follow_ups": [
+        "Add regression test: initRepo(trunk) with no local init.defaultBranch + simulated global init.defaultBranch=main must resolve source=local-trunk.",
+        "After fix, run full suite (bin/oc-test full) to confirm AC8; classify any residual red as unrelated with evidence before acceptance."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 588,
+          "what": "Default-branch detection now uses repository-local init.defaultBranch before local branch fallback.",
+          "why": "Prevents a user's global init.defaultBranch from misclassifying initialized trunk repositories while preserving origin/HEAD precedence and local branch fallback."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 3142,
+          "what": "Archive target_path routing delegates through target store and appends target project context.",
+          "why": "Keeps terminal archive reads/mutations on the target project's Temporal-backed store, including read-only dry-run behavior."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "Archive-finalization default branch detection should ignore global init.defaultBranch; repository-local config plus origin/HEAD/local-branch fallback gives deterministic release safety across user environments."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.test.ts",
+          "rg 'fireSignal\\(handle' plugin/src/tools --glob '!*.test.ts'"
+        ],
+        "results": "pass",
+        "evidence": "Focused reviewer verification passed: change.test.ts 93 tests, git-finalize.test.ts 82 tests, total 175 passed. Cache-refresh direct fireSignal grep returned no matches. git diff --check produced no output. git status --short clean after review. Prompt SCOPE KEY reviewer:acceptance-expanded was represented by allowed durable reviewer scope review:acceptance due report schema constraint."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetPathRouting",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetPathRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "For bin/oc-test targeted from the repository root, pass test paths relative to plugin/ (for example src/tools/change.test.ts), because the wrapper executes Vitest with plugin/ as cwd."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "test -e plugin/src/tools/change.ts && test -e plugin/src/tools/change.test.ts && test -e plugin/src/tools/archive-helpers/git-finalize.ts && test -e plugin/src/tools/archive-helpers/git-finalize.test.ts",
+          "git status --short && git diff --check",
+          "grep -rn \"fireSignal(handle\" plugin/src/tools/ | grep -v \".test.ts\" | grep -v rq-cacheRefresh01-exempt || true",
+          "bin/oc-test targeted -- src/tools/change.test.ts src/tools/archive-helpers/git-finalize.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK. Worktree clean and git diff --check clean. Cache-refresh grep returned no non-test direct fireSignal(handle occurrences. Targeted release-hardening tests passed: change.test.ts 93 tests, git-finalize.test.ts 82 tests, total 175 passed. Packet evidence also reports pnpm run check passed, pnpm run build passed, bin/oc-test full passed (tr_mr7z02p3_1997709b), target-path tests passed 101, archive-finalize tests passed 82."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live ADV behavior still requires normal plugin build/deploy/restart after merge because OpenCode caches deployed dist at session startup; source/unit verification does not update current plugin host."
+      ],
+      "required_main_agent_actions": [
+        "Archive sign-off can use existing check/build/full-suite evidence plus this final targeted hardening pass.",
+        "After merge, perform normal plugin build/deploy/restart before relying on live ADV tool behavior in an OpenCode session."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-05T01:22:30.104Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal framing via reply: approve",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "3a8a197fb3a1ece85879f915aa4ac864203a6b5cd6d80955182474ac373fb1ae",
+        "non_whitespace_chars": 6595,
+        "checked_at": "2026-07-05T01:20:02.748Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-05T15:32:49.177Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved expanded release-blocker agreement via reply: approve; contract re-minted with 32 items including archive-finalization scope.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "non_whitespace_chars": 5234,
+        "checked_at": "2026-07-05T01:20:02.752Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-05T15:40:20.501Z",
+      "completed_by": "agent",
+      "approval_evidence": "Expanded archive-finalization repair design persisted and independently validated by adv-researcher with pass/high confidence.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "85fa5b2390a2c8ac86ea63f691f0a8e97b1585cf6d824040351c14f462d62005",
+        "non_whitespace_chars": 5927,
+        "checked_at": "2026-07-05T01:20:02.753Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-05T15:47:19.897Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved expanded repair plan via reply: approve"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-05T15:53:49.796Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 tasks complete after re-entry. Verification: archive-finalize targeted tests 82 passed, target-path targeted tests 101 passed, pnpm run check passed, pnpm run build passed, cache-refresh grep clean, git diff --check clean, bin/oc-test full passed, change validation passed with no errors."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-05T16:06:07.557Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted final delivered work after expanded scope via reply: approve",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "3f8730c294329a6b577c7e8017699bccd59974aebdf2ad35f370af6d5c0d8d50",
+        "non_whitespace_chars": 2990,
+        "checked_at": "2026-07-05T01:20:02.754Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Release hardening found full local suite red due pre-existing archive-finalize tests reproduced on trunk. User selected 'Fix blocker now', expanding scope to repair that release blocker before archive.",
+      "scope_delta": "Add release-readiness scope: diagnose and fix `src/tools/archive-helpers/git-finalize.test.ts` failures where finalizeRelease returns `blocked` instead of expected `shipped`/`pending_merge`; preserve existing target_path routing work.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-05T14:39:40.137Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 192
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+      "approvedAt": "2026-07-05T15:32:38.407Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Cross-project `target_path` artifact reads show real target change content, not scaffold placeholders.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Target close/bulk-close operations address target project workflows, never source-project workflow IDs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Temporal use stays structural: target store/client boundary, query/signal paths, deterministic workflow code, and no disk workaround.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Archive finalization release tests pass again without weakening release-safety semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_show` with `target_path` and artifact include flags returns target workflow document content for proposal/problem statement after target create/update.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_show#target_path"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "After implementation, `adv_change_close` accepts explicit target-project routing and closes the target project change using target project workflow identity and target cache refresh.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "After implementation, `adv_change_bulk_close` accepts explicit target-project routing and selects/closes target project changes only, using target project workflow identity and target cache refresh.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Untrusted target mutations fail before signaling unless explicit confirmation evidence is supplied.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Regression tests prove source project ID/store is not used for target artifact readback, close, or bulk-close paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Design records chosen behavior for unreachable active target Temporal state before planning.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts` passes in the change worktree.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "`bin/oc-test full` passes in the change worktree, or any remaining failure is proven unrelated, pre-existing, and explicitly accepted at archive sign-off.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Existing `rq-crossProjectCoordination01` and cache-refresh law govern the target-path fix; no new spec delta is required unless design discovers uncovered behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Active artifact content remains Temporal-workflow state; disk placeholders must not become authoritative.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Change-scoped signals must use `fireSignalAndRefresh` with the store that owns the change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Target mutations must use target trust/confirmation and target queue-serviceability checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Workflow code must remain deterministic; do not add external I/O or nondeterminism inside Temporal workflow code.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Tests must use isolated project directories/fixtures and must not rely on external PokeEdge projects.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Archive-finalization repair must preserve `rq-releaseFinalization01.7`: dirty default-branch checkpoint commits continue to remote freshness, merge, and push without user interruption, and record `mainCheckpointCommitSha`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "Archive-finalization repair must preserve safe blocking for genuinely unsafe main states, missing git identity, active merge/rebase/cherry-pick/revert, and unreachable change branches.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not route target-path lifecycle mutations through the source project ID.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add disk artifact writes or direct ADV state-file reads as a workaround.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not weaken untrusted `target_path` confirmation rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not clean up already-created PokeEdge placeholder drafts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not expand all target read tools unless design finds direct coupling to artifact correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not invent new Temporal primitives or a coordinator workflow when existing target store/query/signal paths suffice.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not make archive-finalization tests pass by changing expectations to accept an unsafe `blocked` result unless the spec is formally amended.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT8",
+        "kind": "avoidance",
+        "text": "Do not bypass git safety checks, force-push, or hide full-suite failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Cleaning up already-created placeholder changes in external PokeEdge projects.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Product-level UX redesign for cross-repo ADV workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Reworking unrelated target-path task, gate, wisdom, Epic, ops, archive, or status semantics without direct artifact/close coupling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Broad archive workflow redesign beyond the failing archive-finalization test path needed to restore release readiness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-05T15:59:23.304Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Target-path artifact readback implemented and re-verified after expanded scope; targeted tests `change.test.ts` + `cross-project-coordination.test.ts` passed 101 (tr_mr7ywe1g_43fb6530)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Target close/bulk-close route through target project workflows/store; acceptance rereview verdict READY with no blockers."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Implementation uses target store/query/signal paths; no workflow code changes; `pnpm run check` and `pnpm run build` passed."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Archive-finalization release tests restored; targeted git-finalize tests passed 82 (tr_mr7yw0b6_1a4dce46) and full suite passed (tr_mr7z02p3_1997709b)."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/tools/change.test.ts` regression tests verify target artifact documents returned and no-artifact target show remains snapshot-backed; targeted suite passed 101."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Close target_path tests cover target project ID, target store `fireSignalAndRefresh`, dry-run read-only path, untrusted rejection, and recovery path."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Bulk-close target_path tests cover target selection, project ID, target signal/cache refresh, disk sweep, untrusted rejection, and dry-run read-only path."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Close and bulk-close target tests verify untrusted target mutation rejects before signal; reviewers found no blockers."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression tests prove source project ID/store not used for target artifact readback, close, or bulk-close; targeted verification passed 101."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Design KD2 records active target Temporal unreachable behavior: fail closed, no scaffold placeholder success; persisted before planning."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts` passed 82 tests (tr_mr7yw0b6_1a4dce46)."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/oc-test full` passed after archive-finalization repair (tr_mr7z02p3_1997709b)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No target-path spec delta needed; change validates as conformance with expected NO_DELTAS warning only."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No disk artifact write workaround introduced; target artifact readback reuses Temporal-first artifact helpers."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Cache-refresh grep clean; change-scoped signals use `fireSignalAndRefresh` with owning/target store."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Target mutations use shared target routing/confirmation; untrusted rejection tests pass."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No Temporal workflow code changed; `pnpm run check` and `pnpm run build` passed."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Tests use repo fixtures/temp dirs; no external PokeEdge dependency."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "`rq-releaseFinalization01.7` dirty-main checkpoint paths now continue as tests expect; git-finalize targeted tests passed 82."
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Unsafe-state blocker tests remain covered in git-finalize suite; no blocker logic relaxed; targeted git-finalize tests passed 82."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review verified target close/bulk-close derive target project/store for handle, signal, recovery, cleanup, and selection."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No direct ADV state-file reads or disk artifact writes introduced."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Target confirmation behavior preserved; untrusted mutation tests pass."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No PokeEdge cleanup performed; scope stayed in Advance repo."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Target read expansion limited to `adv_change_show` artifact include paths; related-scan left non-artifact reads unchanged."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new Temporal primitive/coordinator added; existing store/query/signal paths reused."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Did not weaken archive-finalization expectations; fixed default-branch detection so existing shipped/pending tests pass."
+        },
+        {
+          "contractId": "DONT8",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No git safety bypass; full suite failure was fixed and full suite now passes."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "External PokeEdge placeholder cleanup was out of scope and not performed."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No product UX redesign performed."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Unrelated target-path surfaces not reworked."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Archive changes limited to default-branch detection repair and focused regression; no broad archive workflow redesign."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_show` with `target_path` and artifact include flags returns target workflow document content for proposal/problem statement after target create/update.",
+    "After implementation, `adv_change_close` accepts explicit target-project routing and closes the target project change using target project workflow identity and target cache refresh.",
+    "After implementation, `adv_change_bulk_close` accepts explicit target-project routing and selects/closes target project changes only, using target project workflow identity and target cache refresh.",
+    "Untrusted target mutations fail before signaling unless explicit confirmation evidence is supplied.",
+    "Regression tests prove source project ID/store is not used for target artifact readback, close, or bulk-close paths.",
+    "Design records chosen behavior for unreachable active target Temporal state before planning.",
+    "`bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts` passes in the change worktree.",
+    "`bin/oc-test full` passes in the change worktree, or any remaining failure is proven unrelated, pre-existing, and explicitly accepted at archive sign-off."
+  ],
+  "documents": {
+    "proposal": "# Fix target path routing\n\n## Why\n\nCross-project `target_path` support is inconsistent across Advance tools. From a source-project session, target-project change create/update can report success while target-aware readback still shows scaffold placeholder artifacts, and target close/bulk-close can route to source-project workflows and fail with `WorkflowNotFoundError`. This prevents agents from reliably creating, updating, validating, or cleaning up target-project changes from source repo sessions.\n\nThe fix must also be aligned with optimal Temporal TypeScript usage. Authoritative state should be read through target workflow query/document paths and mutated through target workflow signal paths. Disk placeholders and source-project workflow ID inference must not become correctness mechanisms.\n\n## What Changes\n\n- Make target-aware change artifact reads return the target project's authoritative Temporal document content when artifacts are requested.\n- Align target-aware lifecycle mutation tools with their advertised schemas so close and bulk-close operate on the target project's workflow/store, not the source project.\n- Preserve Temporal-only artifact persistence; do not introduce disk artifact writes as the correctness mechanism.\n- Add regression coverage for target create/show/update/show/close round-trip behavior.\n- Validate the implementation against Temporal TypeScript guidance for workflow handles, queries, signals, deterministic workflow code, and client-side routing boundaries.\n\n## User Outcomes\n\n- Agents can create a change in a related target project and immediately read back the supplied proposal/problem statement from the same source-project session.\n- Agents can update target-project artifacts and verify the updated content through target-aware readback.\n- Agents can close target-project placeholder or follow-up changes through the same target-path API that created them.\n- Cross-project workflow errors identify real target-state problems rather than accidental source-project routing.\n- The fix strengthens ADV's Temporal-backed state model instead of adding brittle disk or heuristic workarounds.\n\n## Affected Code\n\n- `plugin/src/tools/change.ts` target-aware show/update/close/bulk-close paths.\n- `plugin/src/tools/target-project.ts` target store selection helpers, if read routing requires a Temporal-backed target store mode.\n- `plugin/src/storage/store-temporal/changes.ts` only if document query/read behavior needs adjustment; disk artifact writes remain out of scope.\n- Co-located tests under `plugin/src/tools/` and related target-project test helpers.\n\n## Related Repositories\n\n- Primary repo: `advance`.\n- Repro involved product-linked repos `/home/jon/dev/pokeedge` and `/home/jon/dev/pokeedge-web`, but implementation scope is this plugin repo.\n\n## Scope\n\n### In Scope\n\n- Target-path artifact readback for `adv_change_show` when proposal/problem statement/artifact include flags are requested.\n- Target-path routing for `adv_change_close` and `adv_change_bulk_close`.\n- Regression tests proving target project workflow handles and artifact documents are used.\n- Validation that existing target trust/confirmation behavior remains intact.\n- Temporal best-practice review for handle construction, query/signal usage, deterministic workflow boundaries, and cache refresh semantics.\n\n### Out of Scope\n\n- Changing unrelated cross-project task, gate, wisdom, Epic, ops, or archive semantics unless directly needed to preserve existing behavior.\n- Replacing Temporal-only persistence with disk artifact writes.\n- Product-level UX redesign for cross-repo workflows.\n- Cleaning up already-created placeholder changes in external PokeEdge projects as part of this code change.\n- Reworking Temporal architecture beyond the target-path routing/readback defect.\n\n### Must Not\n\n- Must not route a target-path lifecycle mutation through the source project ID.\n- Must not make disk snapshot placeholders authoritative over Temporal document state.\n- Must not weaken untrusted `target_path` confirmation rules.\n- Must not introduce direct ADV state file reads or writes as a workaround.\n- Must not put nondeterministic or I/O behavior into Temporal workflow code.\n- Must not add heuristic source/target project inference as the owner of correctness.\n\n## Failure Handling\n\n- If target Temporal workflow state is missing, unreachable, completed, or poisoned, tools should report the target-scoped failure with target project context; they must not silently retry against the source project.\n- If artifact documents are unavailable from active target workflow state, read paths should fail or surface a precise fallback warning rather than treating scaffold placeholders as confirmed content.\n- If target trust/confirmation fails, mutation tools must stop before signaling any workflow.\n- Any recovery path must be audited and typed through existing poisoned-history/recovery mechanisms, not ad hoc disk edits.\n\n## Constraints\n\n- Specs are law: cross-project coordination must preserve `rq-crossProjectCoordination01` expectations.\n- Temporal workflow state remains the authoritative runtime source for active changes.\n- Target mutations must use the target store/cache so refresh and workflow handle lookup are scoped correctly.\n- Tests must use isolated temp project directories.\n- Temporal docs evidence gathered so far: Context7 `/temporalio/sdk-typescript` shows workflow queries use workflow execution identity and client namespace, and workflow code must keep I/O/nondeterministic work out of the sandbox. Discovery/design must firm this into concrete implementation rules.\n\n## Impact\n\n- Improves source-to-target ADV follow-up reliability.\n- Reduces orphan placeholder drafts in related repos.\n- Low user-visible behavior change beyond making advertised target-path schemas work as expected.\n- Lowers future Temporal replay/routing risk by keeping source/target boundaries explicit and structural.\n\n## Context\n\nIssue #192 reports a concrete repro from PokeEdge backend to frontend. Quick checks found `rq-crossProjectCoordination01` in `advance-workflow`, `withOptionalTargetPathStore` usage in `plugin/src/tools/change.ts`, and `withTargetPathStore` conventions already documented for cross-project mutations. Temporal TypeScript docs confirm client queries are scoped by workflow execution identity and namespace, reinforcing that target-path reads and mutations must use the target store/client boundary.\n\n## Discovery Agenda\n\n- Confirm exact current behavior of `adv_change_show` artifact include flags under `target_path`.\n- Inspect close and bulk-close implementations for source store assumptions and workflow ID construction.\n- Identify the smallest structural helper change that lets read paths use target Temporal state without breaking snapshot-ok status/list use cases.\n- Map regression tests to existing target-project and change tool fixtures.\n- Decide whether the fix requires new spec deltas or is a conformance fix to existing `rq-crossProjectCoordination01` law.\n- Validate chosen approach against Temporal TypeScript docs and repo Temporal architecture tests before design approval.\n- Define expected target-scoped error behavior for unreachable/missing/completed target workflows.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n| --- | --- | --- |\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`; tool schema/argument contract alignment is core scope. |\n| Prior Research Extension | PASS | Reviewed `temp/temporal-perf-report.md`; new finding: this fix should reuse existing Temporal service/store routing rather than add extra client-bundle churn. |\n| Conflict & Related-Work Scan | PASS | `adv_change_validate strict` passed with only expected no-task/no-delta warnings; active changes are unrelated slop-scan/GPT routing work; agenda items are unrelated slop-scan planning follow-ups. |\n| Edge Case Investigation | PASS | Covered wrong-source artifact read, wrong-project workflow ID close, target worker unavailable, untrusted target mutation, bulk partial failure, and completed/poisoned workflow recovery. |\n| Design Question Depth | PASS | Open design questions carry trust model, blast radius, and alternatives below. |\n| Draft Spec Deltas | PASS | No new spec delta required; existing `rq-crossProjectCoordination01` and cache-refresh law cover required behavior. |\n| Related Pattern Scan | PASS | Same-pattern scan found other snapshot-ok reads, but artifact content is uniquely Temporal-only; non-artifact reads are out of scope unless design finds direct coupling. |\n| LBP Check | PASS | Long-term best practice is to route target operations through target Temporal store/client boundary and reuse existing query/signal paths. |\n| Completeness Verification | PASS | Problem is not limited to one call site: show artifact readback and close/bulk-close lifecycle routing are both in scope; cleanup of existing external placeholder drafts is explicitly out of scope by user decision. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts`: matched; this change modifies agent-callable tool argument contracts (`target_path` on close/bulk-close) and must keep schema, preflight, tests, and specs aligned.\n- `adv-arch-detection`: considered but not loaded; deterministic source inspection plus Temporal docs/subagent research were sufficient for architecture inconsistency detection.\n- `adv-worktree`: not applicable; implementation will use normal ADV worktree routing later, but discovery is about tool semantics.\n\n### Extends\n\n- `temp/temporal-perf-report.md`: prior Temporal performance research notes connection reuse and avoiding unnecessary Temporal churn. New finding for this change: the fix should not add a new Temporal access path; it should reuse `getService`, `createStore`, target queue readiness, `readArtifacts`, and `fireSignalAndRefresh` patterns already present.\n- No directly relevant `docs/*-prep.md` research pack found for target-path artifact readback.\n\n### Conflict Scan\n\n- `adv_change_validate strict`: passed; warnings only for no tasks/no deltas at discovery stage.\n- Active changes: `makeDegradedSlopScanFailFast` and `fixGptSubagentRouting`; no direct overlap with target-path routing.\n- Agenda: pending slop-scan planning follow-ups only; no target-path conflict.\n\n### Current State\n\n- `adv_change_show` wraps target reads with `withOptionalTargetPathStore`, which hardcodes `stateRequirement: \"snapshot-ok\"`; that opens a legacy disk store for target reads.\n- `readArtifacts` is already Temporal-first when given a Temporal-backed store: it queries `store.changes.get()` once and reads `change.documents[kind]` before disk/archive fallback.\n- Because the target show path supplies a disk store, `readArtifacts` cannot see target `state.documents` and falls back to disk placeholder/scaffold files.\n- `adv_change_update target_path` already uses `withTargetPathStore(stateRequirement:\"temporal-required\")`; it is the reference pattern for mutations.\n- `adv_change_close` and `adv_change_bulk_close` source currently lack source-level target-path routing in `plugin/src/tools/change.ts`: they look up changes, project ID, workflow handles, cache refresh, recovery, and disk cleanup from the source store.\n- Official Temporal TypeScript docs describe workflows as stateful services receiving Queries/Signals/Updates; clients use messages to read state/control execution. `WorkflowHandle` is a client-side handle to a single workflow and can query or signal it. Temporal workflow code must stay deterministic; external I/O/API/database work belongs outside workflow replay path.\n\n### Edge Cases\n\n1. **Target worker unavailable during active artifact read**\n   - Edge A: tool must not silently show scaffold placeholder as if it were target workflow content.\n   - Edge B: design must choose fail-closed or explicit degraded warning; user deferred exact behavior to design.\n2. **Wrong project identity for close**\n   - Edge A: source project ID plus target change ID yields `WorkflowNotFoundError` even when target change exists.\n   - Edge B: completed/poisoned target workflow recovery must use target store and target disk projection, not source recovery paths.\n3. **Untrusted target mutation**\n   - Edge A: close/bulk-close with untrusted `target_path` must fail before any signal when confirmation evidence is missing.\n   - Edge B: dry-run target close/bulk-close must not signal, remove disk, or require mutation confirmation beyond read-only target validation.\n4. **Bulk close partial failure**\n   - Edge A: one target signal failure must not incorrectly sweep source disk or claim all closed.\n   - Edge B: selection/list/get must be target-store scoped, otherwise filter selection can close wrong source changes.\n\n### Open Design Questions\n\n1. **Target artifact read when target Temporal state is unreachable**\n   - Trust model: joint; user deferred exact behavior to design.\n   - Blast radius: high; wrong choice can reintroduce placeholder-as-content or make read-only tooling too brittle.\n   - Alternatives: fail closed for active target workflows; degraded snapshot with explicit warning; terminal-only disk/archive fallback. Recommendation for design: fail closed for active, allow terminal disk/archive fallback only.\n2. **Helper shape for target-aware artifact reads**\n   - Trust model: agent-only technical decision.\n   - Blast radius: medium; over-generalizing `withOptionalTargetPathStore` could alter unrelated snapshot-ok tools.\n   - Alternatives: add stateRequirement override to optional helper; branch in `adv_change_show` only when artifact include flags are requested; create a narrow helper. Recommendation: narrow helper/branch for artifact reads unless tests prove safe helper generalization.\n3. **Read surface breadth**\n   - Trust model: joint; user deferred to design.\n   - Blast radius: medium-high; all target reads change more behavior and test scope.\n   - Alternatives: artifact show only; all target reads; design-selected subset. Recommendation: artifact show only unless design finds another Temporal-only content path.\n4. **Bulk-close target semantics**\n   - Trust model: agent-only technical decision.\n   - Blast radius: medium; filter selection must not mix source and target projects.\n   - Alternatives: target-store-only selection; mixed-project selection support; reject mixed. Recommendation: target-store-only selection via one target store.\n\n### Draft Spec Deltas\n\nNo spec deltas required. This is a conformance fix to existing law:\n\n- `rq-crossProjectCoordination01`: target-path tools must derive target identity, not read ADV state files directly, and route target mutations through target Temporal-backed store/workflow paths.\n- `rq-cacheRefresh01` / delivery law: change-scoped signals must use `fireSignalAndRefresh` with the store owning the change; target-path mutations must pass the target store so target cache invalidates.\n\n### Related Pattern Scan\n\n- Other `withOptionalTargetPathStore` read tools (`adv_task_list`, `adv_task_ready`, `adv_gate_status`, `adv_status`, wisdom/reflection reads) intentionally use snapshot-ok or read projected metadata. They are lower severity and out of scope because task/gate metadata is disk-projected while artifact document content is Temporal-only.\n- Mutation tools generally already route through `withTargetPathStore`; close and bulk-close are the direct outliers for this issue.\n- `adv_change_reenter` may warrant later audit if it lacks target-path routing, but it is not part of issue #192's observed repro.\n\n### Completeness Verification\n\n- Problem-completeness: confirmed two independent failure classes from issue #192: artifact readback uses wrong source-of-truth, and close/bulk-close use wrong project identity/store.\n- Solution-scope completeness: must cover create/update readback verification indirectly via show, close routing, bulk-close routing, target trust gates, dry-run/no-signal behavior, and tests proving target project ID/store are used.\n- Sole-entry status: no sole-entry claim; `readArtifacts` is a central artifact read helper, but the bug is the store passed into it.\n- Secondary surfaces: non-artifact target reads deferred/out of scope; external PokeEdge cleanup explicitly out of scope by user answer.\n\n### LBP Check\n\nLikely direction matches long-term best practice:\n\n- Use target Temporal store/client boundary for target workflow query/signal operations.\n- Keep workflow code deterministic; no workflow-code I/O changes are needed.\n- Reuse typed signal/query/store helpers rather than direct disk state reads or ad hoc workflow ID construction.\n- Use `fireSignalAndRefresh` for close signals so target cache invalidation is structural.\n- Avoid adding disk artifact writes as a workaround.\n\nExternal-solution check: skipped beyond official Temporal docs because this is an internal plugin correctness fix; no external library/tool alternative is a realistic solution.\n\n### Recommended Objectives\n\n1. Restore target-path artifact readback by ensuring requested artifact content is read from target authoritative Temporal documents when active workflow state exists.\n2. Route target-path close and bulk-close through the target project's Temporal store, workflow identity, signal path, cache refresh, recovery, and cleanup scope.\n3. Preserve trust and safety rules for untrusted target mutations and dry-run previews.\n4. Preserve Temporal best practice: client/tool layer owns external I/O; workflow state remains deterministic, queryable, and signal-driven.\n5. Add regression tests that fail on source project ID/store usage for target operations.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:P\n\nM1  HIGH  Missing Information  Exact behavior for active target artifact read when target Temporal state is unreachable is deferred to design.\n  Evidence: \"Define expected target-scoped error behavior for unreachable/missing/completed target workflows.\"\n  Reason: unclear because user deferred fail-closed vs warning behavior to design; this does not block discovery because design can resolve it before planning.\n\n## B/F/S Ambiguity Scan\n\n- B: Scope includes In Scope, Out of Scope, Must Not, and Failure Handling sections; no critical boundary ambiguity identified.\n- F: User Outcomes are implementation-free and user-visible; no critical functional ambiguity identified.\n- S: Completion signals defer to discovery for engineering AC; no critical proposal ambiguity identified.",
+    "problemStatement": "Cross-project `target_path` support is inconsistent across Advance tools. From a source-project session, target-project change create/update can report success while target-aware readback still shows scaffold placeholder artifacts, and target close/bulk-close can route to source-project workflows and fail with `WorkflowNotFoundError`. This prevents agents from reliably creating, updating, validating, or cleaning up target-project changes from source repo sessions. The fix must align with Temporal TypeScript best practice: target workflow handles, signal/query operations, namespace/project identity, deterministic workflow boundaries, and cache invalidation must remain structurally correct rather than using disk placeholders or heuristic source/target inference.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Restore target-path artifact readback so source-project sessions can read target-project proposal/problem statement content from the authoritative target workflow state.\n2. Route `adv_change_close` target-path calls through the target project's workflow identity, target store, target cache refresh, recovery, and cleanup scope.\n3. Route `adv_change_bulk_close` target-path calls through the target project's selection, workflow identity, target store, target cache refresh, recovery, and cleanup scope.\n4. Preserve target trust/confirmation gates, dry-run safety, and Temporal deterministic workflow boundaries.\n5. Add regression coverage that proves target operations do not use source project IDs/stores for artifact readback, close, or bulk-close.\n6. New release-blocker scope: repair archive-finalization test failures that make the full local suite red before archive.\n\n## Success Criteria\n\n- SC1: Cross-project `target_path` artifact reads show real target change content, not scaffold placeholders.\n- SC2: Target close/bulk-close operations address target project workflows, never source-project workflow IDs.\n- SC3: Temporal use stays structural: target store/client boundary, query/signal paths, deterministic workflow code, and no disk workaround.\n- SC4: Archive finalization release tests pass again without weakening release-safety semantics.\n\n## Acceptance Criteria\n\n- AC1: `adv_change_show` with `target_path` and artifact include flags returns target workflow document content for proposal/problem statement after target create/update. [warrant: tool:adv_change_show#target_path]\n- AC2: After implementation, `adv_change_close` accepts explicit target-project routing and closes the target project change using target project workflow identity and target cache refresh.\n- AC3: After implementation, `adv_change_bulk_close` accepts explicit target-project routing and selects/closes target project changes only, using target project workflow identity and target cache refresh.\n- AC4: Untrusted target mutations fail before signaling unless explicit confirmation evidence is supplied.\n- AC5: Regression tests prove source project ID/store is not used for target artifact readback, close, or bulk-close paths.\n- AC6: Design records chosen behavior for unreachable active target Temporal state before planning.\n- AC7: `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts` passes in the change worktree.\n- AC8: `bin/oc-test full` passes in the change worktree, or any remaining failure is proven unrelated, pre-existing, and explicitly accepted at archive sign-off.\n\n## Constraints\n\n- C1: Existing `rq-crossProjectCoordination01` and cache-refresh law govern the target-path fix; no new spec delta is required unless design discovers uncovered behavior.\n- C2: Active artifact content remains Temporal-workflow state; disk placeholders must not become authoritative.\n- C3: Change-scoped signals must use `fireSignalAndRefresh` with the store that owns the change.\n- C4: Target mutations must use target trust/confirmation and target queue-serviceability checks.\n- C5: Workflow code must remain deterministic; do not add external I/O or nondeterminism inside Temporal workflow code.\n- C6: Tests must use isolated project directories/fixtures and must not rely on external PokeEdge projects.\n- C7: Archive-finalization repair must preserve `rq-releaseFinalization01.7`: dirty default-branch checkpoint commits continue to remote freshness, merge, and push without user interruption, and record `mainCheckpointCommitSha`.\n- C8: Archive-finalization repair must preserve safe blocking for genuinely unsafe main states, missing git identity, active merge/rebase/cherry-pick/revert, and unreachable change branches.\n\n## Avoidances\n\n- DONT1: Do not route target-path lifecycle mutations through the source project ID.\n- DONT2: Do not add disk artifact writes or direct ADV state-file reads as a workaround.\n- DONT3: Do not weaken untrusted `target_path` confirmation rules.\n- DONT4: Do not clean up already-created PokeEdge placeholder drafts.\n- DONT5: Do not expand all target read tools unless design finds direct coupling to artifact correctness.\n- DONT6: Do not invent new Temporal primitives or a coordinator workflow when existing target store/query/signal paths suffice.\n- DONT7: Do not make archive-finalization tests pass by changing expectations to accept an unsafe `blocked` result unless the spec is formally amended.\n- DONT8: Do not bypass git safety checks, force-push, or hide full-suite failures.\n\n## Out of Scope\n\n- OOS1: Cleaning up already-created placeholder changes in external PokeEdge projects.\n- OOS2: Product-level UX redesign for cross-repo ADV workflows.\n- OOS3: Reworking unrelated target-path task, gate, wisdom, Epic, ops, archive, or status semantics without direct artifact/close coupling.\n- OOS4: Broad archive workflow redesign beyond the failing archive-finalization test path needed to restore release readiness.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects ADV tool routing, archive finalization helpers, and tests; it has no frontend/browser-visible output.\n\npreview_expectation:\n\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: verification is via unit/integration tests and ADV tool/readiness evidence, not visual preview.\n\n## Decisions\n\n### User Decisions\n\n- User approved the original target-path agreement via reply: `approve`.\n- User selected `Fix blocker now` when harden found full-suite red archive-finalization tests reproduced on trunk.\n\n### Agent Decisions (LBP)\n\n- Preserve the completed target-path routing architecture.\n- Treat archive-finalization failure as release-blocker scope added by explicit user decision.\n- Repair behavior to match existing release-finalization spec before archive; do not relax tests to normalize unsafe `blocked` outcomes.\n\n## Sign-Off\n\nPending approval of this expanded agreement.",
+    "design": "# Design\n\n## Architecture Overview\n\nTool-layer routing fix plus release-blocker repair.\n\nThe completed target-path design remains intact: active artifact content already lives in Temporal `state.documents`; `readArtifacts` queries `store.changes.get().documents` before disk/archive fallback when given a Temporal-backed store. Target-path show/close/bulk-close use target store boundaries and no workflow-code changes.\n\nExpanded release-blocker scope addresses red full-suite archive finalization tests. Diagnosis found `finalizeRelease` resolves default branch through `detectDefaultBranch`; `detectDefaultBranch` currently reads `git config --get init.defaultBranch`, which includes global user config. In this environment, global `init.defaultBranch=main` overrides test repositories initialized with local `trunk`, so `finalizeRelease` blocks with `MAIN_BRANCH_MISMATCH` before dirty-main checkpoint/no-remote/direct-push paths can satisfy `rq-releaseFinalization01.7`.\n\nOfficial Git docs confirm default config reads system, global, and repository-local config by default; `--local` reads only repository `.git/config`. Therefore archive-finalization default-branch detection must not let global init defaults override an existing repo-local checkout branch.\n\n## Key Decisions\n\n### KD1 — Preserve target-path routing architecture\n\nKeep prior accepted architecture unchanged:\n\n- `adv_change_show target_path` artifact include paths use target Temporal store.\n- `adv_change_close target_path` and `adv_change_bulk_close target_path` use target store/project identity for lookup, handle, signal/cache, recovery, cleanup, and `_projectContext`.\n- No workflow code changes, no disk artifact workaround.\n\n### KD2 — Make default-branch config lookup repository-local\n\nChange `detectDefaultBranch` so the `init.defaultBranch` lookup reads repository-local config only:\n\n- keep `origin/HEAD` first;\n- use `git config --local --get init.defaultBranch` for configured local default;\n- then fall back to local branches (`main`, `trunk`).\n\nRationale:\n\n- Global `init.defaultBranch` is a default for creating new repos, not authoritative for an already-initialized repository's active/default branch.\n- `--local` preserves explicit repo-local override behavior used by tests.\n- It prevents user machine config from poisoning archive release finalization and tests.\n\n### KD3 — Preserve unsafe-state blockers\n\nDo not relax `finalizeRelease` blockers. Wrong branch, missing identity, in-progress merge/rebase/cherry-pick/revert, failed dirty-main checkpoint, unreachable/merge-conflicted change branch, and remote divergence must continue blocking as before.\n\n### KD4 — No spec amendment needed\n\nExisting `rq-releaseFinalization01.7` already requires dirty default-branch checkpointing to continue to remote freshness, merge, and push. The fix restores conformance; tests should pass without weakening expectations.\n\n## Implementation Strategy\n\n1. Update `detectDefaultBranch` to call `git config --local --get init.defaultBranch`.\n2. Update the branch-detection unit test title/comment to state `origin/HEAD`, local `init.defaultBranch`, then local branches.\n3. Keep existing failure expectations that `finalizeRelease` returns `shipped`/`pending_merge` where spec requires completion/handoff.\n4. Run red/green:\n   - red already captured: `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts -t \"finalizeRelease completes no-remote local archive\"` failed with `MAIN_BRANCH_MISMATCH` due expected `main`, actual `trunk` (`tr_mr7yawpm_e9ad67c4`).\n   - green: targeted archive-finalize test file.\n   - verify: `bin/oc-test full`.\n5. Preserve previous target-path test/check/build evidence.\n\n## LBP Analysis\n\nPreferred because it is structural and minimal: use Git's config scope feature to distinguish repository-local default config from user-global defaults. This avoids heuristic branch guessing and preserves all safety gates.\n\nRejected:\n\n- Change tests to expect `blocked` — violates `rq-releaseFinalization01.7` and hides machine-config dependency.\n- Ignore `init.defaultBranch` entirely — would break explicit repo-local default config support.\n- Read global config and then special-case tests — heuristic and non-structural.\n- Force-switch branches — explicitly forbidden by release safety rules.\n\n## Affected Components\n\n- `plugin/src/tools/archive-helpers/git-finalize.ts`\n- `plugin/src/tools/archive-helpers/git-finalize.test.ts`\n- Existing changed files from target-path scope remain part of the change:\n  - `plugin/src/tools/change.ts`\n  - `plugin/src/tools/change.test.ts`\n\n## Design-Derived Criteria\n\nDDC1: `detectDefaultBranch` must not let global `init.defaultBranch` override an existing repository with only `trunk` branch.\n\nDDC2: Explicit repository-local `init.defaultBranch` still wins after `origin/HEAD`.\n\nDDC3: Dirty-main checkpoint tests return `shipped`/`no_remote` or expected PR handoff results, not `MAIN_BRANCH_MISMATCH` caused by global config.\n\nDDC4: Unsafe main states still block.\n\nDDC5: Full local suite must pass before release unless a new unrelated failure is proven and surfaced at sign-off.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n| --- | --- |\n| Existing users rely on global `init.defaultBranch` for initialized repos | Origin/HEAD and actual local branches still resolve; global init defaults are not reliable for existing repo state. |\n| Repo-local configured default behavior breaks | Test `configRepo` with `git config init.defaultBranch develop` remains covered because `--local` reads `.git/config`. |\n| Wrong-branch safety weakened | No change to `finalizeRelease` mismatch blocker; only default branch source corrected. |\n| Scope creep into archive workflow redesign | One-line config-scope fix plus focused tests; no handoff logic changes. |\n\n## Independent Evidence\n\n- Failure evidence: `tr_mr7yawpm_e9ad67c4` shows no-remote finalize test returns `blocked` instead of `shipped`.\n- Diagnostic reproduction printed `blocked.reason: MAIN_BRANCH_MISMATCH`, remediation `Main checkout is on trunk, expected main`.\n- Git docs: by default reads system/global/local config; `--local` reads only repository `.git/config`.\n- Spec evidence: `rq-releaseFinalization01.7` requires dirty main checkpoint to continue and record `mainCheckpointCommitSha`.\n\n## Contract Mapping\n\n- SC4, AC7, AC8, C7, C8, DONT7, DONT8 → KD2/KD3 and archive-finalize tests.\n- Existing SC1–SC3/AC1–AC6/DONT1–DONT6 remain mapped to completed target-path implementation.\n\n## Verification Plan\n\n- `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts`\n- `bin/oc-test targeted -- src/tools/change.test.ts src/tools/cross-project-coordination.test.ts`\n- `pnpm run check`\n- `pnpm run build`\n- `bin/oc-test full`\n\n## Open Questions\n\nNone.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nCross-project `target_path` behavior was repaired for issue #192, and the release-blocking archive-finalization full-suite failure found during hardening was fixed. Target artifact readback now uses target Temporal workflow documents when artifact content is requested; target close/bulk-close route through target store/workflow identity; archive default-branch detection no longer lets global `init.defaultBranch` override repository-local branch reality.\n\n## Verdict\n\nAPPROVED — release ready\n\n## What Was Built\n\n1. `adv_change_show target_path` artifact include paths now route through a target Temporal-backed store with `mutation:false`, while no-artifact target show keeps snapshot behavior.\n2. `adv_change_close` now accepts target routing fields and uses target store for lookup, workflow handle identity, signal/cache refresh, recovery, cleanup, and `_projectContext` output.\n3. `adv_change_bulk_close` now accepts target routing fields and uses target-store selection, workflow handles, signal/cache refresh, recovery, disk sweep, and `_projectContext` output.\n4. `detectDefaultBranch` now reads repository-local `init.defaultBranch` via `git config --local --get`, preventing user-global config from making archive finalization misclassify trunk repos as main.\n5. Added regression coverage for target-path routing and archive-finalization default-branch detection.\n\n## What Was Verified\n\n- Acceptance rereview: READY; 0 blocking findings.\n- Final harden reviewer: READY; 0 blocking findings; 175 changed-file tests passed.\n- Target-path targeted tests: `bin/oc-test targeted -- src/tools/change.test.ts src/tools/cross-project-coordination.test.ts` passed 101 tests.\n- Archive targeted tests: `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts` passed 82 tests.\n- Full suite: `bin/oc-test full` passed.\n- Check/build: `pnpm run check` passed; `pnpm run build` passed.\n- Static checks: cache-refresh grep clean; `git diff --check` clean; `git status --short` clean; `adv_change_validate strict` passed with expected no-delta warning only.\n- Slop scan: scoped scan on `git-finalize.ts` reported existing complexity hotspots and degraded optional detector coverage (`knip`, `ast-grep`, `jscpd` unavailable/failed); final harden reviewer found no release-blocking issue in scoped changes.\n- Preview URL: not_applicable — `visual_surface:false`; implementation touches ADV tool/archive logic and tests only.\n- Contract matrix: 32/32 rows passed, respected, or not_applicable; 0 failed/violated/unknown rows.\n\n## Release Readiness Summary\n\nREADY for archive.\n\n- Tests: pass — targeted suites, `pnpm run check`, `pnpm run build`, and `bin/oc-test full` pass.\n- Review: pass — acceptance rereview READY; final harden READY.\n- Ops: no migration, env var, external service, or runbook required.\n- Deploy note: after merge, live ADV behavior requires normal plugin build/deploy/restart because OpenCode caches deployed `dist` at session startup.\n- Risk: low; changed files are scoped to `plugin/src/tools/change.ts`, `plugin/src/tools/change.test.ts`, `plugin/src/tools/archive-helpers/git-finalize.ts`, and `plugin/src/tools/archive-helpers/git-finalize.test.ts`.\n\n## Remaining Concerns\n\nNone blocking. Existing complexity hotspots in `git-finalize.ts` are not introduced by this fix and are not release-blocking.\n\n## Consequence Context\n\n1. delivered value — passed: target-path issue #192 scope fixed and full-suite release blocker repaired.\n2. enabling-only/follow-up dependency — n/a: no required follow-up dependency remains.\n3. ops readiness — passed for release readiness evidence: full suite, check, and build passed; no production ops runbook required.\n4. migration/data impact — n/a: no data migration or persisted state migration; active artifact source remains Temporal workflow documents.\n5. frontend/preview impact — n/a: no visual surface; preview URL not_applicable with agreement evidence.\n6. collision/release risk — low: reviewers READY and full suite passed.\n7. open follow-ups — n/a: agenda blocker `ag-C4dkgAr4` is resolved by this change's archive-finalization repair.\n8. next action — release gate completion, then archive sign-off.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-05T15:59:23.304Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Cross-project `target_path` artifact reads show real target change content, not scaffold placeholders. | pass | Target-path artifact readback implemented and re-verified after expanded scope; targeted tests `change.test.ts` + `cross-project-coordination.test.ts` passed 101 (tr_mr7ywe1g_43fb6530). |\n| SC2 | success_criterion | Target close/bulk-close operations address target project workflows, never source-project workflow IDs. | pass | Target close/bulk-close route through target project workflows/store; acceptance rereview verdict READY with no blockers. |\n| SC3 | success_criterion | Temporal use stays structural: target store/client boundary, query/signal paths, deterministic workflow code, and no disk workaround. | pass | Implementation uses target store/query/signal paths; no workflow code changes; `pnpm run check` and `pnpm run build` passed. |\n| SC4 | success_criterion | Archive finalization release tests pass again without weakening release-safety semantics. | pass | Archive-finalization release tests restored; targeted git-finalize tests passed 82 (tr_mr7yw0b6_1a4dce46) and full suite passed (tr_mr7z02p3_1997709b). |\n| AC1 | acceptance_criterion | `adv_change_show` with `target_path` and artifact include flags returns target workflow document content for proposal/problem statement after target create/update. | pass | `plugin/src/tools/change.test.ts` regression tests verify target artifact documents returned and no-artifact target show remains snapshot-backed; targeted suite passed 101. |\n| AC2 | acceptance_criterion | After implementation, `adv_change_close` accepts explicit target-project routing and closes the target project change using target project workflow identity and target cache refresh. | pass | Close target_path tests cover target project ID, target store `fireSignalAndRefresh`, dry-run read-only path, untrusted rejection, and recovery path. |\n| AC3 | acceptance_criterion | After implementation, `adv_change_bulk_close` accepts explicit target-project routing and selects/closes target project changes only, using target project workflow identity and target cache refresh. | pass | Bulk-close target_path tests cover target selection, project ID, target signal/cache refresh, disk sweep, untrusted rejection, and dry-run read-only path. |\n| AC4 | acceptance_criterion | Untrusted target mutations fail before signaling unless explicit confirmation evidence is supplied. | pass | Close and bulk-close target tests verify untrusted target mutation rejects before signal; reviewers found no blockers. |\n| AC5 | acceptance_criterion | Regression tests prove source project ID/store is not used for target artifact readback, close, or bulk-close paths. | pass | Regression tests prove source project ID/store not used for target artifact readback, close, or bulk-close; targeted verification passed 101. |\n| AC6 | acceptance_criterion | Design records chosen behavior for unreachable active target Temporal state before planning. | pass | Design KD2 records active target Temporal unreachable behavior: fail closed, no scaffold placeholder success; persisted before planning. |\n| AC7 | acceptance_criterion | `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts` passes in the change worktree. | pass | `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts` passed 82 tests (tr_mr7yw0b6_1a4dce46). |\n| AC8 | acceptance_criterion | `bin/oc-test full` passes in the change worktree, or any remaining failure is proven unrelated, pre-existing, and explicitly accepted at archive sign-off. | pass | `bin/oc-test full` passed after archive-finalization repair (tr_mr7z02p3_1997709b). |\n| C1 | constraint | Existing `rq-crossProjectCoordination01` and cache-refresh law govern the target-path fix; no new spec delta is required unless design discovers uncovered behavior. | respected | No target-path spec delta needed; change validates as conformance with expected NO_DELTAS warning only. |\n| C2 | constraint | Active artifact content remains Temporal-workflow state; disk placeholders must not become authoritative. | respected | No disk artifact write workaround introduced; target artifact readback reuses Temporal-first artifact helpers. |\n| C3 | constraint | Change-scoped signals must use `fireSignalAndRefresh` with the store that owns the change. | respected | Cache-refresh grep clean; change-scoped signals use `fireSignalAndRefresh` with owning/target store. |\n| C4 | constraint | Target mutations must use target trust/confirmation and target queue-serviceability checks. | respected | Target mutations use shared target routing/confirmation; untrusted rejection tests pass. |\n| C5 | constraint | Workflow code must remain deterministic; do not add external I/O or nondeterminism inside Temporal workflow code. | respected | No Temporal workflow code changed; `pnpm run check` and `pnpm run build` passed. |\n| C6 | constraint | Tests must use isolated project directories/fixtures and must not rely on external PokeEdge projects. | respected | Tests use repo fixtures/temp dirs; no external PokeEdge dependency. |\n| C7 | constraint | Archive-finalization repair must preserve `rq-releaseFinalization01.7`: dirty default-branch checkpoint commits continue to remote freshness, merge, and push without user interruption, and record `mainCheckpointCommitSha`. | respected | `rq-releaseFinalization01.7` dirty-main checkpoint paths now continue as tests expect; git-finalize targeted tests passed 82. |\n| C8 | constraint | Archive-finalization repair must preserve safe blocking for genuinely unsafe main states, missing git identity, active merge/rebase/cherry-pick/revert, and unreachable change branches. | respected | Unsafe-state blocker tests remain covered in git-finalize suite; no blocker logic relaxed; targeted git-finalize tests passed 82. |\n| DONT1 | avoidance | Do not route target-path lifecycle mutations through the source project ID. | respected | Review verified target close/bulk-close derive target project/store for handle, signal, recovery, cleanup, and selection. |\n| DONT2 | avoidance | Do not add disk artifact writes or direct ADV state-file reads as a workaround. | respected | No direct ADV state-file reads or disk artifact writes introduced. |\n| DONT3 | avoidance | Do not weaken untrusted `target_path` confirmation rules. | respected | Target confirmation behavior preserved; untrusted mutation tests pass. |\n| DONT4 | avoidance | Do not clean up already-created PokeEdge placeholder drafts. | respected | No PokeEdge cleanup performed; scope stayed in Advance repo. |\n| DONT5 | avoidance | Do not expand all target read tools unless design finds direct coupling to artifact correctness. | respected | Target read expansion limited to `adv_change_show` artifact include paths; related-scan left non-artifact reads unchanged. |\n| DONT6 | avoidance | Do not invent new Temporal primitives or a coordinator workflow when existing target store/query/signal paths suffice. | respected | No new Temporal primitive/coordinator added; existing store/query/signal paths reused. |\n| DONT7 | avoidance | Do not make archive-finalization tests pass by changing expectations to accept an unsafe `blocked` result unless the spec is formally amended. | respected | Did not weaken archive-finalization expectations; fixed default-branch detection so existing shipped/pending tests pass. |\n| DONT8 | avoidance | Do not bypass git safety checks, force-push, or hide full-suite failures. | respected | No git safety bypass; full suite failure was fixed and full suite now passes. |\n| OOS1 | out_of_scope | Cleaning up already-created placeholder changes in external PokeEdge projects. | not_applicable | External PokeEdge placeholder cleanup was out of scope and not performed. |\n| OOS2 | out_of_scope | Product-level UX redesign for cross-repo ADV workflows. | not_applicable | No product UX redesign performed. |\n| OOS3 | out_of_scope | Reworking unrelated target-path task, gate, wisdom, Epic, ops, archive, or status semantics without direct artifact/close coupling. | not_applicable | Unrelated target-path surfaces not reworked. |\n| OOS4 | out_of_scope | Broad archive workflow redesign beyond the failing archive-finalization test path needed to restore release readiness. | not_applicable | Archive changes limited to default-branch detection repair and focused regression; no broad archive workflow redesign. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-05T01:41:13.844Z",
+      "contentHash": "8e834d01d8cae2dae8e1819fb8a659ee358886e33ec92f11840277bdac81a303",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-05T01:20:02.978Z",
+      "contentHash": "60ffc27e7d9dacce067596d88edaae401efa1cbd85a51673b2c4d38c13d24af6",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-05T14:41:33.314Z",
+      "contentHash": "cd3b12ceba0e6a2873c943b698e7294c603e027ed18a0ec885d4bc4629239266",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-05T15:37:38.696Z",
+      "contentHash": "85fa5b2390a2c8ac86ea63f691f0a8e97b1585cf6d824040351c14f462d62005",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-05T16:12:39.394Z",
+      "contentHash": "c746938d4bf2d045b073df09fe79952007e595b41c379fb196b2556d465a24ad",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-05T16:12:39.394Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

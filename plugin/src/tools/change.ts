@@ -490,7 +490,7 @@ export const changeTools = {
         .string()
         .optional()
         .describe(
-          "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
+          "Optional absolute path to another ADV project. When artifact include flags are requested, routes reads through the target project's Temporal store/documents; otherwise reads a disk snapshot and returns _projectContext.",
         ),
       include: z
         .object({
@@ -626,254 +626,271 @@ export const changeTools = {
       },
       store: Store,
     ) => {
-      return withOptionalTargetPathStore(
-        { store, target_path },
-        async (activeStore, projectContext) => {
-          const result = await activeStore.changes.get(changeId);
-          if (!result.success) {
-            return formatToolOutput({ error: result.error });
-          }
-          if (!result.data) {
-            return formatToolOutput({ error: `Change not found: ${changeId}` });
-          }
-          const change = result.data;
-          const displayChange: Change = {
-            ...change,
-            artifacts: await normalizeArtifactMetadataForReadback(
-              change.artifacts,
-            ),
-            gates: await normalizeGateArtifactEvidenceForReadback(change.gates),
-          };
-          const requestedKinds: ArtifactKind[] = [];
-          if (include?.proposal) requestedKinds.push("proposal");
-          if (include?.problemStatement)
-            requestedKinds.push("problemStatement");
-          if (include?.agreement) requestedKinds.push("agreement");
-          if (include?.design) requestedKinds.push("design");
-          if (include?.executiveSummary)
-            requestedKinds.push("executiveSummary");
-          if (include?.acceptance) requestedKinds.push("acceptance");
-          if (include?.artifactOnly) {
-            const output: Record<string, unknown> = {
-              id: displayChange.id,
-              title: displayChange.title,
-              status: displayChange.status,
-              artifacts: displayChange.artifacts,
-              _artifactOnly: true,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            };
-            if (requestedKinds.length > 0) {
-              const artifactContent = await readArtifacts(
-                activeStore,
-                changeId,
-                requestedKinds,
-              );
-              if (artifactContent.proposal !== undefined)
-                output._proposal = artifactContent.proposal;
-              if (artifactContent.problemStatement !== undefined)
-                output._problemStatement = artifactContent.problemStatement;
-              if (artifactContent.agreement !== undefined)
-                output._agreement = artifactContent.agreement;
-              if (artifactContent.design !== undefined)
-                output._design = artifactContent.design;
-              if (artifactContent.executiveSummary !== undefined)
-                output._executiveSummary = artifactContent.executiveSummary;
-              if (artifactContent.acceptance !== undefined)
-                output._acceptance = artifactContent.acceptance;
-            }
-            return formatToolOutput(output);
-          }
-          const { content: proposalText } = await loadProposalForContext(
-            activeStore,
-            changeId,
-            change.title,
-          );
-          const paged = paginate(change.tasks, {
-            limit,
-            offset,
-            tool: "adv_change_show",
-            args: `changeId: "${changeId}"`,
-          });
+      const requestedKinds: ArtifactKind[] = [];
+      if (include?.proposal) requestedKinds.push("proposal");
+      if (include?.problemStatement) requestedKinds.push("problemStatement");
+      if (include?.agreement) requestedKinds.push("agreement");
+      if (include?.design) requestedKinds.push("design");
+      if (include?.executiveSummary) requestedKinds.push("executiveSummary");
+      if (include?.acceptance) requestedKinds.push("acceptance");
+
+      const runShow = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        const result = await activeStore.changes.get(changeId);
+        if (!result.success) {
+          return formatToolOutput({ error: result.error });
+        }
+        if (!result.data) {
+          return formatToolOutput({ error: `Change not found: ${changeId}` });
+        }
+        const change = result.data;
+        const displayChange: Change = {
+          ...change,
+          artifacts: await normalizeArtifactMetadataForReadback(
+            change.artifacts,
+          ),
+          gates: await normalizeGateArtifactEvidenceForReadback(change.gates),
+        };
+        if (include?.artifactOnly) {
           const output: Record<string, unknown> = {
-            ...displayChange,
-            tasks: paged.items,
-            _taskPagination: paged.pagination,
+            id: displayChange.id,
+            title: displayChange.title,
+            status: displayChange.status,
+            artifacts: displayChange.artifacts,
+            _artifactOnly: true,
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
-          // Surface linked ops follow-up state structurally. The full profile
-          // remains on the change; this just guarantees it is visible even when
-          // downstream formatters would otherwise drop undefined keys.
-          output.ops_followup = change.ops_followup ?? null;
-          output.ops_followup_links = change.ops_followup_links ?? [];
-          const changeDir = join(activeStore.paths.changes, changeId);
-          const problemStatementPath = join(changeDir, "problem-statement.md");
-          const problemStatementExists = await fileExists(problemStatementPath);
-          output.problemStatementExists = problemStatementExists;
-          if (problemStatementExists) {
-            output.problemStatementPath = problemStatementPath;
-          }
-          await applyClarifyReadinessToChangeOutput({
-            output,
-            change,
-            proposalText,
-            changeId,
-            store: activeStore,
-          });
-          // Surface cross-project origin prominently when present
-          if (change.cross_project_origin) {
-            output._crossProjectOrigin = {
-              note: `⚠️ Cross-project follow-up from ${change.cross_project_origin.source_project}`,
-              ...change.cross_project_origin,
-            };
-          }
-          // Surface same-project fast-follow origin prominently when present
-          if (change.fast_follow_of) {
-            output._fastFollowOrigin = {
-              note: `↳ Fast-follow from ${change.fast_follow_of.parent_change_id}`,
-              ...change.fast_follow_of,
-            };
-          }
-          const dependencyStatus = await buildExternalDependencyStatus(
-            change.external_dependencies,
-          );
-          if (dependencyStatus) {
-            output._externalDependencyStatus = dependencyStatus;
-          }
-          // Include reflection data for archived changes
-          if (change.status === "archived") {
-            const reflection = await getReflection(
-              activeStore.paths.external ?? activeStore.paths.root,
+          if (requestedKinds.length > 0) {
+            const artifactContent = await readArtifacts(
+              activeStore,
               changeId,
+              requestedKinds,
             );
-            if (reflection) {
-              output._reflection = reflection;
-            }
-          }
-          // include flags (AC3) — opt-in attachments. Defaults preserve
-          // current behavior.
-          if (include) {
-            // Snapshot — matches mutation-tool convention (top-level
-            // `_contextSnapshot`). Uses the same formatter live emission
-            // and compaction use, ensuring fidelity parity.
-            if (include.snapshot) {
-              try {
-                let gates: Awaited<ReturnType<typeof activeStore.gates.get>> =
-                  null;
-                try {
-                  gates = await activeStore.gates.get(changeId);
-                } catch {
-                  // best-effort: missing gates → snapshot still useful
-                }
-                output._contextSnapshot = buildChangeContextSnapshot({
-                  change: displayChange,
-                  proposalText,
-                  gates: gates
-                    ? await normalizeGateArtifactEvidenceForReadback(gates)
-                    : undefined,
-                  workdir: activeStore.paths.root,
-                });
-              } catch (e) {
-                output._contextSnapshotError =
-                  e instanceof Error ? e.message : String(e);
-              }
-            }
-            if (include.ledger) {
-              output._ledger = null;
-            }
-            if (include.subagentReports) {
-              const legacyTaskReports = change.tasks.flatMap((task) =>
-                (task.subagent_reports ?? []).map((report) => report),
-              );
-              const reportsByKey = new Map<string, ScopedSubagentReport>();
-              for (const report of [
-                ...(change.subagent_reports ?? []),
-                ...legacyTaskReports,
-              ]) {
-                reportsByKey.set(subagentReportReadbackKey(report), report);
-              }
-              const reports = Array.from(reportsByKey.values());
-              output._subagentReports = reports;
-              output._subagentReportsMeta = {
-                total: reports.length,
-                sidecar: change.subagent_reports?.length ?? 0,
-                legacyTask: legacyTaskReports.length,
-              };
-            }
-            // Ready tasks — unblocked queue, sliced to top-N. Avoids the
-            // separate adv_task_ready round-trip on phase boundaries.
-            if (include.readyTasks) {
-              try {
-                const readyResult = await activeStore.tasks.ready(changeId);
-                const readyLimit = include.readyTasksLimit ?? 10;
-                output._readyTasks = readyResult.ready.slice(0, readyLimit);
-                output._readyTasksMeta = {
-                  total: readyResult.ready.length,
-                  limit: readyLimit,
-                  blockedCount: readyResult.blocked.length,
-                };
-                output._todoProjection = buildTodoProjection({
-                  current:
-                    change.tasks.find(
-                      (task) => task.status === "in_progress",
-                    ) ?? null,
-                  ready: readyResult.ready.map((task) => ({
-                    id: task.id,
-                    title: task.title,
-                    status: task.status,
-                  })),
-                });
-              } catch (e) {
-                output._readyTasksError =
-                  e instanceof Error ? e.message : String(e);
-              }
-            }
-            // Briefing packet — generated read projection over existing
-            // structured state. No live packet state is persisted.
-            if (include.briefingPacket) {
-              try {
-                const lane =
-                  include.briefingPacketLane ?? DEFAULT_BRIEFING_PACKET_LANE;
-                const packetInput = await buildBriefingPacketForChange(
-                  activeStore,
-                  change,
-                  lane,
-                  include.briefingPacketRequest,
-                );
-                output._briefingPacket = renderBriefingPacket(packetInput);
-              } catch (e) {
-                output._briefingPacketError =
-                  e instanceof Error ? e.message : String(e);
-              }
-            }
-
-            // GH #21: Artifact content include flags — read raw markdown
-            // from the change directory. Only reads when explicitly
-            // requested to avoid unnecessary I/O. Falls back to the
-            // latest archive bundle for archived changes.
-            // Batched multi-include read per C9 — single store.changes.get()
-            // query covers all requested kinds (KD-6 readArtifacts).
-            if (requestedKinds.length > 0) {
-              const artifactContent = await readArtifacts(
-                activeStore,
-                changeId,
-                requestedKinds,
-              );
-              if (artifactContent.proposal !== undefined)
-                output._proposal = artifactContent.proposal;
-              if (artifactContent.problemStatement !== undefined)
-                output._problemStatement = artifactContent.problemStatement;
-              if (artifactContent.agreement !== undefined)
-                output._agreement = artifactContent.agreement;
-              if (artifactContent.design !== undefined)
-                output._design = artifactContent.design;
-              if (artifactContent.executiveSummary !== undefined)
-                output._executiveSummary = artifactContent.executiveSummary;
-              if (artifactContent.acceptance !== undefined)
-                output._acceptance = artifactContent.acceptance;
-            }
+            if (artifactContent.proposal !== undefined)
+              output._proposal = artifactContent.proposal;
+            if (artifactContent.problemStatement !== undefined)
+              output._problemStatement = artifactContent.problemStatement;
+            if (artifactContent.agreement !== undefined)
+              output._agreement = artifactContent.agreement;
+            if (artifactContent.design !== undefined)
+              output._design = artifactContent.design;
+            if (artifactContent.executiveSummary !== undefined)
+              output._executiveSummary = artifactContent.executiveSummary;
+            if (artifactContent.acceptance !== undefined)
+              output._acceptance = artifactContent.acceptance;
           }
           return formatToolOutput(output);
-        },
+        }
+        const { content: proposalText } = await loadProposalForContext(
+          activeStore,
+          changeId,
+          change.title,
+        );
+        const paged = paginate(change.tasks, {
+          limit,
+          offset,
+          tool: "adv_change_show",
+          args: `changeId: "${changeId}"`,
+        });
+        const output: Record<string, unknown> = {
+          ...displayChange,
+          tasks: paged.items,
+          _taskPagination: paged.pagination,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        };
+        // Surface linked ops follow-up state structurally. The full profile
+        // remains on the change; this just guarantees it is visible even when
+        // downstream formatters would otherwise drop undefined keys.
+        output.ops_followup = change.ops_followup ?? null;
+        output.ops_followup_links = change.ops_followup_links ?? [];
+        const changeDir = join(activeStore.paths.changes, changeId);
+        const problemStatementPath = join(changeDir, "problem-statement.md");
+        const problemStatementExists = await fileExists(problemStatementPath);
+        output.problemStatementExists = problemStatementExists;
+        if (problemStatementExists) {
+          output.problemStatementPath = problemStatementPath;
+        }
+        await applyClarifyReadinessToChangeOutput({
+          output,
+          change,
+          proposalText,
+          changeId,
+          store: activeStore,
+        });
+        // Surface cross-project origin prominently when present
+        if (change.cross_project_origin) {
+          output._crossProjectOrigin = {
+            note: `⚠️ Cross-project follow-up from ${change.cross_project_origin.source_project}`,
+            ...change.cross_project_origin,
+          };
+        }
+        // Surface same-project fast-follow origin prominently when present
+        if (change.fast_follow_of) {
+          output._fastFollowOrigin = {
+            note: `↳ Fast-follow from ${change.fast_follow_of.parent_change_id}`,
+            ...change.fast_follow_of,
+          };
+        }
+        const dependencyStatus = await buildExternalDependencyStatus(
+          change.external_dependencies,
+        );
+        if (dependencyStatus) {
+          output._externalDependencyStatus = dependencyStatus;
+        }
+        // Include reflection data for archived changes
+        if (change.status === "archived") {
+          const reflection = await getReflection(
+            activeStore.paths.external ?? activeStore.paths.root,
+            changeId,
+          );
+          if (reflection) {
+            output._reflection = reflection;
+          }
+        }
+        // include flags (AC3) — opt-in attachments. Defaults preserve
+        // current behavior.
+        if (include) {
+          // Snapshot — matches mutation-tool convention (top-level
+          // `_contextSnapshot`). Uses the same formatter live emission
+          // and compaction use, ensuring fidelity parity.
+          if (include.snapshot) {
+            try {
+              let gates: Awaited<ReturnType<typeof activeStore.gates.get>> =
+                null;
+              try {
+                gates = await activeStore.gates.get(changeId);
+              } catch {
+                // best-effort: missing gates → snapshot still useful
+              }
+              output._contextSnapshot = buildChangeContextSnapshot({
+                change: displayChange,
+                proposalText,
+                gates: gates
+                  ? await normalizeGateArtifactEvidenceForReadback(gates)
+                  : undefined,
+                workdir: activeStore.paths.root,
+              });
+            } catch (e) {
+              output._contextSnapshotError =
+                e instanceof Error ? e.message : String(e);
+            }
+          }
+          if (include.ledger) {
+            output._ledger = null;
+          }
+          if (include.subagentReports) {
+            const legacyTaskReports = change.tasks.flatMap((task) =>
+              (task.subagent_reports ?? []).map((report) => report),
+            );
+            const reportsByKey = new Map<string, ScopedSubagentReport>();
+            for (const report of [
+              ...(change.subagent_reports ?? []),
+              ...legacyTaskReports,
+            ]) {
+              reportsByKey.set(subagentReportReadbackKey(report), report);
+            }
+            const reports = Array.from(reportsByKey.values());
+            output._subagentReports = reports;
+            output._subagentReportsMeta = {
+              total: reports.length,
+              sidecar: change.subagent_reports?.length ?? 0,
+              legacyTask: legacyTaskReports.length,
+            };
+          }
+          // Ready tasks — unblocked queue, sliced to top-N. Avoids the
+          // separate adv_task_ready round-trip on phase boundaries.
+          if (include.readyTasks) {
+            try {
+              const readyResult = await activeStore.tasks.ready(changeId);
+              const readyLimit = include.readyTasksLimit ?? 10;
+              output._readyTasks = readyResult.ready.slice(0, readyLimit);
+              output._readyTasksMeta = {
+                total: readyResult.ready.length,
+                limit: readyLimit,
+                blockedCount: readyResult.blocked.length,
+              };
+              output._todoProjection = buildTodoProjection({
+                current:
+                  change.tasks.find((task) => task.status === "in_progress") ??
+                  null,
+                ready: readyResult.ready.map((task) => ({
+                  id: task.id,
+                  title: task.title,
+                  status: task.status,
+                })),
+              });
+            } catch (e) {
+              output._readyTasksError =
+                e instanceof Error ? e.message : String(e);
+            }
+          }
+          // Briefing packet — generated read projection over existing
+          // structured state. No live packet state is persisted.
+          if (include.briefingPacket) {
+            try {
+              const lane =
+                include.briefingPacketLane ?? DEFAULT_BRIEFING_PACKET_LANE;
+              const packetInput = await buildBriefingPacketForChange(
+                activeStore,
+                change,
+                lane,
+                include.briefingPacketRequest,
+              );
+              output._briefingPacket = renderBriefingPacket(packetInput);
+            } catch (e) {
+              output._briefingPacketError =
+                e instanceof Error ? e.message : String(e);
+            }
+          }
+
+          // GH #21: Artifact content include flags — read raw markdown
+          // from the change directory. Only reads when explicitly
+          // requested to avoid unnecessary I/O. Falls back to the
+          // latest archive bundle for archived changes.
+          // Batched multi-include read per C9 — single store.changes.get()
+          // query covers all requested kinds (KD-6 readArtifacts).
+          if (requestedKinds.length > 0) {
+            const artifactContent = await readArtifacts(
+              activeStore,
+              changeId,
+              requestedKinds,
+            );
+            if (artifactContent.proposal !== undefined)
+              output._proposal = artifactContent.proposal;
+            if (artifactContent.problemStatement !== undefined)
+              output._problemStatement = artifactContent.problemStatement;
+            if (artifactContent.agreement !== undefined)
+              output._agreement = artifactContent.agreement;
+            if (artifactContent.design !== undefined)
+              output._design = artifactContent.design;
+            if (artifactContent.executiveSummary !== undefined)
+              output._executiveSummary = artifactContent.executiveSummary;
+            if (artifactContent.acceptance !== undefined)
+              output._acceptance = artifactContent.acceptance;
+          }
+        }
+        return formatToolOutput(output);
+      };
+
+      if (target_path && requestedKinds.length > 0) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path,
+            stateRequirement: "temporal-required",
+            mutation: false,
+          },
+          async ({ context, store: targetStore }) =>
+            runShow(targetStore, formatTargetProjectContext(context)),
+        );
+      }
+
+      return withOptionalTargetPathStore(
+        { store, target_path },
+        async (activeStore, projectContext) =>
+          runShow(activeStore, projectContext),
       );
     },
   },
@@ -1624,6 +1641,9 @@ export const changeTools = {
         .describe(
           "Required when recoveryMode='poisoned_history'. Must cite precise completed-workflow evidence such as WorkflowExecutionAlreadyCompleted, WorkflowNotFoundError, or `workflow execution already completed`.",
         ),
+      target_path: targetPathSchema.shape.target_path,
+      target_confirmed: targetPathSchema.shape.target_confirmed,
+      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
     },
     execute: async (
       {
@@ -1635,6 +1655,9 @@ export const changeTools = {
         dryRun,
         recoveryMode,
         recoveryEvidence,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         changeId: string;
         reason: "cancelled" | "superseded" | "not_planned";
@@ -1644,127 +1667,167 @@ export const changeTools = {
         dryRun?: boolean;
         recoveryMode?: ChangeCloseRecoveryMode;
         recoveryEvidence?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      if (reason === "superseded" && !supersededBy) {
-        return formatToolOutput({
-          error: "supersededBy is required when reason is 'superseded'.",
-        });
-      }
-      const result = await store.changes.get(changeId);
-      if (!result.success) {
-        return formatToolOutput({ error: result.error });
-      }
-      if (!result.data) {
-        return formatToolOutput({ error: `Change not found: ${changeId}` });
-      }
-      // Tool-layer enforcement: cancellation requires explicit approval evidence
-      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
-        return formatToolOutput({
-          error: "approvalEvidence is required for change close",
-          changeId,
-          hint: "Obtain user approval via question tool, then call adv_change_close with approvalEvidence.",
-        });
-      }
-      const recoveryValidation = await validateChangeCloseRecoveryArgs({
-        changeId,
-        recoveryMode,
-        recoveryEvidence,
-      });
-      if (recoveryValidation) {
-        return formatToolOutput(recoveryValidation);
-      }
-      if (dryRun) {
-        return formatToolOutput({
-          success: true,
-          dryRun: true,
-          changeId,
-          reason,
-          supersededBy,
-          message: `Would close change ${changeId} as ${reason}.`,
-        });
-      }
-      try {
-        const bundle = getService();
-        if (!bundle) {
+      const runClose = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        if (reason === "superseded" && !supersededBy) {
           return formatToolOutput({
-            error: "Temporal service not available",
-            changeId,
+            error: "supersededBy is required when reason is 'superseded'.",
           });
         }
-        const projectId = await getProjectId(store.paths.root);
-        if (!projectId) {
+        const result = await activeStore.changes.get(changeId);
+        if (!result.success) {
+          return formatToolOutput({ error: result.error });
+        }
+        if (!result.data) {
+          return formatToolOutput({ error: `Change not found: ${changeId}` });
+        }
+        // Tool-layer enforcement: cancellation requires explicit approval evidence
+        if (!approvalEvidence || approvalEvidence.trim().length === 0) {
           return formatToolOutput({
-            error: "Could not resolve project ID",
+            error: "approvalEvidence is required for change close",
             changeId,
+            hint: "Obtain user approval via question tool, then call adv_change_close with approvalEvidence.",
           });
         }
-        const handle = getChangeHandle(bundle.client, projectId, changeId);
-        const closeInput = {
-          approvalEvidence,
-          reason,
-          supersededBy,
-          cancelledAt: new Date().toISOString(),
-        };
-        // rq-cacheRefresh01: refresh AFTER cancel so subsequent reads
-        // see the closed/cancelled state, not the stale active state.
-        await fireSignalAndRefresh(
-          handle,
-          store,
+        const recoveryValidation = await validateChangeCloseRecoveryArgs({
           changeId,
-          changeCancelledSignal,
-          buildChangeClosePayload(closeInput),
-        );
-        // Remove source `changes/<id>/` directory after successful close.
-        // Best-effort: failure surfaces as a warning but does NOT flip success
-        // to false — the closed status is durable.
-        let cleanupWarning: string | undefined;
-        if (store.paths?.changes) {
-          try {
-            await removeChangeDir(store.paths.changes, changeId);
-          } catch (err) {
-            cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
-          }
-        }
-        return formatToolOutput({
-          success: true,
-          changeId,
-          message: cleanupWarning
-            ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
-            : `Closed change ${changeId} as ${reason}.`,
-        });
-      } catch (error) {
-        const closeInput = {
-          approvalEvidence,
-          reason,
-          supersededBy,
-          cancelledAt: new Date().toISOString(),
-        };
-        const recovery = await recoverCompletedWorkflowClose({
-          store,
-          change: result.data,
-          closeInput,
           recoveryMode,
           recoveryEvidence,
-          signalError: error,
         });
-        if (recovery.recovered) {
+        if (recoveryValidation) {
+          return formatToolOutput(recoveryValidation);
+        }
+        if (dryRun) {
           return formatToolOutput({
             success: true,
-            _recoveryMutation: true,
-            diskProjectionRetained: true,
+            dryRun: true,
             changeId,
             reason,
-            message: `Closed change ${changeId} as ${reason} via completed-workflow recovery. Retained closed disk projection for stale-visibility reconciliation.`,
+            supersededBy,
+            message: `Would close change ${changeId} as ${reason}.`,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
           });
         }
-        const contextMismatch = extractContextMismatch(error);
-        return formatToolOutput({
-          error: error instanceof Error ? error.message : String(error),
-          ...contextMismatch,
-        });
+        try {
+          const bundle = getService();
+          if (!bundle) {
+            return formatToolOutput({
+              error: "Temporal service not available",
+              changeId,
+            });
+          }
+          const projectId =
+            projectContext?.projectId ??
+            (await getProjectId(activeStore.paths.root));
+          if (!projectId) {
+            return formatToolOutput({
+              error: "Could not resolve project ID",
+              changeId,
+            });
+          }
+          const handle = getChangeHandle(bundle.client, projectId, changeId);
+          const closeInput = {
+            approvalEvidence,
+            reason,
+            supersededBy,
+            cancelledAt: new Date().toISOString(),
+          };
+          // rq-cacheRefresh01: refresh AFTER cancel so subsequent reads
+          // see the closed/cancelled state, not the stale active state.
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            changeId,
+            changeCancelledSignal,
+            buildChangeClosePayload(closeInput),
+          );
+          // Remove source `changes/<id>/` directory after successful close.
+          // Best-effort: failure surfaces as a warning but does NOT flip success
+          // to false — the closed status is durable.
+          let cleanupWarning: string | undefined;
+          if (activeStore.paths?.changes) {
+            try {
+              await removeChangeDir(activeStore.paths.changes, changeId);
+            } catch (err) {
+              cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
+            }
+          }
+          return formatToolOutput({
+            success: true,
+            changeId,
+            message: cleanupWarning
+              ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
+              : `Closed change ${changeId} as ${reason}.`,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        } catch (error) {
+          const closeInput = {
+            approvalEvidence,
+            reason,
+            supersededBy,
+            cancelledAt: new Date().toISOString(),
+          };
+          const recovery = await recoverCompletedWorkflowClose({
+            store: activeStore,
+            change: result.data,
+            closeInput,
+            recoveryMode,
+            recoveryEvidence,
+            signalError: error,
+          });
+          if (recovery.recovered) {
+            return formatToolOutput({
+              success: true,
+              _recoveryMutation: true,
+              diskProjectionRetained: true,
+              changeId,
+              reason,
+              message: `Closed change ${changeId} as ${reason} via completed-workflow recovery. Retained closed disk projection for stale-visibility reconciliation.`,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          const contextMismatch = extractContextMismatch(error);
+          return formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+            ...contextMismatch,
+          });
+        }
+      };
+
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              mutation: !dryRun,
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runClose(targetStore, formatTargetProjectContext(context)),
+          );
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project close unavailable: ${errorText}`,
+            changeId,
+            target_path,
+          });
+        }
       }
+      return runClose(store);
     },
   },
   // rq-bulkClose01: Filter-Aware Bulk Close
@@ -1806,6 +1869,9 @@ export const changeTools = {
         .describe(
           "Required when recoveryMode='poisoned_history'. Must cite precise completed-workflow evidence such as WorkflowExecutionAlreadyCompleted, WorkflowNotFoundError, or `workflow execution already completed`.",
         ),
+      target_path: targetPathSchema.shape.target_path,
+      target_confirmed: targetPathSchema.shape.target_confirmed,
+      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
     },
     execute: async (
       {
@@ -1817,6 +1883,9 @@ export const changeTools = {
         dryRun,
         recoveryMode,
         recoveryEvidence,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         selector: import("../types").BulkCloseSelector;
         reason: "cancelled" | "superseded" | "not_planned";
@@ -1826,6 +1895,9 @@ export const changeTools = {
         dryRun?: boolean;
         recoveryMode?: ChangeCloseRecoveryMode;
         recoveryEvidence?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
@@ -1842,159 +1914,211 @@ export const changeTools = {
           });
         }
       }
-      const selection = await resolveChangeSelection(selector, {
-        list: store.changes.list.bind(store.changes),
-        get: store.changes.get.bind(store.changes),
-      });
-      if (!selection.ok) {
-        return formatToolOutput({ error: selection.error });
-      }
-      const recoveryValidation = await validateChangeCloseRecoveryArgs({
-        recoveryMode,
-        recoveryEvidence,
-      });
-      if (recoveryValidation) {
-        return formatToolOutput(recoveryValidation);
-      }
-      if (selection.changeIds.length === 0) {
-        return formatToolOutput({
-          error: "SELECTION_ERROR: No changes matched the provided criteria.",
+      const runBulkClose = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        const contextOutput = projectContext
+          ? { _projectContext: projectContext }
+          : {};
+        const selection = await resolveChangeSelection(selector, {
+          list: activeStore.changes.list.bind(activeStore.changes),
+          get: activeStore.changes.get.bind(activeStore.changes),
         });
-      }
-      if (dryRun) {
-        return formatToolOutput({
-          success: true,
-          dryRun: true,
-          closed: 0,
-          wouldClose: selection.changeIds,
-          results: selection.changeIds.map((id) => ({
-            changeId: id,
+        if (!selection.ok) {
+          return formatToolOutput({
+            error: selection.error,
+            ...contextOutput,
+          });
+        }
+        const recoveryValidation = await validateChangeCloseRecoveryArgs({
+          recoveryMode,
+          recoveryEvidence,
+        });
+        if (recoveryValidation) {
+          return formatToolOutput({
+            ...recoveryValidation,
+            ...contextOutput,
+          });
+        }
+        if (selection.changeIds.length === 0) {
+          return formatToolOutput({
+            error: "SELECTION_ERROR: No changes matched the provided criteria.",
+            ...contextOutput,
+          });
+        }
+        if (dryRun) {
+          return formatToolOutput({
             success: true,
             dryRun: true,
-          })),
-          diskRemoved: [],
-          diskFailed: [],
-          message: `Would close ${selection.changeIds.length} change(s).`,
-        });
-      }
-      try {
-        const bundle = getService();
-        if (!bundle) {
-          return formatToolOutput({
-            error: "Temporal service not available",
+            closed: 0,
+            wouldClose: selection.changeIds,
+            results: selection.changeIds.map((id) => ({
+              changeId: id,
+              success: true,
+              dryRun: true,
+            })),
+            diskRemoved: [],
+            diskFailed: [],
+            message: `Would close ${selection.changeIds.length} change(s).`,
+            ...contextOutput,
           });
         }
-        const projectId = await getProjectId(store.paths.root);
-        if (!projectId) {
-          return formatToolOutput({
-            error: "Could not resolve project ID",
-          });
-        }
-        const results: {
-          changeId: string;
-          success: boolean;
-          error?: string;
-          recovered?: boolean;
-        }[] = [];
-        let closed = 0;
-        for (const id of selection.changeIds) {
-          try {
-            const handle = getChangeHandle(bundle.client, projectId, id);
-            const closeInput = {
-              approvalEvidence,
-              reason,
-              supersededBy,
-              cancelledAt: new Date().toISOString(),
-            };
-            // rq-cacheRefresh01: refresh per-change after each cancel
-            // so subsequent reads of any cancelled change see closed state.
-            await fireSignalAndRefresh(
-              handle,
-              store,
-              id,
-              changeCancelledSignal,
-              buildChangeClosePayload(closeInput),
-            );
-            results.push({ changeId: id, success: true });
-            closed++;
-          } catch (err) {
-            const existing = await store.changes.get(id);
-            if (existing.success && existing.data) {
+        try {
+          const bundle = getService();
+          if (!bundle) {
+            return formatToolOutput({
+              error: "Temporal service not available",
+              ...contextOutput,
+            });
+          }
+          const projectId =
+            projectContext?.projectId ??
+            (await getProjectId(activeStore.paths.root));
+          if (!projectId) {
+            return formatToolOutput({
+              error: "Could not resolve project ID",
+              ...contextOutput,
+            });
+          }
+          const results: {
+            changeId: string;
+            success: boolean;
+            error?: string;
+            recovered?: boolean;
+          }[] = [];
+          let closed = 0;
+          for (const id of selection.changeIds) {
+            try {
+              const handle = getChangeHandle(bundle.client, projectId, id);
               const closeInput = {
                 approvalEvidence,
                 reason,
                 supersededBy,
                 cancelledAt: new Date().toISOString(),
               };
-              const recovery = await recoverCompletedWorkflowClose({
-                store,
-                change: existing.data,
-                closeInput,
-                recoveryMode,
-                recoveryEvidence,
-                signalError: err,
-              });
-              if (recovery.recovered) {
-                results.push({ changeId: id, success: true, recovered: true });
-                closed++;
-                continue;
+              // rq-cacheRefresh01: refresh per-change after each cancel
+              // so subsequent reads of any cancelled change see closed state.
+              await fireSignalAndRefresh(
+                handle,
+                activeStore,
+                id,
+                changeCancelledSignal,
+                buildChangeClosePayload(closeInput),
+              );
+              results.push({ changeId: id, success: true });
+              closed++;
+            } catch (err) {
+              const existing = await activeStore.changes.get(id);
+              if (existing.success && existing.data) {
+                const closeInput = {
+                  approvalEvidence,
+                  reason,
+                  supersededBy,
+                  cancelledAt: new Date().toISOString(),
+                };
+                const recovery = await recoverCompletedWorkflowClose({
+                  store: activeStore,
+                  change: existing.data,
+                  closeInput,
+                  recoveryMode,
+                  recoveryEvidence,
+                  signalError: err,
+                });
+                if (recovery.recovered) {
+                  results.push({
+                    changeId: id,
+                    success: true,
+                    recovered: true,
+                  });
+                  closed++;
+                  continue;
+                }
               }
+              results.push({
+                changeId: id,
+                success: false,
+                error: err instanceof Error ? err.message : String(err),
+              });
             }
-            results.push({
-              changeId: id,
-              success: false,
-              error: err instanceof Error ? err.message : String(err),
-            });
           }
+          // D3: Compose with sweepClosedChangesFromDisk for unified per-id
+          // disk-removal reporting. Only run when close succeeded overall
+          // — partial workflow-close failures preserve source dirs as the
+          // rollback / recovery path. (rq-bulkCloseDiskSweep01)
+          let diskRemoved: string[] = [];
+          let diskFailed: Array<{
+            id: string;
+            error: string;
+          }> = [];
+          const successfulIds = results
+            .filter((r) => r.success && !r.recovered)
+            .map((r) => r.changeId);
+          if (successfulIds.length > 0 && activeStore.paths?.changes) {
+            const sweep = await sweepClosedChangesFromDisk(
+              successfulIds,
+              activeStore.paths.changes,
+            );
+            diskRemoved = sweep.removed;
+            diskFailed = sweep.failed;
+          }
+          const allSuccess = closed === selection.changeIds.length;
+          let message = allSuccess
+            ? `Successfully closed ${closed} change(s).`
+            : `Closed ${closed} of ${selection.changeIds.length} change(s). See results for details.`;
+          if (diskFailed.length > 0) {
+            const warnings = diskFailed
+              .map(
+                (f) =>
+                  `Source cleanup warning: failed to remove changes/${f.id}: ${f.error}`,
+              )
+              .join(" ");
+            message += ` ${warnings}`;
+          }
+          return formatToolOutput({
+            success: allSuccess,
+            closed,
+            results,
+            diskRemoved,
+            diskFailed,
+            message,
+            ...contextOutput,
+          });
+        } catch (error) {
+          const contextMismatch = extractContextMismatch(error);
+          return formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+            ...contextMismatch,
+            ...contextOutput,
+          });
         }
-        // D3: Compose with sweepClosedChangesFromDisk for unified per-id
-        // disk-removal reporting. Only run when close succeeded overall
-        // — partial workflow-close failures preserve source dirs as the
-        // rollback / recovery path. (rq-bulkCloseDiskSweep01)
-        let diskRemoved: string[] = [];
-        let diskFailed: Array<{
-          id: string;
-          error: string;
-        }> = [];
-        const successfulIds = results
-          .filter((r) => r.success && !r.recovered)
-          .map((r) => r.changeId);
-        if (successfulIds.length > 0 && store.paths?.changes) {
-          const sweep = await sweepClosedChangesFromDisk(
-            successfulIds,
-            store.paths.changes,
+      };
+
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              mutation: !dryRun,
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runBulkClose(targetStore, formatTargetProjectContext(context)),
           );
-          diskRemoved = sweep.removed;
-          diskFailed = sweep.failed;
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project bulk close unavailable: ${errorText}`,
+            target_path,
+          });
         }
-        const allSuccess = closed === selection.changeIds.length;
-        let message = allSuccess
-          ? `Successfully closed ${closed} change(s).`
-          : `Closed ${closed} of ${selection.changeIds.length} change(s). See results for details.`;
-        if (diskFailed.length > 0) {
-          const warnings = diskFailed
-            .map(
-              (f) =>
-                `Source cleanup warning: failed to remove changes/${f.id}: ${f.error}`,
-            )
-            .join(" ");
-          message += ` ${warnings}`;
-        }
-        return formatToolOutput({
-          success: allSuccess,
-          closed,
-          results,
-          diskRemoved,
-          diskFailed,
-          message,
-        });
-      } catch (error) {
-        const contextMismatch = extractContextMismatch(error);
-        return formatToolOutput({
-          error: error instanceof Error ? error.message : String(error),
-          ...contextMismatch,
-        });
       }
+      return runBulkClose(store);
     },
   },
   adv_change_validate: {
