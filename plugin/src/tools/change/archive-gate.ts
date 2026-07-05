@@ -12,6 +12,7 @@ import {
   type Phase9FinalizationStatus,
 } from "../../types";
 import type { Store } from "../../storage/store";
+import { loadChange } from "../../storage/json";
 import { getProjectId } from "../../utils/project-id";
 import { createLogger } from "../../utils/debug-log";
 import { formatToolOutput } from "../../utils/tool-output";
@@ -698,11 +699,43 @@ export function releaseGateEvidenceMatches(
   gate: GateCompletion | undefined,
   evidence: string,
 ): boolean {
+  const approvalEvidence = gate?.approval_evidence;
+  const recoveryEvidence = gate?.recovery_audit?.evidence;
   return (
-    typeof gate?.approval_evidence === "string" &&
-    gate.approval_evidence.includes(evidence)
+    (typeof approvalEvidence === "string" &&
+      approvalEvidence.includes(evidence)) ||
+    (typeof recoveryEvidence === "string" &&
+      recoveryEvidence.includes(evidence))
   );
 }
+
+function releaseGateHasRecoveryAudit(
+  gate: GateCompletion | undefined,
+): boolean {
+  const audit = gate?.recovery_audit;
+  return (
+    typeof audit?.reason === "string" || typeof audit?.evidence === "string"
+  );
+}
+
+async function loadAuditedDiskReleaseGate(input: {
+  store: Store;
+  changeId: string;
+  evidence: string;
+}): Promise<GateCompletion | null> {
+  const disk = await loadChange(input.store.paths.changes, input.changeId);
+  if (!disk.success || !disk.data?.gates) return null;
+  const gate = disk.data.gates.release;
+  if (
+    gate?.status === "done" &&
+    releaseGateHasRecoveryAudit(gate) &&
+    releaseGateEvidenceMatches(gate, input.evidence)
+  ) {
+    return gate;
+  }
+  return null;
+}
+
 export async function verifyReleaseGateDurableForArchive(input: {
   store: Store;
   changeId: string;
@@ -719,6 +752,10 @@ export async function verifyReleaseGateDurableForArchive(input: {
   }
   const releaseGate = gates?.release;
   if (releaseGate?.status !== "done") {
+    const diskReleaseGate = await loadAuditedDiskReleaseGate(input);
+    if (diskReleaseGate) {
+      return { ok: true, gate: diskReleaseGate };
+    }
     return {
       ok: false,
       error:

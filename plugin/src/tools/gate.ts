@@ -103,10 +103,18 @@ function gateDoneCount(gates: Gates): number {
 
 function hasCompatibilityRecoveryEvidence(gates: Gates): boolean {
   return GATE_ORDER.some((gateId) => {
-    const evidence = gates[gateId]?.artifact_evidence as
+    const gate = gates[gateId];
+    const evidence = gate?.artifact_evidence as
       | { compatibility_reason?: unknown }
       | undefined;
-    return typeof evidence?.compatibility_reason === "string";
+    const recoveryAudit = gate?.recovery_audit as
+      | { reason?: unknown; evidence?: unknown }
+      | undefined;
+    return (
+      typeof evidence?.compatibility_reason === "string" ||
+      typeof recoveryAudit?.reason === "string" ||
+      typeof recoveryAudit?.evidence === "string"
+    );
   });
 }
 

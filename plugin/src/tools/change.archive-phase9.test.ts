@@ -5,8 +5,12 @@
  * handling, and PR mode outcomes.
  */
 
+import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { changeTools } from "./change";
+import { verifyReleaseGateDurableForArchive } from "./change/archive-gate";
 import type { Store } from "../storage/store";
 import type { Change, Gates, OpsFollowupLink } from "../types";
 
@@ -479,6 +483,75 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(store.gates.get).toHaveBeenCalledWith("example");
     expect(store.changes.save).not.toHaveBeenCalled();
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
+  test("accepts audited disk release recovery when store-backed proof is stale", async () => {
+    const tmp = await mkdtemp(join(tmpdir(), "adv-archive-release-proof-"));
+    const changesDir = join(tmp, "changes");
+    const changeDir = join(changesDir, "example");
+    const evidence =
+      "Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123";
+
+    try {
+      const store = createMockStore({ durableReleasePending: true });
+      store.paths.changes = changesDir;
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: {
+          status: "done",
+          completed_at: "2026-01-01T00:00:00Z",
+          completed_by: "adv-archive",
+          recovery_audit: {
+            reason: "completed_workflow_release_gate_recovery",
+            evidence: `workflow execution already completed | WorkflowNotFoundError; ${evidence}`,
+            recovered_at: "2026-01-01T00:00:01Z",
+          },
+        },
+      } as Gates;
+
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "change.json"),
+        JSON.stringify(
+          {
+            id: "example",
+            title: "Example",
+            status: "archived",
+            created_at: "2026-01-01T00:00:00Z",
+            created_by: "test",
+            tasks: [],
+            deltas: {},
+            wisdom: [],
+            gates,
+          },
+          null,
+          2,
+        ),
+      );
+
+      const proof = await verifyReleaseGateDurableForArchive({
+        store,
+        changeId: "example",
+        evidence,
+      });
+
+      expect(proof).toMatchObject({
+        ok: true,
+        gate: expect.objectContaining({
+          status: "done",
+          recovery_audit: expect.objectContaining({
+            reason: "completed_workflow_release_gate_recovery",
+          }),
+        }),
+      });
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
   });
 
   test("skips finalization when phase9=skip", async () => {
