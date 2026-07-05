@@ -33,6 +33,7 @@ describe("Advance Epics spec documentation", () => {
       "rq-epicEntries01",
       "rq-epicCreateCommand01",
       "rq-epicCoordinateCommand01",
+      "rq-epicCoordinateRepoFreshness01",
       "rq-epicPromotion01",
       "rq-epicOrderAdvisory01",
       "rq-epicNextWork01",
@@ -68,6 +69,15 @@ describe("Advance Epics spec documentation", () => {
         (r: { id: string }) => r.id === "rq-epicCoordinateCommand01",
       ),
     ).toBe(true);
+    const repoFreshnessReq = spec.requirements.find(
+      (r: { id: string }) => r.id === "rq-epicCoordinateRepoFreshness01",
+    );
+    expect(repoFreshnessReq).toBeDefined();
+    expect(JSON.stringify(repoFreshnessReq)).toContain("current repository");
+    expect(JSON.stringify(repoFreshnessReq)).toContain("repository freshness");
+    expect(JSON.stringify(repoFreshnessReq)).toContain("freshness_limited");
+    expect(JSON.stringify(repoFreshnessReq)).toContain("repo_backed_fact");
+    expect(JSON.stringify(repoFreshnessReq)).toContain("judgment_call");
     expect(
       spec.requirements.some(
         (r: { id: string }) => r.id === "rq-epicArchiveSync01",
@@ -124,6 +134,30 @@ describe("/adv-coordinate command contract", () => {
     expect(content).toMatch(/advisory/i);
     expect(content).toMatch(/never block|MUST NOT block|must not block/i);
     expect(content).toMatch(/target_unreachable/i);
+  });
+
+  test("requires repository freshness before overlap and alignment conclusions", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+
+    expect(content).toMatch(/repository freshness/i);
+    expect(content).toMatch(/current repository/i);
+    expect(content).toContain("git fetch --prune");
+    expect(content).toMatch(/current branch/i);
+    expect(content).toMatch(/HEAD SHA/i);
+    expect(content).toMatch(/default branch/i);
+    expect(content).toMatch(/ahead\/behind/i);
+    expect(content).toMatch(/uncommitted work|dirty/i);
+    expect(content).toMatch(/recent commits?|diff/i);
+    expect(content).toMatch(/overlap/i);
+    expect(content).toContain("repo_backed_fact");
+    expect(content).toContain("adv_backed_fact");
+    expect(content).toContain("judgment_call");
+    expect(content).toContain("freshness_limited");
+    expect(content).toMatch(
+      /avoid evidence-backed conclusions[^.]+missing repo state|avoid evidence-backed conclusions[^.]+missing repository state/i,
+    );
+    expect(content).toMatch(/must not merge|must not .*rebase/i);
+    expect(content).toMatch(/must not .*checkout|must not .*reset/i);
   });
 
   test("does not introduce direct state edits or CLI mutation verbs", () => {
