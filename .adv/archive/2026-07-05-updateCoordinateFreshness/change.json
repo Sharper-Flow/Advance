@@ -1,0 +1,832 @@
+{
+  "id": "updateCoordinateFreshness",
+  "title": "Update coordinate freshness",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-05T18:00:05.407Z",
+  "tasks": [
+    {
+      "id": "tk-eac98f569cfb",
+      "title": "Add red asset tests for coordinate repository freshness",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-05T18:15:26.493Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "RED: bin/oc-test targeted -- src/advance-epics-assets.test.ts failed after adding freshness assertions. GREEN: same command passed after updating command/spec/docs anchors.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        ".opencode/command/adv-coordinate.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        ".opencode/command/adv-coordinate.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "checkpointSha": "51db1956e598ea5ca7107aa894e8d1e01998c916",
+      "completedAt": "2026-07-05T18:22:22.549Z",
+      "completed_at": "2026-07-05T18:22:22.549Z"
+    },
+    {
+      "id": "tk-41d2faa339c1",
+      "title": "Promote coordinate repo freshness to spec law",
+      "type": "docs",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-05T18:15:39.470Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-eac98f569cfb"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "verification": "Spec/docs implementation committed in checkpoint 51db1956. Targeted asset test passed: bin/oc-test targeted -- src/advance-epics-assets.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "51db1956e598ea5ca7107aa894e8d1e01998c916",
+      "completedAt": "2026-07-05T18:22:54.991Z",
+      "completed_at": "2026-07-05T18:22:54.991Z"
+    },
+    {
+      "id": "tk-bdc791ae0ccd",
+      "title": "Update adv-coordinate command freshness workflow",
+      "type": "docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-05T18:15:53.542Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-eac98f569cfb"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "verification": "Command workflow implementation committed in checkpoint 51db1956. Targeted asset test passed: bin/oc-test targeted -- src/advance-epics-assets.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "51db1956e598ea5ca7107aa894e8d1e01998c916",
+      "completedAt": "2026-07-05T18:23:14.926Z",
+      "completed_at": "2026-07-05T18:23:14.926Z"
+    },
+    {
+      "id": "tk-2e1d635a6e49",
+      "title": "Verify coordinate freshness contract",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-05T18:16:06.993Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-41d2faa339c1"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-bdc791ae0ccd"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "Reviewer strengthened asset assertions; targeted verification passed: bin/oc-test targeted -- src/advance-epics-assets.test.ts (52 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "checkpointSha": "fd5a36744478df784ef01f84247a32aad35b6d41",
+      "completedAt": "2026-07-05T18:30:02.546Z",
+      "completed_at": "2026-07-05T18:30:02.546Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCoordinateFreshness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for updateCoordinateFreshness (repository-freshness lane in /adv-coordinate)",
+      "sources": [
+        {
+          "label": "Command contract .opencode/command/adv-coordinate.md",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-coordinate.md:1-192",
+          "summary": "Existing /adv-coordinate is a prose/agent-driven read-first, approval-gated Epic workflow with 7 phases (Inventory→Alignment→Sequencing→Membership Health→Report→Approval→Apply). No TS git execution; freshness lane fits as agent instruction between Inventory (Phase 1) and Alignment (Phase 2)."
+        },
+        {
+          "label": "advance-epics spec rq-epicCoordinateCommand01",
+          "locator": "adv_spec show advance-epics (spec.json v1.7.0, rq-epicCoordinateCommand01 + 4 scenarios)",
+          "summary": "Current spec law requires typed reads, alignment/narrative/dependency/sequencing/capstone/membership findings, evidence-vs-judgment separation, advisory order, approval-gated typed mutations, no Jira-like/CLI-mutation/direct-state-edit. Does NOT mention repository-current evidence. Adding an adjacent scenario or new requirement is the correct AC5 path."
+        },
+        {
+          "label": "Asset tests plugin/src/advance-epics-assets.test.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/advance-epics-assets.test.ts:79-138",
+          "summary": "/adv-coordinate describe block asserts typed reads, approval-gating, optional membership/advisory order/never-block/target_unreachable, and negative boundary checks (no direct-state-edit, no CLI mutation verbs). No freshness/overlap/current-code anchors yet — a real red→green surface exists for AC6."
+        },
+        {
+          "label": "Manually-maintained spec doc docs/specs/advance-epics.md",
+          "locator": "/home/jon/dev/advance/docs/specs/advance-epics.md:138-195",
+          "summary": "Spec doc is a manually-maintained mirror asserted by test line 28-49 (no generate:docs script per AGENTS.md). rq-epicCoordinateCommand01 section present. Design correctly targets it as a manual-mirror update surface, not generated output."
+        },
+        {
+          "label": "Repo git-exec precedent (execFile/spawnSync argv-based)",
+          "locator": "/home/jon/dev/advance/plugin/src/integrations/gh-cli.ts:14-62, tools/roadmap.ts:22-31",
+          "summary": "Where ADV runs external commands it uses argv-based execFile/spawnSync (not shell-string). Freshness lane here is agent-executed shell within a prose command, consistent with the existing prose-command design; no new TS surface is required, which keeps the change command/spec/test-scoped as intended."
+        }
+      ],
+      "architecture_assessment": "Design is architecturally sound and consistent with the existing ADV Epic-coordination surface. It correctly chooses to extend the existing prose command + spec law + manual spec-doc mirror + asset test rather than add a new tool or CLI mutation verb (matches Constraints and rq-epicCoordinateCommand01.4). The Repository Freshness lane is placed before Alignment Audit, matching AC1 ordering. Evidence classification (repo_backed_fact / adv_backed_fact / judgment_call / freshness_limited) makes correctness structural in spec/asset anchors rather than prose-only (P33), satisfying AC4. Boundary preservation (no merge/rebase/checkout/product-code mutation; only bounded remote-ref freshness) is explicit and matches AC7 and the trunk-worktree isolation policy. The freshness-failure behavior (report freshness_limited, avoid evidence-backed conclusions on missing repo state) satisfies AC2 and avoids inventing facts. All four target surfaces (command, spec.json, docs/specs mirror, asset test) are the correct and complete set for the 8 ACs. Verification strategy (red asset test first, targeted run via adv_run_test/bin/oc-test, schema check only if schema artifacts change) is correct: editing spec.json requirements/scenarios does not change the generated JSON schema shape, so schemas:check is a conditional not a hard requirement — design already scopes it conditionally.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blocking design issues. Design maps cleanly to all 8 ACs across command/spec/doc/test surfaces. Boundaries (no product-code mutation, no CLI verbs, no direct state edits, advisory order, optional membership) are preserved. Recommended refinements are non-blocking planning-phase clarifications, not design defects."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Freshness lane is agent-executed shell inside a prose command, not typed TS — cheaper and correctly scoped, but freshness correctness depends on agent following the command contract rather than a machine-enforced tool. Mitigated by asset-test anchors + spec law that fail if wording is dropped.",
+          "Overlap audit relies on heuristic title/hint/diff matching. Design correctly downgrades these to judgment_call and forbids heuristic mutation authority, but overlap detection will never be provably complete (acknowledged in Non-Goals).",
+          "Bounded git fetch adds a network/side-effect step to a previously pure-read command. Constrained to remote-ref discovery only with freshness_limited fallback, so blast radius is contained; the tradeoff is a slightly less deterministic command run.",
+          "Adding freshness anchors to spec.json + manual doc mirror + asset test triples the wording-sync surface. Mitigated because the asset test enforces the sync, turning drift into a test failure."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "New dedicated freshness/overlap MCP tool or CLI verb",
+            "disposition": "rejected",
+            "rationale": "Violates Constraints/Non-Goals (no new CLI mutation surface, no new planning primitive) and rq-epicCoordinateCommand01.4. Adds a TS surface for what is fundamentally an agent-orchestrated read/report step."
+          },
+          {
+            "option": "Prose-only command edit without spec law or asset anchors",
+            "disposition": "rejected",
+            "rationale": "Fails AC5/AC6 and P33 structural-correctness: prose-only freshness could be silently dropped by a future command edit. Spec + asset anchors are required to make the requirement durable."
+          },
+          {
+            "option": "Strengthen existing rq-epicCoordinateCommand01 in place vs add adjacent requirement",
+            "disposition": "deferred",
+            "rationale": "Both satisfy AC5 ('or a new adjacent requirement'). Adjacent requirement (e.g. rq-epicCoordinateFreshness01) is cleaner for isolating new scenarios and keeps existing scenario IDs stable for the current asset test at lines 61-70; strengthening in place risks reworking existing scenario anchors. This is a planning-phase choice, not a design blocker."
+          }
+        ],
+        "recommendation": "Proceed to planning/execution. During planning, (1) decide adjacent-requirement (recommended: new rq-epicCoordinate* freshness requirement + scenarios) vs in-place strengthening and record the chosen requirement ID so the asset test and docs mirror target a stable anchor; (2) specify the exact bounded fetch command and its non-mutating guarantees in the command contract (e.g. git fetch --prune with no merge/rebase/checkout) plus the offline freshness_limited fallback wording; (3) add asset-test anchors for the four classification labels and the freshness-failure limitation so AC4/AC6 are machine-checked; (4) confirm whether spec.json edits touch any generated schema artifact — they should not (requirements are data, not schema shape), so schemas:check stays conditional per the design."
+      },
+      "recommendation": "READY — design is architecturally sound, maps to all 8 ACs across the correct four surfaces, and preserves every boundary. No blocking issues. Advance to planning; resolve the three non-blocking refinements (stable requirement ID choice, explicit bounded-fetch command + offline fallback wording, and asset anchors for the four evidence-classification labels) during prep.",
+      "follow_ups": [
+        "Planning: pin the new/updated spec requirement ID before writing asset-test anchors so the doc mirror and test target a stable ID.",
+        "Planning: write the exact bounded git-freshness command list into the command contract with an explicit no-merge/no-rebase/no-checkout guarantee and freshness_limited offline fallback.",
+        "Planning: add asset-test assertions for the four classification labels (repo_backed_fact/adv_backed_fact/judgment_call/freshness_limited) and the freshness-failure limitation to make AC4/AC6 machine-checked."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCoordinateFreshness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCoordinateFreshness",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": ".opencode/command/adv-coordinate.md",
+          "line": 65,
+          "what": "Repository freshness audit is placed before overlap, alignment, and sequencing conclusions.",
+          "why": "This matches the agreement requirement that evidence-backed coordination conclusions depend on current repository evidence and that missing freshness is explicitly classified."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": ".adv/specs/advance-epics/spec.json",
+          "line": 170,
+          "what": "Spec law captures freshness_limited behavior, repository-backed and ADV-backed evidence classes, overlap comparison, and non-mutating freshness discovery.",
+          "why": "The spec preserves existing Epic boundaries while adding machine-checkable law for current-repository evidence."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/advance-epics-assets.test.ts",
+          "summary": "Strengthened the spec asset test so rq-epicCoordinateRepoFreshness01 must include overlap, failure behavior that avoids evidence-backed conclusions when repo state is missing, adv_backed_fact classification, bounded git fetch wording, and no-merge guard; updated header citations to include the new requirement id.",
+          "verification": "bin/oc-test targeted -- src/advance-epics-assets.test.ts passed: 52 tests."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "When adding command/spec safety law, asset tests should assert the spec requirement body/scenarios include both the positive behavior and the failure/limitation behavior, not only the presence of the new requirement id or label strings."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Targeted asset suite passed in plugin context: src/advance-epics-assets.test.ts (52 tests) in 3.41s after reviewer hardening change."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Only the targeted asset test was rerun in this review; broader check/typecheck suite not rerun in this subagent pass."
+      ],
+      "required_main_agent_actions": [
+        "Review and checkpoint the reviewer hardening edit in plugin/src/advance-epics-assets.test.ts before final acceptance/archive.",
+        "Optionally run broader pre-release checks if the orchestrator needs evidence beyond the targeted asset suite."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateCoordinateFreshness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateCoordinateFreshness",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": ".opencode/command/adv-coordinate.md",
+          "line": 20,
+          "what": "Command boundary explicitly forbids direct ADV-state filesystem access, CLI mutation verbs, mandatory Epic membership, order-based blocking, Jira-like primitives, and unsafe git/product-code mutations.",
+          "why": "Release-blocker terms are present in the command contract and reinforced later in repository freshness and sequencing phases."
+        },
+        {
+          "id": "harden-praise-2",
+          "label": "praise",
+          "file": ".adv/specs/advance-epics/spec.json",
+          "line": 170,
+          "what": "Spec contains rq-epicCoordinateRepoFreshness01 with freshness, evidence-label, and git mutation guardrails.",
+          "why": "Manual docs mirror the same requirement and the asset test anchors the freshness labels and mutation ban."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all scoped files. Reviewed command/spec/manual docs/test anchors for contract/spec drift, docs mirror, weak asset anchors, prohibited direct state reads/CLI mutation verbs/mandatory membership/Jira-like primitives/order hard blocks, and unsafe git freshness wording. Test passed: 1 file, 52 tests. Worktree clean before and after verification. Initial task-scoped report submission failed because release-harden is not an existing ADV task anchor; resubmitted as change-scoped harden:release per tool guidance."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Packet included TASK: release-harden, but ADV report persistence rejected it as an unknown task anchor; report was persisted with change scope harden:release."
+      ],
+      "required_main_agent_actions": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-05T18:07:08.820Z",
+      "completed_by": "user:approved-proposal",
+      "approval_evidence": "User approved proposal/problem statement in chat: `approve`.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "fbd018535e5087dbd1169b07056bcce8eeae4753eff4c8d0e4394e634589197c",
+        "non_whitespace_chars": 2426,
+        "checked_at": "2026-07-05T18:00:05.463Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-05T18:10:54.860Z",
+      "completed_at": "2026-07-05T18:11:09.695Z",
+      "completed_by": "user:approved-agreement",
+      "approval_evidence": "User approved agreement in chat: `approve`. Contract minted from approved agreement.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "non_whitespace_chars": 3685,
+        "checked_at": "2026-07-05T18:00:05.464Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-05T18:15:03.324Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted and independently validated by adv-researcher with READY verdict. Nonblocking refinements incorporated: new requirement ID, explicit git freshness boundaries, stable classification labels.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "3048314b34067795e2353c2d8954a245506f79c317292b13891b845f921c9874",
+        "non_whitespace_chars": 4808,
+        "checked_at": "2026-07-05T18:00:05.465Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-05T18:17:17.622Z",
+      "completed_by": "user:approved-prep",
+      "approval_evidence": "User approved prep task graph in chat: `approve`."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-05T18:24:23.015Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 planned tasks completed. Implementation committed at checkpoint 51db1956. Targeted asset verification passed: bin/oc-test targeted -- src/advance-epics-assets.test.ts (52 tests)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-05T18:32:28.658Z",
+      "completed_by": "user:approved-acceptance",
+      "approval_evidence": "User approved acceptance in chat: `approve`. Acceptance evidence: targeted tests passed, reviewer READY, contract matrix 17/17 pass/respected, worktree clean.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "5ad5ed483841e77c54f5401318c9bd4d647ae0db734d8281f8eb8bdaf0cbdcc5",
+        "non_whitespace_chars": 1234,
+        "checked_at": "2026-07-05T18:00:05.466Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+      "approvedAt": "2026-07-05T18:11:03.677Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "AC1 — Command contract: `.opencode/command/adv-coordinate.md` contains a repository-freshness phase before Epic alignment audit. It names observable repo signals including branch/remote freshness, current HEAD/default branch relation, uncommitted work risk, and recent commit/diff evidence when available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "AC2 — Freshness failure behavior: command contract says if repository freshness cannot be established, `/adv-coordinate` must report the limitation and avoid evidence-backed conclusions that depend on missing repo state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "AC3 — Overlap audit: command contract requires comparing Epic entries and linked change artifacts against current repository evidence before recommending cancel, supersede, narrative update, reorder, retarget, or no-action outcomes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "AC4 — Evidence classification: command contract separates repository-backed facts from heuristic/judgment-call overlap findings; heuristics may rank likely overlap but cannot authorize mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "AC5 — Spec law: `advance-epics` spec requirement `rq-epicCoordinateCommand01` (or a new adjacent requirement) requires repository-current evidence in coordination reports while preserving typed ADV reads and approval-gated mutations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "AC6 — Regression tests: asset tests fail if `/adv-coordinate` omits repository freshness/current-code evidence, overlap detection against repo state, or the freshness-failure limitation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "AC7 — Boundary preservation: tests or command text still prove no direct ADV state file access, no CLI mutation verbs, no auto-enrollment, no Jira-like primitives, and no hard blocking solely due to Epic order.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "AC8 — Verification: targeted test for `plugin/src/advance-epics-assets.test.ts` passes through the repo test wrapper or `adv_run_test`; changed schemas/docs are checked if spec schema artifacts change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No automatic cancellation, reordering, membership repair, or narrative mutation without explicit user approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No direct reads or edits of ADV external state files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Current repository evidence is required for coordination conclusions, but stale/unavailable repo evidence is a reportable limitation, not permission to invent facts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Epic order remains advisory; current-code overlap may inform recommendations but must not block gates/tasks/progress by itself.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep solution command/spec/test focused; do not add new planning primitives or a new CLI mutation surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Full cross-device ADV state synchronization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Guaranteed semantic proof that all overlapping code changes are detected without user/domain evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Implementing new ADV MCP mutation tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Reworking the entire Epic model.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-05T18:30:51.406Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": ".opencode/command/adv-coordinate.md adds Phase 2 Repository Freshness Audit before alignment; asset test asserts repository freshness, current branch, HEAD SHA, default branch, ahead/behind, dirty work, recent commit/diff evidence."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": ".opencode/command/adv-coordinate.md requires `freshness_limited` and avoiding evidence-backed conclusions when repo state is missing; asset test asserts this wording."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": ".opencode/command/adv-coordinate.md adds Current Repository Overlap Audit comparing shell entries, linked changes, and terminal history to current repository evidence."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Command and spec define stable labels `repo_backed_fact`, `adv_backed_fact`, `judgment_call`, and `freshness_limited`; asset tests assert labels."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": ".adv/specs/advance-epics/spec.json and docs/specs/advance-epics.md add `rq-epicCoordinateRepoFreshness01` with repository-current evidence law."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Asset test updated to fail on missing repository freshness/current-code evidence and freshness failure anchors. Verification passed: `bin/oc-test targeted -- src/advance-epics-assets.test.ts` (52 tests)."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing and strengthened asset tests preserve no direct state edits, no CLI mutation verbs, optional membership, advisory order, no mutating git operations, and no Jira-like primitives."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification passed twice after implementation/reviewer changes: `bin/oc-test targeted -- src/advance-epics-assets.test.ts` (52 tests). No schema artifacts changed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command continues to require explicit approval before durable actions; no auto-cancel/reorder/repair/narrative mutation path added."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command continues typed ADV/Epic tools only and no ADV external state filesystem access; asset tests retain direct-state and CLI mutation guards."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Missing or stale repo evidence is classified as `freshness_limited` and report limitation; command forbids inventing evidence-backed conclusions."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Epic order remains advisory; command text still says never block gates, tasks, promotion, or progress solely because of Epic order."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new planning primitives or CLI mutation surface added; changes limited to command/spec/docs/asset tests."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No full cross-device ADV state synchronization implemented."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command does not claim guaranteed semantic detection; heuristic overlap remains a `judgment_call`."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new ADV MCP mutation tools added."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Epic model not reworked; existing Epic coordination requirement remains stable with adjacent freshness requirement."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "AC1 — Command contract: `.opencode/command/adv-coordinate.md` contains a repository-freshness phase before Epic alignment audit. It names observable repo signals including branch/remote freshness, current HEAD/default branch relation, uncommitted work risk, and recent commit/diff evidence when available.",
+    "AC2 — Freshness failure behavior: command contract says if repository freshness cannot be established, `/adv-coordinate` must report the limitation and avoid evidence-backed conclusions that depend on missing repo state.",
+    "AC3 — Overlap audit: command contract requires comparing Epic entries and linked change artifacts against current repository evidence before recommending cancel, supersede, narrative update, reorder, retarget, or no-action outcomes.",
+    "AC4 — Evidence classification: command contract separates repository-backed facts from heuristic/judgment-call overlap findings; heuristics may rank likely overlap but cannot authorize mutation.",
+    "AC5 — Spec law: `advance-epics` spec requirement `rq-epicCoordinateCommand01` (or a new adjacent requirement) requires repository-current evidence in coordination reports while preserving typed ADV reads and approval-gated mutations.",
+    "AC6 — Regression tests: asset tests fail if `/adv-coordinate` omits repository freshness/current-code evidence, overlap detection against repo state, or the freshness-failure limitation.",
+    "AC7 — Boundary preservation: tests or command text still prove no direct ADV state file access, no CLI mutation verbs, no auto-enrollment, no Jira-like primitives, and no hard blocking solely due to Epic order.",
+    "AC8 — Verification: targeted test for `plugin/src/advance-epics-assets.test.ts` passes through the repo test wrapper or `adv_run_test`; changed schemas/docs are checked if spec schema artifacts change."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Update Coordinate Freshness\n\n## Problem\n\n`/adv-coordinate` currently inventories Epics, linked changes, and membership health through typed ADV reads before proposing durable Epic actions. It does not explicitly require a repository-freshness pass that detects codebase changes made outside the workstation where ADV plans were authored.\n\nExample risk: Workstation A contains planned ADV changes and Epics. Workstation B updates the codebase, including work overlapping those plans. Later, Workstation A runs `/adv-coordinate`. If the command only reads local ADV state and stale local checkout state, it may recommend keeping, ordering, or repairing planned work that is already implemented, partially superseded, or structurally changed in the repository.\n\n## Desired Direction\n\nMake `/adv-coordinate` treat current repository state as first-class evidence before alignment recommendations. The command should refresh/read relevant repo evidence, compare it to active Epics and planned changes, and propose updates such as cancel, re-align, re-order, retarget, revise narrative, or re-order entries only with explicit approval and typed ADV tools.\n\n## Scope\n\n- `.opencode/command/adv-coordinate.md`: require current repository-state discovery before alignment and sequencing conclusions.\n- `.adv/specs/advance-epics/spec.json` and generated docs if required: promote the repository-freshness requirement to spec law.\n- `plugin/src/advance-epics-assets.test.ts` or nearby asset tests: assert the command contract mentions current repo evidence, overlap detection, explicit approval before durable ADV/Epic mutations, and typed-tool boundaries.\n- Related docs generated from specs, if changed by the normal spec/docs workflow.\n\n## Failure Handling\n\n- If repository freshness cannot be established, `/adv-coordinate` must report the limitation and avoid evidence-backed conclusions that depend on missing repo state.\n- If local checkout is behind or has stale refs, command should surface that as a coordination risk rather than silently trusting ADV plan state.\n- If overlap is plausible but not provable, classify it as a judgment call and require user review before cancellation, narrative edits, reorders, or membership repairs.\n- If an approved Epic version changed after the report, re-read and require fresh approval before mutation, preserving existing expected-version behavior.\n\n## Out of Scope\n\n- Adding a new CLI mutation verb.\n- Auto-cancelling changes or auto-reordering Epics without approval.\n- Treating local heuristic text matching as correctness authority.\n- Solving full cross-device ADV state sync beyond using the current repository/worktree evidence available to the command.\n- Forcing Epic membership or blocking gate/task progress solely because repository overlap is suspected.",
+    "problemStatement": "`/adv-coordinate` must not assume ADV plans and Epics reflect the codebase's current implementation state. When plans were authored on Workstation A and overlapping code changes land from Workstation B, a later coordination run on Workstation A needs fresh repository evidence before recommending alignment actions. Otherwise, the command can preserve stale planned work, miss already-shipped overlap, or recommend misleading sequencing/narrative updates.",
+    "agreement": "# Agreement: Update Coordinate Freshness\n\n## Discovery Findings\n\n- Current `/adv-coordinate` command is Epic-state read-first: it lists Epics, shows Epics, inspects linked changes, checks specs, then audits alignment/sequencing/membership health.\n- Current command contract does not require repository freshness or current-code evidence before alignment conclusions.\n- `advance-epics` spec requirement `rq-epicCoordinateCommand01` requires typed Epic reads and approval-gated mutations, but does not mention current repository state.\n- Asset tests in `plugin/src/advance-epics-assets.test.ts` enforce typed Epic reads, approval-gated mutations, optional membership, advisory order, and no direct state/CLI mutation verbs, but do not enforce repository-state awareness.\n- Local repo evidence during discovery showed the checkout is currently behind `origin/trunk` by one commit (`aa5681d9 fix: trust audited release recovery gates (#193)`), confirming the stale-workstation scenario is realistic.\n\n## Objectives\n\n1. `/adv-coordinate` must establish and report repository freshness before making alignment, sequencing, or overlap conclusions that depend on current code.\n2. `/adv-coordinate` must compare active Epics/planned changes against current repository evidence, not only ADV state.\n3. Relevant repository changes may produce proposed coordination actions: cancel/supersede recommendations, narrative updates, advisory reorders, membership repairs/retargets, or no-action findings.\n4. Durable changes remain approval-gated and must use typed ADV/Epic tools.\n\n## Acceptance Criteria\n\n- AC1 — Command contract: `.opencode/command/adv-coordinate.md` contains a repository-freshness phase before Epic alignment audit. It names observable repo signals including branch/remote freshness, current HEAD/default branch relation, uncommitted work risk, and recent commit/diff evidence when available.\n- AC2 — Freshness failure behavior: command contract says if repository freshness cannot be established, `/adv-coordinate` must report the limitation and avoid evidence-backed conclusions that depend on missing repo state.\n- AC3 — Overlap audit: command contract requires comparing Epic entries and linked change artifacts against current repository evidence before recommending cancel, supersede, narrative update, reorder, retarget, or no-action outcomes.\n- AC4 — Evidence classification: command contract separates repository-backed facts from heuristic/judgment-call overlap findings; heuristics may rank likely overlap but cannot authorize mutation.\n- AC5 — Spec law: `advance-epics` spec requirement `rq-epicCoordinateCommand01` (or a new adjacent requirement) requires repository-current evidence in coordination reports while preserving typed ADV reads and approval-gated mutations.\n- AC6 — Regression tests: asset tests fail if `/adv-coordinate` omits repository freshness/current-code evidence, overlap detection against repo state, or the freshness-failure limitation.\n- AC7 — Boundary preservation: tests or command text still prove no direct ADV state file access, no CLI mutation verbs, no auto-enrollment, no Jira-like primitives, and no hard blocking solely due to Epic order.\n- AC8 — Verification: targeted test for `plugin/src/advance-epics-assets.test.ts` passes through the repo test wrapper or `adv_run_test`; changed schemas/docs are checked if spec schema artifacts change.\n\n## Constraints\n\n- No automatic cancellation, reordering, membership repair, or narrative mutation without explicit user approval.\n- No direct reads or edits of ADV external state files.\n- Current repository evidence is required for coordination conclusions, but stale/unavailable repo evidence is a reportable limitation, not permission to invent facts.\n- Epic order remains advisory; current-code overlap may inform recommendations but must not block gates/tasks/progress by itself.\n- Keep solution command/spec/test focused; do not add new planning primitives or a new CLI mutation surface.\n\n## Non-Goals\n\n- Full cross-device ADV state synchronization.\n- Guaranteed semantic proof that all overlapping code changes are detected without user/domain evidence.\n- Implementing new ADV MCP mutation tools.\n- Reworking the entire Epic model.",
+    "design": "# Design: Update Coordinate Freshness\n\n## Architecture Decision\n\nUpdate the existing `/adv-coordinate` command/spec/test assets rather than adding a new tool or CLI mutation surface.\n\n`/adv-coordinate` remains a read-first, approval-gated Epic coordination workflow. The design adds a repository-freshness evidence lane before alignment/sequencing conclusions so the command can detect stale workstation state and code overlap before recommending ADV/Epic actions.\n\nIndependent validation verdict: READY. Validator confirmed the design fits existing command/spec/doc/test architecture and recommended pinning a new adjacent requirement ID plus explicit freshness/classification anchors.\n\n## Target Surfaces\n\n- `.opencode/command/adv-coordinate.md`\n  - Add a Repository Freshness phase before Alignment Audit.\n  - Expand report shape with repository freshness and overlap sections.\n  - Add explicit failure behavior for offline/stale/unavailable repository evidence.\n- `.adv/specs/advance-epics/spec.json`\n  - Add new adjacent requirement `rq-epicCoordinateRepoFreshness01` requiring repository-current evidence for coordination conclusions.\n  - Keep existing `rq-epicCoordinateCommand01` anchors stable where possible.\n- `docs/specs/advance-epics.md`\n  - Manually mirror the spec JSON change; this repo has no `generate:docs` script.\n- `plugin/src/advance-epics-assets.test.ts`\n  - Add asset regression coverage for command/spec repository-freshness contract.\n\n## Repository Freshness Lane\n\nBefore alignment, sequencing, and overlap recommendations, command must gather and report bounded repo signals:\n\n1. Current branch and HEAD SHA.\n2. Default branch and upstream/remote relation where available.\n3. Remote freshness signal: attempt a bounded remote-ref refresh when safe (`git fetch --prune` or equivalent); if unavailable/offline, mark freshness limited.\n4. Ahead/behind state relative to default branch/upstream.\n5. Dirty/uncommitted work risk.\n6. Recent commits or diff ranges relevant to planned Epic/change areas when inferable.\n\nThe command must not merge, rebase, checkout, reset, clean, stash, or mutate product code. Fetching refs is acceptable as freshness discovery; if it fails, report limitation rather than pretending evidence is current.\n\n## Overlap Audit Lane\n\nAfter typed ADV reads and repository-freshness gathering, compare current repository evidence against active Epic entries and linked change artifacts:\n\n- Shell entries: compare title/success hint to changed files, recent commits, and nearby code evidence.\n- Linked changes: compare proposal/agreement/design/task summaries where available to changed files, recent commits, and code evidence.\n- Terminal entries/history: use terminal summaries as evidence that work already landed.\n\nClassify findings with stable labels:\n\n- `repo_backed_fact`: direct code/commit/diff evidence supports the conclusion.\n- `adv_backed_fact`: typed ADV state supports the conclusion.\n- `judgment_call`: plausible overlap or sequencing change needs user/domain review.\n- `freshness_limited`: repo evidence missing or stale; conclusion cannot be evidence-backed.\n\nHeuristics may rank likely overlap but cannot authorize mutation.\n\n## Proposed Action Semantics\n\nCoordination report may propose, never auto-apply:\n\n- change cancellation/supersession recommendation (requires existing change/task cancellation workflows and user approval where applicable);\n- Epic narrative/title update via `adv_epic_update` after approval;\n- advisory reorder via `adv_epic_reorder` after approval;\n- membership repair/retarget via `adv_epic_repair_membership` after approval;\n- no-action because repo evidence shows plan still valid;\n- freshness-blocked/no-conclusion because repo evidence is unavailable.\n\nExisting `expected_version` re-read behavior remains: if Epic changed after report, re-read and require fresh approval before mutation.\n\n## Structural Correctness\n\n- Spec law owns the requirement, not prose-only command text.\n- Asset tests assert command/spec wording anchors so future command edits cannot drop freshness behavior silently.\n- Tests should explicitly assert `repository freshness`, `current repository`, `git fetch --prune`, `freshness_limited`, `repo_backed_fact`, `adv_backed_fact`, and `judgment_call` anchors.\n- No direct ADV state file access. All ADV state remains via typed ADV tools.\n- No new heuristic authority; evidence classification is explicit.\n\n## Verification Strategy\n\n- Red: add/adjust asset tests first so missing freshness/overlap wording fails.\n- Green: update command/spec/docs until targeted test passes.\n- Verify: run targeted `plugin/src/advance-epics-assets.test.ts` via `adv_run_test` or `bin/oc-test targeted -- plugin/src/advance-epics-assets.test.ts` from repo root. Run schema/spec docs check if schema artifacts are touched.\n\n## Risks and Mitigations\n\n- Risk: Command promises perfect overlap detection. Mitigation: explicitly classify heuristic findings as judgment calls and require user review.\n- Risk: Git freshness commands mutate repo state. Mitigation: allow only remote-ref freshness discovery; forbid merge/rebase/checkout/reset/clean/stash/product-code mutation.\n- Risk: Coordination becomes a hidden planning system. Mitigation: preserve no Jira-like primitives, optional Epic membership, advisory order only, and typed-tool mutation boundaries.\n- Risk: Offline workstation cannot prove freshness. Mitigation: report `freshness_limited` and avoid evidence-backed conclusions depending on missing repo state.",
+    "executiveSummary": "# Executive Summary: Update Coordinate Freshness\n\n## What Changed\n\n`/adv-coordinate` now treats current repository state as first-class evidence before making Epic/change alignment recommendations.\n\nImplemented surfaces:\n\n- `.opencode/command/adv-coordinate.md`\n  - Adds Repository Freshness Audit before alignment/sequencing decisions.\n  - Adds Current Repository Overlap Audit.\n  - Requires evidence labels: `repo_backed_fact`, `adv_backed_fact`, `judgment_call`, `freshness_limited`.\n  - Requires freshness-limited reporting when repo evidence is unavailable.\n  - Forbids merge/rebase/checkout/reset/clean/stash/product-code mutation during freshness discovery.\n- `.adv/specs/advance-epics/spec.json`\n  - Adds `rq-epicCoordinateRepoFreshness01` as spec law.\n- `docs/specs/advance-epics.md`\n  - Mirrors new spec requirement.\n- `plugin/src/advance-epics-assets.test.ts`\n  - Adds regression coverage for repository freshness, overlap, failure behavior, labels, and no-mutation boundaries.\n\n## Verification\n\n- `bin/oc-test targeted -- src/advance-epics-assets.test.ts` passed after implementation.\n- Same targeted test passed after reviewer strengthened assertions.\n- Independent reviewer verdict: READY; no blocking findings.\n- Contract review matrix: 17/17 pass/respected.\n\n## Release Readiness Summary\n\n- Harden verdict: READY.\n- Harden changes made: none.\n- Harden verification: `bin/oc-test targeted -- src/advance-epics-assets.test.ts` passed (52 tests).\n- Worktree clean after verification.\n- No contract/spec drift found.\n- Manual docs mirror scoped spec requirement.\n- Asset-test anchors cover repository freshness, evidence labels, approval-gated typed tools, optional Epic membership, advisory order, no Jira-like primitives, no CLI mutation verbs, no direct ADV-state filesystem access, and no unsafe git/product-code mutations.\n- Required main-agent actions: none.\n\n## Remaining Concerns\n\nNone for accepted scope. Broader full-suite/pre-release checks may still be run before archive if desired.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-05T18:30:51.406Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | AC1 — Command contract: `.opencode/command/adv-coordinate.md` contains a repository-freshness phase before Epic alignment audit. It names observable repo signals including branch/remote freshness, current HEAD/default branch relation, uncommitted work risk, and recent commit/diff evidence when available. | pass | .opencode/command/adv-coordinate.md adds Phase 2 Repository Freshness Audit before alignment; asset test asserts repository freshness, current branch, HEAD SHA, default branch, ahead/behind, dirty work, recent commit/diff evidence. |\n| AC2 | acceptance_criterion | AC2 — Freshness failure behavior: command contract says if repository freshness cannot be established, `/adv-coordinate` must report the limitation and avoid evidence-backed conclusions that depend on missing repo state. | pass | .opencode/command/adv-coordinate.md requires `freshness_limited` and avoiding evidence-backed conclusions when repo state is missing; asset test asserts this wording. |\n| AC3 | acceptance_criterion | AC3 — Overlap audit: command contract requires comparing Epic entries and linked change artifacts against current repository evidence before recommending cancel, supersede, narrative update, reorder, retarget, or no-action outcomes. | pass | .opencode/command/adv-coordinate.md adds Current Repository Overlap Audit comparing shell entries, linked changes, and terminal history to current repository evidence. |\n| AC4 | acceptance_criterion | AC4 — Evidence classification: command contract separates repository-backed facts from heuristic/judgment-call overlap findings; heuristics may rank likely overlap but cannot authorize mutation. | pass | Command and spec define stable labels `repo_backed_fact`, `adv_backed_fact`, `judgment_call`, and `freshness_limited`; asset tests assert labels. |\n| AC5 | acceptance_criterion | AC5 — Spec law: `advance-epics` spec requirement `rq-epicCoordinateCommand01` (or a new adjacent requirement) requires repository-current evidence in coordination reports while preserving typed ADV reads and approval-gated mutations. | pass | .adv/specs/advance-epics/spec.json and docs/specs/advance-epics.md add `rq-epicCoordinateRepoFreshness01` with repository-current evidence law. |\n| AC6 | acceptance_criterion | AC6 — Regression tests: asset tests fail if `/adv-coordinate` omits repository freshness/current-code evidence, overlap detection against repo state, or the freshness-failure limitation. | pass | Asset test updated to fail on missing repository freshness/current-code evidence and freshness failure anchors. Verification passed: `bin/oc-test targeted -- src/advance-epics-assets.test.ts` (52 tests). |\n| AC7 | acceptance_criterion | AC7 — Boundary preservation: tests or command text still prove no direct ADV state file access, no CLI mutation verbs, no auto-enrollment, no Jira-like primitives, and no hard blocking solely due to Epic order. | pass | Existing and strengthened asset tests preserve no direct state edits, no CLI mutation verbs, optional membership, advisory order, no mutating git operations, and no Jira-like primitives. |\n| AC8 | acceptance_criterion | AC8 — Verification: targeted test for `plugin/src/advance-epics-assets.test.ts` passes through the repo test wrapper or `adv_run_test`; changed schemas/docs are checked if spec schema artifacts change. | pass | Targeted verification passed twice after implementation/reviewer changes: `bin/oc-test targeted -- src/advance-epics-assets.test.ts` (52 tests). No schema artifacts changed. |\n| C1 | constraint | No automatic cancellation, reordering, membership repair, or narrative mutation without explicit user approval. | respected | Command continues to require explicit approval before durable actions; no auto-cancel/reorder/repair/narrative mutation path added. |\n| C2 | constraint | No direct reads or edits of ADV external state files. | respected | Command continues typed ADV/Epic tools only and no ADV external state filesystem access; asset tests retain direct-state and CLI mutation guards. |\n| C3 | constraint | Current repository evidence is required for coordination conclusions, but stale/unavailable repo evidence is a reportable limitation, not permission to invent facts. | respected | Missing or stale repo evidence is classified as `freshness_limited` and report limitation; command forbids inventing evidence-backed conclusions. |\n| C4 | constraint | Epic order remains advisory; current-code overlap may inform recommendations but must not block gates/tasks/progress by itself. | respected | Epic order remains advisory; command text still says never block gates, tasks, promotion, or progress solely because of Epic order. |\n| C5 | constraint | Keep solution command/spec/test focused; do not add new planning primitives or a new CLI mutation surface. | respected | No new planning primitives or CLI mutation surface added; changes limited to command/spec/docs/asset tests. |\n| OOS1 | out_of_scope | Full cross-device ADV state synchronization. | respected | No full cross-device ADV state synchronization implemented. |\n| OOS2 | out_of_scope | Guaranteed semantic proof that all overlapping code changes are detected without user/domain evidence. | respected | Command does not claim guaranteed semantic detection; heuristic overlap remains a `judgment_call`. |\n| OOS3 | out_of_scope | Implementing new ADV MCP mutation tools. | respected | No new ADV MCP mutation tools added. |\n| OOS4 | out_of_scope | Reworking the entire Epic model. | respected | Epic model not reworked; existing Epic coordination requirement remains stable with adjacent freshness requirement. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-05T18:01:02.338Z",
+      "contentHash": "fbd018535e5087dbd1169b07056bcce8eeae4753eff4c8d0e4394e634589197c",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-05T18:01:02.338Z",
+      "contentHash": "60226576dc3ab062862152c0448652dcb83315946ed92dce9d8ebfe36c60932c",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-05T18:09:06.417Z",
+      "contentHash": "1d447ac71c144386b1e5d1961eefd4c2a9f2e066b3e1cbe191b9d0c6fe291e84",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-05T18:14:56.400Z",
+      "contentHash": "3048314b34067795e2353c2d8954a245506f79c317292b13891b845f921c9874",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-05T18:36:27.396Z",
+      "contentHash": "f6b85c9eee2d6b632975d201a6a1065e3bb981e7ece322a9fe7aacb829c29a46",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-05T18:36:27.396Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-05T18:00:31.605Z",
+      "resolved": true,
+      "resolved_at": "2026-07-05T18:01:09.257Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-05T18:00:31.605Z",
+      "resolved": true,
+      "resolved_at": "2026-07-05T18:01:09.257Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

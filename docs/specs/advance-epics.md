@@ -195,6 +195,66 @@ The `/adv-coordinate` command MUST inventory active Epics through typed reads be
 
 ---
 
+### Epic Coordination Uses Current Repository Evidence Before Alignment Conclusions
+
+**ID:** `rq-epicCoordinateRepoFreshness01` | **Priority:** **[MUST]**
+
+The `/adv-coordinate` command MUST establish and report repository freshness before making alignment, sequencing, overlap, cancellation, supersession, narrative, reorder, retarget, or no-action conclusions that depend on current repository state. The command MUST collect bounded repository evidence such as current branch, HEAD SHA, default branch/upstream relation, remote freshness, ahead/behind state, dirty or uncommitted work risk, and recent commit or diff evidence when available. A bounded remote-ref refresh such as `git fetch --prune` MAY be used for freshness discovery, but the command MUST NOT merge, rebase, checkout, reset, clean, stash, or mutate product code. When repository freshness cannot be established, findings MUST be marked `freshness_limited` and the report MUST avoid evidence-backed conclusions that depend on missing repo state. The coordination report MUST compare Epic entries and linked change artifacts against current repository evidence before proposing durable actions, and MUST classify findings as `repo_backed_fact`, `adv_backed_fact`, `judgment_call`, or `freshness_limited`. Heuristics MAY rank likely overlap, but MUST NOT authorize mutation; approved durable actions still require typed ADV/Epic tools and explicit user approval.
+
+**Tags:** `epics`, `command`, `coordination`, `repository`, `freshness`
+
+#### Scenarios
+
+**Repository freshness is reported before coordination conclusions** (`rq-epicCoordinateRepoFreshness01.1`)
+
+**Given:**
+- One or more active Epics exist
+
+**When:** `/adv-coordinate` prepares alignment, sequencing, or overlap findings
+
+**Then:**
+- The report includes current repository freshness evidence before those findings
+- The report includes current branch, HEAD SHA, default branch or upstream relation, ahead/behind state, and dirty or uncommitted work risk when available
+- The report includes recent commit or diff evidence when it is used to justify an overlap or no-action conclusion
+
+**Freshness-limited repository state blocks evidence-backed claims** (`rq-epicCoordinateRepoFreshness01.2`)
+
+**Given:**
+- Remote freshness, default branch relation, or local repository evidence cannot be established
+
+**When:** `/adv-coordinate` prepares its report
+
+**Then:**
+- Affected findings are marked `freshness_limited`
+- The report avoids evidence-backed conclusions that depend on missing repo state
+- The limitation is surfaced as a coordination risk rather than silently trusting ADV plan state
+
+**Overlap findings compare plans with current repository evidence** (`rq-epicCoordinateRepoFreshness01.3`)
+
+**Given:**
+- Active Epic entries or linked changes may overlap recent repository changes
+
+**When:** `/adv-coordinate` recommends cancel, supersede, narrative update, reorder, retarget, or no-action outcomes
+
+**Then:**
+- The recommendation cites typed ADV evidence, current repository evidence, or both
+- The finding is classified as `repo_backed_fact`, `adv_backed_fact`, `judgment_call`, or `freshness_limited`
+- Heuristic overlap is presented as a judgment call and does not authorize mutation
+
+**Repository freshness discovery does not mutate product code or bypass approval** (`rq-epicCoordinateRepoFreshness01.4`)
+
+**Given:**
+- `/adv-coordinate` attempts to establish current repository evidence
+
+**When:** Repository freshness discovery runs
+
+**Then:**
+- A bounded remote-ref refresh such as `git fetch --prune` may be used
+- The command does not merge, rebase, checkout, reset, clean, stash, or mutate product code
+- Any durable ADV or Epic mutation still requires explicit user approval and typed tools
+
+---
+
 ### Shell Promotion Replaces the Shell Row with Exactly One Linked Change
 
 **ID:** `rq-epicPromotion01` | **Priority:** **[MUST]**

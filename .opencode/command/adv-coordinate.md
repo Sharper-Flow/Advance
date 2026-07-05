@@ -7,7 +7,7 @@ description: Audit Epic alignment, sequencing, and membership health
 
 # ADV Coordinate — Epic Alignment and Sequencing Audit
 
-Run a read-first coordination pass across active Epics. Produce an alignment, sequencing, dependency, and membership-health report; apply durable Epic actions only after explicit approval through typed Epic tools.
+Run a read-first coordination pass across active Epics and current repository evidence. Produce a repository freshness, overlap, alignment, sequencing, dependency, and membership-health report; apply durable Epic actions only after explicit approval through typed Epic tools.
 
 <UserRequest>
   $ARGUMENTS
@@ -15,9 +15,9 @@ Run a read-first coordination pass across active Epics. Produce an alignment, se
 
 ## Command Boundary
 
-**Produces:** Epic coordination report, ownership-boundary findings, narrative accuracy findings, cross-Epic dependency notes, advisory sequencing recommendations, membership-health findings, and approved action results.
+**Produces:** Epic coordination report, repository freshness summary, current repository overlap findings, ownership-boundary findings, narrative accuracy findings, cross-Epic dependency notes, advisory sequencing recommendations, membership-health findings, and approved action results.
 
-**× MUST NOT:** create tasks, complete gates, add CLI mutation verbs, make Epic membership mandatory, auto-enroll changes into Epics, treat Epic order as blocking, add Jira-like assignments/estimates/sprints/boards/ownership workflow, mutate without explicit approval, or access ADV external state through filesystem paths.
+**× MUST NOT:** create tasks, complete gates, add CLI mutation verbs, make Epic membership mandatory, auto-enroll changes into Epics, treat Epic order as blocking, add Jira-like assignments/estimates/sprints/boards/ownership workflow, mutate without explicit approval, access ADV external state through filesystem paths, merge, rebase, checkout, reset, clean, stash, or mutate product code.
 
 **Gate:** None.
 
@@ -62,7 +62,53 @@ Record for each Epic:
 
 ---
 
-## Phase 2: Alignment Audit
+## Phase 2: Repository Freshness Audit
+
+Establish current repository evidence before making alignment, sequencing, overlap, cancellation, supersession, narrative, reorder, retarget, or no-action conclusions that depend on current code.
+
+Gather and report bounded signals where available:
+
+| Signal | Evidence to record |
+|---|---|
+| Current branch | Branch name and current HEAD SHA. |
+| Default/upstream relation | Default branch, upstream branch, and remote tracking relation. |
+| Remote freshness | Bounded remote-ref refresh such as `git fetch --prune`; if it fails, mark `freshness_limited`. |
+| Ahead/behind state | Ahead/behind counts versus upstream/default branch when available. |
+| Dirty work risk | Uncommitted work, staged changes, untracked files, or other dirty worktree signals. |
+| Recent repository changes | Recent commits or diff evidence relevant to Epic entries or linked changes when inferable. |
+
+Repository freshness discovery may refresh remote refs, but must not merge, rebase, checkout, reset, clean, stash, or mutate product code.
+
+If repository freshness cannot be established, report `freshness_limited`, cite the missing signal, and avoid evidence-backed conclusions that depend on missing repo state.
+
+---
+
+## Phase 3: Current Repository Overlap Audit
+
+Compare active Epic entries and linked change artifacts against current repository evidence before proposing durable actions.
+
+| Planned work | Current repository comparison |
+|---|---|
+| Shell entries | Compare title and success hint to recent commits, changed files, and nearby code evidence. |
+| Linked changes | Compare proposal/agreement/design/task summaries to current code, recent commits, and diff evidence. |
+| Terminal entries/history | Use terminal summaries and current code evidence to decide whether remaining work is still valid. |
+
+Classify every finding with one of these stable labels:
+
+| Label | Meaning |
+|---|---|
+| `repo_backed_fact` | Current repository code, commit, or diff evidence supports the conclusion. |
+| `adv_backed_fact` | Typed ADV state supports the conclusion. |
+| `judgment_call` | Plausible overlap or sequencing issue needs user/domain review. |
+| `freshness_limited` | Repository evidence is missing or stale; the conclusion cannot be evidence-backed. |
+
+Heuristics may rank likely overlap. Heuristics must not authorize mutation.
+
+Possible recommendations include cancel/supersede review, narrative update, advisory reorder, retarget/repair, no-action, or freshness-limited no-conclusion. All durable actions still require explicit approval and typed tools.
+
+---
+
+## Phase 4: Alignment Audit
 
 Analyze each Epic and the set of Epics:
 
@@ -71,15 +117,15 @@ Analyze each Epic and the set of Epics:
 | Ownership boundaries | Entry belongs in the current Epic vs another Epic. |
 | Narrative accuracy | Narrative still matches current entries and known terminal work. |
 | Cross-Epic dependencies | Prerequisites are explicit in both directions where useful. |
-| Evidence grounding | Claims cite typed ADV/spec/code evidence when checkable. |
+| Evidence grounding | Claims cite typed ADV/spec/current repository evidence when checkable. |
 
-Heuristics may rank or group likely findings. Typed reads and cited evidence own correctness. Separate evidence-backed facts from judgment calls.
+Heuristics may rank or group likely findings. Typed reads and cited current repository evidence own correctness. Separate evidence-backed facts from judgment calls.
 
 Prefer narrative cross-links over duplicating the same work in multiple Epics.
 
 ---
 
-## Phase 3: Sequencing Audit
+## Phase 5: Sequencing Audit
 
 Build an advisory dependency view from:
 
@@ -87,6 +133,7 @@ Build an advisory dependency view from:
 - existing change titles/proposals when available;
 - explicit cross-Epic prerequisite notes;
 - terminal summaries.
+- current repository overlap and freshness findings.
 
 Flag:
 
@@ -98,7 +145,7 @@ Order remains advisory. Never block gates, tasks, promotion, or change progress 
 
 ---
 
-## Phase 4: Membership Health Audit
+## Phase 6: Membership Health Audit
 
 Report typed health findings and repair paths:
 
@@ -113,31 +160,34 @@ Do not silently mutate. Repairs require `evidence`; target-routed repairs follow
 
 ---
 
-## Phase 5: Present Coordination Report
+## Phase 7: Present Coordination Report
 
 Emit grouped report:
 
 - Inventory summary: Epics scanned, entries scanned, health counts.
+- Repository freshness summary: current branch, HEAD SHA, default/upstream relation, remote freshness, ahead/behind state, and dirty work risk where available.
+- Current repository overlap findings: `repo_backed_fact`, `adv_backed_fact`, `judgment_call`, and `freshness_limited` counts and evidence.
 - Alignment findings: clear-cut vs judgment calls.
 - Sequencing findings: inversions, capstone placement, proposed `entry_ids` order.
 - Health findings: status, evidence, suggested repair mode.
 - Proposed durable actions: narrative updates, reorders, membership repairs.
-- No-action findings: already aligned, intentionally advisory, or out of scope.
+- No-action findings: already aligned, intentionally advisory, current repository evidence shows plan still valid, or out of scope.
 
 For each durable action include:
 
 - affected Epic ID and current version;
 - exact rationale and evidence;
+- evidence label (`repo_backed_fact`, `adv_backed_fact`, `judgment_call`, or `freshness_limited`);
 - tool that would apply it (`adv_epic_update`, `adv_epic_reorder`, `adv_epic_repair_membership`);
 - required inputs such as `expected_version`, `entry_ids`, `mode`, and `evidence`.
 
 ---
 
-## Phase 6: Approval
+## Phase 8: Approval
 
 Durable Epic actions are approval-gated.
 
-For each action group, ask for explicit approval inline. Keep judgment calls separate from clear-cut repairs.
+For each action group, ask for explicit approval inline. Keep `judgment_call` and `freshness_limited` findings separate from `repo_backed_fact` and `adv_backed_fact` repairs.
 
 Allowed replies for action groups:
 
@@ -153,7 +203,7 @@ Anything else → re-prompt same action group. No LLM fallback for mutation appr
 
 ---
 
-## Phase 7: Apply Approved Actions
+## Phase 9: Apply Approved Actions
 
 Use typed tools only:
 
