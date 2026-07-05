@@ -72,7 +72,7 @@ bin/oc-test full
 
 `bin/oc-test` delegates to `oc-test-gate` when available and falls back to direct plugin commands without changing `adv_run_test` semantics.
 
-**`bin/adv` — read-only status CLI** (Bun runtime; covered by `bun test bin/` in CI):
+**`bin/adv` — terminal CLI with explicit subcommand boundaries** (Bun runtime; covered by `bun test bin/` in CI):
 
 ```bash
 bin/adv status      # live active-changes table from Temporal (default subcommand)
