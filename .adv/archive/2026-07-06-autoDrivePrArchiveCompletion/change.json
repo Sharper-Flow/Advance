@@ -1,0 +1,1014 @@
+{
+  "id": "autoDrivePrArchiveCompletion",
+  "title": "Auto-drive PR archive completion",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-06T18:08:59.758Z",
+  "tasks": [
+    {
+      "id": "tk-a51821b42b6e",
+      "title": "Author 3 new spec requirements in `.adv/specs/advance-workflow/spec.{md,json}`:",
+      "type": "docs",
+      "section": "Spec deltas",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-06T18:41:56.604Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C6",
+          "DONT1",
+          "DONT5",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "source_audit",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T18:44:08.214Z",
+      "verification": "spec.json +185/-2; 93 requirements (was 90); 3 new rules rq-releaseFinalization02 (4 scenarios), .03 (4 scenarios), .04 (2 scenarios) inserted directly after rq-releaseFinalization01; version bumped to 1.25.1; pnpm run schemas:check green; pnpm run schemas:generate clean; pnpm run typecheck green; commit d99bc31e.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "d99bc31ee0b23165ca3dd7de9baeb4cf4e7dd916",
+      "completedAt": "2026-07-06T18:52:33.911Z",
+      "completed_at": "2026-07-06T18:52:33.911Z"
+    },
+    {
+      "id": "tk-fbcc9bbd8210",
+      "title": "Implement `syncDefaultBranchAfterMerge` pure helper in `plugin/src/tools/archive-helpers/git-finalize.ts`.",
+      "type": "code",
+      "section": "Helper implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-06T18:42:08.108Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a51821b42b6e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C5",
+          "C6",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T18:52:37.941Z",
+      "verification": "Helper syncDefaultBranchAfterMerge exported from git-finalize.ts (+151 lines), 5 tests added to git-finalize.test.ts (+183 lines). All 5 tests GREEN. pnpm run typecheck/lint/format:check green. pnpm run schemas:check green. AC2/AC3/DDC1/DDC2/DDC3/C1/C5/C6/DONT5 enforced by code + tests. Pre-existing test failures (adv_backed_fact in adv-coordinate.md, spec citation invariant) are unrelated (parent change's coverage gap, will fix in command task).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9f4ef3275c760e44ee96cf982abe217abb88efd8",
+      "completedAt": "2026-07-06T19:18:15.586Z",
+      "completed_at": "2026-07-06T19:18:15.586Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "autoDrivePrArchiveCompletion",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/autoDrivePrArchiveCompletion",
+          "task_id": "tk-fbcc9bbd8210",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-fbcc9bbd8210"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "cd plugin && pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit green"
+            },
+            {
+              "command": "cd plugin && pnpm run lint",
+              "exit_code": 0,
+              "summary": "eslint src/ green"
+            },
+            {
+              "command": "cd plugin && pnpm run format:check",
+              "exit_code": 0,
+              "summary": "prettier --check src/ green"
+            },
+            {
+              "command": "cd plugin && pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"syncDefaultBranchAfterMerge\"",
+              "exit_code": 0,
+              "summary": "10 passed, 86 skipped, full describe block green"
+            },
+            {
+              "command": "cd plugin && pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"auto-drive regression guards\"",
+              "exit_code": 0,
+              "summary": "6 passed, 90 skipped, regression guard describe green"
+            },
+            {
+              "command": "cd plugin && pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts",
+              "exit_code": 0,
+              "summary": "6 passed, no new temporal/* import introduced"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added strict parseRevListCount helper using /^\\d+$/ and explicit status checks",
+              "why": "Eliminates silent swallow of rev-list failures and non-numeric output that previously defaulted to 0 and misreported FF_MERGE_FAILED."
+            },
+            {
+              "what": "Inserted HEAD-on-default-branch guard immediately after fetch and before rev-list/merge",
+              "why": "Closes the silent wrong-branch fast-forward risk by machine-checking C1 before any merge mutation."
+            },
+            {
+              "what": "Added merge-path destructive-ops spy with localAhead:0,originAhead:1 plus regression-guard describe",
+              "why": "Closes the false-negative gap where the merge path was never spied and adds durable tests for ce-1/ce-2."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Three review findings (ce-1 rev-list status/parse, ce-2 HEAD-on-default guard, ce-3 merge-path spy) implemented in syncDefaultBranchAfterMerge. All targeted tests, typecheck, lint, and format:check pass. Commit 6a68b8a created. No spec/command surfaces touched.",
+            "suggested_next_action": "Proceed to review gate sign-off or next task in autoDrivePrArchiveCompletion."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run format:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"syncDefaultBranchAfterMerge\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"auto-drive regression guards\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-93768a64274c",
+      "title": "Add auto-drive orchestration section to `.opencode/command/adv-archive.md`.",
+      "type": "docs",
+      "section": "Command orchestration",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-06T18:42:19.890Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fbcc9bbd8210"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T19:18:23.382Z",
+      "verification": "Phase 9.5 section added to adv-archive.md (+29 lines) with `<!-- rq-releaseFinalization02 rq-releaseFinalization04 -->` markers. Section documents: (1) detect via `phase9: \"pending_merge\"` read from nested `finalization.*`; (2) spawn adv-ci-waiter via Task tool; (3) MERGED branch calls syncDefaultBranchAfterMerge + re-calls adv_change_archive; (4) non-terminal branch leaves change active with retry command. Marker-resolution confirms rq-releaseFinalization02 and rq-releaseFinalization04 are now cited (spec-citation-invariant passes). pnpm run schemas:check/typecheck/lint/format:check all green. Pre-existing tool-name-assets failure (adv_backed_fact in adv-coordinate.md) is unrelated to this change.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7ed3b475c418ee793b5f926b950d8130c354a437",
+      "completedAt": "2026-07-06T19:23:22.464Z",
+      "completed_at": "2026-07-06T19:23:22.464Z"
+    },
+    {
+      "id": "tk-1628c7a3d0ff",
+      "title": "Regression guards: add tests verifying all non-pending-PR archive paths stay byte-for-byte semantically unchanged.",
+      "type": "code",
+      "section": "Regression guards",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-06T18:42:27.989Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-93768a64274c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T19:23:28.406Z",
+      "verification": "3 regression-guard tests added (+88 lines): (1) syncDefaultBranchAfterMerge is exported but not auto-invoked internally by any other git-finalize helper (DONT3/AC7); (2) git-finalize.ts temporal imports are exactly the pre-existing CHANGE_BRANCH_PREFIX (AC7 layer-boundary); (3) the new adv-archive.md auto-drive section does NOT reference redriveArchivedUnmergedBranch and DOES reference verifyReleaseEvidenceFromMain + syncDefaultBranchAfterMerge (DONT3 enforcement). All 92 tests in git-finalize.test.ts pass. pnpm run lint/typecheck/format:check all green.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "55595546a3f3a276891c54bb1ddcfbaa27d7adea",
+      "completedAt": "2026-07-06T19:38:04.733Z",
+      "completed_at": "2026-07-06T19:38:04.733Z"
+    },
+    {
+      "id": "tk-356994b0fe14",
+      "title": "Run the full pre-push gate and confirm green / classify any residual red.",
+      "type": "verification",
+      "section": "Pre-push gate",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-06T18:42:35.935Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1628c7a3d0ff"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "respects": [
+          "C3",
+          "C5"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T19:38:09.718Z",
+      "verification": "Full pre-push gate green: schemas:check ✓, typecheck ✓, lint ✓, format:check ✓, pnpm-lock.yaml + package.json unchanged. Full test suite: 4604 passed / 2 skipped / 1 failed. The 1 failure is PRE-EXISTING (tool-name-assets flagged `adv_backed_fact` in adv-coordinate.md since 2026-07-05, unrelated to this change per agenda `ag-zDhHiMIX` pattern). No regressions introduced.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "55595546a3f3a276891c54bb1ddcfbaa27d7adea",
+      "completedAt": "2026-07-06T19:40:52.840Z",
+      "completed_at": "2026-07-06T19:40:52.840Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "autoDrivePrArchiveCompletion",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "design-validation: autoDrivePrArchiveCompletion",
+      "sources": [
+        {
+          "label": "verifyReleaseEvidenceFromMain (completion entry)",
+          "locator": "plugin/src/tools/change/archive-gate.ts:231,502",
+          "summary": "Unchanged completion entry; on re-call delegates to resolveReleaseReachability which returns pr_merged proof. Confirms Decision 3."
+        },
+        {
+          "label": "pending_merge structured return",
+          "locator": "plugin/src/tools/change/archive-gate.ts:270-291",
+          "summary": "Returns phase9 pending_merge plus finalization (GitFinalizeOutcome carrying prNumber/prUrl/mainCheckout/defaultBranch, git-finalize.ts:12-23). AC1 detection needs no new tool output. Fields nested inside finalization, not top-level."
+        },
+        {
+          "label": "changeTipSha branch-ref-independent proof",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:154-158",
+          "summary": "Persisted content-addressed tip lets reachability survive branch deletion; confirms completion is branch-ref-independent."
+        },
+        {
+          "label": "reconcileChangeBranchWithDefault (mirror shape)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:67-131",
+          "summary": "Pure runGit-injected helper returning status/reason/remediation/conflictFiles; new syncDefaultBranchAfterMerge copies this proven testable shape. Tests at git-finalize.test.ts:2806."
+        },
+        {
+          "label": "worker-bundle boundary direction",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:6",
+          "summary": "git-finalize imports CHANGE_BRANCH_PREFIX from temporal/contracts (tools->temporal, allowed). Boundary forbids temporal->tools only. AC7 holds; new pure helper adds no temporal-reachable import."
+        },
+        {
+          "label": "coercePrWorkflowRoute + merge_queue passthrough",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:541; git-finalize.test.ts:472",
+          "summary": "Confirms pr_auto_merge + merge_queue are the pending_merge-producing trigger set (Decision 4)."
+        },
+        {
+          "label": "rq-releaseFinalization01",
+          "locator": ".adv/specs/advance-workflow/spec.json:384-557",
+          "summary": "Parent rule: remote-backed release requires origin/{default} reachability or merged-PR proof; pending auto-merge keeps release incomplete + change active; conflicting reconcile stops before cleanup. Design completion re-validates this proof rather than bypassing it. No contradiction."
+        },
+        {
+          "label": "idempotent re-call / existing-bundle reconcile",
+          "locator": "plugin/src/tools/change/archive-gate.ts:293-388",
+          "summary": "already-archived/release-done path returns noOp without re-applying deltas; confirms double-apply-deltas risk mitigation."
+        }
+      ],
+      "architecture_assessment": "The design layers auto-drive PR archive completion onto verified existing seams: (1) AC1 detection reads the already-structured pending_merge return (archive-gate.ts:270-291, fields nested in GitFinalizeOutcome); (2) trunk-sync is a new pure runGit-injected helper mirroring reconcileChangeBranchWithDefault (git-finalize.ts:67), fetch + ff-only-or-surface, never checkout/reset/pull; (3) completion reuses the unchanged verifyReleaseEvidenceFromMain (archive-gate.ts:502) whose pr_merged reachability proof is branch-ref-independent via changeTipSha (git-finalize.ts:154-158). The trigger (agent spawn) correctly lives in adv-archive.md per P37; sync lives in git-finalize.ts (tools->temporal import direction is allowed by the boundary rule). Idempotent re-call is verified (archive-gate.ts:293-388). No spec contradiction with rq-releaseFinalization01: completion re-validates origin/PR-merge proof (01.4/.6/.10), non-terminal path keeps release incomplete and change active (01.6), ff-only-or-surface respects conflict-stops-before-cleanup (01.2) and unsafe-state blocking (01.8). New rq-releaseFinalization02/03/04 are additive, not amendments. Every load-bearing claim confirmed against source; deviation from reference architecture is NONE.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All four dimensions verified against source. Two non-blocking refinements: (1) design cites finalization.prNumber/prUrl at archive-gate.ts:270-291 but those are nested inside finalization (GitFinalizeOutcome), not top-level of the return; command must read finalization.prNumber. (2) Recommend an explicit AC/spec assertion that syncDefaultBranchAfterMerge never records release-done and that release completion stays gated solely by verifyReleaseEvidenceFromMain, so future edits cannot let the sync helper shortcut rq-releaseFinalization01's origin/PR proof."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Three-layer split (command trigger / helper sync / tool completion) adds a mental model, but each layer is independently testable and matches existing seams.",
+          "Markdown orchestration is less type-checkable than tool code, but is the only P37-compliant layer that can spawn adv-ci-waiter.",
+          "Reuse-heavy design keeps new surface minimal (one pure helper + one section) at the cost of depending on verifyReleaseEvidenceFromMain remaining the sole release-proof gate."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Wire sync into the tool's shipped path instead of command-driven",
+            "disposition": "rejected",
+            "rationale": "Couples a git-mutation into the currently-pure verifyReleaseEvidenceFromMain reachability read, and does NOT remove the need for command-layer adv-ci-waiter spawn (P37); adds coupling without removing surface."
+          },
+          {
+            "option": "Use phase9_status.changeTipSha persistence field to drive sync",
+            "disposition": "rejected",
+            "rationale": "Orthogonal: changeTipSha is the completion proof carrier; sync operates on origin/{default} and needs no change to it."
+          },
+          {
+            "option": "Expand trigger set to include pr_manual",
+            "disposition": "rejected",
+            "rationale": "pr_manual is not auto-mergeable, so auto-drive cannot complete it; correctly out of scope."
+          }
+        ],
+        "recommendation": "Proceed with the design as written; add two non-blocking planning refinements (nested finalization.prNumber/prUrl reference; explicit assertion that syncDefaultBranchAfterMerge never records release-done)."
+      },
+      "recommendation": "Proceed with the design as written. It layers cleanly onto verified existing seams with a single pure runGit-injected helper and one orchestration section, reuses the branch-ref-independent completion proof (verifyReleaseEvidenceFromMain + pr_merged), and respects rq-releaseFinalization01's origin/PR-merge proof requirement plus P37's sub-agent-only polling rule. Two non-blocking refinements for planning: (1) reference prNumber/prUrl as nested fields on finalization (GitFinalizeOutcome), not top-level of the pending_merge return; (2) add an explicit spec/AC assertion that syncDefaultBranchAfterMerge never records release-done and that release completion remains gated solely by verifyReleaseEvidenceFromMain, so a future edit cannot let the sync helper shortcut the origin/PR proof.",
+      "follow_ups": [
+        "Planning: add AC/spec assertion that syncDefaultBranchAfterMerge never records release-done (release stays gated by verifyReleaseEvidenceFromMain).",
+        "Planning: correct design reference so command reads finalization.prNumber/finalization.prUrl (nested), not top-level."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "autoDrivePrArchiveCompletion",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/autoDrivePrArchiveCompletion",
+      "task_id": "tk-fbcc9bbd8210",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-fbcc9bbd8210"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "cd plugin && pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit green"
+        },
+        {
+          "command": "cd plugin && pnpm run lint",
+          "exit_code": 0,
+          "summary": "eslint src/ green"
+        },
+        {
+          "command": "cd plugin && pnpm run format:check",
+          "exit_code": 0,
+          "summary": "prettier --check src/ green"
+        },
+        {
+          "command": "cd plugin && pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"syncDefaultBranchAfterMerge\"",
+          "exit_code": 0,
+          "summary": "10 passed, 86 skipped, full describe block green"
+        },
+        {
+          "command": "cd plugin && pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"auto-drive regression guards\"",
+          "exit_code": 0,
+          "summary": "6 passed, 90 skipped, regression guard describe green"
+        },
+        {
+          "command": "cd plugin && pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts",
+          "exit_code": 0,
+          "summary": "6 passed, no new temporal/* import introduced"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added strict parseRevListCount helper using /^\\d+$/ and explicit status checks",
+          "why": "Eliminates silent swallow of rev-list failures and non-numeric output that previously defaulted to 0 and misreported FF_MERGE_FAILED."
+        },
+        {
+          "what": "Inserted HEAD-on-default-branch guard immediately after fetch and before rev-list/merge",
+          "why": "Closes the silent wrong-branch fast-forward risk by machine-checking C1 before any merge mutation."
+        },
+        {
+          "what": "Added merge-path destructive-ops spy with localAhead:0,originAhead:1 plus regression-guard describe",
+          "why": "Closes the false-negative gap where the merge path was never spied and adds durable tests for ce-1/ce-2."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Three review findings (ce-1 rev-list status/parse, ce-2 HEAD-on-default guard, ce-3 merge-path spy) implemented in syncDefaultBranchAfterMerge. All targeted tests, typecheck, lint, and format:check pass. Commit 6a68b8a created. No spec/command surfaces touched.",
+        "suggested_next_action": "Proceed to review gate sign-off or next task in autoDrivePrArchiveCompletion."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run format:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"syncDefaultBranchAfterMerge\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm exec vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"auto-drive regression guards\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts"
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-06T18:10:23.834Z",
+      "completed_by": "agent",
+      "approval_evidence": "Problem statement confirmed by user (\"Confirmed — create the change\"). Full proposal built: What Changes, implementation-free User Outcomes, Affected Code, Constraints, Scope (In/Out/Must Not), Discovery Agenda (5 items). B/F/S ambiguity scan: all PASS, no CRITICAL. Fast-follow of fixPhase9SquashMergeRedetect. Trunk-sync mechanism + trigger taxonomy deferred to discovery/design per user direction.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "a0b92e06f0664248c9d90eb5e77e14b36add2dc273a614aafd7c555bee0f9b97",
+        "non_whitespace_chars": 6687,
+        "checked_at": "2026-07-06T18:08:59.802Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-06T18:33:09.594Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. 9-step protocol all PASS (skill:SKIP, scout:skip-narrow). Current state grounded in git-finalize.ts: route enum {no_remote,direct,pr_auto_merge,pr_manual,merge_queue,blocked}, proof taxonomy verified, verifyReleaseEvidenceFromMain confirmed as completion-from-merged entry (not redrive). Trunk-sync gap confirmed via P25 (no post-pr_merged fast-forward exists). git pull behavior empirically tested: ff clean, merge-commit on divergence, WEDGES main on conflict → decided fetch+ff-only-or-surface. Ambiguity: B:C F:C S:C M:C, no CRITICAL/HIGH. Contract minted 21 items. All open questions resolved (5 user decisions + 3 LBP). Warrant fix: draft spec deltas rq-releaseFinalization02/03/04 are this change's own deliverables, no premature warrant tags.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "non_whitespace_chars": 6113,
+        "checked_at": "2026-07-06T18:08:59.803Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-06T18:41:08.896Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Validator: VALIDATED (pass, high confidence, low risk). Source-verified: completion reuse (verifyReleaseEvidenceFromMain + pr_merged + changeTipSha), pending_merge packet shape (finalization.prNumber/prUrl nested), idempotent re-call, layer-boundary direction, mirror helper shape, trigger set. 5 key decisions documented, 3 DDCs, 5 risks with mitigations. Two non-blocking planning refinements filed as agenda items (nested finalization.* refs; sync helper MUST NOT record release ✓). Proceeding to /adv-prep inline.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "865dcff7f54e37d2bcb83c94888e7ec7197dc03f32188fe3ca446b725a8a9e98",
+        "non_whitespace_chars": 9477,
+        "checked_at": "2026-07-06T18:08:59.804Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-06T18:43:52.856Z",
+      "completed_by": "agent",
+      "approval_evidence": "5 tasks (1 spec docs, 1 helper code, 1 command docs, 1 regression code, 1 pre-push verification). Sequenced by blockedBy. Contract traceable: AC1-AC7 + SC1-SC3 mapped to implementor tasks; C1-C6 + DONT1-DONT5 in contract_refs.respects. Strict validation clean. Cross-cutting concerns documented N/A. Validator follow-ups absorbed (nested finalization.* references + explicit non-record-release assertion)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-06T19:41:04.424Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks complete + checkpointed: (1) Spec rq-releaseFinalization02/03/04 authored; (2) syncDefaultBranchAfterMerge helper + 5 tests; (3) Phase 9.5 auto-drive section in adv-archive.md; (4) 3 regression-guard tests; (5) pre-push gate green. 4604 tests pass, 0 regressions. Pre-existing tool-name-assets failure (adv_backed_fact in adv-coordinate.md) is unrelated. 4 commits on the change branch."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-06T22:40:18.678Z",
+      "completed_at": "2026-07-06T22:41:36.621Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "bed525d1bb10cbe9fef5bc196481217d4c448fcc4a36cef6d7bbab220ab95f98",
+        "non_whitespace_chars": 4994,
+        "checked_at": "2026-07-06T18:08:59.806Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "fixPhase9SquashMergeRedetect",
+    "linked_at": "2026-07-06T18:08:59.692Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "idea-session:adv-idea ci-waiter archive handoff"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+      "approvedAt": "2026-07-06T18:32:55.804Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "On the `pr_auto_merge` / `merge_queue` archive path with auto-merge armed, ADV completes the archive flow end-to-end without a second human turn — no manual re-invocation of archive or `adv_archive_repair` required when the PR merges.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "After the watched PR reaches `MERGED`, the local default branch is up to date with `origin/{default}` in the common (non-diverged) case, without the human running `git pull`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "The shipped-invariant bar is preserved: release completes only on positive `pr_merged`/reachability evidence, never on a bare timeout or false signal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "When archive finalization returns route `pr_auto_merge` or `merge_queue` with auto-merge armed, ADV spawns `adv-ci-waiter` to watch the PR to terminal state and does not poll CI from the main agent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "When the watched PR reaches `MERGED` and `origin/{default}` reachability is proven, ADV fast-forwards the local default branch in place (`fetch` + `merge --ff-only`) without switching branches.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "When the local default branch has diverged from `origin/{default}` (local-only commits), ADV does NOT auto-merge or reset; it leaves the local branch untouched, surfaces the divergence with reconcile instructions, and still completes release on proven origin reachability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "After a successful merge + sync, ADV drives archive to completion (`Shipped.` + worktree cleanup) via `verifyReleaseEvidenceFromMain`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_archive"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "When the waiter returns a non-terminal outcome (timeout / blocked / red-CI it cannot fix), the change stays active and ADV reports `Pending auto-merge.` / `Blocked.` with the PR URL and exact retry command — never a false `Shipped.`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Direct-push, no-remote, and `ff-only` archive paths are unchanged (regression-guarded).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "No CI-wait or Task-spawn import is added to worker-bundle-reachable modules (`git-finalize.ts` and its static imports); the worker-bundle boundary test stays green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Main checkout NEVER switches branch; the default branch is updated in place only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "The main agent must not poll CI (P37); `adv-ci-waiter` is the only permitted waiter.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Reuse existing contracts — `adv-ci-waiter` remediation, `verifyReleaseEvidenceFromMain` completion, and the `pr_merged` reachability proof. Do not reinvent merge/detection logic.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Layer boundary — no Task-spawn or CI-wait logic inside worker-bundle-reachable modules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Never mark release done without positive reachability/merge evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "No force-push of the default branch; no `reset --hard` of the default branch when it has local-only commits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not change direct-push / no-remote / `ff-only` archive paths (they already complete synchronously).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not re-implement squash-merge re-detection (delivered by parent `fixPhase9SquashMergeRedetect` via `changeTipSha`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not route completion through `redriveArchivedUnmergedBranch` — that path re-arms a still-pending PR, it is not the completion-from-merged path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not modify `adv-ci-waiter`'s internal remediation behavior (reused as-is).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not run a blind `git pull` on trunk (verified: the diverged-with-conflict case wedges the main checkout in a half-merge, violating C1).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-06T22:42:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Auto-drive end-to-end via Phase 9.5 (adv-archive.md:506-533) + syncDefaultBranchAfterMerge helper. 6 commits. 4610 tests pass. Prose-orchestration known limitation (ct-1), not blocking."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Real-git test 'clean ff-only' (git-finalize.test.ts:3001-3022) confirms afterHead==origin/trunk, 2-element ffCommits."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "'does not record release-done' type-shape test (git-finalize.test.ts:3097-3121). adv-archive.md:528 explicit 'never escalate non-terminal to Shipped.' DONT3 regression guard (3653-3674)."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-archive.md:512-518 spawns adv-ci-waiter via Task tool. rq-releaseFinalization02.1 in spec.json. Regression guard 'git-finalize.ts does NOT reference Task-spawn or CI-wait APIs' (3639-3646)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "FIXED ce-1/ce-2/ce-3: rev-list status check + HEAD-on-default guard + merge-path destructive-ops spy. Real-git tests green. 96 tests in git-finalize.test.ts."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Helper diverged branch returns {status: 'diverged', localOnlyCommits} without merge/reset. Real-git test (git-finalize.test.ts:3024-3044) confirms local HEAD unchanged."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-archive.md:521-525 re-calls adv_change_archive through verifyReleaseEvidenceFromMain. DONT3 regression guard confirms no redrive path."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-archive.md:526-529 renders 'Pending auto-merge.' with PR URL + retry command. rq-releaseFinalization04.1/.2 in spec.json."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression guard 'syncDefaultBranchAfterMerge is exported but not invoked internally' (3595-3622). Pre-push gate green. Diff purely additive."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression guards 'no new temporal/* imports' (3624-3637) + 'no Task-spawn or CI-wait APIs' (3639-3646). workflow-bundle-boundary.test.ts green (6 passed)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "FIXED ce-2: MAIN_NOT_ON_DEFAULT guard via git rev-parse --abbrev-ref HEAD after fetch. Destructive-ops spy covers both diverge + merge paths."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-archive.md:518 P37 enforcement. Regression guard (3639-3646) confirms no CI-wait in helper."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Helper uses GitFinalizeDeps + mirrors reconcileChangeBranchWithDefault. Command references verifyReleaseEvidenceFromMain + syncDefaultBranchAfterMerge."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Regression guards (3624-3637, 3639-3646). workflow-bundle-boundary.test.ts green."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "'does not record release-done' type-shape test (3097-3121). Helper has no store/signal surface."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "FIXED ce-1 + ce-3: helper only runs fetch / rev-list / merge --ff-only / log. Destructive-ops spy covers both paths."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Regression guard (3595-3622) confirms purely additive. No existing function modified."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Helper has no changeTipSha/squash detection. Tip-SHA delegated to parent change (referenced in spec body)."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Regression guard (3653-3674) reads Phase 9.5 section, asserts redrive absent and verifyReleaseEvidenceFromMain present."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "git log d99bc31e^..beca5a22 --name-only confirms zero .opencode/agents/adv-ci-waiter.md / instructions/oc-ci-wait.md modifications."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Helper grep — no pull invocation. Destructive-ops spy covers merge path (ce-3 fix)."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "When archive finalization returns route `pr_auto_merge` or `merge_queue` with auto-merge armed, ADV spawns `adv-ci-waiter` to watch the PR to terminal state and does not poll CI from the main agent.",
+    "When the watched PR reaches `MERGED` and `origin/{default}` reachability is proven, ADV fast-forwards the local default branch in place (`fetch` + `merge --ff-only`) without switching branches.",
+    "When the local default branch has diverged from `origin/{default}` (local-only commits), ADV does NOT auto-merge or reset; it leaves the local branch untouched, surfaces the divergence with reconcile instructions, and still completes release on proven origin reachability.",
+    "After a successful merge + sync, ADV drives archive to completion (`Shipped.` + worktree cleanup) via `verifyReleaseEvidenceFromMain`.",
+    "When the waiter returns a non-terminal outcome (timeout / blocked / red-CI it cannot fix), the change stays active and ADV reports `Pending auto-merge.` / `Blocked.` with the PR URL and exact retry command — never a false `Shipped.`.",
+    "Direct-push, no-remote, and `ff-only` archive paths are unchanged (regression-guarded).",
+    "No CI-wait or Task-spawn import is added to worker-bundle-reachable modules (`git-finalize.ts` and its static imports); the worker-bundle boundary test stays green."
+  ],
+  "documents": {
+    "proposal": "# Auto-drive PR archive completion\n\n## Why\n\nOn PR-mode projects, `adv_change_archive phase9:\"run\"` arms GitHub auto-merge, reports `Pending auto-merge.`, and hands back with the change still **active**. Nothing then waits for the PR to merge, updates the local default branch, or re-drives archive to completion. The human must later re-invoke `adv_archive_repair action=redrive` (or archive retry) by hand, and the local default branch (`main`/`trunk`) stays stale until then — worse after squash merges, which break git ancestry and make a naive `merge --ff-only` fail.\n\n`fixPhase9SquashMergeRedetect` (archived; cross-project follow-up from pokeedge-web) already solved *re-detection* when archive is re-driven: it captures `changeTipSha` so a squash-merged-and-deleted branch proves reachable and release completes. **This change owns the missing automatic trigger** that drives that re-detection: wait for merge → sync local trunk → re-drive archive to `Shipped.`.\n\n## What Changes\n\nThe `pr_auto_merge` / `merge_queue` archive path becomes self-completing instead of handing back a pending state:\n\n- After auto-merge is armed and `Pending auto-merge.` would be reported, ADV auto-spawns the `adv-ci-waiter` sub-agent to watch the PR to terminal state (P37: only the sub-agent polls; the main agent never loops).\n- On terminal `MERGED`, ADV updates the local default branch **in place** to match `origin/{default}` (never switching branches), correctly handling squash-merge ancestry breaks.\n- ADV then auto-re-drives archive to completion (`Shipped.` + worktree cleanup) via the existing `verifyReleaseEvidenceFromMain` completion path — one continuous flow, no second human turn.\n- Red CI during the wait is remediated by `adv-ci-waiter` per its own existing contract; ADV re-drives only after terminal `MERGED`.\n\nOrchestration lives in the `adv-archive.md` command contract (agent layer), **not** in `git-finalize.ts` — that helper is reachable from the Temporal worker bundle and cannot import Task-spawn logic (layer-boundary constraint, verified).\n\n## User Outcomes\n\n- [ ] When a change ships via a protected/auto-merge PR, the human does not have to manually re-invoke archive after the PR merges — ADV completes it end-to-end.\n- [ ] After the remote PR merges, the local default branch is up to date without a manual `git pull`.\n- [ ] The archive terminal state reflects reality: `Shipped.` once merged and finalized, not a stale `Pending auto-merge.` left for the human to chase.\n- [ ] Red CI during the merge wait is handled (remediated or clearly surfaced) rather than silently stalling the archive.\n- [ ] Discovery will firm acceptance criteria and success criteria.\n\n## Affected Code\n\n- `.opencode/command/adv-archive.md` — Phase 9 orchestration: auto-spawn `adv-ci-waiter` on the pending-PR path, post-merge trunk sync, auto-re-drive to completion.\n- `plugin/src/tools/archive-helpers/git-finalize.ts` — new post-merge default-branch sync helper (fetch + reachability-proven fast-forward of local trunk to `origin/{default}`). Reuses the existing `fetch origin {default}` primitive (already present at lines 814/1060/1420/2426) and the `pr_merged` reachability proof.\n- `plugin/src/tools/change/archive-gate.ts` (`verifyReleaseEvidenceFromMain`) — the completion-from-merged entry point; may invoke the new trunk-sync helper before returning `shipped`.\n- `.adv/specs/advance-workflow` — spec deltas for the auto-drive release-finalization behavior (`rq-releaseFinalization01*` family; spec currently has zero ci-wait/auto-drive language — clean insertion).\n- Corresponding `*.test.ts` — regression coverage for post-squash-merge trunk sync and the auto-drive trigger.\n\n## Related Repositories\n\nSingle-repo (the Advance plugin). No `scope_repos` needed — the behavior is internal to ADV's own archive workflow. The motivating real-world consumer is pokeedge-web, but no code change lands there.\n\n## Constraints\n\n- Main checkout NEVER switches branch; the default branch is updated in place only.\n- P37: the main agent must not poll CI; `adv-ci-waiter` is the only permitted waiter.\n- Reuse existing contracts — `adv-ci-waiter` remediation, `verifyReleaseEvidenceFromMain` completion, and the `pr_merged` reachability proof. Do not reinvent merge/detection logic.\n- Layer boundary: no Task-spawn or CI-wait logic inside worker-bundle-reachable modules (`git-finalize.ts` and anything it statically imports).\n- Never mark release done without positive reachability/merge evidence (preserve the shipped-invariant bar established by the parent change).\n- No force-push of the default branch.\n\n## Impact\n\nTurns a manual, easily-forgotten post-merge step into automatic completion. No breaking API change; behavior newly succeeds where it previously left the change wedged in `Pending auto-merge.`. Direct-push and no-remote archive paths are unchanged.\n\n## Discovery Findings\n\n### Current State (verified this session)\n\n- **Route taxonomy** (`git-finalize.ts:40` `ReleaseFinalizationRouteName`): `no_remote | direct | pr_auto_merge | pr_manual | merge_queue | blocked`. The pending-PR (hand-back) routes are exactly `pr_auto_merge` and `merge_queue` — confirms the narrow trigger set.\n- **Reachability proof taxonomy** (`git-finalize.ts:161` `ReleaseReachabilityProof`): reachable = `local_merge | origin_default | pr_merged`; blocked = `local_unmerged | origin_unmerged | origin_push_unverified | pr_unmerged | blocked`.\n- **Completion-from-merged entry** = `verifyReleaseEvidenceFromMain` (`archive-gate.ts:502`), called from `change.ts:2381/2623/2787` and `archive-gate.ts:231`. When re-run after merge, `resolveReleaseReachability` returns `pr_merged` → `status: \"shipped\"`. **Gap: it never fetches/fast-forwards local trunk to `origin/{default}`.** So even the completion path leaves local trunk stale.\n- **`redriveArchivedUnmergedBranch` (`git-finalize.ts:2011`) is NOT the completion path** — it re-opens/re-arms a PR for a still-pending branch (requires remote branch to exist; blocks with `REMOTE_CHANGE_BRANCH_NOT_FOUND` otherwise). Auto-drive completion should route through `verifyReleaseEvidenceFromMain`, not redrive. (Corrects a proposal-time assumption.)\n- **`fetch origin {default}` primitive already exists** (lines 814/1060/1420/2426). Missing piece is a post-`pr_merged` fast-forward of local `{default}` to `origin/{default}`.\n- **`reconcileChangeBranchWithDefault` (`git-finalize.ts:67`) reconciles the CHANGE branch, not local trunk post-merge** — not reusable for trunk sync; a new helper is warranted.\n- **`adv-ci-waiter`**: spawnable via Task tool (per `oc-ci-wait.md` always-on routing policy); `oc-ci-wait doctor` → `status: ok` (auth via `gh auth token`). No global agent markdown file present, and zero `adv-ci-waiter`/`oc-ci-wait` references in `.opencode/` — this change introduces the **first** archive→waiter integration.\n- **CI environment (Advance)**: `trunk` protected (6 required checks); `allow_auto_merge` currently off (must be enabled for this repo to exercise the path live). Recent trunk history is `ff-only` change-branch merges (not squashes) — post-squash-merge trunk-sync path is real but untested/unbuilt.\n\n### Edge Cases\n\nGap A — post-merge local trunk sync:\n1. **Squash-merge ancestry break** — `origin/{default}` has a squash commit not in local trunk's history; `merge --ff-only` fails. Sync must fast-forward local `{default}` to `origin/{default}` after proving reachability, not attempt an ancestry merge.\n2. **Local-only commits on trunk** — local `{default}` has unpushed commits (e.g. an ADV checkpoint). A blind `reset --hard origin/{default}` would destroy them. Must detect divergence and refuse/surface instead of resetting.\n\nGap B — waiter lifecycle:\n3. **Waiter timeout / abandonment** — PR never merges (CI stuck, human walks away). Auto-drive must leave the change active with an actionable `Pending auto-merge.` message, not hang or falsely complete.\n4. **Branch deleted mid-retry** — parent's OOS adjacency (`ag-L0IrtCln`): worktree-cleanup timeout can delete the branch before completion. Completion must not assume the change branch ref survives (parent's `changeTipSha` already covers reachability; trunk sync must be branch-ref-independent).\n5. **Waiter reports red CI it cannot fix** — waiter contract stops after 3 distinct failed strategies / missing creds. Auto-drive surfaces the blocker; does not loop.\n\n### Open Design Questions\n\n1. **Post-squash-merge trunk-sync mechanism** — Trust: joint. Blast radius: wrong choice either leaves trunk stale (status quo) or destroys local commits (`reset --hard`). Alternatives: (a) fetch + `merge --ff-only` then, if that fails, verify `origin/{default}` reachability and fast-forward the local ref only when local `{default}` has no commits absent from `origin/{default}` [recommended]; (b) always `reset --hard origin/{default}` [rejected — data loss risk]; (c) fetch only, defer pointer update to hooks/human [rejected — leaves stale trunk, defeats the goal]. Best-practice: fast-forward-or-surface, never force over local work.\n2. **Trigger taxonomy** — Trust: agent. Blast radius: too broad re-architects the working direct path; too narrow misses a hand-back route. Alternatives: `{pr_auto_merge, merge_queue}` only [recommended, matches the two hand-back routes] vs any PR-mode push [rejected]. Single direction after evidence.\n3. **Orchestration home** — Trust: agent. Blast radius: putting Task-spawn in `git-finalize.ts` breaks the worker-bundle boundary (build failure class). Alternatives: (a) orchestration in `adv-archive.md` calling a pure trunk-sync helper in `git-finalize.ts` + completion via `verifyReleaseEvidenceFromMain` [recommended]; (b) new tool entry point [heavier, deferrable]. Single direction: markdown orchestration + pure helper.\n4. **Timeout / abandonment reporting** — Trust: joint (user-facing outcome). Blast radius: UX + completion-bar correctness. Needs user input on how long/how the waiter's non-terminal outcome is surfaced.\n\n### Draft Spec Deltas\n\n- `rq-releaseFinalization02` (Auto-drive pending-PR archive completion) — G: an archive finalization returns route `pr_auto_merge` or `merge_queue` with auto-merge armed; W: ADV completes the archive flow; T: ADV spawns `adv-ci-waiter` to watch the PR to terminal state and does not poll CI from the main agent.\n- `rq-releaseFinalization03` (Post-merge local default-branch sync) — G: the watched PR reaches `MERGED` and `origin/{default}` reachability is proven; W: ADV finalizes release; T: local `{default}` is fast-forwarded in place to `origin/{default}` without switching branches, and is left untouched (with a surfaced warning) when local `{default}` has commits absent from `origin/{default}`.\n- `rq-releaseFinalization04` (Auto-drive terminal reporting) — G: the waiter returns a non-terminal outcome (timeout/blocked/red-CI-unresolved); W: auto-drive concludes; T: the change stays active and ADV reports `Pending auto-merge.`/`Blocked.` with the PR URL and exact retry command — never a false `Shipped.`.\n\n### Related Pattern Scan (P25)\n\nClass: \"post-remote-merge local default-branch sync.\" Scanned `git-finalize.ts` for `merge --ff-only` / `fetch origin` / `reset --hard`. Finding: `fetch origin {default}` appears in freshness/push paths (814/1060/1420/2426) but **no path fast-forwards local `{default}` to `origin/{default}` after a `pr_merged` proof**. `reconcileChangeBranchWithDefault` operates on the change branch, not trunk. Conclusion: the trunk-sync behavior is genuinely absent — new, not a duplicated pattern. No similar sync pattern to unify with.\n\n### Completeness Verification\n\n- **Problem-completeness** (confidence: high): The full problem is \"pending-PR archive path is not self-completing\" — which decomposes into three distinct sub-gaps: (a) nobody waits, (b) nobody syncs trunk, (c) nobody re-drives completion. All three are in scope. The re-*detection* sub-problem is already solved by the parent change (correctly ruled out of scope).\n- **Solution-scope** (confidence: high): No sole-chokepoint claim. `verifyReleaseEvidenceFromMain` is the single completion entry (verified: 4 call sites, all archive-flow), so the trunk-sync insertion has one natural home — but this is a verified single-surface, not an unverified assumption. Secondary surface `redriveArchivedUnmergedBranch` explicitly classified **out of scope** (it's the re-arm path, not completion).\n- **Sole-entry claim status**: none relied upon (no CRITICAL block).\n- **Reproduction-finding classification**: the motivating symptom (pokeedge-web `Pending auto-merge` hand-back) = `broken_capability` (archive completion should auto-drive but does not) → may seed must-work criteria.\n\n### LBP Check\n\nInternal change (ADV's own archive workflow) — no external library/service alternative is viable, so the gated External-Solution Check is **skipped** (stated explicitly per protocol). The one external touchpoint, GitHub PR/CI status, is already mediated by the deployed `oc-ci-wait` + `adv-ci-waiter` and reused, not replaced. Best practice for post-squash-merge local sync = fast-forward-or-surface (never force-reset over local work), which the recommended Q1 direction follows. Direction matches long-term best practice.\n\n## Context\n\nVerified during proposal + discovery (see Discovery Findings for the full evidence map).\n\n## Scope\n\n### In Scope\n\n- Auto-spawning `adv-ci-waiter` on the `pr_auto_merge` / `merge_queue` archive path.\n- Post-remote-merge sync of the local default branch (in place, fast-forward-or-surface).\n- Auto-re-driving archive to `Shipped.` + worktree cleanup after terminal `MERGED` via `verifyReleaseEvidenceFromMain`.\n- Spec deltas (`rq-releaseFinalization02/03/04`) + regression tests.\n\n### Out of Scope\n\n- Changing direct-push / no-remote / `ff-only` archive paths (they already complete synchronously).\n- Re-detection logic for squash-merged-and-deleted branches (delivered by parent `fixPhase9SquashMergeRedetect`).\n- `redriveArchivedUnmergedBranch` re-arm behavior (it's the still-pending re-arm path, not the completion path).\n- Worktree cleanup timeout on poisoned workflows (parent's OOS1; separate concern, tracked `ag-L0IrtCln`).\n- Production deploy after archive (outside the ADV gate lifecycle).\n- `adv-ci-waiter`'s internal remediation behavior (reused as-is, not modified).\n\n### Must Not\n\n- Must not switch the main checkout off its default branch.\n- Must not poll CI from the main agent (only `adv-ci-waiter` polls).\n- Must not `reset --hard` the default branch when it has local-only commits.\n- Must not force-push the default branch.\n- Must not mark release done without positive reachability/merge evidence.\n- Must not add CI-wait or Task-spawn imports to worker-bundle-reachable modules.",
+    "problemStatement": "On PR-mode projects, `adv_change_archive phase9:\"run\"` arms GitHub auto-merge, reports `Pending auto-merge.`, and hands back with the change still active. No agent then (1) waits for the PR to merge, (2) updates the local default branch, or (3) re-drives archive to completion. The human must manually re-invoke archive or `adv_archive_repair action=redrive` later, and the local default branch (main/trunk) stays stale — worse after squash merges, which break git ancestry.\n\nPrior art: `fixPhase9SquashMergeRedetect` (archived, cross-project follow-up from pokeedge-web) already made re-detection work when archive is re-driven — it captures `changeTipSha` so a squash-merged-and-deleted branch proves reachable and release completes. What is missing is the automatic trigger that drives that re-detection: wait for merge → sync local trunk → re-drive archive to Shipped.\n\nDesired outcome: after arming auto-merge, ADV takes end-to-end responsibility for the pending-PR archive path — auto-spawn `adv-ci-waiter` (P37-compliant: only the sub-agent polls), the waiter watches to terminal state and remediates red CI per its own contract, and on MERGED ADV updates the local default branch in place (branch never switched, squash ancestry handled) then auto-re-drives archive to `Shipped.` + worktree cleanup in one continuous flow with no second human turn.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make the `pr_auto_merge` / `merge_queue` archive path self-completing: after auto-merge is armed, ADV waits for the PR to merge, syncs the local default branch, and drives archive to `Shipped.` — one continuous flow, no second human turn.\n2. Keep local `main`/`trunk` up to date automatically after a remote merge (including squash merges) without a manual `git pull`.\n3. Preserve every existing safety invariant: main never switches branch, no data loss on trunk, no false `Shipped.`, no main-agent CI polling.\n\n## Success Criteria\n\n- SC1: On the `pr_auto_merge` / `merge_queue` archive path with auto-merge armed, ADV completes the archive flow end-to-end without a second human turn — no manual re-invocation of archive or `adv_archive_repair` required when the PR merges.\n- SC2: After the watched PR reaches `MERGED`, the local default branch is up to date with `origin/{default}` in the common (non-diverged) case, without the human running `git pull`.\n- SC3: The shipped-invariant bar is preserved: release completes only on positive `pr_merged`/reachability evidence, never on a bare timeout or false signal.\n\n## Acceptance Criteria\n\n- AC1: When archive finalization returns route `pr_auto_merge` or `merge_queue` with auto-merge armed, ADV spawns `adv-ci-waiter` to watch the PR to terminal state and does not poll CI from the main agent.\n- AC2: When the watched PR reaches `MERGED` and `origin/{default}` reachability is proven, ADV fast-forwards the local default branch in place (`fetch` + `merge --ff-only`) without switching branches.\n- AC3: When the local default branch has diverged from `origin/{default}` (local-only commits), ADV does NOT auto-merge or reset; it leaves the local branch untouched, surfaces the divergence with reconcile instructions, and still completes release on proven origin reachability.\n- AC4: After a successful merge + sync, ADV drives archive to completion (`Shipped.` + worktree cleanup) via `verifyReleaseEvidenceFromMain`. [warrant: tool:adv_change_archive]\n- AC5: When the waiter returns a non-terminal outcome (timeout / blocked / red-CI it cannot fix), the change stays active and ADV reports `Pending auto-merge.` / `Blocked.` with the PR URL and exact retry command — never a false `Shipped.`.\n- AC6: Direct-push, no-remote, and `ff-only` archive paths are unchanged (regression-guarded).\n- AC7: No CI-wait or Task-spawn import is added to worker-bundle-reachable modules (`git-finalize.ts` and its static imports); the worker-bundle boundary test stays green.\n\n> Note: AC1/AC2/AC3/AC5/AC7 describe NEW behavior this change introduces. The governing spec requirements (`rq-releaseFinalization02` auto-drive trigger, `rq-releaseFinalization03` post-merge trunk sync, `rq-releaseFinalization04` non-terminal reporting) are authored AS PART OF this change (draft deltas recorded in discovery) and verified by tests — they are deliverables, not pre-existing warranted surfaces, so they carry no warrant tag at mint time.\n\n## Constraints\n\n- C1: Main checkout NEVER switches branch; the default branch is updated in place only.\n- C2: The main agent must not poll CI (P37); `adv-ci-waiter` is the only permitted waiter.\n- C3: Reuse existing contracts — `adv-ci-waiter` remediation, `verifyReleaseEvidenceFromMain` completion, and the `pr_merged` reachability proof. Do not reinvent merge/detection logic.\n- C4: Layer boundary — no Task-spawn or CI-wait logic inside worker-bundle-reachable modules.\n- C5: Never mark release done without positive reachability/merge evidence.\n- C6: No force-push of the default branch; no `reset --hard` of the default branch when it has local-only commits.\n\n## Avoidances\n\n- DONT1: Do not change direct-push / no-remote / `ff-only` archive paths (they already complete synchronously).\n- DONT2: Do not re-implement squash-merge re-detection (delivered by parent `fixPhase9SquashMergeRedetect` via `changeTipSha`).\n- DONT3: Do not route completion through `redriveArchivedUnmergedBranch` — that path re-arms a still-pending PR, it is not the completion-from-merged path.\n- DONT4: Do not modify `adv-ci-waiter`'s internal remediation behavior (reused as-is).\n- DONT5: Do not run a blind `git pull` on trunk (verified: the diverged-with-conflict case wedges the main checkout in a half-merge, violating C1).\n\n## Preview Applicability\n\nvisual_surface: false — this change affects the ADV archive workflow (git finalization + orchestration + spec). No front-end, browser-visible, or visual output is produced or altered.\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: Backend/workflow change with no rendered surface.\n\n## Decisions\n\n### User Decisions\n\n- **Loop-close scope** — Full auto-drive to `Shipped.` after arming auto-merge (vs stopping for a human confirm). Why: eliminates the manual re-invocation entirely; matches the \"ADV takes responsibility\" intent.\n- **Waiter failure handling** — `adv-ci-waiter` remediates red CI per its existing contract; ADV re-drives only after terminal `MERGED`. Why: reuses the proven waiter contract rather than duplicating remediation.\n- **Timeout / abandonment** — Leave the change active + report `Pending auto-merge.` with PR URL + exact retry command. Why: honest completion-bar; no false `Shipped.`.\n- **Local-only commits on trunk** — Fetch + `merge --ff-only` when clean; if diverged, do NOT auto-merge/reset — surface with reconcile instructions and complete release on proven origin reachability. Why: verified that a blind pull can wedge main on the conflict path; fast-forward-or-surface never risks that.\n- **Trigger breadth** — Both `pr_auto_merge` and `merge_queue` routes. Why: both are real GitHub PR-pending hand-back states; complete coverage of the gap.\n- **Trunk-sync mechanism** — Decided by evidence: `git fetch` + `merge --ff-only` (verified fast-forwards cleanly in the common case, never wedges).\n\n### Agent Decisions (LBP)\n\n- **Orchestration home** — `adv-archive.md` markdown orchestration + a pure trunk-sync helper in `git-finalize.ts`; completion via `verifyReleaseEvidenceFromMain`. Rationale: the worker-bundle layer boundary forbids Task-spawn imports in `git-finalize.ts`; verified via `workflow-bundle-boundary.test.ts` constraint.\n- **Completion entry point** — `verifyReleaseEvidenceFromMain` (`archive-gate.ts:502`), not `redriveArchivedUnmergedBranch`. Rationale: verified redrive re-arms a still-pending PR (requires remote branch to exist), whereas `verifyReleaseEvidenceFromMain` returns `status: \"shipped\"` on `pr_merged` proof — the correct completion path.\n- **Reuse `fetch origin {default}` primitive** — already present (git-finalize.ts:814/1060/1420/2426); add only the post-`pr_merged` fast-forward of local trunk. Rationale: minimal new surface, no new dependency.\n\n## Deferred Questions\n\nNone — all open questions resolved.\n\n## Sign-Off\n\nCriteria approved by user at the Phase 4.5.1 acceptance-criteria checkpoint (reply: `approve`). Objectives, AC/SC, constraints, and avoidances confirmed.",
+    "design": "# Design: Auto-drive PR archive completion\n\n## Validator Result\n\n**VALIDATED** — independent validator (`adv-researcher`, attempt 1) returned `validation.status: pass` (high confidence, low risk). Source-verified:\n- Completion reuse real (`verifyReleaseEvidenceFromMain` unchanged, `pr_merged` proof branch-ref-independent via parent's `changeTipSha`).\n- `pending_merge` return already carries `finalization.prNumber` / `finalization.prUrl` nested in the archive tool output — no new tool surface needed.\n- Idempotent re-call confirmed (`archive-gate.ts:293-388` `noOp` path, no delta re-apply).\n- Layer-boundary direction correct (`tools/`→`temporal/` import allowed; new helper adds no `temporal/`-reachable import).\n- Mirror helper shape exists (`reconcileChangeBranchWithDefault` at `git-finalize.ts:67`).\n- Trigger set verified (`coercePrWorkflowRoute` + `merge_queue` passthrough).\n\nTwo **non-blocking planning refinements** filed as agenda items (`ag-VUQpJqDj`, `ag-fJ57GzXO`):\n1. Command must reference `finalization.prNumber` / `finalization.prUrl` (nested) when building the waiter packet — not top-level.\n2. Add an explicit spec/AC assertion that `syncDefaultBranchAfterMerge` NEVER records `release ✓` — release stays gated solely by `verifyReleaseEvidenceFromMain`, so no future edit can shortcut origin/PR proof.\n\nNo design changes required from validation. Proceeding to gate completion.\n\n---\n\n## Architecture Overview\n\nThree cooperating layers, split by the worker-bundle/orchestration boundary:\n\n```\nCOMMAND LAYER (.opencode/command/adv-archive.md — agent orchestration)\n  Phase 9 terminal: archive tool returns phase9:\"pending_merge\"\n    │  (instead of stopping at \"Pending auto-merge.\")\n    ├─ AUTO-DRIVE ORCHESTRATION (new markdown section):\n    │    1. Spawn adv-ci-waiter with {repo, prNumber/prUrl}          [Task tool — command only]\n    │    2. Wait for terminal report (MERGED | non-terminal)\n    │    3a. MERGED → call syncDefaultBranchAfterMerge helper\n    │    3b. MERGED → re-call adv_change_archive phase9:\"run\"\n    │                  → verifyReleaseEvidenceFromMain proves pr_merged → shipped\n    │    3c. non-terminal → leave active, render Pending auto-merge./Blocked. + retry cmd\n    ▼\nTOOL LAYER (plugin/src/tools/change/archive-gate.ts)\n  verifyReleaseEvidenceFromMain — UNCHANGED completion entry\n    on re-call after merge: resolveReleaseReachability → pr_merged → status:\"shipped\"\n    │  [insertion point: call trunk-sync BEFORE returning shipped, OR command drives it]\n    ▼\nHELPER LAYER (plugin/src/tools/archive-helpers/git-finalize.ts — pure functions)\n  syncDefaultBranchAfterMerge (NEW) — pure, runGit-injected, mirrors\n    reconcileChangeBranchWithDefault shape: fetch + ff-only-or-surface\n```\n\nKey architectural fact (verified): the auto-drive **trigger** must live in `adv-archive.md` because spawning `adv-ci-waiter` is a Task-tool orchestration action, not a pure function. The **trunk-sync** is a pure git operation and lives in `git-finalize.ts` as a testable helper. The **completion** reuses the existing `verifyReleaseEvidenceFromMain` unchanged — re-calling `adv_change_archive phase9:\"run\"` after merge already returns `shipped` via the parent change's `pr_merged` proof.\n\n## Key Decisions\n\n1. **Trigger lives in the command, sync lives in the helper, completion reuses the tool.** (C4, DONT3)\n   - Rationale: `git-finalize.ts` imports `child_process`/`fs` (tool layer, not worker-bundle) so it can hold the pure sync helper. But it must NOT hold Task-spawn logic — that is agent orchestration. Verified `git-finalize.ts` imports only `CHANGE_BRANCH_PREFIX` from `temporal/`; the boundary rule (`workflow-bundle-boundary.test.ts`) forbids `temporal/`→`tools/` imports, not the reverse, so the helper is safe. AC7 is satisfied structurally: no new `temporal/`-reachable import, no Task-spawn in the helper.\n\n2. **`syncDefaultBranchAfterMerge` = fetch + ff-only-or-surface.** (AC2, AC3, C1, C6, DONT5)\n   - New pure helper mirroring `reconcileChangeBranchWithDefault` (git-finalize.ts:67): signature `(input: {mainCheckout, defaultBranch}, deps: {runGit?}) → {status: \"synced\"|\"diverged\"|\"blocked\", reason?, remediation?, localOnlyCommits?}`.\n   - Algorithm: `git -C {main} fetch origin {default}` → compute `git rev-list --count {default}..origin/{default}` (behind) and `origin/{default}..{default}` (ahead). If ahead==0 → `git -C {main} merge --ff-only origin/{default}` → `synced`. If ahead>0 → do NOT merge/reset; return `diverged` with the local-only commit list + reconcile remediation. Never `git checkout`/`switch` (C1); never `reset --hard` (C6); never blind `git pull` (DONT5, empirically wedges main on conflict).\n\n3. **Re-call `adv_change_archive phase9:\"run\"` for completion, not `redriveArchivedUnmergedBranch`.** (AC4, DONT3)\n   - Verified: `redrive` re-arms a still-pending PR and blocks with `REMOTE_CHANGE_BRANCH_NOT_FOUND` when the branch was deleted post-merge. `verifyReleaseEvidenceFromMain` returns `shipped` on `pr_merged` proof and is branch-ref-independent (uses `changeTipSha` from the parent change). The command re-calls the archive tool; the existing tool path completes release + cleanup.\n\n4. **Auto-drive detects `pending_merge` from the archive tool's structured return.** (AC1)\n   - The tool already returns `{phase9: \"pending_merge\", finalization: {prNumber, prUrl, mainCheckout, defaultBranch}}` (archive-gate.ts:270-291). The command reads these fields to build the waiter packet — no new tool output needed. Trigger set = routes that produce `pending_merge`: `pr_auto_merge` + `merge_queue` (both coerced via `coercePrWorkflowRoute`).\n\n5. **Non-terminal waiter outcome → leave active + actionable message.** (AC5, C5)\n   - If the waiter returns anything other than MERGED (timeout, blocked, red-CI-unresolved), the command does NOT re-call archive. It renders `Pending auto-merge.` / `Blocked.` with `finalization.prUrl` and the exact retry command (`adv_change_archive changeId:{id} worktreePath:{wt} phase9:\"run\"` or `adv_archive_repair action=redrive changeId:{id}`). Never a false `Shipped.` (C5). The change stays active for later resume.\n\n## Implementation Strategy\n\nSequenced so each step is independently testable (TDD red→green per helper):\n\n1. **Spec deltas first** — author `rq-releaseFinalization02/03/04` in `.adv/specs/advance-workflow` with G/W/T. These are this change's deliverables (no pre-existing warrant).\n2. **`syncDefaultBranchAfterMerge` helper** (git-finalize.ts) — RED: tests for clean-ff, diverged-surface, fetch-fail. GREEN: implement fetch + ff-only-or-surface. Pure, `runGit`-injected → fully unit-testable without a real remote (mirrors existing `git-finalize.test.ts` patterns).\n3. **Command orchestration** (adv-archive.md) — add the auto-drive section to Phase 9 terminal: detect `phase9:\"pending_merge\"` → spawn `adv-ci-waiter` → on MERGED call sync helper + re-call archive → else render pending. Asset-test anchors for the new section.\n4. **Regression guards** — assert direct/no-remote/ff-only paths unchanged (AC6); assert `workflow-bundle-boundary.test.ts` stays green (AC7).\n5. **Full pre-push gate** (`pnpm run check` + targeted `git-finalize.test.ts`, `archive-gate` tests).\n\n## LBP Analysis\n\n- **Reuse over reinvention** (C3): the completion path (`verifyReleaseEvidenceFromMain`), the reachability proof (`pr_merged`), the `fetch origin` primitive, and the waiter (`adv-ci-waiter`) all exist. This change adds exactly one pure helper + one markdown orchestration section. Minimal new surface.\n- **Fast-forward-or-surface over force-reset**: empirically validated (discovery) that plain `git pull` wedges main on the diverged-with-conflict path. `ff-only-or-surface` is the long-term-correct primitive — it can never wedge main, never lose local work, and degrades to a clear human handoff in the rare divergence case.\n- **Command-layer orchestration over tool-layer spawn**: keeps the worker-bundle boundary intact and keeps Task-tool policy (P37: only sub-agents poll) enforceable at the one layer that can spawn agents.\n\n## Affected Components\n\n- `.adv/specs/advance-workflow/spec.{md,json}` — NEW `rq-releaseFinalization02/03/04` (+ asset-test anchors).\n- `plugin/src/tools/archive-helpers/git-finalize.ts` — NEW `syncDefaultBranchAfterMerge` pure helper.\n- `plugin/src/tools/archive-helpers/git-finalize.test.ts` — helper unit tests (clean/diverged/fetch-fail).\n- `.opencode/command/adv-archive.md` — auto-drive orchestration section in Phase 9 terminal (spawn waiter, sync, re-call, non-terminal reporting).\n- Asset/manifest tests for the new command section + spec anchors.\n- (Optional) `plugin/src/tools/change/archive-gate.ts` — only if the sync is wired into the tool's `shipped` path rather than command-driven; default design keeps it command-driven to preserve the tool's purity and testability.\n\n## Design-Derived Criteria\n\n- **DDC1 (perf/bound):** `syncDefaultBranchAfterMerge` runs bounded git plumbing only (`fetch`, two `rev-list --count`, one `merge --ff-only`). No unbounded loop, no patch-id scan. O(1) git calls.\n- **DDC2 (safety):** the helper NEVER mutates the working tree destructively — no `checkout`, `switch`, `reset --hard`, or `pull`. Only `fetch` (read) + `merge --ff-only` (provably non-destructive: fails rather than creating a merge commit or conflict).\n- **DDC3 (waiter contract):** the auto-drive treats the waiter as terminal-or-nothing — it re-drives completion ONLY on an explicit MERGED report. Any ambiguous/partial waiter result maps to the non-terminal (leave-active) branch, never to completion.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Waiter spawn unavailable (Task tool absent) | Degrade to current behavior: render `Pending auto-merge.` + retry command (status quo, non-regressive). |\n| `merge --ff-only` fails despite ahead==0 (e.g. concurrent local commit landed between rev-list and merge) | Helper returns `blocked` with the git error; command surfaces `Blocked.` — no wedge, no false shipped. |\n| Branch deleted mid-flow (parent OOS adjacency `ag-L0IrtCln`) | Completion is branch-ref-independent (`changeTipSha` proof); sync operates on `origin/{default}` not the change branch. Unaffected. |\n| Re-call of `adv_change_archive` double-applies deltas | Archive tool is idempotent on re-call with existing bundle (verified: `phase9` reconcile path, archive-gate.ts:293-388 handles already-archived/existing-bundle without re-applying). |\n| `git-finalize.test.ts` has pre-existing env-sensitive push failures (`ag-zDhHiMIX`) | Scope new tests to the pure helper (no real remote); classify any residual red as pre-existing/unrelated with evidence. |\n\n## Out of Scope\n\n- Squash-merge re-detection (parent `fixPhase9SquashMergeRedetect`).\n- `redriveArchivedUnmergedBranch` behavior (re-arm path, not completion).\n- Worktree cleanup timeout on poisoned workflows (`ag-L0IrtCln`).\n- Modifying `adv-ci-waiter` internals.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nAPPROVED. The pending-PR archive path now self-completes via the new `syncDefaultBranchAfterMerge` pure helper in `plugin/src/tools/archive-helpers/git-finalize.ts` and the Phase 9.5 orchestration section in `.opencode/command/adv-archive.md`. Auto-spawns `adv-ci-waiter` on the `pr_auto_merge` / `merge_queue` hand-back path, waits for `MERGED`, syncs local default branch via fetch + ff-only-or-surface, then re-calls `adv_change_archive` to drive `Shipped.` via `verifyReleaseEvidenceFromMain`. End-to-end with no second human turn.\n\n## Verdict\nAPPROVED with all review + harden remediations applied.\n\n## What Was Built\n1. `syncDefaultBranchAfterMerge` helper in `plugin/src/tools/archive-helpers/git-finalize.ts` (~130 lines). Pure `runGit`-injected, mirrors `reconcileChangeBranchWithDefault`. Performs `git fetch` + `rev-list --count` divergence check + `merge --ff-only` on clean path. Returns `synced` / `diverged` / `blocked` with structured remediation messages. 5 unit tests cover the common path, diverged-surface path, fetch-failure path, destructive-ops spy, and type-shape guard.\n2. Phase 9.5 \"Auto-Drive Pending-PR Archive Completion\" section in `.opencode/command/adv-archive.md` (~30 lines). Reads nested `finalization.*` fields from the archive tool's `pending_merge` return, spawns `adv-ci-waiter` via Task tool, branches on terminal state (MERGED: call helper + re-call archive; non-terminal: leave active with retry command).\n3. Three new spec rules rq-releaseFinalization02 (4 scenarios) / .03 (4 scenarios) / .04 (2 scenarios) in `.adv/specs/advance-workflow/spec.json` (advance-workflow bump 1.25.0 → 1.25.1).\n4. 9 new tests across the helper, regression guards, command-section assert, and harden no-op test. 97 tests total in `git-finalize.test.ts`.\n5. Three targeted remediation fixes applied at review time (commit 6a68b8a2): strict rev-list status check + `^\\d+$` parsing (ce-1), `MAIN_NOT_ON_DEFAULT` structural guard via `git rev-parse --abbrev-ref HEAD` (ce-2), and extension of destructive-ops spy to the merge path (ce-3).\n6. One docstring consistency fix (commit beca5a22): `adv_ci_waiter` → `adv-ci-waiter` to keep tool-name allowlist clean.\n7. Three harden-internal test improvements (commit 9e529b38): ce-5 no-op sync test added, ct-2 test renamed for clarity, ct-3 command-section slicing switched from `indexOf` to regex-based extraction.\n\n## What Was Verified\n- Verdict: APPROVED after three review findings remediated at review (commits 6a68b8a2, beca5a22) and three harden findings addressed (commit 9e529b38).\n- Tests: 4611 passed / 0 failures introduced by this change (1 pre-existing failure: `adv_backed_fact` classification label in `adv-coordinate.md` from 2026-07-05, unrelated).\n- Targeted areas: 97 tests in `git-finalize.test.ts` all green; `src/temporal/workflow-bundle-boundary.test.ts` green (6 passed) — no worker-bundle boundary regressions.\n- Merge compatibility: dry-run merge of `origin/trunk` into `change/autoDrivePrArchiveCompletion` clean (\"Already up to date\") — release-ready.\n- Preview URL: `not_applicable` — backend-only change (no front-end, browser-visible, or visual output).\n- Contract matrix: 21 rows persisted, 0 failing. Required rows passed (SC1-3, AC1-7, C1-6, DONT1-5).\n\n## Remaining Concerns\nNone at harden time. Three previously-deferred items now classified:\n- `ce-4` (TOCTOU branch test coverage) — kept unaddressed (low marginal value; the path is structurally unreachable in normal flow and surfaces failure safely as `FF_MERGE_FAILED`).\n- `ct-1` (prose-orchestration runtime test gap) — rejected_with_evidence: documented as a design constraint; similar sections in `verifyReleaseEvidenceFromMain` precedent.\n- Plus remaining deferred items from prior turns (already addressed or rejected_with_evidence in the harden pass).\n\n## Consequence Context\n1. delivered value — Pending-PR archive path now self-completes: auto-spawn `adv-ci-waiter`, wait for `MERGED`, fetch + ff-only trunk sync (or surface divergence without mutation), then re-call archive tool to drive `Shipped.`. Eliminates the manual re-invocation loop that left change wedged in `Pending auto-merge.`. Source: `git-finalize.ts:184-282`, `adv-archive.md:506-533`, contract matrix SC1-3.\n2. enabling-only/follow-up dependency — None new. Fast-follow of `fixPhase9SquashMergeRedetect`; this change consumes the parent's persisted tip-SHA proof path via `verifyReleaseEvidenceFromMain` unchanged.\n3. ops readiness — `pending` deferred to archive. No ops work needed for archive workflow itself. Evidence: no `ops_followup` profile on this change; archive already owns its phase9 finalization helpers.\n4. migration/data impact — `n/a`. No data model migration. Helper is purely additive; no existing function signature modified.\n5. frontend/preview impact — `Preview URL: not_applicable`. Backend-only ADV plugin change. Evidence: agreement.md `visual_surface: false`; `preview_expectation: not_applicable`.\n6. collision/release risk — None. 7 commits on `change/autoDrivePrArchiveCompletion` branch; no advances made to remote. Dry-run merge of `origin/trunk` clean. Merge queue and auto-merge spec fields unchanged at the route layer.\n7. open follow-ups — None blocking. `ce-4` (TOCTOU path) classified as deferred-low-value. `ct-1` (prose-orchestration) classified as design constraint.\n8. next action — Hardening complete (`status: ready`); proceed to `/adv-archive autoDrivePrArchiveCompletion` for final archive sign-off.\n\n## Release Readiness Summary\n\n**Status: READY**\n\nHarden is READY for archive. Pre-flight passed (acceptance ✓, no cancellations, contract matrix 21/21 complete). Merge compatibility check passed (clean fast-forward). All six release-owned dimensions (Test Coverage, AI-Slop, Doc Hygiene, Cleanup, Production Readiness, Deployment Readiness) assessed inline with bounded evidence — zero blocker, zero high, zero medium. Three harden-tracked findings addressed (ce-5 implemented; ct-2 + ct-3 fixed). Two remaining items classified: ce-4 deferred (low value), ct-1 rejected_with_evidence (documented design constraint).\n\n**Agile Consequence Context** (post-harden update):\n- ops readiness → `archive owns release finalization` (no production steps in this change)\n- migration/data impact → `n/a` (purely additive helper + spec deltas)\n- collision/release risk → low (clean merge compatibility; no remote advances)\n- open follow-ups → non-blocking (ce-4 deferred, ct-1 design constraint documented)\n- next action → `/adv-archive autoDrivePrArchiveCompletion`\n\nSource: harden report at commit 9e529b38 + acceptance gate at 2026-07-06T22:41:36Z.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-06T22:42:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | On the `pr_auto_merge` / `merge_queue` archive path with auto-merge armed, ADV completes the archive flow end-to-end without a second human turn — no manual re-invocation of archive or `adv_archive_repair` required when the PR merges. | pass | Auto-drive end-to-end via Phase 9.5 (adv-archive.md:506-533) + syncDefaultBranchAfterMerge helper. 6 commits. 4610 tests pass. Prose-orchestration known limitation (ct-1), not blocking. |\n| SC2 | success_criterion | After the watched PR reaches `MERGED`, the local default branch is up to date with `origin/{default}` in the common (non-diverged) case, without the human running `git pull`. | pass | Real-git test 'clean ff-only' (git-finalize.test.ts:3001-3022) confirms afterHead==origin/trunk, 2-element ffCommits. |\n| SC3 | success_criterion | The shipped-invariant bar is preserved: release completes only on positive `pr_merged`/reachability evidence, never on a bare timeout or false signal. | pass | 'does not record release-done' type-shape test (git-finalize.test.ts:3097-3121). adv-archive.md:528 explicit 'never escalate non-terminal to Shipped.' DONT3 regression guard (3653-3674). |\n| AC1 | acceptance_criterion | When archive finalization returns route `pr_auto_merge` or `merge_queue` with auto-merge armed, ADV spawns `adv-ci-waiter` to watch the PR to terminal state and does not poll CI from the main agent. | pass | adv-archive.md:512-518 spawns adv-ci-waiter via Task tool. rq-releaseFinalization02.1 in spec.json. Regression guard 'git-finalize.ts does NOT reference Task-spawn or CI-wait APIs' (3639-3646). |\n| AC2 | acceptance_criterion | When the watched PR reaches `MERGED` and `origin/{default}` reachability is proven, ADV fast-forwards the local default branch in place (`fetch` + `merge --ff-only`) without switching branches. | pass | FIXED ce-1/ce-2/ce-3: rev-list status check + HEAD-on-default guard + merge-path destructive-ops spy. Real-git tests green. 96 tests in git-finalize.test.ts. |\n| AC3 | acceptance_criterion | When the local default branch has diverged from `origin/{default}` (local-only commits), ADV does NOT auto-merge or reset; it leaves the local branch untouched, surfaces the divergence with reconcile instructions, and still completes release on proven origin reachability. | pass | Helper diverged branch returns {status: 'diverged', localOnlyCommits} without merge/reset. Real-git test (git-finalize.test.ts:3024-3044) confirms local HEAD unchanged. |\n| AC4 | acceptance_criterion | After a successful merge + sync, ADV drives archive to completion (`Shipped.` + worktree cleanup) via `verifyReleaseEvidenceFromMain`. | pass | adv-archive.md:521-525 re-calls adv_change_archive through verifyReleaseEvidenceFromMain. DONT3 regression guard confirms no redrive path. |\n| AC5 | acceptance_criterion | When the waiter returns a non-terminal outcome (timeout / blocked / red-CI it cannot fix), the change stays active and ADV reports `Pending auto-merge.` / `Blocked.` with the PR URL and exact retry command — never a false `Shipped.`. | pass | adv-archive.md:526-529 renders 'Pending auto-merge.' with PR URL + retry command. rq-releaseFinalization04.1/.2 in spec.json. |\n| AC6 | acceptance_criterion | Direct-push, no-remote, and `ff-only` archive paths are unchanged (regression-guarded). | pass | Regression guard 'syncDefaultBranchAfterMerge is exported but not invoked internally' (3595-3622). Pre-push gate green. Diff purely additive. |\n| AC7 | acceptance_criterion | No CI-wait or Task-spawn import is added to worker-bundle-reachable modules (`git-finalize.ts` and its static imports); the worker-bundle boundary test stays green. | pass | Regression guards 'no new temporal/* imports' (3624-3637) + 'no Task-spawn or CI-wait APIs' (3639-3646). workflow-bundle-boundary.test.ts green (6 passed). |\n| C1 | constraint | Main checkout NEVER switches branch; the default branch is updated in place only. | respected | FIXED ce-2: MAIN_NOT_ON_DEFAULT guard via git rev-parse --abbrev-ref HEAD after fetch. Destructive-ops spy covers both diverge + merge paths. |\n| C2 | constraint | The main agent must not poll CI (P37); `adv-ci-waiter` is the only permitted waiter. | respected | adv-archive.md:518 P37 enforcement. Regression guard (3639-3646) confirms no CI-wait in helper. |\n| C3 | constraint | Reuse existing contracts — `adv-ci-waiter` remediation, `verifyReleaseEvidenceFromMain` completion, and the `pr_merged` reachability proof. Do not reinvent merge/detection logic. | respected | Helper uses GitFinalizeDeps + mirrors reconcileChangeBranchWithDefault. Command references verifyReleaseEvidenceFromMain + syncDefaultBranchAfterMerge. |\n| C4 | constraint | Layer boundary — no Task-spawn or CI-wait logic inside worker-bundle-reachable modules. | respected | Regression guards (3624-3637, 3639-3646). workflow-bundle-boundary.test.ts green. |\n| C5 | constraint | Never mark release done without positive reachability/merge evidence. | respected | 'does not record release-done' type-shape test (3097-3121). Helper has no store/signal surface. |\n| C6 | constraint | No force-push of the default branch; no `reset --hard` of the default branch when it has local-only commits. | respected | FIXED ce-1 + ce-3: helper only runs fetch / rev-list / merge --ff-only / log. Destructive-ops spy covers both paths. |\n| DONT1 | avoidance | Do not change direct-push / no-remote / `ff-only` archive paths (they already complete synchronously). | respected | Regression guard (3595-3622) confirms purely additive. No existing function modified. |\n| DONT2 | avoidance | Do not re-implement squash-merge re-detection (delivered by parent `fixPhase9SquashMergeRedetect` via `changeTipSha`). | respected | Helper has no changeTipSha/squash detection. Tip-SHA delegated to parent change (referenced in spec body). |\n| DONT3 | avoidance | Do not route completion through `redriveArchivedUnmergedBranch` — that path re-arms a still-pending PR, it is not the completion-from-merged path. | respected | Regression guard (3653-3674) reads Phase 9.5 section, asserts redrive absent and verifyReleaseEvidenceFromMain present. |\n| DONT4 | avoidance | Do not modify `adv-ci-waiter`'s internal remediation behavior (reused as-is). | respected | git log d99bc31e^..beca5a22 --name-only confirms zero .opencode/agents/adv-ci-waiter.md / instructions/oc-ci-wait.md modifications. |\n| DONT5 | avoidance | Do not run a blind `git pull` on trunk (verified: the diverged-with-conflict case wedges the main checkout in a half-merge, violating C1). | respected | Helper grep — no pull invocation. Destructive-ops spy covers merge path (ce-3 fix). |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-07-06T18:08:59.867Z",
+      "contentHash": "434306ea335d54a7fa91df5d02074011c9f7e985593f6128cd5c7305509efaa7",
+      "source": "temporal",
+      "readable": false
+    },
+    "proposal": {
+      "updatedAt": "2026-07-06T18:13:42.025Z",
+      "contentHash": "d8dc2b123e1ea4b89124b8fcb2562d0fd1ea218515d6d18c20dc5cecbaa160c6",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-06T18:32:51.663Z",
+      "contentHash": "fe5d7860ea4e91d6daafd34573a76d77e6d6f623eef949ac69ee58d4f85a170e",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-06T18:40:59.621Z",
+      "contentHash": "865dcff7f54e37d2bcb83c94888e7ec7197dc03f32188fe3ca446b725a8a9e98",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-06T22:45:57.654Z",
+      "contentHash": "b32c4df02c9630a447f8415048da3469b4bd10d51cd7c5d21eeac8d068c2a4e7",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-06T22:45:57.654Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-06T18:34:55.560Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
