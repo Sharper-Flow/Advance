@@ -522,6 +522,9 @@ export function verifyReleaseEvidenceFromMain(input: {
     changeId: input.changeId,
     route,
     prNumber: input.change?.phase9_status?.prNumber,
+    // rq-fixPhase9SquashMergeRedetect SC1: thread persisted tip so
+    // reachability detection survives branch deletion.
+    changeTipSha: input.change?.phase9_status?.changeTipSha,
   });
   if (reachability.reachable) {
     return {

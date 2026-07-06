@@ -598,9 +598,11 @@ describe("git-finalize helpers", () => {
             };
           if (args[0] === "rev-parse") {
             const ref = args[1] ?? "";
-            // Persisted tip resolves (content-addressed SHA survives deletion)
+            // Persisted tip resolves (content-addressed SHA survives deletion).
+            // Tree SHA matches the squashed trunk commit's tree (squash-merge
+            // produces identical tree when change branch had no further commits).
             if (ref === "tip123abc^{tree}") {
-              return { status: 0, stdout: "tip-tree-sha\n", stderr: "" };
+              return { status: 0, stdout: "shared-tree-sha\n", stderr: "" };
             }
             // Live change/{id} ref is gone
             if (ref.includes("change/fixPhase9SquashMergeRedetect")) {
@@ -620,7 +622,7 @@ describe("git-finalize helpers", () => {
             if (argStr.includes("--format=%H %T")) {
               return {
                 status: 0,
-                stdout: "squash456 squash-tree-sha\n",
+                stdout: "squash456 shared-tree-sha\n",
                 stderr: "",
               };
             }

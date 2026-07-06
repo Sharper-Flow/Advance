@@ -1196,15 +1196,19 @@ export function detectSquashMergeByTree(
   mainCheckout: string,
   defaultBranch: string,
   changeId: string,
-  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+  deps: Pick<GitFinalizeDeps, "runGit"> & {
+    // rq-fixPhase9SquashMergeRedetect SC1: when provided, use this
+    // content-addressed tip instead of the live change/{id} ref so
+    // detection survives branch deletion.
+    changeTipSha?: string;
+  } = {},
 ): { reachable: boolean; mergeCommitOid?: string } {
   const runGit = deps.runGit ?? defaultRunGit;
 
-  // Get tree SHA of change branch HEAD
-  const changeTree = runGit(mainCheckout, [
-    "rev-parse",
-    `change/${changeId}^{tree}`,
-  ]);
+  // Get tree SHA of change branch HEAD. Prefer the persisted tip SHA when
+  // available (survives branch deletion); fall back to the live branch ref.
+  const tipRef = deps.changeTipSha ?? `change/${changeId}`;
+  const changeTree = runGit(mainCheckout, ["rev-parse", `${tipRef}^{tree}`]);
   if (changeTree.status !== 0) {
     return { reachable: false };
   }
@@ -2253,12 +2257,13 @@ export function resolveReleaseReachability(
       }
     }
 
-    // NEW: Tree-based fallback
+    // NEW: Tree-based fallback (rq-fixPhase9SquashMergeRedetect: thread
+    // changeTipSha so detection survives branch deletion)
     const treeMatch = detectSquashMergeByTree(
       input.mainCheckout,
       `origin/${input.defaultBranch}`,
       input.changeId,
-      deps,
+      { ...deps, changeTipSha: input.changeTipSha },
     );
     if (treeMatch.reachable) {
       return {
