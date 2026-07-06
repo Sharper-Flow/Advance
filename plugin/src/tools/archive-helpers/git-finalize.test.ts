@@ -3148,6 +3148,26 @@ describe("git-finalize helpers", () => {
       expect(sample.status).toBe("synced");
     });
 
+    it("already in sync (no-op): ahead==0 && behind==0 returns synced with empty ffCommits (rq-releaseFinalization03 / ce-5)", async () => {
+      // Trivial no-op case: local and origin are at the same commit.
+      const { main } = await setupRepoWithOrigin("no-op-sync", {
+        localAhead: 0,
+        originAhead: 0,
+      });
+      const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
+
+      const result = syncDefaultBranchAfterMerge({
+        mainCheckout: main,
+        defaultBranch: "trunk",
+      });
+      const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
+
+      expect(result.status).toBe("synced");
+      expect(result.ffCommits ?? []).toEqual([]);
+      expect(afterHead).toBe(beforeHead);
+      expect(result.details?.[0]).toMatch(/already at/);
+    });
+
     describe("auto-drive regression guards", () => {
       it("rev-list failure returns blocked REV_LIST_FAILED (ce-1)", async () => {
         const { main } = await setupRepoWithOrigin("revlist-fail", {
@@ -3756,7 +3776,7 @@ describe("auto-drive regression guards (rq-releaseFinalization02 / DONT1 / DONT3
     expect(temporalImportLines[0]).toContain("/temporal/contracts");
   });
 
-  it("git-finalize.ts does NOT reference Task-spawn or CI-wait APIs (AC7 + DONT4)", () => {
+  it("helper does not add CI surface (AC7 + DONT4)", () => {
     const src = readFileSync(join(__dirname, "git-finalize.ts"), "utf8");
     // The helper is a pure runGit-injected function with no agent-orchestration
     // surface. No task-spawn or CI-wait symbols must leak into the helper module.
@@ -3775,17 +3795,23 @@ describe("adv-archive.md auto-drive (rq-releaseFinalization02 DONT3)", () => {
     const repoRoot = join(__dirname, "..", "..", "..", "..");
     const cmdPath = join(repoRoot, ".opencode/command/adv-archive.md");
     const content = readFileSync(cmdPath, "utf8");
-    // The new section (header marker) is `Phase 9.5: Auto-Drive Pending-PR Archive Completion`.
-    // Everything from that header until the next `### Step 9:` (excluded) is the auto-drive section.
-    const sectionStart = content.indexOf(
-      "Phase 9.5: Auto-Drive Pending-PR Archive Completion",
-    );
-    expect(sectionStart).toBeGreaterThan(-1);
-    const sectionEnd = content.indexOf("### Step 9:", sectionStart);
-    const section =
-      sectionEnd > -1
-        ? content.slice(sectionStart, sectionEnd)
-        : content.slice(sectionStart);
+    // The auto-drive section lives inside the Phase 9.5 block. Use regex to
+    // capture the section header (idempotent against header-text duplication
+    // and future refactors) and stop at the next `### Step` heading.
+    const headerPattern =
+      /^### Phase 9\.5: Auto-Drive Pending-PR Archive Completion\s*$/m;
+    const sectionStartMatch = headerPattern.exec(content);
+    expect(sectionStartMatch).not.toBeNull();
+    const sectionStart = sectionStartMatch!.index;
+    const tail = content.slice(sectionStart + sectionStartMatch![0].length);
+    // Stop at the next "### " subheading (any Step or other subhead).
+    const nextHeadMatch = /\n###\s/.exec(tail);
+    const section = nextHeadMatch
+      ? content.slice(
+          sectionStart,
+          sectionStart + sectionStartMatch![0].length + nextHeadMatch.index,
+        )
+      : content.slice(sectionStart);
     expect(section).not.toMatch(/redriveArchivedUnmergedBranch/);
     // The section must reference the correct completion entry instead.
     expect(section).toContain("verifyReleaseEvidenceFromMain");
