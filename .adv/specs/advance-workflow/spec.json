@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.25.0",
-  "updated_at": "2026-07-02T18:00:00.000Z",
+  "version": "1.25.1",
+  "updated_at": "2026-07-06T18:45:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -555,6 +555,189 @@
         "merged_from": "advance"
       }
     },
+{
+      "id": "rq-releaseFinalization02",
+      "title": "Auto-Drive Pending-PR Archive Completion",
+      "body": "When Phase 9 Git Finalization returns route \u201cpr_auto_merge\u201d or \u201cmerge_queue\u201d with auto-merge armed (i.e. the archive tool would otherwise return \u201cphase9: \u2018pending_merge\u2019\u201d), ADV orchestrates the remaining completion rather than handing back to the human. The orchestration spawns \u201cadv-ci-waiter\u201d to watch the PR to terminal state (the main agent never loops on CI status, per P37). On terminal \u201cMERGED\u201d it syncs the local default branch in place and re-runs \u201cverifyReleaseEvidenceFromMain\u201d (which already proves reachability through \u201cpr_merged\u201d proof and is branch-ref-independent via the persisted tip SHA delivered by parent change \u201cfixPhase9SquashMergeRedetect\u201d). The auto-drive applies only to \u201cpr_auto_merge\u201d and \u201cmerge_queue\u201d routes; direct-push, no-remote, and \u201cff-only\u201d paths remain unchanged. Auto-drive orchestration lives in \u201cadv-archive.md\u201d; the trunk-sync helper lives in \u201cplugin/src/tools/archive-helpers/git-finalize.ts\u201d; the worker-bundle boundary (\u201cworkflow-bundle-boundary.test.ts\u201d) must remain green.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "archive",
+        "git"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-releaseFinalization02.1",
+          "title": "Auto-drive triggers on pending_merge",
+          "given": [
+            "ADV calls \u201cadv_change_archive phase9:\u201crun\u201d\u201d",
+            "The archive tool returns \u201cphase9: \u2018pending_merge\u2019\u201d with the route coerced from \u201cpr_auto_merge\u201d or \u201cmerge_queue\u201d"
+          ],
+          "when": "The orchestrator inspects the archive tool return",
+          "then": [
+            "ADV spawns \u201cadv-ci-waiter\u201d against the PR via the Task tool",
+            "The main agent does not poll CI status itself",
+            "ADV reads \u201cfinalization.prNumber\u201d, \u201cfinalization.prUrl\u201d, \u201cfinalization.mainCheckout\u201d, \u201cfinalization.defaultBranch\u201d from the structured return (fields are nested inside \u201cfinalization\u201d, not top-level)"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization02.2",
+          "title": "Auto-drive completes end-to-end on merge",
+          "given": [
+            "The spawned waiter reports terminal \u201cMERGED\u201d"
+          ],
+          "when": "ADV continues the auto-drive flow",
+          "then": [
+            "ADV invokes \u201csyncDefaultBranchAfterMerge\u201d against local trunk",
+            "ADV re-calls \u201cadv_change_archive phase9:\u201crun\u201d\u201d and lets \u201cverifyReleaseEvidenceFromMain\u201d return \u201cShipped.\u201d via the \u201cpr_merged\u201d proof branch-ref-independent",
+            "No second human turn is required; the change reaches the \u201cShipped.\u201d state end-to-end"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization02.3",
+          "title": "Non-pending-PR paths are untouched",
+          "given": [
+            "A change is archived via direct push, no-remote local fast path, or \u201cff-only\u201d reconcile"
+          ],
+          "when": "Phase 9 Git Finalization runs",
+          "then": [
+            "The auto-drive does NOT trigger (no \u201cpending_merge\u201d is returned)",
+            "The route return and ordering match the pre-existing direct/no-remote/ff-only behavior",
+            "The change continues to reach its existing terminal state synchronously"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization02.4",
+          "title": "Layer-boundary: no CI-wait imports in worker-bundle-reachable modules",
+          "given": [
+            "The auto-drive orchestration is added"
+          ],
+          "when": "\u201cpnpm test -- src/temporal/workflow-bundle-boundary.test.ts\u201d is run",
+          "then": [
+            "No new CI-wait or Task-spawn import appears in modules reachable from the Temporal worker bundle",
+            "\u201cgit-finalize.ts\u201d imports nothing additional from \u201ctemporal/\u201d (it keeps only the existing \u201cCHANGE_BRANCH_PREFIX\u201d import)",
+            "The worker-bundle boundary test stays green"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+},
+{
+      "id": "rq-releaseFinalization03",
+      "title": "Post-Merge Local Default-Branch Sync",
+      "body": "After the watched PR reaches \u201cMERGED\u201d, ADV updates the local default branch in place to match \u201corigin/{default}\u201d so the human does not have to run a manual \u201cgit pull\u201d. The sync must NEVER mutate the working tree destructively: it MUST NOT switch branches, run \u201creset\u201d, or run a blind \u201cpull\u201d (the diverged-with-conflict case verified during discovery wedges the main checkout in a half-merge state, violating the main-clean-on-default-branch invariant). When the local default branch already equals \u201corigin/{default}\u201d (the common case after a fetch), the sync fast-forwards via \u201cgit merge --ff-only origin/{default}\u201d. When the local default branch has commits absent from \u201corigin/{default}\u201d (e.g. an ADV checkpoint that did not push), the sync MUST NOT auto-merge, MUST NOT reset, and MUST surface the divergence with reconcile instructions; release still completes on the proven origin reachability. The sync helper NEVER records release-done \u2014 release completion remains gated solely by \u201cverifyReleaseEvidenceFromMain\u201d and the persisted tip + origin/PR proof chain. The helper is a pure \u201crunGit\u201d-injected function co-located with \u201creconcileChangeBranchWithDefault\u201d in \u201cplugin/src/tools/archive-helpers/git-finalize.ts\u201d.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "archive",
+        "git"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-releaseFinalization03.1",
+          "title": "Clean ff-only sync",
+          "given": [
+            "The watched PR reached \u201cMERGED\u201d",
+            "\u201cgit -C {main} rev-list origin/{default}..HEAD\u201d returns zero commits",
+            "\u201cgit -C {main} rev-list HEAD..origin/{default}\u201d returns N>0 commits ahead"
+          ],
+          "when": "ADV calls \u201csyncDefaultBranchAfterMerge\u201d",
+          "then": [
+            "The helper returns \u201cstatus: \u2018synced\u2019\u201d",
+            "Local \u201c{default}\u201d now points at \u201corigin/{default}\u201d (verified by \u201cgit -C {main} rev-parse HEAD\u201d matching \u201corigin/{default}\u201d tip)",
+            "The set of new commits brought in by the fast-forward is captured in the \u201cffCommits\u201d field for audit"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization03.2",
+          "title": "Diverged: surface, do not mutate",
+          "given": [
+            "The watched PR reached \u201cMERGED\u201d",
+            "\u201cgit -C {main} rev-list origin/{default}..HEAD\u201d returns N>0 commits (local-only commits)"
+          ],
+          "when": "ADV calls \u201csyncDefaultBranchAfterMerge\u201d",
+          "then": [
+            "The helper returns \u201cstatus: \u2018diverged\u2019\u201d",
+            "Local \u201c{default}\u201d is UNCHANGED (HEAD SHA identical pre- and post-call)",
+            "The helper returns a bounded list of local-only SHAs and a reconcile remediation message; release still completes on the proven origin reachability"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization03.3",
+          "title": "Helper never records release-done",
+          "given": [
+            "The helper signature and body are reviewed"
+          ],
+          "when": "ADV inspects \u201csyncDefaultBranchAfterMerge\u201d (e.g. via review/harden)",
+          "then": [
+            "The return type contains no \u201creleaseDone\u201d/\u201crecorded\u201d/equivalent field",
+            "The helper does not invoke any store-mutation surface (no \u201cstore.X\u201d calls, no signal writes)",
+            "Release completion remains gated solely by \u201cverifyReleaseEvidenceFromMain\u201d; the sync helper cannot shortcut the origin/PR proof chain"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization03.4",
+          "title": "Fetch failure is surfaced",
+          "given": [
+            "\u201cgit -C {main} fetch origin {default}\u201d exits non-zero"
+          ],
+          "when": "ADV calls \u201csyncDefaultBranchAfterMerge\u201d",
+          "then": [
+            "The helper returns \u201cstatus: \u2018blocked\u2019\u201d with \u201creason: \u2018FETCH_FAILED\u2019\u201d",
+            "The remediation string instructs the human to verify network/origin and re-invoke the archive flow",
+            "No destructive mutation runs after fetch fails"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+},
+{
+      "id": "rq-releaseFinalization04",
+      "title": "Auto-Drive Non-Terminal Reporting",
+      "body": "When the spawned \u201cadv-ci-waiter\u201d returns a non-terminal outcome (timeout, blocked, red CI it cannot fix, missing credentials, ambiguous/partial report), ADV MUST NOT escalate to release completion. The change MUST stay active; the terminal report MUST be \u201cPending auto-merge.\u201d or \u201cBlocked.\u201d with the PR URL and the exact retry command. A false \u201cShipped.\u201d contradicts the shipped-invariant bar carried by \u201crq-releaseFinalization01\u201d. The retry command rendered in the report MUST match a copy-pasteable invocation that the user can run to resume the archive after fixing the upstream cause.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "archive",
+        "git"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-releaseFinalization04.1",
+          "title": "Timeout leaves change active",
+          "given": [
+            "Auto-drive is running",
+            "The waiter exceeds its bounded watch budget without reaching \u201cMERGED\u201d"
+          ],
+          "when": "ADV must conclude the auto-drive",
+          "then": [
+            "The change stays active (status remains \u201cdraft\u201d/\u201cpending_merge\u201d, archive not retired)",
+            "The report renders \u201cPending auto-merge.\u201d with the PR URL",
+            "The render includes the exact retry command: \u201cadv_change_archive changeId:{id} worktreePath:{worktree} phase9:\u201crun\u201d\u201d"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization04.2",
+          "title": "Blocked (no PR / no auth / red CI) preserves active state",
+          "given": [
+            "The waiter reports blocked: no PR exists, GitHub auth is missing, or red CI cannot be remediated after the waiter\u2019s bounded attempt budget"
+          ],
+          "when": "ADV concludes the auto-drive",
+          "then": [
+            "The change stays active",
+            "The report renders \u201cBlocked.\u201d with reason and remediation",
+            "\u201cShipped.\u201d is NEVER emitted as the terminal verb for this scenario"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "advance"
+      }
+},
     {
       "id": "rq-releaseProjectionDurability01",
       "title": "Archive Success Requires Durable Release Projection",
