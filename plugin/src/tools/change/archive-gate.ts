@@ -588,7 +588,11 @@ export function verifyReleaseEvidenceFromMain(input: {
         reachability.proof === "origin_unmerged"
           ? "CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN"
           : "CHANGE_BRANCH_NOT_REACHABLE",
-      remediation: `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01).`,
+      // rq-fixPhase9SquashMergeRedetect AC4: when reachability cannot be
+      // established, surface adv_change_status_repair as the recovery path
+      // for changes whose branch was legitimately squash-merged and deleted
+      // after shipping (gates-done + bundle-present invariant).
+      remediation: `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01). If the branch was squash-merged and deleted after the change shipped, run \`adv_change_status_repair\` with gates-done + bundle-present evidence to project the release gate to done.`,
       details: reachability.details,
     },
   };
