@@ -314,7 +314,7 @@ describe("ambiguity taxonomy spec assets", () => {
     expect(prepSpec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining(["rq-stagePrepNoCriteriaFirming01"]),
     );
-    expect(workflowSpec.version).toBe("1.25.0");
+    expect(workflowSpec.version).toBe("1.25.1");
     expect(workflowSpec.requirements.map((rq) => rq.id)).toEqual(
       expect.arrayContaining([
         "rq-stageDesignCriteriaBoundary01",

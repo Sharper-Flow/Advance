@@ -130,6 +130,157 @@ export function reconcileChangeBranchWithDefault(
   };
 }
 
+/**
+ * rq-releaseFinalization03 / rq-fixPhase9SquashMergeRedetect fast-follow:
+ * After a watched PR reaches `MERGED`, ADV runs this helper against the main
+ * checkout to bring the local default branch in sync with `origin/{default}`.
+ *
+ * Behavioral contract (design §`syncDefaultBranchAfterMerge`):
+ * - Pure `runGit`-injected function. Mirrors `reconcileChangeBranchWithDefault`.
+ * - Performs `git fetch origin {default}`, computes divergence with two
+ *   bounded `rev-list --count` calls, then either:
+ *     (a) `git merge --ff-only origin/{default}` when local has no commits ahead
+ *         of origin (the common case after a remote squash merge) → `synced`.
+ *     (b) returns `diverged` without mutating local when local has commits
+ *         ahead of origin — caller surfaces the reconcile instructions and
+ *         still completes release on the proven origin reachability.
+ *     (c) returns `blocked` when the fetch fails.
+ *
+ * Invariants enforced structurally:
+ * - NEVER runs `git checkout`/`git switch` (C1: main stays on default branch).
+ * - NEVER runs `git reset`/`git pull` (C6, DONT5: blind pull can wedge main).
+ * - NEVER records release-done — return type has no `releaseDone`/`recorded`
+ *   field and the helper has no store/signal surface (rq-releaseFinalization03.3
+ *   closes validator follow-up `ag-fJ57GzXO`). Release remains gated solely
+ *   by `verifyReleaseEvidenceFromMain`.
+ * - Bounded: at most `fetch` + two `rev-list --count` + one `merge --ff-only`
+ *   + two `log --format=%H` calls (DDC1).
+ */
+export interface SyncDefaultBranchAfterMergeInput {
+  mainCheckout: string;
+  defaultBranch: string;
+}
+
+export type SyncDefaultBranchAfterMergeDeps = Pick<GitFinalizeDeps, "runGit">;
+
+export type SyncDefaultBranchAfterMergeStatus =
+  | "synced"
+  | "diverged"
+  | "blocked";
+
+export interface SyncDefaultBranchAfterMergeOutcome {
+  status: SyncDefaultBranchAfterMergeStatus;
+  reason?: string;
+  remediation?: string;
+  /** When `diverged`: bounded list (max 50) of local-only commit SHAs. */
+  localOnlyCommits?: string[];
+  /** When `synced`: SHAs brought in by the fast-forward merge. */
+  ffCommits?: string[];
+  details?: string[];
+}
+
+const SYNC_LOCAL_ONLY_LIMIT = 50;
+
+export function syncDefaultBranchAfterMerge(
+  input: SyncDefaultBranchAfterMergeInput,
+  deps: SyncDefaultBranchAfterMergeDeps = {},
+): SyncDefaultBranchAfterMergeOutcome {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const { mainCheckout, defaultBranch } = input;
+  const defaultRef = `origin/${defaultBranch}`;
+
+  // Step 1: fetch origin/{default}. Never destructive; refuses to mutate local
+  // state. A non-zero exit is recorded and returned as `blocked`.
+  const fetchResult = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
+  if (fetchResult.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "FETCH_FAILED",
+      remediation: `Failed to fetch ${defaultRef}. Verify network, origin reachability, and that ${defaultBranch} exists on the remote. Then re-run \`adv_change_archive phase9:"run"\` to retry the auto-drive.`,
+      details: splitLines(fetchResult.stderr || fetchResult.stdout),
+    };
+  }
+
+  // Step 2: compute divergence via two bounded rev-list --count calls.
+  // ahead  = local-only commits (local {default} ahead of origin/{default})
+  // behind = origin/{default} ahead of local {default}
+  const aheadRaw = runGit(mainCheckout, [
+    "rev-list",
+    "--count",
+    `${defaultRef}..${defaultBranch}`,
+  ]);
+  const behindRaw = runGit(mainCheckout, [
+    "rev-list",
+    "--count",
+    `${defaultBranch}..${defaultRef}`,
+  ]);
+  const ahead = Number((aheadRaw.stdout || "0").trim()) || 0;
+  const behind = Number((behindRaw.stdout || "0").trim()) || 0;
+
+  // Step 3: diverge -> surface, do NOT merge or reset.
+  if (ahead > 0) {
+    const localListRaw = runGit(mainCheckout, [
+      "rev-list",
+      `${defaultRef}..${defaultBranch}`,
+      `--max-count=${SYNC_LOCAL_ONLY_LIMIT}`,
+      "--format=%H",
+    ]);
+    const localOnlyCommits = splitLines(localListRaw.stdout)
+      .map((line) => line.trim())
+      .filter((line) => /^[0-9a-f]{40}$/.test(line));
+    return {
+      status: "diverged",
+      reason: "LOCAL_AHEAD_OF_ORIGIN",
+      remediation: `Local ${defaultBranch} has ${ahead} commit(s) ahead of ${defaultRef}. Trunk sync was skipped to avoid a destructive rebase/reset. Inspect with: git -C "${mainCheckout}" log ${defaultRef}..${defaultBranch} --oneline. Reconcile manually (rebase/cherry-pick) before retrying archive. Release still completes on the proven ${defaultRef} reachability; only trunk pointer sync is deferred to the human.`,
+      localOnlyCommits,
+      details: [
+        `local ${defaultBranch} ahead by ${ahead} commit(s)`,
+        `origin ahead by ${behind} commit(s)`,
+      ],
+    };
+  }
+
+  // Step 4: clean case -- fast-forward. behind>=0 always; ahead==0 by Step 3.
+  // Capture local HEAD before merge so we can report the ff-only delta.
+  const beforeHeadRaw = runGit(mainCheckout, ["rev-parse", defaultBranch]);
+  const beforeHead = (beforeHeadRaw.stdout || "").trim();
+  const mergeResult = runGit(mainCheckout, ["merge", "--ff-only", defaultRef]);
+  if (mergeResult.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "FF_MERGE_FAILED",
+      remediation: `Local ${defaultBranch} could not fast-forward to ${defaultRef} even though \`rev-list\` reported zero local-only commits. This is a TOCTOU race (a concurrent local commit landed between \`fetch\` and \`merge\`). Re-run archive after re-fetching; if the race persists, surface as a release blocker rather than retrying blindly.`,
+      details: splitLines(mergeResult.stderr || mergeResult.stdout),
+    };
+  }
+
+  const afterHeadRaw = runGit(mainCheckout, ["rev-parse", defaultBranch]);
+  const afterHead = (afterHeadRaw.stdout || "").trim();
+  const ffCommits: string[] = [];
+  if (afterHead && beforeHead && afterHead !== beforeHead) {
+    const ffRaw = runGit(mainCheckout, [
+      "log",
+      "--format=%H",
+      `${beforeHead}..${afterHead}`,
+    ]);
+    for (const line of splitLines(ffRaw.stdout)) {
+      const trimmed = line.trim();
+      if (/^[0-9a-f]{40}$/.test(trimmed)) ffCommits.push(trimmed);
+    }
+  }
+
+  return {
+    status: "synced",
+    ffCommits,
+    details:
+      ffCommits.length > 0
+        ? [
+            `fast-forwarded local ${defaultBranch} by ${ffCommits.length} commit(s)`,
+          ]
+        : [`local ${defaultBranch} already at ${defaultRef}; no ff delta`],
+  };
+}
+
 export interface PullRequestMergeState {
   state: string;
   mergedAt?: string | null;

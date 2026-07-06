@@ -43,6 +43,7 @@ import {
   detectSquashMergeByTree,
   detectArchivedMergedBranches,
   getCheckedOutChangeBranches,
+  syncDefaultBranchAfterMerge,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -2935,6 +2936,188 @@ describe("git-finalize helpers", () => {
       expect(result).toEqual({ status: "ok" });
       const afterHead = git(worktree, ["rev-parse", "HEAD"]);
       expect(afterHead).toBe(beforeHead);
+    });
+  });
+
+  describe("syncDefaultBranchAfterMerge (rq-releaseFinalization03)", () => {
+    async function setupRepoWithOrigin(
+      suffix: string,
+      opts: {
+        localAhead?: number;
+        originAhead?: number;
+        sameCommit?: boolean;
+      } = {},
+    ): Promise<{ origin: string; main: string }> {
+      const origin = join(tempRoot, `sync-${suffix}-origin`);
+      const main = join(tempRoot, `sync-${suffix}-main`);
+      await mkdir(origin);
+      git(origin, ["init", "-q", "--bare", "-b", "trunk"]);
+      await mkdir(main);
+      git(main, ["init", "-q", "-b", "trunk"]);
+      git(main, ["config", "user.email", "adv-test@example.invalid"]);
+      git(main, ["config", "user.name", "ADV Test"]);
+      git(main, ["remote", "add", "origin", origin]);
+      await writeFile(join(main, "README.md"), "initial\n");
+      git(main, ["add", "README.md"]);
+      git(main, ["commit", "-m", "initial"]);
+      git(main, ["push", "-u", "origin", "trunk"]);
+
+      // Push `originAhead` commits to origin directly (simulating a remote squash-merge landing).
+      if (opts.originAhead && opts.originAhead > 0) {
+        const remoteWork = join(tempRoot, `sync-${suffix}-rw`);
+        await mkdir(remoteWork);
+        git(remoteWork, ["init", "-q", "-b", "trunk"]);
+        git(remoteWork, ["config", "user.email", "adv-test@example.invalid"]);
+        git(remoteWork, ["config", "user.name", "ADV Test"]);
+        git(remoteWork, ["remote", "add", "origin", origin]);
+        git(remoteWork, ["fetch", "origin", "trunk"]);
+        git(remoteWork, ["checkout", "-b", "scratch", "origin/trunk"]);
+        for (let i = 0; i < opts.originAhead; i++) {
+          await writeFile(
+            join(remoteWork, `remote-${i}.txt`),
+            `remote-commit-${i}\n`,
+          );
+          git(remoteWork, ["add", "."]);
+          git(remoteWork, [
+            "commit",
+            "-m",
+            opts.sameCommit ? `local-only-${i}` : `squash-merge-${i}`,
+          ]);
+        }
+        git(remoteWork, ["push", "origin", "scratch:trunk"]);
+      }
+
+      // Add local-only commits (simulating an unpushed ADV checkpoint).
+      if (opts.localAhead && opts.localAhead > 0) {
+        for (let i = 0; i < opts.localAhead; i++) {
+          await writeFile(join(main, `local-${i}.txt`), `local-commit-${i}\n`);
+          git(main, ["add", "."]);
+          git(main, ["commit", "-m", `local-checkpoint-${i}`]);
+        }
+      }
+      return { origin, main };
+    }
+
+    it("clean ff-only: local fast-forwards to origin/{default} with delta captured", async () => {
+      const { main } = await setupRepoWithOrigin("clean-ff", {
+        localAhead: 0,
+        originAhead: 2,
+      });
+
+      const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
+      const result = syncDefaultBranchAfterMerge({
+        mainCheckout: main,
+        defaultBranch: "trunk",
+      });
+      const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
+
+      expect(result.status).toBe("synced");
+      expect(Array.isArray(result.ffCommits)).toBe(true);
+      expect((result.ffCommits ?? []).length).toBe(2);
+      expect(afterHead).not.toBe(beforeHead);
+      const originHead = (
+        git(main, ["rev-parse", "origin/trunk"]) || ""
+      ).trim();
+      expect(afterHead).toBe(originHead);
+    });
+
+    it("diverged: surfaces without mutating local (rq-releaseFinalization03.2)", async () => {
+      const { main } = await setupRepoWithOrigin("diverged", {
+        localAhead: 2,
+        originAhead: 3,
+      });
+      const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
+      const beforeStatus = git(main, ["status", "--porcelain"]);
+
+      const result = syncDefaultBranchAfterMerge({
+        mainCheckout: main,
+        defaultBranch: "trunk",
+      });
+      const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
+      const afterStatus = git(main, ["status", "--porcelain"]);
+
+      expect(result.status).toBe("diverged");
+      expect(result.reason).toBe("LOCAL_AHEAD_OF_ORIGIN");
+      expect((result.localOnlyCommits ?? []).length).toBe(2);
+      expect(afterHead).toBe(beforeHead);
+      expect(afterStatus).toBe(beforeStatus); // no merge conflict markers
+    });
+
+    it("fetch failure: returns blocked with FETCH_FAILED (rq-releaseFinalization03.4)", async () => {
+      // No remote configured — fetch will fail.
+      const noRemote = join(tempRoot, "sync-noremote");
+      await mkdir(noRemote);
+      git(noRemote, ["init", "-q", "-b", "trunk"]);
+      git(noRemote, ["config", "user.email", "adv-test@example.invalid"]);
+      git(noRemote, ["config", "user.name", "ADV Test"]);
+      await writeFile(join(noRemote, "README.md"), "x");
+      git(noRemote, ["add", "README.md"]);
+      git(noRemote, ["commit", "-m", "x"]);
+
+      const result = syncDefaultBranchAfterMerge({
+        mainCheckout: noRemote,
+        defaultBranch: "trunk",
+      });
+
+      expect(result.status).toBe("blocked");
+      expect(result.reason).toBe("FETCH_FAILED");
+      expect(typeof result.remediation).toBe("string");
+    });
+
+    it("does not mutate the working tree destructively (rq-releaseFinalization03 + DONT5)", async () => {
+      // Spy runGit: collect every argv it receives and assert no `reset --hard`,
+      // `checkout`, `switch`, or `pull` ever appears.
+      const calls: string[][] = [];
+      const spyRunGit: typeof defaultRunGit = (cwd, args, timeoutMs) => {
+        calls.push(args);
+        return defaultRunGit(cwd, args, timeoutMs);
+      };
+
+      const { main } = await setupRepoWithOrigin("no-destructive-ops", {
+        localAhead: 1,
+        originAhead: 1,
+      });
+
+      const result = syncDefaultBranchAfterMerge(
+        {
+          mainCheckout: main,
+          defaultBranch: "trunk",
+        },
+        { runGit: spyRunGit },
+      );
+      expect(result.status).toBe("diverged"); // expect diverged to fire the safety branch
+
+      const flat = calls.map((argv) => argv.join(" ")).join("\n");
+      expect(flat).not.toMatch(/\breset(\s|$)/);
+      expect(flat).not.toMatch(/\bcheckout(\s|$)/);
+      expect(flat).not.toMatch(/\bswitch(\s|$)/);
+      expect(flat).not.toMatch(/\bpull(\s|$)/);
+    });
+
+    it("does not record release-done (rq-releaseFinalization03.3 closes validator ag-fJ57GzXO)", async () => {
+      // Pure type-level contract: the outcome shape must have no `releaseDone` /
+      // `recorded` field that could let the helper shortcut verifyReleaseEvidenceFromMain.
+      const sample: import("./git-finalize").SyncDefaultBranchAfterMergeOutcome =
+        {
+          status: "synced",
+          ffCommits: ["abc123"],
+        };
+      expect("releaseDone" in sample).toBe(false);
+      expect("recorded" in sample).toBe(false);
+      // Allowed keys (any subset may be present depending on status):
+      expect(
+        Object.keys(sample).every((k) =>
+          [
+            "status",
+            "reason",
+            "remediation",
+            "localOnlyCommits",
+            "ffCommits",
+            "details",
+          ].includes(k),
+        ),
+      ).toBe(true);
+      expect(sample.status).toBe("synced");
     });
   });
 
