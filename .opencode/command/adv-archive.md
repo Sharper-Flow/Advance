@@ -503,6 +503,35 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 Emit `GIT FINALIZATION COMPLETE` only after Step 6 final proof. Include: commit SHA, release proof source (`no_remote`, `origin/{default-branch}`, or merged PR), merge target (`$MAIN` default-branch HEAD when applicable), push/PR status, local deploy status, verification status, reflection status, worktree cleanup status, artifacts removed, `Continue from: {mainCheckout} ({default-branch})`, final `git -C "$MAIN" status --short --branch`. If PR auto-merge is pending, emit `Pending auto-merge.` with the PR URL and exact retry command; do not emit final completion. If remote-backed proof is missing, emit `Blocked.` with reason. If deploy or reflection failed without structural release-safety failure, keep release complete and surface the advisory line.
 
+### Phase 9.5: Auto-Drive Pending-PR Archive Completion
+
+<!-- rq-releaseFinalization02 rq-releaseFinalization04 -->
+
+> **When archive finalization returns `phase9: "pending_merge"`, the archive tool has armed GitHub auto-merge but the PR has not yet reached `MERGED`. Instead of handing back `Pending auto-merge.` and stopping, this phase orchestrates the remaining completion in one continuous flow.**
+
+1. **Detect.** The archive tool return shape on the `pr_auto_merge` / `merge_queue` routes is:
+   ```
+   { phase9: "pending_merge", finalization: { prNumber, prUrl, mainCheckout, defaultBranch, route } }
+   ```
+   Read the nested fields from `finalization.*`, not top-level.
+
+2. **Spawn the waiter.** Use the Task tool to spawn `adv-ci-waiter` with `{ repo, prNumber, prUrl }`. Cite `~/.config/opencode/instructions/oc-ci-wait.md` for the polling contract — the **main agent never polls CI itself** (P37).
+
+3. **Branch on the terminal result.**
+   - **`MERGED`:**
+     a. Call `syncDefaultBranchAfterMerge({ mainCheckout: finalization.mainCheckout, defaultBranch: finalization.defaultBranch })` (helper in `plugin/src/tools/archive-helpers/git-finalize.ts`).
+     b. Re-call `adv_change_archive changeId: {change-id} worktreePath: {worktree} phase9: "run"` and let it complete via the unchanged `verifyReleaseEvidenceFromMain` completion entry, which now proves `pr_merged` and returns `shipped`. The archive tool is idempotent on re-call (existing-bundle/noOp path; no delta re-apply).
+     c. Append one Delivered line: `Trunk sync: {synced | diverged: N local-only commits + reconcile steps; release still completes | blocked: <reason>}`.
+     d. Proceed to the existing Shipped. terminal rendering; release gate, archive retirement, worktree cleanup run normally as part of `Shipped.`.
+   - **Non-terminal** (timeout / blocked / red-CI-unresolved / missing creds / API error):
+     a. Render `Pending auto-merge.` with `finalization.prUrl` and the exact retry command on its own line: `adv_change_archive changeId:{change-id} worktreePath:{worktree} phase9:"run"`.
+     b. Do NOT call `verifyReleaseEvidenceFromMain` again this turn — never escalate a non-terminal waiter result into a `Shipped.`.
+     c. The change stays active for later resume. Do not retire the archive; do not run worktree cleanup as part of this turn.
+
+4. **Reference markers.** This phase exercises `rq-releaseFinalization02` (auto-drive trigger), `rq-releaseFinalization03.2` (post-merge sync diverged branch — release still completes on proven origin reachability), `rq-releaseFinalization03.3` (helper never records release-done; release remains gated by `verifyReleaseEvidenceFromMain`), and `rq-releaseFinalization04` (non-terminal reporting).
+
+5. **Completion fallthrough.** If the Task tool spawn is unavailable (no `adv_ci_waiter` runtime), render `Pending auto-merge.` + retry command — status quo behavior, non-regressive. The change stays active; the human re-invokes archive or `adv_archive_repair action=redrive` when ready.
+
 ### Step 9: Post-Deploy Nudge
 
 After Phase 9 + Phase 8 summary, if deploy target detectable, append one line:
