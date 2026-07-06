@@ -755,6 +755,53 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
   });
 
+  // rq-fixPhase9SquashMergeRedetect SC2: end-to-end retry path must thread
+  // the persisted changeTipSha through to resolveReleaseReachability so
+  // tree-SHA detection can succeed when the branch ref is gone.
+  test("phase9 retry threads persisted changeTipSha to reachability detection", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "pr_merged",
+      mergeCommitOid: "squash-merge-sha",
+      details: ["tree-SHA matched trunk commit"],
+    });
+    const store = createMockStore({
+      phase9_status: {
+        status: "pending",
+        startedAt: "2026-01-01T00:00:00Z",
+        changeTipSha: "tip123abc",
+      },
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    // The critical assertion: changeTipSha from phase9_status was threaded
+    // through to resolveReleaseReachability so tree-SHA detection can use it.
+    expect(mocks.resolveReleaseReachability).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changeTipSha: "tip123abc",
+      }),
+    );
+    expect(parsed.finalization).toMatchObject({
+      status: "shipped",
+      mergeCommitSha: "squash-merge-sha",
+      pushStatus: "pushed",
+    });
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({
+          status: "done",
+        }),
+      }),
+    );
+  });
+
   test("re-running after PR-merged pending_merge recovery remains idempotent", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     mocks.resolveReleaseReachability.mockReturnValue({
