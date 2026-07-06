@@ -530,7 +530,7 @@ Emit `GIT FINALIZATION COMPLETE` only after Step 6 final proof. Include: commit 
 
 4. **Reference markers.** This phase exercises `rq-releaseFinalization02` (auto-drive trigger), `rq-releaseFinalization03.2` (post-merge sync diverged branch — release still completes on proven origin reachability), `rq-releaseFinalization03.3` (helper never records release-done; release remains gated by `verifyReleaseEvidenceFromMain`), and `rq-releaseFinalization04` (non-terminal reporting).
 
-5. **Completion fallthrough.** If the Task tool spawn is unavailable (no `adv_ci_waiter` runtime), render `Pending auto-merge.` + retry command — status quo behavior, non-regressive. The change stays active; the human re-invokes archive or `adv_archive_repair action=redrive` when ready.
+5. **Completion fallthrough.** If the Task tool spawn is unavailable (no `adv-ci-waiter` runtime), render `Pending auto-merge.` + retry command — status quo behavior, non-regressive. The change stays active; the human re-invokes archive or `adv_archive_repair action=redrive` when ready.
 
 ### Step 9: Post-Deploy Nudge
 
