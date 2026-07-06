@@ -2577,10 +2577,26 @@ export const changeTools = {
             // AC3: Async phase9 dispatch. Save pending status, then run
             // finalization + release gate + cleanup in background.
             const now = new Date().toISOString();
+            // rq-fixPhase9SquashMergeRedetect SC1: capture change-tip SHA at
+            // dispatch time so reachability detection survives branch deletion
+            // (squash-merge + branch cleanup before phase9 completes).
+            let changeTipSha: string | undefined;
+            if (worktreePath) {
+              try {
+                changeTipSha = (
+                  await execGit(["rev-parse", `change/${changeId}`], worktreePath)
+                ).trim();
+                if (!changeTipSha) changeTipSha = undefined;
+              } catch (err) {
+                logger.warn(
+                  `phase9 dispatch: failed to capture change tip for ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
+                );
+              }
+            }
             await recordPhase9Status({
               store,
               changeId,
-              status: { status: "pending", startedAt: now },
+              status: { status: "pending", startedAt: now, changeTipSha },
             });
             dispatchPhase9Finalization({
               changeId,
