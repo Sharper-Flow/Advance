@@ -1,0 +1,802 @@
+{
+  "id": "fixPhase9SquashMergeRedetect",
+  "title": "Fix phase9 squash-merge redetect",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-05T23:32:49.773Z",
+  "tasks": [
+    {
+      "id": "tk-91de5775a291",
+      "title": "Add optional `changeTipSha: z.string().optional()` field to `Phase9FinalizationStatusSchema` in `plugin/src/types/changes.ts:782`.",
+      "type": "code",
+      "section": "Schema",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-06T00:07:35.371Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "C2",
+          "C4"
+        ],
+        "verifies": [
+          "SC1"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T00:15:59.086Z",
+      "verification": "Phase9FinalizationStatusSchema gains optional changeTipSha field; plugin/schemas/change.schema.json regenerated with the new field; pnpm run schemas:check passes; pnpm run typecheck passes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/types/changes.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "76aecea638b0e0266990075998afc699b0e30984",
+      "completedAt": "2026-07-06T00:17:12.425Z",
+      "completed_at": "2026-07-06T00:17:12.425Z"
+    },
+    {
+      "id": "tk-1028cb633236",
+      "title": "RED test: reproduce the branch-deleted squash-merge scenario at the `resolveReleaseReachability` level.",
+      "type": "code",
+      "section": "Tests (RED)",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-06T00:08:12.782Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-91de5775a291"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1"
+        ],
+        "verifies": [
+          "SC2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T00:17:50.810Z",
+      "verification": "RED test added: \"direct route + deleted branch + changeTipSha provided detects squash-merge via tree-SHA\". Test fails against current code with AssertionError: expected false to be true (reachable is false because detectSquashMergeByTree ignores changeTipSha and falls back to change/{id} ref which is missing). Also added changeTipSha?: string to ReleaseReachabilityInput type to enable the test to compile. Type-only addition; no behavioral change.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "42f34ef949c2be17cbb5e1af687a681f6372bea1",
+      "completedAt": "2026-07-06T00:22:18.743Z",
+      "completed_at": "2026-07-06T00:22:18.743Z"
+    },
+    {
+      "id": "tk-da7db370e096",
+      "title": "GREEN implementation: thread `changeTipSha` through reachability and modify `detectSquashMergeByTree` to use the tip when provided.",
+      "type": "code",
+      "section": "Implementation (GREEN)",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-06T00:08:33.394Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1028cb633236"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T00:22:26.878Z",
+      "verification": "GREEN: RED test now passes. detectSquashMergeByTree modified to accept changeTipSha via extended deps and use it as tipRef when provided (line 1195-1241). resolveReleaseReachability threads input.changeTipSha to detectSquashMergeByTree (line 2260-2266). verifyReleaseEvidenceFromMain threads change.phase9_status?.changeTipSha to resolveReleaseReachability (archive-gate.ts:519-527). Full git-finalize.test.ts suite: 83 tests passed (including the new test). typecheck passes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "checkpointSha": "9cf47d6ddf8c1cd48b2a7b34eba2a9336501f403",
+      "completedAt": "2026-07-06T00:25:59.822Z",
+      "completed_at": "2026-07-06T00:25:59.822Z"
+    },
+    {
+      "id": "tk-0d0ff541fbe5",
+      "title": "Capture the change-tip SHA at the first pending `recordPhase9Status` call in the archive dispatch path.",
+      "type": "code",
+      "section": "Capture",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-06T00:08:54.438Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-91de5775a291"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T00:26:14.939Z",
+      "verification": "Tip capture added at first pending recordPhase9Status call (change.ts:2576-2601). Uses execGit (already imported) to resolve change/{id} ref from worktreePath. Best-effort: failure logs warning and leaves changeTipSha undefined (graceful fallback). typecheck passes. change.archive-phase9.test.ts: 29 tests passed (no regressions).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "5348eb6af56fbc40901c0ff17b5ce2c9d476a364",
+      "completedAt": "2026-07-06T00:28:48.424Z",
+      "completed_at": "2026-07-06T00:28:48.424Z"
+    },
+    {
+      "id": "tk-1bfca44d20be",
+      "title": "End-to-end regression test: phase-9 retry path with persisted tip completes the release gate after branch deletion.",
+      "type": "code",
+      "section": "Tests (integration)",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-06T00:09:13.860Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-da7db370e096"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0d0ff541fbe5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T00:31:31.089Z",
+      "verification": "Integration test added: \"phase9 retry threads persisted changeTipSha to reachability detection\". Asserts changeTipSha from phase9_status is threaded to resolveReleaseReachability. Mocks tree-SHA detection success (reachable: true, proof: pr_merged) and verifies release gate reaches done + finalization status is shipped. change.archive-phase9.test.ts: 31 tests passed (29 original + AC4 + integration).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "checkpointSha": "1963cca111954baa8a1260c6c4ce14599d079b0b",
+      "completedAt": "2026-07-06T00:32:44.486Z",
+      "completed_at": "2026-07-06T00:32:44.486Z"
+    },
+    {
+      "id": "tk-9cabb2f92d4a",
+      "title": "AC4: enrich the blocked-result remediation with an `adv_change_status_repair` pointer when reachability cannot be established.",
+      "type": "code",
+      "section": "AC4 enrichment",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-06T00:09:28.132Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T00:28:57.502Z",
+      "verification": "AC4: enriched CHANGE_BRANCH_NOT_REACHABLE remediation in verifyReleaseEvidenceFromMain (archive-gate.ts:586-598) to include adv_change_status_repair pointer for squash-merged-and-deleted-branch recovery. New test: \"blocked reachability remediation includes adv_change_status_repair pointer\" passes. Full change.archive-phase9.test.ts: 30 tests passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "checkpointSha": "875932a4e5ade1110fc4e9cd13bd7ac690aa5640",
+      "completedAt": "2026-07-06T00:31:17.830Z",
+      "completed_at": "2026-07-06T00:31:17.830Z"
+    },
+    {
+      "id": "tk-742957f04f6e",
+      "title": "Final verification: run the full pre-push gate to confirm no regressions across the entire suite.",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-07-06T00:09:45.053Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1bfca44d20be"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9cabb2f92d4a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-06T00:32:57.542Z",
+      "verification": "Full pre-push gate passes: pnpm run check (schemas:check, typecheck, lint, format:check) all green. Three key test files: 124 tests passed (git-finalize 83 + change.archive-phase9 31 + gate.release-enforcement 10). Contract coverage: SC1 (changeTipSha captured at dispatch, threaded to detection), SC2 (branch-deletion-safe tree-SHA + actionable pending), SC3 (shipped-invariant bar preserved), C1 (fail closed without proof), C2 (no new deps), C3 (read-only detection), C4 (trusted tip from ADV-owned worktree).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "6d8104678e51d2d299b76e63390fca07168bd5f6",
+      "completedAt": "2026-07-06T00:35:20.460Z",
+      "completed_at": "2026-07-06T00:35:20.460Z"
+    },
+    {
+      "id": "tk-12b358d06b4f",
+      "title": "P2 deferrable slice: patch-id fallback with `--stable` flag.",
+      "type": "code",
+      "section": "P2 (deferrable)",
+      "status": "cancelled",
+      "priority": 7,
+      "created_at": "2026-07-06T00:10:10.606Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2"
+        ]
+      },
+      "evidence_policy": "test",
+      "cancelApproval": "User approved planning checkpoint with P1/P2 split. P2 (patch-id fallback with --stable) explicitly marked as deferrable backlog in design and planning phases. Design states: \"Patch-id as P2 deferrable slice, not primary. Tree-SHA covers the common squash-merge case.\" Validator confirmed: \"Patch-id is the deferrable slice.\" P1 tree-SHA fix is complete and ships the core value.",
+      "cancelledAt": "2026-07-06T00:35:54.981Z",
+      "completed_at": "2026-07-06T00:35:54.981Z",
+      "cancellation": {
+        "reason": "P2 deferrable slice — patch-id fallback. Out of scope for this fix; tree-SHA (P1) covers the common squash-merge case. Approved as backlog at planning checkpoint. Should be a separate follow-up change if needed.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved planning checkpoint with P1/P2 split. P2 (patch-id fallback with --stable) explicitly marked as deferrable backlog in design and planning phases. Design states: \"Patch-id as P2 deferrable slice, not primary. Tree-SHA covers the common squash-merge case.\" Validator confirmed: \"Patch-id is the deferrable slice.\" P1 tree-SHA fix is complete and ships the core value.",
+        "approved_at": "2026-07-06T00:35:54.981Z"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9SquashMergeRedetect",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:phase9-squash-redetect-design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: phase9 squash-merge redetect via persisted change-tip SHA",
+      "sources": [
+        {
+          "label": "git-scm official git-patch-id docs (2.54.0)",
+          "locator": "https://git-scm.com/docs/git-patch-id/2.54.0",
+          "summary": "git patch-id defaults to UNSTABLE hash unless --stable is passed or patchid.stable=true. --stable is required for cross-environment/config determinism. patch-id ignores whitespace and line numbers; it is a symmetrical sum of SHA-1 over file diffs."
+        },
+        {
+          "label": "git/git patch-id documentation source",
+          "locator": "https://github.com/git/git/blob/94f05775/Documentation/git-patch-id.adoc",
+          "summary": "Confirms two patches comparing the same two trees produce the same stable patch-id; robust to hunk reordering and orderfile differences. Default remains unstable unless configured."
+        },
+        {
+          "label": "detectSquashMergeByTree source",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1190-1232",
+          "summary": "Currently does `git rev-parse change/{id}^{tree}` in mainCheckout and compares against `git log --format=%H %T -50 origin/{default}`. Fails (returns reachable:false) when the change/{id} ref is missing."
+        },
+        {
+          "label": "resolveReleaseReachability + call site",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2160-2312",
+          "summary": "direct route: origin ancestry check -> discoverMergedPr (gh) -> readPrMergeState (gh) -> detectSquashMergeByTree(origin/{default}) as final fallback. ReleaseReachabilityInput (line 148) has no changeTipSha field yet."
+        },
+        {
+          "label": "verifyReleaseEvidenceFromMain (worktree-gone retry path)",
+          "locator": "plugin/src/tools/change/archive-gate.ts:502-592",
+          "summary": "The retry path invoked when worktreePath is absent. Reads change.phase9_status?.prNumber but not a tip. This is the path where squash-merge-then-delete manifests, because the branch ref is already gone."
+        },
+        {
+          "label": "Phase9FinalizationStatusSchema + ChangeSchema registry membership",
+          "locator": "plugin/src/types/changes.ts:782-800, 997; plugin/src/schema-registry.ts:32; plugin/src/types/signals.ts:445-448",
+          "summary": "Phase9FinalizationStatusSchema is embedded in ChangeSchema (public registry entry) AND in Phase9StatusUpdatedSignalPayloadSchema (Temporal signal). Adding a field flows into public JSON schemas."
+        },
+        {
+          "label": "archive dispatch phase9:run path",
+          "locator": "plugin/src/tools/change.ts:2575-2731",
+          "summary": "First pass with worktreePath present calls finalizeRelease; retry with worktree gone calls verifyReleaseEvidenceFromMain. First recordPhase9Status({status:pending}) at line 2580 does not capture tip today."
+        },
+        {
+          "label": "existing branch-missing tree test",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.test.ts:2709-2722",
+          "summary": "Asserts detectSquashMergeByTree returns reachable:false when change branch does not exist. Additive optional-tip change keeps this test green (no tip passed)."
+        }
+      ],
+      "architecture_assessment": "The core design is sound and correctly targets the real failure surface. Root cause is accurate: detectSquashMergeByTree and both ancestry checks (verifyChangeBranchReachable, verifyChangeBranchReachableFromOrigin) all dereference the live `change/{id}` ref, so a squash-merge followed by branch deletion leaves no structural proof on the retry path (verifyReleaseEvidenceFromMain), and the release gate stays pending. Persisting a trusted change-tip SHA into phase9_status and substituting it for the live ref in tree-SHA comparison is the minimal, correct structural fix. It preserves the shipped-invariant bar (still requires positive tree/patch/PR proof) and degrades gracefully for legacy in-flight changes (optional field, falls back to live-ref behavior). Reuse of the existing tree-SHA comparison via a single rev-parse substitution is a good LBP call and keeps existing tests green.\n\nGaps and corrections found:\n\n1. TIP CAPTURE POINT / SUBJECT MISMATCH (medium). Design text says capture via `git -C {worktreePath} rev-parse change/{id}`. Two issues: (a) The capture must land in the FIRST recordPhase9Status({status:pending}) at change.ts:2580 (before finalizeRelease/dispatch), because the retry path is exactly when the worktree/branch is gone. If tip is only captured later it will be unavailable on retry. (b) `rev-parse change/{id}` and `rev-parse HEAD` in an ADV worktree that is checked out on change/{id} are equivalent, but HEAD is the more robust subject if the worktree is ever detached; either is acceptable given validateChangeWorktree already asserts the branch. More important: detectSquashMergeByTree computes the tree in mainCheckout, so the persisted SHA must be a commit object present in mainCheckout's object store (it is, since worktrees share the object DB), and the helper must switch to `rev-parse {tip}^{tree}` — confirm the tip commit is fetched/reachable in mainCheckout after branch deletion (shared .git object store makes this true unless GC pruned it; deletion alone does not prune).\n\n2. PATCH-ID DETERMINISM (medium, must-fix). git patch-id defaults to the UNSTABLE hash unless `--stable` is passed or patchid.stable=true is configured (git-scm docs). The design's `git diff {base}..{tip} | git patch-id` is non-deterministic across environments/config and will silently mismatch. detectSquashMergeByPatchId MUST use `git patch-id --stable` on BOTH sides (change diff and each trunk commit's `git show --stable`-equivalent via `git diff-tree -p | git patch-id --stable`). Also the design's `git show {commit} | git patch-id` for merge commits emits combined diffs that patch-id skips; use `git diff-tree -p --no-merges` piping to be safe.\n\n3. SCHEMA REGEN IS MANDATORY, NOT CONDITIONAL (low, must-fix in planning). Phase9FinalizationStatusSchema is embedded in ChangeSchema which IS a public registry entry (schema-registry.ts:32) and in the Temporal Phase9StatusUpdatedSignalPayload. Adding an optional field requires `pnpm run schemas:generate` and will be caught by `pnpm run schemas:check` in CI. The design hedges ('if it is in the registry ... confirm during planning') — it definitively is. Make it a firm planning task.\n\n4. REPLAY SAFETY (low, OK). Adding an OPTIONAL field to a signal payload schema is backward-compatible for Temporal replay: old histories without the field parse cleanly; the signal-only change-workflow surface has no defineUpdate poisoning risk here. No migration needed.\n\n5. PATCH-ID NECESSITY (design tradeoff, defensible). Tree-SHA equivalence covers the dominant squash-merge case (change branch unchanged after PR open, no conflict resolution in the squash). Patch-id is genuinely needed only when the squashed trunk tree differs from the change tip tree — i.e. trunk advanced under the PR and the merge base moved, OR a conflict was resolved during squash. Both are real but secondary. Since the existing gh-based readPrMergeState/discoverMergedPr already covers most PR-merge cases branch-deletion-safe, patch-id is the third fallback. It is justified for gh-unavailable / no-PR-metadata cases but adds real complexity (merge-base + bounded 50-commit scan + binary/mode-change edge cases). Recommend implementing it behind the tree-SHA-fails guard as designed, but treat it as the highest-risk/lowest-value slice — acceptable to land tree-SHA + tip first and patch-id as a follow-on if scope pressure appears.\n\n6. NO EXISTING MERGE-BASE/PATCH-ID HELPER to reuse (confirmed). git-finalize.ts source has no merge-base or patch-id helper (only test-side usage). A new helper is correct; no reuse opportunity missed.\n\n7. NO TEST CONFLICT (confirmed). The branch-missing test at git-finalize.test.ts:2709-2722 and the tree-match tests at 2655-2683 pass no tip, so additive optional-tip plumbing keeps them green. The design's additive-only claim holds.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Design is architecturally sound and ships the correct structural fix, but has three concrete must-fix adjustments before/during planning: (a) capture the tip at the FIRST recordPhase9Status pending write (change.ts:2580) so it is available on the worktree-gone retry path; (b) use `git patch-id --stable` on both sides (default is unstable/non-deterministic per git-scm docs) and use diff-tree -p --no-merges rather than `git show`; (c) treat `pnpm run schemas:generate` as a firm planning task, not conditional — Phase9FinalizationStatusSchema is definitively in the public ChangeSchema registry entry and the Temporal signal payload. None are architecture-invalidating; all are correctness details. No shipped-invariant weakening detected."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Persisted tip adds a new durable field to a Temporal-projected + public-registry schema (requires schema regen + replay consideration), traded for branch-deletion-safe structural proof.",
+          "Patch-id fallback adds real complexity (merge-base computation, bounded 50-commit scan, binary/mode-change/merge-commit edge cases) for a secondary case (trunk advanced under PR or conflict-resolved squash) that gh PR-merge metadata often already covers.",
+          "Tree-SHA equivalence is a strong structural signal but is not a merge proof: two unrelated changes with an identical net tree would match. Content-addressed tip identity plus recent-trunk-window scoping keeps this acceptable, but it is a heuristic not a cryptographic merge guarantee.",
+          "Capturing tip at archive dispatch couples release-proof durability to archive-time state capture; if the first pending-status write is skipped on any code path, retry loses the tip and falls back to today's failing behavior."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "gh-only detection: rely solely on discoverMergedPr + readPrMergeState (already branch-deletion-safe via GitHub API)",
+            "disposition": "rejected",
+            "rationale": "gh may be unavailable, unauthenticated, rate-limited, or the merge may lack queryable PR metadata (manual squash push). Pure-git structural proof is the more robust primary; keeping it gh-independent matches constraint C2 (no new external dependency) and the design's stated LBP goal."
+          },
+          {
+            "option": "Tree-SHA + persisted tip only; drop patch-id fallback entirely",
+            "disposition": "deferred",
+            "rationale": "Covers the dominant squash case (unchanged branch after PR open) at much lower complexity. Patch-id only adds value when trunk advanced under the PR or a conflict was resolved in the squash. Reasonable to land tree-SHA+tip first and add patch-id as a scoped follow-on; but since the design already includes it behind a tree-SHA-fails guard, implementing it now is acceptable if `--stable` is used."
+          },
+          {
+            "option": "Modify verifyChangeBranchReachableFromOrigin/verifyChangeBranchReachable to use the tip instead of the ref",
+            "disposition": "rejected",
+            "rationale": "Correctly rejected by the design. Those are ancestry checks whose failure on a missing ref is the intended trigger to fall through to squash detection. Repurposing them to change-content reachability is semantic drift and would blur ancestry vs content-equivalence proofs."
+          },
+          {
+            "option": "Store the mergeBase alongside the tip at dispatch to avoid recomputing it during patch-id",
+            "disposition": "deferred",
+            "rationale": "Minor optimization; merge-base is cheap to recompute in mainCheckout at retry time from the persisted tip and origin/default. Not worth an extra persisted field unless profiling shows cost."
+          }
+        ],
+        "recommendation": "Ship with named adjustments. Proceed with the persisted-tip + tree-SHA design, but (1) capture the tip in the first recordPhase9Status pending write so it survives to the worktree-gone retry path; (2) specify `git patch-id --stable` on both diff sides and use `git diff-tree -p --no-merges` rather than `git show`; (3) make `pnpm run schemas:generate` a firm planning task (Phase9FinalizationStatusSchema is in the public ChangeSchema registry entry and the Temporal signal payload); (4) add a red test that deletes the change branch before detection and proves tip-based tree-SHA recovery, plus a patch-id test where trunk advanced under the PR."
+      },
+      "recommendation": "SHIP WITH NAMED ADJUSTMENTS. The design is architecturally correct and minimal. Required adjustments before/during planning: (A) tip must be captured at the FIRST pending recordPhase9Status (change.ts:2580) so verifyReleaseEvidenceFromMain has it on the branch-deleted retry; (B) patch-id must use `--stable` (git default is unstable/non-deterministic per git-scm) and use `git diff-tree -p --no-merges | git patch-id --stable` instead of `git show`; (C) schema regeneration via `pnpm run schemas:generate` is mandatory (Phase9FinalizationStatusSchema is embedded in the public ChangeSchema registry entry and in the Temporal Phase9StatusUpdated signal payload) — planning must include it and keep `pnpm run schemas:check` green. Optional/deferrable: patch-id fallback is the highest-complexity/lowest-value slice and could land as a follow-on after tree-SHA+tip if scope pressure appears.",
+      "follow_ups": [
+        "Planning task: add `pnpm run schemas:generate` + verify `pnpm run schemas:check` green — Phase9FinalizationStatusSchema is a public registry + Temporal signal payload, so the optional field is not free.",
+        "Add explicit `--stable` to all git patch-id invocations and document it in the helper; add an edge-case note/test for binary files and mode changes where patch-id may spuriously differ.",
+        "Add a red test: delete change/{id} branch (both worktree and local ref) before calling detection, assert tip-based tree-SHA recovery marks release reachable; and a patch-id test where origin/default advanced under the PR so trees differ.",
+        "Confirm the persisted tip commit object remains reachable in mainCheckout's shared object store after branch deletion (deletion does not prune; guard only matters if aggressive GC runs between archive and retry) — note this assumption in design.md risks table.",
+        "Verify tip is captured on BOTH the finalizeRelease-first-pass and the direct verifyReleaseEvidenceFromMain path; ensure buildPendingMergePhase9Status and buildFailedPhase9Classification preserve changeTipSha across pending_merge transitions so a later retry still has it.",
+        "OOS but adjacent (already noted in contract OOS1): worktree cleanup timeout on poisoned workflows can be the trigger that leaves the branch deleted mid-retry — track as related."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9SquashMergeRedetect",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9SquashMergeRedetect",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-nit-1",
+          "label": "nit",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 1224,
+          "what": "detectSquashMergeByTree scans only last 50 trunk commits (-50). Pre-existing bound, not introduced by this change.",
+          "why": "A squash-merge older than 50 trunk commits at retry time would miss tree-match and fall through to origin_unmerged. This is handled correctly: archive-gate.ts:595 surfaces the adv_change_status_repair remediation path (gates-done + bundle-present invariant). Behavior is safe; noting for future awareness only."
+        },
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change/archive-gate.ts",
+          "line": 527,
+          "what": "changeTipSha sourced strictly from persisted phase9_status.changeTipSha (trusted store), not a live untrusted ref.",
+          "why": "Cleanly satisfies C4 (trusted tip source). Capture-at-dispatch + persist + thread-on-retry is the right content-addressed design to survive branch deletion."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Phase9 reachability survives branch deletion by capturing the change-branch tip SHA at archive-dispatch time (while the ref is still live), persisting it in phase9_status.changeTipSha, and preferring it over the live change/{id} ref during retry-time tree-SHA detection. Content-addressed SHA is deletion-proof; git ref is not. detectSquashMergeByTree: tipRef = deps.changeTipSha ?? `change/${changeId}`."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "npx vitest run src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts --no-coverage"
+        ],
+        "results": "pass",
+        "evidence": "2 test files, 114 tests passed (git-finalize 83, change.archive-phase9 31), 0 failures, 3.77s. Includes new coverage: unit test 'direct route + deleted branch + changeTipSha provided detects squash-merge via tree-SHA' (git-finalize.test.ts:580) asserts tip preference when change/{id} ref is 128/gone; end-to-end test 'phase9 retry threads persisted changeTipSha to reachability detection' (change.archive-phase9.test.ts:761) asserts resolveReleaseReachability called with changeTipSha:'tip123abc' from phase9_status and finalization status:shipped."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Tree-SHA equality match assumes an identical trunk-commit tree implies legitimate squash equivalence. Content-addressed so this is genuinely identical file content; false-positive requires two unrelated commits with byte-identical trees in the last 50 trunk commits — vanishingly unlikely and pre-existing, not introduced by this change.",
+        "50-commit trunk scan window (pre-existing) bounds how far back a squash-merge is detectable at retry time; older merges correctly fall through to the adv_change_status_repair remediation path."
+      ],
+      "required_main_agent_actions": [
+        "None blocking. Acceptance review passes: SC1 (tip captured at dispatch change.ts:2583-2602 + persisted Phase9FinalizationStatusSchema.changeTipSha), SC2 (threaded end-to-end change.ts -> archive-gate.ts:527 -> resolveReleaseReachability -> detectSquashMergeByTree, test-asserted), SC3 (fallback ordering unchanged; tree-match remains last-resort after origin_default + PR-merge checks), C1 (tree-match pre-existing; only tip-source threading added, no weakened bar), C2 (no new deps; pure git rev-parse/log), C3 (read-only rev-parse/log only), C4 (tip from trusted persisted phase9_status). Proceed to record acceptance evidence."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-05T23:42:11.830Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed \"proceed\" at proposal checkpoint. Proposal grounded in actual git-finalize.ts code; root cause confirmed.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "bad6d3ac811a1cbbce3fb5c8498f22cf008bd7b9d9968a3322080da5d8c55ba8",
+        "non_whitespace_chars": 3330,
+        "checked_at": "2026-07-05T23:32:49.834Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-05T23:51:42.461Z",
+      "completed_at": "2026-07-05T23:52:08.442Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed at discovery checkpoint. Contract minted (10 items: SC1-3, C1-4, OOS1-3). Root-cause map grounded in git-finalize.ts.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "non_whitespace_chars": 3058,
+        "checked_at": "2026-07-05T23:32:49.835Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-06T00:06:38.993Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed at design checkpoint. adv-researcher validation: caution, ship-with-adjustments. Three adjustments incorporated (--stable patch-id, mandatory schema regen, P1/P2 split).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "ba0e746da2f85dd9e51c87be2a891fb46fa14d8ca801687337618ee47a6912f1",
+        "non_whitespace_chars": 7833,
+        "checked_at": "2026-07-05T23:32:49.836Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-06T00:15:47.460Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved at planning checkpoint. 8 tasks (7 P1 + 1 P2 backlog). Inline execution. Contract coverage complete. Worktree materialized."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-06T00:36:02.068Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 P1 tasks done (schema, RED test, GREEN impl, capture, integration test, AC4, verification). P2 task cancelled (deferrable backlog, approved at planning). Full pre-push gate passes. 124 tests across 3 key files pass. Contract coverage complete for SC1-3, C1-4."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-06T00:38:35.808Z",
+      "completed_at": "2026-07-06T00:39:12.084Z",
+      "completed_by": "agent",
+      "approval_evidence": "Executive summary persisted. Contract review matrix: 7/7 pass. Independent verification: 124/124 tests, all claims confirmed. Ship-ready.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "4e6cd61841e16c136e3c2e7d4b4116ea09fd8b0e6aa5b5be102179ea603867a7",
+        "non_whitespace_chars": 3591,
+        "checked_at": "2026-07-05T23:32:49.837Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "pokeedge-web",
+    "source_path": "/home/jon/dev/pokeedge-web",
+    "linked_at": "2026-07-05T23:32:49.705Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+      "approvedAt": "2026-07-05T23:51:58.622Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "The change-tip SHA is captured at archive time (or recovered from existing checkpoint/task metadata) so reachability does not depend on a live `change/{id}` git ref.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Reachability detection survives branch deletion via structural proof: persisted tip + merge-base / patch-id / PR-merge metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "The shipped-invariant bar is preserved: never mark release done without positive reachability/merge evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not weaken the shipped-invariant bar: never mark release done without positive reachability/merge evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No new external dependency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep worktree/branch safety intact; do not auto-delete or auto-create branches as a side effect of detection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Persisted tip must come from a trusted source (worktree HEAD at archive time, or task checkpoint `expectedHeadSha`); never trust an attacker-controllable input.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Worktree cleanup timeout on poisoned workflows (separate concern; note as related follow-up).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Dangling-task-commit reachability audit (#109) — related but distinct.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Phase-9 behavior when the archive bundle itself is missing (separate recovery path).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-06T00:40:00Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Phase9FinalizationStatusSchema.changeTipSha added (changes.ts:800-803). Captured at first pending recordPhase9Status via execGit rev-parse change/{id} from worktreePath (change.ts:2582-2596). Threaded through verifyReleaseEvidenceFromMain → resolveReleaseReachability → detectSquashMergeByTree. Integration test confirms threading."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "detectSquashMergeByTree uses changeTipSha as tipRef when provided (git-finalize.ts:1215-1218). RED→GREEN TDD cycle confirmed. 3 new tests: unit, integration, AC4 remediation. 124 tests pass across 3 files."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Tree-SHA equivalence is positive structural proof. No path marks release done without positive reachability evidence. Blocked path returns status:blocked with CHANGE_BRANCH_NOT_REACHABLE when no proof found."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Existing proof paths unchanged. New tip-based tree-SHA adds positive-proof path only. Blocked path enriched with adv_change_status_repair pointer but still fails closed."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new npm dependencies. Uses git CLI (rev-parse, log) and existing gh queries. execGit already imported in change.ts. pnpm-lock.yaml unchanged."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Detection is read-only: git rev-parse {tip}^{tree}, git log --format=%H %T -50. No git branch/push/checkout/merge calls in new paths."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Tip captured from ADV-owned worktree on verified change/{id} branch via execGit (change.ts:2589). SHA is content-addressed git output. Not attacker-controllable."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Worktree cleanup timeout on poisoned workflows not addressed. Separate concern.",
+          "notes": "Out of scope per agreement."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Dangling-task-commit reachability audit (#109) not addressed. Related but distinct.",
+          "notes": "Out of scope per agreement."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Phase-9 behavior when archive bundle itself is missing not addressed.",
+          "notes": "Out of scope per agreement."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "# Fix phase9 squash-merge redetect\n\n## Why\n\nWhen a change ships via PR mode and its release branch is squash-merged **and deleted** on the remote before `adv_change_archive phase9:\"run\"` executes, phase-9 git finalization cannot re-detect the merge. It returns `phase9: \"pending\"` and leaves the `release` gate `pending`, even though the shipped invariant is fully satisfied (fix on default branch, CI green, archive bundle written, six prior gates done).\n\nObserved live in pokeedge-web change `fixChartTooltipScroll`: PR #369 squash-merged (`a97d129f`) and branch deleted, then `phase9:\"run\"` produced an archived bundle but left `release` pending. Squash-merge + immediate branch deletion is a common, recommended shipping pattern — not an edge case.\n\n## What Changes\n\n`plugin/src/tools/archive-helpers/git-finalize.ts` release reachability detection currently has PR/tree fallbacks that assume the local `change/{changeId}` branch ref still resolves:\n\n- `detectSquashMergeByTree` — `git rev-parse change/{changeId}^{tree}` fails when the branch is deleted → `reachable: false`.\n- `verifyChangeBranchReachable` / `...FromOrigin` — `git log …..change/{changeId}` fails on a missing ref.\n- `discoverMergedPr` — GitHub-side `gh pr list --head change/{id}`; works post-deletion but needs to be reliably reached in the `phase9:\"run\"` path.\n\nAdd structural reachability that survives branch deletion by resolving change commits from a persisted pre-archive tip / checkpoint SHAs (not the live branch ref), then test reachability against the default branch via merge-base / patch-id / PR-merge metadata. When confirmable → complete phase-9 and transition `release` to `done`. When not confirmable → emit an actionable finalization result naming the missing proof and pointing to `adv_change_status_repair`.\n\n## User Outcomes\n\n- [ ] Squash-merged + branch-deleted changes finalize phase-9 and reach `release: done` on `phase9:\"run\"` without manual repair when shipped invariant holds\n- [ ] When reachability truly cannot be proven, phase-9 returns actionable guidance (missing proof named + `adv_change_status_repair` pointer), not a bare `phase9: \"pending\"`\n- [ ] Discovery will firm acceptance criteria and success criteria\n\n## Affected Code\n\n- `plugin/src/tools/archive-helpers/git-finalize.ts` — branch-deletion-safe reachability (persisted tip / patch-id / PR-merge metadata)\n- `plugin/src/tools/change/archive-gate.ts` — phase-9 result wiring / actionable pending message\n- `plugin/src/tools/archive-helpers/git-finalize.test.ts` — regression: squash-merged-and-deleted-branch scenario\n\n## Constraints\n\n- Never mark release done without positive reachability/merge evidence (do not weaken the shipped-invariant bar)\n- No new external dependency\n- No auto-delete/auto-create of branches as a detection side effect\n- Existing non-squash / fast-forward / live-branch paths unchanged and still covered\n\n## Impact\n\nFixes a false-negative in release finalization for the recommended squash-merge shipping pattern. No breaking API change; behavior only newly succeeds where it previously left work wedged.\n\n## Risks\n\n- Over-broad detection could falsely mark unshipped changes done — mitigated by structural (merge-base/patch-id/PR-merge) proof only\n- `gh`/network unavailability — must degrade to actionable pending, not a false positive\n\n## Validation Plan\n\n- Red: regression test reproducing squash-merged-and-deleted-branch → assert `release` reaches `done`\n- Red: branch-deleted + no reachability evidence → assert actionable pending result\n- Green: implement branch-deletion-safe reachability\n- Verify: full `git-finalize.test.ts` suite + affected archive tests; assert live-branch / ff / non-squash paths unchanged\n\n## Out of Scope\n\n- Worktree cleanup timeout on poisoned workflows (related follow-up)\n- Dangling-task-commit reachability audit (#109)\n",
+    "problemStatement": "When a change is shipped via PR mode and the release branch is squash-merged and deleted on the remote *before* `adv_change_archive phase9:\"run\"` executes, phase-9 git finalization cannot re-detect the merge. It returns `phase9: \"pending\"` and leaves the `release` gate `pending`, even though the shipped invariant is fully satisfied (fix present on default branch, CI green, archive bundle written, all six prior gates done).\n\n## Observed\n\npokeedge-web change `fixChartTooltipScroll`: PR #369 was squash-merged (`a97d129f`) and its branch deleted, then `adv_change_archive phase9:\"run\"` was run. Result: archive bundle written and change status moved to `archived`, but `release` gate stayed `pending` and phase9 reported `pending`. The fix was verified live on `main`. `adv_archive_repair action:\"cleanup_merged\"` found zero candidates (correctly, since branch already gone), and `adv_worktree_cleanup` timed out at 8s on a stuck/poisoned workflow.\n\n## Root-Cause Map (discovery investigation)\n\nThree release-reachability detection paths in `plugin/src/tools/archive-helpers/git-finalize.ts` rely on a live `change/{changeId}` git ref:\n\n| Function | Line | Relies on live ref? | Branch-deleted behavior |\n|---|---|---|---|\n| `verifyChangeBranchReachable` | 781 | yes — `git log {defaultBranch}..change/{id}` | status != 0 → `reachable: false` |\n| `verifyChangeBranchReachableFromOrigin` | 802 | yes — `git log origin/{defaultBranch}..change/{id}` | status != 0 → `reachable: false` |\n| `detectSquashMergeByTree` | 1190 | yes — `git rev-parse change/{id}^{tree}` | status != 0 → `reachable: false` |\n| `discoverMergedPr` | 1141 | **no** — `gh pr list --head change/{id}` (GitHub-side) | works if GitHub retains head association |\n| `readPrMergeState` (with prNumber) | 1092 | **no** — `gh pr view N` | works post-branch-deletion |\n\nThe dispatch path matters:\n\n- **`finalizeRelease` (worktreePath provided)**: requires `validateChangeWorktree` to pass — branch must be checked out in worktree. If branch deleted → blocks with `INVALID_WORKTREE`/`MAIN_BRANCH_MISMATCH`. No retry fallback.\n- **`verifyReleaseEvidenceFromMain` (no worktreePath, used for archived-bundle retries)**: when `phase9_status.status === \"pending_merge\"`, coerces to `pr_auto_merge` route and uses `phase9_status.prNumber` → `readPrMergeState` → MERGED → reachable. **This path can work IF prNumber was durably recorded.**\n- **Direct route + deleted branch + no prNumber**: `verifyChangeBranchReachableFromOrigin` fails → `discoverMergedPr` runs (GitHub-side, may work) → `detectSquashMergeByTree` fails (branch ref gone). If `discoverMergedPr` returns `NO_MERGED_PR_FOUND` (GitHub dropped head association), no remaining fallback.\n\n## Structural Gap\n\nNo path stores the **pre-archive change-tip SHA** and uses it as the reachability subject instead of the live `change/{id}` ref. Without that, detection depends on either:\n1. The branch ref surviving locally (breaks on deletion)\n2. The PR number being persisted in `phase9_status` (only set in pending_merge path, not in initial pending state)\n3. GitHub retaining the head branch association for `gh pr list --head` (not guaranteed)\n\nA patch-id / merge-base equivalence check against a persisted tip SHA would close the gap structurally.\n\n## Impact\n\nLeaves changes in a technically-not-fully-finalized release state that requires manual reasoning or `adv_change_status_repair`. Squash-merge + immediate branch deletion is a common, recommended shipping pattern, so this is not an edge case. False-negative only (never marks unshipped changes done); the cost is operational friction, not safety.\n",
+    "agreement": "## Objective\nMake phase-9 release finalization recognize an already-shipped change whose release branch was squash-merged and deleted before archive, so the `release` gate reaches `done` without manual repair when the real shipped invariant is satisfied.\n\n## Success Criteria\n- The change-tip SHA is captured at archive time (or recovered from existing checkpoint/task metadata) so reachability does not depend on a live `change/{id}` git ref.\n- Reachability detection survives branch deletion via structural proof: persisted tip + merge-base / patch-id / PR-merge metadata.\n- The shipped-invariant bar is preserved: never mark release done without positive reachability/merge evidence.\n\n## Acceptance Criteria\n\n### AC1 — Branch-deletion-safe reachability for direct route\nGiven a change whose `change/{id}` local ref no longer resolves (branch deleted) but a pre-archive tip SHA is known, when `resolveReleaseReachability` runs for the `direct` route, then it uses the persisted tip SHA to test reachability via merge-base and/or `git patch-id` equivalence against the default branch, and returns `reachable: true` with the matching merge/trunk commit OID when the change shipped.\n\n### AC2 — Branch-deletion-safe reachability for PR/squash-merge route\nGiven a change whose `change/{id}` ref is gone and `phase9_status.prNumber` is set, when `resolveReleaseReachability` runs, then `readPrMergeState` confirms MERGED and returns `reachable: true, proof: \"pr_merged\"` regardless of whether the local/remote branch ref still exists.\n\n### AC3 — Auto-discovery when prNumber missing\nGiven a change whose `change/{id}` ref is gone, `phase9_status.prNumber` is unset, but a merged PR exists for the (now-deleted) head, when `discoverMergedPr` runs, then it recovers the PR number via GitHub-side query and proceeds to AC2.\n\n### AC4 — Actionable pending when no proof possible\nGiven a change whose branch is deleted, no prNumber, no persisted tip, `discoverMergedPr` returns `NO_MERGED_PR_FOUND`, when phase-9 runs, then it emits a clear result naming the missing proof (no live ref, no PR evidence, no persisted tip) and points to `adv_change_status_repair`. It does NOT return a bare `phase9: \"pending\"`.\n\n### AC5 — No regression on existing paths\nExisting non-squash / fast-forward / live-branch / pending_merge finalization paths remain unchanged. The existing test suite for `git-finalize.test.ts`, `change.archive-phase9.test.ts`, and `gate.release-enforcement.test.ts` continues to pass without modification (new tests are additive).\n\n### AC6 — Regression coverage for the bug\nNew tests reproduce the squash-merged-and-deleted-branch scenario end-to-end through `verifyReleaseEvidenceFromMain` (the retry path used when `change.status === \"archived\"` + bundle exists) and assert `release` reaches `done` (or, for AC4, the actionable pending result).\n\n## Constraints\n- Do not weaken the shipped-invariant bar: never mark release done without positive reachability/merge evidence.\n- No new external dependency.\n- Keep worktree/branch safety intact; do not auto-delete or auto-create branches as a side effect of detection.\n- Persisted tip must come from a trusted source (worktree HEAD at archive time, or task checkpoint `expectedHeadSha`); never trust an attacker-controllable input.\n\n## Out of scope\n- Worktree cleanup timeout on poisoned workflows (separate concern; note as related follow-up).\n- Dangling-task-commit reachability audit (#109) — related but distinct.\n- Phase-9 behavior when the archive bundle itself is missing (separate recovery path).\n",
+    "design": "# Design: Fix phase9 squash-merge redetect\n\n> Validated by adv-researcher (high confidence, medium risk, **caution** verdict). Three adjustments incorporated (marked ✅ VAL below).\n\n## Goal\n\nMake phase-9 release finalization recognize a shipped change whose `change/{id}` git ref was deleted before `phase9:\"run\"`, by adding a **persisted-tip** reachability subject so detection no longer depends on a live branch ref.\n\n## Architecture\n\n### New persisted field: `phase9_status.changeTipSha`\n\nAdd an optional `changeTipSha: z.string().optional()` to `Phase9FinalizationStatusSchema` (`plugin/src/types/changes.ts:782`).\n\n- ✅ VAL (B): Captured at the **first pending `recordPhase9Status` call** (`plugin/src/tools/change.ts:2580`) — before `dispatchPhase9Finalization` — so retries always have it. Source: `git -C {worktreePath} rev-parse change/{changeId}` (the worktree HEAD on the ADV-verified change branch).\n- Trusted source per constraint C4: worktree is ADV-owned and on the verified branch; the SHA is content-addressed, not attacker-controllable.\n- ✅ VAL: Schema regen is **mandatory** — `Phase9FinalizationStatusSchema` is embedded in the public `ChangeSchema` registry entry (`plugin/src/schema-registry.ts:32`) AND the Temporal `Phase9StatusUpdated` signal payload (`plugin/src/types/signals.ts:446`). Planning task must include `pnpm run schemas:generate`.\n- Replay safe: optional field, backward-compatible with old `phase9_status` payloads. No `defineUpdate` poisoning risk (signal-only surface).\n\n### Reachability functions accept optional `changeTipSha`\n\nThree call sites threaded:\n\n1. `resolveReleaseReachability` — `ReleaseReachabilityInput` gains `changeTipSha?: string`.\n2. `verifyReleaseEvidenceFromMain` — passes `change.changeTipSha?.changeTipSha` through.\n3. `finalizeRelease` — captures and returns the tip in its outcome (so callers can persist it).\n\n### Branch-deletion-safe `detectSquashMergeByTree`\n\nCurrent: `git rev-parse change/{changeId}^{tree}` (line 1199) — fails on missing ref.\n\nChange: when `changeTipSha` provided, use `git rev-parse {changeTipSha}^{tree}`. If `changeTipSha` is missing AND the branch ref exists, fall back to current behavior. Single substitution at the rev-parse call; existing tree-SHA comparison logic unchanged.\n\nTree-SHA equivalence is the **primary** structural proof:\n- For a true squash-merge, the squashed trunk commit produces the same tree as the change tip (when the change branch had no further commits after the PR opened — the normal case).\n- This is heuristic, not merge-proof: a rebase under the PR produces a different tree. Patch-id covers that case (deferrable slice, see below).\n\n### Patch-id fallback (new helper) — DEFERRABLE SLICE\n\n✅ VAL: `git patch-id` defaults to **UNSTABLE** mode (non-deterministic across configs). Must use `--stable` flag.\n\nWhen tree-SHA fails AND `changeTipSha` provided, run:\n```\ngit diff-tree -p --no-merges --root {changeTipSha} | git patch-id --stable\ngit log -50 --format=%H --no-merges {defaultBranch} | while read sha; do git diff-tree -p --no-merges --root $sha | git patch-id --stable; done\n```\nCompare patch-ids. Match → reachable with matching trunk commit.\n\nBounded to 50 non-merge trunk commits; runs only after tree-SHA fails and only when tip provided. Validator flagged this as the **deferrable slice**: tree-SHA covers the common case; patch-id handles the rarer trunk-advanced-under-PR case. Planning should split into P1 (tree-SHA, must-ship) and P2 (patch-id, follow-up task).\n\n### Actionable pending result (AC4)\n\nWhen `verifyReleaseEvidenceFromMain` returns `blocked` with `CHANGE_BRANCH_NOT_REACHABLE` proof AND `changeTipSha` is unset AND no PR evidence available, the blocked result's `remediation` field gains a pointer to `adv_change_status_repair`. Existing `buildFailedPhase9Classification` already surfaces `blocked.remediation` — only the remediation string is enriched.\n\n## Data Flow\n\n```\nadv_change_archive(worktreePath, phase9:\"run\")\n  ├── tipSha = git -C {worktreePath} rev-parse change/{id}     [NEW: capture]\n  ├── recordPhase9Status({status:\"pending\", changeTipSha: tipSha})  [NEW field + first-pending capture]\n  └── dispatchPhase9Finalization(...)\n        └── verifyReleaseEvidenceFromMain({change, ...})\n              ├── route = coercePrWorkflowRoute(...) if pending_merge\n              └── resolveReleaseReachability({..., changeTipSha: change.phase9_status?.changeTipSha})\n                    ├── if route=direct + ancestry fails:\n                    │     ├── discoverMergedPr (GitHub-side, already branch-deletion-safe)\n                    │     ├── detectSquashMergeByTree({changeTipSha})  [MODIFIED: uses tip if provided]\n                    │     └── detectSquashMergeByPatchId({changeTipSha})  [P2 SLICE: --stable patch-id]\n                    └── if route=pr_auto_merge + prNumber:\n                          └── readPrMergeState (GitHub-side, already branch-deletion-safe)\n```\n\n## LBP Decisions\n\n- **Reuse existing tree-SHA comparison** in `detectSquashMergeByTree` rather than rewriting detection. Single-line substitution at the rev-parse call keeps the diff small and preserves existing tests.\n- **Add `changeTipSha` to `Phase9FinalizationStatus`** rather than a new persistence surface. The status object already projects through the Temporal workflow signal path and is read by `verifyReleaseEvidenceFromMain`. No new storage.\n- **Patch-id as P2 deferrable slice, not primary**. Tree-SHA covers the common squash-merge case. Patch-id handles the rarer trunk-advanced-under-PR case; validator confirmed it's deferrable. Must use `--stable` if/when implemented.\n- **Do not modify `verifyChangeBranchReachable`/`...FromOrigin`**. These are ancestry checks for the live-branch case. Their failure on a missing ref is the correct trigger to fall through to squash detection. Modifying them to use the tip would be semantic drift.\n- **No `gh`-dependency for the primary path**. Tree-SHA is pure git. The `gh` queries remain as they are — already branch-deletion-safe.\n\n## Files Affected\n\n- `plugin/src/types/changes.ts` — add `changeTipSha` to `Phase9FinalizationStatusSchema`\n- `plugin/src/tools/archive-helpers/git-finalize.ts`:\n  - `ReleaseReachabilityInput` gains `changeTipSha?: string`\n  - `resolveReleaseReachability` threads tip to detection functions\n  - `detectSquashMergeByTree` accepts optional tip; uses tip ref when provided\n  - (P2) New `detectSquashMergeByPatchId` helper with `--stable`\n  - `verifyReleaseEvidenceFromMain` threads `change.phase9_status?.changeTipSha`\n- `plugin/src/tools/change/archive-gate.ts`:\n  - `buildPendingMergePhase9Status` and `recordPhase9Status` callers pass `changeTipSha` through\n  - Blocked-result remediation enriched with `adv_change_status_repair` pointer when tip is missing\n- `plugin/src/tools/change.ts`:\n  - Archive dispatch captures `tipSha` and includes it in the FIRST `recordPhase9Status` call (the pending state at line 2580)\n- Schema regen: `pnpm run schemas:generate` (planning task)\n- Tests (additive):\n  - `plugin/src/tools/archive-helpers/git-finalize.test.ts` — branch-deleted scenarios for tree-SHA (and P2 patch-id)\n  - `plugin/src/tools/change.archive-phase9.test.ts` — end-to-end retry path with persisted tip\n\n## Implementation Strategy\n\n1. **Schema change** (optional field, backward-compatible) + `pnpm run schemas:generate`.\n2. **Capture and thread** — record tip at first pending dispatch, thread through to detection. No behavior change yet.\n3. **P1: Detection enhancement** — `detectSquashMergeByTree` uses tip when provided.\n4. **P1 Tests** — red phase: reproduce deleted-branch scenario; green: tip-based detection succeeds.\n5. **AC4 remediation enrichment**.\n6. **P2: Patch-id fallback** (separate task, deferrable).\n\n## Verification\n\n- TDD: red test reproducing the deleted-branch scenario first, then green.\n- Existing tests in `git-finalize.test.ts`, `change.archive-phase9.test.ts`, `gate.release-enforcement.test.ts` continue to pass unchanged.\n- Type check: `pnpm run typecheck` after schema edit; `pnpm run schemas:check` for drift.\n- `pnpm run check` (full pre-push gate) before planning-complete.\n\n## Risks & Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Patch-id scan slow on huge repos | Bounded to 50 non-merge commits; P2 slice; only runs after tree-SHA fails |\n| Tree-SHA heuristic misses rebase-under-PR case | P2 patch-id slice covers it; rare in practice |\n| False positive (different change with same tree) | Tree-SHA equivalence is structural; change-tip is content-addressed. Multiple unrelated changes with identical trees is not a realistic shipping scenario |\n| `changeTipSha` missing on legacy in-flight changes | Detection gracefully falls back to current behavior (live ref). No regression for changes archived before this fix lands |\n| Schema migration breaks old workflow state | Field is optional; old `phase9_status` payloads parse cleanly |\n| `git patch-id` non-deterministic | ✅ VAL: must use `--stable` flag (P2) |\n\n## Out of Scope\n\n- Worktree cleanup timeout on poisoned workflows (related follow-up)\n- Dangling-task-commit reachability audit (#109)\n- Phase-9 behavior when archive bundle itself is missing\n",
+    "executiveSummary": "# Executive Summary: Fix phase9 squash-merge redetect\n\n## Outcome\n\nPhase-9 release finalization now recognizes a shipped change whose `change/{id}` git branch was squash-merged and deleted before `adv_change_archive phase9:\"run\"` runs. The `release` gate reaches `done` without manual repair when the shipped invariant is satisfied.\n\n## Problem Solved\n\nPreviously, three release-reachability detection functions in `plugin/src/tools/archive-helpers/git-finalize.ts` relied on a live `change/{changeId}` git ref. When the branch was deleted (common after PR squash-merge), these functions returned `reachable: false` because `git rev-parse change/{id}^{tree}` and `git log origin/trunk..change/{id}` fail on missing refs. Phase-9 reported `pending` and left the `release` gate `pending`, requiring manual `adv_change_status_repair`.\n\nThis affected the recommended shipping pattern: squash-merge + immediate branch deletion. It was a false-negative (never marked unshipped changes done), but caused operational friction.\n\n## What Was Built\n\n1. **`Phase9FinalizationStatusSchema.changeTipSha`** — new optional field capturing the change-tip SHA at archive dispatch time. The tip is a content-addressed git object from the ADV-owned worktree on the verified `change/{id}` branch.\n\n2. **Branch-deletion-safe `detectSquashMergeByTree`** — when `changeTipSha` is provided, uses `git rev-parse {tip}^{tree}` instead of `change/{id}^{tree}`. The existing tree-SHA comparison logic (matching the tip's tree against recent trunk commit trees) is unchanged.\n\n3. **Tip capture at first pending dispatch** — `plugin/src/tools/change.ts` resolves `change/{id}` from the worktree via `execGit` at the first `recordPhase9Status({status: \"pending\"})` call, before any branch cleanup. Best-effort: failure logs a warning and leaves `changeTipSha` undefined (graceful fallback to pre-fix behavior).\n\n4. **Threading** — `changeTipSha` flows from `phase9_status` → `verifyReleaseEvidenceFromMain` → `resolveReleaseReachability` → `detectSquashMergeByTree`.\n\n5. **Actionable pending (AC4)** — when reachability cannot be established, the blocked-result remediation now includes a pointer to `adv_change_status_repair` for the squash-merged-and-deleted-branch recovery path.\n\n## What Was Verified\n\n- **124 tests pass** across 3 key test files (git-finalize 83, change.archive-phase9 31, gate.release-enforcement 10)\n- **3 new tests**: unit (branch-deleted + tip → tree-SHA detection), integration (tip threading end-to-end), AC4 (remediation pointer)\n- **Full pre-push gate**: `pnpm run check` passes (schemas:check, typecheck, lint, format:check)\n- **No regressions**: existing live-branch / fast-forward / pending_merge paths unchanged; all changes additive\n- **Independent verification**: all 5 implementation claims confirmed; false-positive risk bounded (tree collision rare; PR-state check runs first as a stronger proof)\n\n## Release Readiness\n\n- **Delivered value**: eliminates false-negative release-gate wedging for the recommended squash-merge shipping pattern\n- **Enabling-only/follow-up dependency**: none; P2 patch-id fallback deferred as backlog (tree-SHA covers the common case)\n- **Migration/data impact**: none; schema field is optional and backward-compatible\n- **Collision/release risk**: none; no new external dependencies, no API breaking changes\n- **Open follow-ups**: P2 patch-id fallback (separate change if needed); -50 commit window is a false-negative bound for old changes (not a correctness issue)\n\n## Contract Satisfaction\n\n| Contract | Status |\n|---|---|\n| SC1 (tip captured) | ✓ pass — field added, captured at dispatch, threaded to detection |\n| SC2 (branch-deletion-safe proof) | ✓ pass — tree-SHA uses tip when provided; 3 tests cover it |\n| SC3 (shipped-invariant bar) | ✓ pass — tree-SHA is positive structural proof; no false positives |\n| C1 (no weakened bar) | ✓ respected — blocked path still fails closed |\n| C2 (no new deps) | ✓ respected — only git CLI and existing utilities |\n| C3 (read-only detection) | ✓ respected — rev-parse and log only |\n| C4 (trusted tip source) | ✓ respected — ADV-owned worktree HEAD, content-addressed |\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-06T00:36:30Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | The change-tip SHA is captured at archive time (or recovered from existing checkpoint/task metadata) so reachability does not depend on a live `change/{id}` git ref. | pass | Phase9FinalizationStatusSchema.changeTipSha added (plugin/src/types/changes.ts:800-803). Captured at first pending recordPhase9Status call via execGit rev-parse change/{id} from worktreePath (plugin/src/tools/change.ts:2582-2596). Threaded through verifyReleaseEvidenceFromMain → resolveReleaseReachability → detectSquashMergeByTree. Integration test asserts threading (change.archive-phase9.test.ts: phase9 retry threads persisted changeTipSha). |\n| SC2 | success_criterion | Reachability detection survives branch deletion via structural proof: persisted tip + merge-base / patch-id / PR-merge metadata. | pass | detectSquashMergeByTree uses changeTipSha as tipRef when provided (git-finalize.ts:1215-1218: tipRef = deps.changeTipSha ?? change/{id}). RED test confirmed failure before GREEN, passes after. 3 new tests: unit (git-finalize.test.ts: deleted branch + changeTipSha), integration (change.archive-phase9.test.ts: threads changeTipSha), AC4 remediation pointer. Full suite: 124 tests pass. |\n| SC3 | success_criterion | The shipped-invariant bar is preserved: never mark release done without positive reachability/merge evidence. | pass | Tree-SHA equivalence is positive structural proof: change-tip is content-addressed, matching trunk tree requires identical content. No path marks release done without positive reachability evidence. Blocked path (verifyReleaseEvidenceFromMain:580-594) returns status:blocked with CHANGE_BRANCH_NOT_REACHABLE when no proof found. |\n| C1 | constraint | Do not weaken the shipped-invariant bar: never mark release done without positive reachability/merge evidence. | respected | Reachability detection unchanged for existing proof paths (local_merge, origin_default, pr_merged via gh). New tip-based tree-SHA adds a positive-proof path; does not weaken existing checks. Blocked path enriched with adv_change_status_repair pointer but still fails closed (status: blocked, no release gate completion). |\n| C2 | constraint | No new external dependency. | respected | No new npm dependencies. All detection uses git CLI (rev-parse, log) and existing gh queries. execGit from plugin/src/utils/git.ts (already imported in change.ts). pnpm-lock.yaml unchanged. |\n| C3 | constraint | Keep worktree/branch safety intact; do not auto-delete or auto-create branches as a side effect of detection. | respected | Detection is read-only: git rev-parse {tip}^{tree}, git log --format=%H %T -50 {defaultBranch}. No git branch, git push, git checkout, or git merge calls in the new code paths. Tip capture reads rev-parse only. |\n| C4 | constraint | Persisted tip must come from a trusted source (worktree HEAD at archive time, or task checkpoint `expectedHeadSha`); never trust an attacker-controllable input. | respected | Tip captured from ADV-owned worktree on verified change/{id} branch via execGit (plugin/src/tools/change.ts:2589). The worktree is validated by validateChangeWorktree in finalizeRelease. SHA is content-addressed git output, not user input. Not attacker-controllable. |\n| OOS1 | out_of_scope | Worktree cleanup timeout on poisoned workflows (separate concern; note as related follow-up). | missing |  |\n| OOS2 | out_of_scope | Dangling-task-commit reachability audit (#109) — related but distinct. | missing |  |\n| OOS3 | out_of_scope | Phase-9 behavior when the archive bundle itself is missing (separate recovery path). | missing |  |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-07-05T23:46:10.227Z",
+      "contentHash": "1a34a3443e4eed59629f123c48f16c6ef3177b55dff946b239209f1e0419ecf4",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-05T23:46:40.981Z",
+      "contentHash": "846265c2d2304238df8082e1b2296369a987335b7e08d73e4aaafb3d9c49ebc5",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-05T23:57:43.661Z",
+      "contentHash": "ba0e746da2f85dd9e51c87be2a891fb46fa14d8ca801687337618ee47a6912f1",
+      "source": "temporal",
+      "readable": false
+    },
+    "proposal": {
+      "updatedAt": "2026-07-05T23:35:34.967Z",
+      "contentHash": "bad6d3ac811a1cbbce3fb5c8498f22cf008bd7b9d9968a3322080da5d8c55ba8",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-06T00:39:04.566Z",
+      "contentHash": "4e6cd61841e16c136e3c2e7d4b4116ea09fd8b0e6aa5b5be102179ea603867a7",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-06T00:41:21.068Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
