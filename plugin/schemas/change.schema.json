@@ -2993,6 +2993,9 @@
         "autoMergeArmed": {
           "type": "boolean"
         },
+        "changeTipSha": {
+          "type": "string"
+        },
         "completedAt": {
           "type": "string"
         },

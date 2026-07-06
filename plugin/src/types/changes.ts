@@ -797,6 +797,10 @@ export const Phase9FinalizationStatusSchema = z.object({
       "blocked",
     ])
     .optional(),
+  // rq-fixPhase9SquashMergeRedetect SC1: change-tip SHA captured at archive
+  // dispatch time. Lets reachability detection survive branch deletion by
+  // using a content-addressed tip instead of the live change/{id} git ref.
+  changeTipSha: z.string().optional(),
 });
 
 export type Phase9FinalizationStatus = z.infer<
