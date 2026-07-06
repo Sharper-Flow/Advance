@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdir, rm, writeFile } from "fs/promises";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { spawnSync } from "child_process";
 import { createTempDir } from "../../__tests__/setup";
@@ -3586,3 +3586,90 @@ function defaultRunGit(cwd: string, args: string[]) {
     stderr: result.stderr ?? "",
   };
 }
+
+// Regression guards for rq-releaseFinalization02/03/04: ensure the auto-drive
+// change did not perturb any non-pending-PR archive path. These are static
+// checks (no live remote, no Temporal) since the existing parent-change tests
+// already exercise direct/no-remote/ff-only runtime paths.
+describe("auto-drive regression guards (rq-releaseFinalization02 / DONT1 / DONT3)", () => {
+  it("syncDefaultBranchAfterMerge is exported but not invoked internally by git-finalize helpers", () => {
+    // The helper must be exported (so command-layer callers can use it) but must
+    // NOT be auto-invoked by any other git-finalize helper — keep the only call
+    // site in the adv-archive.md Phase 9.5 orchestration. DONT3 / AC7.
+    const src = readFileSync(join(__dirname, "git-finalize.ts"), "utf8");
+    // Find any helper that calls syncDefaultBranchAfterMerge (other than its own
+    // declaration) — that would be an unintended internal dependency.
+    const lines = src.split("\n");
+    let declaredAt = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (/export function syncDefaultBranchAfterMerge/.test(lines[i])) {
+        declaredAt = i;
+        break;
+      }
+    }
+    expect(declaredAt).toBeGreaterThan(-1);
+
+    // Count call sites and exclude the declaration line + its immediate docblock
+    const callSites = lines
+      .map((line, idx) => ({ line, idx }))
+      .filter(
+        ({ idx, line }) =>
+          idx !== declaredAt &&
+          /syncDefaultBranchAfterMerge\s*\(/.test(line) &&
+          !/^\s*\*\s/.test(line), // skip JSDoc lines
+      );
+    expect(callSites).toEqual([]); // zero internal call sites
+  });
+
+  it("git-finalize.ts adds no new temporal/* imports beyond the existing CHANGE_BRANCH_PREFIX (AC7 layer-boundary)", () => {
+    // Reading the file confirms my edit retained only the pre-existing
+    // CHANGE_BRANCH_PREFIX import from temporal/contracts and added no other
+    // symbol that would break the worker-bundle boundary test.
+    const src = readFileSync(join(__dirname, "git-finalize.ts"), "utf8");
+    const temporalImportLines = src
+      .split("\n")
+      .filter((line) => /^import.*from.*temporal/.test(line));
+    // Exactly one temporal/* import — and it must reference CHANGE_BRANCH_PREFIX
+    // (the pre-existing allowed symbol).
+    expect(temporalImportLines).toHaveLength(1);
+    expect(temporalImportLines[0]).toContain("CHANGE_BRANCH_PREFIX");
+    expect(temporalImportLines[0]).toContain("/temporal/contracts");
+  });
+
+  it("git-finalize.ts does NOT reference Task-spawn or CI-wait APIs (AC7 + DONT4)", () => {
+    const src = readFileSync(join(__dirname, "git-finalize.ts"), "utf8");
+    // The helper is a pure runGit-injected function with no agent-orchestration
+    // surface. No task-spawn or CI-wait symbols must leak into the helper module.
+    expect(/task[A-Z_]/.test(src)).toBe(false);
+    expect(/ci-wait/i.test(src)).toBe(false);
+    expect(/spawnTask/i.test(src)).toBe(false);
+  });
+});
+
+// Regression guard for the command-side auto-drive: verify the new auto-drive
+// section in adv-archive.md does NOT route completion through redriveArchivedUnmergedBranch
+// (DONT3) — the correct completion path is verifyReleaseEvidenceFromMain.
+describe("adv-archive.md auto-drive (rq-releaseFinalization02 DONT3)", () => {
+  it("does not mention redriveArchivedUnmergedBranch in the new auto-drive section", () => {
+    // __dirname = <plugin>/src/tools/archive-helpers/. Repo root is 4 levels up.
+    const repoRoot = join(__dirname, "..", "..", "..", "..");
+    const cmdPath = join(repoRoot, ".opencode/command/adv-archive.md");
+    const content = readFileSync(cmdPath, "utf8");
+    // The new section (header marker) is `Phase 9.5: Auto-Drive Pending-PR Archive Completion`.
+    // Everything from that header until the next `### Step 9:` (excluded) is the auto-drive section.
+    const sectionStart = content.indexOf(
+      "Phase 9.5: Auto-Drive Pending-PR Archive Completion",
+    );
+    expect(sectionStart).toBeGreaterThan(-1);
+    const sectionEnd = content.indexOf("### Step 9:", sectionStart);
+    const section =
+      sectionEnd > -1
+        ? content.slice(sectionStart, sectionEnd)
+        : content.slice(sectionStart);
+    expect(section).not.toMatch(/redriveArchivedUnmergedBranch/);
+    // The section must reference the correct completion entry instead.
+    expect(section).toContain("verifyReleaseEvidenceFromMain");
+    // And the new helper it delegates to.
+    expect(section).toContain("syncDefaultBranchAfterMerge");
+  });
+});
