@@ -2584,7 +2584,10 @@ export const changeTools = {
             if (worktreePath) {
               try {
                 changeTipSha = (
-                  await execGit(["rev-parse", `change/${changeId}`], worktreePath)
+                  await execGit(
+                    ["rev-parse", `change/${changeId}`],
+                    worktreePath,
+                  )
                 ).trim();
                 if (!changeTipSha) changeTipSha = undefined;
               } catch (err) {
