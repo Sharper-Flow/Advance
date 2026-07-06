@@ -201,6 +201,23 @@ export function syncDefaultBranchAfterMerge(
     };
   }
 
+  // Step 1.5: structural guard — main checkout must be on the default branch
+  // before any merge. Prevents silent fast-forward of a feature branch.
+  const headBranchRaw = runGit(mainCheckout, [
+    "rev-parse",
+    "--abbrev-ref",
+    "HEAD",
+  ]);
+  const currentBranch = (headBranchRaw.stdout || "").trim();
+  if (headBranchRaw.status !== 0 || currentBranch !== defaultBranch) {
+    return {
+      status: "blocked",
+      reason: "MAIN_NOT_ON_DEFAULT",
+      remediation: `Main checkout HEAD is on branch ${currentBranch}, expected ${defaultBranch}. Restore main to ${defaultBranch} (commit or stash any work, then \`git switch ${defaultBranch}\`) and retry archive.`,
+      details: [`HEAD=${currentBranch}`],
+    };
+  }
+
   // Step 2: compute divergence via two bounded rev-list --count calls.
   // ahead  = local-only commits (local {default} ahead of origin/{default})
   // behind = origin/{default} ahead of local {default}
@@ -214,8 +231,18 @@ export function syncDefaultBranchAfterMerge(
     "--count",
     `${defaultBranch}..${defaultRef}`,
   ]);
-  const ahead = Number((aheadRaw.stdout || "0").trim()) || 0;
-  const behind = Number((behindRaw.stdout || "0").trim()) || 0;
+  const aheadCount = parseRevListCount(aheadRaw);
+  const behindCount = parseRevListCount(behindRaw);
+  if (!aheadCount.ok || !behindCount.ok) {
+    return {
+      status: "blocked",
+      reason: "REV_LIST_FAILED",
+      remediation: `rev-list failed for ${defaultRef}..${defaultBranch} (or ${defaultBranch}..${defaultRef}). Inspect the default branch exists locally and on origin, then re-run archive.`,
+      details: splitLines(aheadRaw.stderr || aheadRaw.stdout),
+    };
+  }
+  const ahead = aheadCount.count;
+  const behind = behindCount.count;
 
   // Step 3: diverge -> surface, do NOT merge or reset.
   if (ahead > 0) {
@@ -487,6 +514,15 @@ function runGitOrThrow(
     );
   }
   return result.stdout.trim();
+}
+
+function parseRevListCount(
+  raw: RunGitResult,
+): { ok: true; count: number } | { ok: false } {
+  if (raw.status !== 0) return { ok: false };
+  const trimmed = (raw.stdout || "").trim();
+  if (!/^\d+$/.test(trimmed)) return { ok: false };
+  return { ok: true, count: Number(trimmed) };
 }
 
 function splitLines(value: string): string[] {

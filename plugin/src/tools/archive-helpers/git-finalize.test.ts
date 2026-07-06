@@ -3094,6 +3094,34 @@ describe("git-finalize helpers", () => {
       expect(flat).not.toMatch(/\bpull(\s|$)/);
     });
 
+    it("merge path: does not mutate the working tree destructively", async () => {
+      const calls: string[][] = [];
+      const spyRunGit: typeof defaultRunGit = (cwd, args, timeoutMs) => {
+        calls.push(args);
+        return defaultRunGit(cwd, args, timeoutMs);
+      };
+
+      const { main } = await setupRepoWithOrigin("no-destructive-ops-merge", {
+        localAhead: 0,
+        originAhead: 1,
+      });
+
+      const result = syncDefaultBranchAfterMerge(
+        {
+          mainCheckout: main,
+          defaultBranch: "trunk",
+        },
+        { runGit: spyRunGit },
+      );
+      expect(result.status).toBe("synced");
+
+      const flat = calls.map((argv) => argv.join(" ")).join("\n");
+      expect(flat).not.toMatch(/\breset(\s|$)/);
+      expect(flat).not.toMatch(/\bcheckout(\s|$)/);
+      expect(flat).not.toMatch(/\bswitch(\s|$)/);
+      expect(flat).not.toMatch(/\bpull(\s|$)/);
+    });
+
     it("does not record release-done (rq-releaseFinalization03.3 closes validator ag-fJ57GzXO)", async () => {
       // Pure type-level contract: the outcome shape must have no `releaseDone` /
       // `recorded` field that could let the helper shortcut verifyReleaseEvidenceFromMain.
@@ -3118,6 +3146,98 @@ describe("git-finalize helpers", () => {
         ),
       ).toBe(true);
       expect(sample.status).toBe("synced");
+    });
+
+    describe("auto-drive regression guards", () => {
+      it("rev-list failure returns blocked REV_LIST_FAILED (ce-1)", async () => {
+        const { main } = await setupRepoWithOrigin("revlist-fail", {
+          localAhead: 0,
+          originAhead: 1,
+        });
+        const result = syncDefaultBranchAfterMerge(
+          { mainCheckout: main, defaultBranch: "trunk" },
+          {
+            runGit: (cwd, args) => {
+              if (args[0] === "fetch" && args[1] === "origin") {
+                return defaultRunGit(cwd, args);
+              }
+              if (
+                args[0] === "rev-parse" &&
+                args[1] === "--abbrev-ref" &&
+                args[2] === "HEAD"
+              ) {
+                return { status: 0, stdout: "trunk\n", stderr: "" };
+              }
+              if (args[0] === "rev-list" && args[1] === "--count") {
+                return {
+                  status: 128,
+                  stdout: "",
+                  stderr: `fatal: malformed revision '${args[2]}'\n`,
+                };
+              }
+              return defaultRunGit(cwd, args);
+            },
+          },
+        );
+        expect(result.status).toBe("blocked");
+        expect(result.reason).toBe("REV_LIST_FAILED");
+        expect(result.remediation).toContain("rev-list failed");
+      });
+
+      it("non-numeric rev-list count returns blocked REV_LIST_FAILED (ce-1)", async () => {
+        const { main } = await setupRepoWithOrigin("revlist-nan", {
+          localAhead: 0,
+          originAhead: 1,
+        });
+        let revListCount = 0;
+        const result = syncDefaultBranchAfterMerge(
+          { mainCheckout: main, defaultBranch: "trunk" },
+          {
+            runGit: (cwd, args) => {
+              if (args[0] === "fetch" && args[1] === "origin") {
+                return defaultRunGit(cwd, args);
+              }
+              if (
+                args[0] === "rev-parse" &&
+                args[1] === "--abbrev-ref" &&
+                args[2] === "HEAD"
+              ) {
+                return { status: 0, stdout: "trunk\n", stderr: "" };
+              }
+              if (args[0] === "rev-list" && args[1] === "--count") {
+                revListCount++;
+                const bad = revListCount === 1;
+                return {
+                  status: 0,
+                  stdout: bad ? "not-a-number\n" : "1\n",
+                  stderr: "",
+                };
+              }
+              return defaultRunGit(cwd, args);
+            },
+          },
+        );
+        expect(result.status).toBe("blocked");
+        expect(result.reason).toBe("REV_LIST_FAILED");
+      });
+
+      it("HEAD on wrong branch returns blocked MAIN_NOT_ON_DEFAULT (ce-2)", async () => {
+        const { main } = await setupRepoWithOrigin("head-wrong-branch", {
+          localAhead: 0,
+          originAhead: 1,
+        });
+        git(main, ["checkout", "-b", "feature"]);
+        const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
+        const result = syncDefaultBranchAfterMerge({
+          mainCheckout: main,
+          defaultBranch: "trunk",
+        });
+        const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
+        expect(result.status).toBe("blocked");
+        expect(result.reason).toBe("MAIN_NOT_ON_DEFAULT");
+        expect(result.details).toContain("HEAD=feature");
+        expect(afterHead).toBe(beforeHead);
+      });
     });
   });
 
