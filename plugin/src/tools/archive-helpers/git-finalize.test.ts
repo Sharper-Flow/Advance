@@ -574,6 +574,74 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  // rq-fixPhase9SquashMergeRedetect AC1: branch-deleted + persisted tip must
+  // detect squash-merge via tree-SHA equivalence. RED until
+  // detectSquashMergeByTree threads changeTipSha.
+  it("direct route + deleted branch + changeTipSha provided detects squash-merge via tree-SHA", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixPhase9SquashMergeRedetect",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+        changeTipSha: "tip123abc",
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              // trunk ref present; change/{id} ref absent (branch deleted)
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (args[0] === "rev-parse") {
+            const ref = args[1] ?? "";
+            // Persisted tip resolves (content-addressed SHA survives deletion)
+            if (ref === "tip123abc^{tree}") {
+              return { status: 0, stdout: "tip-tree-sha\n", stderr: "" };
+            }
+            // Live change/{id} ref is gone
+            if (ref.includes("change/fixPhase9SquashMergeRedetect")) {
+              return { status: 128, stdout: "", stderr: "unknown revision" };
+            }
+            // HEAD and other rev-parse calls succeed
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          }
+          if (args[0] === "log") {
+            const argStr = args.join(" ");
+            // Reachability range query (origin/trunk..change/{id}) — ref missing
+            if (argStr.includes("..")) {
+              return { status: 128, stdout: "", stderr: "unknown revision" };
+            }
+            // Trunk commit scan (--format=%H %T -50 trunk) — succeeds with
+            // one commit whose tree matches the persisted tip's tree
+            if (argStr.includes("--format=%H %T")) {
+              return {
+                status: 0,
+                stdout: "squash456 squash-tree-sha\n",
+                stderr: "",
+              };
+            }
+            return { status: 1, stdout: "", stderr: "unexpected log" };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: () => ({
+          // No PR evidence — forces tree-SHA fallback
+          status: 0,
+          stdout: "[]",
+          stderr: "",
+        }),
+      },
+    );
+
+    expect(result.reachable).toBe(true);
+    expect(result.proof).toBe("pr_merged");
+    expect(result.mergeCommitOid).toBe("squash456");
+  });
+
   it("direct route + no prNumber tries auto-discovery then returns origin_unmerged", () => {
     let ghCalled = false;
     const result = resolveReleaseReachability(

@@ -151,6 +151,11 @@ export interface ReleaseReachabilityInput {
   changeId: string;
   route?: FinalizationRoute;
   prNumber?: number;
+  // rq-fixPhase9SquashMergeRedetect SC1: persisted change-tip SHA captured at
+  // archive dispatch time. When provided, detection uses this content-addressed
+  // tip instead of the live change/{id} git ref so reachability survives
+  // branch deletion (squash-merge + branch cleanup before phase9:"run").
+  changeTipSha?: string;
 }
 
 export type ReleaseReachabilityProof =
