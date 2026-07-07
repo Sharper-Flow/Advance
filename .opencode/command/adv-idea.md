@@ -2,11 +2,12 @@
 name: adv-idea
 description: "Explore rough ideas before drafting a proposal"
 ---
-<!-- manifest: adv-idea · requiresChangeId: false · scope: reads[specs, codebase] -->
+
+<!-- manifest: adv-idea · gate: · requiresChangeId: false · scope: reads[specs, codebase, sub-agent output] -->
 
 # ADV Idea — Collaborative Ideation Before Proposal
 
-Shape a vague idea into a proposal-ready problem statement. Fully collaborative. Read-only with respect to ADV state.
+Shape a vague idea into a proposal-ready summary. Fully collaborative. Read-only with respect to ADV state.
 
 <UserRequest>
   $ARGUMENTS
@@ -14,84 +15,90 @@ Shape a vague idea into a proposal-ready problem statement. Fully collaborative.
 
 ## Command Boundary
 
-**Produces:** clearer idea framing, constraints, open questions, and a proposal-ready summary when the idea becomes crisp enough.
+**Produces:** one proposal-ready summary — clearer framing, constraints, open questions, sizing assessment, and a recommended exit path.
 
-**× MUST NOT:** create change, create tasks, complete gates, or make implementation commitments.
+**Reads:** specs, codebase, and sub-agent output.
+
+**Creates nothing.** Does not mutate ADV state.
+
+**× MUST NOT:** create change, create tasks, complete gates, or silently commit to implementation design. This command does not call `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly.
 
 **Gate:** None.
 
-## Boundary vs Nearby Commands
+## Exit Paths
 
-- `/adv-idea` — use before change exists.
-- `/adv-proposal` — use once the problem statement is clear enough to create durable ADV artifacts.
-- `/adv-clarify` — use when change already exists and requirements inside that change need clarification.
+| Exit                    | Condition                                                                 |
+| ----------------------- | --------------------------------------------------------------------------- |
+| ✅ one-change → `/adv-proposal` | Idea is focused enough to fit a single change                             |
+| ✅ initiative → `/adv-epic`     | Idea is initiative-sized (see Phase 4) and should be routed to `/adv-epic` |
+| 🔄 iterate              | Useful progress, but key questions remain                                   |
+| 🛑 stop                 | User chooses not to pursue the idea right now                               |
 
-## Exits
+## Phase 0: Embedded Methodology
 
-| Exit | Condition |
-|------|-----------|
-| ✅ Ready for proposal | Idea is clear enough to hand off to `/adv-proposal` |
-| 🔄 Keep exploring | Useful progress made, but key questions remain |
-| 🛑 Stop here | User decides not to pursue idea right now |
+Sub-agent resilience follows the canonical retry + fallback chain in `adv-research.md:111-135`. If a dispatched sub-agent returns empty, failed, or inconclusive: retry once with the same prompt; if the retry also fails, fall back to inline research using Context7 for official docs, `exa_web_search_exa` for community guidance and current best practices, and `searchcode_code_search` for real-world implementation patterns. Emit findings with the same `VALIDATION:` / `RECOMMENDATION:` structure and never skip a research question.
 
 ---
 
-## Phase 1: Frame Starting Point
+## Phase 1: Frame
 
 1. Restate the idea in one sentence.
-2. Extract any stated goal, user, pain, constraint, rejected direction, and unknown.
-3. If user already has a crisp problem statement, say so and recommend `/adv-proposal` instead of forcing an ideation loop.
+2. Capture the topic, target outcome, and explicit avoidances.
+3. Surface assumptions, constraints, and unknowns before moving on.
 
-## Phase 2: Ideation Loop
+## Phase 2: Explore
 
-Use `question` tool only.
+Dispatch a Task-tool subagent for codebase or ecosystem context:
 
-- Ask 1-2 questions per turn.
-- Prefer open-ended questions.
-- Use Socratic prompts when helpful: clarification, assumptions, alternatives, implications, success signal.
-- Summarize back what changed before asking the next question.
-- Pull in targeted local or external research only when it will reduce uncertainty materially.
+- Use the `task` tool with `subagent_type: general` for mixed or unclear topics.
+- Use `subagent_type: explore` when the idea is mostly about code structure, hotspots, or existing patterns.
 
-Good prompts:
-- "What problem would this solve if it worked well?"
-- "Who feels this pain first?"
-- "What outcome would make this worth doing?"
-- "What should this definitely not turn into?"
+The subagent should return relevant context, not a final decision. Apply the resilience protocol from Phase 0 if the result is empty or failed.
 
-## Phase 3: Convergence Check
+## Phase 3: Synthesize
 
-The idea is ready for `/adv-proposal` when all are true:
+Invoke `adv-researcher` to validate the idea against architecture, patterns, simplicity, and security dimensions. Carry `validation.status` through to the summary:
 
-- problem is concrete enough to restate clearly
-- intended outcome is specific enough to measure
-- obvious out-of-scope or avoidances are named
-- remaining unknowns can move into discovery instead of blocking proposal
+- `pass` — findings support the idea as stated
+- `caution` — idea is viable but carries noted risks or tradeoffs
+- `fail` — findings contradict the idea or surface a blocker
+- `unknown` — not enough evidence; mark as a research gap
 
-If not ready, keep the loop collaborative. Do not fabricate certainty.
+Summarize sourced findings, alternatives considered, and any spec-law implications.
 
-## Phase 4: Proposal-Ready Summary
+## Phase 4: Size
 
-When ready, emit:
+Apply an any-of initiative-sizing consensus test. The idea is initiative-sized if **any** of the following are true:
 
-- Problem statement
-- Desired outcome
-- Constraints / avoidances
-- Open questions to carry into discovery
-- Suggested next command: `/adv-proposal`
+- ≥3 sub-problems
+- ≥3 distinct regions of the codebase or product surface
+- >1 repo touched
 
-If not ready, emit:
+If initiative-sized, recommend `/adv-epic` as the exit path. Otherwise, treat it as a one-change idea and recommend `/adv-proposal`.
 
-- Current idea framing
-- What is still unclear
-- 1-3 concrete next questions
+## Phase 5: Exit
+
+Propose exactly one of the four exit paths:
+
+- **one-change → `/adv-proposal`** — focused enough for a single change
+- **initiative → `/adv-epic`** — initiative-sized; Epic-sized work should route to `/adv-epic`
+- **iterate** — keep exploring; list the next 1–3 concrete questions
+- **stop** — user chooses not to pursue
+
+The exit is a handoff recommendation only. `/adv-idea` does not create changes, tasks, gates, or Epics directly.
 
 ## Output
 
+Emit a compact summary:
 
+- Restated idea
+- Key constraints / avoidances
+- Sourced findings and `validation.status`
+- Sizing assessment with the consensus test result
+- Recommended exit path and next command
 
 ## Anti-Patterns
 
-- × jumping straight to implementation design
-- × creating ADV artifacts before the idea is clear enough
-- × asking rapid-fire closed questions
-- × pretending uncertainty is resolved when it is not
+- × no sub-agent dispatch — skipping Phase 2 and synthesizing without codebase or ecosystem context
+- × silent state mutation — Phase 5 exits that invoke `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly
+- × opaque scope decisions — Phase 4 sizing without surfacing the ≥3 sub-problems / ≥3 distinct regions / >1 repo touched consensus test
