@@ -3,6 +3,8 @@ import { LRUCache } from "lru-cache";
 export interface ProbeCacheFreshness {
   cached_at: string;
   stale: boolean;
+  age_ms: number;
+  ttl_ms: number;
   error?: string;
 }
 
@@ -117,7 +119,8 @@ export function createProbeCache<T, K extends string = string>(
         );
       }
 
-      const stale = Date.now() - entry.cachedAtMs >= ttlMs;
+      const ageMs = Math.max(0, Date.now() - entry.cachedAtMs);
+      const stale = ageMs >= ttlMs;
       const lastError =
         lastErrorByKey.get(key) ??
         (stale && signal.aborted ? errorMessage(signal.reason) : undefined);
@@ -126,6 +129,8 @@ export function createProbeCache<T, K extends string = string>(
         freshness: {
           cached_at: entry.cached_at,
           stale,
+          age_ms: ageMs,
+          ttl_ms: ttlMs,
           ...(stale && lastError ? { error: lastError } : {}),
         },
       };

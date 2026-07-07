@@ -4,6 +4,16 @@ import { createProbeCache } from "./probe-cache";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function expectFreshnessShape(
+  freshness: { cached_at: string; stale: boolean; age_ms?: number; ttl_ms?: number },
+  ttlMs: number,
+) {
+  expect(freshness.cached_at).toEqual(expect.any(String));
+  expect(freshness.age_ms).toEqual(expect.any(Number));
+  expect(freshness.age_ms).toBeGreaterThanOrEqual(0);
+  expect(freshness.ttl_ms).toBe(ttlMs);
+}
+
 describe("createProbeCache", () => {
   test("coalesces concurrent fetches for the same key", async () => {
     let calls = 0;
@@ -26,6 +36,9 @@ describe("createProbeCache", () => {
     expect(results.every((result) => result.freshness.stale === false)).toBe(
       true,
     );
+    for (const result of results) {
+      expectFreshnessShape(result.freshness, 1_000);
+    }
   });
 
   test("refreshes after TTL expiry", async () => {
@@ -68,6 +81,7 @@ describe("createProbeCache", () => {
 
     expect(result.value).toBe(1);
     expect(result.freshness.stale).toBe(true);
+    expectFreshnessShape(result.freshness, 5);
     expect(result.freshness.error).toContain("aborted");
   });
 
@@ -89,6 +103,7 @@ describe("createProbeCache", () => {
 
     expect(result.value).toBe(7);
     expect(result.freshness.stale).toBe(true);
+    expectFreshnessShape(result.freshness, 5);
     expect(result.freshness.error).toContain("probe exploded");
   });
 
