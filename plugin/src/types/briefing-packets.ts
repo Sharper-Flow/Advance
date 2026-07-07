@@ -22,6 +22,7 @@ export const BriefingPacketLaneSchema = z.enum([
   "reviewer",
   "scanner",
   "verifier",
+  "visual_review",
   "archive",
 ]);
 
@@ -37,6 +38,7 @@ export const BRIEFING_PACKET_LANE_TO_AGENT: Record<
   reviewer: "adv-reviewer",
   scanner: "adv-scanner-bundle",
   verifier: "adv-verification-triage-bundle",
+  visual_review: "adv-visual-review",
 };
 
 export const BriefingFactOutcomeSchema = z.enum([

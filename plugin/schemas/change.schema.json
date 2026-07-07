@@ -4566,7 +4566,7 @@
                       },
                       "scope_key": {
                         "minLength": 1,
-                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
+                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier|visual-review):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
                         "type": "string"
                       }
                     },
@@ -4889,7 +4889,7 @@
                       },
                       "scope_key": {
                         "minLength": 1,
-                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
+                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier|visual-review):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
                         "type": "string"
                       }
                     },
@@ -5100,7 +5100,7 @@
                       },
                       "scope_key": {
                         "minLength": 1,
-                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
+                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier|visual-review):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
                         "type": "string"
                       }
                     },
@@ -5284,7 +5284,7 @@
                       },
                       "scope_key": {
                         "minLength": 1,
-                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
+                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier|visual-review):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
                         "type": "string"
                       }
                     },
@@ -5488,7 +5488,7 @@
                       },
                       "scope_key": {
                         "minLength": 1,
-                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
+                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier|visual-review):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
                         "type": "string"
                       }
                     },
@@ -5668,6 +5668,158 @@
                   "recommended_next_action",
                   "scope_risk",
                   "required_main_agent_actions",
+                  "follow_ups"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "agent": {
+                    "const": "adv-visual-review",
+                    "type": "string"
+                  },
+                  "anomalies": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "attempt": {
+                    "maximum": 9007199254740991,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "blockers": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "change_id": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "confidence": {
+                    "enum": [
+                      "high",
+                      "medium",
+                      "low"
+                    ],
+                    "type": "string"
+                  },
+                  "confidence_reason": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "consumer_warnings": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "enum": [
+                            "verification_mismatch",
+                            "verification_missing",
+                            "consumer_failure",
+                            "design_concern_promoted"
+                          ],
+                          "type": "string"
+                        },
+                        "message": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "message"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "description": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "elements": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "follow_ups": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "image": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "schema_version": {
+                    "const": "1.0",
+                    "type": "string"
+                  },
+                  "scope": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "change",
+                        "type": "string"
+                      },
+                      "scope_key": {
+                        "minLength": 1,
+                        "pattern": "^(?:(researcher|tron|scanner-bundle|verifier|visual-review):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "scope_key"
+                    ],
+                    "type": "object"
+                  },
+                  "suggested_follow_up": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "text_found": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "workdir_used": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "schema_version",
+                  "change_id",
+                  "attempt",
+                  "workdir_used",
+                  "scope",
+                  "agent",
+                  "image",
+                  "description",
+                  "text_found",
+                  "elements",
+                  "anomalies",
+                  "confidence",
+                  "confidence_reason",
+                  "suggested_follow_up",
+                  "blockers",
                   "follow_ups"
                 ],
                 "type": "object"

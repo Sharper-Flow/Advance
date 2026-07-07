@@ -25,6 +25,7 @@ describe("Briefing packet type foundations", () => {
       "reviewer",
       "scanner",
       "verifier",
+      "visual_review",
       "archive",
     ]);
   });
@@ -37,6 +38,7 @@ describe("Briefing packet type foundations", () => {
       reviewer: "adv-reviewer",
       scanner: "adv-scanner-bundle",
       verifier: "adv-verification-triage-bundle",
+      visual_review: "adv-visual-review",
     });
 
     for (const agent of Object.values(BRIEFING_PACKET_LANE_TO_AGENT)) {
