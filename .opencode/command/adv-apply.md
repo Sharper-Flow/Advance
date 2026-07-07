@@ -457,11 +457,11 @@ If sub-agent succeeds → run incremental verification → if passes → mark do
 
 **If `inline_required`:** Proceed with standard TDD flow.
 
-Emit routing summary: `tk-{id} → {inline|adv-engineer|adv-designer|general (verify-burst)} ({reason})`
+Emit routing summary: `tk-{id} → {inline|adv-engineer|adv-designer|adv-verifier (verify-burst)|general unavailable-runtime fallback} ({reason})`
 
 #### Verify-Burst Delegation
 
-Task-level delegation (above) covers _implementation_ of a single task. Separately, heavy _verification_ bursts — full lint, project-wide typecheck, broad test suites — are good candidates for isolation in a `general` subagent even during inline task work. Purpose: keep the main agent's context clean of long, noisy verify output, and isolate timeout risk from hangs.
+Task-level delegation (above) covers _implementation_ of a single task. Separately, heavy _verification_ bursts — full lint, project-wide typecheck, broad test suites — are good candidates for isolation in an `adv-verifier` subagent even during inline task work. Purpose: keep the main agent's context clean of long, noisy verify output, and isolate timeout risk from hangs. Use `general` unavailable-runtime fallback only if `adv-verifier` cannot be spawned.
 
 **When to delegate a verify burst:**
 
@@ -476,7 +476,7 @@ Task-level delegation (above) covers _implementation_ of a single task. Separate
 - Quick lint or test on a single file
 - Verify step where output is already expected to be short
 
-**Verification Triage Packet** (`subagent_type: "general"`):
+**Verification Triage Packet** (`subagent_type: "adv-verifier"`; `general` unavailable-runtime fallback only):
 
 ```
 WORKING DIRECTORY: {workdir}

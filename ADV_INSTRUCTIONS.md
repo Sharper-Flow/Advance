@@ -829,7 +829,7 @@ For `/adv-arch-scan`, run stack-pack tools, Context7, and Exa inline; do not spa
 
 Context-Shed Test = all four true + floor met (~5 files OR ~50 lines): decided HOW, HOW does not feed downstream decisions, AC defined, mechanical implementation. Unsure → `inline_required`. After delegation, P23 campsite scan touched scope.
 
-ADV code-writing → `adv-engineer` (not `general`). Verify-burst/non-ADV → `general`.
+ADV code-writing → `adv-engineer` (not `general`). Verify-burst → `adv-verifier` (`general` fallback only if unavailable). Generic non-ADV ops → `general`.
 
 ### Orchestrator-Session Operational Routing
 
@@ -841,7 +841,7 @@ This table is session-level operational routing, distinct from task-level Step 4
 | repo structure / dependency map / same-pattern scan | `explore` or `adv-tron` |
 | DB/log/status/usage audit | `general` |
 | GitHub CI / check-run / status investigation | `general` |
-| repeated verify/test bursts | `general` |
+| repeated verify/test bursts | `adv-verifier` |
 | code edits after task scope known | `adv-engineer` |
 | frontend/component edits | `adv-designer` |
 | docs/source research first-pass | `general`; use `adv-researcher` when sourced architecture authority is needed |
@@ -876,7 +876,7 @@ After each phase, `adv_change_update` records compact summaries. Do not duplicat
 
 ### Agent Tiers
 
-Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-temporal-repair`, `adv-visual-review`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`. Only `mode: subagent` agents spawn via Task.
+Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-temporal-repair`, `adv-visual-review`; repo-local `adv-tron`, `adv-verifier`. Skill/inline only: `prioritizer` via `skill("prioritizer")`. Only `mode: subagent` agents spawn via Task.
 
 ### Agent Roster
 
@@ -889,7 +889,8 @@ Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explo
 | `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis/remediation; submits typed report. Reviewer packet carries `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes                                                  |
 | `adv-temporal-repair` | Temporal/workflow/session-pointer/target-path/artifact-phantom triage; packet anchors include WORKING DIRECTORY, CHANGE if known, TARGET_PATH, SYMPTOM, RECENT_TOOL_ERROR, ATTEMPT, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, VERIFICATION; returns classification + primary-ADV next actions |
 | `adv-visual-review`  | Image analysis (screenshots, UI captures) for text-only model orchestrators                                                                                                                                            |
-| `general`            | Verify bursts + generic multi-step work                                                                                                                                                                                |
+| `adv-verifier`       | Verify-only bursts and structured local verification triage; returns strict Verification Triage Result JSON; no edits or ADV mutation                                                                                  |
+| `general`            | Generic multi-step work and unavailable-runtime fallback for verify bursts                                                                                                                                              |
 | `adv-tron`       | Recon + hotspots (repo-local)                                                                                                                                                                                           |
 
 `adv-tron` repo-local. `adv-researcher` / `adv-engineer` / `adv-reviewer` / `adv-designer` bundled global via `scripts/deploy-local.sh`. Research pattern: `adv-researcher` covers docs/API/examples + architecture in a single spawn. Apply routing: `metadata.frontend == "true"` → `adv-designer` (Priority 1.5 in `/adv-apply` delegation routing table; `metadata.delegation_hint` at Priority 1 remains explicit user override).

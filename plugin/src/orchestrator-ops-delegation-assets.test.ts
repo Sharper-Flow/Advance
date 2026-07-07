@@ -57,6 +57,7 @@ describe("orchestrator operational delegation assets", () => {
     expectIncludes(section, "check-run", "adv.md section");
     expectIncludes(section, "verification triage", "adv.md section");
     expectIncludes(section, "second", "adv.md section");
+    expectIncludes(section, "adv-verifier", "adv.md section");
     expectIncludes(section, "general", "adv.md section");
 
     expect(
@@ -76,6 +77,9 @@ describe("orchestrator operational delegation assets", () => {
     );
     expect(content).toMatch(
       /\|\s*GitHub CI \/ check-run \/ status investigation\s*\|\s*`general`\s*\|/,
+    );
+    expect(content).toMatch(
+      /\|\s*repeated verify\/test bursts\s*\|\s*`adv-verifier`\s*\|/,
     );
     expect(content).toContain("structured verification triage");
     expect(content).toContain("before a second primary digest cycle");
@@ -129,6 +133,8 @@ describe("orchestrator operational delegation assets", () => {
       "Do not edit files",
       "Do not call adv_subagent_report_submit",
       "Do not complete gates",
+      'subagent_type: "adv-verifier"',
+      "general unavailable-runtime fallback",
     ]) {
       expectIncludes(content, anchor, "adv-apply verification triage");
     }
@@ -152,6 +158,8 @@ describe("orchestrator operational delegation assets", () => {
     expect(requirement?.body).toContain("GitHub CI");
     expect(requirement?.body).toContain("structured verification triage");
     expect(requirement?.body).toContain("local verification bursts");
+    expect(requirement?.body).toContain("adv-verifier");
+    expect(requirement?.body).toContain("general fallback");
     expect(requirement?.body).toContain("CI/check-run failures");
     expect(requirement?.body).toContain("before a second primary digest cycle");
     expect(requirement?.body).toContain("no second");

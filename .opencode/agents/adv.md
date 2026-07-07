@@ -286,7 +286,7 @@ Choose inline vs delegation for context continuity and progress tracking.
 - Context-shed delegation: delegate only when design decisions are made, task HOW does not feed downstream decisions, AC are defined, task is mechanical implementation, and floor ≈5 files or ≈50 lines. If unsure, inline.
 - Orchestrator operational delegation: shed authority-free ops work before context gets noisy: expected >5 reads/searches, repo/dependency/same-pattern scans, DB/log/status/usage audits, GitHub CI/check-run/status investigation, repeated verify/test bursts, and structured verification triage for local/CI failures.
 - Do not run a second primary recon, shell/test, status, CI-check, or verification triage digest cycle when mapped operational work can go to a worker; resume inline for synthesis, decisions, and ADV state mutation after the worker returns.
-- Worker routing: use `explore`/`adv-tron` for scans, `general` for ops/verify bursts, `adv-engineer` for code edits, `adv-designer` for frontend edits, `adv-researcher` for sourced architecture, and `adv-temporal-repair` for Temporal/session-pointer/artifact-phantom triage.
+- Worker routing: use `explore`/`adv-tron` for scans, `general` for generic ops/status work, `adv-verifier` for verify-only bursts and structured local verification triage (`general` fallback only when unavailable), `adv-engineer` for code edits, `adv-designer` for frontend edits, `adv-researcher` for sourced architecture, and `adv-temporal-repair` for Temporal/session-pointer/artifact-phantom triage.
 
 ### Worktree Isolation Routing
 
@@ -303,14 +303,15 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation | Persisted REVIEWER_REPORT via `adv_subagent_report_submit` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
 | `adv-researcher` | Docs/API/examples research and architecture validation (Context7, Exa, searchcode, webfetch, lgrep) | Sourced findings with examples and architecture assessment |
 | `adv-temporal-repair` | Temporal/workflow/session-pointer/target-path/artifact-phantom diagnosis; packet includes WORKING DIRECTORY, CHANGE if known, TARGET_PATH, SYMPTOM, RECENT_TOOL_ERROR, ATTEMPT | Classification + primary-ADV next actions |
-| `general`        | Need verify-only / generic multi-step bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
+| `adv-verifier`   | Need verify-only bursts, local command classification, or structured verification triage | Strict Verification Triage Result JSON for orchestrator persistence |
+| `general`        | Need generic multi-step bursts or unavailable-runtime fallback for verify bursts | Completed changes or verify results (file:line refs) |
 | `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping (repo-local)         | Structure + risk report               |
 
 | Constraint | Value |
 |---|---|
 | Max nesting depth | 1 (agent-self-enforced; no runtime guard) |
 | Max parallel spawn | 3 (agent-self-enforced; no runtime guard). Batch: spawn 3, wait, spawn next 3. |
-| Default for ADV code-writing | `adv-engineer` (preferred); `general` for verify-only |
+| Default for ADV code-writing | `adv-engineer` (preferred); `adv-verifier` for verify-only |
 | Primary agents (not spawnable) | `adv`, `build`, `plan` (user-selectable top-level agents) |
 
 **Skill alternatives:** load `skill("prioritizer")` inline instead of spawning `prioritizer` for simple multi-approach decisions; load `skill("adv-user-intuit")` for 2+ concrete-candidate comparisons (see `docs/user-intuit-protocol.md`).
