@@ -1,0 +1,1141 @@
+{
+  "id": "addStatusHealthProbeTtl",
+  "title": "Add status health probe TTL",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-07T14:57:51.259Z",
+  "tasks": [
+    {
+      "id": "tk-21dcdbe44979",
+      "title": "Update rq-statusProbeCache01 for status health freshness contract",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-07T15:24:33.586Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T15:27:47.505Z",
+      "verification": "Spec-law task verified with adv_run_test tr_mrat3ee0_81d1267e: pnpm exec vitest run src/deploy-local.test.ts -t \"advance-meta spec captures\" passed. Earlier broad single-file command timed out; narrowed to the relevant asset assertion per retry narrowing.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        "plugin/src/deploy-local.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        "plugin/src/deploy-local.test.ts"
+      ],
+      "checkpointSha": "f8cc3a737c6521348dbafc5414d27f1e000b042f",
+      "completedAt": "2026-07-07T15:31:11.961Z",
+      "completed_at": "2026-07-07T15:31:11.961Z"
+    },
+    {
+      "id": "tk-6618cbfc327f",
+      "title": "Extend ProbeCacheFreshness with age_ms and ttl_ms",
+      "type": "code",
+      "section": "Probe cache core",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-07T15:24:51.586Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4",
+          "SC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T15:31:38.665Z",
+      "verification": "RED tr_mrat4p03_e12c4b99 failed as expected for missing age_ms/ttl_ms; GREEN tr_mrat55fs_03a5869c passed pnpm exec vitest run src/tools/probe-cache.test.ts. Implemented central age_ms/ttl_ms freshness fields in createProbeCache.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/probe-cache.test.ts",
+        "plugin/src/tools/probe-cache.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/probe-cache.test.ts",
+        "plugin/src/tools/probe-cache.ts"
+      ],
+      "checkpointSha": "f86b3bf07b8c4f2a7c9caa7f7c9276f0637a45a2",
+      "completedAt": "2026-07-07T15:32:33.246Z",
+      "completed_at": "2026-07-07T15:32:33.246Z"
+    },
+    {
+      "id": "tk-8e143a01e075",
+      "title": "Add adv_status forceRefresh threading for advisory health probes",
+      "type": "code",
+      "section": "Status force refresh",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-07T15:25:06.083Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6618cbfc327f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC7",
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T15:33:37.225Z",
+      "verification": "RED tr_mrat70d0_be4e86b1 failed on forceRefresh cache bypass call count; GREEN tr_mrat7zy6_771ce05e passed pnpm exec vitest run src/tools/status.test.ts -t \"forceRefresh|probe freshness\". Implemented adv_status forceRefresh arg and advisory status probe threading.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "8762347de1775cbcdf8787b7f95e446b7c7bfe27",
+      "completedAt": "2026-07-07T15:34:46.024Z",
+      "completed_at": "2026-07-07T15:34:46.024Z"
+    },
+    {
+      "id": "tk-7186a69332c4",
+      "title": "Guard summary lightness and stale-safety authority boundaries",
+      "type": "code",
+      "section": "Safety and summary guards",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-07T15:25:20.145Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6618cbfc327f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8e143a01e075"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC5",
+          "SC3"
+        ],
+        "verifies": [
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C5",
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T15:35:30.511Z",
+      "verification": "GREEN tr_mrata01e_e17c74a5 passed targeted summary and temporal-ops safety guard tests. Added regression coverage for summary forceRefresh remaining lightweight and stale/fresh serviceability proof boundaries. No production code changes were required beyond previous forceRefresh implementation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/temporal-ops.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/temporal-ops.test.ts"
+      ],
+      "checkpointSha": "4c71fa24abb2f60af66e74075aa97b754f42f4d4",
+      "completedAt": "2026-07-07T15:36:18.914Z",
+      "completed_at": "2026-07-07T15:36:18.914Z"
+    },
+    {
+      "id": "tk-8d9eb8abd51c",
+      "title": "Run targeted validation for status health probe TTL contract",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-07T15:25:34.106Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-21dcdbe44979"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6618cbfc327f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8e143a01e075"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7186a69332c4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T15:36:45.113Z",
+      "verification": "HARDEN formatting remediation: initial smoke tr_mratqxxl_ec2397fb failed only prettier format check for src/tools/probe-cache.test.ts. Ran pnpm exec prettier --write src/tools/probe-cache.test.ts, then smoke tr_mrattvo3_87e83688 passed (schemas:check, typecheck, test isolation, lockfile policy, lint, format:check, and 57 smoke tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/probe-cache.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/probe-cache.test.ts"
+      ],
+      "checkpointSha": "e980e241731d9b0d79735ad8534759708d92a69f",
+      "completedAt": "2026-07-07T15:51:50.262Z",
+      "completed_at": "2026-07-07T15:51:50.262Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addStatusHealthProbeTtl",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Leverage scout for status health probe TTL + forceRefresh design",
+      "sources": [
+        {
+          "label": "probe-cache.ts",
+          "locator": "plugin/src/tools/probe-cache.ts:3-33,94-132",
+          "summary": "ProbeCacheFreshness has only cached_at/stale/error (no age_ms/ttl_ms). forceRefresh already fully plumbed through fetch() into LRU fetchMethod. ttlMs and cachedAtMs already computed centrally (line 62,120)."
+        },
+        {
+          "label": "backlog.ts + roadmap.ts freshness",
+          "locator": "plugin/src/tools/backlog.ts:189-206,391,440-448 ; roadmap.ts:170-215",
+          "summary": "Existing age_ms/ttl_ms freshness contract + forceRefresh arg + refresh_reason pattern already shipped for the roadmap/backlog probe. Reusable naming + shape precedent."
+        },
+        {
+          "label": "temporal-ops.ts safety pattern",
+          "locator": "plugin/src/tools/temporal-ops.ts:157-164,270-290",
+          "summary": "isRestartServiceabilityVerified refuses stale for safety-critical restart proof (serviceable && !stale). Already forces forceRefresh:true in the verification wait loop. Canonical non-stale-authority pattern to preserve."
+        },
+        {
+          "label": "status-view.ts",
+          "locator": "plugin/src/tools/status-view.ts:40-119,209-241",
+          "summary": "buildStatusViewPlan already gates providers per view; health view already surfaces _freshness (line 211); summary view already omits detailed probes. Design only needs to enrich existing _freshness, not add new plumbing."
+        },
+        {
+          "label": "status.ts probeFreshness assembly + args",
+          "locator": "plugin/src/tools/status.ts:204-214,258-303,735",
+          "summary": "adv_status args = view + scope only (no forceRefresh yet). probeFreshness map already assembled per-probe and attached as _freshness. Threading forceRefresh is a localized addition."
+        },
+        {
+          "label": "spec advance-meta rq-statusProbeCache01",
+          "locator": "advance-meta rq-statusProbeCache01.1/.2/.3",
+          "summary": "Spec already mandates _freshness with cached_at/stale/optional error and stale-diagnostic-only safety. age_ms/ttl_ms + forceRefresh are additive extensions requiring a spec body update, not a new requirement."
+        }
+      ],
+      "architecture_assessment": "The draft design substantially overstates net-new work. forceRefresh already exists end-to-end in createProbeCache.fetch (probe-cache.ts:30,100) — no new cache plumbing is required; the only gap is (a) adding age_ms/ttl_ms to ProbeCacheFreshness computed centrally (ttlMs + cachedAtMs are already in scope at line 62/120), (b) adding an optional forceRefresh arg to adv_status and threading it into the ~5 fetchStatus* wrappers, and (c) a spec body update. The age_ms/ttl_ms naming and forceRefresh+refresh_reason shape already have a shipped precedent in backlog.ts/roadmap.ts — reuse it verbatim for cross-surface consistency. The safety boundary the draft calls out is already structurally enforced by isRestartServiceabilityVerified (serviceable && !stale) in temporal-ops.ts, which is a separate uncached verification path and must NOT consume the advisory status _freshness — the design should assert this boundary is unchanged rather than re-implement it. Summary lightness is already guaranteed by buildStatusViewPlan; no extra guard needed beyond a regression test.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is sound and low-risk because it rides existing, tested infrastructure. Recommend narrowing the design narrative to reflect that forceRefresh cache plumbing already exists, reuse backlog/roadmap freshness naming, and add an explicit test asserting temporal-ops non-stale verification does not regress to consuming status _freshness."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Central age_ms/ttl_ms in ProbeCacheFreshness benefits every probe consumer uniformly but slightly widens a shared type — existing consumers (temporal-ops, status) tolerate additive optional-ish fields.",
+          "Reusing backlog/roadmap freshness naming (age_ms/ttl_ms/refresh_reason) gains cross-surface consistency at the cost of coupling two independently-evolving freshness vocabularies by convention only (no shared type).",
+          "forceRefresh on adv_status adds a diagnostic escape hatch but must be explicitly barred from authorizing safety-critical mutations, keeping the stale-diagnostic-only invariant."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Add age_ms/ttl_ms per-callsite in status.ts instead of centrally in createProbeCache",
+            "disposition": "rejected",
+            "rationale": "Duplicates Date.now()-cachedAtMs math already done in probe-cache.ts:120; central computation is DRY and covers temporal-ops reuse for free."
+          },
+          {
+            "option": "Introduce a new forceRefresh plumbing layer",
+            "disposition": "rejected",
+            "rationale": "createProbeCache.fetch already accepts { forceRefresh } (probe-cache.ts:30,100) and LRU forceRefresh works (proven by temporal-ops restart wait loop). No new layer needed."
+          },
+          {
+            "option": "Invent new freshness field names for status",
+            "disposition": "rejected",
+            "rationale": "backlog.ts/roadmap.ts already ship age_ms/ttl_ms/refresh_reason; reuse for agent-facing consistency."
+          },
+          {
+            "option": "Re-derive stale-safety guard inside status probe path",
+            "disposition": "rejected",
+            "rationale": "isRestartServiceabilityVerified in temporal-ops.ts is the single non-stale authority; status _freshness stays advisory. Preserve, don't duplicate."
+          }
+        ],
+        "recommendation": "Proceed. Rescope design doc to: (1) extend ProbeCacheFreshness with age_ms/ttl_ms computed centrally in createProbeCache; (2) add optional forceRefresh to adv_status args and thread into existing fetchStatus* wrappers via the already-present cache option; (3) reuse backlog/roadmap freshness naming; (4) add a regression test asserting temporal-ops non-stale verification is unaffected and summary view stays light. Drop any task implying new forceRefresh cache infrastructure."
+      },
+      "recommendation": "Auto-adopt central age_ms/ttl_ms and reuse of existing forceRefresh plumbing + backlog naming; surface to orchestrator the design-narrative correction that forceRefresh cache work is already done.",
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addStatusHealthProbeTtl",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: status health probe TTL (age_ms/ttl_ms + status-facing forceRefresh)",
+      "sources": [
+        {
+          "label": "advance-meta spec rq-statusProbeCache01 (Bounded Cached Health Probes)",
+          "locator": "adv_spec show advance-meta rq-statusProbeCache01",
+          "summary": "Requires _freshness (cached_at, stale, optional error); coalesced probes; stale data diagnostic-only and must not authorize safety-critical mutations (restart/reclaim/override/unlock/archive). Design D1/D4/D5 align; adding age_ms/ttl_ms is an additive superset."
+        },
+        {
+          "label": "plugin/src/tools/probe-cache.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/probe-cache.ts:59-137",
+          "summary": "createProbeCache already computes cached_at/stale/error centrally at cache boundary and already threads {forceRefresh} into cache.fetch (line 100). D1 (central age_ms/ttl_ms) and D2 forceRefresh plumbing are minimal additive extensions to existing code, not new architecture."
+        },
+        {
+          "label": "plugin/src/tools/status-view.ts buildStatusViewPlan + applyStatusView",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/status-view.ts:40-268",
+          "summary": "Summary view projection emits only temporal_health_ok boolean and worktree_count; _freshness is projected ONLY in health view (line 211). D3/AC3 structurally satisfied by existing projection — summary cannot leak detailed _freshness."
+        },
+        {
+          "label": "plugin/src/tools/temporal-ops.ts isRestartServiceabilityVerified",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/temporal-ops.ts:157-164,655",
+          "summary": "Guard is (status===serviceable && !stale), consumed at restart gate line 655. D4 preserves this stale-safety boundary; AC5/DONT stale-safety guard is intact and independent of adv_status freshness enrichment."
+        },
+        {
+          "label": "lru-cache FetchOptions docs (Context7 /isaacs/node-lru-cache)",
+          "locator": "https://github.com/isaacs/node-lru-cache/blob/main/_autodocs/types.md",
+          "summary": "forceRefresh:boolean forces re-fetch even if cached and not stale. allowStaleOnFetchAbort/allowStaleOnFetchRejection return stale on bounded abort/rejection. Confirms D2 claim: forceRefresh:true refreshes (AC2) while preserving stale-on-timeout fallback (AC4)."
+        }
+      ],
+      "architecture_assessment": "Design is additive over an already-correct probe-cache architecture. All four key anchors verified in source: (1) createProbeCache centrally derives freshness at the cache boundary and already threads forceRefresh; (2) buildStatusViewPlan selects advisory probes per view; (3) applyStatusView projects _freshness only in health view, guaranteeing summary lightness structurally; (4) isRestartServiceabilityVerified enforces serviceable && !stale for safety-critical restart. Adding age_ms/ttl_ms to ProbeCacheFreshness and a public adv_status.forceRefresh confined to view-plan-selected advisory caches does not touch status load, change/task/gate reads, contract state, archive decisions, mutation readiness, Temporal replay surface, or spec/tool boundaries. lru-cache forceRefresh + stale-on-abort/rejection semantics are documented and already configured (allowStale/allowStaleOnFetchAbort/allowStaleOnFetchRejection/ignoreFetchAbort). Naming reuse (age_ms/ttl_ms) matches backlog/roadmap freshness precedent. Updating rq-statusProbeCache01 in place (D5) rather than minting a new requirement is correct: the new fields are a superset of the same requirement's freshness contract.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "One non-blocking clarity note: summary view plan has temporalHealth:true, so adv_status forceRefresh on the default summary view WILL force-refresh the temporal_health probe. This is consistent with AC2 (forceRefresh refreshes selected advisory probes) and does not violate AC3 (summary projection still emits only temporal_health_ok, no _freshness). Recommend implementation tests explicitly cover forceRefresh on summary to lock the lightweight-projection invariant. No correctness-state or safety-critical caching is introduced; DONT/C constraints respected."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Exposing a public forceRefresh on adv_status adds an operator-facing knob and a small test-surface obligation to keep it advisory-only and view-plan-scoped.",
+          "Enriching ProbeCacheFreshness centrally couples every probe consumer to the new age_ms/ttl_ms fields, but this is desirable superset behavior and matches existing backlog/roadmap freshness naming.",
+          "Amending rq-statusProbeCache01 in place keeps one requirement authoritative but requires regenerating/validating scenarios so age_ms/ttl_ms and status-facing forceRefresh are covered."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Separate dedicated freshness cache layer for status",
+            "disposition": "rejected",
+            "rationale": "Duplicates the existing createProbeCache boundary; violates simplicity/LBP and the C1 no-unrelated-refactor constraint. Central enrichment reuses proven code."
+          },
+          {
+            "option": "No public forceRefresh (internal-only refresh)",
+            "disposition": "rejected",
+            "rationale": "Fails AC2 which requires operators to force a refresh via forceRefresh:true. lru-cache already supports the option, so exposing it is the minimal path."
+          },
+          {
+            "option": "Emit full detailed _freshness in the summary view",
+            "disposition": "rejected",
+            "rationale": "Violates AC3/D3 lightweight-summary requirement; applyStatusView already correctly restricts _freshness to the health view."
+          },
+          {
+            "option": "Mint a new requirement instead of amending rq-statusProbeCache01",
+            "disposition": "rejected",
+            "rationale": "The new age_ms/ttl_ms/forceRefresh behavior is a superset of the same freshness contract; a second requirement would fragment the law (AC6 explicitly asks to update rq-statusProbeCache01)."
+          }
+        ],
+        "recommendation": "Proceed with the design as written. During implementation, add explicit tests that (a) forceRefresh:true on the summary view force-refreshes temporal_health while the summary projection still omits _freshness, and (b) age_ms/ttl_ms appear only in health-view _freshness, to lock the diagnostic-only + lightweight-summary invariants."
+      },
+      "recommendation": "Design PASSES validation. It is an additive, boring extension over the existing probe-cache architecture with no spec-law contradiction: rq-statusProbeCache01 is amended (not duplicated), the stale-safety guard isRestartServiceabilityVerified is preserved, summary lightness is structurally enforced by applyStatusView, and lru-cache forceRefresh/stale-on-abort semantics are documented and already configured. No simpler viable alternative exists that still satisfies AC2's operator-facing forceRefresh. Proceed to planning; only add targeted tests for forceRefresh-on-summary and age_ms/ttl_ms placement.",
+      "follow_ups": [
+        "Implementation: add test asserting adv_status forceRefresh on summary view force-refreshes temporal_health yet still omits _freshness (guards AC3+AC2 interaction).",
+        "Spec: run schemas/spec validation after amending rq-statusProbeCache01 so new scenarios (age_ms, ttl_ms, status-facing forceRefresh, diagnostic-only stale) are covered (AC6)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addStatusHealthProbeTtl",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addStatusHealthProbeTtl",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/probe-cache.ts",
+          "line": 122,
+          "what": "Probe freshness is computed structurally with non-negative age_ms, explicit ttl_ms, stale detection, and stale-error propagation.",
+          "why": "Directly satisfies rq-statusProbeCache01 freshness semantics while keeping cached data advisory."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/status-view.ts",
+          "line": 177,
+          "what": "Summary projection omits detailed _freshness and health diagnostics while health view preserves raw diagnostics.",
+          "why": "Matches lightweight summary constraint and keeps existing health consumers supported."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/probe-cache.test.ts src/tools/status.test.ts src/tools/temporal-ops.test.ts src/deploy-local.test.ts src/adv-stability-docs-assets.test.ts",
+          "pnpm run schemas:check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite passed: 5 files, 138 tests. schemas:check completed successfully via tsx scripts/generate-json-schemas.ts --check."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addStatusHealthProbeTtl",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addStatusHealthProbeTtl",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "Path preflight for all affected files",
+          "Source review of .adv/specs/advance-meta/spec.json, plugin/src/tools/probe-cache.ts, plugin/src/tools/status-health.ts, plugin/src/tools/status.ts, plugin/src/tools/probe-cache.test.ts, plugin/src/tools/status.test.ts, plugin/src/tools/temporal-ops.test.ts, plugin/src/deploy-local.test.ts",
+          "git status --short",
+          "bin/oc-test targeted -- src/tools/probe-cache.test.ts src/tools/status.test.ts src/tools/temporal-ops.test.ts src/deploy-local.test.ts src/adv-stability-docs-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for 8 affected files. Source review found probe freshness metadata (cached_at/stale/age_ms/ttl_ms/error), forceRefresh scoped to selected status probes, summary projection without detailed _freshness payload, stale serviceability rejected for restart proof, and spec/test coverage for rq-statusProbeCache01. Targeted verification passed: 5 test files, 138 tests. git status --short produced no output after verification. First task-scoped submission using TASK: release-hardening was rejected because that task anchor does not exist; persisted as independent harden release summary per tool guidance."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live deployed plugin behavior caveat remains: source/test verification is green in this worktree, but OpenCode live tool behavior requires build/deploy/restart before runtime validation due plugin dist/session caching.",
+        "Merge compatibility dry-run was known passed before final formatting commit; orchestrator noted rerun if needed."
+      ],
+      "required_main_agent_actions": [
+        "For release, preserve caveat that live ADV tool behavior cannot be proven in current cached OpenCode process until plugin is built, deployed, and session/plugin host restarted.",
+        "If final release path requires freshest merge proof, rerun merge-compatibility dry-run after the latest formatting commit as noted in the context packet."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-07T15:03:50.737Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via Tier A approval reply: \"approve\", then invoked adv-discover command content for addStatusHealthProbeTtl.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "7de34f6cdcfd82ec026a0ab42e661d2323e100900271e0cb0e6ea5e8bf453c70",
+        "non_whitespace_chars": 5429,
+        "checked_at": "2026-07-07T14:57:51.395Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-07T15:15:51.967Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings recorded in proposal; agreement.md persisted; criteria approved by user reply `approve`; ChangeContract minted with 25 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "non_whitespace_chars": 5582,
+        "checked_at": "2026-07-07T14:57:51.396Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-07T15:23:34.881Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design.md recorded; leverage scout and independent adv-researcher validation both passed; no contract-compromise risk or user-value tradeoff requiring pause.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "0666795383f23ede035745f311a0122641335aaf897807054af5c4abf7ae4aa1",
+        "non_whitespace_chars": 7296,
+        "checked_at": "2026-07-07T14:57:51.397Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-07T15:26:57.994Z",
+      "completed_by": "agent",
+      "approval_evidence": "User invoked adv-apply for addStatusHealthProbeTtl after planning task graph was presented; command-as-approval counts as explicit prep approval. Task graph contains 5 tasks with contract refs and dependencies."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-07T15:38:10.933Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 planned tasks done. Verification evidence: tr_mratb3pw_ea9a391b targeted suite passed (5 files, 138 tests); tr_mratb9g8_1a4d8063 schemas:check passed. Checkpoint clean at 4c71fa24abb2f60af66e74075aa97b754f42f4d4."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-07T15:44:22.993Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved acceptance via reply `approve` after acceptance summary, reviewer READY verdict, 25/25 contract matrix rows passed/respected, and executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ce7e1f73e3ca8e8191573b5877a71df64b8e06b77b0bf820e5518412bc673fee",
+        "non_whitespace_chars": 3551,
+        "checked_at": "2026-07-07T14:57:51.398Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+      "approvedAt": "2026-07-07T15:00:00.000Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Repeated `adv_status` health checks avoid redundant advisory probe work within bounded TTL windows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Operators can see cache freshness without parsing timestamps: `cached_at`, `stale`, `age_ms`, `ttl_ms`, optional `error`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Stale cached diagnostics remain diagnostic-only and never authorize recovery, release, archive, gate, task, or change correctness decisions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_status view:\"health\"` returns `_freshness` for each executed status health probe with `cached_at`, `stale`, `age_ms`, `ttl_ms`, and optional `error`; `age_ms >= 0`, `ttl_ms > 0`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_status",
+          "spec:rq-statusProbeCache01"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Two `adv_status view:\"health\"` calls within TTL reuse advisory probe cache entries, while `forceRefresh:true` attempts fresh advisory probe fetches despite existing fresh cache.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_status"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Default `adv_status view:\"summary\"` remains lightweight: no detailed `_freshness`, no queue-serviceability/search-attribute/snapshot-health/worktree-census diagnostic payloads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_status"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "If a health probe refresh fails or times out after last-known-good data exists, returned data is marked `stale:true` with an error summary and remains advisory only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-statusProbeCache01"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Stale cached health/serviceability data cannot prove worker restart success, lock reclaim safety, override/unlock/archive readiness, gate completion, task truth, or change lifecycle truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-statusProbeCache01"
+        ]
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`advance-meta` `rq-statusProbeCache01` is updated or validated to cover force-refresh plus age/TTL freshness semantics with Given/When/Then scenarios.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-statusProbeCache01"
+        ]
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Existing raw health detail in `view:\"health\"` remains present for legacy consumers where the selected view plan executes that probe.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_status"
+        ]
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "ADV/Temporal state remains source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Implementation must use the `change/addStatusHealthProbeTtl` worktree for mutations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Source tests may validate code in-session; live deployed ADV tool behavior requires rebuild, deploy-local sync, and OpenCode/plugin-host restart.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Criteria must remain design-independent: implementation may choose helper shape, metadata enrichment location, and test seams during design.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Stale cached diagnostics are advisory-only even when they are recent enough to return from cache.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not cache correctness-critical ADV state such as tasks, gates, change lifecycle, acceptance/release evidence, or archive eligibility.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not weaken Temporal replay safety, typed tool boundaries, or spec-law checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not hide unhealthy states beyond the bounded TTL window without explicit stale/freshness metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not authorize safety-critical mutations from stale cached diagnostics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not broaden into unrelated status/dashboard refactors or OCA-specific work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Caching change, gate, task, contract, archive, or release truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Making stale cached health data sufficient proof for worker-lock reclaim, restart success, overrides, unlocks, archive decisions, or gate completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Broad status/dashboard refactors not needed to satisfy health-probe TTL outcome.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "OCA-specific work and unrelated cleanup not tied to health-probe performance or correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Changing target-project mutation readiness behavior except to prove it remains independent from advisory status cache data.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-07T15:43:16.520Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mratb3pw_ea9a391b targeted suite passed; status tests cover within-TTL reuse and forceRefresh advisory refresh behavior."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrat55fs_03a5869c probe-cache tests passed; ProbeCacheFreshness includes cached_at, stale, age_ms, ttl_ms, optional error."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer report addStatusHealthProbeTtl|change:review:acceptance|adv-reviewer|1 READY; temporal-ops tests enforce stale data cannot prove safety-critical serviceability."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrat55fs_03a5869c and tr_mratb3pw_ea9a391b passed; freshness metadata assertions cover cached_at, stale, age_ms, ttl_ms, optional error shape."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrat7zy6_771ce05e and tr_mratb3pw_ea9a391b passed; forceRefresh status tests prove cache bypass attempt while normal calls reuse cache."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrata01e_e17c74a5 and tr_mratb3pw_ea9a391b passed; summary tests assert no detailed _freshness or detailed diagnostic payloads."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrat55fs_03a5869c probe-cache tests passed; stale fallback/error metadata behavior covered in shared cache tests."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrata01e_e17c74a5 temporal-ops safety guard tests passed; stale serviceability proof rejected and fresh proof accepted."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec-law task tk-21dcdbe44979 updated rq-statusProbeCache01; tr_mrat3ee0_81d1267e and tr_mratb3pw_ea9a391b asset tests passed."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrat7zy6_771ce05e status tests passed; health view keeps existing raw temporal health details while adding freshness metadata."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY report found no correctness-critical ADV/Temporal state caching; changes limited to advisory status probes, spec, and tests."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All file mutations occurred in ADV worktree /home/jon/.local/share/opencode/worktree/.../change/addStatusHealthProbeTtl; task checkpoints recorded branch change/addStatusHealthProbeTtl."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Live deployed ADV behavior not claimed; verification uses source tests in-session. Rebuild/deploy/restart remains release note if live tool validation is needed."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation selected central ProbeCacheFreshness enrichment and existing forceRefresh plumbing per approved design; no agreement boundary changes."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrata01e_e17c74a5 and tr_mratb3pw_ea9a391b passed stale-safety tests; stale diagnostics remain advisory-only."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY; no change/task/gate/contract/archive/release truth caching added."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "tr_mratb9g8_1a4d8063 schemas:check passed; no Temporal workflow or typed tool boundary weakening reported by review."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Freshness output includes age_ms/ttl_ms/stale/error; stale state is explicit instead of hidden beyond TTL."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "temporal-ops tests in tr_mrata01e_e17c74a5 prove stale diagnostics do not authorize safety-critical serviceability."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Affected files limited to status health probe cache/status/spec/tests; reviewer found no unrelated dashboard or OCA refactor."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No caching added for change, gate, task, contract, archive, or release truth."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Safety proof remains independent; stale health cache rejected for restart/serviceability proof in temporal-ops tests."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broad status/dashboard refactor; changes localized to probe cache/status health/status tests/spec."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No OCA-specific code or unrelated cleanup included."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Target-project mutation readiness behavior unchanged; review found advisory status cache remains independent from mutation authority."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_status view:\"health\"` returns `_freshness` for each executed status health probe with `cached_at`, `stale`, `age_ms`, `ttl_ms`, and optional `error`; `age_ms >= 0`, `ttl_ms > 0`.",
+    "Two `adv_status view:\"health\"` calls within TTL reuse advisory probe cache entries, while `forceRefresh:true` attempts fresh advisory probe fetches despite existing fresh cache.",
+    "Default `adv_status view:\"summary\"` remains lightweight: no detailed `_freshness`, no queue-serviceability/search-attribute/snapshot-health/worktree-census diagnostic payloads.",
+    "If a health probe refresh fails or times out after last-known-good data exists, returned data is marked `stale:true` with an error summary and remains advisory only.",
+    "Stale cached health/serviceability data cannot prove worker restart success, lock reclaim safety, override/unlock/archive readiness, gate completion, task truth, or change lifecycle truth.",
+    "`advance-meta` `rq-statusProbeCache01` is updated or validated to cover force-refresh plus age/TTL freshness semantics with Given/When/Then scenarios.",
+    "Existing raw health detail in `view:\"health\"` remains present for legacy consumers where the selected view plan executes that probe."
+  ],
+  "documents": {
+    "proposal": "# Add status health probe TTL\n\n## Why\n\nFrequent `adv_status` health views can pay repeated Temporal, task-queue, worker-diagnostic, search-attribute, snapshot-health, and worktree-census probe costs. ADV needs bounded TTL reuse for advisory health probes so status remains fast and less noisy, while correctness-critical ADV truth (changes, gates, tasks, archive/recovery authority) stays live and uncached by this optimization.\n\nThis work is linked to GitHub issue #107 and Epic `optimizeAdvPerformanceStructure` entry `Add status health probe TTL`.\n\n## What Changes\n\nValidate and complete bounded TTL caching for ADV status health probes. Existing source already shows a `createProbeCache` abstraction and status health probe caches in `plugin/src/tools/status-health.ts`; discovery should determine whether those implementations fully satisfy issue #107 and `rq-statusProbeCache01`, or whether gaps remain around coverage, force-refresh behavior, cache-age presentation, stale fallback semantics, tests, or non-cancellable underlying probes.\n\n## User Outcomes\n\n- Status/health output remains responsive during repeated agent/operator checks.\n- Operators can tell whether health details are fresh or cached/stale before acting on them.\n- ADV avoids redundant Temporal/worker probe noise on common status paths.\n- Safety-critical workflow state remains trustworthy and is not hidden behind advisory caches.\n\n## Scope\n\n### In Scope\n\n- Advisory health probes used by `adv_status`, especially Temporal health, task-queue serviceability, worker diagnostics, search-attribute health, snapshot health, and worktree census.\n- Freshness metadata surfaced with cached timestamp and stale/error signal where health probe cache data appears.\n- Tests proving cache hit/miss behavior, stale fallback behavior, and safety boundary behavior for cached probe output.\n- Spec-law alignment with `advance-meta` `rq-statusProbeCache01`; add or adjust spec law only if discovery finds the issue requires behavior not already covered.\n\n### Out of Scope\n\n- Caching change, gate, task, contract, archive, or release truth.\n- Making stale cached health data sufficient proof for worker-lock reclaim, restart success, overrides, unlocks, archive decisions, or gate completion.\n- Broad status/dashboard refactors not needed to satisfy this health-probe TTL outcome.\n- OCA-specific work and unrelated cleanup not tied to health-probe performance or correctness.\n\n### Must Not\n\n- Must not cache correctness-critical ADV state such as tasks, gates, change lifecycle, acceptance/release evidence, or archive eligibility.\n- Must not weaken Temporal replay safety, typed tool boundaries, or spec-law checks.\n- Must not hide unhealthy states beyond the bounded TTL window without explicit stale/freshness metadata.\n- Must not authorize safety-critical mutations from stale cached diagnostics.\n\n## Affected Code\n\n- `plugin/src/tools/status.ts` — status view orchestration and `_freshness` output.\n- `plugin/src/tools/status-health.ts` — health probe cache wiring and queue-serviceability computation.\n- `plugin/src/tools/probe-cache.ts` — reusable TTL/stale fallback abstraction.\n- `plugin/src/tools/status.test.ts`, `plugin/src/tools/probe-cache.test.ts`, and related Temporal diagnostics tests — cache and freshness coverage.\n- `.adv/specs/advance-meta` — existing spec law includes `rq-statusProbeCache01`; update only if discovery confirms a spec gap.\n\n## Related Repositories\n\n- Current repo only: `/home/jon/dev/advance`.\n\n## Constraints\n\n- ADV/Temporal state remains source of truth.\n- Implementation must use the `change/addStatusHealthProbeTtl` worktree for mutations.\n- Source edits to plugin tool behavior require source tests now; live tool behavior requires rebuild/deploy/restart before end-to-end validation in a fresh session.\n- Existing project wisdom notes that source tests can pass before live deployed plugin behavior changes.\n\n## Impact\n\nExpected impact is localized performance and reliability improvement for status/health diagnostics. The risky boundary is false confidence from cached/stale health data; that boundary must stay explicit and tested.\n\n## Context\n\nEpic reconnaissance identified performance-sensitive status/dashboard/Temporal visibility paths. Issue #107 specifically calls out repeated health probes in `adv_status` and asks for bounded TTL caching while preserving raw health detail in `view: health`.\n\nQuick checks found:\n\n- `status-health.ts` already defines `STATUS_PROBE_TTL_MS`, `statusTemporalHealthProbeCache`, `statusQueueServiceabilityProbeCache`, `statusSearchAttributesProbeCache`, `snapshotHealthProbeCache`, and `statusWorktreeCensusProbeCache`.\n- `probe-cache.ts` already supports `forceRefresh`, stale fallback, timeout signals, and freshness fields.\n- `adv_status view: \"health\"` currently returns `_freshness` entries for temporal health, queue serviceability, search attributes, worktree census, and snapshot health.\n- `advance-meta` already contains `rq-statusProbeCache01` for bounded cached health probes and diagnostic-only stale data.\n\n## Discovery Agenda\n\n- Determine whether issue #107 is already fully implemented by current source, partially implemented, or only present in undeployed/runtime-divergent code.\n- Verify whether a user/tool-level force-refresh control is required for `adv_status`, or whether internal probe-cache `forceRefresh` support is sufficient.\n- Verify whether “cached age” should remain derivable from `cached_at` or be surfaced as explicit `age_ms` / TTL metadata.\n- Confirm all underlying probes either forward `AbortSignal` to cancellable work or are explicitly bounded/classified per `rq-statusProbeCache01`.\n- Confirm tests cover cache hit/miss, stale fallback, freshness output, and safety boundaries that prevent cached data from authorizing critical mutations.\n- Decide whether `rq-statusProbeCache01` needs a spec amendment for force-refresh or explicit cache-age metadata.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n| --- | --- | --- |\n| Skill Discovery | PASS | Checked trusted skills; loaded `adv-improve` because prior repo performance pack is directly relevant. Pending-review scan found no pending skill frontmatter; one literal example line in `adv-skill-author` was not a real pending skill. |\n| Prior Research Extension | PASS | Cited `docs/repo-improve-prep.md`; new finding: prior status-view anti-pattern evidence is stale because `status-view.ts` now has `buildStatusViewPlan()` and summary skips detailed providers. |\n| Conflict & Related-Work Scan | PASS | `adv_change_list includeArchived` showed this change plus related archived `diagnoseArchivedListingTimeout2`; validation passed with expected pre-prep warnings `NO_TASKS` and `NO_DELTAS`; agenda has many unrelated subagent follow-ups but no direct status-probe TTL owner. |\n| Edge Case Investigation | PASS | Edge cases listed below for force-refresh, freshness age, stale fallback, and non-cancellable probes. |\n| Design Question Depth | PASS | Open questions include trust model, blast radius, and alternatives. |\n| Draft Spec Delta Shapes | PASS | Draft modification to `rq-statusProbeCache01` proposed below. |\n| Related Pattern Scan | PASS | Similar probe-cache patterns found in `temporal-ops.ts`, `backlog.ts`, `health-probe.ts`, and tests; dispositions below. |\n| LBP Check | PASS | Internal/status-local change; external alternative adoption skipped. Existing `lru-cache` usage remains LBP per prior Context7-cited research pack. |\n| Completeness Verification | PASS | Problem covers advisory status health probes, not all ADV state. No sole-entry claim required; secondary surfaces classified below. |\n\n### Skills Considered\n\n- `adv-improve`: matched performance/status optimization and prior research-pack extension; loaded and applied for evidence-backed improvement framing.\n- `adv-opportunity-scout`: considered but not run; this is a narrow health-probe TTL completion, not broad strategy/product/external-option scope.\n- No new skill created; existing skills cover the relevant internal performance/discovery method.\n\n### Extends\n\n- `docs/repo-improve-prep.md`:\n  - Relevant prior finding: probe caching foundation was already classified SOUND, citing `lru-cache` `cache.fetch()` coalescing and stale-on-abort/rejection behavior.\n  - Relevant prior applicability: status/default path performance and health/probe substep attribution were high-value optimization areas.\n  - New finding: the pack's line 107 anti-pattern about full status output being built before projection is stale for current source. `plugin/src/tools/status-view.ts:40-79` now computes a per-view execution plan, and `plugin/src/tools/status.test.ts:793-810` asserts summary skips detailed providers.\n- Archived change `diagnoseArchivedListingTimeout2`:\n  - Relevant lesson: terminal aggregate/list performance work preserved active fast paths and emitted structured degraded metadata rather than raising timeouts.\n  - New finding: this change should follow the same pattern: keep status summary light and expose degradation/freshness explicitly instead of hiding probe failures.\n\n### Conflict Scan\n\n- Active/related changes:\n  - `addStatusHealthProbeTtl` is current target.\n  - `diagnoseArchivedListingTimeout2` archived and related by Epic/performance structure; informs performance/safety style but does not own status health TTL.\n  - `diagnoseArchivedListingTimeout` stale draft appears to be superseded by archived `diagnoseArchivedListingTimeout2`; no direct conflict with this scope.\n- `adv_change_validate`: pass. Warnings `NO_TASKS` and `NO_DELTAS` are expected before planning/spec-delta work.\n- `adv_agenda_list`: many pending subagent follow-ups; none directly target `adv_status` health probe TTL/force-refresh/age metadata.\n\n### Current State\n\n- `plugin/src/tools/probe-cache.ts` defines `ProbeCacheFreshness` with `cached_at`, `stale`, optional `error`, and `ProbeCache.fetch(key, { forceRefresh })`.\n- `plugin/src/tools/status-health.ts` defines status caches:\n  - `STATUS_PROBE_TTL_MS = 2_000` for temporal health, worktree census, search attributes, and queue serviceability.\n  - `SNAPSHOT_HEALTH_TTL_MS = 60_000` for snapshot health.\n  - Temporal health and worktree census forward `AbortSignal` to cancellable providers.\n  - Queue serviceability wraps `getTemporalWorkerDiagnostics()` and `probeTaskQueuePollers()`; this path is bounded by the outer probe-cache timeout but `probeTaskQueuePollers()` itself does not accept an AbortSignal.\n- `plugin/src/tools/status.ts` collects `_freshness` for health probes and exposes it in `view: \"health\"`. Current `adv_status` args do not expose `forceRefresh`.\n- `plugin/src/tools/status-view.ts` has lazy view planning. Summary runs temporal health only and skips queue serviceability, search attributes, worktree census, snapshot health, and session debt.\n- Tests cover generic probe cache coalescing, TTL refresh, stale-on-abort, stale-on-reject, cold failure, and cold timeout (`probe-cache.test.ts`). Status tests cover health-view freshness reuse and AbortSignal forwarding for temporal health/worktree census. They do not yet cover status-level force-refresh, explicit `age_ms`/`ttl_ms`, queue-serviceability force refresh, or snapshot/search freshness age.\n\n### Edge Cases\n\n1. Force-refresh gap:\n   - Fresh cached value exists but operator just restarted worker or registered search attributes; status must allow bypassing cache for advisory probes.\n   - Force refresh fails while stale value exists; output may return stale value, but must mark `stale: true` with error and must not treat it as serviceability proof.\n2. Freshness-age gap:\n   - Consumers should not need to parse `cached_at` and know each probe TTL to tell how old a result is.\n   - Different probes have different TTLs (2s status probes, 60s snapshot health, 30s nested poller cache), so freshness should identify the TTL/budget actually governing each probe.\n3. Non-cancellable probe behavior:\n   - `probeTaskQueuePollers()` lacks an AbortSignal parameter; outer cache timeout bounds caller wait but underlying provider may still continue.\n   - `scanSnapshotHealth()` is longer-budget work; status cache timeout bounds cold wait to 10s and caches results, but tests should preserve that classification.\n4. Safety boundary:\n   - A stale queue-serviceability result must not authorize worker-lock reclaim or worker-restart success.\n   - Summary view should not grow detailed `_freshness` output if that defeats the lightweight orientation path.\n\n### Open Design Questions\n\n1. Public force-refresh shape\n   - Trust model: agent-owned technical choice, user-visible behavior.\n   - Blast radius: schema/API compatibility and caller expectations.\n   - Alternatives: add `forceRefresh?: boolean` to `adv_status`; add only to `view:\"health\"`; create separate health-refresh tool. Recommendation: add optional `forceRefresh` to `adv_status`, applying only to advisory probe caches.\n2. Freshness metadata shape\n   - Trust model: joint; affects operator readability.\n   - Blast radius: additive output schema and tests.\n   - Alternatives: keep `cached_at` only; add `age_ms`; add `age_ms` + `ttl_ms` + `refresh_requested` where relevant. Recommendation: additive `age_ms` and `ttl_ms`, with refresh marker when requested.\n3. Summary view visibility\n   - Trust model: joint; affects common agent output noise/performance.\n   - Blast radius: default status response size and hot-path latency.\n   - Alternatives: expose `_freshness` in summary; keep only `temporal_health_ok`; require `view:\"health\"` for cache detail. Recommendation: keep summary lightweight and expose detailed freshness in health/hygiene diagnostic views only.\n4. Spec law update\n   - Trust model: agent-owned spec-law decision after user confirms outcome.\n   - Blast radius: future tests and tool behavior.\n   - Alternatives: rely on current `rq-statusProbeCache01`; modify it to require age/TTL and force-refresh for status health; add a new requirement. Recommendation: modify `rq-statusProbeCache01` because this is an evolution of the existing bounded cached health probes law.\n\n### Draft Spec Deltas\n\nModify `advance-meta` `rq-statusProbeCache01`:\n\n- Add that status-facing cached health probe freshness must include `cached_at`, `stale`, optional `error`, `age_ms`, and `ttl_ms`.\n- Add that `adv_status` must expose a force-refresh request path for advisory probe caches, and force-refresh must not bypass correctness/safety checks.\n\nScenario draft:\n\n- Given two `adv_status view:\"health\"` calls within the probe TTL, when the second call omits force refresh, then it reuses cached advisory probe values and returns freshness metadata including `cached_at`, `age_ms`, `ttl_ms`, and `stale:false`.\n- Given an `adv_status view:\"health\"` call with force refresh requested, when advisory probe caches contain fresh values, then the status read attempts fresh probes for each requested advisory probe and marks the response as refresh-requested without caching or bypassing gate/task/change truth.\n- Given force refresh times out or fails after a last-known-good value exists, when the status read returns stale advisory data, then `_freshness.*.stale` is true with an error summary and the stale data is diagnostic-only.\n\n### Related Pattern Scan\n\n- `plugin/src/tools/temporal-ops.ts`: restart verification uses `forceRefresh: true` and `isRestartServiceabilityVerified()` requires `!freshness.stale`; adopt safety pattern for tests and reasoning, but do not reuse stale status probes for mutations.\n- `plugin/src/tools/backlog.ts`: public `forceRefresh` argument and freshness refresh marker pattern exists for backlog; useful output-shape precedent.\n- `plugin/src/temporal/health-probe.ts`: nested 30s poller cache exists; discovery should avoid double-counting it as `adv_status` TTL and should expose only the status probe TTL unless design chooses nested metadata.\n- `plugin/src/tools/target-project.ts`: direct worker diagnostics support target mutation readiness. Out of scope because mutation readiness is safety-critical and should not depend on stale advisory status cache.\n- No similar status-health probe TTL gaps found outside status/temporal diagnostics surfaces.\n\n### Completeness Verification\n\n- Problem-completeness: High confidence. The full problem is not merely repeated `getTemporalHealth()`; it covers advisory status health probe freshness/force-refresh semantics across temporal health, queue serviceability, search attributes, snapshot health, and worktree census.\n- Solution-scope: High confidence. Scope is not a broad status rewrite; current lazy view planning and cache abstractions already exist. Intended solution is additive: expose force refresh/age metadata, close tests/spec gaps, preserve diagnostic-only stale semantics.\n- Sole-entry claim: Not asserted. Discovery does not rely on one global cache chokepoint for all ADV diagnostics.\n- Secondary surfaces:\n  - `temporal-ops.ts` recovery diagnostics: related, in scope only for safety-pattern verification; no behavioral change unless design finds a shared helper is necessary.\n  - `target-project.ts` mutation readiness: out of scope with rationale; safety-critical readiness must remain fresh/proven.\n  - `health-probe.ts` nested poller cache: out of scope except documentation/test awareness; it is lower-level Temporal health behavior.\n\n### LBP Check\n\n- Long-term best practice is to keep deterministic view plans and bounded cached diagnostic probes, while keeping correctness state live and structurally guarded. Current source aligns with that direction.\n- External-solution check skipped: this is an internal ADV status/tooling change with no realistic external library/service alternative. Prior `repo-improve-prep.md` already cites `lru-cache` docs and classifies current cache foundation as SOUND.\n- Opportunity scout skipped: narrow low-opportunity completion of an existing internal probe-cache contract; broader performance opportunities already captured by the Epic and `repo-improve-prep.md`.\n\n### Recommended Objectives\n\n1. Add or verify public force-refresh behavior for `adv_status` advisory health probes.\n2. Add explicit cache age/TTL freshness metadata for status health probe outputs.\n3. Keep stale cached health data diagnostic-only and never authoritative for safety-critical mutations/recovery/release decisions.\n4. Preserve lazy status view behavior; summary remains lightweight and detailed probe metadata stays in diagnostic views unless user chooses otherwise.\n5. Add focused tests covering status-level cache hit/miss, force-refresh, stale fallback, age/TTL metadata, and safety boundaries.\n6. Update `rq-statusProbeCache01` if agreement confirms force-refresh/age metadata as durable behavior.\n\n### AMBIGUITY ANALYSIS\n\nM1 MEDIUM Missing Information Public force-refresh and cache-age output shape need user confirmation before criteria are finalized.\n  Evidence: \"Verify whether a user/tool-level force-refresh control is required for `adv_status`, or whether internal probe-cache `forceRefresh` support is sufficient.\"\n  Reason: unclear because current proposal identifies both options but does not choose output/API shape.\n\nCoverage: B:C F:C S:P M:P\n\nTrigger evaluation: no CRITICAL findings and no HIGH findings; proceed to agreement clarification.\n",
+    "problemStatement": "## Problem\n\nFrequent `adv_status` health views can pay repeated Temporal, task-queue, worker-diagnostic, search-attribute, snapshot-health, and worktree-census probe costs. ADV needs bounded TTL reuse for advisory health probes so status remains fast and less noisy, while correctness-critical ADV truth (changes, gates, tasks, archive/recovery authority) stays live and uncached by this optimization.\n\n## Desired Outcome\n\nOperators and agents get responsive status/health output with visible cache freshness, and stale cached health data is never treated as authority for safety-critical mutations or release decisions.\n\n## Confirmed Scope\n\nThis change tracks GitHub issue #107 and Epic entry `optimizeAdvPerformanceStructure` / `Add status health probe TTL`. It should validate existing status probe caching, close any gaps, and preserve spec-law behavior under `advance-meta` requirement `rq-statusProbeCache01`.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add or verify public force-refresh behavior for `adv_status` advisory health probes.\n2. Add explicit cache age/TTL freshness metadata for status health probe outputs.\n3. Keep stale cached health data diagnostic-only and never authoritative for safety-critical mutations, recovery, release, archive, gate, task, or change lifecycle decisions.\n4. Preserve lazy status view behavior: default summary stays lightweight; detailed probe metadata stays in diagnostic health surfaces.\n5. Add focused tests covering status-level cache hit/miss, force-refresh, stale fallback, age/TTL metadata, and safety boundaries.\n6. Update or validate `advance-meta` `rq-statusProbeCache01` to cover force-refresh plus age/TTL freshness semantics.\n\n## Success Criteria\n\n1. Repeated `adv_status` health checks avoid redundant advisory probe work within bounded TTL windows.\n2. Operators can see cache freshness without parsing timestamps: `cached_at`, `stale`, `age_ms`, `ttl_ms`, optional `error`.\n3. Stale cached diagnostics remain diagnostic-only and never authorize recovery, release, archive, gate, task, or change correctness decisions.\n\n## Acceptance Criteria\n\n1. `adv_status view:\"health\"` returns `_freshness` for each executed status health probe with `cached_at`, `stale`, `age_ms`, `ttl_ms`, and optional `error`; `age_ms >= 0`, `ttl_ms > 0`. [warrant: tool:adv_status, spec:rq-statusProbeCache01]\n2. Two `adv_status view:\"health\"` calls within TTL reuse advisory probe cache entries, while `forceRefresh:true` attempts fresh advisory probe fetches despite existing fresh cache. [warrant: tool:adv_status]\n3. Default `adv_status view:\"summary\"` remains lightweight: no detailed `_freshness`, no queue-serviceability/search-attribute/snapshot-health/worktree-census diagnostic payloads. [warrant: tool:adv_status]\n4. If a health probe refresh fails or times out after last-known-good data exists, returned data is marked `stale:true` with an error summary and remains advisory only. [warrant: spec:rq-statusProbeCache01]\n5. Stale cached health/serviceability data cannot prove worker restart success, lock reclaim safety, override/unlock/archive readiness, gate completion, task truth, or change lifecycle truth. [warrant: spec:rq-statusProbeCache01]\n6. `advance-meta` `rq-statusProbeCache01` is updated or validated to cover force-refresh plus age/TTL freshness semantics with Given/When/Then scenarios. [warrant: spec:rq-statusProbeCache01]\n7. Existing raw health detail in `view:\"health\"` remains present for legacy consumers where the selected view plan executes that probe. [warrant: tool:adv_status]\n\n## Constraints\n\n1. ADV/Temporal state remains source of truth.\n2. Implementation must use the `change/addStatusHealthProbeTtl` worktree for mutations.\n3. Source tests may validate code in-session; live deployed ADV tool behavior requires rebuild, deploy-local sync, and OpenCode/plugin-host restart.\n4. Criteria must remain design-independent: implementation may choose helper shape, metadata enrichment location, and test seams during design.\n5. Stale cached diagnostics are advisory-only even when they are recent enough to return from cache.\n\n## Avoidances\n\n1. Do not cache correctness-critical ADV state such as tasks, gates, change lifecycle, acceptance/release evidence, or archive eligibility.\n2. Do not weaken Temporal replay safety, typed tool boundaries, or spec-law checks.\n3. Do not hide unhealthy states beyond the bounded TTL window without explicit stale/freshness metadata.\n4. Do not authorize safety-critical mutations from stale cached diagnostics.\n5. Do not broaden into unrelated status/dashboard refactors or OCA-specific work.\n\n## Out of Scope\n\n1. Caching change, gate, task, contract, archive, or release truth.\n2. Making stale cached health data sufficient proof for worker-lock reclaim, restart success, overrides, unlocks, archive decisions, or gate completion.\n3. Broad status/dashboard refactors not needed to satisfy health-probe TTL outcome.\n4. OCA-specific work and unrelated cleanup not tied to health-probe performance or correctness.\n5. Changing target-project mutation readiness behavior except to prove it remains independent from advisory status cache data.\n\n## Preview Applicability\n\nvisual_surface: false\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: This change affects ADV MCP/tool status diagnostics, specs, and tests. It does not affect browser-visible UI, frontend components, or visual output.\n\n## Decisions\n\n### User Decisions\n\n1. Freshness shape\n   - Question: What output shape should acceptance require for status health probe freshness?\n   - User choice: Add `age_ms` and `ttl_ms` alongside existing `cached_at`, `stale`, and optional `error`.\n   - Why it matters: Operators should not need to parse timestamps or know internal TTL constants before acting on diagnostics.\n2. Force-refresh surface\n   - Question: Where should force-refresh behavior live?\n   - User choice: Add optional `forceRefresh` to `adv_status` for advisory health probe caches.\n   - Why it matters: Operators need a direct way to refresh health diagnostics after worker restart, search-attribute registration, or suspected stale cache.\n3. Summary output\n   - Question: Should default summary expose detailed cache freshness?\n   - User choice: Keep summary lightweight; detailed `_freshness` remains in `view:\"health\"` / diagnostic surfaces.\n   - Why it matters: The Epic goal includes faster status paths; default orientation output should not pay or display detailed health-diagnostic overhead.\n\n### Agent Decisions (LBP)\n\n1. Reuse the existing `createProbeCache` + status-health cache architecture rather than introducing a parallel cache system.\n2. Keep stale data diagnostic-only, following existing `temporal-ops.ts` safety pattern where serviceability verification requires non-stale freshness.\n3. Treat `rq-statusProbeCache01` as the owning spec-law anchor; amend it only if current wording does not structurally cover agreed force-refresh and age/TTL semantics.\n4. Skip external alternative adoption; prior research already found the current `lru-cache` foundation sound and this scope is internal ADV tooling.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance criteria and agreement approved by user reply `approve` on 2026-07-07 during discovery for `addStatusHealthProbeTtl`.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nUse the existing status probe-cache architecture; do not add a parallel cache layer.\n\nAdditive design:\n\n1. Extend `ProbeCacheFreshness` centrally with `age_ms` and `ttl_ms`.\n2. Add optional `forceRefresh?: boolean` to `adv_status`.\n3. Thread `forceRefresh` only into advisory status probe cache reads selected by `buildStatusViewPlan(view)`.\n4. Preserve default summary lightness: no detailed `_freshness`, queue-serviceability, search-attribute, snapshot-health, or worktree-census diagnostic payloads.\n5. Preserve stale-data safety boundary: stale/advisory status freshness cannot authorize worker restart success, lock reclaim, gate/task/change truth, overrides, unlocks, archive readiness, or release decisions.\n6. Update or validate `advance-meta` `rq-statusProbeCache01` for age/TTL and force-refresh semantics.\n\n## Key Decisions\n\n### D1 — Compute freshness fields in `createProbeCache`\n\n`createProbeCache()` already owns `ttlMs`, `cachedAtMs`, `cached_at`, stale calculation, timeout handling, and stale fallback. Add `age_ms` and `ttl_ms` there.\n\n- `ttl_ms = ttlMs`\n- `age_ms = Math.max(0, Date.now() - entry.cachedAtMs)`\n- Existing `cached_at`, `stale`, and optional `error` remain unchanged.\n\nThis keeps freshness structural and prevents each status caller from re-deriving age differently.\n\n### D2 — `adv_status.forceRefresh` is advisory-only\n\nAdd optional `forceRefresh?: boolean` to `adv_status` args. It applies only to the advisory probe caches selected by the current view plan.\n\nContext7 `/isaacs/node-lru-cache` documentation confirms `cache.fetch(k, { forceRefresh: true })` forces a re-fetch even when a cached value is present and fresh. It also documents stale-on-abort/rejection behavior, matching the existing `createProbeCache` stale fallback model.\n\n`forceRefresh` must not affect:\n\n- `loadStatusWithBootstrapRetry`\n- change/task/gate/contract reads\n- archive/release decisions\n- worker-lock reclaim or mutation readiness\n- any safety-critical proof path\n\n### D3 — Keep default summary lightweight\n\nDo not expose detailed `_freshness` in default `adv_status view:\"summary\"`.\n\n`status-view.ts` already projects `_freshness` only for `view:\"health\"`; summary keeps a compact health bit. `forceRefresh:true` on summary may refresh the selected summary temporal-health probe, but summary still does not expose detailed `_freshness` or detailed diagnostic payloads.\n\n### D4 — Stale data remains diagnostic-only\n\nPreserve `temporal-ops.ts` non-stale proof pattern: serviceability proof requires serviceable status and non-stale freshness. Status `_freshness` is operator-visible diagnostic data, not recovery authority.\n\n### D5 — Amend existing spec law, not new law\n\n`advance-meta` `rq-statusProbeCache01` already owns bounded cached health probes. Amend it in place to require:\n\n- `age_ms`\n- `ttl_ms`\n- status-facing advisory `forceRefresh`\n- diagnostic-only stale behavior under refresh failure/timeouts\n\n## ADR Drafts\n\nNone. Decisions refine existing helper/tool contracts and are not hard-to-reverse enough for ADR.\n\n## Implementation Strategy\n\n1. **Probe cache**\n   - Update `plugin/src/tools/probe-cache.ts` `ProbeCacheFreshness` with `age_ms` and `ttl_ms`.\n   - Compute fields in `createProbeCache().fetch()`.\n   - Add tests in `plugin/src/tools/probe-cache.test.ts` for fresh, stale-on-abort, stale-on-reject, cold failure/timeout shapes.\n\n2. **Status tool API**\n   - Add `forceRefresh?: boolean` to `adv_status` args in `plugin/src/tools/status.ts`.\n   - Pass `{ forceRefresh }` into each advisory probe cache read selected by `buildStatusViewPlan(view)`.\n   - Update arg description: advisory health probes only; correctness state unaffected.\n\n3. **Status health wrappers**\n   - Update `fetchStatusTemporalHealth`, `fetchStatusQueueServiceability`, and `fetchStatusSnapshotHealth` to accept `{ forceRefresh?: boolean }`.\n   - Keep `statusQueueServiceabilityInputs.set()` before fetch, even on force refresh.\n\n4. **Spec law**\n   - Amend `.adv/specs/advance-meta` `rq-statusProbeCache01` body and scenarios.\n   - Run schema/spec drift checks as planned in prep.\n\n5. **Tests**\n   - Health view `_freshness` entries include `cached_at`, `stale`, `age_ms`, `ttl_ms`, optional `error`.\n   - Repeated health calls reuse cached probes within TTL.\n   - `forceRefresh:true` triggers fresh advisory probe fetch despite fresh cache.\n   - Summary omits detailed `_freshness` and detailed diagnostic payloads, including when `forceRefresh:true` refreshes summary temporal health.\n   - Stale fallback marks `stale:true` with `error`.\n   - Stale serviceability freshness cannot satisfy `isRestartServiceabilityVerified()`.\n\n## LBP Analysis\n\nPreferred long-term approach: minimal structural extension of existing `createProbeCache` + status view plan.\n\nWhy:\n\n- Reuses tested cache abstraction.\n- Keeps correctness structural at cache boundary.\n- Preserves lazy view planning and fast default status output.\n- Keeps safety-critical recovery/mutation checks independent from advisory status diagnostics.\n- Aligns with `docs/repo-improve-prep.md`, which classified existing `lru-cache` foundation as SOUND.\n\nRejected alternatives:\n\n- Separate status-only cache layer — unnecessary drift and more code.\n- Internal-only refresh — fails user-approved operator need.\n- Full `_freshness` in summary — violates AC3 and performance/noise goal.\n- Status `_freshness` as recovery proof — violates `rq-statusProbeCache01` and DONT4.\n\n## Affected Components\n\n- `plugin/src/tools/probe-cache.ts`\n- `plugin/src/tools/status.ts`\n- `plugin/src/tools/status-health.ts`\n- `plugin/src/tools/status-view.ts` tests only / guard behavior\n- `plugin/src/tools/temporal-ops.ts` tests only / guard behavior\n- `plugin/src/tools/probe-cache.test.ts`\n- `plugin/src/tools/status.test.ts`\n- `plugin/src/tools/temporal-ops.test.ts`\n- `.adv/specs/advance-meta`\n- asset/spec docs tests that mirror stability docs and `rq-statusProbeCache01`\n\n## Design-Derived Criteria\n\n1. Freshness metadata is generated at the cache boundary.\n2. `forceRefresh` is an advisory probe-cache option only.\n3. Default summary must not expose detailed `_freshness` or detailed diagnostic payloads.\n4. Status-level force refresh must preserve timeout/stale fallback behavior.\n5. Safety-critical serviceability proof remains structurally non-stale.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n| --- | --- |\n| `forceRefresh` appears to refresh correctness truth | Arg description and tests say advisory health probes only. |\n| New fields break consumers | Additive fields only; existing fields unchanged. |\n| Summary gets heavier | Regression test for summary with and without `forceRefresh:true`. |\n| Non-cancellable lower-level probe continues after timeout | Outer probe-cache timeout/stale behavior remains; classify as bounded diagnostic work. |\n| Stale health leaks into recovery authority | Preserve `temporal-ops` fresh verification path and add regression. |\n| Spec-law drift | Amend/validate `rq-statusProbeCache01` and run spec/schema checks. |\n\n## Design Leverage Scout\n\nScout attempted with `adv-researcher` on 2026-07-07.\n\n- Candidates considered: 5.\n- Auto-adopted: existing `forceRefresh` plumbing, central `age_ms`/`ttl_ms`, backlog/roadmap freshness naming precedent.\n- Surfaced/adopted invariants: preserve temporal-ops stale-safety guard and summary lightness.\n- Result: pass, high confidence, low risk.\n\n## Validator Result\n\nIndependent `adv-researcher` validation: pass, high confidence, low risk.\n\nValidator findings:\n\n- `createProbeCache` already owns force-refresh pass-through and freshness boundary; design is minimal additive work.\n- `status-view.ts` projects `_freshness` only in health view; summary lightness is structurally aligned.\n- `temporal-ops.ts` uses `serviceable && !stale` for restart-serviceability proof; stale-safety boundary is intact.\n- Context7 `lru-cache` docs support `forceRefresh` and stale-on-abort/rejection behavior.\n- `rq-statusProbeCache01` is the correct spec-law anchor; proposed fields extend it without contradiction.\n\nValidator non-blocking note:\n\n- `buildStatusViewPlan(\"summary\")` has `temporalHealth:true`; therefore `adv_status { view:\"summary\", forceRefresh:true }` may refresh temporal-health probe. This is consistent with AC2 and does not violate AC3 as long as summary still omits detailed `_freshness`.\n\nRecommendation: proceed to planning.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`adv_status` health diagnostics now expose bounded cache freshness for advisory health probes and support `forceRefresh` for fresh diagnostic reads. Acceptance decision: approve a source-verified ADV tooling improvement that keeps status fast while preserving safety boundaries.\n\n## Why It Matters\n\nOperators can distinguish fresh, cached, and stale health diagnostics without parsing timestamps. The change preserves ADV/Temporal truth boundaries: cached health data remains diagnostic-only and cannot authorize restart proof, lock reclaim, archive/release readiness, or gate/task/change truth.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Updated `rq-statusProbeCache01` spec law for health-probe freshness, force-refresh, stale fallback, and advisory-only authority boundaries.\n2. Extended shared probe-cache freshness with `age_ms` and `ttl_ms` so all advisory probe cache consumers get consistent metadata.\n3. Added `adv_status.forceRefresh` threading for selected advisory health probes without changing correctness-critical state reads.\n4. Added regression coverage that keeps summary output lightweight and rejects stale serviceability evidence for safety-critical proof.\n5. Ran targeted validation across probe cache, status, temporal-ops, deploy-local spec assets, stability docs assets, and schema drift.\n\n## What Was Verified\n\n- Verdict: APPROVED / READY. adv-reviewer report `addStatusHealthProbeTtl|change:review:acceptance|adv-reviewer|1` found 0 blockers and 0 issues.\n- Tests: `tr_mratb3pw_ea9a391b` passed targeted validation (5 files, 138 tests). `tr_mratb9g8_1a4d8063` passed `pnpm run schemas:check`.\n- Preview URL: not_applicable. Agreement marks `visual_surface: false`; implementation touches ADV MCP/tool diagnostics, specs, and tests only, with no browser-visible UI or visual output.\n- Contract matrix: 25 required rows passed/respected; 0 failed, violated, unknown, or missing rows.\n\n## Remaining Concerns\n\nNone blocking. Live deployed ADV tool behavior still requires normal plugin rebuild/deploy/restart before in-session live MCP behavior can reflect source changes.\n\n## Supporting Evidence\n\n- Tasks: `tk-21dcdbe44979`, `tk-6618cbfc327f`, `tk-8e143a01e075`, `tk-7186a69332c4`, `tk-8d9eb8abd51c` all completed with checkpoints.\n- Red/green evidence: `tr_mrat4p03_e12c4b99` and `tr_mrat70d0_be4e86b1` failed before implementation; `tr_mrat55fs_03a5869c`, `tr_mrat7zy6_771ce05e`, and `tr_mrata01e_e17c74a5` passed after implementation.\n- Final validation: `tr_mratb3pw_ea9a391b` and `tr_mratb9g8_1a4d8063` passed.\n- Hardening: initial smoke `tr_mratqxxl_ec2397fb` found only Prettier formatting in `probe-cache.test.ts`; formatting fixed and committed at `e980e241731d9b0d79735ad8534759708d92a69f`; smoke `tr_mrattvo3_87e83688` passed.\n- Review: adv-reviewer READY report `addStatusHealthProbeTtl|change:review:acceptance|adv-reviewer|1` submitted successfully.\n- Harden: adv-reviewer READY report `addStatusHealthProbeTtl|change:harden:release|adv-reviewer|1` submitted successfully.\n- Merge compatibility: dry-run merge against `origin/trunk` passed after final formatting commit.\n- Contract: `adv_contract_review_matrix_set` persisted 25 rows with 0 failing rows.\n\n## Consequence Context\n\n1. Delivered value — pass: `adv_status` health diagnostics gain explicit cache freshness and force-refresh; evidence from completed tasks and contract rows SC1-SC3/AC1-AC7.\n2. Enabling-only/follow-up dependency — n/a: change is self-contained ADV tooling work; no required follow-up reports or ops handoff links.\n3. Ops readiness — pending: acceptance proves source behavior; harden owns release/deploy/production/docs/cleanup readiness and live deployed plugin validation if needed.\n4. Migration/data impact — n/a: no database, data migration, or persisted ADV truth model change; evidence from affected files and review.\n5. Frontend/preview impact — n/a: `visual_surface: false`; no frontend or visual output affected.\n6. Collision/release risk — low: localized files under probe cache/status/status-health/spec/tests; reviewer reported no blockers/issues; harden still validates release collision risk.\n7. Open follow-ups — n/a: no blocking follow-ups or required obligations recorded.\n8. Next action — accept to proceed inline to harden/release-readiness review.\n\n## Release Readiness Summary\n\nStatus: READY for archive sign-off.\n\nRelease-owned checks passed: targeted validation, schema drift, smoke gate, formatting, lint/typecheck, test-isolation, lockfile policy, release hardening review, and dry-run merge compatibility against `origin/trunk`.\n\nApproval Consequence Context:\n\n1. Delivered value — pass: health diagnostics expose cache age/TTL and force-refresh while preserving safety boundaries.\n2. Enabling-only/follow-up dependency — n/a: no blocking follow-up or required ops handoff.\n3. Ops readiness — pass: no runbooks, migrations, external services, credentials, env vars, or production manual steps introduced; live plugin behavior requires normal build/deploy/restart after merge.\n4. Migration/data impact — n/a: no persisted data model, database, or migration changes.\n5. Frontend/preview impact — n/a: no visual/browser surface; preview proof not applicable.\n6. Collision/release risk — pass: merge dry-run against `origin/trunk` passed; git worktree clean after final hardening checkpoint; harden reviewer found 0 blocker/high/medium/low findings.\n7. Open follow-ups — n/a: no open blocking follow-ups; existing project agenda items are unrelated to this change.\n8. Next action — archive sign-off, then `adv_change_archive phase9:\"run\"` to finalize release evidence and retire the change.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-07T15:43:16.520Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Repeated `adv_status` health checks avoid redundant advisory probe work within bounded TTL windows. | pass | tr_mratb3pw_ea9a391b targeted suite passed; status tests cover within-TTL reuse and forceRefresh advisory refresh behavior. |\n| SC2 | success_criterion | Operators can see cache freshness without parsing timestamps: `cached_at`, `stale`, `age_ms`, `ttl_ms`, optional `error`. | pass | tr_mrat55fs_03a5869c probe-cache tests passed; ProbeCacheFreshness includes cached_at, stale, age_ms, ttl_ms, optional error. |\n| SC3 | success_criterion | Stale cached diagnostics remain diagnostic-only and never authorize recovery, release, archive, gate, task, or change correctness decisions. | pass | adv-reviewer report addStatusHealthProbeTtl|change:review:acceptance|adv-reviewer|1 READY; temporal-ops tests enforce stale data cannot prove safety-critical serviceability. |\n| AC1 | acceptance_criterion | `adv_status view:\"health\"` returns `_freshness` for each executed status health probe with `cached_at`, `stale`, `age_ms`, `ttl_ms`, and optional `error`; `age_ms >= 0`, `ttl_ms > 0`. | pass | tr_mrat55fs_03a5869c and tr_mratb3pw_ea9a391b passed; freshness metadata assertions cover cached_at, stale, age_ms, ttl_ms, optional error shape. |\n| AC2 | acceptance_criterion | Two `adv_status view:\"health\"` calls within TTL reuse advisory probe cache entries, while `forceRefresh:true` attempts fresh advisory probe fetches despite existing fresh cache. | pass | tr_mrat7zy6_771ce05e and tr_mratb3pw_ea9a391b passed; forceRefresh status tests prove cache bypass attempt while normal calls reuse cache. |\n| AC3 | acceptance_criterion | Default `adv_status view:\"summary\"` remains lightweight: no detailed `_freshness`, no queue-serviceability/search-attribute/snapshot-health/worktree-census diagnostic payloads. | pass | tr_mrata01e_e17c74a5 and tr_mratb3pw_ea9a391b passed; summary tests assert no detailed _freshness or detailed diagnostic payloads. |\n| AC4 | acceptance_criterion | If a health probe refresh fails or times out after last-known-good data exists, returned data is marked `stale:true` with an error summary and remains advisory only. | pass | tr_mrat55fs_03a5869c probe-cache tests passed; stale fallback/error metadata behavior covered in shared cache tests. |\n| AC5 | acceptance_criterion | Stale cached health/serviceability data cannot prove worker restart success, lock reclaim safety, override/unlock/archive readiness, gate completion, task truth, or change lifecycle truth. | pass | tr_mrata01e_e17c74a5 temporal-ops safety guard tests passed; stale serviceability proof rejected and fresh proof accepted. |\n| AC6 | acceptance_criterion | `advance-meta` `rq-statusProbeCache01` is updated or validated to cover force-refresh plus age/TTL freshness semantics with Given/When/Then scenarios. | pass | Spec-law task tk-21dcdbe44979 updated rq-statusProbeCache01; tr_mrat3ee0_81d1267e and tr_mratb3pw_ea9a391b asset tests passed. |\n| AC7 | acceptance_criterion | Existing raw health detail in `view:\"health\"` remains present for legacy consumers where the selected view plan executes that probe. | pass | tr_mrat7zy6_771ce05e status tests passed; health view keeps existing raw temporal health details while adding freshness metadata. |\n| C1 | constraint | ADV/Temporal state remains source of truth. | respected | adv-reviewer READY report found no correctness-critical ADV/Temporal state caching; changes limited to advisory status probes, spec, and tests. |\n| C2 | constraint | Implementation must use the `change/addStatusHealthProbeTtl` worktree for mutations. | respected | All file mutations occurred in ADV worktree /home/jon/.local/share/opencode/worktree/.../change/addStatusHealthProbeTtl; task checkpoints recorded branch change/addStatusHealthProbeTtl. |\n| C3 | constraint | Source tests may validate code in-session; live deployed ADV tool behavior requires rebuild, deploy-local sync, and OpenCode/plugin-host restart. | respected | Live deployed ADV behavior not claimed; verification uses source tests in-session. Rebuild/deploy/restart remains release note if live tool validation is needed. |\n| C4 | constraint | Criteria must remain design-independent: implementation may choose helper shape, metadata enrichment location, and test seams during design. | respected | Implementation selected central ProbeCacheFreshness enrichment and existing forceRefresh plumbing per approved design; no agreement boundary changes. |\n| C5 | constraint | Stale cached diagnostics are advisory-only even when they are recent enough to return from cache. | respected | tr_mrata01e_e17c74a5 and tr_mratb3pw_ea9a391b passed stale-safety tests; stale diagnostics remain advisory-only. |\n| DONT1 | avoidance | Do not cache correctness-critical ADV state such as tasks, gates, change lifecycle, acceptance/release evidence, or archive eligibility. | respected | adv-reviewer READY; no change/task/gate/contract/archive/release truth caching added. |\n| DONT2 | avoidance | Do not weaken Temporal replay safety, typed tool boundaries, or spec-law checks. | respected | tr_mratb9g8_1a4d8063 schemas:check passed; no Temporal workflow or typed tool boundary weakening reported by review. |\n| DONT3 | avoidance | Do not hide unhealthy states beyond the bounded TTL window without explicit stale/freshness metadata. | respected | Freshness output includes age_ms/ttl_ms/stale/error; stale state is explicit instead of hidden beyond TTL. |\n| DONT4 | avoidance | Do not authorize safety-critical mutations from stale cached diagnostics. | respected | temporal-ops tests in tr_mrata01e_e17c74a5 prove stale diagnostics do not authorize safety-critical serviceability. |\n| DONT5 | avoidance | Do not broaden into unrelated status/dashboard refactors or OCA-specific work. | respected | Affected files limited to status health probe cache/status/spec/tests; reviewer found no unrelated dashboard or OCA refactor. |\n| OOS1 | out_of_scope | Caching change, gate, task, contract, archive, or release truth. | respected | No caching added for change, gate, task, contract, archive, or release truth. |\n| OOS2 | out_of_scope | Making stale cached health data sufficient proof for worker-lock reclaim, restart success, overrides, unlocks, archive decisions, or gate completion. | respected | Safety proof remains independent; stale health cache rejected for restart/serviceability proof in temporal-ops tests. |\n| OOS3 | out_of_scope | Broad status/dashboard refactors not needed to satisfy health-probe TTL outcome. | respected | No broad status/dashboard refactor; changes localized to probe cache/status health/status tests/spec. |\n| OOS4 | out_of_scope | OCA-specific work and unrelated cleanup not tied to health-probe performance or correctness. | respected | No OCA-specific code or unrelated cleanup included. |\n| OOS5 | out_of_scope | Changing target-project mutation readiness behavior except to prove it remains independent from advisory status cache data. | respected | Target-project mutation readiness behavior unchanged; review found advisory status cache remains independent from mutation authority. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-07T15:07:45.837Z",
+      "contentHash": "7a3e78baae2f2035fb3a442e27625adcda9c1f48c8798cc724a9930ae732487a",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-07T15:01:33.521Z",
+      "contentHash": "8f6962e23d2b8dd39f8f605d8e09ce7ced4ba0a7d23528675ebce8cc6b3b3321",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-07T15:15:33.529Z",
+      "contentHash": "6b2a2f93dd8650d00bac19b81f001faf5bde93c2e324f27c20807d8892f15ca3",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-07T15:23:25.490Z",
+      "contentHash": "0666795383f23ede035745f311a0122641335aaf897807054af5c4abf7ae4aa1",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-07T15:56:52.613Z",
+      "contentHash": "6b6cbcd56856858230e56a6db7c1635b3a006d0dc4886f3c6023f046b88ded69",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-07T15:56:52.613Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "optimizeAdvPerformanceStructure",
+    "entry_id": "shell-1783186808917-elksgc",
+    "order": 3,
+    "title": "Add status health probe TTL",
+    "linked_at": "2026-07-07T14:57:51.228Z"
+  },
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/107"
+  ],
+  "worktree_auto_managed": true
+}
