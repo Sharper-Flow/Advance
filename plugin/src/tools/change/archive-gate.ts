@@ -35,6 +35,7 @@ import {
   coercePrWorkflowRoute,
   resolveReleaseReachability,
   type GitFinalizeOutcome,
+  type GitFinalizeDeps,
 } from "../archive-helpers/git-finalize";
 import { hasGateRecoveryAudit } from "../recovery-audit";
 const logger = createLogger("change");
@@ -179,6 +180,7 @@ export function buildReleaseCompletionEvidence(
 export function buildPendingMergePhase9Status(input: {
   finalization: GitFinalizeOutcome;
   startedAt: string;
+  previousChangeTipSha?: string;
 }): Phase9FinalizationStatus {
   return {
     status: "pending_merge",
@@ -504,28 +506,36 @@ export function verifyReleaseEvidenceFromMain(input: {
   changeId: string;
   archiveMode: "direct" | "pr";
   change?: Change;
+  deps?: Pick<GitFinalizeDeps, "runGit" | "runGh">;
 }): GitFinalizeOutcome {
   const mainCheckout = input.store.paths.root;
-  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+  const { branch: defaultBranch } = detectDefaultBranch(
+    mainCheckout,
+    input.deps,
+  );
   const classifiedRoute = classifyFinalizationRoute(
     mainCheckout,
     defaultBranch,
+    input.deps,
   );
   const route =
     input.archiveMode === "pr" ||
     input.change?.phase9_status?.status === "pending_merge"
       ? coercePrWorkflowRoute(classifiedRoute)
       : classifiedRoute;
-  const reachability = resolveReleaseReachability({
-    mainCheckout,
-    defaultBranch,
-    changeId: input.changeId,
-    route,
-    prNumber: input.change?.phase9_status?.prNumber,
-    // rq-fixPhase9SquashMergeRedetect SC1: thread persisted tip so
-    // reachability detection survives branch deletion.
-    changeTipSha: input.change?.phase9_status?.changeTipSha,
-  });
+  const reachability = resolveReleaseReachability(
+    {
+      mainCheckout,
+      defaultBranch,
+      changeId: input.changeId,
+      route,
+      prNumber: input.change?.phase9_status?.prNumber,
+      // rq-fixPhase9SquashMergeRedetect SC1: thread persisted tip so
+      // reachability detection survives branch deletion.
+      changeTipSha: input.change?.phase9_status?.changeTipSha,
+    },
+    input.deps,
+  );
   if (reachability.reachable) {
     return {
       status: "shipped",

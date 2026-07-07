@@ -678,17 +678,17 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.archiveChange).not.toHaveBeenCalled();
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
     expect(mocks.validateChangeWorktree).not.toHaveBeenCalled();
-    expect(mocks.classifyFinalizationRoute).toHaveBeenCalledWith(
-      "/tmp/main",
-      "trunk",
-    );
-    expect(mocks.resolveReleaseReachability).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mainCheckout: "/tmp/main",
-        defaultBranch: "trunk",
-        changeId: "example",
-      }),
-    );
+    expect(mocks.classifyFinalizationRoute).toHaveBeenCalledTimes(1);
+    const classifyCall = mocks.classifyFinalizationRoute.mock.calls[0];
+    expect(classifyCall?.[0]).toBe("/tmp/main");
+    expect(classifyCall?.[1]).toBe("trunk");
+    expect(mocks.resolveReleaseReachability).toHaveBeenCalledTimes(1);
+    const rrCall = mocks.resolveReleaseReachability.mock.calls[0];
+    expect(rrCall?.[0]).toMatchObject({
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      changeId: "example",
+    });
     expect(mocks.workflow.handle.signal).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -730,12 +730,12 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
-    expect(mocks.resolveReleaseReachability).toHaveBeenCalledWith(
-      expect.objectContaining({
-        prNumber: 42,
-        route: expect.objectContaining({ route: "pr_auto_merge" }),
-      }),
-    );
+    expect(mocks.resolveReleaseReachability).toHaveBeenCalledTimes(1);
+    const rrCall = mocks.resolveReleaseReachability.mock.calls[0];
+    expect(rrCall?.[0]).toMatchObject({
+      prNumber: 42,
+      route: expect.objectContaining({ route: "pr_auto_merge" }),
+    });
     expect(parsed.finalization).toMatchObject({
       status: "shipped",
       prNumber: 42,
@@ -783,11 +783,11 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.success).toBe(true);
     // The critical assertion: changeTipSha from phase9_status was threaded
     // through to resolveReleaseReachability so tree-SHA detection can use it.
-    expect(mocks.resolveReleaseReachability).toHaveBeenCalledWith(
-      expect.objectContaining({
-        changeTipSha: "tip123abc",
-      }),
-    );
+    expect(mocks.resolveReleaseReachability).toHaveBeenCalledTimes(1);
+    const rrCall = mocks.resolveReleaseReachability.mock.calls[0];
+    expect(rrCall?.[0]).toMatchObject({
+      changeTipSha: "tip123abc",
+    });
     expect(parsed.finalization).toMatchObject({
       status: "shipped",
       mergeCommitSha: "squash-merge-sha",
@@ -797,6 +797,40 @@ describe("adv_change_archive Phase 9 behavior", () => {
       expect.objectContaining({
         phase9_status: expect.objectContaining({
           status: "done",
+        }),
+      }),
+    );
+  });
+
+  // rq-fixPhase9PrDetection AC4: durable fields from the prior phase9_status
+  // must survive through to the terminal "done" status. Currently changeTipSha
+  // is dropped when the done status is built.
+  test("phase9 retry preserves changeTipSha in terminal done status", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "pr_merged",
+      mergeCommitOid: "squash-merge-sha",
+      details: ["tree-SHA matched trunk commit"],
+    });
+    const store = createMockStore({
+      phase9_status: {
+        status: "pending",
+        startedAt: "2026-01-01T00:00:00Z",
+        changeTipSha: "tip123abc",
+      },
+    });
+
+    await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({
+          status: "done",
+          changeTipSha: "tip123abc",
         }),
       }),
     );

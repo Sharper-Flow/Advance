@@ -316,6 +316,35 @@ describe("release gate trunk-merge enforcement", () => {
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
+  // rq-fixPhase9PrDetection AC3: PR archive mode with a deleted/unpushed branch
+  // must still complete when a merged PR is discoverable (positive structural
+  // proof), rather than requiring the live branch to exist.
+  test("allows release completion in pr mode when branch is not pushed but merged PR is discoverable", async () => {
+    mocks.detectArchiveMode.mockReturnValueOnce({
+      archiveMode: "pr",
+      autoPush: true,
+    });
+    mocks.verifyChangeBranchPushed.mockReturnValueOnce({
+      pushed: false,
+      reason: "change/example not found on origin",
+    });
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 202,
+      mergeCommitOid: "merge-202",
+    });
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "example", gateId: "release", completedBy: "user:signoff" },
+      createMockStore({ archiveMode: "pr" }),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+  });
+
   test("blocks release completion when ops follow-up blocks link is incomplete", async () => {
     mocks.verifyChangeBranchReachable.mockReturnValueOnce({
       reachable: true,
