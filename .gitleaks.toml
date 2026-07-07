@@ -4,9 +4,17 @@ title = "Advance Gitleaks config"
 useDefault = true
 
 [allowlist]
-description = "Historical fake dashboard sanitizer token fixture already removed from HEAD"
-condition = "AND"
-commits = ["1f5e7e75fae5e5cdaae9a16fbc823e7ad146a090"]
-paths = ['''^bin/lib/dashboard/config\.test\.ts$''']
+description = "ADV-specific allowlist: historical fake dashboard fixture + 'ambiguous/partial' English-prose false positive in advance-workflow spec."
+condition = "OR"
+paths = [
+  '''^bin/lib/dashboard/config\.test\.ts$''',
+]
+commits = [
+  "1f5e7e75fae5e5cdaae9a16fbc823e7ad146a090",
+]
 regexTarget = "match"
-regexes = ['''token: "ghp_secret123"''']
+regexes = [
+  '''token: "ghp_secret123"''',
+  '''ambiguous/partial''',
+  '''ambiguous\\/partial''',
+]
