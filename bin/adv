@@ -761,5 +761,12 @@ async function main(argv: string[]): Promise<number> {
 }
 
 main(process.argv.slice(2)).then((code) => {
-  process.exit(code);
+  // Flush stdout before force-exiting. process.exit() immediately terminates
+  // the event loop, which truncates piped output (e.g. `adv status --json |
+  // wc`) when data is still in the async pipe write queue. stdout.end()
+  // flushes pending writes then calls back, at which point we can safely exit.
+  // Force exit (not exitCode) because error paths leave dangling gRPC handles
+  // that prevent natural event-loop termination.
+  // See: https://github.com/nodejs/node/issues/6456
+  process.stdout.end(() => process.exit(code));
 });
