@@ -876,7 +876,7 @@ After each phase, `adv_change_update` records compact summaries. Do not duplicat
 
 ### Agent Tiers
 
-Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-temporal-repair`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`. Only `mode: subagent` agents spawn via Task.
+Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`, `adv-temporal-repair`, `adv-visual-review`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`. Only `mode: subagent` agents spawn via Task.
 
 ### Agent Roster
 
@@ -888,7 +888,8 @@ Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explo
 | `adv-designer`   | Apply-phase frontend/component specialist (HTML/CSS/JS/TSX, a11y, responsive, polish, site-design match); write-only, never review/harden owner; submits typed `DESIGNER_REPORT` per `.opencode/agents/adv-designer.md` |
 | `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis/remediation; submits typed report. Reviewer packet carries `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes                                                  |
 | `adv-temporal-repair` | Temporal/workflow/session-pointer/target-path/artifact-phantom triage; packet anchors include WORKING DIRECTORY, CHANGE if known, TARGET_PATH, SYMPTOM, RECENT_TOOL_ERROR, ATTEMPT, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, VERIFICATION; returns classification + primary-ADV next actions |
-| `general`        | Verify bursts + generic multi-step work                                                                                                                                                                                 |
+| `adv-visual-review`  | Image analysis (screenshots, UI captures) for text-only model orchestrators                                                                                                                                            |
+| `general`            | Verify bursts + generic multi-step work                                                                                                                                                                                |
 | `adv-tron`       | Recon + hotspots (repo-local)                                                                                                                                                                                           |
 
 `adv-tron` repo-local. `adv-researcher` / `adv-engineer` / `adv-reviewer` / `adv-designer` bundled global via `scripts/deploy-local.sh`. Research pattern: `adv-researcher` covers docs/API/examples + architecture in a single spawn. Apply routing: `metadata.frontend == "true"` → `adv-designer` (Priority 1.5 in `/adv-apply` delegation routing table; `metadata.delegation_hint` at Priority 1 remains explicit user override).

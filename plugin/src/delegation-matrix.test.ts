@@ -71,6 +71,7 @@ const KNOWN_SPAWNABLE_SUBAGENTS = [
   "adv-designer",
   "adv-researcher",
   "adv-tron",
+  "adv-visual-review",
   "explore",
   "general",
 ] as const;

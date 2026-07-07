@@ -163,6 +163,16 @@ const LANE_SECTIONS: Record<BriefingPacketLane, SectionKind[]> = {
     "durable_facts",
     "unavailable_state",
   ],
+  visual_review: [
+    "identity_anchors",
+    "scope",
+    "contract",
+    "tasks",
+    "affected_files",
+    "epic_context",
+    "durable_facts",
+    "unavailable_state",
+  ],
   archive: [
     "identity_anchors",
     "archive_digest",

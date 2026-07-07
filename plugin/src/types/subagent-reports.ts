@@ -20,6 +20,7 @@ export const SubagentAgentSchema = z.enum([
   "adv-tron",
   "adv-scanner-bundle",
   "adv-verification-triage-bundle",
+  "adv-visual-review",
 ]);
 
 export type SubagentAgent = z.infer<typeof SubagentAgentSchema>;
@@ -28,7 +29,7 @@ export const ChangeReportScopeKeySchema = z
   .string()
   .min(1)
   .regex(
-    /^(?:(researcher|tron|scanner-bundle|verifier):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$/u,
+    /^(?:(researcher|tron|scanner-bundle|verifier|visual-review):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$/u,
   );
 
 export const TaskSubagentReportScopeSchema = z
@@ -589,6 +590,22 @@ export const VerificationTriageBundleSubagentReportSchema =
       }
     });
 
+export const VisualReviewSubagentReportSchema =
+  ChangeScopedBaseSubagentReportSchema.extend({
+    agent: z.literal("adv-visual-review"),
+    image: z.string().min(1),
+    description: z.string().min(1),
+    text_found: z.array(z.string().min(1)),
+    elements: z.array(z.string().min(1)),
+    anomalies: z.array(z.string().min(1)),
+    confidence: z.enum(["high", "medium", "low"]),
+    confidence_reason: z.string().min(1),
+    suggested_follow_up: z.array(z.string().min(1)),
+    blockers: z.array(z.string().min(1)),
+    follow_ups: z.array(z.string().min(1)),
+    consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
+  }).strict();
+
 export const TaskScopedSubagentReportSchema = z.discriminatedUnion("agent", [
   EngineerSubagentReportSchema,
   ReviewerSubagentReportSchema,
@@ -602,6 +619,7 @@ export const ChangeScopedSubagentReportSchema = z.discriminatedUnion("agent", [
   TronSubagentReportSchema,
   ScannerBundleSubagentReportSchema,
   VerificationTriageBundleSubagentReportSchema,
+  VisualReviewSubagentReportSchema,
 ]);
 
 /**
@@ -887,6 +905,25 @@ export const SUBAGENT_REPORT_FIELD_SOURCES = {
     follow_ups: "worker_derived",
     consumer_warnings: "tool_enriched",
   },
+  "adv-visual-review": {
+    schema_version: "worker_derived",
+    change_id: "packet_anchor",
+    scope: "packet_anchor",
+    attempt: "packet_anchor",
+    agent: "worker_derived",
+    workdir_used: "packet_anchor",
+    image: "worker_derived",
+    description: "worker_derived",
+    text_found: "worker_derived",
+    elements: "worker_derived",
+    anomalies: "worker_derived",
+    confidence: "worker_derived",
+    confidence_reason: "worker_derived",
+    suggested_follow_up: "worker_derived",
+    blockers: "worker_derived",
+    follow_ups: "worker_derived",
+    consumer_warnings: "tool_enriched",
+  },
 } as const satisfies Record<
   PersistedSubagentReportAgent,
   Record<string, SubagentReportFieldSource>
@@ -946,6 +983,9 @@ export type ScannerBundleSubagentReport = z.infer<
 >;
 export type VerificationTriageBundleSubagentReport = z.infer<
   typeof VerificationTriageBundleSubagentReportSchema
+>;
+export type VisualReviewSubagentReport = z.infer<
+  typeof VisualReviewSubagentReportSchema
 >;
 export type ScopedSubagentReport = z.infer<typeof ScopedSubagentReportSchema>;
 export type SupportedSubagentReport = z.infer<
