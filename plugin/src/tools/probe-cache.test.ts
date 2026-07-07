@@ -5,7 +5,12 @@ import { createProbeCache } from "./probe-cache";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function expectFreshnessShape(
-  freshness: { cached_at: string; stale: boolean; age_ms?: number; ttl_ms?: number },
+  freshness: {
+    cached_at: string;
+    stale: boolean;
+    age_ms?: number;
+    ttl_ms?: number;
+  },
   ttlMs: number,
 ) {
   expect(freshness.cached_at).toEqual(expect.any(String));
