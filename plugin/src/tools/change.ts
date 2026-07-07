@@ -2775,16 +2775,24 @@ export const changeTools = {
                 });
               },
               recordFailure: async (error) => {
+                // rq-fixPhase9PrDetection AC4: preserve durable Phase-9
+                // evidence (repo, prNumber, prUrl, route, changeTipSha) across
+                // the failed transition so a later archived-bundle retry can
+                // still resolve reachability after branch auto-delete.
+                const failureCurrent = await store.changes.get(changeId);
+                const previousPhase9 = failureCurrent.success
+                  ? failureCurrent.data?.phase9_status
+                  : undefined;
                 await recordPhase9Status({
                   store,
                   changeId,
-                  status: {
+                  status: preservePhase9Evidence(previousPhase9, {
                     status: "failed",
-                    startedAt: now,
+                    startedAt: previousPhase9?.startedAt ?? now,
                     completedAt: new Date().toISOString(),
                     error:
                       error instanceof Error ? error.message : String(error),
-                  },
+                  }),
                 });
               },
             });

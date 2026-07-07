@@ -1364,6 +1364,50 @@ describe("adv_change_archive Phase 9 behavior", () => {
     // (the queue module is responsible for catching and recording)
   });
 
+  // rq-fixPhase9PrDetection AC4: the async recordFailure transition must
+  // preserve durable Phase-9 evidence (repo, prNumber, prUrl, route,
+  // changeTipSha) so a later archived-bundle retry can still resolve
+  // reachability after branch auto-delete.
+  test("async recordFailure preserves durable phase9 evidence across failed transition", async () => {
+    const store = createMockStore({
+      phase9_status: {
+        status: "pending",
+        startedAt: "2026-01-01T00:00:00Z",
+        changeTipSha: "tip-202-abc",
+        repo: "Sharper-Flow/Advance",
+        route: "pr_auto_merge",
+      },
+    });
+    let capturedRecordFailure: ((error: unknown) => Promise<void>) | undefined;
+    mocks.dispatchPhase9Finalization.mockImplementationOnce(
+      (params: { recordFailure: (error: unknown) => Promise<void> }) => {
+        capturedRecordFailure = params.recordFailure;
+      },
+    );
+
+    await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      store,
+    );
+
+    expect(capturedRecordFailure).toBeDefined();
+    await capturedRecordFailure!(new Error("Archive finalization blocked"));
+
+    const failedSignal = mocks.workflow.signalPayloads.find(
+      (payload) =>
+        (payload.phase9_status as { status?: string } | undefined)?.status ===
+        "failed",
+    );
+    expect(failedSignal).toBeDefined();
+    expect(failedSignal?.phase9_status).toMatchObject({
+      status: "failed",
+      changeTipSha: "tip-202-abc",
+      repo: "Sharper-Flow/Advance",
+      route: "pr_auto_merge",
+      error: "Archive finalization blocked",
+    });
+  });
+
   test("dryRun with phase9=run does not dispatch async or mutate state", async () => {
     const store = createMockStore();
     const result = await changeTools.adv_change_archive.execute(
