@@ -32,9 +32,9 @@ import {
 import {
   detectDefaultBranch,
   classifyFinalizationRoute,
-  coercePrWorkflowRoute,
   resolveReleaseReachability,
   type GitFinalizeOutcome,
+  type GitFinalizeDeps,
 } from "../archive-helpers/git-finalize";
 import { hasGateRecoveryAudit } from "../recovery-audit";
 const logger = createLogger("change");
@@ -179,14 +179,53 @@ export function buildReleaseCompletionEvidence(
 export function buildPendingMergePhase9Status(input: {
   finalization: GitFinalizeOutcome;
   startedAt: string;
+  previous?: Phase9FinalizationStatus;
 }): Phase9FinalizationStatus {
-  return {
+  return preservePhase9Evidence(input.previous, {
     status: "pending_merge",
     startedAt: input.startedAt,
     prNumber: input.finalization.prNumber,
     prUrl: input.finalization.prUrl,
     autoMergeArmed: input.finalization.autoMergeArmed,
     route: input.finalization.route,
+  });
+}
+
+/**
+ * rq-fixPhase9PrDetection AC4: preserve durable Phase 9 evidence fields
+ * (repo, prNumber, prUrl, route, changeTipSha, autoMergeArmed) across
+ * pending_merge/done/failed transitions. Fields defined on `next` take
+ * precedence; otherwise, fields from `previous` are carried forward so
+ * previous evidence (e.g., changeTipSha, repo) is not dropped.
+ */
+export function preservePhase9Evidence(
+  previous: Phase9FinalizationStatus | undefined,
+  next: Phase9FinalizationStatus,
+): Phase9FinalizationStatus {
+  if (!previous) {
+    return next;
+  }
+  return {
+    ...next,
+    ...(previous.repo !== undefined && next.repo === undefined
+      ? { repo: previous.repo }
+      : {}),
+    ...(previous.prNumber !== undefined && next.prNumber === undefined
+      ? { prNumber: previous.prNumber }
+      : {}),
+    ...(previous.prUrl !== undefined && next.prUrl === undefined
+      ? { prUrl: previous.prUrl }
+      : {}),
+    ...(previous.route !== undefined && next.route === undefined
+      ? { route: previous.route }
+      : {}),
+    ...(previous.changeTipSha !== undefined && next.changeTipSha === undefined
+      ? { changeTipSha: previous.changeTipSha }
+      : {}),
+    ...(previous.autoMergeArmed !== undefined &&
+    next.autoMergeArmed === undefined
+      ? { autoMergeArmed: previous.autoMergeArmed }
+      : {}),
   };
 }
 /**
@@ -275,6 +314,7 @@ export async function reconcileArchivedBundleRetry(input: {
         finalization,
         startedAt:
           input.change.phase9_status?.startedAt ?? new Date().toISOString(),
+        previous: input.change.phase9_status,
       }),
     });
     return formatToolOutput({
@@ -361,12 +401,12 @@ export async function reconcileArchivedBundleRetry(input: {
     await recordPhase9Status({
       store: input.store,
       changeId: input.changeId,
-      status: {
+      status: preservePhase9Evidence(input.change.phase9_status, {
         status: "done",
         startedAt:
           input.change.phase9_status.startedAt ?? new Date().toISOString(),
         completedAt: new Date().toISOString(),
-      },
+      }),
     });
   }
   return formatToolOutput({
@@ -504,28 +544,42 @@ export function verifyReleaseEvidenceFromMain(input: {
   changeId: string;
   archiveMode: "direct" | "pr";
   change?: Change;
+  deps?: Pick<GitFinalizeDeps, "runGit" | "runGh">;
 }): GitFinalizeOutcome {
   const mainCheckout = input.store.paths.root;
-  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+  const { branch: defaultBranch } = detectDefaultBranch(
+    mainCheckout,
+    input.deps,
+  );
   const classifiedRoute = classifyFinalizationRoute(
     mainCheckout,
     defaultBranch,
+    input.deps,
   );
   const route =
     input.archiveMode === "pr" ||
     input.change?.phase9_status?.status === "pending_merge"
-      ? coercePrWorkflowRoute(classifiedRoute)
+      ? classifiedRoute.route === "blocked" ||
+        classifiedRoute.route === "merge_queue"
+        ? classifiedRoute
+        : { route: "pr_auto_merge" as const, repo: classifiedRoute.repo }
       : classifiedRoute;
-  const reachability = resolveReleaseReachability({
-    mainCheckout,
-    defaultBranch,
-    changeId: input.changeId,
-    route,
-    prNumber: input.change?.phase9_status?.prNumber,
-    // rq-fixPhase9SquashMergeRedetect SC1: thread persisted tip so
-    // reachability detection survives branch deletion.
-    changeTipSha: input.change?.phase9_status?.changeTipSha,
-  });
+  const reachability = resolveReleaseReachability(
+    {
+      mainCheckout,
+      defaultBranch,
+      changeId: input.changeId,
+      route,
+      prNumber: input.change?.phase9_status?.prNumber,
+      // rq-fixPhase9SquashMergeRedetect SC1: thread persisted tip so
+      // reachability detection survives branch deletion.
+      changeTipSha: input.change?.phase9_status?.changeTipSha,
+      // rq-fixPhase9PrDetection SC2: thread persisted repo so reachability
+      // can resolve PR evidence even when the route object lacks it.
+      repo: input.change?.phase9_status?.repo,
+    },
+    input.deps,
+  );
   if (reachability.reachable) {
     return {
       status: "shipped",

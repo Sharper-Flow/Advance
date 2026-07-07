@@ -4,10 +4,11 @@ title = "Advance Gitleaks config"
 useDefault = true
 
 [allowlist]
-description = "ADV-specific allowlist: historical fake dashboard fixture + 'ambiguous/partial' English-prose false positive in advance-workflow spec."
+description = "ADV-specific allowlist: historical fake dashboard fixture, 'ambiguous/partial' English-prose false positive in advance-workflow spec, and generated ADV archive bundle documentation (not source code)."
 condition = "OR"
 paths = [
   '''^bin/lib/dashboard/config\.test\.ts$''',
+  '''^\.adv/archive/.*$''',
 ]
 commits = [
   "1f5e7e75fae5e5cdaae9a16fbc823e7ad146a090",

@@ -1038,6 +1038,97 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  // rq-fixPhase9PrDetection AC1: PR workflow route (pr_auto_merge) with no
+  // prNumber must discover the merged PR instead of failing with
+  // PR_NOT_MERGED.
+  it("pr_auto_merge route + no prNumber discovers merged PR and returns pr_merged", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixPhase9PrDetection",
+        route: { route: "pr_auto_merge", repo: "Sharper-Flow/Advance" },
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "pr" && args[1] === "list") {
+            return {
+              status: 0,
+              stdout: JSON.stringify([
+                {
+                  number: 202,
+                  state: "MERGED",
+                  mergeCommit: { oid: "merge-202" },
+                },
+              ]),
+              stderr: "",
+            };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            return {
+              status: 0,
+              stdout: JSON.stringify({
+                state: "MERGED",
+                mergedAt: "2026-06-07T00:00:00Z",
+                mergeCommit: { oid: "merge-202" },
+                autoMergeRequest: null,
+              }),
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 202,
+      mergeCommitOid: "merge-202",
+    });
+  });
+
+  // rq-fixPhase9PrDetection AC5/AC6: when no prNumber, no discoverable merged
+  // PR, and no changeTipSha proof exists, the failure classification must not
+  // be the PR_NOT_MERGED blocker nor include the literal placeholder message
+  // as a user-facing shipped-proof failure.
+  it("pr_auto_merge route + no prNumber + no discoverable PR + no tip proof returns a distinct classification", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixPhase9PrDetection",
+        route: { route: "pr_auto_merge", repo: "Sharper-Flow/Advance" },
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "pr" && args[1] === "list")
+            return { status: 0, stdout: "[]", stderr: "" };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: false,
+    });
+    expect(result.proof).not.toBe("pr_unmerged");
+    expect(
+      result.details?.some((d) =>
+        d.includes("PR merge state requires repo and prNumber"),
+      ),
+    ).toBe(false);
+  });
+
   it("detectArchivedUnmergedBranches lists origin change branches not reachable from origin/default", () => {
     const calls: string[][] = [];
     const result = detectArchivedUnmergedBranches(

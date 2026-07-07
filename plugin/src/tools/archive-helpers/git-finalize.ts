@@ -329,6 +329,8 @@ export interface ReleaseReachabilityInput {
   changeId: string;
   route?: FinalizationRoute;
   prNumber?: number;
+  /** Optional repo override; falls back to route.repo. */
+  repo?: string;
   // rq-fixPhase9SquashMergeRedetect SC1: persisted change-tip SHA captured at
   // archive dispatch time. When provided, detection uses this content-addressed
   // tip instead of the live change/{id} git ref so reachability survives
@@ -351,6 +353,7 @@ export type ReleaseReachabilityProof =
         | "origin_unmerged"
         | "origin_push_unverified"
         | "pr_unmerged"
+        | "pr_missing_merge_proof"
         | "blocked";
       prNumber?: number;
       autoMergeArmed?: boolean;
@@ -1283,20 +1286,15 @@ export function verifyDefaultBranchPushed(
 
 export function readPrMergeState(
   mainCheckout: string,
-  repo: string,
+  repo: string | undefined,
   prNumber: number,
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
 ): PullRequestMergeState | { error: string; details?: string[] } {
   const runGh = deps.runGh ?? defaultRunGh;
-  const result = runGh(mainCheckout, [
-    "pr",
-    "view",
-    String(prNumber),
-    "--repo",
-    repo,
-    "--json",
-    "state,mergedAt,mergeCommit,autoMergeRequest",
-  ]);
+  const args = ["pr", "view", String(prNumber)];
+  if (repo) args.push("--repo", repo);
+  args.push("--json", "state,mergedAt,mergeCommit,autoMergeRequest");
+  const result = runGh(mainCheckout, args);
   if (result.status !== 0) {
     return {
       error: ghFailureReason(result),
@@ -1332,18 +1330,16 @@ export function readPrMergeState(
 
 export function discoverMergedPr(
   mainCheckout: string,
-  repo: string,
+  repo: string | undefined,
   changeId: string,
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
 ):
   | { prNumber: number; mergeCommitOid?: string }
   | { error: string; details?: string[] } {
   const runGh = deps.runGh ?? defaultRunGh;
-  const result = runGh(mainCheckout, [
-    "pr",
-    "list",
-    "--repo",
-    repo,
+  const args = ["pr", "list"];
+  if (repo) args.push("--repo", repo);
+  args.push(
     "--state",
     "merged",
     "--head",
@@ -1352,7 +1348,8 @@ export function discoverMergedPr(
     "number,mergeCommit",
     "--limit",
     "1",
-  ]);
+  );
+  const result = runGh(mainCheckout, args);
   if (result.status !== 0) {
     return {
       error: ghFailureReason(result),
@@ -2467,44 +2464,81 @@ export function resolveReleaseReachability(
     };
   }
 
-  if (!route.repo || !input.prNumber) {
+  // PR workflow routes: pr_auto_merge, pr_manual, merge_queue.
+  const repo = input.repo ?? route.repo;
+
+  let effectivePrNumber = input.prNumber;
+  let discoveryError: string | undefined;
+  if (!effectivePrNumber) {
+    const discovered = discoverMergedPr(
+      input.mainCheckout,
+      repo,
+      input.changeId,
+      deps,
+    );
+    if ("error" in discovered) {
+      discoveryError = discovered.error;
+    } else {
+      effectivePrNumber = discovered.prNumber;
+    }
+  }
+
+  if (effectivePrNumber) {
+    const prState = readPrMergeState(
+      input.mainCheckout,
+      repo,
+      effectivePrNumber,
+      deps,
+    );
+    if ("error" in prState) {
+      return {
+        reachable: false,
+        proof: "pr_unmerged",
+        prNumber: effectivePrNumber,
+        details: [prState.error, ...(prState.details ?? [])],
+      };
+    }
+    if (prState.state === "MERGED" && prState.mergedAt) {
+      return {
+        reachable: true,
+        proof: "pr_merged",
+        prNumber: effectivePrNumber,
+        mergeCommitOid: prState.mergeCommitOid,
+      };
+    }
     return {
       reachable: false,
       proof: "pr_unmerged",
-      prNumber: input.prNumber,
-      details: ["PR merge state requires repo and prNumber"],
+      prNumber: effectivePrNumber,
+      autoMergeArmed: prState.autoMergeArmed,
+      details: [`PR state is ${prState.state}`],
     };
   }
 
-  const prState = readPrMergeState(
-    input.mainCheckout,
-    route.repo,
-    input.prNumber,
-    deps,
-  );
-  if ("error" in prState) {
-    return {
-      reachable: false,
-      proof: "pr_unmerged",
-      prNumber: input.prNumber,
-      details: [prState.error, ...(prState.details ?? [])],
-    };
-  }
-  if (prState.state === "MERGED" && prState.mergedAt) {
-    return {
-      reachable: true,
-      proof: "pr_merged",
-      prNumber: input.prNumber,
-      mergeCommitOid: prState.mergeCommitOid,
-    };
+  // No PR number and no discoverable merged PR; try structural fallback if a
+  // persisted tip SHA is available (rq-fixPhase9SquashMergeRedetect).
+  if (input.changeTipSha) {
+    const treeMatch = detectSquashMergeByTree(
+      input.mainCheckout,
+      `origin/${input.defaultBranch}`,
+      input.changeId,
+      { ...deps, changeTipSha: input.changeTipSha },
+    );
+    if (treeMatch.reachable) {
+      return {
+        reachable: true,
+        proof: "pr_merged",
+        mergeCommitOid: treeMatch.mergeCommitOid,
+      };
+    }
   }
 
+  const details = ["prNumber is missing and no merged PR was discoverable"];
+  if (discoveryError) details.push(discoveryError);
   return {
     reachable: false,
-    proof: "pr_unmerged",
-    prNumber: input.prNumber,
-    autoMergeArmed: prState.autoMergeArmed,
-    details: [`PR state is ${prState.state}`],
+    proof: "pr_missing_merge_proof",
+    details,
   };
 }
 

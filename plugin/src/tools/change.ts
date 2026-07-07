@@ -25,6 +25,7 @@ import {
   type ChangeRepoScope,
   type ScopedSubagentReport,
   type BriefingPacketLane,
+  type Phase9FinalizationStatus,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { getReflection } from "../storage/reflection";
@@ -72,6 +73,7 @@ import {
   getArchiveGatePreflightError,
   buildReleaseCompletionEvidence,
   buildPendingMergePhase9Status,
+  preservePhase9Evidence,
   reconcileArchivedBundleRetry,
   buildFailedPhase9Classification,
   recordPhase9Status,
@@ -304,6 +306,8 @@ import {
   redriveArchivedUnmergedBranch,
   detectArchivedMergedBranches,
   getCheckedOutChangeBranches,
+  classifyFinalizationRoute,
+  coercePrWorkflowRoute,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
 import { dispatchPhase9Finalization } from "./archive-helpers/phase9-queue";
@@ -2600,10 +2604,41 @@ export const changeTools = {
                 );
               }
             }
+            // rq-fixPhase9PrDetection SC1: capture durable route/repo metadata
+            // at dispatch time so later reachability detection can function even
+            // after the change branch is auto-deleted.
+            let phase9Route: Phase9FinalizationStatus["route"];
+            let phase9Repo: string | undefined;
+            try {
+              const { branch: defaultBranch } = detectDefaultBranch(
+                store.paths.root,
+              );
+              const classifiedRoute = classifyFinalizationRoute(
+                store.paths.root,
+                defaultBranch,
+              );
+              const coercedRoute =
+                archiveMode === "pr"
+                  ? coercePrWorkflowRoute(classifiedRoute)
+                  : classifiedRoute;
+              phase9Route =
+                coercedRoute.route as Phase9FinalizationStatus["route"];
+              phase9Repo = coercedRoute.repo;
+            } catch (err) {
+              logger.warn(
+                `phase9 dispatch: failed to classify finalization route for ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
+              );
+            }
             await recordPhase9Status({
               store,
               changeId,
-              status: { status: "pending", startedAt: now, changeTipSha },
+              status: {
+                status: "pending",
+                startedAt: now,
+                changeTipSha,
+                route: phase9Route,
+                repo: phase9Repo,
+              },
             });
             dispatchPhase9Finalization({
               changeId,
@@ -2642,6 +2677,7 @@ export const changeTools = {
                     status: buildPendingMergePhase9Status({
                       finalization: currentFinalization,
                       startedAt: currentChange.phase9_status?.startedAt ?? now,
+                      previous: currentChange.phase9_status,
                     }),
                   });
                   return;
@@ -2675,11 +2711,11 @@ export const changeTools = {
                 await recordPhase9Status({
                   store,
                   changeId,
-                  status: {
+                  status: preservePhase9Evidence(currentChange.phase9_status, {
                     status: "done",
                     startedAt: currentChange.phase9_status?.startedAt ?? now,
                     completedAt: archivedAt,
-                  },
+                  }),
                 });
                 currentChange.status = "archived";
                 await store.changes.save(currentChange);
@@ -2739,16 +2775,24 @@ export const changeTools = {
                 });
               },
               recordFailure: async (error) => {
+                // rq-fixPhase9PrDetection AC4: preserve durable Phase-9
+                // evidence (repo, prNumber, prUrl, route, changeTipSha) across
+                // the failed transition so a later archived-bundle retry can
+                // still resolve reachability after branch auto-delete.
+                const failureCurrent = await store.changes.get(changeId);
+                const previousPhase9 = failureCurrent.success
+                  ? failureCurrent.data?.phase9_status
+                  : undefined;
                 await recordPhase9Status({
                   store,
                   changeId,
-                  status: {
+                  status: preservePhase9Evidence(previousPhase9, {
                     status: "failed",
-                    startedAt: now,
+                    startedAt: previousPhase9?.startedAt ?? now,
                     completedAt: new Date().toISOString(),
                     error:
                       error instanceof Error ? error.message : String(error),
-                  },
+                  }),
                 });
               },
             });
@@ -2820,6 +2864,7 @@ export const changeTools = {
                 finalization,
                 startedAt:
                   change.phase9_status?.startedAt ?? new Date().toISOString(),
+                previous: change.phase9_status,
               }),
             });
             return formatToolOutput({
@@ -2919,12 +2964,12 @@ export const changeTools = {
             await recordPhase9Status({
               store,
               changeId,
-              status: {
+              status: preservePhase9Evidence(change.phase9_status, {
                 status: "done",
                 startedAt:
                   change.phase9_status.startedAt ?? new Date().toISOString(),
                 completedAt: new Date().toISOString(),
-              },
+              }),
             });
           }
           releaseGateCompletion = {
