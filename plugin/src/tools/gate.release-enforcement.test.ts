@@ -461,13 +461,16 @@ describe("release gate trunk-merge enforcement", () => {
     expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
   });
 
-  test("allows release completion when change branch is pushed (pr mode)", async () => {
+  test("allows release completion in pr mode when merged PR proof exists", async () => {
     mocks.detectArchiveMode.mockReturnValueOnce({
       archiveMode: "pr",
       autoPush: true,
     });
-    mocks.verifyChangeBranchPushed.mockReturnValueOnce({
-      pushed: true,
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 202,
+      mergeCommitOid: "merge-202",
     });
 
     const result = await gateTools.adv_gate_complete.execute(

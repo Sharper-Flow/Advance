@@ -574,6 +574,9 @@ export function verifyReleaseEvidenceFromMain(input: {
       // rq-fixPhase9SquashMergeRedetect SC1: thread persisted tip so
       // reachability detection survives branch deletion.
       changeTipSha: input.change?.phase9_status?.changeTipSha,
+      // rq-fixPhase9PrDetection SC2: thread persisted repo so reachability
+      // can resolve PR evidence even when the route object lacks it.
+      repo: input.change?.phase9_status?.repo,
     },
     input.deps,
   );

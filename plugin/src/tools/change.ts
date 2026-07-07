@@ -25,6 +25,7 @@ import {
   type ChangeRepoScope,
   type ScopedSubagentReport,
   type BriefingPacketLane,
+  type Phase9FinalizationStatus,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { getReflection } from "../storage/reflection";
@@ -305,6 +306,8 @@ import {
   redriveArchivedUnmergedBranch,
   detectArchivedMergedBranches,
   getCheckedOutChangeBranches,
+  classifyFinalizationRoute,
+  coercePrWorkflowRoute,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
 import { dispatchPhase9Finalization } from "./archive-helpers/phase9-queue";
@@ -2601,10 +2604,41 @@ export const changeTools = {
                 );
               }
             }
+            // rq-fixPhase9PrDetection SC1: capture durable route/repo metadata
+            // at dispatch time so later reachability detection can function even
+            // after the change branch is auto-deleted.
+            let phase9Route: Phase9FinalizationStatus["route"];
+            let phase9Repo: string | undefined;
+            try {
+              const { branch: defaultBranch } = detectDefaultBranch(
+                store.paths.root,
+              );
+              const classifiedRoute = classifyFinalizationRoute(
+                store.paths.root,
+                defaultBranch,
+              );
+              const coercedRoute =
+                archiveMode === "pr"
+                  ? coercePrWorkflowRoute(classifiedRoute)
+                  : classifiedRoute;
+              phase9Route =
+                coercedRoute.route as Phase9FinalizationStatus["route"];
+              phase9Repo = coercedRoute.repo;
+            } catch (err) {
+              logger.warn(
+                `phase9 dispatch: failed to classify finalization route for ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
+              );
+            }
             await recordPhase9Status({
               store,
               changeId,
-              status: { status: "pending", startedAt: now, changeTipSha },
+              status: {
+                status: "pending",
+                startedAt: now,
+                changeTipSha,
+                route: phase9Route,
+                repo: phase9Repo,
+              },
             });
             dispatchPhase9Finalization({
               changeId,

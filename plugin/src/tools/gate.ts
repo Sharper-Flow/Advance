@@ -68,6 +68,7 @@ import {
   detectDefaultBranch,
   resolveMainCheckout,
   classifyFinalizationRoute,
+  coercePrWorkflowRoute,
   resolveReleaseReachability,
   verifyChangeBranchPushed,
 } from "./archive-helpers/git-finalize";
@@ -210,14 +211,37 @@ function getReleaseFinalizationBlocker(input: {
   const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
 
   if (archiveMode === "pr") {
+    const classifiedRoute = classifyFinalizationRoute(
+      mainCheckout,
+      defaultBranch,
+    );
+    const route = coercePrWorkflowRoute(classifiedRoute);
+    const reachability = resolveReleaseReachability({
+      mainCheckout,
+      defaultBranch,
+      changeId: input.changeId,
+      route,
+      prNumber: input.change.phase9_status?.prNumber,
+      repo: input.change.phase9_status?.repo,
+      changeTipSha: input.change.phase9_status?.changeTipSha,
+    });
+    if (reachability.reachable) return null;
+
+    // No merged PR/default proof; surface branch push failure as actionable
+    // detail without making the live branch a hard requirement.
     const pushCheck = verifyChangeBranchPushed(mainCheckout, input.changeId);
-    if (!pushCheck.pushed) {
-      return releaseRequiresPrHandoffResponse({
-        changeId: input.changeId,
-        reason: pushCheck.reason ?? "change branch not pushed to origin",
-      });
+    const details = reachability.details ?? [];
+    if (!pushCheck.pushed && pushCheck.reason) {
+      details.unshift(`change branch not pushed: ${pushCheck.reason}`);
     }
-    return null;
+
+    return releaseRequiresPrHandoffResponse({
+      changeId: input.changeId,
+      reason:
+        details.length > 0
+          ? details.join("; ")
+          : "merged PR proof not found and change branch not pushed to origin",
+    });
   }
 
   const route = classifyFinalizationRoute(mainCheckout, defaultBranch);
@@ -227,6 +251,8 @@ function getReleaseFinalizationBlocker(input: {
     changeId: input.changeId,
     route,
     prNumber: input.change.phase9_status?.prNumber,
+    repo: input.change.phase9_status?.repo,
+    changeTipSha: input.change.phase9_status?.changeTipSha,
   });
   if (reachability.reachable) return null;
 
