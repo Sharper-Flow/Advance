@@ -667,7 +667,7 @@ export const roadmapTools = {
         .positive()
         .optional()
         .describe(
-          "Limit features to the top N by WSJF (after sorting). No effect on bugs.",
+          "Limit features to the top N (after sorting; features order by issue number when scoring fields are null). No effect on bugs.",
         ),
       priority: z
         .enum(["critical", "high", "medium", "low"])

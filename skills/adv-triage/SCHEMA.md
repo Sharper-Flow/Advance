@@ -86,13 +86,13 @@ Regenerate with `/adv-triage`. Manual edits are overwritten.
 
 ### Critical
 | # | Title | Labels |
-|---|---|-------|--------|
+|---|---|---|
 | #{num} | {title} | {labels except priority:* and bug} |
 
 ## Features (by issue number)
 
 | # | Title | Labels |
-|---|---|-------|--------|
+|---|---|---|
 | #{num} | {title} | {labels except feature} |
 
 ## Deferred / Unscored

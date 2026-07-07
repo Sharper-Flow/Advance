@@ -411,8 +411,9 @@ export const backlogTools = {
       if (priorityFilter) {
         bugs = bugs.filter((b) => b.priority === priorityFilter);
       }
-      // Mirrors adv_roadmap semantics: `top` limits WSJF-ranked features only;
-      // bugs remain priority-filtered because they are not ordered by WSJF.
+      // Mirrors adv_roadmap semantics: `top` limits the feature slice only
+      // (features are ordered by issue number when scoring fields are null);
+      // bugs remain priority-filtered because they are ordered by priority tier.
       if (top !== undefined) {
         features = features.slice(0, top);
       }

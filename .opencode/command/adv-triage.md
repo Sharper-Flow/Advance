@@ -119,7 +119,7 @@ After ROADMAP.md written: agent MUST emit full content as fenced markdown in cha
 
 ## Phase 6: Final Report
 
-Emit structured report: sources scanned, issues created/updated/autofilled/deferred/skipped, roadmap counts, local sources deprecated, file written. See skill § Phase 6. If `--dry-run`: append `Re-run without --dry-run to apply mutations.`
+Emit structured report: sources scanned, issues created/updated/prioritized/deferred/skipped, roadmap counts, local sources deprecated, file written. See skill § Phase 6. If `--dry-run`: append `Re-run without --dry-run to apply mutations.`
 
 ---
 
@@ -153,4 +153,4 @@ Emit structured report: sources scanned, issues created/updated/autofilled/defer
 | Local source scan | `glob`, `read`, `lgrep_search_text` |
 | Bug priority loop | `gh issue edit --add-label` |
 | Roadmap write | `write` (whole file, deterministic from project state) |
-| Git ops | `bash` (`git status`, `git add ROADMAP.md`, `git commit`, `git pull --rebase`, `git push`)
+| Git ops | `bash` (`git status`, `git add ROADMAP.md`, `git commit`, `git pull --rebase`, `git push`) |
