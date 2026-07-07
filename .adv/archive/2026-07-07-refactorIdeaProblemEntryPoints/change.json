@@ -1,0 +1,1272 @@
+{
+  "id": "refactorIdeaProblemEntryPoints",
+  "title": "Refactor idea and problem entry points",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-06T23:53:51.885Z",
+  "tasks": [
+    {
+      "id": "tk-5a50a9e5f97a",
+      "title": "RED test for adv-idea-assets.test.ts mirroring adv-problem-assets shape",
+      "type": "verification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-07T00:43:00.911Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7",
+          "AC8"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T00:55:40.071Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "refactorIdeaProblemEntryPoints",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/refactorIdeaProblemEntryPoints",
+          "task_id": "tk-5a50a9e5f97a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-5a50a9e5f97a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/adv-idea-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/adv-idea-assets.test.ts",
+              "exit_code": 1,
+              "summary": "RED: 6/7 DDC-1 assertions failed — missing subagent dispatch, adv-researcher/validation.status, initiative sizing, /adv-epic routing, explicit forbid statements for mutation tools, and adv-research.md:111-135 reference"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "mirrored adv-problem-assets structural shape",
+              "why": "preserves convention (vitest imports, readFileSync command read, describe/test per DDC)"
+            },
+            {
+              "what": "asserted explicit forbid strings for mutation tools rather than only absence of calls",
+              "why": "DDC-1 requires the command to contain FORBID language naming each tool; also guard against direct invocations"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "tk-rewrite-idea (tk-614f1a6a4ffb) will rewrite .opencode/command/adv-idea.md to satisfy this RED test, turning it GREEN"
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "N/A — new test file, no prior pattern to scan",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "RED test authored; current .opencode/command/adv-idea.md does not satisfy DDC-1; tk-rewrite-idea is next",
+            "suggested_next_action": "delegate tk-rewrite-idea to adv-engineer to turn this RED green"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-idea-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "RED test for adv-idea command structure. Created plugin/src/adv-idea-assets.test.ts (new file) mirroring plugin/src/adv-problem-assets.test.ts. Seven assertions covering DDC-1: four exit paths, Task-tool subagent dispatch, adv-researcher+validation.status, initiative any-of test, /adv-epic routing, explicit mutation-tool forbids, sub-agent resilience paragraph reference. RED run via bin/oc-test targeted -- src/adv-idea-assets.test.ts returned exit_code=1 with 6/7 assertions failing as expected (one pre-existing phrase in current adv-idea.md satisfies one assertion; six require tk-614f1a6a4ffb rewrite). Green pairing expected from tk-614f1a6a4ffb (adv-idea.md rewrite) per rq-TDD009seq pairing discipline.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-idea-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-idea-assets.test.ts"
+      ],
+      "checkpointSha": "bbf280b1690ac83e864027a99427534dafcce0fa",
+      "completedAt": "2026-07-07T00:59:10.114Z",
+      "completed_at": "2026-07-07T00:59:10.114Z"
+    },
+    {
+      "id": "tk-d5101393f481",
+      "title": "Edit plugin/src/manifest.ts:136-163 to add adv-epic to successors",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-07T00:43:10.344Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "C1",
+          "AC11"
+        ],
+        "respects": [
+          "OOS1",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T01:06:21.454Z",
+      "verification": "GREEN: plugin/src/manifest.ts lines 142 + 156 edited to add \"adv-epic\" to successors arrays for both adv-idea and adv-problem commands. Static check: bin/oc-test targeted -- src/manifest.test.ts returns 40/40 passing — schema presence maintained, all command names registered, successors reference valid command names (adv-epic IS a registered command, see line 164 in same file). C1 (manifest successors update) + AC11 (truthful scope: scope.creates[], scope.modifies[], scope.gates[] all preserved unchanged; scope.reads unchanged at [\"specs\",\"codebase\"] since the new commands inspect what was already inspected). Contract implemented: C1. Respects: OOS1, OOS3.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "ead13753e86937e8e5e058fd02a20acfaeef804f",
+      "completedAt": "2026-07-07T01:07:01.107Z",
+      "completed_at": "2026-07-07T01:07:01.107Z"
+    },
+    {
+      "id": "tk-2005a67dd7ff",
+      "title": "Run targeted test suite (manifest + adv-problem + adv-idea asset tests)",
+      "type": "verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-07T00:43:13.909Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC12"
+        ],
+        "respects": [
+          "OOS1",
+          "OOS2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T01:07:00.804Z",
+      "verification": "VERIFICATION GREEN: bin/oc-test targeted -- src/manifest.test.ts src/adv-problem-assets.test.ts src/adv-idea-assets.test.ts returned exit_code=0 with 51/51 tests passing (3 files: 40 manifest + 4 adv-problem + 7 adv-idea). The adv-idea-assets.test.ts suite (created in tk-5a50a9e5f97a) is GREEN because tk-614f1a6a4ffb rewrote .opencode/command/adv-idea.md to satisfy all 7 DDC-1 assertions. adv-problem-assets.test.ts is GREEN because tk-a38c206b4459 rewrote .opencode/command/adv-problem.md preserving all 7 spec-law strings verbatim. manifest.test.ts is GREEN because tk-d5101393f481 added adv-epic to successors arrays while keeping all 29 commands registered with valid successors. AC12 verified. Respects: OOS1, OOS2.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "ead13753e86937e8e5e058fd02a20acfaeef804f",
+      "completedAt": "2026-07-07T01:07:23.375Z",
+      "completed_at": "2026-07-07T01:07:23.375Z"
+    },
+    {
+      "id": "tk-0b725e93bbc3",
+      "title": "Run pnpm run check (schemas:check → typecheck → lint → format:check)",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-07T00:43:16.110Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "non-criteria-touching pre-flight; respects AC11 baseline integrity"
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T01:07:23.227Z",
+      "verification": "PRE-FLIGHT GREEN: pnpm run check returned exit_code=0 after a single remediation (Prettier auto-formatted plugin/src/adv-idea-assets.test.ts regex wrap — content unchanged, format normalized). Steps passed: schemas:check (no public schema drift), typecheck (TypeScript compiles including new test file + manifest.ts edit), check-test-isolation (no test isolation violations), check-lockfile-policy (pnpm authoritative, no bun.lock present), lint (eslint clean), format:check (all files Prettier-clean after auto-format). No criteria were changed by the format fix. Re-ran targeted tests after fix to confirm 51/51 still GREEN — no collateral. Respects: AC11 baseline integrity. Status: clean (no commit needed; tree dirty-tree resolved by the format change).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-idea-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-idea-assets.test.ts"
+      ],
+      "checkpointSha": "12609754b2872b5bbc1064a82088628b9f5f7077",
+      "completedAt": "2026-07-07T01:09:23.853Z",
+      "completed_at": "2026-07-07T01:09:23.853Z"
+    },
+    {
+      "id": "tk-eef31048416d",
+      "title": "Run full vitest suite (pnpm test or bin/oc-test full)",
+      "type": "verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-07T00:43:18.350Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC12"
+        ],
+        "respects": [
+          "OOS1",
+          "OOS2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T01:09:23.708Z",
+      "verification": "PARTIAL: bin/oc-test full returned exit_code=1 with 4618/4619 tests passing in 161s. Single failure: src/tool-name-assets.test.ts > live prompts do not reference unavailable ADV tool names — offender is `.opencode/command/adv-coordinate.md: adv_backed_fact`. PRE-EXISTING (not introduced by this change): (a) I never modified adv-coordinate.md; (b) my rewrites of adv-idea.md and adv-problem.md do not reference `adv_backed_fact` (would have shown in offenders list); (c) the failure persists when running targeted test against an unchanged worktree. Diagnosis: SEMANTIC — the test regex `\\b(adv_[A-Za-z0-9_]+)\\b` over-matches prose references like `adv_backed_fact` (an internal ADV classification constant, not a public tool). The fix is either (i) extend the exclusion list beyond `adv_*_` (shorthand for agenda/wisdom) to include classification constants like `adv_backed_fact`, or (ii) add `adv_backed_fact` to ADV_TOOL_NAME_SET (semantically wrong — it IS a constant, not a tool). Per task T9 routing rules and the touched-scope camping rule, this is OUT OF SCOPE for this change: my touched files are clean, the failure is in a peer `.opencode/command/*.md` file unrelated to the /adv-idea and /adv-problem redesign. Recommended: separate ADV change (`fixToolNameAssetsTestOvermatch` or similar) to address. NOT silently absorbed — surfaced here for the user.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "12609754b2872b5bbc1064a82088628b9f5f7077",
+      "completedAt": "2026-07-07T01:13:20.726Z",
+      "completed_at": "2026-07-07T01:13:20.726Z"
+    },
+    {
+      "id": "tk-614f1a6a4ffb",
+      "title": "Rewrite .opencode/command/adv-idea.md with 5-phase sub-agent-driven flow",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-07T00:43:42.840Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7",
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "C2",
+          "OOS1",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "review",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T00:59:40.504Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "refactorIdeaProblemEntryPoints",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/refactorIdeaProblemEntryPoints",
+          "task_id": "tk-614f1a6a4ffb",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-614f1a6a4ffb"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/command/adv-idea.md"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/adv-idea-assets.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 7/7 DDC-1 assertions pass in adv-idea entry-point contract"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "5-phase structure (Frame → Explore → Synthesize → Size → Exit)",
+              "why": "matches design.md Phase 2 / KD-1 and satisfies RED-test assertions"
+            },
+            {
+              "what": "Rewrote anti-patterns in new failure modes",
+              "why": "KD-8 / DA-4: replaced old anti-patterns with no sub-agent dispatch, silent state mutation, opaque scope decisions"
+            },
+            {
+              "what": "Used literal tool names without parentheses for mutation-tool forbid",
+              "why": "satisfies AC7 while keeping command prose natural and test-passing"
+            },
+            {
+              "what": "Included inline sub-agent resilience paragraph referencing adv-research.md:111-135",
+              "why": "AC8 / DDC-4 requires canonical source citation and retry+fallback chain"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "N/A (single-file rewrite); collateral check: src/adv-problem-assets.test.ts still 4/4 pass",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv-idea.md rewritten; RED test (tk-5a50a9e5f97a) now GREEN; next: tk-d5101393f481 (manifest edit) and tk-a38c206b4459 (adv-problem rewrite preserving spec-law strings)",
+            "suggested_next_action": "dispatch tk-a38c206b4459 next (analogous adv-problem rewrite) and tk-d5101393f481 in parallel for the manifest successors update"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-idea-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "GREEN: .opencode/command/adv-idea.md rewritten with 5-phase sub-agent-driven flow (Frame → Explore (Task subagent) → Synthesize (adv-researcher with validation.status) → Size (any-of: ≥3 sub-problems / ≥3 distinct regions / >1 repo touched) → Exit (one-change → /adv-proposal | initiative → /adv-epic | iterate | stop)). Sub-agent resilience paragraph mirrors adv-research.md:111-135. Explicit forbids of adv_change_create/gate_complete/task_add/epic_create (AC7). Anti-patterns rewritten in terms of new failure modes (no sub-agent dispatch, silent state mutation, opaque scope decisions — KD-8). Verification: bin/oc-test targeted -- src/adv-idea-assets.test.ts returns exit_code=0 (7/7 GREEN, paired with tk-5a50a9e5f97a RED test). Collateral: src/adv-problem-assets.test.ts 4/4 pass — no regression. rq-TDD009seq ordering satisfied: tk-5a50a9e5f97a (RED, exit_code=1) → tk-614f1a6a4ffb (GREEN, exit_code=0). Contract implemented: AC1, AC2, AC3, AC4, AC7, AC8, AC9.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-idea.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-idea.md"
+      ],
+      "checkpointSha": "c7ecbfce844ad29901ce87536413f851223decb9",
+      "completedAt": "2026-07-07T01:02:35.879Z",
+      "completed_at": "2026-07-07T01:02:35.879Z"
+    },
+    {
+      "id": "tk-a38c206b4459",
+      "title": "Rewrite .opencode/command/adv-problem.md with 7-phase tiered-evidence flow preserving spec-law strings",
+      "type": "code",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-07-07T00:43:47.476Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6",
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "AC7",
+          "AC11",
+          "C2",
+          "OOS1",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "review",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T01:02:49.271Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "refactorIdeaProblemEntryPoints",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/refactorIdeaProblemEntryPoints",
+          "task_id": "tk-a38c206b4459",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-a38c206b4459"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/command/adv-problem.md"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/adv-problem-assets.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 4/4 assertions pass, all 7 DDC-2 strings preserved"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/adv-idea-assets.test.ts",
+              "exit_code": 0,
+              "summary": "no collateral damage to adv-idea-assets; 7/7 pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "7-phase tiered evidence flow (Frame → Tier 1 local → Tier 2 external → Tier 3 user uploads → Spec-law assessment → Triage classify → Exit)",
+              "why": "design.md KD-1 and AC5/AC6/AC8 require structured evidence before direct-fix or proposal routing"
+            },
+            {
+              "what": "preserved DDC-2 7-string set verbatim",
+              "why": "machine-checked by adv-problem-assets.test.ts:19-39; dropping any string fails CI"
+            },
+            {
+              "what": "kept Phase 5 spec-law assessment as the anchor for the mandatory strings",
+              "why": "original command already contained the required spec-law language; relocating it to Phase 5 keeps it findable while surrounding it with the new tiered flow"
+            },
+            {
+              "what": "mirrored adv-idea.md structural conventions",
+              "why": "sibling commands must present consistent frontmatter, Command Boundary, Phase 0 methodology, phase list, exit paths, and anti-patterns"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "N/A",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv-problem.md rewritten; existing adv-problem-assets test still passes 4/4 (preserved strings); adv-idea-assets collateral also passes 7/7. HEAD: c7ecbfce. 5 tasks remaining: tk-d5101393f481 (manifest), tk-2005a67dd7ff (targeted), tk-0b725e93bbc3 (pre-flight), tk-eef31048416d (full suite).",
+            "suggested_next_action": "dispatch tk-d5101393f481 (manifest edit) next — adds 'adv-epic' to successors arrays"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-problem-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-idea-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "GREEN: .opencode/command/adv-problem.md rewritten with 7-phase tiered-evidence flow (Frame → Tier 1 local → Tier 2 external → Tier 3 user uploads with secret detection → Spec-law assessment with all 7 mandatory DDC-2 strings preserved verbatim → Triage classify with direct-fix guardrails → Exit). Sub-agent resilience paragraph mirrors adv-research.md:111-135. Anti-patterns rewritten (KD-8). Mandatory preservation verified — bin/oc-test targeted -- src/adv-problem-assets.test.ts returns exit_code=0 (4/4 GREEN, all DDC-2 strings present). Collateral: src/adv-idea-assets.test.ts 7/7 still pass — no damage to paired rewrite. Tier-3 secret detection regex included (AC10 — API keys / tokens / connection strings). Sub-agent evidence ephemeral in session transcript (AC9, DONT2). Contract implemented: AC5, AC6, AC8, AC9, AC10. Respects: AC7, AC11, C2, OOS1, OOS4.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-problem.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-problem.md"
+      ],
+      "checkpointSha": "8350452616f32f8f3c81f25c27eb53557acc1164",
+      "completedAt": "2026-07-07T01:05:44.049Z",
+      "completed_at": "2026-07-07T01:05:44.049Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "refactorIdeaProblemEntryPoints",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — refactorIdeaProblemEntryPoints (adv-idea / adv-problem sub-agent delegation rewrite)",
+      "sources": [
+        {
+          "label": "adv-problem-assets.test.ts (machine-checked spec-law strings)",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-problem-assets.test.ts:19-39",
+          "summary": "Asserts adv-problem.md contains verbatim: 'Spec-law impact', 'durable product/system behavior', 'Spec-law change required', 'No spec law update required', 'direct fix remains allowed only when all direct-fix guardrails pass', the regex /uncertain spec-law impact MUST NOT be direct-fix; route to /adv-proposal or keep investigating/, and 'MUST NOT create changes, tasks, gates, or spec deltas directly'. Tied to rq-problemSpecLaw01."
+        },
+        {
+          "label": "advance-workflow spec rq-problemSpecLaw01",
+          "locator": "adv_spec show advance-workflow (v1.25.1)",
+          "summary": "MUST requirement: /adv-problem includes spec-law impact assessment; law-changing findings route to /adv-proposal with draft spec-delta obligation; uncertain impact MUST NOT be trivial direct-fix; command remains read-only. Scenarios .1/.2/.3 fixed and order-checked by the assets test."
+        },
+        {
+          "label": "adv-research.md Sub-Agent Resilience protocol (LBP source)",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-research.md:111-135",
+          "summary": "Detection (empty/failed criteria incl. missing validation.status), Retry-once, inline Context7/Exa/searchcode fallback, never-skip-a-question. Exact block C2/AC8 require the two rewritten commands to mirror. Line 139 is 'Spawn Research Sub-Agents' matches KD-1 dispatch-spine claim."
+        },
+        {
+          "label": "manifest.ts adv-idea / adv-problem entries",
+          "locator": "/home/jon/dev/advance/plugin/src/manifest.ts:136-163",
+          "summary": "Both entries currently: requiresChangeId:false, scope.creates=[], modifies=[], gates=[], reads=['specs','codebase'], successors=['adv-proposal']. C1 requires adding 'adv-epic' to successors; AC11 requires scope arrays stay empty/truthful."
+        },
+        {
+          "label": "manifest.test.ts successor + command-list assertions",
+          "locator": "/home/jon/dev/advance/plugin/src/manifest.test.ts:28-59,116-120,372",
+          "summary": "Line 116-120 asserts every successor references a valid command name (adv-epic is valid so safe). Line 372 pins a specific successors array for a DIFFERENT command, not idea/problem. Adding adv-epic to idea/problem successors is test-safe."
+        },
+        {
+          "label": "Test-file coverage grep for command references",
+          "locator": "grep 'adv-idea|adv-problem' plugin/src/**/*.test.ts",
+          "summary": "Only adv-problem-assets.test.ts references adv-problem.md; only manifest.test.ts references the names. NO existing assets test references adv-idea.md, so AC12 for adv-idea is currently vacuous, and design Step 4 creates a NEW adv-idea-assets.test.ts (net-new coverage, correct)."
+        },
+        {
+          "label": "Subagent/tool surface verification (warrant balance)",
+          "locator": "/home/jon/dev/advance/.opencode/agents/adv-researcher.md, adv-tron.md; adv.md:289,304-307",
+          "summary": "adv-researcher and adv-tron are Task-tool spawned agent files; 'explore' is a Task-tool subagent, none are public ADV tools indexed by warrant resolution. Confirms DA-1/Warrant-policy treatment of subagent invocations as behavioral assertions (not tool-surface warrants) is consistent with existing LBP."
+        }
+      ],
+      "architecture_assessment": "Workflow reorganization of two read-only CLI command files plus a one-line manifest successor edit and one net-new assets test. No new types, no new tool surface, no spec law. All four validated constraints hold under evidence. (1) Spec-law compliance: KD-7 preserves the rq-problemSpecLaw01 verbatim strings that adv-problem-assets.test.ts:19-39 machine-checks, including the distinct regex string at line 54 of the current command; phase reorg keeps these as a sub-section, and OOS4 forbids spec deltas. (2) Read-only safety: AC7 enforced structurally via a coverage test asserting absence of adv_change_create/adv_gate_complete/adv_task_add/adv_epic_create, plus DONT1/DONT2 recommend-not-invoke; KD-5 correctly defers adv_subagent_report_submit until a change exists (that tool requires change_id). (3) LBP alignment: C2/AC8 mirror adv-research.md:111-135 verbatim (verified as the exact resilience block); KD-1 dispatch spine mirrors adv-research.md:139. (4) Warrant balance: subagent assertions are behavioral, verified accurate against the actual agent-file surface. Initiative sizing (KD-3 any-of >=3 sub-problems / >=3 regions / >1 repo) matches AC4/DA-3 exactly. Two MINOR non-blocking observations: (a) the Architecture Overview cites 'adv-discover.md Phase 3.5 scout, line 533' while the resilience anchor is adv-research.md:111-135, the substantive mirror source is correct but the adv-discover line citation is imprecise; (b) implementation must preserve not only the five prompt-listed strings but ALSO the exact regex-tested string 'uncertain spec-law impact MUST NOT be direct-fix; route to /adv-proposal or keep investigating' (test lines 29-33) and 'MUST NOT create changes, tasks, gates, or spec deltas directly' (lines 35-38) as first-class verbatim-preserve targets.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All four validation dimensions pass with evidence. CORRECTNESS: design solves the four agreement objectives (delegation-as-default, recommend-not-create Epic, tiered evidence, read-only safety); no logical gaps, exit paths (AC3 four-path / AC6 triage classes) are complete and manifest/test impact fully traced. SIMPLICITY: no materially simpler approach achieves the objectives; design is already minimal (two file rewrites + 1 manifest line + 1 test), correctly rejects a heavier typed EXPLORER_REPORT schema (DA-1/OOS2), adds no ADRs. SPEC-LAW COMPLIANCE: rq-problemSpecLaw01 preserved verbatim via KD-7; OOS4 forbids spec deltas; read-only boundary maintained; no other advance-workflow requirement contradicted (gate model rq-gatemodel01 untouched, both commands remain gates:[]). KEY ALTERNATIVES: the one significant alternative (typed EXPLORER_REPORT schema) was explicitly considered and rejected in DA-1 with a holding rationale, rejection holds. Two MINOR non-blocking implementation notes: preserve the exact regex-tested string and read-only-boundary string as verbatim targets; fix or drop the imprecise adv-discover.md:533 citation. Neither invalidates the design."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Inline Task-subagent text (DA-1) instead of a typed EXPLORER_REPORT trades machine-auditability of evidence-collection output for a smaller typed-report surface; acceptable because adv-researcher's synthesis step already carries typed validation.status and the evidence step is ephemeral pre-change.",
+          "Sub-agent-dispatch-as-spine (KD-1) trades a small amount of latency/token cost per invocation for materially fewer user back-and-forth turns (SC1/SC2); consistent with the established adv-research/adv-discover delegation pattern.",
+          "Verbatim-string preservation for spec-law (KD-7) couples the command file tightly to adv-problem-assets.test.ts; intentional structural enforcement (P33) but future spec-law wording changes must update command + spec + test together.",
+          "Ephemeral-only evidence persistence (KD-4/KD-5/DA-2/DA-5) trades cross-session evidence durability for a smaller secret-leak surface and correct read-only semantics."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Introduce a typed EXPLORER_REPORT schema for Task-subagent evidence output",
+            "disposition": "rejected",
+            "rationale": "Explicitly rejected in DA-1/OOS2. Verified holding: expands the typed-report surface for marginal auditability gain; adv-researcher already emits typed validation.status for synthesis, and pre-change evidence is ephemeral (KD-5) so a durable typed schema has no persistence target until a change exists. Simplicity bias favors inline-text default."
+          },
+          {
+            "option": "Keep the Socratic-only Q&A loops (no rewrite)",
+            "disposition": "rejected",
+            "rationale": "Fails the core objective (delegation-as-default) and SC1/SC2 turn-reduction goals. Current commands drive work via user Q&A as the spine, which is the problem being refactored."
+          },
+          {
+            "option": "Auto-create the Epic / change from inside the command when initiative-sized",
+            "disposition": "rejected",
+            "rationale": "Violates AC4/AC7/DONT1 and rq-problemSpecLaw01 read-only boundary. Design correctly recommends /adv-epic and /adv-proposal without invoking adv_epic_create/adv_change_create."
+          },
+          {
+            "option": "Invent a new sub-agent resilience protocol for these two commands",
+            "disposition": "rejected",
+            "rationale": "Violates C2 (mirror, not invent). Design mirrors adv-research.md:111-135 verbatim, verified as the exact Detection + Retry block."
+          }
+        ],
+        "recommendation": "Proceed to design gate completion. During execution treat the regex-tested string 'uncertain spec-law impact MUST NOT be direct-fix; route to /adv-proposal or keep investigating' and 'MUST NOT create changes, tasks, gates, or spec deltas directly' as first-class verbatim-preserve targets, and correct the imprecise adv-discover.md:533 citation in the Architecture Overview. No spec-law change: rq-problemSpecLaw01 preserved verbatim (machine-checked), OOS4 forbids spec deltas, no other advance-workflow requirement affected since both commands stay gates:[] and read-only."
+      },
+      "recommendation": "PASS: the design is correct, minimal, spec-law-compliant, and LBP-aligned with no blockers. It preserves rq-problemSpecLaw01 verbatim (KD-7, machine-checked by adv-problem-assets.test.ts), enforces read-only safety structurally (AC7 coverage test + DONT1/DONT2), mirrors the sub-agent resilience protocol verbatim from adv-research.md:111-135 rather than inventing new architecture (C2/AC8, verified), and correctly treats subagent invocations as behavioral assertions rather than tool-surface warrants (DA-1, verified). The rejected EXPLORER_REPORT alternative's rationale holds. Two MINOR execution-hygiene notes (not blockers): preserve the exact regex-tested spec-law string and read-only-boundary string as verbatim targets since the assets test checks those specific phrases beyond the five prompt-listed bullets; fix or drop the imprecise 'adv-discover.md line 533' citation. Approve design gate completion; carry the two notes into planning as execution guardrails.",
+      "follow_ups": [
+        "Execution guardrail: verbatim-preserve the adv-problem-assets.test.ts regex string 'uncertain spec-law impact MUST NOT be direct-fix; route to /adv-proposal or keep investigating' and 'MUST NOT create changes, tasks, gates, or spec deltas directly'.",
+        "Design-doc hygiene: correct the 'adv-discover.md Phase 3.5 scout, line 533' citation; the verified resilience-mirror source is adv-research.md:111-135."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "refactorIdeaProblemEntryPoints",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/refactorIdeaProblemEntryPoints",
+      "task_id": "tk-5a50a9e5f97a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-5a50a9e5f97a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/adv-idea-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/adv-idea-assets.test.ts",
+          "exit_code": 1,
+          "summary": "RED: 6/7 DDC-1 assertions failed — missing subagent dispatch, adv-researcher/validation.status, initiative sizing, /adv-epic routing, explicit forbid statements for mutation tools, and adv-research.md:111-135 reference"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "mirrored adv-problem-assets structural shape",
+          "why": "preserves convention (vitest imports, readFileSync command read, describe/test per DDC)"
+        },
+        {
+          "what": "asserted explicit forbid strings for mutation tools rather than only absence of calls",
+          "why": "DDC-1 requires the command to contain FORBID language naming each tool; also guard against direct invocations"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "tk-rewrite-idea (tk-614f1a6a4ffb) will rewrite .opencode/command/adv-idea.md to satisfy this RED test, turning it GREEN"
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "N/A — new test file, no prior pattern to scan",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "RED test authored; current .opencode/command/adv-idea.md does not satisfy DDC-1; tk-rewrite-idea is next",
+        "suggested_next_action": "delegate tk-rewrite-idea to adv-engineer to turn this RED green"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-idea-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "refactorIdeaProblemEntryPoints",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/refactorIdeaProblemEntryPoints",
+      "task_id": "tk-614f1a6a4ffb",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-614f1a6a4ffb"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/command/adv-idea.md"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/adv-idea-assets.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 7/7 DDC-1 assertions pass in adv-idea entry-point contract"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "5-phase structure (Frame → Explore → Synthesize → Size → Exit)",
+          "why": "matches design.md Phase 2 / KD-1 and satisfies RED-test assertions"
+        },
+        {
+          "what": "Rewrote anti-patterns in new failure modes",
+          "why": "KD-8 / DA-4: replaced old anti-patterns with no sub-agent dispatch, silent state mutation, opaque scope decisions"
+        },
+        {
+          "what": "Used literal tool names without parentheses for mutation-tool forbid",
+          "why": "satisfies AC7 while keeping command prose natural and test-passing"
+        },
+        {
+          "what": "Included inline sub-agent resilience paragraph referencing adv-research.md:111-135",
+          "why": "AC8 / DDC-4 requires canonical source citation and retry+fallback chain"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "N/A (single-file rewrite); collateral check: src/adv-problem-assets.test.ts still 4/4 pass",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv-idea.md rewritten; RED test (tk-5a50a9e5f97a) now GREEN; next: tk-d5101393f481 (manifest edit) and tk-a38c206b4459 (adv-problem rewrite preserving spec-law strings)",
+        "suggested_next_action": "dispatch tk-a38c206b4459 next (analogous adv-problem rewrite) and tk-d5101393f481 in parallel for the manifest successors update"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-idea-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "refactorIdeaProblemEntryPoints",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/refactorIdeaProblemEntryPoints",
+      "task_id": "tk-a38c206b4459",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-a38c206b4459"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/command/adv-problem.md"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/adv-problem-assets.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 4/4 assertions pass, all 7 DDC-2 strings preserved"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/adv-idea-assets.test.ts",
+          "exit_code": 0,
+          "summary": "no collateral damage to adv-idea-assets; 7/7 pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "7-phase tiered evidence flow (Frame → Tier 1 local → Tier 2 external → Tier 3 user uploads → Spec-law assessment → Triage classify → Exit)",
+          "why": "design.md KD-1 and AC5/AC6/AC8 require structured evidence before direct-fix or proposal routing"
+        },
+        {
+          "what": "preserved DDC-2 7-string set verbatim",
+          "why": "machine-checked by adv-problem-assets.test.ts:19-39; dropping any string fails CI"
+        },
+        {
+          "what": "kept Phase 5 spec-law assessment as the anchor for the mandatory strings",
+          "why": "original command already contained the required spec-law language; relocating it to Phase 5 keeps it findable while surrounding it with the new tiered flow"
+        },
+        {
+          "what": "mirrored adv-idea.md structural conventions",
+          "why": "sibling commands must present consistent frontmatter, Command Boundary, Phase 0 methodology, phase list, exit paths, and anti-patterns"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "N/A",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv-problem.md rewritten; existing adv-problem-assets test still passes 4/4 (preserved strings); adv-idea-assets collateral also passes 7/7. HEAD: c7ecbfce. 5 tasks remaining: tk-d5101393f481 (manifest), tk-2005a67dd7ff (targeted), tk-0b725e93bbc3 (pre-flight), tk-eef31048416d (full suite).",
+        "suggested_next_action": "dispatch tk-d5101393f481 (manifest edit) next — adds 'adv-epic' to successors arrays"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-problem-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-idea-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "refactorIdeaProblemEntryPoints",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/refactorIdeaProblemEntryPoints",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 6,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "architecture-quality",
+        "scope-conformance"
+      ],
+      "summary": "APPROVED with 1 suggestion finding. Both command rewrites mirror established adv-research.md:139 dispatch pattern; adv-problem preserves all 7 DDC-2 spec-law strings (verified by adv-problem-assets 4/4 GREEN); adv-idea satisfies all 7 DDC-1 assertions (verified by adv-idea-assets 7/7 GREEN); manifest edit adds adv-epic to both successors arrays without disturbing schema (verified by manifest.test.ts 40/40 GREEN). 51/51 targeted green. Full vitest 4618/4619 in 161s with 1 pre-existing failure unrelated to this change (.opencode/command/adv-coordinate.md: adv_backed_fact).",
+      "findings": [
+        {
+          "scanner": "security",
+          "severity": "suggestion",
+          "summary": "Tier-3 secret detection described narratively without literal regex constant; subsequent harden-phase task should add explicit regex constant + machine-checkable test.",
+          "evidence": [
+            {
+              "label": "command file line",
+              "locator": ".opencode/command/adv-problem.md:71",
+              "summary": "'Run secret detection regex before persistence: scan for API keys, tokens, connection strings, and other credential-like patterns.' Pattern is narratively described; literal regex not yet extracted to constant."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Pre-existing tool-name-assets.test.ts failure on .opencode/command/adv-coordinate.md: adv_backed_fact is OUT OF SCOPE — recommend separate ADV change (e.g. 'fixToolNameAssetsTestOvermatch') to extend the test's exclusion list (matches prose references like 'adv_backed_fact') or add constant to ADV_TOOL_NAME_SET. NOT silently absorbed.",
+        "Future harden/follow-up: extract Tier-3 secret detection regex to a testable constant + add machine-checkable credential-shape log mock in adv-problem-assets.test.ts to close AC10 verification surface."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-06T23:54:08.990Z",
+      "completed_by": "agent",
+      "approval_evidence": "Phase 1 problem statement approved by user. Phase 2 proposal persisted at creation. B/F/S scan: B=pass, F=pass, S=pass with 2 soft idioms (materially faster, preserve safety guarantees) flagged non-blocking. Origin: discovery. Next: discovery gate firms AC/SC and resolves DA-1..DA-5.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "42de5b501bb20a15335caf7675681f16e3df055f647ff542e3864d6d2891a10b",
+        "non_whitespace_chars": 6114,
+        "checked_at": "2026-07-06T23:53:51.913Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-07T00:09:47.437Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings + agreement approved at Phase 4.5.1 (Tier A match). 22 contract items minted (SC1-3, AC1-12, C1-2, OOS1-5). AMBIGUITY ANALYSIS B:C F:C S:C M:C — no triggering findings. All 5 DAs resolved. Warrant policy: public ADV tools only; subagent invocations documented as behavioral.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "non_whitespace_chars": 6744,
+        "checked_at": "2026-07-06T23:53:51.914Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-07T00:37:05.251Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated Phase 3.5: validation.status pass (high confidence, low risk). Architecture Judgement: applicable; alternatives including EXPLORER_REPORT schema considered and rejected. Spec-law compliance verified (rq-problemSpecLaw01 preserved verbatim — expanded DDC-2 to full 7-string list after validator caught one missing). Two minor non-blocking guardrails recorded as agenda items for apply phase. Proceed to /adv-prep per Phase 4 auto-continue rule (straightforward design, no user tradeoff).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "2656a99218ac236023acbf065001293ea05d1f062a23b39bcbf058eb7ab0fae0",
+        "non_whitespace_chars": 10993,
+        "checked_at": "2026-07-06T23:53:51.915Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-07T00:48:06.667Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep approved by user via Tier A inline-approval (\"approve\"). 7 tasks created (2 code rewrites + 1 manifest edit + 1 RED test + 3 verification layers). Contract refs validated against minted 22-item contract (DONT* items live in agreement but did not propagate to contract; rewritten rewrites to express respect via AC/C/OOS refs instead). Validation passes (NO_DELTAS expected — workflow-only change). Next: /adv-apply."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-07T01:13:42.381Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 tasks checkpointed and recorded (4 commits + 3 clean verifications). Pre-flight green (schemas/typecheck/lint/format after one Prettier auto-format remediation). Targeted test suite green (51/51 manifest + adv-problem + adv-idea assets). Full vitest suite: 4618/4619 passing in 161s — 1 PRE-EXISTING failure in src/tool-name-assets.test.ts unrelated to this change (offender is .opencode/command/adv-coordinate.md: adv_backed_fact, a file I never touched and my rewrites don't reference). NOT silently absorbed — surfaced for user decision in execution handoff. Touched-scope quality clean (all 4 touched files match design, no collateral damage). TDD discipline preserved (RED-GREEN pairing across tk-5a50a9e5f97a → tk-614f1a6a4ffb per rq-TDD009seq). AC7 verified structurally — no mutation tool invocations in either rewritten command body. DDC-2 7-string preservation verified by adv-problem-assets.test.ts. Ready for /adv-review."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-07T01:46:26.650Z",
+      "completed_by": "agent",
+      "approval_evidence": "ACCEPTED by user via Tier A inline-approval (\"approve\"). Review verdict: APPROVED with 1 suggestion (security-1: Tier-3 secret detection regex should be extracted to testable constant — deferred to harden via auto-follow-up ag-d9A4J4OX). 0 blockers, 0 issues, 1 suggestion. Contract review matrix persisted: 22/22 rows reviewed (9 AC pass, 3 SC not_applicable, 2 C respected, 5 OOS respected, 3 SC not_applicable). Executive summary workflow-visible with content-hash 914b9bc0d35fa826a5138bbaaba30a1278db8256268e3fea944dc4adb1d54676. 2 follow-up agenda items carried forward to harden. Pre-existing tool-name-assets.test.ts failure on .opencode/command/adv-coordinate.md: adv_backed_fact remains surfaced (out-of-scope; auto-follow-up ag-qfzDosa9). No silent absorption.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "914b9bc0d35fa826a5138bbaaba30a1278db8256268e3fea944dc4adb1d54676",
+        "non_whitespace_chars": 4046,
+        "checked_at": "2026-07-06T23:53:51.916Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "adv-idea-and-adv-problem-entry-point-review"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+      "approvedAt": "2026-07-07T00:09:41.097Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1** — `/adv-idea {topic}` reaches a routable summary (one-change / initiative / iterate / stop) in fewer back-and-forth turns than the pre-change baseline (qualitative; measured via `/adv-reflect` after archive).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2** — `/adv-problem {symptom}` triage classification (trivial / proposal / needs-info / stop) reaches user-confirmed without a second evidence round in ≥80% of sessions (qualitative; measured via `/adv-reflect`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3** — Zero accidental ADV state mutations from inside either command after rollout (audit-log inspection).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — `/adv-idea` invokes at least one sub-agent (the appropriate Task-tool subagent for codebase/ecosystem context) at least once before producing the proposal-ready summary when the topic touches codebase or ecosystem context. (Behavior verifiable by reading the command file.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — `/adv-idea` invokes `adv-researcher` for synthesis with `validation.status` judgement carried through to the summary when the idea has architectural weight. (Behavior verifiable by reading the command file.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — `/adv-idea` exits with one of four declared paths: one-change → `/adv-proposal`, initiative → `/adv-epic`, iterate, stop.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — Initiative-sized outputs (any-of: ≥3 sub-problems / ≥3 distinct regions / >1 repo touched) include an explicit `/adv-epic` recommendation. The recommendation never invokes `adv_epic_create` directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_epic_create",
+          "tool:adv_change_create"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** — `/adv-problem` runs the tiered evidence chain (local repo via Task-tool subagent → external docs via `adv-researcher` → user uploads) at least once per triage when a symptom touches any tier. (Behavior verifiable by reading the command file.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6** — `/adv-problem` classifies the issue as trivial / proposal-sized / needs-more-info, applying all direct-fix guardrails (≤2 files, no spec changes, no cross-repo, no breaking API, no new dependency, user approval) before recommending direct-fix.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7** — Neither `/adv-idea` nor `/adv-problem` calls `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly. Verified by static read of the command file plus a coverage test asserting absence of those tool invocations in the command body.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_create",
+          "tool:adv_gate_complete",
+          "tool:adv_task_add",
+          "tool:adv_epic_create"
+        ]
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8** — Sub-agent failures (empty result, timeout, malformed report) trigger the retry → inline Context7/Exa fallback chain documented at `adv-research.md:111-135`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**AC9** — Pre-change sub-agent evidence persists only ephemerally in session transcript during ideation/triage; no `.adv/` artifact is written by either command. After `/adv-proposal` creates a change, the next sub-agent pass re-runs against that change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_subagent_report_submit"
+        ]
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "**AC10** — User-uploaded logs in `/adv-problem` tier 3 are auto-checked for likely secrets (regex: API keys, tokens, connection strings); the user is warned before persistence. Persistence mode is session-ephemeral.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "**AC11** — `plugin/src/manifest.ts:136-163` remains truthful after rewrite: `scope.creates` is `[]`, `scope.modifies` is `[]`, `scope.gates` is `[]`, `scope.reads` covers what the command inspects.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC12",
+        "kind": "acceptance_criterion",
+        "text": "**AC12** — All `plugin/src/*-assets.test.ts` assertions that reference `.opencode/command/adv-idea.md` or `.opencode/command/adv-problem.md` remain green after the rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** — Both commands remain declared with `gates: []`, `requiresChangeId: false`, `successors: [\"adv-proposal\", \"adv-epic\"]` in `manifest.ts:136-163`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** — Sub-agent resilience protocol from `adv-research.md:111-135` is mirrored, not invented, in both new command files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1** — Changes to `/adv-discover`, `/adv-research`, `/adv-proposal`, `/adv-epic`, `/adv-clarify`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2** — New typed sub-agent (`adv-explorer`). Default is inline Task-tool subagent parsing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3** — Worker-bundle, Temporal, STSL, runtime changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "**OOS4** — Spec deltas.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "**OOS5** — Public schema artifacts / CLI surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-07T01:30:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "Qualitative — measured via /adv-reflect after archive per agreement §Sign-Off. Not yet measurable at review time."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "Same as SC1: qualitative — measured via /adv-reflect after archive."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "Same as SC1: qualitative — measured via audit-log inspection post-rollout."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".opencode/command/adv-idea.md Phase 2 (lines 49-56) dispatches Task subagent via task tool with subagent_type general|explore. Verified by adv-idea-assets.test.ts 'command dispatches a subagent via the task tool' GREEN."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".opencode/command/adv-idea.md Phase 3 (lines 58-67) invokes adv-researcher with validation.status flow. Verified by adv-idea-assets.test.ts 'command invokes adv-researcher with validation status flow' GREEN."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".opencode/command/adv-idea.md Exit Paths table (lines 28-35) + Phase 5 (lines 79-88) declare all four paths. Verified by 'command declares all four exit paths' GREEN."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".opencode/command/adv-idea.md Phase 4 (lines 69-77) implements any-of initiative test (≥3 sub-problems / ≥3 distinct regions / >1 repo touched); Phase 5 routes to /adv-epic when applicable. Verified by 'command routes initiative-sized work to /adv-epic' + 'command contains initiative-sizing consensus test' GREEN."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": ".opencode/command/adv-problem.md Phases 2-4 (lines 49-73) implement tiered evidence: Tier 1 local, Tier 2 external (adv-researcher), Tier 3 user uploads."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": ".opencode/command/adv-problem.md Phase 6 (lines 84-97) lists all 6 direct-fix guardrails (≤2 files, no spec changes, no cross-repo, no breaking API, no new dependency, user approval). Phase 7 routes to /adv-proposal when any guardrail fails."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".opencode/command/adv-idea.md line 24 + .opencode/command/adv-problem.md line 24 forbid direct calls to adv_change_create, adv_gate_complete, adv_task_add, adv_epic_create. Verified by 'command forbids direct mutation tools' GREEN on both files (adv-idea-assets.test.ts:44-53)."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".opencode/command/adv-idea.md:37-39 + .opencode/command/adv-problem.md:37-39 each include Phase 0: Embedded Methodology referencing adv-research.md:111-135 as the canonical resilience source. Verified by 'command references canonical sub-agent resilience source' GREEN on adv-idea; equivalent language verified by direct read on adv-problem."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": ".opencode/command/adv-problem.md:72 explicit: 'User-uploaded logs persist only ephemerally in the session transcript; do not write them to disk or ADV state.' adv-idea equivalent (Phase 2-3) carries subagent results in chat transcript only."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "rubric_review",
+          "evidence": ".opencode/command/adv-problem.md:71 specifies 'Run secret detection regex before persistence: scan for API keys, tokens, connection strings, and other credential-like patterns.' Spec narratively covers AC10 listed concerns. (Suggestion follow-up: harden phase should add machine-checkable test mocking a credential-shape log to close the AC10 verification surface.)"
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "plugin/src/manifest.ts:136-163 unchanged except successors arrays; scope.creates [], scope.modifies [], scope.gates [] all preserved as expected. Verified by manifest.test.ts 40/40 GREEN incl. 'successors reference valid command names' (adv-epic is registered at line 164)."
+        },
+        {
+          "contractId": "AC12",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "All 3 affected asset test files green: src/manifest.test.ts (40 tests), src/adv-problem-assets.test.ts (4 tests), src/adv-idea-assets.test.ts (7 tests) = 51/51 passing via bin/oc-test targeted. Pre-flight pnpm run check: schemas:check, typecheck, lint, format all green."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "plugin/src/manifest.ts:142 + 156 now declare successors ['adv-proposal', 'adv-epic'] for both commands; gates [], requiresChangeId false unchanged. pnpm run check + manifest.test.ts 40/40 GREEN."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Both .opencode/command/adv-idea.md and .opencode/command/adv-problem.md Phase 0: Embedded Methodology blocks mirror adv-research.md:111-135's resilience protocol verbatim (retry-once → Context7 → Exa → searchcode_code_search fallback chain). No new failure-handling protocol invented."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "not_applicable",
+          "evidence": "git diff for this change confirms no edits to /adv-discover, /adv-research, /adv-proposal, /adv-epic, /adv-clarify. Only .opencode/command/adv-idea.md, .opencode/command/adv-problem.md, plugin/src/manifest.ts, plugin/src/adv-idea-assets.test.ts were touched."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new typed EXPLORER_REPORT or adv-explorer sub-agent was created. Task-tool subagents (general|explore) are pre-existing."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No worker-bundle, Temporal, STSL, or runtime changes. plugin/dist/temporal/ untouched."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No spec deltas — proposal §Impact states 'Spec deltas: none expected'; validation passes with NO_DELTAS warning only."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "not_applicable",
+          "evidence": "plugin/src/schema-registry.ts untouched. pnpm run schemas:check passes. No public schema artifact changes. bin/adv CLI surfaces untouched."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — `/adv-idea` invokes at least one sub-agent (the appropriate Task-tool subagent for codebase/ecosystem context) at least once before producing the proposal-ready summary when the topic touches codebase or ecosystem context. (Behavior verifiable by reading the command file.)",
+    "**AC2** — `/adv-idea` invokes `adv-researcher` for synthesis with `validation.status` judgement carried through to the summary when the idea has architectural weight. (Behavior verifiable by reading the command file.)",
+    "**AC3** — `/adv-idea` exits with one of four declared paths: one-change → `/adv-proposal`, initiative → `/adv-epic`, iterate, stop.",
+    "**AC4** — Initiative-sized outputs (any-of: ≥3 sub-problems / ≥3 distinct regions / >1 repo touched) include an explicit `/adv-epic` recommendation. The recommendation never invokes `adv_epic_create` directly.",
+    "**AC5** — `/adv-problem` runs the tiered evidence chain (local repo via Task-tool subagent → external docs via `adv-researcher` → user uploads) at least once per triage when a symptom touches any tier. (Behavior verifiable by reading the command file.)",
+    "**AC6** — `/adv-problem` classifies the issue as trivial / proposal-sized / needs-more-info, applying all direct-fix guardrails (≤2 files, no spec changes, no cross-repo, no breaking API, no new dependency, user approval) before recommending direct-fix.",
+    "**AC7** — Neither `/adv-idea` nor `/adv-problem` calls `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly. Verified by static read of the command file plus a coverage test asserting absence of those tool invocations in the command body.",
+    "**AC8** — Sub-agent failures (empty result, timeout, malformed report) trigger the retry → inline Context7/Exa fallback chain documented at `adv-research.md:111-135`.",
+    "**AC9** — Pre-change sub-agent evidence persists only ephemerally in session transcript during ideation/triage; no `.adv/` artifact is written by either command. After `/adv-proposal` creates a change, the next sub-agent pass re-runs against that change.",
+    "**AC10** — User-uploaded logs in `/adv-problem` tier 3 are auto-checked for likely secrets (regex: API keys, tokens, connection strings); the user is warned before persistence. Persistence mode is session-ephemeral.",
+    "**AC11** — `plugin/src/manifest.ts:136-163` remains truthful after rewrite: `scope.creates` is `[]`, `scope.modifies` is `[]`, `scope.gates` is `[]`, `scope.reads` covers what the command inspects.",
+    "**AC12** — All `plugin/src/*-assets.test.ts` assertions that reference `.opencode/command/adv-idea.md` or `.opencode/command/adv-problem.md` remain green after the rewrite."
+  ],
+  "documents": {
+    "proposal": "## Why\n\n`/adv-idea` and `/adv-problem` are the two highest-traffic entry points for ADV work. They are stuck in user-only Socratic Q&A loops with no sub-agent delegation, no automated evidence gathering, and no scope-sizing that exits to initiative-sized workflows. Every user manually performs work a sub-agent could perform, and manually judges whether the work fits one change.\n\n## What Changes\n\n- `adv-idea.md`: replace Socratic-only loop with `explore` sub-agent dispatch for codebase/ecosystem evidence, `adv-researcher` synthesis with `validation.status` architecture judgement, and a one-change-vs-initiative sizing test that routes to `/adv-epic` recommendation when scope exceeds one change.\n- `adv-problem.md`: replace Q&A-heavy triage with tiered evidence collection (local repo via `explore`/`adv-tron` → external docs via `adv-researcher` for runtime/library surfaces → user log uploads only when both tiers inconclusive), guardrail-tested scope assessment, and exit paths that mirror `/adv-proposal` for proposal-sized fixes.\n- Both commands persist sub-agent evidence via `adv_subagent_report_submit`.\n- Both commands retain read-only safety on ADV state (no change/tasks/gate mutations from inside).\n- Sub-agent resilience: retry protocol from `adv-research.md:111-135`, Explore fallback template when typed agents unavailable.\n- `plugin/src/manifest.ts:136-163` — update `scope.reads` to `[\"specs\", \"codebase\", \"external-logs\"]` and add `phaseGoal` strings if scope metadata drifts.\n- `plugin/src/*-assets.test.ts` — refresh any command-structure or manifest-content assertions.\n\n## User Outcomes\n\n- User can invoke `/adv-idea` with a vague topic and receive a proposal-ready summary backed by codebase recon + architecture judgement, without first manually gathering evidence.\n- User can invoke `/adv-problem` with a symptom and receive a triage classification (trivial / proposal-sized / needs more info) backed by sub-agent evidence tiers, without manually copying logs into chat.\n- User receiving an initiative-sized idea automatically gets an `/adv-epic` recommendation rather than being told to \"create a change and figure out epic scope later\".\n- Both commands preserve current read-only safety guarantees and do not silently mutate ADV state.\n\n## Affected Code\n\n- `.opencode/command/adv-idea.md` (replace contents)\n- `.opencode/command/adv-problem.md` (replace contents)\n- `plugin/src/manifest.ts` (lines 136-163, scope metadata)\n- `plugin/src/*-assets.test.ts` (refreshed assertions for changed command files)\n\n## Related Repositories\n\n- Repository: `advance` (this repo). No cross-repo work.\n\n## Constraints\n\n- Read-only on ADV state from inside both commands. Sub-agents may submit reports but the orchestrator must not call `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly from these commands.\n- Sub-agent resilience protocol (retry once → inline fallback → manual Context7/Exa/research) must mirror the contract in `adv-research.md:111-135`.\n- Both commands must exit with one of: ✅ one-change route, ✅ initiative route, 🔄 keep iterating, 🛑 stop. No silent exit without recommendation.\n- Manifest metadata must remain truthful: if either command now produces a proposal-ready summary (read-only artifact), `scope.creates` stays empty; `scope.reads` reflects what the command inspects.\n\n## Impact\n\n- User experience: materially faster ideation-to-proposal and symptom-to-classification loops for the most common ADV entry points.\n- Sub-agent budget: increased usage of `explore` and `adv-researcher` from these entry points. Bounded by per-invocation parallelism cap (≤3 concurrent sub-agents).\n- Test surface: 2-4 `*-assets.test.ts` files will need updates if command structure drifted.\n- Spec deltas: none expected. Behavior change is internal to workflow orchestration.\n\n## Context\n\n- Driving concern: both commands are currently a host-agent friction bottleneck, not a tool-capability bottleneck.\n- Existing precedent: `/adv-research` (line 139) and `/adv-discover` (line 33) already dispatch `adv-researcher` and `explore` from similar early-phase positions. This change extends that pattern to one step earlier in the lifecycle.\n- Sub-agent selection rationale: `explore` Task agent fits ad-hoc ideation cold-start without committing to a new typed surface; `adv-researcher` already returns typed `validation.status` which is the source-of-truth for synthesis; `adv-tron` is reserved for codebase reconnaissance in `/adv-tron` and `/adv-problem` (where structured TRON_REPORT adds value over `explore`).\n\n## Discovery Agenda\n\n- **DA-1** — `explore` Task agent has no typed report schema. Should `/adv-idea` synthesis parse the agent's text inline, or should we add a new typed `EXPLORER_REPORT` schema for richer audit trail?\n- **DA-2** — `/adv-problem` tier 3 (user log uploads) has no precedent in current commands. Where does uploaded content live during a triage session, and how long is it retained?\n- **DA-3** — Initiative sizing heuristics: what test identifies \"bigger than one change\" reliably? Surface area? Cross-repo touchpoints? Spec-delta obligations? Multiple sub-problems? Discovery must propose and Discovery must find evidence for the chosen test.\n- **DA-4** — Existing anti-pattern lines (`× jumping straight to implementation design` in `adv-idea`, `× jumping into implementation before triage outcome is clear` in `adv-problem`) — preserve as deprecated markers, drop, or rewrite?\n- **DA-5** — `adv_subagent_report_submit` requires a `change_id`. Both commands run pre-change. How is sub-agent evidence persisted — local scratch file? Pinned to a sidecar change? Deferred until Phase 2?\n\n## Scope\n\n### In Scope\n\n- Replace `.opencode/command/adv-idea.md` with new sub-agent-driven flow.\n- Replace `.opencode/command/adv-problem.md` with tiered sub-agent-driven flow.\n- Update `plugin/src/manifest.ts:136-163` to reflect any scope-metadata drift.\n- Update matching `*-assets.test.ts` assertions.\n- Persistence of sub-agent evidence via `adv_subagent_report_submit` where the workflow allows.\n\n### Out of Scope\n\n- Changes to `/adv-discover`, `/adv-research`, `/adv-proposal`, `/adv-epic`, `/adv-clarify`.\n- New typed sub-agent (`adv-explorer`): not justified unless DA-1 resolves that way. Default is inline `explore` parsing.\n- Worker-bundle, Temporal, STSL, or runtime changes.\n- Changes to `/adv-apply`, `/adv-review`, `/adv-harden`, `/adv-archive`.\n- New public schema artifacts.\n- CLI surface (`bin/adv`).\n- Spec deltas.\n\n### Must Not\n\n- Auto-create an Epic from inside `/adv-idea`. The command recommends `/adv-epic` only.\n- Mutate ADV state from inside either command (no `adv_change_create`, `adv_gate_complete`, `adv_task_add`, `adv_epic_create`).\n- Skip sub-agent resilience — retry once → inline fallback is the floor, not optional.\n- Route direct-fix triage work into `/adv-apply` (the existing guardrail holds).\n- Carry over the old Socratic-only anti-patterns without first converting them into concrete prohibitions against the new failure modes.",
+    "agreement": "# Agreement — refactorIdeaProblemEntryPoints\n\n## Objectives\n\n1. Sub-agent delegation is the default for both commands; user Q&A is supplementary, not the spine.\n2. Initiative-sized outputs recommend `/adv-epic`; the command never auto-creates an Epic.\n3. Tiered evidence: `/adv-problem` collects local → external → user-uploads before user interaction converges.\n4. Read-only safety preserved: neither command mutates ADV state directly.\n\n## Success Criteria\n\n1. **SC1** — `/adv-idea {topic}` reaches a routable summary (one-change / initiative / iterate / stop) in fewer back-and-forth turns than the pre-change baseline (qualitative; measured via `/adv-reflect` after archive).\n2. **SC2** — `/adv-problem {symptom}` triage classification (trivial / proposal / needs-info / stop) reaches user-confirmed without a second evidence round in ≥80% of sessions (qualitative; measured via `/adv-reflect`).\n3. **SC3** — Zero accidental ADV state mutations from inside either command after rollout (audit-log inspection).\n\n## Acceptance Criteria\n\n1. **AC1** — `/adv-idea` invokes at least one sub-agent (the appropriate Task-tool subagent for codebase/ecosystem context) at least once before producing the proposal-ready summary when the topic touches codebase or ecosystem context. (Behavior verifiable by reading the command file.)\n2. **AC2** — `/adv-idea` invokes `adv-researcher` for synthesis with `validation.status` judgement carried through to the summary when the idea has architectural weight. (Behavior verifiable by reading the command file.)\n3. **AC3** — `/adv-idea` exits with one of four declared paths: one-change → `/adv-proposal`, initiative → `/adv-epic`, iterate, stop.\n4. **AC4** — Initiative-sized outputs (any-of: ≥3 sub-problems / ≥3 distinct regions / >1 repo touched) include an explicit `/adv-epic` recommendation. The recommendation never invokes `adv_epic_create` directly. [warrant: tool:adv_epic_create, tool:adv_change_create]\n5. **AC5** — `/adv-problem` runs the tiered evidence chain (local repo via Task-tool subagent → external docs via `adv-researcher` → user uploads) at least once per triage when a symptom touches any tier. (Behavior verifiable by reading the command file.)\n6. **AC6** — `/adv-problem` classifies the issue as trivial / proposal-sized / needs-more-info, applying all direct-fix guardrails (≤2 files, no spec changes, no cross-repo, no breaking API, no new dependency, user approval) before recommending direct-fix.\n7. **AC7** — Neither `/adv-idea` nor `/adv-problem` calls `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly. Verified by static read of the command file plus a coverage test asserting absence of those tool invocations in the command body. [warrant: tool:adv_change_create, tool:adv_gate_complete, tool:adv_task_add, tool:adv_epic_create]\n8. **AC8** — Sub-agent failures (empty result, timeout, malformed report) trigger the retry → inline Context7/Exa fallback chain documented at `adv-research.md:111-135`.\n9. **AC9** — Pre-change sub-agent evidence persists only ephemerally in session transcript during ideation/triage; no `.adv/` artifact is written by either command. After `/adv-proposal` creates a change, the next sub-agent pass re-runs against that change. [warrant: tool:adv_subagent_report_submit]\n10. **AC10** — User-uploaded logs in `/adv-problem` tier 3 are auto-checked for likely secrets (regex: API keys, tokens, connection strings); the user is warned before persistence. Persistence mode is session-ephemeral.\n11. **AC11** — `plugin/src/manifest.ts:136-163` remains truthful after rewrite: `scope.creates` is `[]`, `scope.modifies` is `[]`, `scope.gates` is `[]`, `scope.reads` covers what the command inspects.\n12. **AC12** — All `plugin/src/*-assets.test.ts` assertions that reference `.opencode/command/adv-idea.md` or `.opencode/command/adv-problem.md` remain green after the rewrite.\n\n## Constraints\n\n1. **C1** — Both commands remain declared with `gates: []`, `requiresChangeId: false`, `successors: [\"adv-proposal\", \"adv-epic\"]` in `manifest.ts:136-163`.\n2. **C2** — Sub-agent resilience protocol from `adv-research.md:111-135` is mirrored, not invented, in both new command files.\n\n## Avoidances\n\n### Rejected Approaches\n\n1. **DONT1** — Auto-create an Epic from inside `/adv-idea`. Always recommend `/adv-epic`; never invoke.\n2. **DONT2** — Persist sub-agent evidence to `.adv/` artifacts before a change exists.\n3. **DONT3** — Skip sub-agent resilience. Retry → inline fallback is the floor, not optional.\n4. **DONT4** — Route direct-fix triage work into `/adv-apply`. The existing direct-fix guardrails hold.\n\n### Out-of-Scope\n\n1. **OOS1** — Changes to `/adv-discover`, `/adv-research`, `/adv-proposal`, `/adv-epic`, `/adv-clarify`.\n2. **OOS2** — New typed sub-agent (`adv-explorer`). Default is inline Task-tool subagent parsing.\n3. **OOS3** — Worker-bundle, Temporal, STSL, runtime changes.\n4. **OOS4** — Spec deltas.\n5. **OOS5** — Public schema artifacts / CLI surface.\n\n## Preview Applicability\n\n- **visual_surface**: false (workflow-only changes; no UI surface affected)\n- **preview_expectation**:\n  - exact_route_required: false\n  - data_state_expectation: not_applicable\n  - viewport_expectation: not_applicable\n  - rationale: command files are CLI workflow specs, not visual surfaces\n\n## Decisions\n\n### User Decisions\n\n- **DA-2** — Log-upload retention: ephemeral session-only; no `.adv/` artifact; cleared on session exit.\n  - *Why this matters*: production traces may contain secrets; persisting them by default creates a leak surface.\n- **DA-3** — Initiative sizing: any-of consensus — ≥3 sub-problems / ≥3 distinct regions / >1 repo touched.\n  - *Why this matters*: separates the common \"I have an idea, where do I start?\" decision between `/adv-proposal` (one change) and `/adv-epic` (initiative container).\n- **DA-5** — Sub-agent evidence persistence: deferred until `/adv-proposal` creates a change.\n  - *Why this matters*: `adv_subagent_report_submit` requires a `change_id`; pre-change evidence stays ephemeral in chat transcript.\n\n### Agent Decisions (LBP)\n\n- **DA-1** — Task-tool subagents return inline text; no new typed `EXPLORER_REPORT` schema.\n  - *Rationale*: typed schema would expand the typed-report surface for marginal auditability gain; the Task subagent's inline output is sufficient given that `adv-researcher` already provides typed `validation.status` for the synthesis step (when invoked, evidenced via the command file).\n- **DA-4** — Existing anti-pattern lines rewritten in terms of the new failure modes (no sub-agent dispatch, silent state mutation, opaque scope decisions).\n  - *Rationale*: carries the same anti-pattern intent forward without anchoring to the obsolete Socratic-only behavior.\n- **Warrant policy** — capability-presuming criteria reference only public ADV tools (`adv_epic_create`, `adv_change_create`, `adv_gate_complete`, `adv_task_add`, `adv_subagent_report_submit`). Subagent invocations (`adv-researcher`, `adv-tron`, Task-tool `explore`) are documented as behavioral assertions verified by reading the command file, since subagents are not part of the public tool surface that warrant resolution indexes (per proportionality, DONT4).\n\n## Deferred Questions\n\nNone — all five DAs resolved in Phase 4.5.\n\n## Sign-Off\n\n- Discovery findings + agreement approved by user at 2026-07-06T23:59:00Z (Phase 4.5.1 Tier A inline-approval match: \"approve\").\n- Discovery Checklist: 9/9 PASS or SKIP with rationale (Skill Discovery SKIPPED, all others PASS).\n- AMBIGUITY ANALYSIS: B:C F:C S:C M:C — no triggering findings.\n- Origin: discovery (drive-by review surfaced during heavy advance-agent usage).\n- Next gate: design → Tier A post-approval auto-continue to `/adv-design refactorIdeaProblemEntryPoints`.",
+    "design": "# Design — refactorIdeaProblemEntryPoints\n\n## Architecture Overview\n\nTwo CLI workflow commands (`/adv-idea` and `/adv-problem`) currently execute Socratic Q&A loops with the user. The redesigned commands substitute that loop with phased sub-agent delegation flows that mirror established patterns in `/adv-research` (line 139 — `adv-researcher` dispatch) and the sub-agent resilience protocol documented at `/adv-research.md:111-135` (the canonical source for retry + inline Context7/Exa fallback chain). No new types, no new tool surface, no new spec law — only a workflow reorganization of two command files plus a manifest metadata update.\n\n### `/adv-idea` — Phases\n\n1. **Frame** — restate the idea; capture topic, target outcome, avoidances\n2. **Explore** — dispatch a Task-tool subagent for codebase/ecosystem context (per DA-1, no typed schema required — inline text is sufficient)\n3. **Synthesize** — invoke `adv-researcher` for architecture judgement; carry `validation.status` through to the summary\n4. **Size** — apply any-of consensus test (≥3 sub-problems / ≥3 distinct regions / >1 repo touched)\n5. **Exit** — propose one of four paths: `/adv-proposal` (one-change), `/adv-epic` (initiative), iterate, stop\n\n### `/adv-problem` — Phases\n\n1. **Frame** — restate the symptom; capture environment, frequency, recent changes\n2. **Tier 1 — Local evidence** — Task subagent for code/log investigation in repo\n3. **Tier 2 — External evidence** — `adv-researcher` dispatch when symptom touches runtime/library surface\n4. **Tier 3 — User uploads** — only when Tiers 1+2 inconclusive; secret-detect before ephemeral persistence\n5. **Spec-law assessment** — preserve `rq-problemSpecLaw01` strings verbatim (machine-checked by `adv-problem-assets.test.ts`)\n6. **Triage classify** — apply all direct-fix guardrails (≤2 files, no spec changes, no cross-repo, no breaking API, no new dependency, user approval) per AC6\n7. **Exit** — propose one of: trivial-direct-fix (handoff outside this command), `/adv-proposal` route, iterate, stop\n\n### Cross-command invariants\n\n- Neither command calls `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly\n- Sub-agent resilience (retry-once → inline Context7/Exa fallback → manual research) mirrored verbatim from `adv-research.md:111-135` into both command files\n- Anti-pattern lines rewritten in terms of new failure modes (no sub-agent dispatch, silent state mutation, opaque scope decisions)\n\n## Key Decisions\n\n### KD-1: Sub-agent dispatch is the spine\n\nBoth commands begin with sub-agent dispatch, not user-facing questions. User Q&A is supplementary (used to fill gaps, not to drive the work). Mirrors `adv-research.md:139` where `adv-researcher` is invoked before synthesis.\n\n### KD-2: No new typed subagent schema (per DA-1)\n\nTask-tool subagents (`explore`, `general`) return inline text. We do NOT introduce a new `EXPLORER_REPORT` schema. Rationale: typed-schema overhead expands the typed-report surface for marginal auditability gain. `adv-researcher`'s typed `validation.status` already covers synthesis; subagents used for evidence-collection don't need their own schema.\n\n### KD-3: Any-of initiative sizing (per DA-3)\n\nInitiative-sized if ANY of:\n- ≥3 distinct sub-problems identified\n- ≥3 distinct file/module regions touched\n- >1 repo touched\n\nOutput: explicit `/adv-epic` recommendation. Never auto-invokes `adv_epic_create`.\n\n### KD-4: Ephemeral logs (per DA-2)\n\nUser-uploaded logs in `/adv-problem` tier 3 are auto-checked for likely secrets (regex: API keys, tokens, connection strings) and persisted only ephemerally in session transcript. No `.adv/` artifact written.\n\n### KD-5: Sub-agent evidence deferral (per DA-5)\n\n`adv_subagent_report_submit` requires a `change_id`. Both commands run pre-change. Sub-agent evidence stays ephemeral in chat transcript during ideation/triage; persistence begins after `/adv-proposal` creates a change, when the next sub-agent pass re-runs against it.\n\n### KD-6: Sub-agent resilience mirrored from `adv-research.md:111-135` (canonical source)\n\nRetry-once → inline Context7/Exa fallback chain mirrored verbatim (per AC8). No new failure-handling protocol invented. `adv-research.md:111-135` is the canonical source for this protocol (verified by validator — earlier internal reference to `adv-discover.md:533` was imprecise; the resilience protocol itself lives in `adv-research.md`).\n\n### KD-7: Spec-law assessment preserved (machine-checked)\n\n`adv-problem-assets.test.ts:19-39` asserts 7 specific strings/patterns must appear in the command file (tied to spec requirement `rq-problemSpecLaw01`). These strings are preserved as a sub-section of the new triage flow. See DDC-2 for the complete string list.\n\n### KD-8: Anti-patterns rewritten, not preserved\n\nExisting anti-pattern lines (`× jumping straight to implementation design` etc.) rewritten in terms of the new failure modes (no sub-agent dispatch, silent state mutation, opaque scope decisions) per DA-4.\n\n## ADR Drafts\n\n**None.** Decision rubric check (hard-to-reverse / surprising-without-context / result-of-real-tradeoff) for each KD — no KD meets all three criteria. The most notable tradeoff (KD-2: typed schema vs not) is already resolved in DA-1.\n\n## Implementation Strategy\n\n| Step | Action | Output |\n|---|---|---|\n| 1 | Rewrite `.opencode/command/adv-idea.md` (5 phases) | new command body |\n| 2 | Rewrite `.opencode/command/adv-problem.md` (7 phases; preserve spec-law strings verbatim per KD-7/DDC-2) | new command body |\n| 3 | Update `plugin/src/manifest.ts:136-163` — add `adv-epic` to both `successors` arrays per C1 | manifest entry edit |\n| 4 | Create `plugin/src/adv-idea-assets.test.ts` mirroring `adv-problem-assets.test.ts` shape | new test file |\n| 5 | Run `bin/oc-test targeted -- src/manifest.test.ts src/adv-problem-assets.test.ts src/adv-idea-assets.test.ts` | targeted green |\n| 6 | Run `pnpm run check` (schemas → typecheck → lint → format) | full pre-flight green |\n| 7 | Run `pnpm test` (full suite) — gates AC12 | full suite green |\n\n**Sequencing rationale**: Steps 1-3 are content changes; drafts in any order, all must complete before Step 5. Step 4 requires Step 1 finalized. Step 5 validates Steps 1-3. Step 6 is pre-flight gate. Step 7 gates AC12.\n\n## LBP Analysis\n\nThe redesigned flows extend the established delegation pattern:\n- `adv-research.md:139` already invokes `adv-researcher` for synthesis\n- `adv-research.md:111-135` already documents the canonical sub-agent resilience protocol (retry + inline Context7/Exa fallback)\n- `adv-discover.md:533` documents the Phase 3.5 scout that uses the same delegation pattern\n\nMirroring these existing patterns avoids introducing novel architecture. Simplicity-biased: reuse over invention. Performance profile similar to `adv-research` (one-shot sub-agent dispatch with retry fallback). Maintainability profile better than current (one source of sub-agent failure handling, one source of tiered evidence pattern).\n\n**Alternative considered (rejected)**:\n- **Option**: Build a typed `EXPLORER_REPORT` schema for richer audit trail.\n- **Disposition**: rejected per DA-1. Typed schema overhead exceeds benefit at this point in lifecycle. Validator confirmed rejection rationale holds (high confidence, low risk).\n\n## Affected Components\n\n| Component | Change | Type |\n|---|---|---|\n| `.opencode/command/adv-idea.md` | Phase restructuring | rewrite |\n| `.opencode/command/adv-problem.md` | Phase restructuring; preserves spec-law strings | rewrite |\n| `plugin/src/manifest.ts:136-163` | Add `adv-epic` to both `successors` arrays | edit |\n| `plugin/src/adv-idea-assets.test.ts` | NEW — mirror `adv-problem-assets.test.ts` shape | create |\n| `plugin/src/adv-problem-assets.test.ts` | Unchanged — keep green | none |\n| `plugin/src/manifest.test.ts` | Unchanged — keep green | none |\n\n## Design-Derived Criteria\n\nTechnical criteria derived from the architecture only; no new user-facing AC:\n\n1. **DDC-1** — `adv-idea-assets.test.ts` exists and asserts:\n   - command contains the four declared exit paths (`one-change → /adv-proposal`, `initiative → /adv-epic`, `iterate`, `stop`)\n   - command contains Task-tool subagent dispatch language\n   - command contains `adv-researcher` invocation language for synthesis\n   - command explicitly forbids `adv_change_create`, `adv_gate_complete`, `adv_task_add`, `adv_epic_create` directly\n\n2. **DDC-2** — `adv-problem.md` preserves verbatim the **complete** string set required by `adv-problem-assets.test.ts:19-39` (7 assertions, not 6 — validator caught one missing):\n   - `\"Spec-law impact\"`\n   - `\"durable product/system behavior\"`\n   - `\"Spec-law change required\"`\n   - `\"No spec law update required\"`\n   - `\"direct fix remains allowed only when all direct-fix guardrails pass\"`\n   - regex: `/uncertain spec-law impact MUST NOT be direct-fix; route to `\\/adv-proposal` or keep investigating/`\n   - `\"MUST NOT create changes, tasks, gates, or spec deltas directly\"`\n\n3. **DDC-3** — `plugin/src/manifest.ts:136-163`:\n   - Both commands have `successors: [\"adv-proposal\", \"adv-epic\"]`\n   - `scope.creates: []`, `scope.modifies: []`, `gates: []` unchanged (read-only safety preserved per AC11)\n\n4. **DDC-4** — Sub-agent resilience paragraph (mirroring `adv-research.md:111-135`) appears in both new command files, including:\n   - Retry-once protocol\n   - Inline Context7/Exa fallback chain\n   - Explicit reference to `adv-research.md:111-135` as canonical source\n\n## Risks / Mitigations\n\n| Risk | Severity | Mitigation |\n|---|---|---|\n| Sub-agent failure during triage leaves user stuck | Medium | AC8 mandates retry + inline Context7/Exa fallback (DDC-4) |\n| Spec-law drift in `adv-problem` rewrite | High (machine-checked) | DDC-2 verbatim string preservation (7 assertions, complete list per validator); targeted test must pass post-rewrite |\n| Cross-test breakage if command structure changes | Medium | DDC-1 + DDC-2 + DDC-3 keep existing tests green; Step 5 validates |\n| User ambiguity on initiative sizing | Low | DA-3 any-of consensus test applied mechanically; result surfaced in summary |\n| Secret leak via tier-3 log uploads | Medium | AC10 secret-detect before persistence (DA-2 ephemeral retention) |\n| Manifest metadata drift | Low | C1 + DDC-3 lock the structure; `manifest.test.ts` validates schema |\n| Anti-pattern reuse without rewrite | Low | KD-8 + DA-4 explicitly rewrites anti-patterns; DDC-1 verifies via test |\n| Validator advises caution/fail on design | Low | Per design command: `validation.status: fail` is advisory-only; doesn't auto-block |\n\n## Design Leverage Scout\n\n**Scout: skipped — {rationale}**: Design surface is bounded to 2 command files + manifest range + 3 test files (1 new, 2 unchanged). Leverage candidates limited to patterns already established in adjacent workflow commands (`adv-research.md:111-135` sub-agent resilience; `adv-research.md:139` synthesis dispatch; `adv-discover.md:533` Phase 3.5 scout). Cross-referencing these established patterns is preferable to expanding surface area with new scout findings. Opt-out defensible per the design command's \"trivially scoped changes where the opportunity surface is likely zero\" carve-out.\n\n(If scout had run, candidate categories would have been: existing-skill reuse, parallelism opportunities, simplification paths. All three are addressed by mirroring `adv-research` precedent.)\n\n---\n\n## Validator Result\n\n- **Phase 3.5 verdict**: `validation.status: pass` (high confidence, low risk)\n- **Legacy label**: VALIDATED\n- **Architecture Judgement**: applicable; tradeoffs documented; alternatives_considered includes EXPLORER_REPORT schema (rejected, holds), Socratic-only (rejected), auto-create Epic (rejected), invent-resilience (rejected)\n- **Spec-law check**: `rq-problemSpecLaw01` preserved via DDC-2 (full 7-string list)\n- **Sources verified**: `plugin/src/adv-problem-assets.test.ts:19-39`, `plugin/src/manifest.ts:136-163`, `plugin/src/manifest.test.ts:116-120,372`, `.opencode/command/adv-research.md:111-135,139`, `.opencode/agents/adv-researcher.md`, `.opencode/agents/adv-tron.md`, `.opencode/agents/adv.md:289,304-307`, advance-workflow spec `rq-problemSpecLaw01` v1.25.1\n- **Minor non-blocking execution guardrails** (recorded as agenda items, surfaced to apply phase):\n  1. Verbatim-preserve all 7 strings in DDC-2 — assets test checks phrases beyond the prompt's high-level summary\n  2. Resilience protocol canonical source is `adv-research.md:111-135` (not `adv-discover.md:533`) — internal citation corrected in KD-6\n- **Decision**: validator passed design; proceed to `/adv-prep` per Phase 4 auto-continue rule (straightforward design + no tradeoff + no `CONFLICT` + no contract-compromise risk + validator `pass`)",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nTwo top-traffic ADV entry points were rewritten from Socratic Q&A loops to sub-agent-driven flows (`/adv-idea` 5-phase; `/adv-problem` 7-phase tiered evidence). Verdict: ACCEPTED. Harden: READY for release with all 5 dimensions clean — 0 blockers, 0 highs, 0 mediums. Merge compatibility PASSED. Two follow-up agenda items completed with `rejected_with_evidence` (out-of-scope for this change).\n\n## Verdict\nAPPROVED → READY for release\n\n## What Was Built\n1. `.opencode/command/adv-idea.md` — replaced Socratic Q&A with 5 phases (Frame → Explore → Synthesize → Size → Exit), now dispatching Task-tool subagents for codebase/ecosystem context and `adv-researcher` for architecture synthesis with `validation.status` flow; any-of consensus initiative-sizing test routes ≥3-subproblem / ≥3-region / >1-repo work to `/adv-epic`. Sub-agent resilience paragraph mirrors `adv-research.md:111-135`.\n2. `.opencode/command/adv-problem.md` — replaced Q&A-heavy triage with 7 phases (Frame → Tier 1 local → Tier 2 external → Tier 3 user uploads with secret detection → Spec-law assessment → Triage classify with 6 direct-fix guardrails → Exit). All 7 machine-checked spec-law strings from `adv-problem-assets.test.ts:19-39` preserved verbatim (DDC-2). Sub-agent resilience + ephemeral evidence + read-only safety all explicit.\n3. `plugin/src/manifest.ts:136-163` — added `\"adv-epic\"` to both `adv-idea` and `adv-problem` `successors` arrays; `scope.creates`, `scope.modifies`, `scope.gates` unchanged.\n4. `plugin/src/adv-idea-assets.test.ts` (NEW) — 7 test cases mirroring `adv-problem-assets.test.ts` shape, asserting the DDC-1 conditions on `adv-idea.md`. 7/7 GREEN after rewrite.\n\n## What Was Verified\n- **Verdict:** APPROVED with 1 suggestion finding (`security` dimension). 0 blockers, 0 issues, 1 suggestion.\n- **Tests:** Pre-flight `pnpm run check` (schemas:check, typecheck, lint, format:check — all green after one Prettier auto-format remediation on the new test file). Targeted: **51/51 GREEN** (manifest 40 + adv-problem 4 + adv-idea 7). Full vitest: **4618/4619** in 161s. The 1 failure (`tool-name-assets.test.ts > live prompts do not reference unavailable ADV tool names` on `.opencode/command/adv-coordinate.md: adv_backed_fact`) is **pre-existing and OUT OF SCOPE** — surfaced, not absorbed.\n- **Preview URL:** not_applicable — command files are CLI workflow specs, not visual surfaces (per agreement `visual_surface: false`).\n- **Contract matrix:** 22/22 rows reviewed — 9 AC* pass; 3 SC* not_applicable (qualitative, post-archive); 2 C* respected; 5 OOS* respected.\n- **TDD discipline:** RED-GREEN pairing preserved (tk-5a50a9e5f97a → tk-614f1a6a4ffb) per `rq-TDD009seq`.\n\n## Remaining Concerns\nNone blocking. Two follow-up agenda items auto-created during review, both completed with `rejected_with_evidence` during harden (out-of-scope for this change):\n- `ag-d9A4J4OX` (security-1: Tier-3 secret detection regex extraction) — requires implementation in agent/orchestrator code path that executes the regex on user uploads; recommend separate ADV change `extractSecretDetectionRegex`.\n- `ag-qfzDosa9` (pre-existing `tool-name-assets.test.ts` failure on `adv-coordinate.md`) — recommend separate ADV change `fixToolNameAssetsTestOvermatch` extending the test's exclusion list.\n\n## Release Readiness Summary\n\n**Harden dimensions (5/5 clean):**\n| Dimension | Status | Evidence |\n|---|---|---|\n| release-deploy-readiness | pass | no new env vars, no migrations, no CI/CD changes, no external services, no infrastructure changes |\n| production-readiness | pass | no hardcoded secrets, error handling covered by resilience paragraph, performance bounded (≤3 sub-agents parallel), maintainability clean (all touched files <200 lines, clear phase structure) |\n| documentation-hygiene | pass | manifest comments present in both .md files, output sections present, phase descriptions clear, no stale references, security-1 suggestion rejected as out-of-scope |\n| cleanup-readiness | pass | no temp files (*.bak, *.tmp, *.orig, *~, *.swp), no debug prints, no dead imports (3 imports in test file all used), no marked files |\n| residual-slop-maintainability | pass | NEW test file clean prose, no placeholders, no type erosion, no defensive overkill; command files use clean prose with no slop patterns |\n\n**Merge compatibility:** PASSED — clean auto-merge with origin/trunk; no conflicts on touched files (4 files added by trunk: `addRepoBacklog` archive + new `backlog.jsonl` + `backlog/spec.json`; none conflict with this change's touched files).\n\n**Pre-flight clean:** `pnpm run check` (schemas:check, typecheck, lint, format:check) green. Targeted tests 51/51. Full vitest 4618/4619 with 1 pre-existing failure (out-of-scope; surfaced).\n\n**Cleanup actions taken:** none (no temp files, debug code, or dead imports found in touched scope).\n\n## Approval Consequence Context (Release-time)\n\n| Category | Status | Source / Evidence |\n|---|---|---|\n| **delivered value** | ready | 2 command rewrites + 1 manifest metadata edit + 1 new test file. Sub-agent delegation now spine for top-traffic ADV entry points; initiative-sized work routes to `/adv-epic` instead of `/adv-proposal`. Tier-3 user-upload evidence stays ephemeral (no `.adv/` write). |\n| **enabling-only / follow-up dependency** | none | Both `/adv-idea` + `/adv-problem` remain pre-implementation entry points (`requiresChangeId: false`). No downstream changes depend on this. |\n| **ops readiness** | ready | release-stage harden clean across 5 dimensions; no production-touching ops introduced; no rollback/cleanup plan needed (no schema/migration changes). |\n| **migration / data impact** | n/a | no schema deltas (NO_DELTAS validation); no migrations; no data model changes; pre-flight `schemas:check` green. |\n| **frontend / preview impact** | not_applicable | workflow-only changes; no UI surface (per agreement `visual_surface: false`). |\n| **collision / release risk** | none within touched scope | merge compatibility PASSED with origin/trunk; pre-existing tool-name-assets failure on `adv-coordinate.md` is unrelated (file not touched by this change). |\n| **open follow-ups** | 2 (out-of-scope, completed with `rejected_with_evidence`) | `ag-d9A4J4OX` (extract secret-detection regex into agent/orchestrator code); `ag-qfzDosa9` (fix `tool-name-assets.test.ts` regex overmatch). Both deferred to separate ADV changes. |\n| **next action** | `/adv-archive refactorIdeaProblemEntryPoints` inline | release stage ready. Archive will sign off and merge. |\n\n## Consequence Context\n- **delivered value:** 2 command rewrites + 1 manifest metadata edit + 1 new test file. Sub-agent delegation is now the spine for the two highest-traffic ADV entry points; initiative-sized work routes to `/adv-epic` instead of forcing a change. Tier-3 user-upload evidence stays ephemeral (no `.adv/` write).\n- **enabling-only/follow-up dependency:** none. Both /adv-idea and /adv-problem remain pre-implementation entry points (`requiresChangeId: false`).\n- **ops readiness:** ready. Harden clean across 5 dimensions; no production-touching ops; no rollback/cleanup needed.\n- **migration/data impact:** n/a — no schema deltas (NO_DELTAS validation warning); no migrations; no data model changes; pre-flight `schemas:check` green.\n- **frontend/preview impact:** not_applicable — workflow-only changes; no UI surface (per agreement `visual_surface: false`).\n- **collision/release risk:** none within touched scope. Merge compatibility PASSED with origin/trunk. The 1 pre-existing `tool-name-assets.test.ts` failure on `adv-coordinate.md` is unrelated to this change's touched files.\n- **open follow-ups:** 2 (both completed with `rejected_with_evidence` as out-of-scope for this change).\n- **next action:** `/adv-archive refactorIdeaProblemEntryPoints` (sign-off, merge, archive).",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-07T01:30:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1** — `/adv-idea {topic}` reaches a routable summary (one-change / initiative / iterate / stop) in fewer back-and-forth turns than the pre-change baseline (qualitative; measured via `/adv-reflect` after archive). | not_applicable | Qualitative — measured via /adv-reflect after archive per agreement §Sign-Off. Not yet measurable at review time. |\n| SC2 | success_criterion | **SC2** — `/adv-problem {symptom}` triage classification (trivial / proposal / needs-info / stop) reaches user-confirmed without a second evidence round in ≥80% of sessions (qualitative; measured via `/adv-reflect`). | not_applicable | Same as SC1: qualitative — measured via /adv-reflect after archive. |\n| SC3 | success_criterion | **SC3** — Zero accidental ADV state mutations from inside either command after rollout (audit-log inspection). | not_applicable | Same as SC1: qualitative — measured via audit-log inspection post-rollout. |\n| AC1 | acceptance_criterion | **AC1** — `/adv-idea` invokes at least one sub-agent (the appropriate Task-tool subagent for codebase/ecosystem context) at least once before producing the proposal-ready summary when the topic touches codebase or ecosystem context. (Behavior verifiable by reading the command file.) | pass | .opencode/command/adv-idea.md Phase 2 (lines 49-56) dispatches Task subagent via task tool with subagent_type general|explore. Verified by adv-idea-assets.test.ts 'command dispatches a subagent via the task tool' GREEN. |\n| AC2 | acceptance_criterion | **AC2** — `/adv-idea` invokes `adv-researcher` for synthesis with `validation.status` judgement carried through to the summary when the idea has architectural weight. (Behavior verifiable by reading the command file.) | pass | .opencode/command/adv-idea.md Phase 3 (lines 58-67) invokes adv-researcher with validation.status flow. Verified by adv-idea-assets.test.ts 'command invokes adv-researcher with validation status flow' GREEN. |\n| AC3 | acceptance_criterion | **AC3** — `/adv-idea` exits with one of four declared paths: one-change → `/adv-proposal`, initiative → `/adv-epic`, iterate, stop. | pass | .opencode/command/adv-idea.md Exit Paths table (lines 28-35) + Phase 5 (lines 79-88) declare all four paths. Verified by 'command declares all four exit paths' GREEN. |\n| AC4 | acceptance_criterion | **AC4** — Initiative-sized outputs (any-of: ≥3 sub-problems / ≥3 distinct regions / >1 repo touched) include an explicit `/adv-epic` recommendation. The recommendation never invokes `adv_epic_create` directly. | pass | .opencode/command/adv-idea.md Phase 4 (lines 69-77) implements any-of initiative test (≥3 sub-problems / ≥3 distinct regions / >1 repo touched); Phase 5 routes to /adv-epic when applicable. Verified by 'command routes initiative-sized work to /adv-epic' + 'command contains initiative-sizing consensus test' GREEN. |\n| AC5 | acceptance_criterion | **AC5** — `/adv-problem` runs the tiered evidence chain (local repo via Task-tool subagent → external docs via `adv-researcher` → user uploads) at least once per triage when a symptom touches any tier. (Behavior verifiable by reading the command file.) | pass | .opencode/command/adv-problem.md Phases 2-4 (lines 49-73) implement tiered evidence: Tier 1 local, Tier 2 external (adv-researcher), Tier 3 user uploads. |\n| AC6 | acceptance_criterion | **AC6** — `/adv-problem` classifies the issue as trivial / proposal-sized / needs-more-info, applying all direct-fix guardrails (≤2 files, no spec changes, no cross-repo, no breaking API, no new dependency, user approval) before recommending direct-fix. | pass | .opencode/command/adv-problem.md Phase 6 (lines 84-97) lists all 6 direct-fix guardrails (≤2 files, no spec changes, no cross-repo, no breaking API, no new dependency, user approval). Phase 7 routes to /adv-proposal when any guardrail fails. |\n| AC7 | acceptance_criterion | **AC7** — Neither `/adv-idea` nor `/adv-problem` calls `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly. Verified by static read of the command file plus a coverage test asserting absence of those tool invocations in the command body. | pass | .opencode/command/adv-idea.md line 24 + .opencode/command/adv-problem.md line 24 forbid direct calls to adv_change_create, adv_gate_complete, adv_task_add, adv_epic_create. Verified by 'command forbids direct mutation tools' GREEN on both files (adv-idea-assets.test.ts:44-53). |\n| AC8 | acceptance_criterion | **AC8** — Sub-agent failures (empty result, timeout, malformed report) trigger the retry → inline Context7/Exa fallback chain documented at `adv-research.md:111-135`. | pass | .opencode/command/adv-idea.md:37-39 + .opencode/command/adv-problem.md:37-39 each include Phase 0: Embedded Methodology referencing adv-research.md:111-135 as the canonical resilience source. Verified by 'command references canonical sub-agent resilience source' GREEN on adv-idea; equivalent language verified by direct read on adv-problem. |\n| AC9 | acceptance_criterion | **AC9** — Pre-change sub-agent evidence persists only ephemerally in session transcript during ideation/triage; no `.adv/` artifact is written by either command. After `/adv-proposal` creates a change, the next sub-agent pass re-runs against that change. | pass | .opencode/command/adv-problem.md:72 explicit: 'User-uploaded logs persist only ephemerally in the session transcript; do not write them to disk or ADV state.' adv-idea equivalent (Phase 2-3) carries subagent results in chat transcript only. |\n| AC10 | acceptance_criterion | **AC10** — User-uploaded logs in `/adv-problem` tier 3 are auto-checked for likely secrets (regex: API keys, tokens, connection strings); the user is warned before persistence. Persistence mode is session-ephemeral. | pass | .opencode/command/adv-problem.md:71 specifies 'Run secret detection regex before persistence: scan for API keys, tokens, connection strings, and other credential-like patterns.' Spec narratively covers AC10 listed concerns. (Suggestion follow-up: harden phase should add machine-checkable test mocking a credential-shape log to close the AC10 verification surface.) |\n| AC11 | acceptance_criterion | **AC11** — `plugin/src/manifest.ts:136-163` remains truthful after rewrite: `scope.creates` is `[]`, `scope.modifies` is `[]`, `scope.gates` is `[]`, `scope.reads` covers what the command inspects. | pass | plugin/src/manifest.ts:136-163 unchanged except successors arrays; scope.creates [], scope.modifies [], scope.gates [] all preserved as expected. Verified by manifest.test.ts 40/40 GREEN incl. 'successors reference valid command names' (adv-epic is registered at line 164). |\n| AC12 | acceptance_criterion | **AC12** — All `plugin/src/*-assets.test.ts` assertions that reference `.opencode/command/adv-idea.md` or `.opencode/command/adv-problem.md` remain green after the rewrite. | pass | All 3 affected asset test files green: src/manifest.test.ts (40 tests), src/adv-problem-assets.test.ts (4 tests), src/adv-idea-assets.test.ts (7 tests) = 51/51 passing via bin/oc-test targeted. Pre-flight pnpm run check: schemas:check, typecheck, lint, format all green. |\n| C1 | constraint | **C1** — Both commands remain declared with `gates: []`, `requiresChangeId: false`, `successors: [\"adv-proposal\", \"adv-epic\"]` in `manifest.ts:136-163`. | respected | plugin/src/manifest.ts:142 + 156 now declare successors ['adv-proposal', 'adv-epic'] for both commands; gates [], requiresChangeId false unchanged. pnpm run check + manifest.test.ts 40/40 GREEN. |\n| C2 | constraint | **C2** — Sub-agent resilience protocol from `adv-research.md:111-135` is mirrored, not invented, in both new command files. | respected | Both .opencode/command/adv-idea.md and .opencode/command/adv-problem.md Phase 0: Embedded Methodology blocks mirror adv-research.md:111-135's resilience protocol verbatim (retry-once → Context7 → Exa → searchcode_code_search fallback chain). No new failure-handling protocol invented. |\n| OOS1 | out_of_scope | **OOS1** — Changes to `/adv-discover`, `/adv-research`, `/adv-proposal`, `/adv-epic`, `/adv-clarify`. | respected | git diff for this change confirms no edits to /adv-discover, /adv-research, /adv-proposal, /adv-epic, /adv-clarify. Only .opencode/command/adv-idea.md, .opencode/command/adv-problem.md, plugin/src/manifest.ts, plugin/src/adv-idea-assets.test.ts were touched. |\n| OOS2 | out_of_scope | **OOS2** — New typed sub-agent (`adv-explorer`). Default is inline Task-tool subagent parsing. | respected | No new typed EXPLORER_REPORT or adv-explorer sub-agent was created. Task-tool subagents (general|explore) are pre-existing. |\n| OOS3 | out_of_scope | **OOS3** — Worker-bundle, Temporal, STSL, runtime changes. | respected | No worker-bundle, Temporal, STSL, or runtime changes. plugin/dist/temporal/ untouched. |\n| OOS4 | out_of_scope | **OOS4** — Spec deltas. | respected | No spec deltas — proposal §Impact states 'Spec deltas: none expected'; validation passes with NO_DELTAS warning only. |\n| OOS5 | out_of_scope | **OOS5** — Public schema artifacts / CLI surface. | respected | plugin/src/schema-registry.ts untouched. pnpm run schemas:check passes. No public schema artifact changes. bin/adv CLI surfaces untouched. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-06T23:53:51.928Z",
+      "contentHash": "42de5b501bb20a15335caf7675681f16e3df055f647ff542e3864d6d2891a10b",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-07T00:09:35.172Z",
+      "contentHash": "452a089078ab437291ef607533309474660dce085087974d8a6ce3aee2022b30",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-07T00:36:58.955Z",
+      "contentHash": "2656a99218ac236023acbf065001293ea05d1f062a23b39bcbf058eb7ab0fae0",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-07T02:18:03.262Z",
+      "contentHash": "9fe89b00d2a19202c66bccc8d5135d7f0a72cf5e56fbb3f4caf36580d15477dc",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-07T02:18:03.262Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
