@@ -1,18 +1,18 @@
 ---
 name: adv-triage
-description: "Backlog reconciliation, WSJF scoring, and ROADMAP.md regeneration methodology"
-keywords: ["triage", "backlog", "wsjf", "roadmap", "github-projects", "prioritization", "scoring"]
+description: "Backlog reconciliation, bug priority assignment, and ROADMAP.md regeneration methodology"
+keywords: ["triage", "backlog", "roadmap", "github-projects", "prioritization"]
 ---
 
-# Triage Skill — Backlog Reconciliation & WSJF Scoring
+# Triage Skill — Backlog Reconciliation & Bug Priority
 
 ## Purpose
 
-Methodology for `/adv-triage`: reconcile backlog sources into GH issues, score features via WSJF on a GH Projects v2 board, regenerate `ROADMAP.md` and `.adv/roadmap-snapshot.json`.
+Methodology for `/adv-triage`: reconcile backlog sources into GH issues, apply `priority:*` labels to bugs autonomously, and regenerate `ROADMAP.md` and `.adv/roadmap-snapshot.json`.
 
-Storage of truth = GH Projects v2 typed fields. `ROADMAP.md` = generated mirror. Hybrid HITL: agent may fill RROE/TimeCriticality/Effort; user owns bug Priority + feature Value unless user chooses feature autofill.
+Storage of truth = GH Projects v2 typed fields for issue/project membership; bug priority labels act as the source of truth for issue ordering. `ROADMAP.md` = generated mirror. User questions gather bug context only; the agent owns priority assignment.
 
-**Canonical source:** `.opencode/command/adv-triage.md` owns orchestration and state mutation. This skill owns rubrics, formulas, prompt templates, schemas, and anti-patterns.
+**Canonical source:** `.opencode/command/adv-triage.md` owns orchestration and state mutation. This skill owns rubrics, prompt templates, schemas, and anti-patterns.
 
 ## Supporting Docs
 
@@ -20,8 +20,8 @@ Storage of truth = GH Projects v2 typed fields. `ROADMAP.md` = generated mirror.
 |---|---|
 | `BOOTSTRAP.md` | Project setup, labels, field creation, `repository_filter` auto-detect |
 | `SCHEMA.md` | Inventory records, GH Project fields, roadmap snapshot shape, typed config |
-| `PROMPTS.md` | Tier B approval prompts, `question` tool prompts, roadmap commit prompts |
-| `WSJF.md` | Match algorithm, user field assignment, agent scoring, WSJF formula |
+| `PROMPTS.md` | Tier B approval prompts, context-gathering prompts, roadmap commit prompts |
+| `WSJF.md` | Match algorithm only |
 | `ANTI-PATTERNS.md` | Coexistence rules, gotchas, hard prohibitions |
 
 ## Core Flow
@@ -29,39 +29,28 @@ Storage of truth = GH Projects v2 typed fields. `ROADMAP.md` = generated mirror.
 1. **Bootstrap** — ensure labels + GH Projects v2 board + custom fields. Persist typed config; never overwrite existing `repository_filter`.
 2. **Inventory** — gather GH issues, project items, active ADV changes, agenda, wisdom, notes, TODO/FIXME. Cap each source at 100; surface overflow.
 3. **Match** — structural first: stable ref, exact body excerpt, then title-similarity candidate duplicate. Only exact ref/body matches auto-suppress creation.
-4. **Source cleanup validation** — classify the whole source pool before issue creation or user-owned scoring. Build `cleanup_decisions[]`; batch destructive/suppressive approvals by source/reason.
+4. **Source cleanup validation** — classify the whole source pool before issue creation or bug priority assignment. Build `cleanup_decisions[]`; batch destructive/suppressive approvals by source/reason.
 5. **Confirm issue creation** — Tier B inline prompt for cleanup-surviving unrepresented items. Create only approved issues, label `bug|feature`, add to project, record source trailer.
-6. **User fields** — use `question` tool for bug priority + feature Value only after cleanup validation. Stage batch-control first, then per-item prompts.
-7. **Agent scoring** — assign TimeCriticality/RROE/Effort only when Value exists; compute `WSJF = (Value + TimeCriticality + RROE) / Effort` rounded 1 decimal.
-8. **Render roadmap** — fresh project read, write both `ROADMAP.md` and `.adv/roadmap-snapshot.json`, echo full generated markdown in chat.
-9. **Commit/push** — explicit Tier B prompt; stage only `ROADMAP.md .adv/roadmap-snapshot.json`; default branch only.
-10. **Report** — include sources, cleanup decisions, created/updated/deferred counts, roadmap counts, local-source deprecations, API budget.
+6. **Bug priority loop** — agent assigns `priority:*` labels autonomously. Bounded context budget (max 2 questions per bug); default to `medium` + `context_insufficient` label if context is insufficient.
+7. **Render roadmap** — fresh project read, write both `ROADMAP.md` and `.adv/roadmap-snapshot.json`, echo full generated markdown in chat.
+8. **Commit/push** — explicit Tier B prompt; stage only `ROADMAP.md .adv/roadmap-snapshot.json`; default branch only.
+9. **Report** — include sources, cleanup decisions, created/updated/deferred counts, roadmap counts, local-source deprecations.
 
 ## Structural Rules
 
 - P33: heuristics may classify, rank, or flag duplicates; they never own correctness or persistence.
-- Cleanup validation runs before new GH issue creation and before bug Priority / feature Value prompts.
-- Bugs use `priority:*` labels only. No WSJF for bugs.
-- Feature Value is user-owned unless user explicitly selects autofill.
-- GraphQL writes parse `errors` even on HTTP 200 and respect `x-ratelimit-remaining`.
+- Cleanup validation runs before new GH issue creation and before bug priority assignment.
+- Bugs use `priority:*` labels only. No scoring fields for bugs.
+- User questions during bug priority assignment gather context only; the agent never asks the user to confirm or choose a priority.
 - `repository_filter` is first-run-only; manual edits are override path.
 - `adv_roadmap source: 'file'` must see same repo scope as live reads.
-
-## Quick Formulas
-
-```text
-Modified Fibonacci: 1, 2, 3, 5, 8, 13
-WSJF = (Value + TimeCriticality + RROE) / Effort
-Sort features: WSJF desc, Value desc, issue number asc
-Sort bugs: critical → high → medium → low → unprioritized
-```
 
 ## Required Outputs
 
 - GH issues have source trailers for promoted local items.
-- Agent-scored fields include `<!-- adv-triage:scoring v1 ... -->` evidence.
 - `ROADMAP.md` and `.adv/roadmap-snapshot.json` come from one fresh final read.
 - Phase 5.5 echoes full generated `ROADMAP.md` in chat; no top-N shortcut.
+- Rationale trailer `<issue#>: priority=<tier> :: <rationale>` emitted in chat only; never as an issue comment.
 
 ## Hard Stops
 

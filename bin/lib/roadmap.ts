@@ -327,18 +327,13 @@ export function renderRoadmap(
   // Features
   if (kind !== "bug") {
     if (filtered.features.length > 0) {
-      const topSuffix = opts.top ? ` (top ${opts.top} by WSJF)` : "";
+      const topSuffix = opts.top ? ` (top ${opts.top})` : "";
       lines.push(`Features${topSuffix}`);
-      lines.push("| # | Title | V | TC | RROE | E | WSJF |");
-      lines.push("|---|---|---|---|---|---|---|");
+      lines.push("| # | Title | Labels |");
+      lines.push("|---|---|---|");
       for (const f of filtered.features) {
-        const v = f.value ?? "—";
-        const tc = f.time_criticality ?? "—";
-        const rroe = f.rroe ?? "—";
-        const e = f.effort ?? "—";
-        const wsjf = f.wsjf ?? "—";
         lines.push(
-          `| #${f.number} | ${f.title} | ${v} | ${tc} | ${rroe} | ${e} | ${wsjf} |`,
+          `| #${f.number} | ${f.title} | ${f.labels.filter((l) => l !== "feature").join(", ")} |`,
         );
       }
       lines.push("");

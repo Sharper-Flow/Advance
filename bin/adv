@@ -565,7 +565,7 @@ FLAGS (global):
 FLAGS (roadmap only):
       --kind {bug|feature|all}
                           Filter by item kind (default: all)
-      --top <N>           Limit features to top N by WSJF
+      --top <N>           Limit features to top N
       --priority {critical|high|medium|low}
                           Filter bugs to a single priority tier
 

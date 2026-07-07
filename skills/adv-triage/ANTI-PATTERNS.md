@@ -18,21 +18,15 @@
 | Create/open GH issues before source cleanup validation | Run cleanup validation after match/gap and before issue creation |
 | `git add -A` before roadmap commit | `git add ROADMAP.md .adv/roadmap-snapshot.json` only |
 | Commit ROADMAP.md from feature branch | Commit only on default branch; abort otherwise |
-| Assign Value to feature autonomously | Value is user-only unless user chooses autofill |
-| Ask users to assign Priority/Value to stale or already-addressed items | Relevance-check field-gap candidates first; resolve stale/duplicate items with explicit approval |
-| Ask users for Priority/Value before cleanup validation completes | Complete source cleanup validation before any user-owned scoring prompt |
+| Apply bug priority labels autonomously without context | Gather up to 2 context questions per bug, then assign; default to medium + `context_insufficient` if still unclear |
+| Ask users to assign priority to stale or already-addressed items | Relevance-check field-gap candidates first; resolve stale/duplicate items with explicit approval |
+| Ask users for priority before cleanup validation completes | Complete source cleanup validation before any bug priority assignment |
+| Ask users to confirm or choose a priority | User questions gather context only; agent owns priority choice |
 | Close, complete, cancel, remove, suppress, merge-note, or deprioritize items from title similarity alone | Treat title similarity as advisory; require structural evidence and explicit approval |
 | Assume `gh issue close --duplicate-of` exists or never exists | Capability-detect via `gh issue close --help`; fallback to `Duplicate of #N` comment semantics plus supported close reasons |
 | Mark agenda superseded/should-merge items as resolved without provenance | Use `adv_agenda_complete` with a note referencing the survivor/source |
-| Skip evidence trailer on agent-scored fields | Append `<!-- adv-triage:scoring v1 ... -->` |
-| Write WSJF for bugs | Bugs use `priority:*` labels only |
-| Recompute WSJF every run for already-scored features | Fill missing fields unless `--rescore` |
 | Drop low-priority TODOs silently | Surface all inventory items, even deferred |
-| Plain-text chat for Phase 3b assignments | Use `question` tool, structured options, one item at a time |
-| Dump all items asking for `id=value` pairs | Batch-control question first, then per-item questions |
-| Skip batch control | Stage 1 always first when matrix non-empty |
-| Ignore `x-ratelimit-remaining` | Check after each GraphQL batch via `--include` |
-| Use `rateLimit` query after every mutation | Prefer response headers; `rateLimit` is initial gate/fallback |
+| Post priority rationale as an issue comment | Emit `<issue#>: priority=<tier> :: <rationale>` in chat output only |
 | Emit only top-N features | Phase 5.5 requires full `ROADMAP.md` fenced markdown echo |
 | Replace echo with “see ROADMAP.md” | Echo + file are two required surfaces |
 
