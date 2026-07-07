@@ -809,6 +809,25 @@ Vague in-flight work.
       expect(parsed.formatted.peerSessionsSection).toBe("");
     });
 
+    test("summary forceRefresh stays lightweight while refreshing only selected advisory probes", async () => {
+      await statusTools.adv_status.execute({ view: "summary" }, store);
+      const result = await statusTools.adv_status.execute(
+        { view: "summary", forceRefresh: true },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(mockGetTemporalHealth).toHaveBeenCalledTimes(2);
+      expect(mockScanOpenCodeSessionDebt).not.toHaveBeenCalled();
+      expect(mockScanSnapshotHealth).not.toHaveBeenCalled();
+      expect(mockGetWorktreeCensus).not.toHaveBeenCalled();
+      expect(parsed._freshness).toBeUndefined();
+      expect(parsed.search_attributes).toBeUndefined();
+      expect(parsed.snapshot_health).toBeUndefined();
+      expect(parsed.temporal_queue_serviceability).toBeUndefined();
+      expect(parsed.worker_diagnostics).toBeUndefined();
+    });
+
     test("health view includes worker role and stability feature flag defaults", async () => {
       const result = await statusTools.adv_status.execute(
         { view: "health" },
