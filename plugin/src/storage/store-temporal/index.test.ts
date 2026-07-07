@@ -1542,3 +1542,168 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
     expect(queryCount).toBe(1);
   });
 });
+
+describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  it("reports visibility source degradation on terminal list when visibility list fails", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    const archiveDir = join(
+      tempDir,
+      ".adv",
+      "archive",
+      "archiveVisibilityFail",
+    );
+    await mkdir(archiveDir, { recursive: true });
+    await writeFile(
+      join(archiveDir, "change.json"),
+      JSON.stringify(archivedChange("archiveVisibilityFail"), null, 2),
+    );
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              throw new Error("query should not be called");
+            },
+          }),
+          list: async function* () {
+            yield { workflowId: "unrelated/placeholder" };
+            throw new Error("visibility list unavailable");
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const result = await store.changes.list({ includeArchived: true });
+    const found = result.changes.find((c) => c.id === "archiveVisibilityFail");
+    expect(found).toBeDefined();
+    expect(found!.status).toBe("archived");
+
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "TERMINAL_SOURCE_DEGRADED",
+          source: "visibility",
+          message: expect.stringContaining("visibility"),
+        }),
+      ]),
+    );
+    expect(result.hydrationStats).toMatchObject({
+      terminalCandidates: 1,
+      terminalFromArchive: 1,
+      terminalFromDisk: 0,
+      terminalFromWorkflow: 0,
+      omitted: 0,
+    });
+  });
+
+  it("omits unrecoverable terminal candidates and reports structured omission", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    // Archive dir exists but contains no usable change.json, simulating a
+    // corrupt or partially-written archive bundle.
+    const archiveDir = join(tempDir, ".adv", "archive", "corruptArchive");
+    await mkdir(archiveDir, { recursive: true });
+    await writeFile(join(archiveDir, "change.json"), "not valid json");
+
+    // No active disk shadow for this change.
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              throw workflowNotFoundError();
+            },
+          }),
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/corruptArchive" };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const result = await store.changes.list({ status: "archived" });
+    expect(result.changes.map((c) => c.id)).not.toContain("corruptArchive");
+
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "TERMINAL_CANDIDATE_OMITTED",
+          source: "workflow_query",
+          omittedCount: 1,
+        }),
+      ]),
+    );
+    expect(result.hydrationStats).toMatchObject({
+      terminalCandidates: 1,
+      terminalFromArchive: 0,
+      terminalFromDisk: 0,
+      terminalFromWorkflow: 0,
+      omitted: 1,
+    });
+  });
+
+  it("does not include terminal degraded metadata on active/default list", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("activeOnly"));
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              throw new Error("query should not be called");
+            },
+          }),
+          list: async function* () {
+            yield { workflowId: "unrelated/placeholder" };
+            throw new Error("visibility list unavailable");
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const result = await store.changes.list();
+    expect(result.changes.map((c) => c.id)).toContain("activeOnly");
+    expect(result.warnings).toBeUndefined();
+    expect(result.hydrationStats).toBeUndefined();
+  });
+});

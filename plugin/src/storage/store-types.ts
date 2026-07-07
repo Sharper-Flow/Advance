@@ -34,6 +34,12 @@ import type {
 import type { ProjectPaths, LoadResult } from "./json";
 import type { ProductContext } from "./product-context";
 
+export interface ResolvedChangeList {
+  changes: Change[];
+  warnings?: import("../types").TerminalWarning[];
+  hydrationStats?: import("../types").HydrationStats;
+}
+
 export interface ProductOriginTags {
   product_id?: string;
   origin_repo_id?: string;

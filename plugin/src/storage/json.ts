@@ -31,7 +31,7 @@ const logger = createLogger("json");
  * Errors are returned as data, not logged to console, so AI agents can see them.
  */
 export type LoadResult<T> =
-  | { success: true; data: T }
+  | { success: true; data: T; source?: "workflow" | "disk" | "archive" }
   | {
       success: false;
       error: string;

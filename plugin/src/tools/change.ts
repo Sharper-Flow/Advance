@@ -456,6 +456,10 @@ export const changeTools = {
           return formatToolOutput({
             changes: paged.items,
             pagination: paged.pagination,
+            ...(result.warnings ? { warnings: result.warnings } : {}),
+            ...(result.hydrationStats
+              ? { hydrationStats: result.hydrationStats }
+              : {}),
             ...(productContextOutput(activeStore, scope)
               ? { _productContext: productContextOutput(activeStore, scope) }
               : {}),

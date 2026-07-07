@@ -568,19 +568,21 @@ describe("createChangeOps", () => {
 
     test("defers to authoritative listResolvedChanges for archived/closed filters", async () => {
       const memo = new ChangeSummaryMemo();
-      const listResolvedChanges = vi.fn().mockResolvedValue([
-        {
-          id: "archivedC",
-          title: "Archived",
-          status: "archived",
-          created_at: "2026-05-10T00:00:00.000Z",
-          tasks: [],
-          deltas: {},
-          wisdom: [],
-          gates: {},
-          reentry_history: [],
-        },
-      ]);
+      const listResolvedChanges = vi.fn().mockResolvedValue({
+        changes: [
+          {
+            id: "archivedC",
+            title: "Archived",
+            status: "archived",
+            created_at: "2026-05-10T00:00:00.000Z",
+            tasks: [],
+            deltas: {},
+            wisdom: [],
+            gates: {},
+            reentry_history: [],
+          },
+        ],
+      });
       const legacy = {
         paths: { changes: "/tmp/changes", root: "/tmp/project" },
         changes: { get: vi.fn() },

@@ -418,6 +418,11 @@ export type {
   TaskReadyResponse,
   ChangeRecency,
   ProjectStatus,
+  TerminalSource,
+  TerminalWarningCode,
+  TerminalWarning,
+  TerminalHydrationStats,
+  HydrationStats,
 } from "./responses";
 
 // =============================================================================

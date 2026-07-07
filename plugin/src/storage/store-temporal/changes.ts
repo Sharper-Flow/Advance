@@ -368,23 +368,16 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       });
     },
     list: async (filter) => {
-      // When status is explicitly "archived"/"closed", auto-enable the
-      // corresponding include flag so the status filter isn't immediately
-      // undone by the exclusion below.
       const effectiveIncludeArchived =
         filter?.includeArchived || filter?.status === "archived";
       const effectiveIncludeClosed =
         filter?.includeClosed || filter?.status === "closed";
 
-      // Pass include flags into the resolver so the visibility query
-      // widens its status filter to include archived/closed workflows
-      // when the caller asked for them. Without this the post-filter
-      // below operates on a pre-narrowed set and surfaces nothing.
-      const changes = await listResolvedChanges({
+      const resolved = await listResolvedChanges({
         includeArchived: effectiveIncludeArchived,
         includeClosed: effectiveIncludeClosed,
       });
-      let filtered = changes;
+      let filtered = resolved.changes;
 
       if (filter?.status) {
         filtered = filtered.filter((change) => change.status === filter.status);
@@ -423,6 +416,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
       });
 
+      const wantsTerminal =
+        effectiveIncludeArchived ||
+        effectiveIncludeClosed ||
+        filter?.status === "archived" ||
+        filter?.status === "closed";
+
       return {
         changes: filtered.map((change) => ({
           id: change.id,
@@ -436,6 +435,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           fast_follow_of: change.fast_follow_of,
           epic_membership: change.epic_membership,
         })),
+        ...(wantsTerminal && resolved.warnings
+          ? { warnings: resolved.warnings }
+          : {}),
+        ...(wantsTerminal && resolved.hydrationStats
+          ? { hydrationStats: resolved.hydrationStats }
+          : {}),
       };
     },
     get: async (changeId: string) => {
@@ -799,7 +804,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           includeArchived: wantsArchived,
           includeClosed: wantsClosed,
         });
-        let filtered = fallback;
+        let filtered = fallback.changes;
         if (filter?.status) {
           filtered = filtered.filter((c) => c.status === filter.status);
         }
@@ -844,7 +849,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             fromMemo: 0,
             fromCache: 0,
             fromHydration: filtered.length,
+            ...(wantsTerminal ? fallback.hydrationStats : {}),
           },
+          ...(wantsTerminal && fallback.warnings
+            ? { warnings: fallback.warnings }
+            : {}),
         };
       }
 

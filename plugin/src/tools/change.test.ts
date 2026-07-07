@@ -1343,6 +1343,79 @@ describe("change tools — signal-driven lifecycle", () => {
       });
       expect(store.epics.get).not.toHaveBeenCalled();
     });
+
+    test("passes through terminal degraded metadata from listSummary", async () => {
+      const store = createMockStore();
+      store.changes.listSummary = vi.fn().mockResolvedValue({
+        changes: [
+          {
+            id: "degraded-terminal",
+            title: "Degraded Terminal",
+            status: "archived",
+            created_at: "2026-01-01T00:00:00Z",
+            lastActivityAt: "2026-01-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+        ],
+        warnings: [
+          {
+            code: "TERMINAL_SOURCE_DEGRADED",
+            source: "visibility",
+            message: "Visibility list failed",
+          },
+        ],
+        hydrationStats: {
+          terminalCandidates: 1,
+          terminalFromArchive: 1,
+          terminalFromDisk: 0,
+          terminalFromWorkflow: 0,
+          omitted: 0,
+        },
+      });
+
+      const result = await changeTools.adv_change_list.execute(
+        { includeArchived: true },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed.warnings).toEqual([
+        {
+          code: "TERMINAL_SOURCE_DEGRADED",
+          source: "visibility",
+          message: "Visibility list failed",
+        },
+      ]);
+      expect(parsed.hydrationStats).toEqual({
+        terminalCandidates: 1,
+        terminalFromArchive: 1,
+        terminalFromDisk: 0,
+        terminalFromWorkflow: 0,
+        omitted: 0,
+      });
+    });
+
+    test("does not include degraded terminal metadata on default list from listSummary", async () => {
+      const store = createMockStore();
+      store.changes.listSummary = vi.fn().mockResolvedValue({
+        changes: [
+          {
+            id: "active-only",
+            title: "Active Only",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            lastActivityAt: "2026-01-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+        ],
+      });
+
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = JSON.parse(result);
+      expect(parsed.warnings).toBeUndefined();
+      expect(parsed.hydrationStats).toBeUndefined();
+    });
   });
 
   describe("adv_change_update", () => {
