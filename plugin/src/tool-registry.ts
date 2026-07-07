@@ -30,6 +30,7 @@ import type { OpencodeClient } from "./utils/opencode-types";
 import { specTools } from "./tools/spec";
 import { roadmapTools } from "./tools/roadmap";
 import { backlogTools } from "./tools/backlog";
+import { backlogShellTools } from "./tools/backlog-shell";
 import { changeTools } from "./tools/change";
 import { followupTools } from "./tools/followup";
 import { opsEvidenceTools } from "./tools/ops-evidence";
@@ -268,6 +269,33 @@ export function createToolMap(
       store,
     ),
     adv_wip_state: bindTool(backlogTools.adv_wip_state, "adv_wip_state", store),
+
+    // Backlog Shell Tools
+    adv_backlog_add: bindTool(
+      backlogShellTools.adv_backlog_add,
+      "adv_backlog_add",
+      store,
+    ),
+    adv_backlog_list: bindTool(
+      backlogShellTools.adv_backlog_list,
+      "adv_backlog_list",
+      store,
+    ),
+    adv_backlog_show: bindTool(
+      backlogShellTools.adv_backlog_show,
+      "adv_backlog_show",
+      store,
+    ),
+    adv_backlog_promote: bindTool(
+      backlogShellTools.adv_backlog_promote,
+      "adv_backlog_promote",
+      store,
+    ),
+    adv_backlog_archive: bindTool(
+      backlogShellTools.adv_backlog_archive,
+      "adv_backlog_archive",
+      store,
+    ),
 
     // Change Tools
     adv_change_list: bindTool(
@@ -862,6 +890,11 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_roadmap",
   "adv_backlog_state",
   "adv_wip_state",
+  "adv_backlog_add",
+  "adv_backlog_list",
+  "adv_backlog_show",
+  "adv_backlog_promote",
+  "adv_backlog_archive",
   "adv_change_list",
   "adv_change_show",
   "adv_change_create",

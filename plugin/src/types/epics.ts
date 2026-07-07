@@ -284,6 +284,7 @@ const EpicChangeEntrySchema = z
   });
 
 // rq-epicEntries01 — shell entries carry title + success hint.
+// rq-backlogEpicBridge01 — shell entries may carry backlog import provenance.
 const EpicShellEntrySchema = z.object({
   kind: z.literal("shell"),
   /** Stable entry ID within this Epic. */
@@ -294,6 +295,13 @@ const EpicShellEntrySchema = z.object({
   title: z.string(),
   /** Rough success/AC hint used during promotion and planning. */
   success_hint: z.string(),
+  /** Provenance when this shell was imported from the repo backlog. */
+  imported_from: z
+    .object({
+      backlog_id: z.string(),
+      imported_at: z.string(),
+    })
+    .optional(),
 });
 
 export const EpicEntrySchema = z.discriminatedUnion("kind", [

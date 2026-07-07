@@ -32,6 +32,7 @@ describe("Command Manifest", () => {
       "adv-idea",
       "adv-problem",
       "adv-epic",
+      "adv-backlog",
       "adv-proposal",
       "adv-validate",
       "adv-apply",
@@ -62,7 +63,7 @@ describe("Command Manifest", () => {
       expect(COMMAND_MANIFEST).toHaveProperty(cmd);
     }
     expect(COMMAND_MANIFEST).not.toHaveProperty("adv-atc");
-    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(29);
+    expect(Object.keys(COMMAND_MANIFEST)).toHaveLength(30);
   });
 
   test("every command has required fields", () => {
@@ -206,6 +207,7 @@ describe("Command Manifest", () => {
       "Gather",
       "Produce",
       "Triage",
+      "Capture",
       "Delegate",
       "Execute",
       "Audit",

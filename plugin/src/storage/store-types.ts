@@ -366,6 +366,7 @@ export interface Store {
         title: string;
         successHint: string;
         order?: number;
+        importedFrom?: { backlog_id: string; imported_at: string };
       },
     ) => Promise<EpicEntry>;
     promoteShell: (

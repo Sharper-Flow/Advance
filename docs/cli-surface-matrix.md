@@ -36,6 +36,7 @@
 | `/adv-idea` | `agent-workflow-only` | Pre-proposal ideation |
 | `/adv-problem` | `agent-workflow-only` | Pre-proposal triage |
 | `/adv-epic` | `agent-workflow-only` | Goal-first Epic creation; mutation remains typed-tool and HITL-scoped |
+| `/adv-backlog` | `agent-workflow-only` | Capture/promote future work; mutation remains typed-tool and HITL-scoped |
 | `/adv-clarify` | `agent-workflow-only` | Socratic requirements clarification |
 | `/adv-research` | `agent-workflow-only` | Research and plan validation |
 | `/adv-discover` | `agent-workflow-only` | Discovery gate workflow |
@@ -67,6 +68,11 @@
 | `adv_status` | `mcp+cli-additive` | CLI table shipped; MCP kept for `view:"health"` depth |
 | `adv_roadmap` | `mcp+cli-additive` | CLI file mode; MCP kept for live + Temporal annotation |
 | `adv_backlog_state` | `mcp+cli-additive` | CLI file mode; MCP kept for live + Temporal annotation |
+| `adv_backlog_add` | `no-cli-dangerous` | Backlog mutation |
+| `adv_backlog_list` | `keep-mcp-only` | Agent-facing backlog read |
+| `adv_backlog_show` | `keep-mcp-only` | Agent-facing backlog read |
+| `adv_backlog_promote` | `no-cli-dangerous` | Backlog promotion mutation |
+| `adv_backlog_archive` | `no-cli-dangerous` | Backlog archive mutation |
 | `adv_spec` | `mcp+cli-additive` | Agents query specs mid-workflow; CLI read additive |
 | `adv_change_list` | `mcp+cli-additive` | Agents need Temporal-first reads; CLI snapshot additive |
 | `adv_change_show` | `mcp+cli-additive` | Agents need Temporal-first reads; CLI snapshot additive |

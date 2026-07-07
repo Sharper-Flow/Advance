@@ -251,6 +251,14 @@ export function applyShellAddedToState(
     order,
     title: payload.title,
     success_hint: payload.successHint,
+    ...(payload.importedFrom
+      ? {
+          imported_from: {
+            backlog_id: payload.importedFrom.backlog_id,
+            imported_at: payload.importedFrom.imported_at,
+          },
+        }
+      : {}),
   };
   state.epic.entries.push(entry);
 

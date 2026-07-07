@@ -380,7 +380,10 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       return updated;
     },
 
-    addShell: async (epicId, { entryId, title, successHint, order }) => {
+    addShell: async (
+      epicId,
+      { entryId, title, successHint, order, importedFrom },
+    ) => {
       await assertEpicExists(epicId);
       const handle = getEpicHandle(epicId);
 
@@ -392,6 +395,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         title,
         successHint,
         order,
+        ...(importedFrom ? { importedFrom } : {}),
         idempotencyKey: idempotencyKey("add-shell", epicId, finalEntryId),
         addedAt: new Date().toISOString(),
       };

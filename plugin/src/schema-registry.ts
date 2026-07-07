@@ -1,5 +1,6 @@
 import { z, type ZodTypeAny } from "zod";
 import {
+  BacklogItemSchema,
   ChangeSchema,
   DeltaSchema,
   ProjectConfigSchema,
@@ -25,6 +26,12 @@ export interface PublicJsonSchemaEntry {
 }
 
 export const PUBLIC_JSON_SCHEMAS: PublicJsonSchemaEntry[] = [
+  {
+    name: "backlog-item",
+    filename: "backlog-item.schema.json",
+    title: "ADV Repo Backlog Item",
+    schema: BacklogItemSchema,
+  },
   {
     name: "change",
     filename: "change.schema.json",

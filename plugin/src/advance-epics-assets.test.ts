@@ -183,7 +183,7 @@ describe("/adv-coordinate command contract", () => {
     expect(content).toMatch(/recent commits?|diff/i);
     expect(content).toMatch(/overlap/i);
     expect(content).toContain("repo_backed_fact");
-    expect(content).toContain("adv_backed_fact");
+    expect(content).toContain("adv-backed-fact");
     expect(content).toContain("judgment_call");
     expect(content).toContain("freshness_limited");
     expect(content).toMatch(

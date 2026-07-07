@@ -7,5 +7,8 @@
 # Generated JSON schema artifacts; Zod registry is authoritative.
 plugin/schemas/ linguist-generated
 
+# Repo backlog uses append-only JSONL; union merge keeps disjoint appends.
+.adv/backlog.jsonl merge=union
+
 # Test fixtures with deliberately bad codepatterns (slop-detection test data).
 plugin/test/fixtures/ linguist-generated

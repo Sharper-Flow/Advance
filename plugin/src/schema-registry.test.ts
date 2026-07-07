@@ -14,6 +14,7 @@ const PLUGIN_ROOT = resolve(__dirname, "..");
 describe("generated ADV JSON schema registry", () => {
   test("defines the existing public schema artifact set", () => {
     expect(PUBLIC_JSON_SCHEMAS.map((entry) => entry.name).sort()).toEqual([
+      "backlog-item",
       "change",
       "delta",
       "project",
