@@ -71,6 +71,7 @@ const KNOWN_SPAWNABLE_SUBAGENTS = [
   "adv-designer",
   "adv-researcher",
   "adv-tron",
+  "adv-verifier",
   "adv-visual-review",
   "explore",
   "general",
@@ -502,6 +503,14 @@ describe("delegation matrix coverage", () => {
       [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
     );
     expectPacketContract(
+      rows.apply,
+      "Verify-Only Burst",
+      "adv-verifier",
+      "orchestrator_submitted_verification_bundle",
+      ["WORKING DIRECTORY", "CHANGE", "SCOPE KEY", "PHASE", "ATTEMPT"],
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+    );
+    expectPacketContract(
       rows.review,
       "Scoped Evidence Scan",
       "explore",
@@ -607,7 +616,7 @@ describe("delegation matrix coverage", () => {
     expect(agentMap.discovery).toEqual(new Set(["adv-researcher", "explore"]));
     expect(agentMap.design).toEqual(new Set(["adv-researcher"]));
     expect(agentMap.apply).toEqual(
-      new Set(["adv-engineer", "adv-designer", "general"]),
+      new Set(["adv-engineer", "adv-designer", "adv-verifier", "general"]),
     );
     expect(agentMap.review).toEqual(
       new Set(["adv-reviewer", "adv-engineer", "adv-researcher", "explore"]),

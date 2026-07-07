@@ -15,7 +15,7 @@ Capability: canonical definition of default delegation modes for each ADV workfl
 | discovery | discovery | hybrid | adv-researcher, explore | problem synthesis, agreement updates, scope decisions, gate completion |
 | design | design | hybrid | adv-researcher | architecture decision ownership, design artifact updates, scope-drift decisions, gate completion |
 | prep | planning | inline_required | (none) | full |
-| apply | execution | hybrid | adv-engineer, adv-designer, general | task selection, ADV state mutation, scope-drift handling, TDD evidence acceptance, task completion |
+| apply | execution | hybrid | adv-engineer, adv-designer, adv-verifier, general | task selection, ADV state mutation, scope-drift handling, TDD evidence acceptance, task completion |
 | review | acceptance | hybrid | adv-reviewer, adv-engineer, adv-researcher, explore | finding verdict synthesis, user acceptance, ADV state mutation, scope-drift handling |
 | harden | release | subagent_primary | adv-reviewer, adv-engineer, explore | readiness verdict synthesis, release decision, ADV state mutation, scope-drift handling |
 | archive | release | inline_required | (none) | full |
@@ -145,7 +145,7 @@ Each workflow step MUST name its allowed sub-agents and its inline-only safety b
 **Then:**
 - Phantom agents (librarian, mechanic, prioritizer) do not appear in allowed_subagents
 - Primary agents (adv, plan, build) do not appear in allowed_subagents
-- Only spawnable sub-agents (explore, general, adv-researcher, adv-engineer, adv-reviewer, adv-designer, adv-tron) may appear
+- Only spawnable sub-agents (explore, general, adv-researcher, adv-engineer, adv-reviewer, adv-designer, adv-tron, adv-verifier) may appear
 
 **Specific agent assignments match design** (`rq-delDefaults03.4`)
 
@@ -157,7 +157,7 @@ Each workflow step MUST name its allowed sub-agents and its inline-only safety b
 **Then:**
 - discovery allows: adv-researcher, explore
 - design allows: adv-researcher (mandatory for validation)
-- apply allows: adv-engineer, adv-designer, general
+- apply allows: adv-engineer, adv-designer, adv-verifier, general
 - review allows: adv-reviewer, adv-engineer, adv-researcher, explore
 - harden allows: adv-reviewer, adv-engineer, explore
 - proposal, prep, archive, reflect allow: none
@@ -204,7 +204,7 @@ Discovery wide scans (Prior Research Extension, P25 Related-Pattern Scan) MUST b
 
 **ID:** `rq-delDefaults05` | **Priority:** **[MUST]**
 
-Delegated worker lanes that produce ADV evidence MUST provide typed, ingest-validated, durable reports through sidecar report persistence. adv-engineer, adv-reviewer, and adv-designer task-scoped reports MUST be submitted through adv_subagent_report_submit and remain backward-compatible with task.subagent_reports[] readers; their payloads MUST include evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. adv-researcher and adv-tron change-scoped optimized handoff reports MUST use the same strict tool-call transport with source metadata. Scanner lanes (for example explore review/harden scanners) are non-persisted scanner transport, without ADV tool access, and MUST NOT claim adv_subagent_report_submit or task.subagent_reports[] persistence. Only an orchestrator-submitted scanner bundle MAY persist scanner findings. Verify-Only Burst uses general as an authority-free executor and an orchestrator_submitted_verification_bundle transport; the worker returns structured JSON and the orchestrator submits adv-verification-triage-bundle evidence. Worker packet contracts MUST pin schema-derived strict identity anchors: WORKING DIRECTORY, CHANGE, scope identity, and ATTEMPT, plus PHASE where required. Worker packet contracts MUST also define warn-first scope/done/stop/verification anchors: TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION. Future persisted worker additions MUST include these field categories and must not rely on LLM-parsed prose as the only ADV report transport.
+Delegated worker lanes that produce ADV evidence MUST provide typed, ingest-validated, durable reports through sidecar report persistence. adv-engineer, adv-reviewer, and adv-designer task-scoped reports MUST be submitted through adv_subagent_report_submit and remain backward-compatible with task.subagent_reports[] readers; their payloads MUST include evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. adv-researcher and adv-tron change-scoped optimized handoff reports MUST use the same strict tool-call transport with source metadata. Scanner lanes (for example explore review/harden scanners) are non-persisted scanner transport, without ADV tool access, and MUST NOT claim adv_subagent_report_submit or task.subagent_reports[] persistence. Only an orchestrator-submitted scanner bundle MAY persist scanner findings. Verify-Only Burst uses adv-verifier as the authority-free primary executor and general only as an unavailable-runtime fallback, with an orchestrator_submitted_verification_bundle transport; the worker returns structured JSON and the orchestrator submits adv-verification-triage-bundle evidence. Worker packet contracts MUST pin schema-derived strict identity anchors: WORKING DIRECTORY, CHANGE, scope identity, and ATTEMPT, plus PHASE where required. Worker packet contracts MUST also define warn-first scope/done/stop/verification anchors: TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION. Future persisted worker additions MUST include these field categories and must not rely on LLM-parsed prose as the only ADV report transport.
 
 **Tags:** `delegation`, `reports`, `structured-output`
 

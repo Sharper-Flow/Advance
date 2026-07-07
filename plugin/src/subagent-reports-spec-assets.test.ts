@@ -447,13 +447,16 @@ describe("subagent reports spec assets", () => {
     );
 
     expect(verifyBurst).toBeDefined();
-    expect(verifyBurst!.allowed_subagents).toEqual(["general"]);
+    expect(verifyBurst!.allowed_subagents).toEqual([
+      "adv-verifier",
+      "general",
+    ]);
     const contract = verifyBurst!.packet_contracts?.find(
       (entry) =>
         entry.report_transport === "orchestrator_submitted_verification_bundle",
     );
     expect(contract).toBeDefined();
-    expect(contract!.agent).toBe("general");
+    expect(contract!.agent).toBe("adv-verifier");
     expect(contract!.required_packet_anchors).toEqual([
       "WORKING DIRECTORY",
       "CHANGE",
