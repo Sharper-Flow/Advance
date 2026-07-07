@@ -56,6 +56,10 @@ describe("tool-name assets", () => {
       for (const ref of refs) {
         // `adv_agenda_*` / `adv_wisdom_*` prose shorthand is not a callable.
         if (ref.endsWith("_")) continue;
+        // Classification labels surfaced by the coordinate workflow
+        // (`adv_backed_fact` is a label, not a callable MCP tool). Pre-existing
+        // reference in `.opencode/command/adv-coordinate.md`.
+        if (ref === "adv_backed_fact") continue;
         if (!ADV_TOOL_NAME_SET.has(ref)) {
           offenders.push(`${relativePath}: ${ref}`);
         }
