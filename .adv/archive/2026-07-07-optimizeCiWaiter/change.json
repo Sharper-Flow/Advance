@@ -1,0 +1,643 @@
+{
+  "id": "optimizeCiWaiter",
+  "title": "Optimize CI waiter",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-07T03:36:51.975Z",
+  "tasks": [
+    {
+      "id": "tk-3552ac793bff",
+      "title": "Add asset tests for CI waiter instruction contract",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-07T03:45:37.675Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T03:50:54.202Z",
+      "verification": "asset test red (exitCode 1, 11 failed) -> green (exitCode 0, 11 passed); runIds red=tr_mra44b6s_24dd53db green=tr_mra493bm_552668b6",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-ci-waiter.md",
+        "plugin/src/adv-ci-waiter-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-ci-waiter.md",
+        "plugin/src/adv-ci-waiter-assets.test.ts"
+      ],
+      "checkpointSha": "09f7c7140698a18562a5397f3e14caecaa0adcda",
+      "completedAt": "2026-07-07T03:56:07.017Z",
+      "completed_at": "2026-07-07T03:56:07.017Z"
+    },
+    {
+      "id": "tk-e4d9be105e1f",
+      "title": "Add repo-owned adv-ci-waiter prompt and optimized polling guidance",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-07T03:45:48.898Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3552ac793bff"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T03:56:21.193Z",
+      "verification": "Repo-owned adv-ci-waiter.md present; mode subagent; oc-ci-wait owns polling/backoff; one watch per target; sample 20-30s; --watch-id result args; CI success != PR MERGED; gh watch prohibited; bounded output; final response shape with conclusion, checks, URL, watch ID, next action, PR state. All assertions pass in green asset test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "09f7c7140698a18562a5397f3e14caecaa0adcda",
+      "completedAt": "2026-07-07T03:56:36.674Z",
+      "completed_at": "2026-07-07T03:56:36.674Z"
+    },
+    {
+      "id": "tk-0821c3d14313",
+      "title": "Update archive/spec wording for CI success versus PR merged",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-07T03:45:59.940Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3552ac793bff"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T03:56:21.195Z",
+      "verification": "Spec body for rq-releaseFinalization02 and rq-releaseFinalization04 updated to encode CI success != PR MERGED and 20-30s sampling ownership; archive command Phase 9.5 splits CI success/PR MERGED into distinct terminal branches. Asset tests pass (15/15), autonomy-quality assets pass (31/31).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-archive.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-archive.md"
+      ],
+      "checkpointSha": "ea4b0a3bf727eb21d76bfd1e9ba9ae705b133c60",
+      "completedAt": "2026-07-07T03:58:17.316Z",
+      "completed_at": "2026-07-07T03:58:17.316Z"
+    },
+    {
+      "id": "tk-a53e8943a3c7",
+      "title": "Align OpenCode CI-wait routing instruction surface",
+      "type": "docs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-07T03:46:11.085Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e4d9be105e1f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0821c3d14313"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "review",
+      "verification": "Routing instruction surface updated: oc-ci-wait owns polling/backoff; waiter samples 20-30s; CI success != PR MERGED explicit; bounded output preserved; gh watch prohibited. Live /home/jon/.config/opencode/instructions/oc-ci-wait.md synced to /home/jon/toolbox/backups/dotfiles/opencode/instructions/oc-ci-wait.md. Backup /home/jon/toolbox/backups/dotfiles/opencode/agents/adv-ci-waiter.md refreshed from repo-owned source.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "ea4b0a3bf727eb21d76bfd1e9ba9ae705b133c60",
+      "completedAt": "2026-07-07T03:59:25.475Z",
+      "completed_at": "2026-07-07T03:59:25.475Z"
+    },
+    {
+      "id": "tk-9c739dd31cee",
+      "title": "Verify CI waiter instruction optimization end to end",
+      "type": "verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-07T03:46:21.015Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a53e8943a3c7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "bin/oc-test smoke passes: schemas:check, typecheck, lint, format:check, targeted tests, test.test.ts, subagent-report.test.ts. Targeted tests: adv-ci-waiter-assets (11/11), archive-release-finalization-assets (4/4), adv-autonomy-quality-assets (31/31). adv_change_validate passes with one warning (no spec deltas defined — implementation chose Modify semantics via direct spec text update).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-ci-waiter-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-ci-waiter-assets.test.ts"
+      ],
+      "checkpointSha": "e9dc5f36b28c233b4bbe090647016fdd3db426af",
+      "completedAt": "2026-07-07T04:03:31.090Z",
+      "completed_at": "2026-07-07T04:03:31.090Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeCiWaiter",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:optimize-ci-waiter-instructions"
+      },
+      "agent": "adv-researcher",
+      "topic": "adv-ci-waiter polling/backoff, terminal-state detection, no-poll boundary, repo-local sync/tests",
+      "sources": [
+        {
+          "label": "oc-ci-wait source (Go) — poll loop + defaults",
+          "locator": "/home/jon/toolbox/dev/ci-wait/main.go:145-282",
+          "summary": "start spawns a detached __watch subprocess that owns the ENTIRE poll loop. Defaults: --interval 15s, --discovery-timeout 2m, --timeout 30m. Discovering polls capped at 30s. result is a non-blocking JSON state read."
+        },
+        {
+          "label": "oc-ci-wait status/terminal constants + exit codes",
+          "locator": "/home/jon/toolbox/dev/ci-wait/main.go:24-38,845-860,969",
+          "summary": "Statuses: discovering, watching, completed, timeout, cancelled, error. Terminal = completed|timeout|cancelled|error. Exit: 0 success, 1 failure, 2 usage, 8 still-running, 124 timeout, 130 cancelled. No 'merged' status exists."
+        },
+        {
+          "label": "oc-ci-wait conclusion mapping (checks only, no PR merge)",
+          "locator": "/home/jon/toolbox/dev/ci-wait/main.go:586-614,628-670",
+          "summary": "PR/SHA target conclusion is derived ONLY from check-runs + combined-status: success if 0 failing, failure if any failing. There is NO pull-request merge-state fetch anywhere; the tool cannot report MERGED."
+        },
+        {
+          "label": "oc-ci-wait rate-limit backoff",
+          "locator": "/home/jon/toolbox/dev/ci-wait/main.go:672-728",
+          "summary": "Honors Retry-After then X-RateLimit-Reset via next_poll_at; nextSleepDuration overrides the fixed interval until reset time. Matches GitHub official guidance."
+        },
+        {
+          "label": "GitHub REST rate-limit best practices",
+          "locator": "https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api",
+          "summary": "On rate-limit: honor retry-after; else wait to x-ratelimit-reset; else >=1min + exponential backoff. Continuous polling while limited risks integration banning."
+        },
+        {
+          "label": "adv-ci-waiter agent def (backup, authoritative)",
+          "locator": "/home/jon/toolbox/backups/dotfiles/opencode/agents/adv-ci-waiter.md:1-50",
+          "summary": "Subagent: edit/task/question denied, bash allowed. Prescribes an outer 'sleep 15' loop around oc-ci-wait result until completed|timeout|cancelled|error. Bounded output, no delegation."
+        },
+        {
+          "label": "oc-ci-wait routing instruction (live)",
+          "locator": "/home/jon/.config/opencode/instructions/oc-ci-wait.md:1-44",
+          "summary": "Single CI-watch path = spawn adv-ci-waiter; main agent never polls; result takes only --watch-id/--json; one-shot exception for non-merge low-stakes reads."
+        },
+        {
+          "label": "ADV archive auto-drive expects MERGED terminal",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-archive.md:506-533",
+          "summary": "Phase 9.5 branches on waiter returning 'MERGED' to sync trunk + finalize release. This depends on a terminal signal oc-ci-wait does not produce."
+        },
+        {
+          "label": "ADV spec claim: waiter watches PR to MERGED",
+          "locator": "/home/jon/dev/advance/.adv/specs/advance-workflow/spec.json:561,578,701",
+          "summary": "Spec states adv-ci-waiter watches the PR to terminal MERGED and that non-terminal returns must not escalate to Shipped."
+        },
+        {
+          "label": "P37 no-polling rule + waiter exception",
+          "locator": "/home/jon/.config/opencode/instructions/rules.yaml:255-268",
+          "summary": "Normal agents never poll; adv-ci-waiter is the sanctioned bounded-poll exception when user asks or a release/archive workflow needs terminal CI/PR status."
+        },
+        {
+          "label": "Repo-local tests asserting archive waiter contract",
+          "locator": "/home/jon/dev/advance/plugin/src/archive-release-finalization-assets.test.ts; adv-autonomy-quality-assets.test.ts",
+          "summary": "Assert 'Pending auto-merge.' non-terminal rendering in adv-archive.md. These pin the fallthrough wording the instruction edit must preserve."
+        }
+      ],
+      "architecture_assessment": "oc-ci-wait already implements a correct, by-the-book background poller: start() detaches a __watch subprocess that owns the real poll loop (15s interval, 2m discovery timeout, 30m overall, rate-limit-aware backoff honoring Retry-After then X-RateLimit-Reset). result is a cheap non-blocking JSON state read. Therefore the agent's own 'sleep 15' loop is an OUTER SAMPLING loop over already-computed state, not a second API poller. It is architecturally sound (P37-compliant: bounded, dedicated waiter) but the sample cadence can be relaxed because the background process — not the agent — does the GitHub API work. Two real gaps: (1) TERMINAL-STATE MISMATCH: adv-archive Phase 9.5 and the workflow spec expect the waiter to report MERGED, but oc-ci-wait has no PR-merge detection — it only maps check-run/combined-status conclusions to success|failure. 'CI green' != 'PR merged' (auto-merge/merge-queue land the merge after checks pass). The waiter can prove green CI but cannot prove MERGED; the archive re-call currently relies on the parent's pr_merged reachability proof rather than a waiter MERGED signal. (2) The agent def's terminal set (completed|timeout|cancelled|error) is correct and complete for oc-ci-wait, but the human-facing 'Next action: merge' wording implies a merge decision the tool does not observe. Instruction optimization should: relax outer sample interval, keep rate-limit backoff deferred to the tool, tighten terminal/blocked classification, and explicitly state the green-CI-vs-merged distinction so archive orchestration does not treat 'success' as 'MERGED'.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Polling/backoff and no-poll-boundary design are Confirmed and align with GitHub official guidance and P37. CAUTION on terminal-state wording: oc-ci-wait cannot emit MERGED; instruction/spec language conflating CI-green with PR-merged should be corrected, but this is a wording/contract-precision fix, not a redesign. No hard blocker because archive completion already depends on the parent change's pr_merged reachability proof, not on a waiter MERGED signal."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Relaxing the outer sample interval (e.g. 20-30s) slightly delays terminal detection surfacing to the agent but reduces wasted turns/tokens; the background __watch already polls GitHub at 15s regardless, so accuracy is unaffected.",
+          "Making the green-CI-vs-MERGED distinction explicit adds instruction prose but prevents a false 'Shipped.' escalation class.",
+          "Keeping backoff logic in the tool (not the agent prompt) preserves single-source-of-truth but means the agent instruction must NOT re-specify sleep math that would drift from main.go defaults."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Agent-side exponential backoff on its outer result loop",
+            "disposition": "rejected",
+            "rationale": "oc-ci-wait already does rate-limit-aware backoff on the real API calls (main.go:672-728). Duplicating backoff in the agent prompt is redundant and would drift from tool defaults."
+          },
+          {
+            "option": "Have the agent poll GitHub directly with gh run watch / gh pr checks --watch",
+            "disposition": "rejected",
+            "rationale": "oc-ci-wait routing instruction and P37 explicitly forbid streaming watchers (context burn); oc-ci-wait bounded JSON is the sanctioned path."
+          },
+          {
+            "option": "Add PR-merge detection to oc-ci-wait so waiter can emit MERGED",
+            "disposition": "deferred",
+            "rationale": "Real capability gap, but out of scope for an instruction-only change; the archive path already proves merge via parent reachability proof. Surface as a follow-up, do not block the instruction optimization."
+          },
+          {
+            "option": "Keep a tight 15s outer sample loop",
+            "disposition": "rejected",
+            "rationale": "No accuracy benefit since the detached watcher owns real polling; a slightly longer outer sample is cheaper and equally correct."
+          }
+        ],
+        "recommendation": "Optimize instructions to: (a) relax the agent's outer result sample interval to ~20-30s and state that oc-ci-wait's detached watcher owns real GitHub polling + rate-limit backoff (do not re-specify sleep math); (b) keep the terminal set exactly completed|timeout|cancelled|error and explicitly define blocked = missing GH token (main.go:455-468 'no GitHub token found'), unreachable GitHub API, discovery-timeout, watch-timeout, or 3 failed fix strategies; (c) add one sentence distinguishing green CI (success) from PR MERGED so adv-archive does not treat a success conclusion as a merge; (d) preserve the 'Pending auto-merge.' non-terminal fallthrough wording pinned by archive-release-finalization-assets.test.ts."
+      },
+      "recommendation": "Proceed with an instruction-only optimization. Confirmed for polling cadence, no-poll boundary (P37), and rate-limit backoff (defer to tool). Caution: correct any wording that implies the waiter observes PR MERGED — oc-ci-wait reports CI check conclusions only. Concrete sleep/backoff wording: 'oc-ci-wait start detaches a background watcher that polls GitHub every 15s (discovery cap 30s, discovery timeout 2m, overall 30m) and handles rate limits via Retry-After / X-RateLimit-Reset. Do not re-implement backoff. Sample oc-ci-wait result --watch-id <id> --json every ~20-30s and stop as soon as status is completed, timeout, cancelled, or error.' Likely files/tests to update: agent def (~/.config/opencode/agents/adv-ci-waiter.md + toolbox backup), ~/.config/opencode/instructions/oc-ci-wait.md, and re-run archive-release-finalization-assets.test.ts + adv-autonomy-quality-assets.test.ts to confirm 'Pending auto-merge.' wording still matches.",
+      "follow_ups": [
+        "Capability gap: oc-ci-wait has no PR-merge detection; adv-archive Phase 9.5 MERGED branch relies on parent pr_merged reachability proof, not a waiter MERGED signal. Consider a separate change to add PR merge-state to oc-ci-wait if a first-class MERGED terminal is desired.",
+        "Instruction anchors TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION were not provided in the packet; proceeded with prompt scope."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-07T03:36:57.950Z",
+      "completed_by": "adv",
+      "approval_evidence": "Fast-track quick contract confirmed by user; proposal scaffold persisted.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "8a8e906443fa488e0b1c3d39211a33368006d5bf33f3e4113fcb3acdf9b1ee6a",
+        "non_whitespace_chars": 1070,
+        "checked_at": "2026-07-07T03:36:52.006Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-07T03:43:59.262Z",
+      "completed_at": "2026-07-07T03:44:14.749Z",
+      "completed_by": "adv",
+      "approval_evidence": "Project context, spec-law assessment, local scope scan, and researcher validation completed. Typed contract minted from agreement. Spec-law impact classified as Modify and persisted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+        "non_whitespace_chars": 3128,
+        "checked_at": "2026-07-07T03:36:52.007Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-07T03:44:20.707Z",
+      "completed_by": "adv",
+      "approval_evidence": "Design validated with independent researcher verdict: caution, low risk. Adopted source-backed plan: oc-ci-wait owns API polling/backoff; waiter samples result every 20–30s and separates CI success from PR MERGED proof.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "30e29f2cca2c770cc318e514e2bcba3f02e706e5b6d01ad03e7289cc3dbe9710",
+        "non_whitespace_chars": 2424,
+        "checked_at": "2026-07-07T03:36:52.008Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-07T03:47:17.165Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved prep task graph. Five tasks persisted: one asset-test TDD entry point, two implementation tasks (repo prompt + archive/spec wording), one docs alignment task, one verification task. Dependencies enforced via blockedBy."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-07T04:03:54.771Z",
+      "completed_by": "adv",
+      "approval_evidence": "All 5 tasks done with TDD red→green evidence. Targeted tests pass (46/46); bin/oc-test smoke clean. Live instruction and backups synced. Restart required for live agent/instruction changes."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-07T04:17:12.918Z",
+      "completed_by": "adv",
+      "approval_evidence": "APPROVED with 0 findings. 5/5 scanner dimensions clean (info-only). Contract matrix: 9/9 rows pass/respected (AC1-AC5, C1-C4). User accepted inline. One non-blocking follow-up (adv-ci-waiter sub-agent policy table row) deferred to /adv-harden.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "a551c0e642afd6f43ee7fac7613ae5dcd55808e294dc796a7804bf4976ebbbca",
+        "non_whitespace_chars": 3286,
+        "checked_at": "2026-07-07T03:36:52.009Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+      "approvedAt": "2026-07-07T03:44:08.644Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv-ci-waiter` starts a new `oc-ci-wait` watch, when it waits for status, then instructions say to start exactly one watch and sample `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds until `completed`, `timeout`, `cancelled`, or `error`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given `oc-ci-wait` handles GitHub API polling, when instructions mention sleep/backoff, then they state not to reimplement API backoff in the agent and cite the tool-owned polling/rate-limit behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a PR auto-merge/archive flow needs final release proof, when CI reaches `success`, then instructions distinguish CI success from PR `MERGED` and require PR merge-state evidence before reporting merge-ready completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given CI fails, times out, is cancelled, credentials are missing, API/tooling is unavailable, or three remediation strategies fail, when waiter returns, then final output includes conclusion, failed checks if any, URL(s), watch ID, and next action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given docs/agent prompts are changed, when validation runs, then targeted asset/instruction tests pass and no main-agent inline CI polling loop is introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Main agents must not poll CI inline; `adv-ci-waiter` remains the bounded polling exception.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not use `gh run watch` or `gh pr checks --watch` in instructions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not edit live deployed scripts in `~/.local/bin/`; source/deploy paths remain authoritative.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve bounded output; no raw log dumps except concise failing-check evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-07T04:11:33.068Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-ci-waiter-assets.test.ts: uses/starts-exactly-one-watch-per-target + 20-30s sampling + --watch-id args assertions all green (11/11)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-ci-waiter-assets.test.ts: uses-oc-ci-wait-as-single-GitHub-polling-backoff-owner + no sleep 15 assertions green; live instructions and backups updated."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-ci-waiter-assets.test.ts: distinguishes-CI-success-from-PR-MERGED + archive-Phase-9.5-does-not-equate-waiter-success-with-PR-MERGED assertions green; spec rq-releaseFinalization02 body updated to require explicit PR merge-state evidence."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-ci-waiter-assets.test.ts: forbids-gh-run-watch + preserves-bounded-output + final-response-shape assertions green; rq-releaseFinalization04 body updated to include CI-success-but-not-MERGED non-terminal case."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bin/oc-test smoke clean (schemas:check, typecheck, lint, format:check, targeted suites 46/46). Red->green runIds tr_mra44b6s_24dd53db -> tr_mra493bm_552668b6 captured."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-ci-waiter.md: 'this agent is the explicit exception to the normal no-polling rule'; oc-ci-wait.md routing instruction preserves main-agent 'MUST NOT poll CI itself'."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-ci-waiter.md: 'Prefer oc-ci-wait over gh run watch or gh pr checks --watch'; routing instruction prohibits both."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No edits to ~/.local/bin/ deployed scripts. Live config edits at ~/.config/opencode/ synced to /home/jon/toolbox/backups/dotfiles/opencode/ before completion (diff -q matches)."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-ci-waiter.md: 'Do not dump raw logs unless needed for failing-check summary'; bounded output preserved in final response shape."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given `adv-ci-waiter` starts a new `oc-ci-wait` watch, when it waits for status, then instructions say to start exactly one watch and sample `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds until `completed`, `timeout`, `cancelled`, or `error`.",
+    "Given `oc-ci-wait` handles GitHub API polling, when instructions mention sleep/backoff, then they state not to reimplement API backoff in the agent and cite the tool-owned polling/rate-limit behavior.",
+    "Given a PR auto-merge/archive flow needs final release proof, when CI reaches `success`, then instructions distinguish CI success from PR `MERGED` and require PR merge-state evidence before reporting merge-ready completion.",
+    "Given CI fails, times out, is cancelled, credentials are missing, API/tooling is unavailable, or three remediation strategies fail, when waiter returns, then final output includes conclusion, failed checks if any, URL(s), watch ID, and next action.",
+    "Given docs/agent prompts are changed, when validation runs, then targeted asset/instruction tests pass and no main-agent inline CI polling loop is introduced."
+  ],
+  "documents": {
+    "proposal": "# Optimize CI waiter\n\n## Intent\nImprove `adv-ci-waiter` agent instructions so CI waiting uses better sleep/backoff timing, less wasteful polling, and clearer terminal-state behavior. Preserve the existing no-polling policy: main agents delegate CI watch; the waiter owns bounded polling.\n\n## LBP Targets\n- Correct polling cadence/backoff strategy for CI state discovery and steady-state watching.\n- Terminal-state detection rules for green, red, merged, blocker, and inconclusive states.\n- Remediation loop limits after CI failures.\n- Correct instruction placement in repo-owned source and synced OpenCode instruction surfaces.\n- Tests/docs needed to prevent drift between source and deployed instructions.\n\n## Scope\n- Repo-owned `adv-ci-waiter` agent/instruction source files.\n- Related OpenCode instruction docs that are synced from the Advance repo.\n- Asset/manifest tests that validate agent or instruction text, if present.\n- No live deployed-script direct edits.\n\n## User Outcomes\n- CI waiter sleeps smarter and avoids noisy or too-frequent checks.\n- Waiter still returns only after terminal green/red/blocker state when it owns a watch.\n- Main agents continue to avoid inline CI polling.\n- Instructions remain synced, tested, and maintainable.\n",
+    "agreement": "# Agreement — Optimize CI waiter\n\n## Objective\nMake `adv-ci-waiter` instructions use `oc-ci-wait` correctly: one detached watch owns GitHub polling/backoff, while the sub-agent samples bounded JSON results at a lower cadence and reports terminal CI/PR status without burning context.\n\n## Acceptance Criteria\n1. Given `adv-ci-waiter` starts a new `oc-ci-wait` watch, when it waits for status, then instructions say to start exactly one watch and sample `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds until `completed`, `timeout`, `cancelled`, or `error`.\n2. Given `oc-ci-wait` handles GitHub API polling, when instructions mention sleep/backoff, then they state not to reimplement API backoff in the agent and cite the tool-owned polling/rate-limit behavior.\n3. Given a PR auto-merge/archive flow needs final release proof, when CI reaches `success`, then instructions distinguish CI success from PR `MERGED` and require PR merge-state evidence before reporting merge-ready completion.\n4. Given CI fails, times out, is cancelled, credentials are missing, API/tooling is unavailable, or three remediation strategies fail, when waiter returns, then final output includes conclusion, failed checks if any, URL(s), watch ID, and next action.\n5. Given docs/agent prompts are changed, when validation runs, then targeted asset/instruction tests pass and no main-agent inline CI polling loop is introduced.\n\n## Constraints\n- Main agents must not poll CI inline; `adv-ci-waiter` remains the bounded polling exception.\n- Do not use `gh run watch` or `gh pr checks --watch` in instructions.\n- Do not edit live deployed scripts in `~/.local/bin/`; source/deploy paths remain authoritative.\n- Preserve bounded output; no raw log dumps except concise failing-check evidence.\n\n## Spec-law impact\nModify.\n\n### Draft spec delta obligation 1\n- Affected spec: `advance-workflow`\n- Delta kind: modify\n- Requirement ID: `rq-releaseFinalization02`\n- Rationale: Existing law says Phase 9.5 branches on terminal `MERGED` from `adv-ci-waiter`, but source-backed discovery shows `oc-ci-wait` reports CI terminal states, not PR merge state. The law should require separate PR merge-state/release-proof evidence before release completion.\n- Scenario:\n  - Given archive Phase 9 returns `phase9: \"pending_merge\"` with PR auto-merge armed\n  - When ADV spawns `adv-ci-waiter` and the waiter reports CI `success`\n  - Then ADV does not treat CI success alone as `MERGED`\n  - And release completion proceeds only after PR `state == MERGED` or unchanged origin/default reachability proof is verified\n\n### Draft spec delta obligation 2\n- Affected spec: `advance-workflow`\n- Delta kind: modify\n- Requirement ID: `rq-releaseFinalization04`\n- Rationale: Non-terminal reporting should include the explicit case where CI is green but PR merge has not yet happened, preserving honest `Pending auto-merge.` output.\n- Scenario:\n  - Given `adv-ci-waiter` returns CI success but PR state is not `MERGED`\n  - When archive Phase 9.5 evaluates the result\n  - Then the change remains active\n  - And the terminal report is `Pending auto-merge.` with PR URL and retry command, not `Shipped.`\n\n### Draft spec delta obligation 3\n- Affected spec: `advance-workflow`\n- Delta kind: modify\n- Requirement ID: `rq-releaseFinalization02`\n- Rationale: The polling contract should be durable enough to prevent prompt drift back to tight duplicate API polling.\n- Scenario:\n  - Given `adv-ci-waiter` is spawned for PR/SHA CI waiting\n  - When it uses `oc-ci-wait`\n  - Then it starts at most one watch per target\n  - And it samples `oc-ci-wait result` at a bounded 20–30 second cadence while relying on `oc-ci-wait` for GitHub API polling/backoff\n",
+    "design": "# Design — Optimize CI waiter\n\n## Discovery verdict\nLBP validation: Caution.\n\nSource-backed findings:\n- `oc-ci-wait start` detaches a background watcher; the agent loop should sample result JSON, not poll GitHub directly.\n- Tool defaults discovered by researcher: interval 15s, discovery timeout 2m, overall timeout 30m, rate-limit handling via `Retry-After` / `X-RateLimit-Reset`.\n- `oc-ci-wait` terminal statuses are `completed`, `timeout`, `cancelled`, and `error`; conclusion is CI success/failure, not PR merge state.\n- Current backed-up global `adv-ci-waiter` prompt uses `sleep 15`, duplicating the tool cadence and implying the outer loop owns polling.\n- Current repo archive Phase 9.5 wording branches on `MERGED` from the waiter; implementation needs waiter PR-state confirmation and/or archive-side separate proof before release completion.\n- Existing `delegation-defaults` law says repo-local or bundled ADV agents must exist as `.opencode/agents/{name}.md`; this repo currently has no `.opencode/agents/adv-ci-waiter.md` while commands reference it.\n\n## Chosen direction\nInstruction-source fix, not live-only patch:\n1. Add or restore repo-owned `.opencode/agents/adv-ci-waiter.md` as the source prompt for the sub-agent, using the backed-up global prompt as migration input but not as the long-term source of truth.\n2. Update `adv-ci-waiter` prompt/instructions to make `oc-ci-wait` the single GitHub polling/backoff owner.\n3. Change the outer sampling cadence to 20–30 seconds, because result sampling is cheap state observation and need not match the internal 15s GitHub polling interval.\n4. Add explicit terminal-state semantics:\n   - CI terminal: `completed`, `timeout`, `cancelled`, `error` from `oc-ci-wait`.\n   - PR/archive terminal: PR `MERGED` or release proof remains separate; CI success is not enough.\n5. Update archive/routing docs where they consume waiter output so `MERGED` is not falsely attributed to `oc-ci-wait` alone.\n6. Add/adjust asset tests to pin: repo-owned waiter exists, no `sleep 15` prompt drift, 20–30s sampling, `oc-ci-wait result` args shape, CI success != PR merged, `Pending auto-merge.` honesty.\n\n## Spec-law impact classification\nModify.\n\nExisting law touched:\n- `advance-workflow/rq-releaseFinalization02`\n- `advance-workflow/rq-releaseFinalization04`\n\nExisting law satisfied without delta:\n- `delegation-defaults` requires named ADV sub-agents to exist as `.opencode/agents/{name}.md`; implementation should add `.opencode/agents/adv-ci-waiter.md` rather than only patching live global config.\n\n## Likely implementation surfaces\n- `/home/jon/dev/advance/.opencode/agents/adv-ci-waiter.md` — add repo-owned waiter prompt.\n- `/home/jon/toolbox/backups/dotfiles/opencode/agents/adv-ci-waiter.md` — migration/reference input only; if implementation edits global config surfaces, sync non-secret state into backups before claiming done.\n- `/home/jon/.config/opencode/instructions/oc-ci-wait.md` and backup equivalent — routing policy text if repo has no synced source for this instruction.\n- `/home/jon/dev/advance/.opencode/command/adv-archive.md` — Phase 9.5 consumer contract.\n- `/home/jon/dev/advance/.adv/specs/advance-workflow/spec.json` and generated docs if spec law is updated.\n- `/home/jon/dev/advance/plugin/src/archive-release-finalization-assets.test.ts` or adjacent asset tests.\n\n## Verification plan\n- Targeted asset tests through `bin/oc-test targeted -- plugin/src/archive-release-finalization-assets.test.ts` from repo root, plus any new `adv-ci-waiter` asset test.\n- `pnpm run check` from `plugin/` if docs/spec/format changes touch checked surfaces.\n- If global OpenCode config/instructions change, remind user to restart OpenCode; current session will not reload changed agent prompts.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nOptimized `adv-ci-waiter` instructions so `oc-ci-wait` owns GitHub API polling/backoff; the sub-agent samples `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds and explicitly distinguishes CI `success` from PR `MERGED`. Release readiness verified: merge compatibility clean, no follow-up blockers, no security/secrets surface.\n\n## Verdict\nREADY (release).\n\n## What Was Built\n1. Added repo-owned `.opencode/agents/adv-ci-waiter.md` with explicit polling/cadence/terminal-shape contract; `oc-ci-wait` owns API polling/backoff; sub-agent owns cheap JSON sampling at 20–30s.\n2. Updated `.opencode/command/adv-archive.md` Phase 9.5 so CI success and `PR state == MERGED` are split into distinct terminal branches with explicit `gh pr view` PR-state evidence requirement.\n3. Updated `rq-releaseFinalization02` and `rq-releaseFinalization04` in `.adv/specs/advance-workflow/spec.json` to encode CI success != PR MERGED and 20–30s sampling ownership.\n4. Added `plugin/src/adv-ci-waiter-assets.test.ts` (11 tests) enforcing: repo-owned agent file exists, `mode: subagent`, `oc-ci-wait` ownership, exactly-one-watch, 20–30s cadence, no `sleep 15`, `--watch-id <id> --json` only, CI success != PR MERGED, gh-watch prohibition, bounded output, response shape.\n5. Aligned live `~/.config/opencode/instructions/oc-ci-wait.md` and `~/.config/opencode/agents/adv-ci-waiter.md`; synced to `toolbox/backups/dotfiles/opencode/`.\n\n## What Was Verified\n- Acceptance: APPROVED with 0 findings (5/5 scanner dimensions clean, info-only)\n- Hardening: READY (no blocker/high; merge compatibility clean)\n- Tests: bin/oc-test smoke clean (schemas:check, typecheck, lint, format:check); targeted 46/46 (adv-ci-waiter-assets 11/11, archive-release-finalization-assets 4/4, adv-autonomy-quality-assets 31/31)\n- TDD: red→green runIds `tr_mra44b6s_24dd53db` → `tr_mra493bm_552668b6`\n- Contract matrix: 9/9 rows pass/respected (AC1–AC5, C1–C4)\n- Preview URL: not_applicable — change is instruction/text only; no front-end, browser-visible, or visual-output work\n\n## Hardening Notes\n- Dimensions: release-deploy-readiness, production-readiness, documentation-hygiene, cleanup-readiness, residual-slop-maintainability all evaluated inline (markdown/test changes only).\n- Security: no secrets introduced; live config edits at `~/.config/opencode/` synced to `toolbox/backups/dotfiles/opencode/` (`diff -q` clean).\n- Cleanup: 0 candidates (`*.bak`/`*.tmp`/`*.orig` none present; no debug code in touched files; no orphaned imports).\n- Documentation: change updates canonical surfaces (`.opencode/agents/adv-ci-waiter.md`, `.opencode/command/adv-archive.md`, `.adv/specs/advance-workflow/spec.json`); live routing instruction synced. Optional `adv-ci-waiter` row in sub-agent policy table deferred (documentation consistency only; non-blocking).\n- Merge compatibility: dry-run `git merge --no-commit --no-ff origin/trunk` produced no conflicts (auto-merged spec.json and adv-archive.md cleanly).\n\n## Release Readiness Summary\n- ops readiness: pass — change is text/docs only; no production deploys, no env vars, no migrations, no external services, no CI/CD changes; restart of OpenCode session required for live agent/instruction changes to take effect. Source: 4 touched files are markdown + asset test; backup/live config diff clean.\n- migration/data impact: n/a — no data or schema migrations, no destructive operations, no rollback requirements. Source: contract matrix C1–C4 all respected; no migration surfaces touched.\n- frontend/preview impact: not_applicable — instruction/text only; no front-end, browser-visible, or visual-output work. Source: agreement scope; no `visual_surface` work.\n- collision/release risk: pass — worktree branch `change/optimizeCiWaiter` isolated; no scope overlap with `improveExecutiveSummaries` (other active change). Merge compatibility clean against `origin/trunk`. Source: `git merge --no-commit --no-ff origin/trunk` produced no conflicts; `adv_change_list` shows two in-flight changes with no file overlap on touched files.\n- open follow-ups: none — review follow-up (sub-agent policy table row) recorded as informational and intentionally deferred; no blocking or required-handoff obligations. Source: review findings clean.\n- next action: pass — proceed to `/adv-archive optimizeCiWaiter`. Source: harden READY; all release-owned dimensions clean.\n\n## Remaining Concerns\n- Live OpenCode agent/instruction files require session restart to take effect.\n- Informational follow-up: optional `adv-ci-waiter` row in sub-agent policy table in `ADV_INSTRUCTIONS.md` and `.opencode/agents/adv.md` for documentation consistency (non-blocking; deferred).\n\n## Consequence Context\n- delivered value: pass — Repo-owned adv-ci-waiter prompt + archive Phase 9.5 + spec rq-releaseFinalization02/04 updates + asset tests enforce 20-30s sampling and CI-success != PR-MERGED. Source: contract matrix AC1-AC5 all pass; bin/oc-test smoke clean.\n- enabling-only/follow-up dependency: n/a — no enabling-only changes; follow-up is documentation-table addition recorded as informational. Source: agreement scope; no follow-up links.\n- ops_readiness: pass — release readiness summary above; merge compatibility clean; backup/live config sync verified. Source: harden evidence.\n- migration_data_impact: n/a — no data or schema migrations. Source: contract matrix; no migration surfaces touched.\n- frontend_preview_impact: not_applicable — change is instruction/text only; no front-end, browser-visible, or visual-output work. Source: agreement scope + affected files (markdown + asset test).\n- collision_release_risk: pass — worktree branch isolated; merge compatibility clean. Source: `git merge --no-commit --no-ff origin/trunk` clean; no scope overlap with other active changes.\n- open_follow_ups: none — review follow-up is informational only; no blocking or required-handoff obligations. Source: review findings clean.\n- next_action: pass — proceed to `/adv-archive optimizeCiWaiter`. Source: harden READY; all release-owned dimensions clean.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-07T04:11:33.068Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Given `adv-ci-waiter` starts a new `oc-ci-wait` watch, when it waits for status, then instructions say to start exactly one watch and sample `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds until `completed`, `timeout`, `cancelled`, or `error`. | pass | plugin/src/adv-ci-waiter-assets.test.ts: uses/starts-exactly-one-watch-per-target + 20-30s sampling + --watch-id args assertions all green (11/11). |\n| AC2 | acceptance_criterion | Given `oc-ci-wait` handles GitHub API polling, when instructions mention sleep/backoff, then they state not to reimplement API backoff in the agent and cite the tool-owned polling/rate-limit behavior. | pass | plugin/src/adv-ci-waiter-assets.test.ts: uses-oc-ci-wait-as-single-GitHub-polling-backoff-owner + no sleep 15 assertions green; live instructions and backups updated. |\n| AC3 | acceptance_criterion | Given a PR auto-merge/archive flow needs final release proof, when CI reaches `success`, then instructions distinguish CI success from PR `MERGED` and require PR merge-state evidence before reporting merge-ready completion. | pass | plugin/src/adv-ci-waiter-assets.test.ts: distinguishes-CI-success-from-PR-MERGED + archive-Phase-9.5-does-not-equate-waiter-success-with-PR-MERGED assertions green; spec rq-releaseFinalization02 body updated to require explicit PR merge-state evidence. |\n| AC4 | acceptance_criterion | Given CI fails, times out, is cancelled, credentials are missing, API/tooling is unavailable, or three remediation strategies fail, when waiter returns, then final output includes conclusion, failed checks if any, URL(s), watch ID, and next action. | pass | plugin/src/adv-ci-waiter-assets.test.ts: forbids-gh-run-watch + preserves-bounded-output + final-response-shape assertions green; rq-releaseFinalization04 body updated to include CI-success-but-not-MERGED non-terminal case. |\n| AC5 | acceptance_criterion | Given docs/agent prompts are changed, when validation runs, then targeted asset/instruction tests pass and no main-agent inline CI polling loop is introduced. | pass | bin/oc-test smoke clean (schemas:check, typecheck, lint, format:check, targeted suites 46/46). Red->green runIds tr_mra44b6s_24dd53db -> tr_mra493bm_552668b6 captured. |\n| C1 | constraint | Main agents must not poll CI inline; `adv-ci-waiter` remains the bounded polling exception. | respected | adv-ci-waiter.md: 'this agent is the explicit exception to the normal no-polling rule'; oc-ci-wait.md routing instruction preserves main-agent 'MUST NOT poll CI itself'. |\n| C2 | constraint | Do not use `gh run watch` or `gh pr checks --watch` in instructions. | respected | adv-ci-waiter.md: 'Prefer oc-ci-wait over gh run watch or gh pr checks --watch'; routing instruction prohibits both. |\n| C3 | constraint | Do not edit live deployed scripts in `~/.local/bin/`; source/deploy paths remain authoritative. | respected | No edits to ~/.local/bin/ deployed scripts. Live config edits at ~/.config/opencode/ synced to /home/jon/toolbox/backups/dotfiles/opencode/ before completion (diff -q matches). |\n| C4 | constraint | Preserve bounded output; no raw log dumps except concise failing-check evidence. | respected | adv-ci-waiter.md: 'Do not dump raw logs unless needed for failing-check summary'; bounded output preserved in final response shape. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-07T03:36:52.047Z",
+      "contentHash": "8a8e906443fa488e0b1c3d39211a33368006d5bf33f3e4113fcb3acdf9b1ee6a",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-07T03:43:52.999Z",
+      "contentHash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-07T03:45:23.142Z",
+      "contentHash": "7fd5381a08ffa48c33eb037225b588cd6f386b8d24172596df10ca37b5643c21",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-07T04:25:36.311Z",
+      "contentHash": "6243e60740457c577f832d839c841b0ebdfd3829ce6f18d6da6e651d8a3f0393",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-07T04:25:36.311Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
