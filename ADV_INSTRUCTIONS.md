@@ -33,6 +33,7 @@ Per-phase collaboration mode. Planning gate machine-enforced via `adv_gate_compl
 | `/adv-idea`     | Collaborative                | Fully collaborative; ideation loop before a proposal exists                                                                                                                           |
 | `/adv-problem`  | Collaborative                | Fully collaborative; issue triage before deciding fix path                                                                                                                            |
 | `/adv-epic`     | Collaborative                | Fully collaborative; goal-first Epic creation with final confirmation before typed Epic mutation                                                                                       |
+| `/adv-backlog`  | Collaborative                | Capture future work before it becomes an Epic or change; typed-tool mutation after confirmation                                                                                        |
 | `/adv-coordinate` | Collaborative              | Fully collaborative; Epic coordination report with explicit approval before typed Epic mutation                                                                                        |
 | `/adv-proposal` | Collaborative                | Fully collaborative; approve at end                                                                                                                                                   |
 | `/adv-research` | Collaborative                | Fully collaborative; approve at end                                                                                                                                                   |
@@ -123,6 +124,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-status`               | Show fast ADV status table                                                       |
 | `/adv-roadmap`              | Show fast ADV roadmap table                                                      |
 | `/adv-epic`                 | Gather Epic goals before typed creation                                          |
+| `/adv-backlog`              | Capture future work before it becomes an Epic or change                          |
 | `/adv-proposal <summary>`   | Extract problem statement, user outcomes, and constraints without creating tasks |
 | `/adv-validate <change-id>` | Validate change compliance against specs; block archive on failure               |
 | `/adv-apply <change-id>`    | Implement change with TDD, retry on failure, and final verification              |

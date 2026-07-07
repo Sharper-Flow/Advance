@@ -98,7 +98,7 @@ Classify every finding with one of these stable labels:
 | Label | Meaning |
 |---|---|
 | `repo_backed_fact` | Current repository code, commit, or diff evidence supports the conclusion. |
-| `adv_backed_fact` | Typed ADV state supports the conclusion. |
+| `adv-backed-fact` | Typed ADV state supports the conclusion. |
 | `judgment_call` | Plausible overlap or sequencing issue needs user/domain review. |
 | `freshness_limited` | Repository evidence is missing or stale; the conclusion cannot be evidence-backed. |
 
@@ -166,7 +166,7 @@ Emit grouped report:
 
 - Inventory summary: Epics scanned, entries scanned, health counts.
 - Repository freshness summary: current branch, HEAD SHA, default/upstream relation, remote freshness, ahead/behind state, and dirty work risk where available.
-- Current repository overlap findings: `repo_backed_fact`, `adv_backed_fact`, `judgment_call`, and `freshness_limited` counts and evidence.
+- Current repository overlap findings: `repo_backed_fact`, `adv-backed-fact`, `judgment_call`, and `freshness_limited` counts and evidence.
 - Alignment findings: clear-cut vs judgment calls.
 - Sequencing findings: inversions, capstone placement, proposed `entry_ids` order.
 - Health findings: status, evidence, suggested repair mode.
@@ -177,7 +177,7 @@ For each durable action include:
 
 - affected Epic ID and current version;
 - exact rationale and evidence;
-- evidence label (`repo_backed_fact`, `adv_backed_fact`, `judgment_call`, or `freshness_limited`);
+- evidence label (`repo_backed_fact`, `adv-backed-fact`, `judgment_call`, or `freshness_limited`);
 - tool that would apply it (`adv_epic_update`, `adv_epic_reorder`, `adv_epic_repair_membership`);
 - required inputs such as `expected_version`, `entry_ids`, `mode`, and `evidence`.
 
@@ -187,7 +187,7 @@ For each durable action include:
 
 Durable Epic actions are approval-gated.
 
-For each action group, ask for explicit approval inline. Keep `judgment_call` and `freshness_limited` findings separate from `repo_backed_fact` and `adv_backed_fact` repairs.
+For each action group, ask for explicit approval inline. Keep `judgment_call` and `freshness_limited` findings separate from `repo_backed_fact` and `adv-backed-fact` repairs.
 
 Allowed replies for action groups:
 

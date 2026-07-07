@@ -39,6 +39,21 @@ export {
 } from "./artifacts";
 
 // =============================================================================
+// Backlog
+// =============================================================================
+export {
+  BacklogItemStatusSchema,
+  type BacklogItemStatus,
+  BacklogPromotionTargetSchema,
+  type BacklogPromotionTarget,
+  BacklogItemSchema,
+  type BacklogItem,
+  BacklogHeaderSchema,
+  type BacklogHeader,
+  CURRENT_SCHEMA_VERSION,
+} from "./backlog";
+
+// =============================================================================
 // Specs
 // =============================================================================
 export {

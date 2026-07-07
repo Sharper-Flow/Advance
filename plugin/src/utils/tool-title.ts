@@ -72,6 +72,13 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     }),
   adv_roadmap: (args) => read(`Show roadmap${suffix(args, "kind")}`),
   adv_backlog_state: (args) => read(`Show backlog${suffix(args, "kind")}`),
+  adv_backlog_add: (args) => write(`Add backlog item${suffix(args, "title")}`),
+  adv_backlog_list: () => read("List backlog"),
+  adv_backlog_show: (args) => read(`Show backlog item${suffix(args, "id")}`),
+  adv_backlog_promote: (args) =>
+    write(`Promote backlog item${suffix(args, "id")}`),
+  adv_backlog_archive: (args) =>
+    write(`Archive backlog item${suffix(args, "id")}`),
   adv_change_show: (args) => read(`Show change${suffix(args, "changeId")}`),
   adv_change_create: (args) => write(`Create change${suffix(args, "summary")}`),
   adv_change_update: (args) =>

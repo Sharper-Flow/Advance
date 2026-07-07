@@ -579,6 +579,12 @@ export const ShellAddedSignalPayloadSchema = z.object({
   order: z.number().int().min(0).optional(),
   idempotencyKey: z.string().min(1),
   addedAt: IsoTimestampSchema,
+  importedFrom: z
+    .object({
+      backlog_id: z.string().min(1),
+      imported_at: IsoTimestampSchema,
+    })
+    .optional(),
 });
 export type ShellAddedSignalPayload = z.infer<
   typeof ShellAddedSignalPayloadSchema

@@ -1,0 +1,232 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
+  "name": "backlog",
+  "title": "Repo Backlog",
+  "purpose": "A durable in-repo store for future work items that are not yet ready for an active Epic or change. Items are JSONL-encoded, git-tracked, branch-local, and promotable to either an ADV change or an Epic shell entry.",
+  "version": "1.0.0",
+  "updated_at": "2026-07-07T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-backlogDurability01",
+      "title": "Backlog Lives In-Repo and Is Branch-Local",
+      "body": "The backlog MUST be stored as `.adv/backlog.jsonl` inside the project repository. The file MUST be git-tracked and branch-local so that disjoint sets of future work items can coexist on different branches and merge through `merge=union`. The backlog MUST remain readable and writable from any worktree checked out from the same repository.",
+      "priority": "must",
+      "tags": ["backlog", "durability", "git", "branch-local"],
+      "scenarios": [
+        {
+          "id": "rq-backlogDurability01.1",
+          "title": "Backlog file is created on first add",
+          "given": ["A project with no existing backlog"],
+          "when": "A backlog item is added",
+          "then": [
+            "`.adv/backlog.jsonl` is created",
+            "The file contains a header line with `schemaVersion` followed by the new item"
+          ]
+        },
+        {
+          "id": "rq-backlogDurability01.2",
+          "title": "Backlog survives worktree switches",
+          "given": ["A backlog file exists on the current branch"],
+          "when": "A different worktree checks out the same branch",
+          "then": [
+            "The backlog file is present with identical content",
+            "Items can be read and appended from the new worktree"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogFormat01",
+      "title": "Backlog Is a Structured JSONL Stream",
+      "body": "The backlog file MUST contain a single header line with a `schemaVersion` field, followed by zero or more JSON-encoded backlog items, one per line. Append is the only write path for normal additions. Each line MUST be independently parsable and Zod-validated against the backlog item schema. Malformed lines MUST be surfaced as typed errors rather than silently dropped.",
+      "priority": "must",
+      "tags": ["backlog", "format", "jsonl", "validation"],
+      "scenarios": [
+        {
+          "id": "rq-backlogFormat01.1",
+          "title": "Valid backlog parses completely",
+          "given": ["A backlog file with a header and several items"],
+          "when": "The file is read",
+          "then": [
+            "All valid items are returned",
+            "The header schema version is preserved"
+          ]
+        },
+        {
+          "id": "rq-backlogFormat01.2",
+          "title": "Malformed line returns typed error",
+          "given": ["A backlog file containing one invalid JSON line"],
+          "when": "The file is read",
+          "then": [
+            "Valid items are still returned",
+            "The malformed line is reported with line number, raw content, and parse error"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogLifecycle01",
+      "title": "Backlog Items Have a Simple Lifecycle",
+      "body": "Each backlog item MUST carry a `status` of either `active` or `archived`. Archiving is a soft-delete that records `archived_at`. Active items are the default read surface. Items MAY record `promoted_to` when they are promoted to a change or Epic shell entry. Promotion does not delete the backlog line; it appends an updated record so the latest item wins.",
+      "priority": "must",
+      "tags": ["backlog", "lifecycle", "archive", "promotion"],
+      "scenarios": [
+        {
+          "id": "rq-backlogLifecycle01.1",
+          "title": "Archive soft-deletes an item",
+          "given": ["An active backlog item"],
+          "when": "The item is archived",
+          "then": [
+            "A new record is appended with `status: archived`",
+            "`archived_at` is set to the current ISO timestamp",
+            "The original line remains in the file"
+          ]
+        },
+        {
+          "id": "rq-backlogLifecycle01.2",
+          "title": "Promotion records target identity",
+          "given": ["An active backlog item"],
+          "when": "The item is promoted",
+          "then": [
+            "A new record is appended with `promoted_to.kind` and `promoted_to.id`",
+            "`promoted_to.promoted_at` records the promotion time"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogPromotion01",
+      "title": "Promotion Is Idempotent and Typed",
+      "body": "Promoting a backlog item to an ADV change or Epic shell entry MUST be idempotent on the tuple `(itemId, targetId)`. Re-promoting the same item to the same target MUST return the existing promotion without creating duplicate records. Promotion to a different target MUST append a new promoted record. Promotion of an archived item MUST be refused.",
+      "priority": "must",
+      "tags": ["backlog", "promotion", "idempotency"],
+      "scenarios": [
+        {
+          "id": "rq-backlogPromotion01.1",
+          "title": "Re-promotion is idempotent",
+          "given": ["An active item already promoted to change `addFoo`"],
+          "when": "The same item is promoted to `addFoo` again",
+          "then": [
+            "No new backlog line is written",
+            "The existing promotion record is returned"
+          ]
+        },
+        {
+          "id": "rq-backlogPromotion01.2",
+          "title": "Archived promotion is refused",
+          "given": ["An archived backlog item"],
+          "when": "A caller attempts to promote it",
+          "then": [
+            "The operation fails with a typed `archived` error",
+            "No mutation is written"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogArchive01",
+      "title": "Archive State Is Respected by Reads",
+      "body": "Default backlog reads MUST return only `active` items. Callers MAY request archived items explicitly. Adding a new item whose current latest state is archived MUST reactivate it (append a new `active` record). Promoting an archived item MUST be refused.",
+      "priority": "must",
+      "tags": ["backlog", "archive", "read"],
+      "scenarios": [
+        {
+          "id": "rq-backlogArchive01.1",
+          "title": "Default list excludes archived items",
+          "given": ["A backlog with one active and one archived item"],
+          "when": "`adv_backlog_list` runs with default filters",
+          "then": [
+            "Only the active item is returned"
+          ]
+        },
+        {
+          "id": "rq-backlogArchive01.2",
+          "title": "Adding an archived item reactivates it",
+          "given": ["An item whose latest record is archived"],
+          "when": "A caller adds the same item id again",
+          "then": [
+            "A new active record is appended",
+            "Subsequent reads return the item as active"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogSchemaVersion01",
+      "title": "Backlog Schema Version Is Explicit and Migrated",
+      "body": "The backlog header MUST declare a `schemaVersion`. Schema migrations MUST be hand-rolled per version (explicit branching), not a generic Zod passthrough. Writing to a backlog whose schema version is older than the current code version MUST be refused unless the caller explicitly consents to an automatic migration.",
+      "priority": "must",
+      "tags": ["backlog", "schema", "migration", "version"],
+      "scenarios": [
+        {
+          "id": "rq-backlogSchemaVersion01.1",
+          "title": "Header declares schema version",
+          "given": ["A newly created backlog"],
+          "when": "The file is read",
+          "then": [
+            "The first line is a valid header",
+            "`schemaVersion` equals the current version"
+          ]
+        },
+        {
+          "id": "rq-backlogSchemaVersion01.2",
+          "title": "Writes against old schema are refused",
+          "given": ["A backlog with header `schemaVersion: 0`"],
+          "when": "A caller attempts to append without migration consent",
+          "then": [
+            "The operation fails with a typed `schema_version` error",
+            "No line is appended"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogConcurrency01",
+      "title": "Concurrent Appends Are Serialized",
+      "body": "Concurrent worktrees or processes appending to `.adv/backlog.jsonl` MUST use a file lock to prevent interleaved writes. Reads MAY proceed without a lock. The lock implementation MUST handle stale locks from dead processes.",
+      "priority": "must",
+      "tags": ["backlog", "concurrency", "locking"],
+      "scenarios": [
+        {
+          "id": "rq-backlogConcurrency01.1",
+          "title": "Concurrent adds do not corrupt JSONL",
+          "given": ["Two processes append simultaneously"],
+          "when": "Both completes",
+          "then": [
+            "Every line is valid JSON",
+            "No line is interleaved or truncated"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogEpicBridge01",
+      "title": "Epic Shell Entries Can Import Backlog Items",
+      "body": "An Epic shell entry MAY carry a `backlog_ref` linking it to a repo backlog item. When a shell is created from a backlog reference, the shell title and success hint MAY be derived from the backlog item, and the shell MUST record `imported_from: { backlog_id, imported_at }` provenance. Imported shells are one-way bound: subsequent edits to the backlog item do not update the shell.",
+      "priority": "should",
+      "tags": ["backlog", "epics", "bridge", "provenance"],
+      "scenarios": [
+        {
+          "id": "rq-backlogEpicBridge01.1",
+          "title": "Shell derived from backlog item carries provenance",
+          "given": ["A backlog item with title and success hint"],
+          "when": "`adv_epic_add_shell` is called with `backlog_ref`",
+          "then": [
+            "The shell entry title and success hint match the backlog item",
+            "`imported_from.backlog_id` is set",
+            "`imported_from.imported_at` is set"
+          ]
+        },
+        {
+          "id": "rq-backlogEpicBridge01.2",
+          "title": "Imported shell is one-way bound",
+          "given": ["A shell imported from a backlog item"],
+          "when": "The backlog item title is updated",
+          "then": [
+            "The shell title remains unchanged"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -18,6 +18,7 @@ import type {
   EpicScope,
 } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
+import { getBacklogItem } from "../utils/backlog-store";
 import {
   appendEpicRoutingContexts,
   EPIC_OWNER_ROUTING_ERROR_CODES,
@@ -65,6 +66,7 @@ function mapEpicEntry(entry: EpicEntry) {
       ? {
           title: entry.title,
           success_hint: entry.success_hint,
+          imported_from: entry.imported_from,
         }
       : {
           change_id: entry.change_id,
@@ -1213,14 +1215,30 @@ export const epicTools = {
 
   adv_epic_add_shell: {
     description:
-      "Add a lightweight shell entry to an Epic roadmap. Shells represent future work and carry a title + success hint for later promotion.",
+      "Add a lightweight shell entry to an Epic roadmap. Shells represent future work and carry a title + success hint for later promotion. When backlog_ref is provided, title and success_hint are derived from the backlog item unless explicitly supplied.",
     args: {
       epic_id: EPIC_ID_SCHEMA,
-      title: z.string().min(1).describe("Shell title displayed in roadmap."),
+      backlog_ref: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          "Repo backlog item id to import. When present, title and success_hint default to the backlog item values.",
+        ),
+      title: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          "Shell title displayed in roadmap. Required when backlog_ref is absent.",
+        ),
       success_hint: z
         .string()
         .min(1)
-        .describe("Rough success/AC hint used during promotion and planning."),
+        .optional()
+        .describe(
+          "Rough success/AC hint used during promotion and planning. Required when backlog_ref is absent.",
+        ),
       entry_id: z
         .string()
         .min(1)
@@ -1239,6 +1257,7 @@ export const epicTools = {
     execute: async (
       {
         epic_id,
+        backlog_ref,
         title,
         success_hint,
         entry_id,
@@ -1248,8 +1267,9 @@ export const epicTools = {
         epic_owner_confirmationEvidence,
       }: {
         epic_id: string;
-        title: string;
-        success_hint: string;
+        backlog_ref?: string;
+        title?: string;
+        success_hint?: string;
         entry_id?: string;
         order?: number;
         epic_owner_target_path?: string;
@@ -1265,11 +1285,56 @@ export const epicTools = {
           epic_owner_target_confirmed,
           epic_owner_confirmationEvidence,
         });
+
+        let importedFrom:
+          | { backlog_id: string; imported_at: string }
+          | undefined;
+        let finalTitle = title;
+        let finalSuccessHint = success_hint;
+
+        if (backlog_ref) {
+          const backlogItem = await getBacklogItem(
+            owner.store.paths.root,
+            backlog_ref,
+            true,
+          );
+          if (!backlogItem) {
+            return formatToolOutput({
+              success: false,
+              error: `Backlog item not found: ${backlog_ref}`,
+              code: "backlog_not_found",
+            });
+          }
+          if (backlogItem.status === "archived") {
+            return formatToolOutput({
+              success: false,
+              error: `Cannot import archived backlog item: ${backlog_ref}`,
+              code: "backlog_archived",
+            });
+          }
+          finalTitle = finalTitle ?? backlogItem.title;
+          finalSuccessHint = finalSuccessHint ?? backlogItem.success_hint;
+          importedFrom = {
+            backlog_id: backlog_ref,
+            imported_at: new Date().toISOString(),
+          };
+        }
+
+        if (!finalTitle || !finalSuccessHint) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "title and success_hint are required when backlog_ref is absent.",
+            code: "missing_required_fields",
+          });
+        }
+
         const entry = await owner.store.epics.addShell(epic_id, {
           entryId: entry_id,
-          title,
-          successHint: success_hint,
+          title: finalTitle,
+          successHint: finalSuccessHint,
           order,
+          importedFrom,
         });
         const output = formatToolOutput({
           success: true,

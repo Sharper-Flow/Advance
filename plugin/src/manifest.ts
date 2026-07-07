@@ -175,6 +175,20 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       gates: [],
     },
   },
+  "adv-backlog": {
+    name: "adv-backlog",
+    description: "Capture future work before it becomes an Epic or change",
+    phase: "pre-implementation",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-epic", "adv-proposal"],
+    scope: {
+      creates: ["backlog_item"],
+      reads: ["backlog", "epics"],
+      modifies: ["backlog_item"],
+      gates: [],
+    },
+  },
   "adv-clarify": {
     name: "adv-clarify",
     description: "Ask clarifying questions to resolve ambiguous requirements",

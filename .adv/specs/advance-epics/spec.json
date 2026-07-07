@@ -3,8 +3,8 @@
   "name": "advance-epics",
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
-  "version": "1.8.0",
-  "updated_at": "2026-07-05T19:22:50.000Z",
+  "version": "1.9.0",
+  "updated_at": "2026-07-07T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-epicEntity01",
@@ -35,9 +35,9 @@
     {
       "id": "rq-epicEntries01",
       "title": "Epic Roadmap Supports Linked Changes and Shell Entries",
-      "body": "An Epic's ordered entries MUST support exactly two kinds: `change` entries that reference one ADV change and `shell` entries that represent future work. Change entries MUST remain backward-compatible with legacy same-project `change_id` rows and MUST support a project-aware `change_ref` carrying change ID, project ID, optional repo ID, and optional target path. Every shell entry MUST have a title and a rough success/AC hint. Shell entries MUST NOT be required to complete full ADV proposal/discovery before they can exist or be promoted. A change entry MAY carry promotion provenance when it originated from a shell.",
+      "body": "An Epic's ordered entries MUST support exactly two kinds: `change` entries that reference one ADV change and `shell` entries that represent future work. Change entries MUST remain backward-compatible with legacy same-project `change_id` rows and MUST support a project-aware `change_ref` carrying change ID, project ID, optional repo ID, and optional target path. Every shell entry MUST have a title and a rough success/AC hint; when a shell is imported from a repo backlog item via `backlog_ref`, these fields MAY be derived from the backlog item. Shell entries imported from the repo backlog MUST record `imported_from: { backlog_id, imported_at }` provenance and are one-way bound to the backlog item. Shell entries MUST NOT be required to complete full ADV proposal/discovery before they can exist or be promoted. A change entry MAY carry promotion provenance when it originated from a shell.",
       "priority": "must",
-      "tags": ["epics", "entries", "shell", "change"],
+      "tags": ["epics", "entries", "shell", "change", "backlog"],
       "scenarios": [
         {
           "id": "rq-epicEntries01.1",
@@ -68,6 +68,17 @@
           "then": [
             "Validation requires title, membership_status, linked_at, linked_by, and link_evidence",
             "Validation preserves repo/project identity"
+          ]
+        },
+        {
+          "id": "rq-epicEntries01.4",
+          "title": "Shell imported from backlog carries one-way provenance",
+          "given": ["A shell entry created with backlog_ref"],
+          "when": "The entry is validated",
+          "then": [
+            "Validation succeeds when title and success_hint are present or derived",
+            "`imported_from.backlog_id` and `imported_from.imported_at` are preserved",
+            "Subsequent backlog edits do not update the shell"
           ]
         }
       ]
