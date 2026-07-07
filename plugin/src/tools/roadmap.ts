@@ -647,7 +647,7 @@ function applyFilters(
 export const roadmapTools = {
   adv_roadmap: {
     description:
-      "Read the prioritized backlog (bugs by priority, features ranked by WSJF). Defaults to reading the file snapshot emitted by /adv-triage and reports freshness warnings after 2h; pass `source: 'live'` to query the GitHub Project directly. Filter via `kind`, `top` (features), `priority` (bugs).",
+      "Read the prioritized backlog (bugs by priority, features by issue number). Defaults to reading the file snapshot emitted by /adv-triage and reports freshness warnings after 2h; pass `source: 'live'` to query the GitHub Project directly. Filter via `kind`, `top` (features), `priority` (bugs).",
     args: {
       source: z
         .enum(["file", "live"])

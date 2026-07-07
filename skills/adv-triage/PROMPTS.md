@@ -5,12 +5,12 @@
 Use only when project must be created.
 
 ```text
-ADV needs a GitHub Projects v2 board for backlog scoring.
+ADV needs a GitHub Projects v2 board for backlog coordination.
 
 Owner: {owner}
 Title: ADV: {repo-name}
 Linked repo: {owner}/{repo}
-Custom fields to create: ADV Type, Priority, Value, TimeCriticality, RROE, Effort, WSJF
+Custom fields to create: ADV Type, Priority, Status
 
 Reply EXACTLY one of:
 - `create` — create project, link to repo, create fields, persist metadata
@@ -49,12 +49,12 @@ For each approved item: `gh issue create`, add source trailer, add to project, s
 
 ## Source cleanup validation prompt (Tier B)
 
-Use after match/gap analysis and before confirming new GH issues or asking for bug Priority / feature Value.
+Use after match/gap analysis and before confirming new GH issues or applying bug priority labels.
 
 Group `cleanup_decisions[]` by source/reason (`approvalGroup`) so users can approve narrow buckets without accepting unrelated cleanup.
 
 ```text
-Found {N} cleanup candidate(s) before backlog scoring:
+Found {N} cleanup candidate(s) before bug priority assignment:
 
 Group: {source}/{reason}
 
@@ -82,13 +82,13 @@ Action mapping after approval:
 - GitHub duplicate handling → capability-detect with `gh issue close --help`. If `--duplicate-of` is supported, use native duplicate close. If not, add documented `Duplicate of #N` comment semantics and close only with locally supported reasons.
 - ADV changes → use ADV close/archive recommendations only; never mutate workflow state outside ADV tools.
 
-Use the `question` tool only for `unclear` relevance choices and user-owned scoring prompts. Cleanup approval itself is Tier B inline text with exact whitelist parsing.
+Use the `question` tool only for `unclear` relevance choices and bug context-gathering questions. Cleanup approval itself is Tier B inline text with exact whitelist parsing.
 
-## User-only field assignments
+## Bug priority context-gathering
 
 ### Relevance validation
 
-Before any Priority/Value question, relevance-check each field-gap candidate.
+Before applying any `priority:*` label, relevance-check each field-gap candidate.
 
 Evidence sources:
 
@@ -101,48 +101,31 @@ Outcomes:
 
 | Outcome | Action |
 |---|---|
-| `relevant` | Continue to the bug Priority or feature Value question. |
+| `relevant` | Continue to the bug priority assignment. |
 | `stale/already-addressed` | Present evidence; close/remove/defer only after explicit user approval. |
 | `duplicate/superseded` | Present candidate survivor; close/supersede only after explicit user approval. |
-| `unclear` | Ask a focused relevance question before asking for Priority/Value. |
+| `unclear` | Ask a focused relevance question before gathering priority context. |
 
-Use the `question` tool for unclear relevance choices and for any user-owned scoring prompt. Relevance heuristics are advisory only; they MUST NOT auto-close, auto-suppress, or auto-score an item.
+Use the `question` tool for unclear relevance choices and for bug context-gathering questions. Relevance heuristics are advisory only; they MUST NOT auto-close, auto-suppress, or auto-label an item.
 
-Build matrix from open issues:
+Build the bug priority candidate list from open issues:
 
 | Need | Condition |
 |---|---|
 | `priority:*` label on bug | issue has `bug`, no priority label |
-| `Value` field on feature | issue has `feature`, project Value null |
 
-If matrix non-empty, use `question` tool — never plain chat. Stage 1 batch control first, then Stage 2 per-item loop.
+For each candidate, the agent may ask up to 2 focused context-gathering questions (impact, frequency, workaround). Questions gather context only; the agent assigns priority autonomously and MUST NOT ask the user to confirm or choose a priority.
 
-### Stage 1: batch control
+If context remains insufficient after 2 questions, assign `priority:medium` and add `context_insufficient` label.
 
-Options: `One by one (Recommended)`, `Autofill all features`, `Defer all`, `Stop`. Include write-in/custom option if tool surface does not add one automatically.
+After each assignment, emit `<issue#>: priority=<tier> :: <rationale>` in chat output only. Never post rationale as an issue comment.
 
-| Choice | Action |
-|---|---|
-| One by one | Per-item loop for all items |
-| Autofill all features | Autofill features; still prompt bug priorities |
-| Defer all | Skip all, exclude from roadmap, continue |
-| Stop | Halt run |
+### Response handling
 
-### Stage 2: per-item loop
-
-Bugs first by issue number, then features. One `question` call per item.
-
-Bug priority options: `critical`, `high`, `medium`, `low`, `Defer`.
-
-Feature Value options: `1`, `2`, `3`, `5`, `8`, `13`, `Defer`, `Autofill`.
-
-Response handling:
-
-1. Concrete value → record.
+1. Concrete answer → record context.
 2. `Defer` → exclude from roadmap.
-3. `Autofill` for features → assign from body, evidence required.
-4. Write-in/custom → validate; invalid means inline error + same-item re-prompt.
-5. After all items → apply assignments as batch.
+3. Write-in/custom → validate; invalid means inline error + same-item re-prompt.
+4. After all items → apply label assignments as batch.
 
 ## Local source deprecation prompt (Tier B)
 
@@ -173,7 +156,7 @@ Ready to commit and push ROADMAP.md to {default-branch}.
 
 Diff summary:
 - {bug_count_delta} bugs ({by_tier})
-- {feature_count_delta} features ({top-3 by WSJF preview})
+- {feature_count_delta} features
 - {deferred_count} deferred
 
 Files staged: ROADMAP.md and .adv/roadmap-snapshot.json only

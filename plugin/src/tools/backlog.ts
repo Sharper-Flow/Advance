@@ -1,5 +1,5 @@
 /**
- * Backlog Coordination Tools (rq-backlogCoord01..07, rq-wipPoisonIsolation01).
+ * Backlog Coordination Tools (rq-backlogCoord01..05, rq-backlogCoord07, rq-wipPoisonIsolation01).
  *
  * Two tools:
  *   - `adv_wip_state` (rq-backlogCoord04) — single-call WIP aggregator over
@@ -10,10 +10,8 @@
  *     — ranked backlog reader with TTL-bounded freshness and O(1) Visibility
  *     annotation of active changes per issue number.
  *
- * Human-authority invariant (rq-backlogCoord06): neither tool exposes a
- * mutation surface for the Value (V) field. Both are read-only; V flows
- * only from human action via GitHub Project UI or explicit `/adv-triage`
- * user-mediated assignment. WSJF (V × TC × RROE / E) is unchanged.
+ * Snapshot invariant: all scoring fields may be null; this tool is read-only
+ * on snapshot. GH Project remains canonical for any remaining numeric data.
  */
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";

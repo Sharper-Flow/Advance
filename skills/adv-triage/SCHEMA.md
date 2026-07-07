@@ -17,11 +17,11 @@
 - `represented[]` — `(source-item, gh-issue-number, exact_match_reason)`.
 - `unrepresented[]` — item with `kind_hint`, proposed title/body, optional `candidate_duplicate_issue`.
 
-If `unrepresented[]` empty and represented issues have required fields, skip issue-creation phases and continue to scoring/roadmap as needed.
+If `unrepresented[]` empty and represented issues have required fields, skip issue-creation phases and continue to bug priority/roadmap as needed.
 
 ## Source cleanup validation
 
-`cleanup_decisions[]` is command-local planning/report state produced after match/gap analysis and before issue creation or user-owned scoring.
+`cleanup_decisions[]` is command-local planning/report state produced after match/gap analysis and before issue creation or bug priority assignment.
 
 ```jsonc
 {
@@ -65,12 +65,12 @@ Triage promotion does NOT auto-create the ADV change. Origin records lineage for
     { "number": 51, "title": "...", "value": 8, "time_criticality": 3, "rroe": 13, "effort": 3, "wsjf": 8.0, "labels": [] }
   ],
   "deferred": [
-    { "number": 90, "title": "...", "reason": "user-deferred (Value)" }
+    { "number": 90, "title": "...", "reason": "user-deferred" }
   ]
 }
 ```
 
-`repository_filter` mirrors typed config and is omitted when unset. Snapshot writer must preserve same scope as live Project read.
+`repository_filter` mirrors typed config and is omitted when unset. Snapshot writer must preserve same scope as live Project read. Scoring fields remain nullable for backward compatibility with existing snapshots; they are read-only on snapshot and are not rendered in ROADMAP.md.
 
 ## ROADMAP.md layout
 
@@ -86,29 +86,29 @@ Regenerate with `/adv-triage`. Manual edits are overwritten.
 
 ### Critical
 | # | Title | Labels |
-|---|-------|--------|
+|---|---|-------|--------|
 | #{num} | {title} | {labels except priority:* and bug} |
 
-## Features (by WSJF, descending)
+## Features (by issue number)
 
-| # | Title | V | TC | RROE | E | WSJF | Labels |
-|---|-------|---|----|------|---|------|--------|
-| #{num} | {title} | 8 | 5 | 8 | 3 | 7.0 | {labels except feature} |
+| # | Title | Labels |
+|---|---|-------|--------|
+| #{num} | {title} | {labels except feature} |
 
 ## Deferred / Unscored
 
-- #{num} — {title} — _reason_ ({user-deferred|missing kind|missing Value})
+- #{num} — {title} — _reason_ ({user-deferred|missing kind})
 
 ## Triage Run Summary
 
 - Run timestamp: {ISO-8601 UTC}
 - Sources scanned: {source counts}
 - Issues opened this run: {N}
-- Field assignments this run: {N}
+- Priority assignments this run: {N}
 - Items deferred: {N}
 ```
 
-Skip empty bug priority subsections. Sort features by WSJF desc, Value desc, then issue number asc. Sort bugs critical → high → medium → low → unprioritized.
+Skip empty bug priority subsections. Sort features by issue number ascending when all scoring fields are null. Sort bugs critical → high → medium → low → unprioritized.
 
 ## Final report shape
 

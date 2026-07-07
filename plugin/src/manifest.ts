@@ -451,12 +451,12 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-triage": {
     name: "adv-triage",
     description:
-      "Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md",
+      "Triage backlog sources, reconcile into GH issues, apply bug priority labels, regenerate ROADMAP.md",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],
     successors: ["adv-proposal", "adv-task"],
-    args_hint: "[--execute] [--no-commit] [--source <name>] [--rescore]",
+    args_hint: "[--execute] [--no-commit] [--source <name>]",
   },
 } as const satisfies Record<string, CommandDef>;
 

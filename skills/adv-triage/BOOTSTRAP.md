@@ -16,12 +16,9 @@
 |---|---|---|
 | `ADV Type` | SINGLE_SELECT | `bug,feature` |
 | `Priority` | SINGLE_SELECT | `critical,high,medium,low` |
-| `Value` | NUMBER | — |
-| `TimeCriticality` | NUMBER | — |
-| `RROE` | NUMBER | — |
-| `Effort` | NUMBER | — |
-| `WSJF` | NUMBER | — |
 | `Status` | SINGLE_SELECT | `Backlog,Ready,In Progress,Blocked,Done` only if absent; GH provides default |
+
+Project may retain legacy scoring fields (`Value`, `TimeCriticality`, `RROE`, `Effort`, `WSJF`) for backward compatibility, but `/adv-triage` treats them as read-only on snapshot. Do not create new scoring fields.
 
 Persist config via project metadata or typed `.adv/github-project.json` with owner, project number, project id, and field ids.
 

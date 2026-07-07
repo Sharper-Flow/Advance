@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "backlog-coordination",
   "title": "Backlog Coordination",
-  "purpose": "Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. GitHub Project remains canonical for ranking and Value (V); the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).",
+  "purpose": "Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. Bug priority labels act as the source of truth for issue ordering; the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).",
   "version": "1.4.0",
   "updated_at": "2026-06-25T00:00:00.000Z",
   "requirements": [
@@ -228,36 +228,6 @@
       ]
     },
     {
-      "id": "rq-backlogCoord06",
-      "title": "Agent never writes Value (V) autonomously",
-      "body": "The ranking model preserves human authority over Value: agent code paths that mutate backlog item metadata (claim, release, score-adjust, etc.) MUST treat the V field as read-only. Mutations may update TC, RROE, E based on agent analysis, but V flows only from human action (GitHub Project UI or explicit /adv-triage user-mediated assignment). WSJF formula (V * TC * RROE / E) is unchanged.",
-      "priority": "must",
-      "tags": ["coordination", "wsjf", "human-authority"],
-      "scenarios": [
-        {
-          "id": "rq-backlogCoord06.1",
-          "title": "Schema rejects agent attempts to write V",
-          "given": ["Any agent-facing tool that mutates backlog item metadata"],
-          "when": "The tool schema is constructed",
-          "then": [
-            "The V field is absent from the mutation argument schema OR explicitly typed as read-only"
-          ]
-        },
-        {
-          "id": "rq-backlogCoord06.2",
-          "title": "WSJF formula references registered GH Project field IDs",
-          "given": [
-            "The .adv/github-project.json config defines fields { value, time_criticality, rroe, effort, wsjf }"
-          ],
-          "when": "WSJF is computed",
-          "then": [
-            "The formula V * TC * RROE / E is preserved",
-            "No field is renamed or removed by this change"
-          ]
-        }
-      ]
-    },
-    {
       "id": "rq-backlogCoord07",
       "title": "Snapshot annotation freshness TTL contract",
       "body": "Cached projection .adv/roadmap-snapshot.json carries optional TTL metadata: last_refreshed (ISO 8601), ttl_ms (default 300000 = 5 min), and next_refresh_after (computed). Consumers MUST treat absence of last_refreshed as 'stale, refresh now'. Default annotation TTL is 5 minutes \u2014 distinct from FILE_SNAPSHOT_STALE_AFTER_MS (2h) which covers WSJF-content staleness. The shorter window keeps active-change annotations fresh across multiple agent sessions while staying well under the 5000 req/hr gh CLI rate limit budget.",
@@ -366,22 +336,21 @@
     },
     {
       "id": "rq-backlogCoord09",
-      "title": "Triage source cleanup before issue creation and scoring",
-      "body": "/adv-triage MUST run source cleanup validation after structural match/gap analysis and before new issue creation, bug Priority prompts, or feature Value prompts. Cleanup validation covers represented and unrepresented ADV changes, GitHub issues/project items, agenda items, and local sources gathered by /adv-triage. Each non-relevant cleanup candidate MUST include source, stable ref, classification, evidence, proposed action, and approval group. Heuristics such as title similarity or agent inference are advisory only and MUST NOT close, complete, cancel, remove, suppress, merge-note, deprioritize, or otherwise mutate items without structural evidence and explicit approval batched by source/reason. Agenda duplicate/superseded/should-merge candidates approved for cleanup MUST complete with a note referencing the survivor/source. Bug Priority and feature Value remain user-owned and must not be requested until cleanup validation has completed for the candidate pool.",
+      "title": "Triage source cleanup before issue creation and bug priority assignment",
+      "body": "/adv-triage MUST run source cleanup validation after structural match/gap analysis and before new issue creation or bug priority assignment. Cleanup validation covers represented and unrepresented ADV changes, GitHub issues/project items, agenda items, and local sources gathered by /adv-triage. Each non-relevant cleanup candidate MUST include source, stable ref, classification, evidence, proposed action, and approval group. Heuristics such as title similarity or agent inference are advisory only and MUST NOT close, complete, cancel, remove, suppress, merge-note, deprioritize, or otherwise mutate items without structural evidence and explicit approval batched by source/reason. Agenda duplicate/superseded/should-merge candidates approved for cleanup MUST complete with a note referencing the survivor/source. Bug priority assignment MUST NOT run until cleanup validation has completed for the candidate pool. User questions during bug priority assignment gather context only and MUST NOT ask the user to confirm or choose a priority; the agent assigns priority autonomously within a bounded question budget.",
       "priority": "must",
       "tags": ["triage", "cleanup", "backlog", "human-authority", "p33"],
       "scenarios": [
         {
           "id": "rq-backlogCoord09.1",
-          "title": "Cleanup validation precedes issue creation and scoring prompts",
+          "title": "Cleanup validation precedes issue creation and bug priority assignment",
           "given": [
             "/adv-triage has gathered sources and built represented[] plus unrepresented[] match results"
           ],
-          "when": "/adv-triage prepares Phase 4 user prompts",
+          "when": "/adv-triage prepares Phase 4 bug priority loop",
           "then": [
             "Source cleanup validation has run before any new GH issue creation prompt",
-            "Source cleanup validation has run before any bug Priority prompt",
-            "Source cleanup validation has run before any feature Value prompt"
+            "Source cleanup validation has run before any bug priority assignment"
           ]
         },
         {
@@ -411,15 +380,15 @@
         },
         {
           "id": "rq-backlogCoord09.4",
-          "title": "Cleanup mutations require source-reason approval",
+          "title": "Bug priority assignment is bounded-autonomous",
           "given": [
-            "A cleanup candidate would mutate or suppress an ADV change, GitHub issue/project item, agenda item, or local source"
+            "A bug lacks a priority:* label after cleanup validation"
           ],
-          "when": "/adv-triage prepares to apply the cleanup action",
+          "when": "/adv-triage assigns priority",
           "then": [
-            "The action is included in a batch grouped by source/reason",
-            "Explicit approval is recorded before mutation or suppression",
-            "Bug Priority and feature Value prompts wait until the approval path resolves or the item is otherwise classified relevant"
+            "The agent asks at most 2 context-gathering questions per bug",
+            "If context remains insufficient, priority defaults to medium and a context_insufficient label is applied",
+            "The user is never asked to confirm or choose the priority"
           ]
         },
         {
