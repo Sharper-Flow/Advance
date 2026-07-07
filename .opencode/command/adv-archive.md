@@ -515,14 +515,15 @@ Emit `GIT FINALIZATION COMPLETE` only after Step 6 final proof. Include: commit 
    ```
    Read the nested fields from `finalization.*`, not top-level.
 
-2. **Spawn the waiter.** Use the Task tool to spawn `adv-ci-waiter` with `{ repo, prNumber, prUrl }`. Cite `~/.config/opencode/instructions/oc-ci-wait.md` for the polling contract — the **main agent never polls CI itself** (P37).
+2. **Spawn the waiter.** Use the Task tool to spawn `adv-ci-waiter` with `{ repo, prNumber, prUrl }`. Cite `~/.config/opencode/instructions/oc-ci-wait.md` for the polling contract — the **main agent never polls CI itself** (P37). `oc-ci-wait` (called by `adv-ci-waiter`) owns GitHub API polling and rate-limit backoff; the sub-agent samples `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds. CI terminal statuses are `completed`, `timeout`, `cancelled`, `error`; `conclusion` is CI success/failure, NOT PR merge state.
 
 3. **Branch on the terminal result.**
-   - **`MERGED`:**
+   - **CI success, `PR state == MERGED`** (verified via `gh pr view <number> --json state,mergedAt,mergeCommit`):
      a. Call `syncDefaultBranchAfterMerge({ mainCheckout: finalization.mainCheckout, defaultBranch: finalization.defaultBranch })` (helper in `plugin/src/tools/archive-helpers/git-finalize.ts`).
      b. Re-call `adv_change_archive changeId: {change-id} worktreePath: {worktree} phase9: "run"` and let it complete via the unchanged `verifyReleaseEvidenceFromMain` completion entry, which now proves `pr_merged` and returns `shipped`. The archive tool is idempotent on re-call (existing-bundle/noOp path; no delta re-apply).
      c. Append one Delivered line: `Trunk sync: {synced | diverged: N local-only commits + reconcile steps; release still completes | blocked: <reason>}`.
      d. Proceed to the existing Shipped. terminal rendering; release gate, archive retirement, worktree cleanup run normally as part of `Shipped.`.
+   - **CI success but PR state is not yet `MERGED`** (auto-merge still pending, queue still in flight, or merge-state check inconclusive): treat as non-terminal. Render `Pending auto-merge.` per the Non-terminal branch below. CI success alone is necessary but not sufficient; release completion requires `PR state == MERGED` or unchanged `origin/{default-branch}` reachability proof.
    - **Non-terminal** (timeout / blocked / red-CI-unresolved / missing creds / API error):
      a. Render `Pending auto-merge.` with `finalization.prUrl` and the exact retry command on its own line: `adv_change_archive changeId:{change-id} worktreePath:{worktree} phase9:"run"`.
      b. Do NOT call `verifyReleaseEvidenceFromMain` again this turn — never escalate a non-terminal waiter result into a `Shipped.`.
