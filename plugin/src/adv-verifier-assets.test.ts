@@ -120,7 +120,9 @@ describe("adv-verifier agent asset", () => {
     expect(body).toMatch(/bin\/oc-test\s+targeted/i);
     expect(body).toMatch(/bin\/oc-test\s+smoke/i);
     expect(body).toMatch(/bin\/oc-test\s+full/i);
-    expect(body).toMatch(/native commands.*no wrapper|no wrapper.*native commands/i);
+    expect(body).toMatch(
+      /native commands.*no wrapper|no wrapper.*native commands/i,
+    );
     expect(body).toMatch(/chosen command/i);
     expect(body).toMatch(/rationale/i);
     expect(body).toMatch(/bounded output/i);
