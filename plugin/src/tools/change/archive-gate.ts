@@ -32,7 +32,6 @@ import {
 import {
   detectDefaultBranch,
   classifyFinalizationRoute,
-  coercePrWorkflowRoute,
   resolveReleaseReachability,
   type GitFinalizeOutcome,
   type GitFinalizeDeps,
@@ -560,7 +559,10 @@ export function verifyReleaseEvidenceFromMain(input: {
   const route =
     input.archiveMode === "pr" ||
     input.change?.phase9_status?.status === "pending_merge"
-      ? coercePrWorkflowRoute(classifiedRoute)
+      ? classifiedRoute.route === "blocked" ||
+        classifiedRoute.route === "merge_queue"
+        ? classifiedRoute
+        : { route: "pr_auto_merge" as const, repo: classifiedRoute.repo }
       : classifiedRoute;
   const reachability = resolveReleaseReachability(
     {
