@@ -722,12 +722,16 @@ describe("deploy-local.sh", () => {
       ).toContain("worktree_guard_enforce defaults true");
       expect(probeCache).toBeDefined();
       expect(probeCache?.body).toContain("_freshness");
+      expect(probeCache?.body).toContain("age_ms");
+      expect(probeCache?.body).toContain("ttl_ms");
+      expect(probeCache?.body).toContain("forceRefresh");
       expect(probeCache?.body).toContain("AbortSignal");
       expect(probeCache?.scenarios?.map((s) => s.id)).toEqual(
         expect.arrayContaining([
           "rq-statusProbeCache01.1",
           "rq-statusProbeCache01.2",
           "rq-statusProbeCache01.3",
+          "rq-statusProbeCache01.4",
         ]),
       );
       expect(statusSummary).toBeDefined();

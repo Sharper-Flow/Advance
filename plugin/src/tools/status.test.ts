@@ -809,6 +809,25 @@ Vague in-flight work.
       expect(parsed.formatted.peerSessionsSection).toBe("");
     });
 
+    test("summary forceRefresh stays lightweight while refreshing only selected advisory probes", async () => {
+      await statusTools.adv_status.execute({ view: "summary" }, store);
+      const result = await statusTools.adv_status.execute(
+        { view: "summary", forceRefresh: true },
+        store,
+      );
+      const parsed = parseToolOutput(result);
+
+      expect(mockGetTemporalHealth).toHaveBeenCalledTimes(2);
+      expect(mockScanOpenCodeSessionDebt).not.toHaveBeenCalled();
+      expect(mockScanSnapshotHealth).not.toHaveBeenCalled();
+      expect(mockGetWorktreeCensus).not.toHaveBeenCalled();
+      expect(parsed._freshness).toBeUndefined();
+      expect(parsed.search_attributes).toBeUndefined();
+      expect(parsed.snapshot_health).toBeUndefined();
+      expect(parsed.temporal_queue_serviceability).toBeUndefined();
+      expect(parsed.worker_diagnostics).toBeUndefined();
+    });
+
     test("health view includes worker role and stability feature flag defaults", async () => {
       const result = await statusTools.adv_status.execute(
         { view: "health" },
@@ -890,14 +909,42 @@ Vague in-flight work.
       expect(first._freshness.temporal_health).toMatchObject({
         cached_at: expect.any(String),
         stale: false,
+        age_ms: expect.any(Number),
+        ttl_ms: expect.any(Number),
       });
       expect(first._freshness.worktree_census).toMatchObject({
         cached_at: expect.any(String),
         stale: false,
+        age_ms: expect.any(Number),
+        ttl_ms: expect.any(Number),
       });
       expect(second._freshness.temporal_health.cached_at).toBe(
         first._freshness.temporal_health.cached_at,
       );
+    });
+
+    test("health view forceRefresh bypasses fresh advisory probe cache", async () => {
+      const firstResult = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const secondResult = await statusTools.adv_status.execute(
+        { view: "health", forceRefresh: true } as any,
+        store,
+      );
+      const first = parseToolOutput(firstResult);
+      const second = parseToolOutput(secondResult);
+
+      expect(mockGetTemporalHealth).toHaveBeenCalledTimes(2);
+      expect(mockGetWorktreeCensus).toHaveBeenCalledTimes(2);
+      expect(first.temporal_health.server_alive).toBe(true);
+      expect(second.temporal_health.server_alive).toBe(true);
+      expect(second._freshness.temporal_health).toMatchObject({
+        cached_at: expect.any(String),
+        stale: false,
+        age_ms: expect.any(Number),
+        ttl_ms: expect.any(Number),
+      });
     });
 
     test("status probe fetches forward AbortSignal to cancellable providers", async () => {

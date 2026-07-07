@@ -182,6 +182,8 @@ describe("temporal ops probe cache", () => {
     expect(first._freshness.temporal_health).toMatchObject({
       cached_at: expect.any(String),
       stale: false,
+      age_ms: expect.any(Number),
+      ttl_ms: expect.any(Number),
     });
     expect(second._freshness.temporal_health.cached_at).toBe(
       first._freshness.temporal_health.cached_at,
@@ -211,9 +213,25 @@ describe("temporal ops probe cache", () => {
         freshness: {
           cached_at: new Date().toISOString(),
           stale: true,
+          age_ms: 3_000,
+          ttl_ms: 2_000,
         },
       }),
     ).toBe(false);
+  });
+
+  test("restart verification accepts only fresh serviceability evidence", () => {
+    expect(
+      isRestartServiceabilityVerified({
+        serviceability: { status: "serviceable" } as any,
+        freshness: {
+          cached_at: new Date().toISOString(),
+          stale: false,
+          age_ms: 10,
+          ttl_ms: 2_000,
+        },
+      }),
+    ).toBe(true);
   });
 
   test("diagnose does not recommend restart when worker is dead but queue has fresh peer pollers", async () => {

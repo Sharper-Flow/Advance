@@ -40,7 +40,11 @@ import {
 export const HEALTH_SNAPSHOT_TTL_MS = 30000;
 export const MISSING_PROJECT_ID_CACHE_KEY = "__current_project__";
 const STATUS_PROBE_TIMEOUT_MS = 2_000;
-const STATUS_PROBE_TTL_MS = 2_000;
+export const STATUS_PROBE_TTL_MS = 2_000;
+
+export interface StatusProbeFetchOptions {
+  forceRefresh?: boolean;
+}
 
 export interface HealthSnapshot {
   leaked_source_dirs: number;
@@ -158,12 +162,14 @@ export const _statusProbeCaches = {
 
 export async function fetchStatusSnapshotHealth(
   projectId: string | undefined,
+  options: StatusProbeFetchOptions = {},
 ): Promise<{
   value: SnapshotHealthSnapshot;
   freshness: ProbeCacheFreshness;
 }> {
   return snapshotHealthProbeCache.fetch(
     projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+    options,
   );
 }
 
@@ -189,25 +195,30 @@ export function computeSearchAttributesSnapshot(): SearchAttributesSnapshot {
 
 export async function fetchStatusTemporalHealth(
   projectId: string | undefined,
+  options: StatusProbeFetchOptions = {},
 ): Promise<{
   value: TemporalHealthSnapshot;
   freshness: ProbeCacheFreshness;
 }> {
   return statusTemporalHealthProbeCache.fetch(
     projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+    options,
   );
 }
 
-export async function fetchStatusQueueServiceability(input: {
-  projectId: string | undefined;
-  health: TemporalHealthSnapshot;
-}): Promise<{
+export async function fetchStatusQueueServiceability(
+  input: {
+    projectId: string | undefined;
+    health: TemporalHealthSnapshot;
+  },
+  options: StatusProbeFetchOptions = {},
+): Promise<{
   value: StatusQueueServiceabilitySnapshot | null;
   freshness: ProbeCacheFreshness;
 }> {
   const key = input.projectId ?? MISSING_PROJECT_ID_CACHE_KEY;
   statusQueueServiceabilityInputs.set(key, input);
-  return statusQueueServiceabilityProbeCache.fetch(key);
+  return statusQueueServiceabilityProbeCache.fetch(key, options);
 }
 
 export async function computeHealthSnapshot(

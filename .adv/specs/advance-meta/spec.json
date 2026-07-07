@@ -383,7 +383,7 @@
     {
       "id": "rq-statusProbeCache01",
       "title": "Bounded Cached Health Probes",
-      "body": "ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, and optional error. Probe fetchers that receive an AbortSignal must either forward it into cancellable underlying work or explicitly classify the operation as bounded/non-cancellable at the nearest owned adapter. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, or archive decisions.",
+      "body": "ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, snapshot health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, age_ms, ttl_ms, and optional error. Status-facing health diagnostics must expose an advisory forceRefresh path that bypasses fresh cached probe entries only for the selected health probes and never for gate, task, change, contract, archive, or release truth. Probe fetchers that receive an AbortSignal must either forward it into cancellable underlying work or explicitly classify the operation as bounded/non-cancellable at the nearest owned adapter. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, gate completion, task truth, change lifecycle truth, or archive decisions.",
       "priority": "must",
       "tags": [
         "diagnostics",
@@ -396,13 +396,14 @@
           "id": "rq-statusProbeCache01.1",
           "title": "Status health probes are coalesced and freshened",
           "given": [
-            "Multiple adv_status view:health calls request Temporal health, queue serviceability, search-attribute health, or worktree census within the probe TTL"
+            "Multiple adv_status view:health calls request Temporal health, queue serviceability, search-attribute health, snapshot health, or worktree census within the probe TTL"
           ],
           "when": "The probes execute",
           "then": [
             "Concurrent same-key probes are coalesced",
             "Repeated calls within TTL return cached values",
-            "The health response includes _freshness metadata for each cached probe",
+            "The health response includes _freshness metadata for each cached probe with cached_at, stale, age_ms, ttl_ms, and optional error",
+            "age_ms is non-negative and ttl_ms identifies the probe cache TTL",
             "Existing health fields remain present for legacy consumers"
           ]
         },
@@ -414,9 +415,24 @@
           ],
           "when": "A diagnostic or recovery tool builds recommendations",
           "then": [
-            "The stale value may be returned with _freshness.stale=true and an error summary",
+            "The stale value may be returned with _freshness.stale=true, age_ms, ttl_ms, and an error summary",
             "The stale value must not be treated as proof of worker serviceability",
-            "The stale value must not authorize worker-lock reclaim, restart success, override, unlock, or archive decisions"
+            "The stale value must not authorize worker-lock reclaim, restart success, override, unlock, gate completion, task truth, change lifecycle truth, or archive decisions"
+          ]
+        },
+        {
+          "id": "rq-statusProbeCache01.4",
+          "title": "Status force refresh is advisory-only",
+          "given": [
+            "adv_status is called with forceRefresh:true and a view that requests advisory health probes",
+            "Fresh cached values already exist for one or more selected probes"
+          ],
+          "when": "The status read executes",
+          "then": [
+            "The selected advisory probe caches attempt fresh fetches instead of reusing fresh cached entries",
+            "The response freshness metadata still reports cached_at, stale, age_ms, ttl_ms, and optional error for each returned probe",
+            "forceRefresh does not bypass or cache gate, task, change, contract, archive, or release truth",
+            "Default summary output remains lightweight and does not expose detailed _freshness payloads"
           ]
         },
         {
