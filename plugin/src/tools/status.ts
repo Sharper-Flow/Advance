@@ -43,6 +43,7 @@ import {
   fetchStatusTemporalHealth,
   fetchStatusQueueServiceability,
   buildTemporalHealthFallback,
+  STATUS_PROBE_TTL_MS,
   pushQueueServiceabilityRecommendations,
   statusSearchAttributesProbeCache,
   statusWorktreeCensusProbeCache,
@@ -218,16 +219,25 @@ export const statusTools = {
         .describe(
           "Product-linked visibility scope. `repo` (default) shows changes scoped to the current repo; `product` shows all product changes.",
         ),
+      forceRefresh: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          "Refresh advisory status health probe caches for the selected view. Does not refresh or cache gate/task/change/contract/archive truth.",
+        ),
     },
     execute: async (
       {
         target_path,
         view = "summary",
         scope = "repo",
+        forceRefresh = false,
       }: {
         target_path?: string;
         view?: "summary" | "health" | "changes" | "hygiene";
         scope?: "repo" | "product";
+        forceRefresh?: boolean;
       },
       store: Store,
     ) => {
@@ -259,7 +269,9 @@ export const statusTools = {
           let temporalHealth: TemporalHealthSnapshot | undefined;
           if (plan.temporalHealth) {
             try {
-              const temporalProbe = await fetchStatusTemporalHealth(projectId);
+              const temporalProbe = await fetchStatusTemporalHealth(projectId, {
+                forceRefresh,
+              });
               temporalHealth = temporalProbe.value;
               probeFreshness.temporal_health = temporalProbe.freshness;
             } catch (err) {
@@ -267,6 +279,8 @@ export const statusTools = {
               probeFreshness.temporal_health = {
                 cached_at: new Date().toISOString(),
                 stale: true,
+                age_ms: 0,
+                ttl_ms: STATUS_PROBE_TTL_MS,
                 error: err instanceof Error ? err.message : String(err),
               };
             }
@@ -278,10 +292,13 @@ export const statusTools = {
             | undefined;
           if (plan.queueServiceability && temporalHealth) {
             const queueServiceabilityProbe =
-              await fetchStatusQueueServiceability({
-                projectId,
-                health: temporalHealth,
-              });
+              await fetchStatusQueueServiceability(
+                {
+                  projectId,
+                  health: temporalHealth,
+                },
+                { forceRefresh },
+              );
             queueServiceability = queueServiceabilityProbe.value;
             probeFreshness.queue_serviceability =
               queueServiceabilityProbe.freshness;
@@ -298,6 +315,7 @@ export const statusTools = {
             const searchAttributesProbe =
               await statusSearchAttributesProbeCache.fetch(
                 projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+                { forceRefresh },
               );
             searchAttributes = searchAttributesProbe.value;
             probeFreshness.search_attributes = searchAttributesProbe.freshness;
@@ -458,6 +476,7 @@ export const statusTools = {
             const worktreeCensusProbe =
               await statusWorktreeCensusProbeCache.fetch(
                 activeStore.paths.root,
+                { forceRefresh },
               );
             worktreeCensus = worktreeCensusProbe.value;
             probeFreshness.worktree_census = worktreeCensusProbe.freshness;
@@ -579,7 +598,7 @@ export const statusTools = {
             const snapshotHealthProbe = await withRecordedPhase(
               "adv_status",
               "snapshotHealth",
-              () => fetchStatusSnapshotHealth(projectId),
+              () => fetchStatusSnapshotHealth(projectId, { forceRefresh }),
             );
             snapshotHealth = snapshotHealthProbe.value;
             probeFreshness.snapshot_health = snapshotHealthProbe.freshness;

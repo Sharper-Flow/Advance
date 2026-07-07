@@ -890,14 +890,42 @@ Vague in-flight work.
       expect(first._freshness.temporal_health).toMatchObject({
         cached_at: expect.any(String),
         stale: false,
+        age_ms: expect.any(Number),
+        ttl_ms: expect.any(Number),
       });
       expect(first._freshness.worktree_census).toMatchObject({
         cached_at: expect.any(String),
         stale: false,
+        age_ms: expect.any(Number),
+        ttl_ms: expect.any(Number),
       });
       expect(second._freshness.temporal_health.cached_at).toBe(
         first._freshness.temporal_health.cached_at,
       );
+    });
+
+    test("health view forceRefresh bypasses fresh advisory probe cache", async () => {
+      const firstResult = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const secondResult = await statusTools.adv_status.execute(
+        { view: "health", forceRefresh: true } as any,
+        store,
+      );
+      const first = parseToolOutput(firstResult);
+      const second = parseToolOutput(secondResult);
+
+      expect(mockGetTemporalHealth).toHaveBeenCalledTimes(2);
+      expect(mockGetWorktreeCensus).toHaveBeenCalledTimes(2);
+      expect(first.temporal_health.server_alive).toBe(true);
+      expect(second.temporal_health.server_alive).toBe(true);
+      expect(second._freshness.temporal_health).toMatchObject({
+        cached_at: expect.any(String),
+        stale: false,
+        age_ms: expect.any(Number),
+        ttl_ms: expect.any(Number),
+      });
     });
 
     test("status probe fetches forward AbortSignal to cancellable providers", async () => {
