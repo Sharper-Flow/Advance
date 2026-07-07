@@ -465,6 +465,28 @@ export function createTemporalStoreBackend(
     return null;
   };
 
+  /**
+   * rq-terminalProjectionTruth01: durable terminal projection dominates stale
+   * non-terminal workflow, memo, disk, and visibility projections. Check the
+   * archive bundle first, then a closed disk snapshot. Active/missing changes
+   * fall through to the live workflow path.
+   */
+  const loadTerminalProjection = async (
+    changeId: string,
+    reason: ProjectionRecoveryReason = "missing_workflow",
+  ): Promise<Change | null> => {
+    const archiveProjection = await loadArchiveBundleDominantProjection(
+      changeId,
+      reason,
+    );
+    if (archiveProjection) return archiveProjection;
+
+    const diskClosed = await loadDiskTerminalProjection(changeId);
+    if (diskClosed) return setCachedProjection(diskClosed);
+
+    return null;
+  };
+
   const reseedChangeFromDisk = async (
     changeId: string,
     reason: ProjectionRecoveryReason = "missing_workflow",
@@ -560,23 +582,16 @@ export function createTemporalStoreBackend(
   const getTemporalChange = async (
     changeId: string,
   ): Promise<ReturnType<Store["changes"]["get"]>> => {
-    const terminalDiskProjection = await loadDiskTerminalProjection(changeId);
-    if (terminalDiskProjection) {
-      indexTasksFromChange(terminalDiskProjection);
-      return { success: true, data: terminalDiskProjection };
+    // rq-terminalProjectionTruth01: durable terminal projection dominates
+    // stale non-terminal shadows before any live workflow round-trip.
+    const terminalProjection = await loadTerminalProjection(changeId);
+    if (terminalProjection) {
+      indexTasksFromChange(terminalProjection);
+      return { success: true, data: terminalProjection };
     }
 
     const cached = changeCache.get(changeId);
     if (cached) {
-      if (cached.status !== "archived" && cached.status !== "closed") {
-        const archiveProjection = await loadArchiveBundleDominantProjection(
-          changeId,
-          "missing_workflow",
-        );
-        if (archiveProjection) {
-          return { success: true, data: archiveProjection };
-        }
-      }
       indexTasksFromChange(cached);
       return { success: true, data: cached };
     }
@@ -592,17 +607,7 @@ export function createTemporalStoreBackend(
         state.worktree_auto_managed,
         undefined,
       );
-      const change = setCachedChange(state);
-      if (change.status !== "archived" && change.status !== "closed") {
-        const archiveProjection = await loadArchiveBundleDominantProjection(
-          changeId,
-          "missing_workflow",
-        );
-        if (archiveProjection) {
-          return { success: true, data: archiveProjection };
-        }
-      }
-      return { success: true, data: change };
+      return { success: true, data: setCachedChange(state) };
     } catch (error) {
       // P1.5 — orphan-tolerant changes.get with re-seed. When the
       // workflow is missing but a disk snapshot exists, seed a fresh
@@ -807,8 +812,10 @@ export function createTemporalStoreBackend(
           try {
             return await getTemporalChange(changeId);
           } catch {
-            // Workflow may not exist (pre-Temporal, terminated, or evicted).
-            // Fall back to legacy JSON store.
+            // rq-terminalAggregateRead01: per-candidate failure is bounded;
+            // one bad/missing workflow does not abort the aggregate read.
+            // Degraded metadata lives in the omission (missing row) rather
+            // than an unclassified whole-tool timeout.
             try {
               const result = await legacy.changes.get(changeId);
 

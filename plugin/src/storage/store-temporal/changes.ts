@@ -768,12 +768,15 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     },
 
     // rq-changeSummaryReadModel01: lightweight summary list for default
-    // tool paths. Uses `ChangeSummaryMemo` and `changeCache` to avoid
+    // warm paths. Uses `ChangeSummaryMemo` and `changeCache` to avoid
     // per-change full hydration when summary data already satisfies the
     // response contract; falls back to authoritative hydration for IDs
-    // that have no summary proof. Archive/closed callers still walk the
-    // full hydration path because terminal records require disk/archive
-    // reconciliation outside the memo.
+    // that have no summary proof.
+    //
+    // rq-activeListFastPath01: default active/in-flight callers stay on
+    // this summary/memo/cache path. Terminal reconciliation is only
+    // invoked when the filter explicitly asks for archived/closed rows
+    // or when content filters require full state.
     listSummary: async (filter) => {
       const wantsArchived =
         filter?.includeArchived || filter?.status === "archived";

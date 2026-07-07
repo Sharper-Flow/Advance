@@ -1288,3 +1288,257 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
     expect(elapsed).toBeLessThan(100);
   });
 });
+
+describe("archive-first terminal projection resolution (rq-terminalProjectionTruth01, rq-terminalAggregateRead01)", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  it("does not query live workflow when archive bundle exists", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("archiveDominatesGet"));
+
+    const archiveDir = join(
+      tempDir,
+      ".adv",
+      "archive",
+      "2026-07-07-archiveDominatesGet",
+    );
+    await mkdir(archiveDir, { recursive: true });
+    await writeFile(
+      join(archiveDir, "change.json"),
+      JSON.stringify(archivedChange("archiveDominatesGet"), null, 2),
+    );
+
+    let queryCount = 0;
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              queryCount += 1;
+              return {
+                id: "archiveDominatesGet",
+                changeId: "archiveDominatesGet",
+                title: "Stale active archiveDominatesGet",
+                status: "active",
+                createdAt: "2026-05-07T00:00:00.000Z",
+                initializedAt: "2026-05-07T00:00:00.000Z",
+                projectId: "project-1",
+                tasks: [],
+                deltas: {},
+                wisdom: [],
+                gates: createDefaultGates(),
+                reentry_history: [],
+                artifacts: {},
+                documents: {},
+                reflections: [],
+                worktrees: {},
+                conformance: { lockedSpecs: [], overrides: [] },
+              };
+            },
+          }),
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/archiveDominatesGet" };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const result = await store.changes.get("archiveDominatesGet");
+    expect(result.success).toBe(true);
+    expect(result.data?.status).toBe("archived");
+    expect(queryCount).toBe(0);
+  });
+
+  it("does not query live workflow for archived candidates in terminal-aware list", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("archiveDominatesList"));
+
+    const archiveDir = join(tempDir, ".adv", "archive", "archiveDominatesList");
+    await mkdir(archiveDir, { recursive: true });
+    await writeFile(
+      join(archiveDir, "change.json"),
+      JSON.stringify(archivedChange("archiveDominatesList"), null, 2),
+    );
+
+    let queryCount = 0;
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              queryCount += 1;
+              return {
+                id: "archiveDominatesList",
+                changeId: "archiveDominatesList",
+                title: "Stale active archiveDominatesList",
+                status: "active",
+                createdAt: "2026-05-07T00:00:00.000Z",
+                initializedAt: "2026-05-07T00:00:00.000Z",
+                projectId: "project-1",
+                tasks: [],
+                deltas: {},
+                wisdom: [],
+                gates: createDefaultGates(),
+                reentry_history: [],
+                artifacts: {},
+                documents: {},
+                reflections: [],
+                worktrees: {},
+                conformance: { lockedSpecs: [], overrides: [] },
+              };
+            },
+          }),
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/archiveDominatesList" };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const list = await store.changes.list({ status: "archived" });
+    const found = list.changes.find((c) => c.id === "archiveDominatesList");
+    expect(found).toBeDefined();
+    expect(found!.status).toBe("archived");
+    expect(queryCount).toBe(0);
+
+    const activeList = await store.changes.list();
+    expect(activeList.changes.map((c) => c.id)).not.toContain(
+      "archiveDominatesList",
+    );
+  });
+
+  it("deduplicates archive directories by canonical change.json.id", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    const archiveDirA = join(tempDir, ".adv", "archive", "canonicalDedupe");
+    await mkdir(archiveDirA, { recursive: true });
+    await writeFile(
+      join(archiveDirA, "change.json"),
+      JSON.stringify(archivedChange("canonicalDedupe"), null, 2),
+    );
+
+    const archiveDirB = join(
+      tempDir,
+      ".adv",
+      "archive",
+      "2026-07-07-canonicalDedupe",
+    );
+    await mkdir(archiveDirB, { recursive: true });
+    await writeFile(
+      join(archiveDirB, "change.json"),
+      JSON.stringify(archivedChange("canonicalDedupe"), null, 2),
+    );
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              throw new Error("query should not be called");
+            },
+          }),
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/canonicalDedupe" };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const list = await store.changes.list({ includeArchived: true });
+    const found = list.changes.filter((c) => c.id === "canonicalDedupe");
+    expect(found).toHaveLength(1);
+    expect(found[0].status).toBe("archived");
+  });
+
+  it("keeps default active list on the summary fast path", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    const change = activeChange("fastPathActive");
+    await legacy.changes.save(change);
+
+    let queryCount = 0;
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              queryCount += 1;
+              return {
+                id: "fastPathActive",
+                changeId: "fastPathActive",
+                title: "Active fastPathActive",
+                status: "active",
+                createdAt: "2026-05-07T00:00:00.000Z",
+                initializedAt: "2026-05-07T00:00:00.000Z",
+                projectId: "project-1",
+                tasks: [],
+                deltas: {},
+                wisdom: [],
+                gates: createDefaultGates(),
+                reentry_history: [],
+                artifacts: {},
+                documents: {},
+                reflections: [],
+                worktrees: {},
+                conformance: { lockedSpecs: [], overrides: [] },
+              };
+            },
+          }),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const result = await store.changes.listSummary!({});
+    const found = result.changes.find((c) => c.id === "fastPathActive");
+    expect(found).toBeDefined();
+    expect(found!.status).toBe("active");
+    // Active-only summary path should not have needed terminal reconciliation.
+    expect(result.hydrationStats?.fromHydration).toBeGreaterThan(0);
+    expect(queryCount).toBe(1);
+  });
+});
