@@ -33,6 +33,7 @@ import {
   detectDefaultBranch,
   classifyFinalizationRoute,
   resolveReleaseReachability,
+  coercePrWorkflowRoute,
   type GitFinalizeOutcome,
   type GitFinalizeDeps,
 } from "../archive-helpers/git-finalize";
@@ -559,10 +560,7 @@ export function verifyReleaseEvidenceFromMain(input: {
   const route =
     input.archiveMode === "pr" ||
     input.change?.phase9_status?.status === "pending_merge"
-      ? classifiedRoute.route === "blocked" ||
-        classifiedRoute.route === "merge_queue"
-        ? classifiedRoute
-        : { route: "pr_auto_merge" as const, repo: classifiedRoute.repo }
+      ? coercePrWorkflowRoute(classifiedRoute)
       : classifiedRoute;
   const reachability = resolveReleaseReachability(
     {
@@ -627,6 +625,23 @@ export function verifyReleaseEvidenceFromMain(input: {
           ? "PR_PENDING_AUTO_MERGE"
           : "PR_NOT_MERGED",
         remediation: `PR for change/${input.changeId} must be merged before release completion (rq-releaseFinalization01).`,
+        details: reachability.details,
+      },
+    };
+  }
+  if (reachability.proof === "pr_missing_merge_proof") {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      route: route.route,
+      pushStatus: "pushed",
+      prNumber: reachability.prNumber,
+      prUrl: input.change?.phase9_status?.prUrl,
+      autoMergeArmed: false,
+      blocked: {
+        reason: "PR_MERGE_PROOF_MISSING",
+        remediation: `Unable to verify a merged PR for change/${input.changeId}. If a PR exists, ensure it is merged and retry; if the branch was squash-merged and deleted, run \`adv_change_status_repair\` with gates-done + bundle-present evidence (rq-releaseFinalization01).`,
         details: reachability.details,
       },
     };

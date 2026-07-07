@@ -2407,10 +2407,11 @@ export function resolveReleaseReachability(
 
     // NEW: Auto-discover PR if prNumber missing
     let effectivePrNumber = input.prNumber;
-    if (!effectivePrNumber && route.repo) {
+    const directRepo = input.repo ?? route.repo;
+    if (!effectivePrNumber && directRepo) {
       const discovered = discoverMergedPr(
         input.mainCheckout,
-        route.repo,
+        directRepo,
         input.changeId,
         deps,
       );
@@ -2420,10 +2421,10 @@ export function resolveReleaseReachability(
     }
 
     // Existing PR merge state check (now with auto-discovered PR)
-    if (effectivePrNumber && route.repo) {
+    if (effectivePrNumber && directRepo) {
       const prState = readPrMergeState(
         input.mainCheckout,
-        route.repo,
+        directRepo,
         effectivePrNumber,
         deps,
       );

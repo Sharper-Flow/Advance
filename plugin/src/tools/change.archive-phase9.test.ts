@@ -1408,6 +1408,72 @@ describe("adv_change_archive Phase 9 behavior", () => {
     });
   });
 
+  // rq-fixPhase9PrDetection release-readiness: even if reading the change
+  // record fails, recordFailure must still attempt to record a failed status.
+  test("async recordFailure records failed status even when store.changes.get fails", async () => {
+    const change: Change = {
+      id: "example",
+      title: "Example",
+      status: "active",
+      created_at: "2026-01-01T00:00:00Z",
+      created_by: "test",
+      tasks: [
+        {
+          id: "tk-1",
+          title: "Task 1",
+          status: "done",
+          created_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      deltas: {},
+      wisdom: [],
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: { status: "pending" },
+      },
+      phase9_status: undefined,
+    };
+    const store = createMockStore();
+    let shouldFailGet = false;
+    store.changes.get = vi.fn(async () => {
+      if (shouldFailGet) {
+        throw new Error("disk read failed");
+      }
+      return { success: true, data: change };
+    });
+    let capturedRecordFailure: ((error: unknown) => Promise<void>) | undefined;
+    mocks.dispatchPhase9Finalization.mockImplementationOnce(
+      (params: { recordFailure: (error: unknown) => Promise<void> }) => {
+        capturedRecordFailure = params.recordFailure;
+        shouldFailGet = true;
+      },
+    );
+
+    await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      store,
+    );
+
+    expect(capturedRecordFailure).toBeDefined();
+    await capturedRecordFailure!(new Error("Archive finalization blocked"));
+
+    const failedSignal = mocks.workflow.signalPayloads.find(
+      (payload) =>
+        (payload.phase9_status as { status?: string } | undefined)?.status ===
+        "failed",
+    );
+    expect(failedSignal).toBeDefined();
+    expect(failedSignal?.phase9_status).toMatchObject({
+      status: "failed",
+      error: "Archive finalization blocked",
+    });
+  });
+
   test("dryRun with phase9=run does not dispatch async or mutate state", async () => {
     const store = createMockStore();
     const result = await changeTools.adv_change_archive.execute(

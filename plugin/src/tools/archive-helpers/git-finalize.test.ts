@@ -1120,6 +1120,7 @@ describe("git-finalize helpers", () => {
 
     expect(result).toMatchObject({
       reachable: false,
+      proof: "pr_missing_merge_proof",
     });
     expect(result.proof).not.toBe("pr_unmerged");
     expect(

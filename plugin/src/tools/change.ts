@@ -2779,10 +2779,15 @@ export const changeTools = {
                 // evidence (repo, prNumber, prUrl, route, changeTipSha) across
                 // the failed transition so a later archived-bundle retry can
                 // still resolve reachability after branch auto-delete.
-                const failureCurrent = await store.changes.get(changeId);
-                const previousPhase9 = failureCurrent.success
-                  ? failureCurrent.data?.phase9_status
-                  : undefined;
+                let previousPhase9: Change["phase9_status"] | undefined;
+                try {
+                  const failureCurrent = await store.changes.get(changeId);
+                  previousPhase9 = failureCurrent.success
+                    ? failureCurrent.data?.phase9_status
+                    : undefined;
+                } catch {
+                  previousPhase9 = undefined;
+                }
                 await recordPhase9Status({
                   store,
                   changeId,

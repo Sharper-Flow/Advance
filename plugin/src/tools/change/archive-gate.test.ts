@@ -5,11 +5,13 @@
  * issue #202 (Phase-9 PR metadata loss / branch auto-delete).
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   buildPendingMergePhase9Status,
   verifyReleaseEvidenceFromMain,
+  preservePhase9Evidence,
 } from "./archive-gate";
+import * as gitFinalize from "../archive-helpers/git-finalize";
 import type { Change, Store } from "../../types";
 import type { GitFinalizeDeps } from "../archive-helpers/git-finalize";
 
@@ -23,6 +25,10 @@ function createStore(mainCheckout: string): Store {
     config: { name: "test", features: {} },
   } as unknown as Store;
 }
+
+beforeEach(() => {
+  vi.restoreAllMocks();
+});
 
 function createChange(options: {
   phase9_status?: Change["phase9_status"];
@@ -53,6 +59,12 @@ describe("verifyReleaseEvidenceFromMain", () => {
     });
     const runGit: GitFinalizeDeps["runGit"] = (_cwd, args) => {
       if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+      if (args[0] === "remote" && args[1] === "get-url" && args[2] === "origin")
+        return {
+          status: 0,
+          stdout: "https://github.com/Sharper-Flow/Advance.git\n",
+          stderr: "",
+        };
       if (args[0] === "symbolic-ref" && args[1] === "--short")
         return { status: 0, stdout: "origin/trunk\n", stderr: "" };
       if (args[0] === "config")
@@ -85,6 +97,9 @@ describe("verifyReleaseEvidenceFromMain", () => {
       };
     };
     const runGh: GitFinalizeDeps["runGh"] = (_cwd, args) => {
+      if (args[0] === "api" && args[1]?.startsWith("repos/")) {
+        return { status: 0, stdout: "[]", stderr: "" };
+      }
       if (args[0] === "pr" && args[1] === "list") {
         return {
           status: 0,
@@ -126,6 +141,88 @@ describe("verifyReleaseEvidenceFromMain", () => {
     expect(result.mergeCommitSha).toBe("merge-202");
     expect(result.prNumber).toBe(202);
   });
+
+  // rq-fixPhase9PrDetection release-readiness: missing PR merge proof must
+  // surface a distinct blocked reason, not PR_NOT_MERGED or generic reachability.
+  it("returns PR_MERGE_PROOF_MISSING when reachability proof is pr_missing_merge_proof", () => {
+    vi.spyOn(gitFinalize, "detectDefaultBranch").mockReturnValue({
+      branch: "trunk",
+      source: "test",
+    });
+    vi.spyOn(gitFinalize, "classifyFinalizationRoute").mockReturnValue({
+      route: "pr_auto_merge",
+      repo: "Sharper-Flow/Advance",
+    });
+    vi.spyOn(gitFinalize, "resolveReleaseReachability").mockReturnValue({
+      reachable: false,
+      proof: "pr_missing_merge_proof",
+      details: ["prNumber is missing and no merged PR was discoverable"],
+    });
+
+    const result = verifyReleaseEvidenceFromMain({
+      store: createStore("/repo"),
+      changeId: "fixPhase9PrDetection",
+      archiveMode: "pr",
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.route).toBe("pr_auto_merge");
+    expect(result.blocked?.reason).toBe("PR_MERGE_PROOF_MISSING");
+    expect(result.blocked?.details).toContain(
+      "prNumber is missing and no merged PR was discoverable",
+    );
+  });
+
+  // rq-fixPhase9PrDetection release-readiness: PR-mode route coercion must
+  // preserve no_remote and pr_manual semantics instead of forcing pr_auto_merge.
+  it("preserves no_remote route semantics through coercePrWorkflowRoute in PR mode", () => {
+    vi.spyOn(gitFinalize, "detectDefaultBranch").mockReturnValue({
+      branch: "trunk",
+      source: "test",
+    });
+    vi.spyOn(gitFinalize, "classifyFinalizationRoute").mockReturnValue({
+      route: "no_remote",
+      reason: "origin remote not configured",
+    });
+    vi.spyOn(gitFinalize, "resolveReleaseReachability").mockReturnValue({
+      reachable: true,
+      proof: "local_merge",
+    });
+
+    const result = verifyReleaseEvidenceFromMain({
+      store: createStore("/repo"),
+      changeId: "fixPhase9PrDetection",
+      archiveMode: "pr",
+    });
+
+    expect(result.status).toBe("shipped");
+    expect(result.route).toBe("no_remote");
+  });
+
+  it("preserves pr_manual route semantics through coercePrWorkflowRoute in PR mode", () => {
+    vi.spyOn(gitFinalize, "detectDefaultBranch").mockReturnValue({
+      branch: "trunk",
+      source: "test",
+    });
+    vi.spyOn(gitFinalize, "classifyFinalizationRoute").mockReturnValue({
+      route: "pr_manual",
+      remoteUrl: "https://example.com/repo.git",
+      reason: "GITHUB_REPO_UNRESOLVABLE",
+    });
+    vi.spyOn(gitFinalize, "resolveReleaseReachability").mockReturnValue({
+      reachable: false,
+      proof: "pr_missing_merge_proof",
+    });
+
+    const result = verifyReleaseEvidenceFromMain({
+      store: createStore("/repo"),
+      changeId: "fixPhase9PrDetection",
+      archiveMode: "pr",
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.route).toBe("pr_manual");
+  });
 });
 
 describe("buildPendingMergePhase9Status", () => {
@@ -152,5 +249,39 @@ describe("buildPendingMergePhase9Status", () => {
     });
 
     expect(result.changeTipSha).toBe("tip-202-abc");
+  });
+});
+
+describe("preservePhase9Evidence", () => {
+  // rq-fixPhase9PrDetection AC4: all durable Phase-9 evidence fields must be
+  // carried forward when missing on the next state; next values always win.
+  it("preserves repo, prNumber, prUrl, route, changeTipSha, autoMergeArmed and next values win", () => {
+    const previous = {
+      status: "pending" as const,
+      startedAt: "2026-01-01T00:00:00Z",
+      repo: "Sharper-Flow/Advance",
+      prNumber: 202,
+      prUrl: "https://github.com/Sharper-Flow/Advance/pull/202",
+      route: "pr_auto_merge" as const,
+      changeTipSha: "tip-202-abc",
+      autoMergeArmed: true,
+    };
+
+    const next = preservePhase9Evidence(previous, {
+      status: "done",
+      startedAt: previous.startedAt,
+      completedAt: "2026-06-07T00:00:00Z",
+      prNumber: 303,
+      prUrl: "https://github.com/Sharper-Flow/Advance/pull/303",
+      route: "pr_manual",
+    });
+
+    expect(next.repo).toBe("Sharper-Flow/Advance");
+    expect(next.prNumber).toBe(303);
+    expect(next.prUrl).toBe("https://github.com/Sharper-Flow/Advance/pull/303");
+    expect(next.route).toBe("pr_manual");
+    expect(next.changeTipSha).toBe("tip-202-abc");
+    expect(next.autoMergeArmed).toBe(true);
+    expect(next.status).toBe("done");
   });
 });
