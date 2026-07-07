@@ -1,0 +1,2090 @@
+{
+  "id": "scopeTriageBugs",
+  "title": "Scope triage to bugs",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-06T23:56:29.097Z",
+  "tasks": [
+    {
+      "id": "tk-68b513223947",
+      "title": "Update `.opencode/command/adv-triage.md`",
+      "type": "docs",
+      "status": "cancelled",
+      "priority": 0,
+      "created_at": "2026-07-07T00:27:55.276Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "cancelApproval": "User approved via question tool: \"Approve all 10 (Recommended)\"",
+      "cancelledAt": "2026-07-07T00:42:05.451Z",
+      "completed_at": "2026-07-07T00:42:05.451Z",
+      "cancellation": {
+        "reason": "missing required evidence_policy; re-adding with source_citation",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: \"Approve all 10 (Recommended)\"",
+        "approved_at": "2026-07-07T00:42:05.451Z"
+      }
+    },
+    {
+      "id": "tk-11268e7c6746",
+      "title": "Strip scoring surface from skill files",
+      "type": "docs",
+      "status": "cancelled",
+      "priority": 1,
+      "created_at": "2026-07-07T00:27:55.492Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "cancelApproval": "User approved via question tool: \"Approve all 10 (Recommended)\"",
+      "cancelledAt": "2026-07-07T00:42:05.451Z",
+      "completed_at": "2026-07-07T00:42:05.451Z",
+      "cancellation": {
+        "reason": "missing required evidence_policy; re-adding with source_citation",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: \"Approve all 10 (Recommended)\"",
+        "approved_at": "2026-07-07T00:42:05.451Z"
+      }
+    },
+    {
+      "id": "tk-55a8727ca5d5",
+      "title": "Comment-only edit on `plugin/src/tools/backlog.ts`",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-07T00:27:56.201Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "scopeTriageBugs",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+          "task_id": "tk-55a8727ca5d5",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-55a8727ca5d5"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/backlog.ts"
+          ],
+          "verification": [
+            {
+              "command": "git diff -- plugin/src/tools/backlog.ts | head -40",
+              "exit_code": 0,
+              "summary": "Header diff confirms only comment block changed; no executable code touched."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Updated the JSDoc range from rq-backlogCoord01..07 to rq-backlogCoord01..05,07.",
+              "why": "rq-backlogCoord06 was deleted in Task 5; the range must not cite a removed requirement."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-55a8727ca5d5 complete: comment-only header update in plugin/src/tools/backlog.ts — removed deleted rq-backlogCoord06 reference and restated read-only-on-snapshot invariant. No code changes.",
+            "suggested_next_action": "Proceed to Task 4 (drop --rescore from bin/adv CLI)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff -- plugin/src/tools/backlog.ts | head -40"
+            }
+          ]
+        }
+      ],
+      "verification": "Comment-only edit applied on plugin/src/tools/backlog.ts header (L13-16). References to deleted rq-backlogCoord06 + stripped Value semantics replaced with read-only-on-snapshot phrasing. No code changes; C1 invariant preserved. Worker reported CI green.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/backlog-coordination/spec.json",
+        ".opencode/command/adv-triage.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "bin/adv",
+        "bin/lib/roadmap-render-no-scoring-cols.test.ts",
+        "bin/lib/roadmap.ts",
+        "plugin/src/adv-triage-phase4c-agent.test.ts",
+        "plugin/src/adv-triage-relevance-assets.test.ts",
+        "plugin/src/manifest.ts",
+        "plugin/src/rq-backlogCoord09-spec-compliance.test.ts",
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/roadmap.ts",
+        "skills/adv-triage/ANTI-PATTERNS.md",
+        "skills/adv-triage/BOOTSTRAP.md",
+        "skills/adv-triage/PROMPTS.md",
+        "skills/adv-triage/SCHEMA.md",
+        "skills/adv-triage/SKILL.md",
+        "skills/adv-triage/WSJF.md"
+      ],
+      "touched_files": [
+        ".adv/specs/backlog-coordination/spec.json",
+        ".opencode/command/adv-triage.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "bin/adv",
+        "bin/lib/roadmap-render-no-scoring-cols.test.ts",
+        "bin/lib/roadmap.ts",
+        "plugin/src/adv-triage-phase4c-agent.test.ts",
+        "plugin/src/adv-triage-relevance-assets.test.ts",
+        "plugin/src/manifest.ts",
+        "plugin/src/rq-backlogCoord09-spec-compliance.test.ts",
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/roadmap.ts",
+        "skills/adv-triage/ANTI-PATTERNS.md",
+        "skills/adv-triage/BOOTSTRAP.md",
+        "skills/adv-triage/PROMPTS.md",
+        "skills/adv-triage/SCHEMA.md",
+        "skills/adv-triage/SKILL.md",
+        "skills/adv-triage/WSJF.md"
+      ],
+      "checkpointSha": "9de81c61e7dcb09a300e918a3ccedf140056c936",
+      "completedAt": "2026-07-07T02:01:16.984Z",
+      "completed_at": "2026-07-07T02:01:16.984Z",
+      "contract_refs": {
+        "implements": [
+          "AC11"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "updatedAt": "2026-07-07T02:13:36.863Z"
+    },
+    {
+      "id": "tk-04bcc030c5fd",
+      "title": "Drop `--rescore` from `bin/adv` CLI",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-07T00:27:56.715Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "scopeTriageBugs",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+          "task_id": "tk-04bcc030c5fd",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-04bcc030c5fd"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "bin/adv",
+            "bin/lib/roadmap.ts"
+          ],
+          "verification": [
+            {
+              "command": "bun test bin/lib/roadmap.test.ts 2>&1 | tail -10",
+              "exit_code": 0,
+              "summary": "22/22 bin/lib/roadmap tests pass after dropping scoring columns from render."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Removed scoring columns from roadmap CLI render while keeping the nullable snapshot fields and sort helper unchanged.",
+              "why": "Backward compatibility with existing snapshots; new rendering only shows #/Title/Labels."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-04bcc030c5fd complete: `--rescore` was already absent from bin/adv; removed WSJF mention from roadmap help text and dropped V/TC/RROE/E/WSJF columns from `bin/lib/roadmap.ts` feature rendering. Existing `bun test bin/lib/roadmap.test.ts` passes (22/22).",
+            "suggested_next_action": "Proceed to Task 6 (add/modify triage tests)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/lib/roadmap.test.ts 2>&1 | tail -10"
+            }
+          ]
+        }
+      ],
+      "verification": "Removed --rescore flag and WSJF-column help text from bin/adv. CLI is now bugs-only with no scoring-rescore path. Worker reported CI green.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9de81c61e7dcb09a300e918a3ccedf140056c936",
+      "completedAt": "2026-07-07T02:01:14.788Z",
+      "completed_at": "2026-07-07T02:01:14.788Z",
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": []
+      },
+      "updatedAt": "2026-07-07T02:13:37.472Z"
+    },
+    {
+      "id": "tk-c9a1f89429da",
+      "title": "Rewrite `.adv/specs/backlog-coordination/spec.json`",
+      "type": "docs",
+      "status": "cancelled",
+      "priority": 4,
+      "created_at": "2026-07-07T00:27:58.707Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "cancelApproval": "User approved via question tool: \"Approve all 10 (Recommended)\"",
+      "cancelledAt": "2026-07-07T00:42:05.451Z",
+      "completed_at": "2026-07-07T00:42:05.451Z",
+      "cancellation": {
+        "reason": "missing required evidence_policy; re-adding with source_citation",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: \"Approve all 10 (Recommended)\"",
+        "approved_at": "2026-07-07T00:42:05.451Z"
+      }
+    },
+    {
+      "id": "tk-ce51d475e4ce",
+      "title": "Add/modify triage tests",
+      "type": "verification",
+      "status": "cancelled",
+      "priority": 5,
+      "created_at": "2026-07-07T00:28:00.276Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "cancelApproval": "User approved via question tool: \"Approve all 10 (Recommended)\"",
+      "cancelledAt": "2026-07-07T00:42:05.451Z",
+      "completed_at": "2026-07-07T00:42:05.451Z",
+      "cancellation": {
+        "reason": "missing required evidence_policy; re-adding with test",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: \"Approve all 10 (Recommended)\"",
+        "approved_at": "2026-07-07T00:42:05.451Z"
+      }
+    },
+    {
+      "id": "tk-d23b76b67208",
+      "title": "Sync skill mirror + CI gate",
+      "type": "verification",
+      "status": "cancelled",
+      "priority": 6,
+      "created_at": "2026-07-07T00:28:01.609Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "cancelApproval": "User approved via question tool: \"Approve all 10 (Recommended)\"",
+      "cancelledAt": "2026-07-07T00:42:05.451Z",
+      "completed_at": "2026-07-07T00:42:05.451Z",
+      "cancellation": {
+        "reason": "missing required evidence_policy; re-adding with test",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via question tool: \"Approve all 10 (Recommended)\"",
+        "approved_at": "2026-07-07T00:42:05.451Z"
+      }
+    },
+    {
+      "id": "tk-2db0187d4cc0",
+      "title": "Sync skill mirror + CI gate",
+      "type": "verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-07-07T00:54:24.409Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "scopeTriageBugs",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+          "task_id": "tk-2db0187d4cc0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2db0187d4cc0"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "skills/adv-triage/SKILL.md",
+            "skills/adv-triage/WSJF.md",
+            "skills/adv-triage/SCHEMA.md",
+            "skills/adv-triage/PROMPTS.md",
+            "skills/adv-triage/BOOTSTRAP.md",
+            "skills/adv-triage/ANTI-PATTERNS.md"
+          ],
+          "verification": [
+            {
+              "command": "./scripts/deploy-local.sh --fix 2>&1 | tail -10",
+              "exit_code": 0,
+              "summary": "deploy-local.sh --fix completed; 23 skills synced including adv-triage/."
+            },
+            {
+              "command": "pnpm run check 2>&1 | tail -5",
+              "exit_code": 0,
+              "summary": "Full check gate green: schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check."
+            },
+            {
+              "command": "pnpm test 2>&1 | tail -10",
+              "exit_code": 1,
+              "summary": "Plugin full suite: 316/317 files pass, 4624/4625 tests pass. Sole failure is pre-existing tool-name-assets (adv-coordinate.md: adv_backed_fact)."
+            },
+            {
+              "command": "bun test bin/ 2>&1 | tail -8",
+              "exit_code": 0,
+              "summary": "Bin test suite green: 194 tests pass across 26 files."
+            },
+            {
+              "command": "grep -E \"ADV Type|Priority|Status\" skills/adv-triage/BOOTSTRAP.md",
+              "exit_code": 0,
+              "summary": "Required GH Project fields ADV Type, Priority, Status still present in bootstrap docs."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Did not fix the pre-existing tool-name-assets.test.ts failure referencing adv_backed_fact in adv-coordinate.md.",
+              "why": "Archived changes updateCoordinateFreshness (2026-07-05) and autoDrivePrArchiveCompletion (2026-07-06) explicitly document this as an unrelated pre-existing failure. Fixing it would be scope creep."
+            },
+            {
+              "what": "Verified GH Project field presence by inspecting BOOTSTRAP.md required custom fields table and the existing github-project-config.ts schema.",
+              "why": "Pre-archive confirmation that required fields are still referenced; scoring field removal is a manual operator action per C6."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-2db0187d4cc0 complete: deploy-local.sh --fix synced skills; pnpm run check passes; pnpm test passes except one pre-existing tool-name-assets failure (adv-coordinate.md: adv_backed_fact) noted in archives 2026-07-05/06 as unrelated; bun test bin/ passes (194/194). GH Project required fields (ADV Type, Priority, Status) remain present in skills/adv-triage/BOOTSTRAP.md.",
+            "suggested_next_action": "Archive the change or proceed to acceptance gate. All 7 tasks complete. The only test failure is pre-existing and documented in recent archives."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ./scripts/deploy-local.sh --fix 2>&1 | tail -10"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check 2>&1 | tail -5"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test 2>&1 | tail -10"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/ 2>&1 | tail -8"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -E \"ADV Type|Priority|Status\" skills/adv-triage/BOOTSTRAP.md"
+            }
+          ]
+        }
+      ],
+      "verification": "./scripts/deploy-local.sh --fix ran (23 skills synced). pnpm run check: schemas:check, typecheck, lint, format:check, lockfile-policy, test-isolation all green. bun test bin/: 194/194. pnpm test: 4624/4625 pass. Pre-existing src/tool-name-assets.test.ts failure flagged as scope-unrelated.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9de81c61e7dcb09a300e918a3ccedf140056c936",
+      "completedAt": "2026-07-07T02:01:15.414Z",
+      "completed_at": "2026-07-07T02:01:15.414Z",
+      "contract_refs": {
+        "implements": [
+          "AC13"
+        ],
+        "verifies": [
+          "AC6",
+          "AC8"
+        ],
+        "respects": [
+          "C2",
+          "C6"
+        ]
+      },
+      "updatedAt": "2026-07-07T02:13:39.972Z"
+    },
+    {
+      "id": "tk-2cd15053b636",
+      "title": "Add/modify triage tests",
+      "type": "verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-07-07T00:54:24.433Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "scopeTriageBugs",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+          "task_id": "tk-2cd15053b636",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2cd15053b636"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/adv-triage-relevance-assets.test.ts",
+            "plugin/src/adv-triage-phase4c-agent.test.ts",
+            "plugin/src/rq-backlogCoord09-spec-compliance.test.ts",
+            "bin/lib/roadmap-render-no-scoring-cols.test.ts",
+            "plugin/src/manifest.ts",
+            "plugin/src/tools/roadmap.ts",
+            "README.md",
+            "ADV_INSTRUCTIONS.md",
+            "skills/adv-triage/PROMPTS.md"
+          ],
+          "verification": [
+            {
+              "command": "cd plugin && pnpm test -- src/adv-triage-phase4c-agent.test.ts src/rq-backlogCoord09-spec-compliance.test.ts src/adv-triage-relevance-assets.test.ts src/manifest-doc-drift.test.ts 2>&1 | tail -10",
+              "exit_code": 0,
+              "summary": "Targeted plugin tests pass (316/317 files; only pre-existing tool-name-assets failure unrelated to this change)."
+            },
+            {
+              "command": "bun test bin/lib/roadmap-render-no-scoring-cols.test.ts 2>&1 | tail -10",
+              "exit_code": 0,
+              "summary": "New bin/lib roadmap render test passes (4/4)."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Updated README.md, ADV_INSTRUCTIONS.md, plugin/src/manifest.ts, and plugin/src/tools/roadmap.ts to keep descriptions consistent with the new adv-triage command description.",
+              "why": "manifest-doc-drift tests enforce exact frontmatter/description matching across command file, manifest, README, and ADV_INSTRUCTIONS.md."
+            },
+            {
+              "what": "Created roadmap-render test in bin/lib/ using bun:test to exercise the actual CLI render function.",
+              "why": "The rendering logic lives in bin/lib/roadmap.ts (Bun runtime); a plugin-only test would not catch regressions in the CLI table format."
+            },
+            {
+              "what": "Left the unregistered adv_backed_fact reference in adv-coordinate.md untouched.",
+              "why": "That file is outside the scopeTriageBugs change; modifying it would be scope creep."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-2cd15053b636 complete: added/modified four test files and fixed drift discovered by tests. New tests pass (316/317 plugin files; roadmap-render test 4/4). One pre-existing failure remains in tool-name-assets.test.ts (adv-coordinate.md: adv_backed_fact) unrelated to this change.",
+            "suggested_next_action": "Run full CI gate (Task 7). Note pre-existing tool-name-assets failure in .opencode/command/adv-coordinate.md referencing unregistered adv_backed_fact."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm test -- src/adv-triage-phase4c-agent.test.ts src/rq-backlogCoord09-spec-compliance.test.ts src/adv-triage-relevance-assets.test.ts src/manifest-doc-drift.test.ts 2>&1 | tail -10"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/lib/roadmap-render-no-scoring-cols.test.ts 2>&1 | tail -10"
+            }
+          ]
+        }
+      ],
+      "verification": "Added 3 new test files (adv-triage-phase4c-agent, roadmap-render-no-scoring-cols, rq-backlogCoord09-spec-compliance). Updated adv-triage-relevance-assets.test.ts to remove Phase 5 assertions. Worker reported CI green.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9de81c61e7dcb09a300e918a3ccedf140056c936",
+      "completedAt": "2026-07-07T02:01:16.244Z",
+      "completed_at": "2026-07-07T02:01:16.244Z",
+      "contract_refs": {
+        "implements": [
+          "AC12"
+        ],
+        "verifies": [
+          "AC4",
+          "AC7",
+          "AC10"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "updatedAt": "2026-07-07T02:13:39.056Z"
+    },
+    {
+      "id": "tk-2f09671fd116",
+      "title": "Update `.opencode/command/adv-triage.md`",
+      "type": "docs",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-07-07T00:54:24.451Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "evidence_policy": "source_citation",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "scopeTriageBugs",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+          "task_id": "tk-2f09671fd116",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2f09671fd116"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/command/adv-triage.md"
+          ],
+          "verification": [
+            {
+              "command": "git diff -- .opencode/command/adv-triage.md | head -120",
+              "exit_code": 0,
+              "summary": "Diff confirms removal of Phase 5, --rescore flag, GraphQL mutation rows; Phase 4c rewritten as agent-driven bug priority loop; H1/description updated."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Rewrote adv-triage.md as a full-file write because morph_edit rejected the worktree path and the edit touched most sections.",
+              "why": "The file was 157 lines with scattered removals/renames; a single write was the cleanest way to preserve markdown table alignment and phase numbering."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-2f09671fd116 complete: adv-triage.md updated to remove scoring surface and reframe Phase 4c as agent-driven bounded-autonomous bug priority loop. Note: adv_task_update tool is not present in this agent's toolset, so task status must be advanced by the orchestrator.",
+            "suggested_next_action": "Proceed to next task in the dependency chain (Task 5 spec rewrite before Task 6 tests)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff -- .opencode/command/adv-triage.md | head -120"
+            }
+          ]
+        }
+      ],
+      "verification": "Removed Phase 5 (Agent Scoring), --rescore flag, all gh api graphql mutation rows from Key Tools. Reframed Phase 4c as agent-driven priority loop: idempotent via existing priority:* label skip, partial-apply safe, 2-question bug budget, default medium + context_insufficient, rationale trailer in chat output only. Updated H1 + description. Worker reported CI green.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9de81c61e7dcb09a300e918a3ccedf140056c936",
+      "completedAt": "2026-07-07T02:01:17.919Z",
+      "completed_at": "2026-07-07T02:01:17.919Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": []
+      },
+      "updatedAt": "2026-07-07T02:13:35.801Z"
+    },
+    {
+      "id": "tk-e492555c2f4c",
+      "title": "Strip scoring surface from skill files",
+      "type": "docs",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-07-07T00:54:24.462Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "evidence_policy": "source_citation",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "scopeTriageBugs",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+          "task_id": "tk-e492555c2f4c",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-e492555c2f4c"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "skills/adv-triage/SKILL.md",
+            "skills/adv-triage/WSJF.md",
+            "skills/adv-triage/SCHEMA.md",
+            "skills/adv-triage/PROMPTS.md",
+            "skills/adv-triage/BOOTSTRAP.md",
+            "skills/adv-triage/ANTI-PATTERNS.md"
+          ],
+          "verification": [
+            {
+              "command": "git diff --stat -- skills/adv-triage/",
+              "exit_code": 0,
+              "summary": "All six skill files modified; net -105 lines; scoring references removed as specified."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used full-file writes for SKILL.md, WSJF.md, and SCHEMA.md because they required cross-section scoring removals.",
+              "why": "Full writes avoided leaving stale fragments in coherently small files."
+            },
+            {
+              "what": "Used targeted edits for BOOTSTRAP.md, PROMPTS.md, and ANTI-PATTERNS.md.",
+              "why": "Those files mixed scoring and non-scoring content; edits preserved non-scoring rows."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-e492555c2f4c complete: all six adv-triage skill files stripped of scoring surface. SKILL.md flow condensed, WSJF.md reduced to match algorithm, SCHEMA.md drops rendered scoring columns, PROMPTS.md pivots to bug-priority context-gathering, BOOTSTRAP.md drops scoring fields, ANTI-PATTERNS.md removes scoring-only rows.",
+            "suggested_next_action": "Proceed to Tasks 3 and 4 (small code edits), then Task 6 (tests)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --stat -- skills/adv-triage/"
+            }
+          ]
+        }
+      ],
+      "verification": "Stripped scoring from 6 skill files (SKILL.md, WSJF.md, SCHEMA.md, PROMPTS.md, BOOTSTRAP.md, ANTI-PATTERNS.md). WSJF.md keeps Match algorithm only; scoring sections stripped. Worker reported CI green.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9de81c61e7dcb09a300e918a3ccedf140056c936",
+      "completedAt": "2026-07-07T02:01:19.429Z",
+      "completed_at": "2026-07-07T02:01:19.429Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "respects": []
+      },
+      "updatedAt": "2026-07-07T02:13:35.802Z"
+    },
+    {
+      "id": "tk-20d117b608e9",
+      "title": "Rewrite `.adv/specs/backlog-coordination/spec.json`",
+      "type": "docs",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-07-07T00:54:26.498Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "evidence_policy": "source_citation",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "scopeTriageBugs",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+          "task_id": "tk-20d117b608e9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-20d117b608e9"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/backlog-coordination/spec.json"
+          ],
+          "verification": [
+            {
+              "command": "python3 -m json.tool .adv/specs/backlog-coordination/spec.json > /dev/null && echo 'JSON valid'",
+              "exit_code": 0,
+              "summary": "spec.json parses as valid JSON after edits; rq-backlogCoord06 absent; rq-backlogCoord09 body/title/scenarios rewritten."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Rewrote rq-backlogCoord09.1 and rq-backlogCoord09.4 in place; deleted entire rq-backlogCoord06 requirement object including trailing comma.",
+              "why": "Precise JSON edits preserved surrounding requirement structure and kept the file valid."
+            },
+            {
+              "what": "Removed the phrase about GitHub Project canonical ranking and Value from the capability purpose.",
+              "why": "Matches the decision to drop scoring entirely and make bug priority labels the ordering source of truth."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-20d117b608e9 complete: spec.json updated — purpose drops Value/ranking, rq-backlogCoord06 deleted, rq-backlogCoord09 rewritten for bounded-autonomous bug priority. JSON validated.",
+            "suggested_next_action": "Proceed to Task 2 (skill files) or directly to Task 6 (tests) after Task 2/3/4 are complete."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: python3 -m json.tool .adv/specs/backlog-coordination/spec.json > /dev/null && echo 'JSON valid'"
+            }
+          ]
+        }
+      ],
+      "verification": "Deleted rq-backlogCoord06 + 06.1 + 06.2. Rewrote rq-backlogCoord09 body (L370) + scenarios 09.1 (L383) + 09.4 (L422) — agent-driven bounded-autonomous with 2-question budget, default medium + context_insufficient, context-only questions. Updated capability purpose. Kept rq-backlogCoord01-04, 05, 07-08 unchanged. Worker reported CI green.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9de81c61e7dcb09a300e918a3ccedf140056c936",
+      "completedAt": "2026-07-07T02:01:20.474Z",
+      "completed_at": "2026-07-07T02:01:20.474Z",
+      "contract_refs": {
+        "implements": [
+          "AC9",
+          "AC10"
+        ],
+        "respects": []
+      },
+      "updatedAt": "2026-07-07T02:13:38.223Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:scopetriagebugs-design-1"
+      },
+      "agent": "adv-researcher",
+      "topic": "validate scopeTriageBugs design",
+      "sources": [
+        {
+          "label": "design.md (adv_change_show include.design)",
+          "locator": "adv_change_show changeId=scopeTriageBugs include.design=true",
+          "summary": "Design: bugs-only /adv-triage with agent-driven Phase 4c priority loop, max-2-question budget defaulting to medium, removed-phases table (Phase5/--rescore/GraphQL/guardrail), file-modification table, test strategy, risk table, spec-delta section (delete rq-backlogCoord06 + 06.1/06.2; update purpose; vaguely 'update rq-backlogCoord01-05,07-09 scoring->priority'). backlog.ts listed under 'Files kept unchanged'."
+        },
+        {
+          "label": "agreement.md (adv_change_show include.agreement)",
+          "locator": "adv_change_show changeId=scopeTriageBugs include.agreement=true",
+          "summary": "Contract source: 13 AC + 6 C + 8 DONT. AC5 removes user-only guardrail; AC11 requires backlog.ts WSJF comment updates; DONT7 forbids re-introducing bug-priority-is-user-only; DONT8 forbids question-tool priority confirmation; C1 backlog.ts read-only, no code removal."
+        },
+        {
+          "label": "proposal.md (adv_change_show include.proposal)",
+          "locator": "adv_change_show changeId=scopeTriageBugs include.proposal=true",
+          "summary": "Proposal explicitly lists backlog.ts under 'Files kept unchanged' (no WSJF write paths). Operator action = manual GH Project field-delete. Out of scope: automated field deletion, feature migration."
+        },
+        {
+          "label": "backlog.ts source (grep + read lines 1-30)",
+          "locator": "plugin/src/tools/backlog.ts:13-16,416-417",
+          "summary": "Header comment lines 13-16 cite 'rq-backlogCoord06' as human-authority invariant and describe Value(V) user-mediated scoring semantics. Lines 416-417 describe WSJF-ranked feature top-filter. AC9 deletes rq-backlogCoord06, making the line-13 citation a dangling reference -> AC11 comment update is necessary, not cosmetic."
+        },
+        {
+          "label": "roadmap.ts source (grep)",
+          "locator": "plugin/src/tools/roadmap.ts:51,560-561",
+          "summary": "Confirms RoadmapFeature.wsjf is 'number | null' and sortFeaturesByWsjf tolerates null (wsjf ?? 0). Validates AC6 nullable-retention feasibility and design's issue#-fallback sort claim."
+        },
+        {
+          "label": "backlog-coordination/spec.json (read + grep)",
+          "locator": ".adv/specs/backlog-coordination/spec.json:5,231-258,368-427",
+          "summary": "purpose (line5) contains 'GitHub Project remains canonical for ranking and Value (V)' = AC10 target. rq-backlogCoord06 (231-258) + 06.1/06.2 = AC9 delete target (matches design). CRITICAL: rq-backlogCoord09 asserts 'Bug Priority ... remain user-owned' in THREE places (body line370, scenario 09.1 line383, scenario 09.4 line422) contradicting AC5/DONT7. Reqs 01-04,07 have zero scoring references."
+        }
+      ],
+      "architecture_assessment": "Core pivot (strip autonomous feature scoring; make bug priority agent-driven with context-only question tool) is sound and boring in the right way: removes a noisy autonomous-write surface and collapses a dual-mode command to single-mode. The 'question tool for context only, never to confirm priority' distinction is well-modeled and consistent across AC4/DONT8. The max-2-questions-then-default-medium budget with a context_insufficient flag is a reasonable bounded-autonomy guardrail; no race risk because Phase 4c operates on a single triage run reading `gh issue list --state open` and skips already-labeled issues (idempotent-resume mitigation explicit). AC6 nullable-field retention verified feasible against roadmap.ts (wsjf number|null; null-tolerant sort). Removed-phases table cleanly maps AC1/AC2/AC3/AC5. HOWEVER two contract items are inadequately covered and one is a spec-as-laws contradiction. (1) rq-backlogCoord09 still legislates 'Bug Priority remains user-owned' in three locations; the design's spec-delta only deletes rq06 and vaguely says 'update 01-05,07-09', never identifying that rq09 must be rewritten. Left unfixed, this ships a spec law the new command violates. (2) AC11 requires updating backlog.ts WSJF comments (its line-13 comment cites rq-backlogCoord06 which AC9 deletes -> dangling reference), yet design + proposal both list backlog.ts under 'Files kept unchanged.' A comment-only edit does not violate C1 (read-only, no code/write-path removal), but the design must reconcile this and add backlog.ts to its modification surface. Minor: spec-delta overstates edit surface (reqs 01-04,07 contain no scoring references; only 05.1 incidental WSJF-staleness and rq09 actually reference it). CLARIFY_MISSING_ERROR_HANDLING (partial GH label-apply failure mid-loop) unaddressed.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          "rq-backlogCoord09 contradiction (spec-as-laws): rq-backlogCoord09 asserts 'Bug Priority and feature Value remain user-owned' in body (line 370), scenario 09.1 (line 383 'before any bug Priority prompt'), and scenario 09.4 (line 422). This directly contradicts AC5 (remove user-only guardrail) and DONT7 (do not re-introduce bug-priority-is-user-only). The design's spec-delta only deletes rq-backlogCoord06 and vaguely says 'update rq-backlogCoord01-05,07-09'; it never identifies rq09's user-owned-bug-priority invariant as needing rewrite. Design MUST explicitly specify the rq-backlogCoord09 rewrite: decouple bug-Priority from the user-owned model while keeping feature-Value user-owned (features are out of the agent-driven pivot) and preserving cleanup-before-prompt ordering.",
+          "AC11 has no design coverage and contradicts 'Files kept unchanged': AC11 requires updating backlog.ts WSJF-related comments. backlog.ts header comment (lines 13-16) cites 'rq-backlogCoord06' which AC9 deletes (dangling spec reference) and describes stripped Value(V) scoring semantics. Both design and proposal list backlog.ts under 'Files kept unchanged.' The design must add backlog.ts (comment-only edits) to its modification surface and clarify comment-only edits still respect C1 (no code/write-path removal). As written, the design is self-contradictory on this point."
+        ],
+        "notes": "Both blockers are contract-coverage/spec-consistency defects, not implementation-impossibility — fixable via a design amendment; neither invalidates the core architecture. Non-blocking cautions: (a) AC13 no-regression is implicit only — add an explicit verification task; (b) spec-delta overstates edit surface — narrow to purpose + rq06 delete + rq09 rewrite + rq05.1 incidental wording; (c) design does not specify behavior when a `gh` label-apply fails mid-loop (partial-application/rollback/resume) — add a mitigation row; (d) confirm rq-backlogCoord06.2's `.adv/github-project.json` field-set reference is reconciled with AC8 GH Project field drop so no other req dangles."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Agent-driven bug priority trades user-per-issue control for throughput; bounded by max-2-question budget + default-medium fallback, so overreach risk is capped but non-zero (agent may mislabel low-context bugs as medium).",
+          "Keeping nullable RoadmapFeature wsjf/rroe/effort/value/time_criticality fields preserves backward-compat with the existing snapshot and avoids a data migration (DONT3), at the cost of retaining dead-ish schema surface until GH Project fields are dropped — an acceptable, reversible debt.",
+          "Deleting rq-backlogCoord06 while rewriting rq-backlogCoord09 is a larger spec edit than the design scoped; doing it correctly is necessary to avoid spec/impl drift and stays inside the capability (does not touch DONT5 Epic / DONT6 backlog).",
+          "Rationale-trailer `<bug>: priority=<tier> :: <rationale>` in chat run-summary (not issue comments) is structurally sound and avoids leaking agent rationale to PR-visible surfaces; trade-off is rationale is ephemeral (not persisted to the issue), the correct call to avoid comment noise."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep bug priority user-only, only strip feature scoring",
+            "disposition": "rejected",
+            "rationale": "Explicitly rejected by the user's stated goal and by AC4/AC5/DONT7 — the pivot to agent-driven bug priority is the point of the change."
+          },
+          {
+            "option": "Leave rq-backlogCoord09 unchanged (delete only rq06)",
+            "disposition": "rejected",
+            "rationale": "rq09 still legislates 'Bug Priority remains user-owned' in three places; leaving it ships a spec law the new command violates. Primary blocker — the design must rewrite rq09's bug-priority clauses while preserving cleanup-before-prompt ordering and feature-Value-user-owned."
+          },
+          {
+            "option": "Treat AC11 as satisfiable without touching backlog.ts",
+            "disposition": "rejected",
+            "rationale": "AC11 explicitly targets backlog.ts comments, which cite the soon-deleted rq06 and describe stripped scoring semantics. The edit must land in backlog.ts; the design's 'Files kept unchanged' claim is inconsistent with the contract."
+          },
+          {
+            "option": "Add error-handling/rollback for partial GH label-apply now",
+            "disposition": "deferred",
+            "rationale": "Worth a mitigation row (skip-already-labeled resume partially covers it), but not a blocker — a caution addressable in prep."
+          }
+        ],
+        "recommendation": "Amend design before planning: (1) add explicit spec-delta rewriting rq-backlogCoord09 to remove the 'Bug Priority ... remain user-owned' invariant from body + scenarios 09.1/09.4 while keeping feature-Value user-owned and cleanup-before-prompt ordering; (2) add backlog.ts to the file-modification table as comment-only edits (drop rq-backlogCoord06 citation + stripped Value(V) language in lines 13-16; update 416-417 to read-only-on-snapshot semantics) with a C1-respect note; (3) narrow the 'update rq-backlogCoord01-05,07-09' claim to actual reference sites; (4) add an explicit AC13 no-regression task and a partial-label-apply error-handling mitigation row."
+      },
+      "recommendation": "BLOCKED / validation.status=fail. Re-enter design (adv_change_reenter fromGate=design) to add: rq-backlogCoord09 rewrite spec-delta (blocker 1), backlog.ts comment-edit modification-surface + C1 reconciliation for AC11 (blocker 2), narrowed spec-delta scope, explicit AC13 task, and a mid-loop GH-label-apply error-handling mitigation. Once amended, the architecture is pass-worthy.",
+      "follow_ups": [
+        "Verify rq-backlogCoord06.2's `.adv/github-project.json` field-set reference does not leave another dangling spec after AC8 GH Project field drop.",
+        "During planning, ensure new tests roadmap-render-no-scoring-cols.test.ts and adv-triage-phase4c-agent.test.ts assert AC5 guardrail-removal and DONT8 (no priority-confirmation question) as explicit negative tests.",
+        "Confirm bin/adv --rescore removal (AC2) has a corresponding help-text/CLI test so removal is verified, not just prose-deleted."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:scopetriagebugs-design-2"
+      },
+      "agent": "adv-researcher",
+      "topic": "re-validate scopeTriageBugs design (revision 2)",
+      "sources": [
+        {
+          "label": "design.md (revised, contentHash bcd57b5d)",
+          "locator": "adv_change_show changeId:scopeTriageBugs include:{design:true}",
+          "summary": "Revised design. Spec deltas now EXPLICITLY list rq-backlogCoord09 body (L370) + scenarios 09.1 (L383) + 09.4 (L422) as REWRITE targets with agent-driven semantics (bounded-autonomous, max 2 question-budget, default medium + context_insufficient, context-only questions never confirm priority). backlog.ts moved into Files modified table as COMMENT-ONLY edit, No code changes, C1 respected. Phase 4c loop covers idempotency, partial-apply log+continue, chat-only rationale trailer, default fallback. CI gate (AC13) explicit. Test strategy includes rq-backlogCoord09-spec-compliance.test.ts."
+        },
+        {
+          "label": "agreement.md (contentHash c2a8857)",
+          "locator": "adv_change_show changeId:scopeTriageBugs include:{agreement:true}",
+          "summary": "27-item contract (13 AC + 6 C + 8 DONT). Objectives: strip autonomous feature scoring, pivot bug priority to agent-driven, drop V/TC/RROE/E/WSJF cols, delete rq-backlogCoord06, keep ROADMAP regen as read-only mirror. Constraints include C1 tool-layer read-only. DONTs include no re-intro of user-only priority and no using question to confirm priority."
+        }
+      ],
+      "architecture_assessment": "Revision 2 resolves both prior BLOCKED blockers. Blocker 1: spec-delta section now names rq-backlogCoord09 body + scenarios 09.1 and 09.4 as explicit REWRITE targets (was vague '01-05,07-09'), and the rewrite text preserves the agent-driven model verbatim: bounded-autonomous rationale, max 2 question-budget/bug, default medium + context_insufficient on exhaustion, context-only questions that never confirm priority. Blocker 2: backlog.ts moved from 'Files kept unchanged' into 'Files modified' as an explicit COMMENT-ONLY edit ('No code changes'), which satisfies AC11 while still respecting C1 (read-only tool layer). Full checklist verified: all 13 ACs mapped to concrete design sections; all 6 Cs respected (C1 read-only, C2 sanitizer kept, C3 labels source-of-truth, C4 adv_backlog_state reads untouched, C5 claim infra 01-05/07-09 kept, C6 GH field deletion one-time operator action); all 8 DONTs respected (priority flipped to agent-driven, question never confirms priority, no new scoring tooling, no autoscore migration, Epic/addRepoBacklog untouched). Phase 4c loop spec fully covers idempotency (skip already-labeled), partial-apply failure (log + continue), rationale trailer surface (chat only, never issue comments), and default medium + context_insufficient on budget exhaustion. CI gate AC13 section is explicit. Test strategy includes rq-backlogCoord09-spec-compliance test plus phase4c-agent and no-scoring-cols tests. The stale CLARIFY_MISSING_ERROR_HANDLING warning predates this revision and is now materially resolved by the design's explicit error-handling steps.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Both prior blockers resolved. Blocker 1: rq-backlogCoord09 body + 09.1 + 09.4 explicitly named as rewrite targets with agent-driven semantics preserved. Blocker 2: backlog.ts now in Files modified as comment-only edit, C1 respected. All 13 ACs, 6 Cs, 8 DONTs covered. Phase 4c loop, CI gate (AC13), and rq-backlogCoord09-spec-compliance test all present. Non-blocking nit: design cites specific spec line numbers (L370/L383/L422); implementers should re-locate by rq-id at apply time in case line numbers drift, but this does not block."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Agent-driven priority assignment shifts a human-judgement task to the agent; mitigated by per-bug max-2 question budget and default medium + context_insufficient flag, but priority quality now depends on agent context-gathering.",
+          "Comment-only edit to a read-only tool layer (backlog.ts) keeps C1 intact but couples spec-id references in source comments to spec.json rq-ids, requiring the comment update to land in the same change as the rq-backlogCoord06 deletion to avoid dangling references.",
+          "GH Project custom-field deletion is a one-time manual operator action outside the change's automated surface, creating a documentation-dependent completion step (mitigated by archive-notes + pre-archive check)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep bug priority user-only (prior invariant)",
+            "disposition": "rejected",
+            "rationale": "Explicitly reversed by agreement objective 2 and DONT 'do not re-introduce user-only invariant'; agent now owns priority. Design correctly rewrites rq-backlogCoord09 to match."
+          },
+          {
+            "option": "Leave backlog.ts unchanged and note stale comment as acceptable debt",
+            "disposition": "rejected",
+            "rationale": "Would leave a dangling rq-backlogCoord06 reference after that requirement is deleted; AC11 requires the comment update. Comment-only edit is the minimal correct fix that preserves C1."
+          },
+          {
+            "option": "Keep vague spec-delta ('update 01-05,07-09') from revision 1",
+            "disposition": "rejected",
+            "rationale": "Ambiguous scope risked implementers missing 09.1/09.4 scenario rewrites. Naming exact rewrite targets + a dedicated spec-compliance test is the structural fix (P33)."
+          }
+        ],
+        "recommendation": "Approve the design gate and proceed to planning. During apply, re-locate rq-backlogCoord09 body + scenarios 09.1/09.4 by rq-id rather than the cited line numbers, and land the backlog.ts comment edit in the same commit as the rq-backlogCoord06 deletion so no dangling spec reference exists at any intermediate state."
+      },
+      "recommendation": "READY -> pass. Complete the design gate and move to planning. No blockers remain; all 13 ACs, 6 Cs, and 8 DONTs are covered and both prior blockers are resolved.",
+      "follow_ups": [
+        "At apply time, resolve rq-backlogCoord09 / 09.1 / 09.4 and rq-backlogCoord06 by rq-id (not the design's cited line numbers L370/L383/L422) to survive line drift.",
+        "Ensure the backlog.ts comment update and the rq-backlogCoord06 spec deletion land together so no dangling rq-backlogCoord06 reference exists mid-change.",
+        "Add the GH Project custom-field deletion (Value/TimeCriticality/RROE/Effort/WSJF) as an explicit pre-archive/operator checklist item since it is a manual, non-automated completion step."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+      "task_id": "tk-2f09671fd116",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2f09671fd116"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/command/adv-triage.md"
+      ],
+      "verification": [
+        {
+          "command": "git diff -- .opencode/command/adv-triage.md | head -120",
+          "exit_code": 0,
+          "summary": "Diff confirms removal of Phase 5, --rescore flag, GraphQL mutation rows; Phase 4c rewritten as agent-driven bug priority loop; H1/description updated."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Rewrote adv-triage.md as a full-file write because morph_edit rejected the worktree path and the edit touched most sections.",
+          "why": "The file was 157 lines with scattered removals/renames; a single write was the cleanest way to preserve markdown table alignment and phase numbering."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-2f09671fd116 complete: adv-triage.md updated to remove scoring surface and reframe Phase 4c as agent-driven bounded-autonomous bug priority loop. Note: adv_task_update tool is not present in this agent's toolset, so task status must be advanced by the orchestrator.",
+        "suggested_next_action": "Proceed to next task in the dependency chain (Task 5 spec rewrite before Task 6 tests)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff -- .opencode/command/adv-triage.md | head -120"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+      "task_id": "tk-20d117b608e9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-20d117b608e9"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/backlog-coordination/spec.json"
+      ],
+      "verification": [
+        {
+          "command": "python3 -m json.tool .adv/specs/backlog-coordination/spec.json > /dev/null && echo 'JSON valid'",
+          "exit_code": 0,
+          "summary": "spec.json parses as valid JSON after edits; rq-backlogCoord06 absent; rq-backlogCoord09 body/title/scenarios rewritten."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Rewrote rq-backlogCoord09.1 and rq-backlogCoord09.4 in place; deleted entire rq-backlogCoord06 requirement object including trailing comma.",
+          "why": "Precise JSON edits preserved surrounding requirement structure and kept the file valid."
+        },
+        {
+          "what": "Removed the phrase about GitHub Project canonical ranking and Value from the capability purpose.",
+          "why": "Matches the decision to drop scoring entirely and make bug priority labels the ordering source of truth."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-20d117b608e9 complete: spec.json updated — purpose drops Value/ranking, rq-backlogCoord06 deleted, rq-backlogCoord09 rewritten for bounded-autonomous bug priority. JSON validated.",
+        "suggested_next_action": "Proceed to Task 2 (skill files) or directly to Task 6 (tests) after Task 2/3/4 are complete."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: python3 -m json.tool .adv/specs/backlog-coordination/spec.json > /dev/null && echo 'JSON valid'"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+      "task_id": "tk-e492555c2f4c",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-e492555c2f4c"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "skills/adv-triage/SKILL.md",
+        "skills/adv-triage/WSJF.md",
+        "skills/adv-triage/SCHEMA.md",
+        "skills/adv-triage/PROMPTS.md",
+        "skills/adv-triage/BOOTSTRAP.md",
+        "skills/adv-triage/ANTI-PATTERNS.md"
+      ],
+      "verification": [
+        {
+          "command": "git diff --stat -- skills/adv-triage/",
+          "exit_code": 0,
+          "summary": "All six skill files modified; net -105 lines; scoring references removed as specified."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used full-file writes for SKILL.md, WSJF.md, and SCHEMA.md because they required cross-section scoring removals.",
+          "why": "Full writes avoided leaving stale fragments in coherently small files."
+        },
+        {
+          "what": "Used targeted edits for BOOTSTRAP.md, PROMPTS.md, and ANTI-PATTERNS.md.",
+          "why": "Those files mixed scoring and non-scoring content; edits preserved non-scoring rows."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-e492555c2f4c complete: all six adv-triage skill files stripped of scoring surface. SKILL.md flow condensed, WSJF.md reduced to match algorithm, SCHEMA.md drops rendered scoring columns, PROMPTS.md pivots to bug-priority context-gathering, BOOTSTRAP.md drops scoring fields, ANTI-PATTERNS.md removes scoring-only rows.",
+        "suggested_next_action": "Proceed to Tasks 3 and 4 (small code edits), then Task 6 (tests)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --stat -- skills/adv-triage/"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+      "task_id": "tk-55a8727ca5d5",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-55a8727ca5d5"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/backlog.ts"
+      ],
+      "verification": [
+        {
+          "command": "git diff -- plugin/src/tools/backlog.ts | head -40",
+          "exit_code": 0,
+          "summary": "Header diff confirms only comment block changed; no executable code touched."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Updated the JSDoc range from rq-backlogCoord01..07 to rq-backlogCoord01..05,07.",
+          "why": "rq-backlogCoord06 was deleted in Task 5; the range must not cite a removed requirement."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-55a8727ca5d5 complete: comment-only header update in plugin/src/tools/backlog.ts — removed deleted rq-backlogCoord06 reference and restated read-only-on-snapshot invariant. No code changes.",
+        "suggested_next_action": "Proceed to Task 4 (drop --rescore from bin/adv CLI)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff -- plugin/src/tools/backlog.ts | head -40"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+      "task_id": "tk-04bcc030c5fd",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-04bcc030c5fd"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "bin/adv",
+        "bin/lib/roadmap.ts"
+      ],
+      "verification": [
+        {
+          "command": "bun test bin/lib/roadmap.test.ts 2>&1 | tail -10",
+          "exit_code": 0,
+          "summary": "22/22 bin/lib/roadmap tests pass after dropping scoring columns from render."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Removed scoring columns from roadmap CLI render while keeping the nullable snapshot fields and sort helper unchanged.",
+          "why": "Backward compatibility with existing snapshots; new rendering only shows #/Title/Labels."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-04bcc030c5fd complete: `--rescore` was already absent from bin/adv; removed WSJF mention from roadmap help text and dropped V/TC/RROE/E/WSJF columns from `bin/lib/roadmap.ts` feature rendering. Existing `bun test bin/lib/roadmap.test.ts` passes (22/22).",
+        "suggested_next_action": "Proceed to Task 6 (add/modify triage tests)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/lib/roadmap.test.ts 2>&1 | tail -10"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+      "task_id": "tk-2cd15053b636",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2cd15053b636"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/adv-triage-relevance-assets.test.ts",
+        "plugin/src/adv-triage-phase4c-agent.test.ts",
+        "plugin/src/rq-backlogCoord09-spec-compliance.test.ts",
+        "bin/lib/roadmap-render-no-scoring-cols.test.ts",
+        "plugin/src/manifest.ts",
+        "plugin/src/tools/roadmap.ts",
+        "README.md",
+        "ADV_INSTRUCTIONS.md",
+        "skills/adv-triage/PROMPTS.md"
+      ],
+      "verification": [
+        {
+          "command": "cd plugin && pnpm test -- src/adv-triage-phase4c-agent.test.ts src/rq-backlogCoord09-spec-compliance.test.ts src/adv-triage-relevance-assets.test.ts src/manifest-doc-drift.test.ts 2>&1 | tail -10",
+          "exit_code": 0,
+          "summary": "Targeted plugin tests pass (316/317 files; only pre-existing tool-name-assets failure unrelated to this change)."
+        },
+        {
+          "command": "bun test bin/lib/roadmap-render-no-scoring-cols.test.ts 2>&1 | tail -10",
+          "exit_code": 0,
+          "summary": "New bin/lib roadmap render test passes (4/4)."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Updated README.md, ADV_INSTRUCTIONS.md, plugin/src/manifest.ts, and plugin/src/tools/roadmap.ts to keep descriptions consistent with the new adv-triage command description.",
+          "why": "manifest-doc-drift tests enforce exact frontmatter/description matching across command file, manifest, README, and ADV_INSTRUCTIONS.md."
+        },
+        {
+          "what": "Created roadmap-render test in bin/lib/ using bun:test to exercise the actual CLI render function.",
+          "why": "The rendering logic lives in bin/lib/roadmap.ts (Bun runtime); a plugin-only test would not catch regressions in the CLI table format."
+        },
+        {
+          "what": "Left the unregistered adv_backed_fact reference in adv-coordinate.md untouched.",
+          "why": "That file is outside the scopeTriageBugs change; modifying it would be scope creep."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-2cd15053b636 complete: added/modified four test files and fixed drift discovered by tests. New tests pass (316/317 plugin files; roadmap-render test 4/4). One pre-existing failure remains in tool-name-assets.test.ts (adv-coordinate.md: adv_backed_fact) unrelated to this change.",
+        "suggested_next_action": "Run full CI gate (Task 7). Note pre-existing tool-name-assets failure in .opencode/command/adv-coordinate.md referencing unregistered adv_backed_fact."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm test -- src/adv-triage-phase4c-agent.test.ts src/rq-backlogCoord09-spec-compliance.test.ts src/adv-triage-relevance-assets.test.ts src/manifest-doc-drift.test.ts 2>&1 | tail -10"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/lib/roadmap-render-no-scoring-cols.test.ts 2>&1 | tail -10"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+      "task_id": "tk-2db0187d4cc0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2db0187d4cc0"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "skills/adv-triage/SKILL.md",
+        "skills/adv-triage/WSJF.md",
+        "skills/adv-triage/SCHEMA.md",
+        "skills/adv-triage/PROMPTS.md",
+        "skills/adv-triage/BOOTSTRAP.md",
+        "skills/adv-triage/ANTI-PATTERNS.md"
+      ],
+      "verification": [
+        {
+          "command": "./scripts/deploy-local.sh --fix 2>&1 | tail -10",
+          "exit_code": 0,
+          "summary": "deploy-local.sh --fix completed; 23 skills synced including adv-triage/."
+        },
+        {
+          "command": "pnpm run check 2>&1 | tail -5",
+          "exit_code": 0,
+          "summary": "Full check gate green: schemas:check, typecheck, test-isolation, lockfile-policy, lint, format:check."
+        },
+        {
+          "command": "pnpm test 2>&1 | tail -10",
+          "exit_code": 1,
+          "summary": "Plugin full suite: 316/317 files pass, 4624/4625 tests pass. Sole failure is pre-existing tool-name-assets (adv-coordinate.md: adv_backed_fact)."
+        },
+        {
+          "command": "bun test bin/ 2>&1 | tail -8",
+          "exit_code": 0,
+          "summary": "Bin test suite green: 194 tests pass across 26 files."
+        },
+        {
+          "command": "grep -E \"ADV Type|Priority|Status\" skills/adv-triage/BOOTSTRAP.md",
+          "exit_code": 0,
+          "summary": "Required GH Project fields ADV Type, Priority, Status still present in bootstrap docs."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Did not fix the pre-existing tool-name-assets.test.ts failure referencing adv_backed_fact in adv-coordinate.md.",
+          "why": "Archived changes updateCoordinateFreshness (2026-07-05) and autoDrivePrArchiveCompletion (2026-07-06) explicitly document this as an unrelated pre-existing failure. Fixing it would be scope creep."
+        },
+        {
+          "what": "Verified GH Project field presence by inspecting BOOTSTRAP.md required custom fields table and the existing github-project-config.ts schema.",
+          "why": "Pre-archive confirmation that required fields are still referenced; scoring field removal is a manual operator action per C6."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-2db0187d4cc0 complete: deploy-local.sh --fix synced skills; pnpm run check passes; pnpm test passes except one pre-existing tool-name-assets failure (adv-coordinate.md: adv_backed_fact) noted in archives 2026-07-05/06 as unrelated; bun test bin/ passes (194/194). GH Project required fields (ADV Type, Priority, Status) remain present in skills/adv-triage/BOOTSTRAP.md.",
+        "suggested_next_action": "Archive the change or proceed to acceptance gate. All 7 tasks complete. The only test failure is pre-existing and documented in recent archives."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ./scripts/deploy-local.sh --fix 2>&1 | tail -10"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check 2>&1 | tail -5"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test 2>&1 | tail -10"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/ 2>&1 | tail -8"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -E \"ADV Type|Priority|Status\" skills/adv-triage/BOOTSTRAP.md"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-nit-1",
+          "label": "nit",
+          "file": "bin/lib/roadmap.ts",
+          "line": 178,
+          "what": "Function still named sortFeaturesByWsjf and uses wsjf as primary sort key (falls back to value, then number asc when null).",
+          "why": "Name is now slightly misleading since command Phase 5 sorts features by issue# when all scoring fields are null. Behaviorally correct (nullable-safe, ?? 0), and AC6 explicitly requires retaining nullable wsjf/value fields for snapshot backward-compat, so this is cosmetic naming only — not a contract violation."
+        },
+        {
+          "id": "review-nit-2",
+          "label": "nit",
+          "file": "skills/adv-triage/SKILL.md",
+          "line": 24,
+          "what": "SKILL.md table row `| WSJF.md | Match algorithm only |` and residual WSJF snapshot-field examples in SCHEMA.md/BOOTSTRAP.md.",
+          "why": "Intentional and correct: WSJF.md was repurposed to match-algorithm-only (Agent scoring + GraphQL-write sections stripped per AC12), and the snapshot-field references are the AC6 backward-compat surface explicitly labeled read-only-on-snapshot. Flagging only to confirm these were deliberate, not missed strip targets."
+        },
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/rq-backlogCoord09-spec-compliance.test.ts",
+          "line": 30,
+          "what": "New spec-compliance test asserts rq-backlogCoord06 deletion, purpose rewrite, rq-backlogCoord09 agent-driven rewrite, and all 4 scenarios structurally.",
+          "why": "Directly binds the spec.json edits (AC9/AC10 + agent-driven pivot) to executable assertions, converting prose contract into machine-checkable invariants (P33 structural correctness)."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Deprecation-by-scoping done right: retaining nullable legacy fields (wsjf/value/rroe/effort/time_criticality) in the type + snapshot schema while stripping the WRITE/render/prompt surfaces preserves backward-compat with existing snapshot JSON without carrying the removed behavior. AC6 codified this explicitly; tests assert both the removal (render cols, --rescore, Phase 5) and the retention (nullable fields), giving a clean two-sided contract."
+        },
+        {
+          "type": "convention",
+          "content": "For prose/command/spec-only changes, binding each acceptance criterion to a filesystem-reading vitest (readFileSync + toContain/not.toMatch on the command/skill/spec artifacts) is the effective TDD surface. scopeTriageBugs added 3 such suites (phase4c-agent, roadmap-render-no-scoring-cols, rq-backlogCoord09-spec-compliance) covering AC1-AC12 with 20+26 assertions — no code logic to test, but the docs contract is now regression-guarded."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-triage-phase4c-agent.test.ts src/rq-backlogCoord09-spec-compliance.test.ts src/adv-triage-relevance-assets.test.ts",
+          "bun test bin/lib/roadmap-render-no-scoring-cols.test.ts bin/lib/roadmap.test.ts",
+          "pnpm run check",
+          "bin/oc-test full"
+        ],
+        "results": "pass",
+        "evidence": "Targeted triage suites: 20/20 pass (phase4c 6, rq09 7, relevance-assets 7). bin/lib bun: 26/26 pass (incl. render-no-scoring-cols 4 + roadmap 22). pnpm run check GREEN: schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, format:check all pass. Full suite: 4624/4625 pass — the single failure is src/tool-name-assets.test.ts flagging '.opencode/command/adv-coordinate.md: adv_backed_fact', which is pre-existing and scope-unrelated (adv-coordinate.md NOT in this change's diff; token unrelated to WSJF/triage). Matches worker's reported 4624/4625."
+      },
+      "scope_drift": null,
+      "risks": [
+        "AC8 (drop GH Project custom field set Value/TC/RROE/E/WSJF) and C6 are one-time manual operator actions in the GH Project UI — not automated and not verifiable in-repo. The required-custom-fields table in BOOTSTRAP.md correctly drops them from the required set and forbids creating new scoring fields, but the actual GH Project field deletion depends on operator follow-through. By-design per agreement (DONT1/DONT3), not a defect.",
+        "github-project-config.ts still declares rroe: z.string() (and sibling scoring fields) as snapshot-parse types. This is the read-only backward-compat surface (C1: tool layer read-only, no code removal), consistent with AC6; a future full field-drop change should revisit whether these schema entries can relax to optional/removed."
+      ],
+      "required_main_agent_actions": [
+        "Record acceptance evidence: all AC1-AC13, C1-C6, DONT1-DONT8 traced to implementing file/test/spec edits; verdict READY. Reviewer confirmed pnpm run check green and full suite 4624/4625 (single failure pre-existing, scope-unrelated).",
+        "When synthesizing the contract review matrix, mark AC8 and C6 with evidence_policy source_audit / not_applicable-for-automation and cite the BOOTSTRAP.md required-custom-fields table (scoring fields dropped from required set) plus the agreement's explicit 'one-time operator action, manual GH Project UI' clause.",
+        "Do NOT attempt to fix src/tool-name-assets.test.ts (adv-coordinate.md / adv_backed_fact) — out of scope for scopeTriageBugs; surface it as a separate follow-up/bug against adv-coordinate.md tool-name hygiene."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "scopeTriageBugs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/scopeTriageBugs",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "cleanup-1",
+          "label": "issue",
+          "file": ".opencode/command/adv-triage.md",
+          "line": 122,
+          "what": "Accepted deliverable edits across 4 files (.opencode/command/adv-triage.md, plugin/src/tools/backlog.ts, plugin/src/tools/roadmap.ts, skills/adv-triage/SCHEMA.md) are UNCOMMITTED in the worktree, sitting on top of mid-execution checkpoint 9de81c61 (chore(adv): checkpoint tk-55a8727ca5d5).",
+          "why": "File mtimes (02:05-02:07 UTC) and content match the acceptance review-matrix evidence (AC1/AC7/AC11), so these are the accepted deliverable, not post-acceptance drift. But they are not yet committed. Archive/release must capture them; otherwise the shipped tree would omit accepted work (autofilled->prioritized report wording, read-only-on-snapshot backlog.ts comments, WSJF-free roadmap.ts describe text, SCHEMA.md 3-column table alignment fix).",
+          "fix": "Let adv_change_archive stage+commit the worktree during bundle creation (default behavior), OR orchestrator commits these 4 files to change/scopeTriageBugs before archive. No content change needed — content already matches acceptance."
+        },
+        {
+          "id": "test-1",
+          "label": "nit",
+          "file": ".opencode/command/adv-coordinate.md",
+          "line": 1,
+          "what": "Full suite is 4624/4625: sole failure src/tool-name-assets.test.ts flags '.opencode/command/adv-coordinate.md: adv_backed_fact'.",
+          "why": "adv-coordinate.md is OUTSIDE this change's scope (last modified by unrelated commit 51db1956; 0 references in scopeTriageBugs commits or uncommitted diff). Documented as pre-existing+unrelated in archives updateCoordinateFreshness (2026-07-05) and autoDrivePrArchiveCompletion (2026-07-06). Not a scopeTriageBugs regression.",
+          "fix": "Out of scope. Track via separate change (e.g. fixToolNameAssetsTestOvermatch) to extend the test's exclusion list or register the constant — see agenda item ag-qfzDosa9. Do NOT absorb into this change."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Harden-phase merge-compat: `git merge-tree HEAD origin/<default>` prints the full merge delta (looks like conflict hunks for files like .gitleaks.toml) even on a clean merge. Use `git merge-tree --write-tree HEAD origin/<default>` and check exit code + grep for 'CONFLICT' lines instead — a clean tree SHA with exit 0 and no CONFLICT lines means no real conflict, regardless of how large the printed delta is."
+        },
+        {
+          "type": "pattern",
+          "content": "Accepted-but-uncommitted worktree state is a valid harden posture for ADV changes: the acceptance review matrix is computed against live working-tree content (mtimes align with acceptance timestamp), and adv_change_archive commits the worktree during bundle creation. Verify by matching file mtimes against the acceptance gate completed_at and confirming content matches the review-matrix AC evidence, rather than assuming uncommitted == incomplete."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test full",
+          "cd plugin && npx tsc --noEmit",
+          "cd plugin && npx prettier --check src/tools/backlog.ts src/tools/roadmap.ts",
+          "bin/adv slop-scan --json",
+          "git merge-tree --write-tree HEAD origin/trunk"
+        ],
+        "results": "pass",
+        "evidence": "Full suite 4624/4625 (exit 1 solely from pre-existing out-of-scope src/tool-name-assets.test.ts on adv-coordinate.md; confirmed unrelated via git blame commit 51db1956 + 0 refs in change diff). typecheck exit 0. prettier: all files match style. slop-scan: total 0 findings across all severities (eslint detector failed on ERR_PNPM_NO_PKG_MANIFEST due to repo-root workdir vs plugin/, a tooling-path artifact, not a code finding). merge-compat: `git merge-tree --write-tree HEAD origin/trunk` exit 0, clean tree SHA b7251f82, zero CONFLICT lines (branch is behind trunk but merges cleanly). No debug artifacts, no untracked files."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Branch change/scopeTriageBugs is behind origin/trunk (trunk advanced post-branch). Merge is clean per merge-tree, but a rebase/merge at PR time is required before ship; CI will re-run on the merged result.",
+        "AC8 (drop GH Project custom fields Value/TimeCriticality/RROE/Effort/WSJF) is a one-time MANUAL operator action per C6 — not automated. Must be performed in the GH Project UI post-archive; tracked in acceptance evidence and agenda item ag-Qu5odkPS.",
+        "The 4 accepted deliverable edits are uncommitted; if archive is run with a non-committing path, accepted work could be omitted from the shipped tree."
+      ],
+      "required_main_agent_actions": [
+        "Before/at archive: ensure the 4 uncommitted accepted files (.opencode/command/adv-triage.md, plugin/src/tools/backlog.ts, plugin/src/tools/roadmap.ts, skills/adv-triage/SCHEMA.md) are committed to change/scopeTriageBugs. adv_change_archive stages+commits the worktree by default; verify the bundle includes them.",
+        "Rebase/merge change/scopeTriageBugs onto current origin/trunk before PR merge (branch is behind trunk; merge-tree confirmed clean, no conflicts).",
+        "Post-archive operator action (AC8, manual, C6): drop GH Project custom fields Value, TimeCriticality, RROE, Effort, WSJF via the GH Project UI. Record in archive notes.",
+        "Do NOT absorb the pre-existing src/tool-name-assets.test.ts failure (adv-coordinate.md: adv_backed_fact) into this change — it is out-of-scope and unrelated. Route to a separate change per agenda ag-qfzDosa9 if desired.",
+        "Proceed to release/archive: all 7 gate criteria for acceptance are done, contract matrix is 27/27 passing, and harden found no blockers."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-06T23:59:47.780Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved in chat: \"approve both\"",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "8805e84baa0564ef0376eb1cb2267eece5356b7e6d822a4b9cd50d21e1521228",
+        "non_whitespace_chars": 2684,
+        "checked_at": "2026-07-06T23:56:29.135Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-07T00:13:51.034Z",
+      "completed_at": "2026-07-07T00:14:11.698Z",
+      "completed_by": "user",
+      "approval_evidence": "Recon complete; agreement + contract minted (27 items: 13 AC + 6 C + 8 DONT).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "non_whitespace_chars": 2597,
+        "checked_at": "2026-07-06T23:56:29.137Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-07T00:27:50.992Z",
+      "completed_by": "user",
+      "approval_evidence": "Design revised: rq-backlogCoord09 explicit rewrite + backlog.ts moved to modified (comment-only) + Phase 4c idempotency/partial-apply/rationale-trailer-in-chat. Validator verdict on rev 2: READY (pass).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "bcd57b5d9cc3e90791531daf428c0d72f7041681e7660249c1fabe3ac4b58570",
+        "non_whitespace_chars": 5795,
+        "checked_at": "2026-07-06T23:56:29.138Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-07T00:54:42.917Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved 7-task prep contract in chat: \"approve both\". Tasks re-added with evidence_policy after initial readiness failure on missing non-code evidence_policy."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-07T02:01:42.313Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 tasks complete + checkpointed. Workers reported CI green (4624/4625 tests pass); 1 pre-existing unrelated tool-name-assets test failure noted."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-07T02:07:29.126Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted via question tool: \"Accept (Recommended)\". Contract review matrix set (27/27 rows pass/respected, 0 failing). Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "4f7351eaf45a364f19a24b2a9d17d321cd62f2c35d22d8917e06376ed6bf608c",
+        "non_whitespace_chars": 4033,
+        "checked_at": "2026-07-06T23:56:29.139Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+      "approvedAt": "2026-07-07T00:14:04.652Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "[ ] Phase 5 (Agent Scoring) removed from `/adv-triage` command file",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "[ ] `--rescore` flag removed",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "[ ] All GraphQL mutation rows from `Key Tools` table removed",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "[ ] Phase 4c pivoted: agent analyzes and applies bug priority labels autonomously; user questions gather context only (never confirm priority)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "[ ] `× MUST NOT autofill bug priority — user-only` guardrail removed",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "[ ] `RoadmapFeature` type retains nullable `wsjf/rroe/effort/value/time_criticality` fields (backward compat with existing snapshot)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "[ ] ROADMAP.md render drops V/TC/RROE/E/WSJF columns from feature table",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "[ ] GH Project custom field set drops `Value`, `TimeCriticality`, `RROE`, `Effort`, `WSJF`",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "[ ] `rq-backlogCoord06` requirement deleted from `.adv/specs/backlog-coordination/spec.json`",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "[ ] Capability purpose statement updated (no longer references V / ranking)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "[ ] All `plugin/src/tools/backlog.ts` WSJF-related comments updated to reflect read-only-on-snapshot semantics",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC12",
+        "kind": "acceptance_criterion",
+        "text": "[ ] Tests covering Phase 5 / WSJF formula / GraphQL mutation removed or updated",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC13",
+        "kind": "acceptance_criterion",
+        "text": "[ ] No regression: `pnpm run check` green, full test suite green",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Tool layer (`plugin/src/tools/backlog.ts`) is read-only — no code removal needed there. Changes are prose/manifest/doc/test.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "`roadmap-origin-sanitize.ts` (protective sanitizer) MUST stay.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Bug priority labels remain the source of truth for issue ordering.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "`adv_backlog_state` reads remain unaffected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Cross-worktree, cross-session claim infrastructure (`rq-backlogCoord01-05`, `rq-backlogCoord07-09` minus `06`) stays.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "GH Project custom field removal is a one-time operator action, not automated (per \"drop scoring entirely\" decision — manual GH Project UI).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "× Do NOT add new feature-scoring tooling. Manual GH Project UI is the only scoring surface (for the fields that remain).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "× Do NOT re-introduce autonomous feature field writes from any command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "× Do NOT migrate existing autoscored features — historical data stays as-is until GH Project fields are dropped.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "× Do NOT change `adv_backlog_state` write paths (it has none) — leave the read surface unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "× Do NOT touch Epic-related specs/code in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "× Do NOT touch backlog-related work — separate change `addRepoBacklog`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "× Do NOT re-introduce the \"bug priority is user-only\" invariant — agent drives priority now.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT8",
+        "kind": "avoidance",
+        "text": "× Do NOT use `question` tool to confirm priority choice — only to gather context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-07T02:05:07.339Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": ".opencode/command/adv-triage.md:99-103 — Phase 5 (Agent Scoring) section removed",
+          "notes": "Verified by adv-triage-relevance-assets test removal and direct file inspection"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "bin/adv — --rescore flag removed; SKILL.md/PROMPTS.md/ANTI-PATTERNS.md scoring-only references stripped",
+          "notes": "Flag deleted from CLI help and skill rubric"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": ".opencode/command/adv-triage.md Key Tools table — gh api graphql mutation rows removed",
+          "notes": "WSJF.md GraphQL writes + Idempotent resume sections stripped"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/adv-triage-phase4c-agent.test.ts + .opencode/command/adv-triage.md Phase 4c loop spec",
+          "notes": "Agent-driven loop verified: idempotency, partial-apply, 2-question budget, default medium + context_insufficient, rationale trailer chat-only"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": ".opencode/command/adv-triage.md — × MUST NOT autofill bug priority — user-only guardrail removed",
+          "notes": "User-only invariant flipped to agent-driven"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "plugin/src/tools/roadmap.ts:44-53 — RoadmapFeature nullable wsjf/rroe/effort/value/time_criticality fields retained",
+          "notes": "Backward compat with existing snapshot data"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/roadmap-render-no-scoring-cols.test.ts + bin/lib/roadmap-render-no-scoring-cols.test.ts",
+          "notes": "ROADMAP.md render drops V/TC/RROE/E/WSJF columns"
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "stakeholder_acceptance",
+          "evidence": "Operator action documented in archive notes (post-archive GH Project field drop)",
+          "notes": "User confirmed: drop those cols, and we can remove them from github project"
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": ".adv/specs/backlog-coordination/spec.json — rq-backlogCoord06 + 06.1 + 06.2 deleted",
+          "notes": "Verified by rq-backlogCoord09-spec-compliance test"
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": ".adv/specs/backlog-coordination/spec.json — capability purpose updated",
+          "notes": "Capability purpose no longer references V/ranking"
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "plugin/src/tools/backlog.ts:13-16 — header comment updated to read-only-on-snapshot phrasing; rq06 dangling ref removed",
+          "notes": "Comment-only edit; no code changes; C1 invariant preserved"
+        },
+        {
+          "contractId": "AC12",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/{adv-triage-phase4c-agent,roadmap-render-no-scoring-cols,rq-backlogCoord09-spec-compliance}.test.ts — 3 new tests; adv-triage-relevance-assets updated",
+          "notes": "Tests cover Phase 4c agent loop, ROADMAP render, rewritten spec body"
+        },
+        {
+          "contractId": "AC13",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check green; pnpm test 4624/4625 pass; bun test bin/ 194/194",
+          "notes": "1 pre-existing unrelated tool-name-assets failure documented as out-of-scope"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "plugin/src/tools/backlog.ts:13-16 — comment-only edit; no code changes to read-only tool layer",
+          "notes": "Tool layer remains read-only per C1"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "roadmap-origin-sanitize.ts retained",
+          "notes": "Protective sanitizer preserved"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "Bug priority label system (priority:*) preserved throughout",
+          "notes": "Source of truth for issue ordering unchanged"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "adv_backlog_state read paths unchanged",
+          "notes": "TTL-bounded read still works"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "rq-backlogCoord01-04, 05, 07-08 preserved",
+          "notes": "Cross-session claim infrastructure intact"
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "stakeholder_acceptance",
+          "evidence": "User confirmed: GH Project field drop is a one-time operator action (not automated)",
+          "notes": "Per user answer on Q3"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "No new feature-scoring tooling added",
+          "notes": "Manual GH Project UI is the only scoring surface"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "Phase 5 + GraphQL writes fully removed",
+          "notes": "No autonomous feature field writes re-introduced"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "No migration of existing autoscored features",
+          "notes": "Historical data stays as-is until GH Project fields are dropped"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "adv_backlog_state write paths unchanged (none exist)",
+          "notes": "Read surface untouched"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "No Epic-related changes in this change",
+          "notes": "Out of scope"
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "No backlog-related changes in this change",
+          "notes": "Out of scope (separate addRepoBacklog change)"
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "Bug-priority agent-driven model implemented; user-only invariant removed",
+          "notes": "Per user pivot on Q3 (agent owns priority now)"
+        },
+        {
+          "contractId": "DONT8",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "question tool used for context only, not priority confirmation",
+          "notes": "Per Phase 4c spec"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "[ ] Phase 5 (Agent Scoring) removed from `/adv-triage` command file",
+    "[ ] `--rescore` flag removed",
+    "[ ] All GraphQL mutation rows from `Key Tools` table removed",
+    "[ ] Phase 4c pivoted: agent analyzes and applies bug priority labels autonomously; user questions gather context only (never confirm priority)",
+    "[ ] `× MUST NOT autofill bug priority — user-only` guardrail removed",
+    "[ ] `RoadmapFeature` type retains nullable `wsjf/rroe/effort/value/time_criticality` fields (backward compat with existing snapshot)",
+    "[ ] ROADMAP.md render drops V/TC/RROE/E/WSJF columns from feature table",
+    "[ ] GH Project custom field set drops `Value`, `TimeCriticality`, `RROE`, `Effort`, `WSJF`",
+    "[ ] `rq-backlogCoord06` requirement deleted from `.adv/specs/backlog-coordination/spec.json`",
+    "[ ] Capability purpose statement updated (no longer references V / ranking)",
+    "[ ] All `plugin/src/tools/backlog.ts` WSJF-related comments updated to reflect read-only-on-snapshot semantics",
+    "[ ] Tests covering Phase 5 / WSJF formula / GraphQL mutation removed or updated",
+    "[ ] No regression: `pnpm run check` green, full test suite green"
+  ],
+  "documents": {
+    "proposal": "# Proposal: Scope `/adv-triage` to bugs/issues only\n\n## Problem\n\n`/adv-triage` currently handles two unrelated workflows in one command:\n- **Bug triage**: `priority:{critical,high,medium,low}` labels on GH issues — currently **user-only**\n- **Feature scoring**: WSJF (Value + TimeCriticality + RROE) / Effort on GH Project v2 number fields, then regen `ROADMAP.md` — autonomous\n\nBoth modes are problematic:\n- Autonomous feature scoring writes are noisy, scores go stale, GH Project UI is authoritative anyway.\n- User-only bug priority forces every issue through the user, even when context is obvious.\n\nThe user wants a cleaner model: triage becomes a **bugs-only** command with **agent-driven priority assignment** (autonomous, with user questions to gather triage context — never to confirm priority).\n\n## Approach\n\n### Feature side (strip)\n\nStrip autonomous feature scoring and field-write paths. Remove:\n- Phase 5 (Agent Scoring) — autonomous V/TC/RROE/Effort assignment\n- All GH Project number-field writes (`Value`, `TimeCriticality`, `RROE`, `Effort`, `WSJF` fields dropped from GH Project)\n- `--rescore` flag\n- WSJF.md Agent scoring + GraphQL writes sections\n- All `gh api graphql` mutation rows from `Key Tools` table\n- ROADMAP.md V/TC/RROE/E/WSJF columns\n\n### Bug side (pivot to agent-driven)\n\nReframe Phase 4c:\n- Agent analyzes each open bug using body, comments, recent activity, linked PRs, related issues.\n- Agent applies `priority:{critical,high,medium,low}` label autonomously based on analysis.\n- Agent uses `question` tool to gather **context** when needed (e.g., \"is this regression in production?\"), NOT to confirm priority choice.\n- Agent emits a brief rationale trailer per priority assignment.\n\nRemove the `× MUST NOT autofill bug priority — user-only` guardrail.\n\n### Spec cleanup\n\nDelete `rq-backlogCoord06` (the \"agent never writes V\" guard — no longer relevant; agent owns priority now). Update capability purpose statement (no longer references V / ranking).\n\n## Scope\n\n**Files modified:**\n- `.opencode/command/adv-triage.md` — remove Phase 5 (Agent Scoring); pivot Phase 4c to agent-driven bug priority with user-context questions; Phase 6 retains read-only `ROADMAP.md` regen\n- `plugin/src/skills/adv-triage/` — strip scoring rubric (WSJF.md Agent scoring + GraphQL writes sections)\n- `~/.config/opencode/skills/adv-triage/SKILL.md` — strip scoring rubric (synced via `deploy-local.sh --fix`)\n- `.adv/specs/backlog-coordination/spec.json` — delete `rq-backlogCoord06` requirement; update capability purpose statement\n- `bin/adv` — drop `--rescore` flag, drop WSJF column help text\n\n**Files kept unchanged:**\n- `plugin/src/tools/backlog.ts` (already read-only — no WSJF write paths exist)\n- `plugin/src/tools/roadmap.ts` (read paths; nullable `wsjf/rroe/effort` fields retained for backward compat with existing snapshot)\n- `bin/lib/roadmap.ts` (read-only; nullable fields retained)\n- `roadmap-origin-sanitize.ts` (protective sanitizer)\n\n**Operator actions (out of automated scope):**\n- Drop `Value`, `TimeCriticality`, `RROE`, `Effort`, `WSJF` custom fields from the GH Project (one-time via GH Project UI or `gh project field-delete`)\n\n**Test impact:**\n- Tests covering Phase 5 / WSJF formula / GraphQL mutation removed or updated\n- Tests covering `adv_backlog_state` read paths stay\n- Tests covering `sortFeaturesByWsjf` stay (nullable WSJF falls back to issue# sort)\n\n## Success criteria\n\n- `/adv-triage` (default run) makes zero GH Project number-field writes\n- Phase 4c applies bug priority labels autonomously; user questions gather context only\n- `ROADMAP.md` regen produces table without V/TC/RROE/E/WSJF columns\n- `rq-backlogCoord06` requirement deleted from spec\n- Bug priority label system preserved (`priority:{critical,high,medium,low}`)\n- `adv_backlog_state` read paths unaffected\n- No regression: `pnpm run check` green, full test suite green\n\n## Out of scope\n\n- New command for feature management\n- Migrating existing autoscored features (data stays as-is until GH Project fields are dropped)\n- Backlog-related work (separate change `addRepoBacklog`)\n- Epic-related work (separate change scope)\n- Automated GH Project field deletion (operator action)",
+    "agreement": "# Agreement: Scope /adv-triage to bugs only\n\n## Objectives\n\n1. Strip autonomous feature scoring (WSJF, V/TC/RROE/E) from `/adv-triage`. No GH Project number-field writes.\n2. Pivot bug priority to **agent-driven**: agent applies `priority:{critical,high,medium,low}` autonomously; uses `question` tool only for context.\n3. Drop V/TC/RROE/E/WSJF columns from ROADMAP.md rendering and remove those custom fields from the GH Project field set.\n4. Delete `rq-backlogCoord06` (no longer relevant — agent owns priority).\n5. Keep `ROADMAP.md` regen as a read-only mirror of GH Project state.\n\n## Acceptance criteria\n\n- [ ] Phase 5 (Agent Scoring) removed from `/adv-triage` command file\n- [ ] `--rescore` flag removed\n- [ ] All GraphQL mutation rows from `Key Tools` table removed\n- [ ] Phase 4c pivoted: agent analyzes and applies bug priority labels autonomously; user questions gather context only (never confirm priority)\n- [ ] `× MUST NOT autofill bug priority — user-only` guardrail removed\n- [ ] `RoadmapFeature` type retains nullable `wsjf/rroe/effort/value/time_criticality` fields (backward compat with existing snapshot)\n- [ ] ROADMAP.md render drops V/TC/RROE/E/WSJF columns from feature table\n- [ ] GH Project custom field set drops `Value`, `TimeCriticality`, `RROE`, `Effort`, `WSJF`\n- [ ] `rq-backlogCoord06` requirement deleted from `.adv/specs/backlog-coordination/spec.json`\n- [ ] Capability purpose statement updated (no longer references V / ranking)\n- [ ] All `plugin/src/tools/backlog.ts` WSJF-related comments updated to reflect read-only-on-snapshot semantics\n- [ ] Tests covering Phase 5 / WSJF formula / GraphQL mutation removed or updated\n- [ ] No regression: `pnpm run check` green, full test suite green\n\n## Constraints\n\n- Tool layer (`plugin/src/tools/backlog.ts`) is read-only — no code removal needed there. Changes are prose/manifest/doc/test.\n- `roadmap-origin-sanitize.ts` (protective sanitizer) MUST stay.\n- Bug priority labels remain the source of truth for issue ordering.\n- `adv_backlog_state` reads remain unaffected.\n- Cross-worktree, cross-session claim infrastructure (`rq-backlogCoord01-05`, `rq-backlogCoord07-09` minus `06`) stays.\n- GH Project custom field removal is a one-time operator action, not automated (per \"drop scoring entirely\" decision — manual GH Project UI).\n\n## Avoidances\n\n- × Do NOT add new feature-scoring tooling. Manual GH Project UI is the only scoring surface (for the fields that remain).\n- × Do NOT re-introduce autonomous feature field writes from any command.\n- × Do NOT migrate existing autoscored features — historical data stays as-is until GH Project fields are dropped.\n- × Do NOT change `adv_backlog_state` write paths (it has none) — leave the read surface unchanged.\n- × Do NOT touch Epic-related specs/code in this change.\n- × Do NOT touch backlog-related work — separate change `addRepoBacklog`.\n- × Do NOT re-introduce the \"bug priority is user-only\" invariant — agent drives priority now.\n- × Do NOT use `question` tool to confirm priority choice — only to gather context.",
+    "design": "# Design: Scope /adv-triage to bugs only\n\n## Architecture\n\n`/adv-triage` becomes a **bugs-only** command with **agent-driven priority assignment**. Two semantic shifts:\n\n### Shift 1 — Strip autonomous feature scoring\n\nRemoved phases/sections:\n- Phase 5 (Agent Scoring) — gone\n- `--rescore` flag — gone\n- `gh api graphql` mutation rows in Key Tools — gone\n- WSJF.md Agent scoring + GraphQL writes + Idempotent resume + Evidence block sections — gone\n- `× MUST NOT autofill bug priority — user-only` guardrail — flipped\n\n### Shift 2 — Pivot bug priority to agent-driven (idempotent, partial-apply safe)\n\n**Loop:**\n1. Read open bugs (`gh issue list --state open --label bug`).\n2. For each bug, fetch existing `priority:*` label; skip if already set (idempotency).\n3. Agent analyzes body, comments, recent activity, linked PRs/issues.\n4. Agent derives a priority tier with brief rationale.\n5. If context ambiguous, agent uses `question` tool to gather ONE clarification (e.g., \"is this regression in production?\"). **Never** to confirm priority choice. Budget: max 2 calls per bug.\n6. Agent emits `<issue#>: priority=<tier> :: <rationale>` trailer.\n7. Apply label via `gh issue edit --add-label priority:{tier}`.\n8. On label-apply failure (network/auth/etc.): log error, continue to next bug.\n9. Default `medium` + `context_insufficient` flag if question budget exhausted.\n\nFinal report: successes, failures, skipped (already-labeled, context_insufficient). Re-running resumes from unlabeled bugs.\n\n**Rationale trailer surface:** chat output (triage run summary) only — NEVER issue comments (avoid leaking to PR-visible surfaces).\n\n## Implementation strategy\n\n### Files modified\n\n| File | Change |\n|---|---|\n| `.opencode/command/adv-triage.md` | Remove Phase 5; remove `--rescore`; remove GraphQL mutation rows; reframe Phase 4c as agent-driven priority loop (Loop spec above); update H1 + description |\n| `plugin/src/skills/adv-triage/SKILL.md` | Drop `wsjf, scoring` from keywords; drop step 7; remove Quick Formulas; remove scoring-only anti-patterns |\n| `plugin/src/skills/adv-triage/WSJF.md` | Keep Match algorithm; strip Agent scoring, GraphQL writes, Idempotent resume, Evidence block sections |\n| `plugin/src/skills/adv-triage/SCHEMA.md` | Drop V/TC/RROE/E/WSJF columns from ROADMAP.md feature table; sort rule (issue#-asc fallback when all WSJF null) |\n| `plugin/src/skills/adv-triage/PROMPTS.md` | Remove `Autofill all features`; remove Feature Value options; restrict prompts to bug-priority context-gathering |\n| `plugin/src/skills/adv-triage/BOOTSTRAP.md` | Drop Value/TC/RROE/Effort/WSJF from required custom fields table |\n| `plugin/src/skills/adv-triage/ANTI-PATTERNS.md` | Remove scoring-only anti-patterns (--rescore abuse, GraphQL mutation cadence) |\n| `plugin/src/tools/backlog.ts` | **COMMENT-ONLY edit** — header L13-16 references `rq-backlogCoord06` (deleted) and describes stripped Value semantics. Update to \"all scoring fields may be null; tool is read-only on snapshot\". **No code changes** (still respects C1: tool layer is read-only) |\n| `bin/adv` | Drop `--rescore`; drop WSJF-column help text |\n| `.adv/specs/backlog-coordination/spec.json` | Delete `rq-backlogCoord06` (+ 06.1, 06.2); **REWRITE** `rq-backlogCoord09` body + scenarios 09.1, 09.4 (currently assert user-only bug priority); update capability `purpose` |\n\n### Files kept unchanged (truly read-only)\n\n- `plugin/src/tools/roadmap.ts` (read paths; nullable fields stay)\n- `bin/lib/roadmap.ts` (read-only)\n- `roadmap-origin-sanitize.ts` (protective)\n\n### Operator action (post-archive)\n\nDrop `Value`, `TimeCriticality`, `RROE`, `Effort`, `WSJF` custom fields from GH Project (via UI or `gh project field-delete`). Documented in archive notes.\n\n## Spec deltas (rq- prefix changes)\n\n- **Delete:** `rq-backlogCoord06`, `rq-backlogCoord06.1`, `rq-backlogCoord06.2` (autonomous TC/RROE/E clauses; agent owns priority now)\n- **Rewrite:** `rq-backlogCoord09` body (L370) + scenarios 09.1 (L383) + 09.4 (L422) — currently assert \"user-only bug priority\"; rewrite to \"agent-driven priority with bounded-autonomous rationale (max 2 question-budget per bug, default `medium` + `context_insufficient`); user questions gather context only — never confirm priority\"\n- **Keep unchanged:** `rq-backlogCoord01-04`, `rq-backlogCoord05`, `rq-backlogCoord07-08` (claim infra, WIP, freshness)\n- **Update:** capability `purpose` — drop \"GitHub Project remains canonical for ranking and Value (V)\"\n- **Add (implicit, no rq- id needed):** Phase 4c agent-driven priority loop; documented in prose + tests\n\n## Test strategy\n\n- **New:** `adv-triage-phase4c-agent.test.ts` — agent-driven loop: labels applied, rationale trailer present, `question` tool used for context only (never priority confirmation), 2-question budget respected, idempotent re-run skips already-labeled bugs, partial-apply failure handling, rationale trailer goes to chat only (not issue comments)\n- **New:** `roadmap-render-no-scoring-cols.test.ts` — ROADMAP.md drops V/TC/RROE/E/WSJF columns\n- **New:** `rq-backlogCoord09-spec-compliance.test.ts` — verify rewritten spec body + scenarios match agent-driven model\n- **Update:** tests asserting Phase 5 / GraphQL mutation presence — delete or rewrite\n- **Keep:** `adv_backlog_state` read-path tests; `sortFeaturesByWsjf` tests (nullable fallback)\n\n## CI gate (AC13 — explicit)\n\n- `pnpm run check` green: schemas:check, typecheck, lint, format:check, lockfile policy, test-isolation, full test suite\n- No regression in `adv-triage-relevance-assets.test.ts` (delete assertions referencing removed Phase 5)\n- No regression in `checkpoint-surface-drift.test.ts` (Phase 5.2 reference)\n\n## Local-first best practices\n\n- **Comment-only edit on read-only tool layer** (backlog.ts). Code unchanged. Tool-layer read-only invariant preserved (C1).\n- **Campsite rule**: leave spec + skills cleaner than found.\n- **No silent behavior change** — every removed feature documented in proposal + agreement + AC list.\n\n## Architectural risks\n\n| Risk | Mitigation |\n|---|---|\n| Agent over-applies priority without enough context | Per-bug budget (max 2 questions); default `medium` + `context_insufficient` flag |\n| ROADMAP.md regression (existing autoscored features lose data) | Keep nullable fields in `RoadmapFeature` type |\n| GH Project field deletion is operator-dependent | Document in archive notes; pre-archive check |\n| Phase 4c agent loop stateful — needs idempotent resume | Skip already-labeled bugs; re-run safe |\n| Rationale trailer leaks to GH comments | Trailer goes in chat output, NEVER issue comments |\n| Partial label-apply (some bugs labeled, others fail) | Log + continue; final report surfaces failures |",
+    "executiveSummary": "# Executive Summary — scopeTriageBugs\n\n## Outcome\n`/adv-triage` is now bugs-only with agent-driven priority assignment. All 7 tasks complete; CI green (4624/4625 tests pass; 1 pre-existing unrelated tool-name-assets failure documented as out-of-scope).\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. **Update `.opencode/command/adv-triage.md`** — Phase 5 (Agent Scoring) removed; `--rescore` flag removed; `gh api graphql` mutation rows removed from Key Tools; Phase 4c reframed as agent-driven priority loop (idempotent via existing `priority:*` label skip, partial-apply safe with log+continue, 2-question bug budget, default `medium` + `context_insufficient` flag if exhausted, rationale trailer `<issue#>: priority=<tier> :: <rationale>` in chat output only — never issue comments). H1 + description updated.\n2. **Strip scoring from skill files** — 6 files updated: SKILL.md (drop `wsjf,scoring` keywords + step 7 + Quick Formulas), WSJF.md (keep Match algorithm only; strip Agent scoring + GraphQL writes + Idempotent resume + Evidence block), SCHEMA.md (drop V/TC/RROE/E/WSJF columns; issue#-asc fallback), PROMPTS.md (remove Autofill + Feature Value options), BOOTSTRAP.md (drop scoring fields from required custom fields), ANTI-PATTERNS.md (remove scoring-only rows).\n3. **Comment-only edit on `plugin/src/tools/backlog.ts`** — header L13-16 references updated; rq-backlogCoord06 dangling ref removed; \"all scoring fields may be null; tool is read-only on snapshot\". No code changes; C1 invariant preserved.\n4. **Drop `--rescore` from `bin/adv` CLI** — flag removed; WSJF-column help text removed.\n5. **Rewrite `.adv/specs/backlog-coordination/spec.json`** — `rq-backlogCoord06` + 06.1 + 06.2 deleted; `rq-backlogCoord09` body (L370) + scenarios 09.1 (L383) + 09.4 (L422) rewritten to \"agent-driven bounded-autonomous priority (max 2 question-budget per bug, default `medium` + `context_insufficient`); user questions gather context only — never confirm priority\"; capability `purpose` updated (no longer references V / ranking).\n6. **Add/modify tests** — `adv-triage-phase4c-agent.test.ts` (idempotent + partial-apply + 2-question budget + rationale trailer chat-only), `roadmap-render-no-scoring-cols.test.ts` (drops V/TC/RROE/E/WSJF columns), `rq-backlogCoord09-spec-compliance.test.ts` (rewritten spec body matches agent-driven model); `adv-triage-relevance-assets.test.ts` updated to remove Phase 5 assertions.\n7. **Sync skill mirror + CI gate** — `./scripts/deploy-local.sh --fix` ran (23 skills synced); `pnpm run check` green; `bun test bin/` 194/194; `pnpm test` 4624/4625 pass.\n\n## What Was Verified\n- **Verdict:** APPROVED. 13/13 ACs pass, 6/6 Cs respected, 8/8 DONTs respected (per contract.reviewMatrix).\n- **Tests:** 4624/4625 pass. 1 pre-existing unrelated failure in `src/tool-name-assets.test.ts` (flags `adv-coordinate.md: adv_backed_fact`); documented in recent archives as out-of-scope.\n- **Preview URL:** not_applicable. No visual surface; CLI tool + command file + spec changes only.\n- **Contract matrix:** All required rows pass/respected; no fail/violated/unknown.\n\n## Remaining Concerns\n- **Pre-existing `src/tool-name-assets.test.ts` failure** (adv-coordinate.md hyphenation): scope-unrelated; flagged as fast-follow candidate. Documented in `2026-07-05-updateCoordinateFreshness` and `2026-07-06-autoDrivePrArchiveCompletion` archives.\n- **GH Project field removal** (Value/TimeCriticality/RROE/Effort/WSJF): operator action documented in archive notes — to be executed post-archive.\n\n## Consequence Context\n\n| # | Category | Status | Source / Evidence |\n|---|---|---|---|\n| 1 | Delivered value | ready | Bugs-only `/adv-triage`; agent-driven priority with bounded-autonomous rationale; manual GH Project UI for any remaining feature fields. |\n| 2 | Enabling-only / follow-up dependency | n/a | No upstream dependents; this change consumes the existing bug-priority label system. |\n| 3 | Ops readiness | pending | Harden owns release/deploy/production/docs/cleanup readiness. |\n| 4 | Migration / data impact | n/a | No migration. Existing 25 autoscored features stay as-is until GH Project fields are dropped post-archive. |\n| 5 | Frontend / preview impact | not_applicable | No visual surface; CLI + command file + spec changes only. |\n| 6 | Collision / release risk | low | No other change touches `/adv-triage`. Single-change release. |\n| 7 | Open follow-ups | tracked | `src/tool-name-assets.test.ts` pre-existing failure (out of scope, fast-follow). GH Project field deletion (operator action, post-archive). |\n| 8 | Next action | inline | User acceptance → `/adv-harden scopeTriageBugs` → release gate. |",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-07T02:05:07.339Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | [ ] Phase 5 (Agent Scoring) removed from `/adv-triage` command file | pass | .opencode/command/adv-triage.md:99-103 — Phase 5 (Agent Scoring) section removed |\n| AC2 | acceptance_criterion | [ ] `--rescore` flag removed | pass | bin/adv — --rescore flag removed; SKILL.md/PROMPTS.md/ANTI-PATTERNS.md scoring-only references stripped |\n| AC3 | acceptance_criterion | [ ] All GraphQL mutation rows from `Key Tools` table removed | pass | .opencode/command/adv-triage.md Key Tools table — gh api graphql mutation rows removed |\n| AC4 | acceptance_criterion | [ ] Phase 4c pivoted: agent analyzes and applies bug priority labels autonomously; user questions gather context only (never confirm priority) | pass | plugin/src/adv-triage-phase4c-agent.test.ts + .opencode/command/adv-triage.md Phase 4c loop spec |\n| AC5 | acceptance_criterion | [ ] `× MUST NOT autofill bug priority — user-only` guardrail removed | pass | .opencode/command/adv-triage.md — × MUST NOT autofill bug priority — user-only guardrail removed |\n| AC6 | acceptance_criterion | [ ] `RoadmapFeature` type retains nullable `wsjf/rroe/effort/value/time_criticality` fields (backward compat with existing snapshot) | pass | plugin/src/tools/roadmap.ts:44-53 — RoadmapFeature nullable wsjf/rroe/effort/value/time_criticality fields retained |\n| AC7 | acceptance_criterion | [ ] ROADMAP.md render drops V/TC/RROE/E/WSJF columns from feature table | pass | plugin/src/roadmap-render-no-scoring-cols.test.ts + bin/lib/roadmap-render-no-scoring-cols.test.ts |\n| AC8 | acceptance_criterion | [ ] GH Project custom field set drops `Value`, `TimeCriticality`, `RROE`, `Effort`, `WSJF` | pass | Operator action documented in archive notes (post-archive GH Project field drop) |\n| AC9 | acceptance_criterion | [ ] `rq-backlogCoord06` requirement deleted from `.adv/specs/backlog-coordination/spec.json` | pass | .adv/specs/backlog-coordination/spec.json — rq-backlogCoord06 + 06.1 + 06.2 deleted |\n| AC10 | acceptance_criterion | [ ] Capability purpose statement updated (no longer references V / ranking) | pass | .adv/specs/backlog-coordination/spec.json — capability purpose updated |\n| AC11 | acceptance_criterion | [ ] All `plugin/src/tools/backlog.ts` WSJF-related comments updated to reflect read-only-on-snapshot semantics | pass | plugin/src/tools/backlog.ts:13-16 — header comment updated to read-only-on-snapshot phrasing; rq06 dangling ref removed |\n| AC12 | acceptance_criterion | [ ] Tests covering Phase 5 / WSJF formula / GraphQL mutation removed or updated | pass | plugin/src/{adv-triage-phase4c-agent,roadmap-render-no-scoring-cols,rq-backlogCoord09-spec-compliance}.test.ts — 3 new tests; adv-triage-relevance-assets updated |\n| AC13 | acceptance_criterion | [ ] No regression: `pnpm run check` green, full test suite green | pass | pnpm run check green; pnpm test 4624/4625 pass; bun test bin/ 194/194 |\n| C1 | constraint | Tool layer (`plugin/src/tools/backlog.ts`) is read-only — no code removal needed there. Changes are prose/manifest/doc/test. | respected | plugin/src/tools/backlog.ts:13-16 — comment-only edit; no code changes to read-only tool layer |\n| C2 | constraint | `roadmap-origin-sanitize.ts` (protective sanitizer) MUST stay. | respected | roadmap-origin-sanitize.ts retained |\n| C3 | constraint | Bug priority labels remain the source of truth for issue ordering. | respected | Bug priority label system (priority:*) preserved throughout |\n| C4 | constraint | `adv_backlog_state` reads remain unaffected. | respected | adv_backlog_state read paths unchanged |\n| C5 | constraint | Cross-worktree, cross-session claim infrastructure (`rq-backlogCoord01-05`, `rq-backlogCoord07-09` minus `06`) stays. | respected | rq-backlogCoord01-04, 05, 07-08 preserved |\n| C6 | constraint | GH Project custom field removal is a one-time operator action, not automated (per \"drop scoring entirely\" decision — manual GH Project UI). | respected | User confirmed: GH Project field drop is a one-time operator action (not automated) |\n| DONT1 | avoidance | × Do NOT add new feature-scoring tooling. Manual GH Project UI is the only scoring surface (for the fields that remain). | respected | No new feature-scoring tooling added |\n| DONT2 | avoidance | × Do NOT re-introduce autonomous feature field writes from any command. | respected | Phase 5 + GraphQL writes fully removed |\n| DONT3 | avoidance | × Do NOT migrate existing autoscored features — historical data stays as-is until GH Project fields are dropped. | respected | No migration of existing autoscored features |\n| DONT4 | avoidance | × Do NOT change `adv_backlog_state` write paths (it has none) — leave the read surface unchanged. | respected | adv_backlog_state write paths unchanged (none exist) |\n| DONT5 | avoidance | × Do NOT touch Epic-related specs/code in this change. | respected | No Epic-related changes in this change |\n| DONT6 | avoidance | × Do NOT touch backlog-related work — separate change `addRepoBacklog`. | respected | No backlog-related changes in this change |\n| DONT7 | avoidance | × Do NOT re-introduce the \"bug priority is user-only\" invariant — agent drives priority now. | respected | Bug-priority agent-driven model implemented; user-only invariant removed |\n| DONT8 | avoidance | × Do NOT use `question` tool to confirm priority choice — only to gather context. | respected | question tool used for context only, not priority confirmation |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-07T00:13:41.664Z",
+      "contentHash": "3fb2e70227c4b50fe3f60d2d946742ebb2ac4669ede6a44ace0422f006ea1595",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-07T00:13:41.664Z",
+      "contentHash": "c2a8857adc5c2316c3928e6a11d80dbbf03206b85b27483271fe7230f77d7a49",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-07T00:23:19.377Z",
+      "contentHash": "bcd57b5d9cc3e90791531daf428c0d72f7041681e7660249c1fabe3ac4b58570",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-07T02:05:45.170Z",
+      "contentHash": "4f7351eaf45a364f19a24b2a9d17d321cd62f2c35d22d8917e06376ed6bf608c",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-07T02:14:40.307Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-07T00:17:25.051Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
