@@ -1,57 +1,70 @@
 # Roadmap
 
-<!-- adv-triage generated: 2026-07-02T03:57:54Z | DO NOT EDIT MANUALLY -->
+<!-- adv-triage generated: 2026-07-07T15:17:33Z | DO NOT EDIT MANUALLY -->
 <!-- Source of truth: GitHub Project #2 owned by @Sharper-Flow -->
 
 Regenerate with `/adv-triage`. Manual edits are overwritten.
 
-**Total: 0 bugs / 25 features / 1 deferred**
+**Total: 3 bugs / 27 features / 0 deferred**
 
 ## Bugs (by priority)
 
-_No open bugs._
+### Critical
 
-## Features (by WSJF, descending)
+| # | Title | Labels |
+|---|---|---|
+| #202 | Phase-9 archive finalizer cannot detect squash-merged PRs (PR_NOT_MERGED: repo+prNumber not derived) | — |
 
-| # | Title | V | TC | RROE | E | WSJF | Labels |
-|---|-------|---|----|------|---|------|--------|
-| #129 | Refactor adv-worktree skill — remove openchad, evaluate tmux | 3 | 2 | 3 | 1 | 8 | — |
-| #80 | Make worktree.deps.store required | 8 | 2 | 5 | 2 | 7.5 | — |
-| #109 | Verify archive gate protects against dangling task commits | 8 | 5 | 8 | 3 | 7 | — |
-| #66 | ADV clarify/design must surface 'imported assumptions from research' as scope decisions | 8 | 3 | 8 | 3 | 6.3 | enhancement |
-| #64 | Add adv_delta_add MCP tool — agent-facing path to encode spec deltas | 8 | 2 | 8 | 3 | 6 | — |
-| #61 | Telemetry & Temporal follow-ups from fixTemporalContextMismatch | 5 | 2 | 5 | 2 | 6 | enhancement |
-| #107 | Add TTL caching for ADV status health probes | 5 | 2 | 5 | 2 | 6 | — |
-| #79 | Add must-not section to future ADV proposals | 3 | 1 | 2 | 1 | 6 | — |
-| #87 | Wire scanFileOverlaps into prep validator when async checks exist | 8 | 3 | 5 | 3 | 5.3 | — |
-| #106 | Archived/terminal change listing can time out and shadow state | 8 | 3 | 5 | 3 | 5.3 | — |
-| #81 | Document tdd_intent reclassification workaround for cached-dist self-update sessions | 2 | 1 | 2 | 1 | 5 | — |
-| #84 | Sweep unused type exports flagged by knip | 2 | 1 | 2 | 1 | 5 | — |
-| #104 | Expose stable ADV read surface for OCA consumption (O2) | 8 | 8 | 8 | 5 | 4.8 | — |
-| #93 | adv_status: surface reflection friction signal in hygiene view | 5 | 3 | 5 | 3 | 4.3 | enhancement |
-| #103 | Permission-first config for ADV agents | 8 | 5 | 8 | 5 | 4.2 | — |
-| #45 | Add runtime Zod parse validation at SDK boundary in tests | 5 | 2 | 5 | 3 | 4 | enhancement |
-| #94 | Add adv_friction_query MCP tool — agent-queryable reflection friction | 5 | 2 | 5 | 3 | 4 | — |
-| #96 | adv_session_list: cross-project view (v2 promotion) | 5 | 2 | 5 | 3 | 4 | enhancement |
-| #65 | Replace prose-based MCP arg validation with declarative Zod refinements at schema boundary | 13 | 5 | 13 | 8 | 3.9 | enhancement |
-| #50 | Project capability index: searchable, indexed reference of truth | 8 | 3 | 8 | 5 | 3.8 | — |
-| #82 | Reduce ESLint complexity violations across plugin/src | 5 | 2 | 3 | 3 | 3.3 | — |
-| #132 | Assess checkpoint target_path support | 5 | 2 | 3 | 3 | 3.3 | — |
-| #143 | Add archive cleanup scanner | 8 | 3 | 5 | 5 | 3.2 | — |
-| #83 | Decompose long factory closures | 5 | 2 | 5 | 5 | 2.4 | — |
-| #135 | Clean terminal title API | 8 | 3 | 5 | 8 | 2 | — |
+### High
+
+| # | Title | Labels |
+|---|---|---|
+| #192 | Fix cross-project target_path artifact readback and close routing | — |
+| #198 | Disk-projection recovery defeated by live wedged workflow; add workflow reset tool + diskAuthoritative recovery + fix missing_workflow classification | — |
+
+## Features (by issue number)
+
+| # | Title | Labels |
+|---|---|---|
+| #45 | Add runtime Zod parse validation at SDK boundary in tests | enhancement, priority:low |
+| #50 | Project capability index: searchable, indexed reference of truth | priority:medium |
+| #61 | Telemetry & Temporal follow-ups from fixTemporalContextMismatch | enhancement, priority:high |
+| #64 | Add adv_delta_add MCP tool — agent-facing path to encode spec deltas | priority:medium |
+| #65 | Replace prose-based MCP arg validation with declarative Zod refinements at schema boundary | enhancement, priority:medium |
+| #66 | ADV clarify/design must surface 'imported assumptions from research' as scope decisions | enhancement, priority:medium |
+| #79 | Add must-not section to future ADV proposals | — |
+| #80 | Make worktree.deps.store required | — |
+| #81 | Document tdd_intent reclassification workaround for cached-dist self-update sessions | — |
+| #82 | Reduce ESLint complexity violations across plugin/src | — |
+| #83 | Decompose long factory closures | — |
+| #84 | Sweep unused type exports flagged by knip | — |
+| #87 | Wire scanFileOverlaps into prep validator when async checks exist | — |
+| #93 | adv_status: surface reflection friction signal in hygiene view | enhancement, priority:medium |
+| #94 | Add adv_friction_query MCP tool — agent-queryable reflection friction | priority:medium |
+| #96 | adv_session_list: cross-project view (v2 promotion) | enhancement, priority:medium |
+| #103 | Permission-first config for ADV agents | — |
+| #106 | Archived/terminal change listing can time out and shadow state | — |
+| #107 | Add TTL caching for ADV status health probes | — |
+| #109 | Verify archive gate protects against dangling task commits | — |
+| #129 | Refactor adv-worktree skill — remove openchad, evaluate tmux | — |
+| #132 | Assess checkpoint target_path support | — |
+| #135 | Clean terminal title API | — |
+| #143 | Add archive cleanup scanner | — |
+| #144 | Add Claude distribution | — |
+| #197 | Add ops_followup_link reclassify/remove tool + signals | enhancement, priority:high |
+| #199 | Add dependency-direction guard when promoting 'blocks' ops follow-ups | enhancement, priority:medium |
 
 ## Deferred / Unscored
 
-- #144 — Add Claude distribution — _missing Value_
+_None._
 
 ## Triage Run Summary
 
-- Run timestamp: 2026-07-02T03:57:54Z
-- Sources scanned: GH issues, GH Project items
+- Run timestamp: 2026-07-07T15:17:33Z
+- Sources scanned: GH issues, GH Project items, ADV changes, agenda, wisdom, cross-session notes, TODO/FIXME
 - Issues opened this run: 0
-- Issues added to project this run: 0
-- Issues closed as completed/duplicate/superseded this run: 7
-- Field assignments this run: 0 bug priority labels, 0 feature Value/WSJF sets
-- Items deferred: 1
+- Issues added to project this run: 5
+- Issues closed as completed/duplicate/superseded this run: 2
+- Priority assignments this run: 3
+- Items deferred: 0
 - Local sources deprecated: 0
