@@ -3,7 +3,7 @@ name: adv-problem
 description: "Triage issues before fixing or drafting a proposal"
 ---
 
-<!-- manifest: adv-problem · requiresChangeId: false · scope: reads[specs, codebase] -->
+<!-- manifest: adv-problem · gate:  · requiresChangeId: false · scope: reads[specs, codebase, sub-agent output, user uploads] -->
 
 # ADV Problem — Collaborative Issue Triage Before Fix
 
@@ -15,24 +15,77 @@ Investigate a bug, failure, or confusing behavior before deciding whether it is 
 
 ## Command Boundary
 
-**Produces:** triage summary, evidence gathered, likely hypotheses, scope assessment, spec-law impact, and a next-step recommendation.
+**Produces:** one triage classification — symptom restatement, evidence gathered by tier, leading hypothesis, spec-law impact, guardrail assessment, and a recommended exit path.
 
-**× MUST NOT:** create change, create tasks, complete gates, or silently turn triage into fix implementation.
+**Reads:** specs, codebase, sub-agent output, user uploads.
+
+**Creates nothing.** Does not mutate ADV state.
+
+**× MUST NOT:** create change, create tasks, complete gates, or silently turn triage into fix implementation. This command does not call `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly.
 
 **Gate:** None.
 
 ## Exit Paths
 
-| Exit                    | Condition                                                               |
-| ----------------------- | ----------------------------------------------------------------------- |
-| ✅ Direct-fix candidate | Evidence suggests a trivial fix and user explicitly approves fixing now |
-| ✅ Proposal candidate   | Scope looks larger, riskier, or more systemic                           |
-| 🔄 Need more info       | Triage narrowed the issue, but evidence is still incomplete             |
-| 🛑 Stop here            | User chooses to stop after triage                                       |
+| Exit | Condition |
+|---|---|
+| trivial-direct-fix | Evidence suggests a trivial fix and user explicitly approves fixing now |
+| /adv-proposal | Scope looks larger, riskier, more systemic, or any direct-fix guardrail fails |
+| iterate | Tiers 1–3 narrowed the issue, but evidence is still incomplete |
+| stop | User chooses to stop after triage |
 
-## Direct-Fix Guardrails
+## Phase 0: Embedded Methodology
 
-Only treat the outcome as a direct-fix candidate when all are true:
+Sub-agent resilience follows the canonical retry + fallback chain in `adv-research.md:111-135`. If a dispatched sub-agent returns empty, failed, or inconclusive: retry once with the same prompt; if the retry also fails, fall back to inline research using Context7 for official docs, `exa_web_search_exa` for community guidance and current best practices, and `searchcode_code_search` for real-world implementation patterns. Emit findings with the same `VALIDATION:` / `RECOMMENDATION:` structure and never skip a research question.
+
+---
+
+## Phase 1: Frame
+
+1. Restate the reported issue in one sentence.
+2. Capture symptoms, observed behavior, expected behavior, frequency, environment, and recent changes.
+3. Ask for the strongest available evidence first: error text, reproduction steps, affected paths, or scope clues.
+
+## Phase 2: Tier 1 — Local evidence
+
+Dispatch a Task-tool subagent for code/log investigation in the repo:
+
+- Use `subagent_type: explore` for code structure, hotspots, and existing patterns.
+- Use `subagent_type: general` for mixed topics or when the right tool is unclear.
+
+The subagent should return relevant context, not a final decision. Apply the resilience protocol from Phase 0 if the result is empty or failed.
+
+## Phase 3: Tier 2 — External evidence
+
+Dispatch `adv-researcher` when the symptom touches a runtime, library, framework, API, or ecosystem surface. Carry `validation.status` through to the summary:
+
+- `pass` — findings support a clear local root cause
+- `caution` — findings are viable but carry noted risks or tradeoffs
+- `fail` — findings contradict the leading hypothesis or surface a blocker
+- `unknown` — not enough evidence; mark as a research gap
+
+## Phase 4: Tier 3 — User uploads
+
+Only when Tiers 1 and 2 are inconclusive, ask the user for logs, screenshots, traces, or reproduction artifacts.
+
+- Run secret detection regex before persistence: scan for API keys, tokens, connection strings, and other credential-like patterns.
+- User-uploaded logs persist only ephemerally in the session transcript; do not write them to disk or ADV state.
+
+## Phase 5: Spec-law assessment
+
+When triage clarifies expected durable product/system behavior, include **Spec-law impact**:
+
+- **Spec-law change required** — route to `/adv-proposal` with a draft spec-delta obligation.
+- **No spec law update required** — direct fix remains allowed only when all direct-fix guardrails pass; state the rationale explicitly.
+- **Uncertain** — uncertain spec-law impact MUST NOT be direct-fix; route to `/adv-proposal` or keep investigating until impact is clear.
+
+`/adv-problem` remains read-only: it MUST NOT create changes, tasks, gates, or spec deltas directly.
+
+## Phase 6: Triage classify
+
+Apply the direct-fix guardrails. Surface each guardrail and its result; do not make opaque scope decisions.
+
+Only treat the outcome as a trivial-direct-fix candidate when all are true:
 
 - no more than 2 files likely touched
 - no spec changes
@@ -43,81 +96,31 @@ Only treat the outcome as a direct-fix candidate when all are true:
 
 If any guardrail fails, the next step is `/adv-proposal`, not direct fix.
 
-Direct-fix outcome is a handoff outcome only. `/adv-problem` does not own the fix implementation and must not route that work into `/adv-apply`.
+## Phase 7: Exit
 
-## Spec-Law Impact Assessment
+Propose exactly one exit path:
 
-When triage clarifies expected durable product/system behavior, the summary MUST include **Spec-law impact**:
+- **trivial-direct-fix** — hand off to normal fix work outside this command (user approved)
+- **/adv-proposal** — scope is larger, riskier, systemic, any guardrail fails, or spec-law impact is uncertain/change-required
+- **iterate** — list the next 1–3 concrete evidence gaps or experiments
+- **stop** — user chooses to stop after triage
 
-- **Spec-law change required** — route to `/adv-proposal` with a draft spec-delta obligation.
-- **No spec law update required** — direct fix remains allowed only when all direct-fix guardrails pass; state the rationale explicitly.
-- **Uncertain** — uncertain spec-law impact MUST NOT be direct-fix; route to `/adv-proposal` or keep investigating until impact is clear.
-
-`/adv-problem` remains read-only: it MUST NOT create changes, tasks, gates, or spec deltas directly.
-
----
-
-## Phase 1: Gather Problem Signal
-
-1. Restate reported issue.
-2. Capture symptoms, observed behavior, expected behavior, frequency, environment, and known recent changes.
-3. Ask for the strongest available evidence first: error text, reproduction steps, affected paths, screenshots/logs, or scope clues.
-
-## Phase 2: Triage Loop
-
-Use `question` tool only for user prompts. Use read-only search/read tools for targeted code/spec investigation when it materially reduces uncertainty.
-
-- Ask 1-2 focused questions per turn.
-- Prefer narrowing questions over broad speculation.
-- Summarize what is known, unknown, and ruled out.
-- Use targeted local investigation when it will materially reduce uncertainty.
-
-Useful prompts:
-
-- "What exactly did you expect instead?"
-- "Can you reproduce it reliably?"
-- "What changed shortly before this started?"
-- "Does this affect one path or many?"
-
-## Phase 3: Scope Assessment
-
-Classify the issue as one of:
-
-- **trivial direct-fix candidate** — narrow, low-risk, guardrails satisfied
-- **proposal-sized fix** — unclear root cause, wider surface area, systemic behavior, or uncertain spec-law impact
-- **needs more evidence** — not enough signal yet
-
-Do not over-call triviality. When uncertain, prefer proposal-sized fix.
-
-## Phase 4: Next-Step Decision
-
-When triage reaches a clear branch, ask via `question` tool:
-
-- If trivial direct-fix candidate:
-  - **Fix now (Recommended)**
-  - **Write proposal instead**
-  - **Stop after triage**
-- If proposal-sized fix:
-  - **Create proposal (Recommended)**
-  - **Keep investigating**
-  - **Stop after triage**
-
-If user chooses fix-now, hand off to normal fix work outside this command. If user chooses proposal path, hand off to `/adv-proposal`; `/adv-problem` still must not create ADV artifacts directly.
+The exit is a handoff recommendation only. `/adv-problem` does not create changes, tasks, gates, or spec deltas directly.
 
 ## Output
 
-Always emit a compact triage summary:
+Emit a compact triage summary:
 
-- Reported issue
-- Evidence gathered
+- Restated symptom
+- Evidence gathered by tier (Tier 1 / Tier 2 / Tier 3)
 - Leading hypothesis / ruled-out paths
-- Scope assessment
 - Spec-law impact
-- Suggested next command or action
+- Guardrail assessment
+- Recommended exit path and next command
 
 ## Anti-Patterns
 
-- × jumping into implementation before triage outcome is clear
-- × calling something trivial without checking guardrails
-- × creating ADV change state during triage by default
-- × routing direct-fix work into `/adv-apply`
+- × no sub-agent dispatch — skipping Tier 1 or Tier 2 and synthesizing without codebase or ecosystem context
+- × silent state mutation — Phase 7 exits that invoke `adv_change_create`, `adv_gate_complete`, `adv_task_add`, or `adv_epic_create` directly
+- × opaque scope decisions — Phase 6 triage classify without surfacing the guardrails
+- × unjustified direct-fix recommendation — recommending direct-fix when any guardrail fails; route to `/adv-proposal` instead
