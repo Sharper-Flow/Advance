@@ -250,9 +250,13 @@ describe("archive and reflection visibility policy", () => {
     for (const content of [spec, docs]) {
       expect(content).toContain("rq-executiveSummaryAudience01");
       expect(content).toMatch(/non-technical release-approval/i);
-      expect(content).toMatch(/outcome.*value.*verification.*risks\/follow-ups.*supporting evidence/is);
+      expect(content).toMatch(
+        /outcome.*value.*verification.*risks\/follow-ups.*supporting evidence/is,
+      );
       expect(content).toMatch(/evidence-only impact/i);
-      expect(content).toMatch(/technical terms.*parenthetical supporting detail/i);
+      expect(content).toMatch(
+        /technical terms.*parenthetical supporting detail/i,
+      );
       expect(content).toMatch(/caveman-full.*must not compress away/i);
     }
   });

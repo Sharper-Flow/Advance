@@ -783,8 +783,12 @@ describe("command voice prose-load policy", () => {
   test("caveman-full preserves executive-summary substance", () => {
     const content = readFileSync(COMMAND_VOICE_PATH, "utf8");
 
-    expect(content).toMatch(/executive-summary\/release-readiness artifact substance/i);
-    expect(content).toMatch(/outcome.*value.*verification.*risks\/follow-ups.*supporting evidence/is);
+    expect(content).toMatch(
+      /executive-summary\/release-readiness artifact substance/i,
+    );
+    expect(content).toMatch(
+      /outcome.*value.*verification.*risks\/follow-ups.*supporting evidence/is,
+    );
     expect(content).toMatch(/must not compress away/i);
   });
 });
