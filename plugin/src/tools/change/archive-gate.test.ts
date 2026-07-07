@@ -227,7 +227,7 @@ describe("verifyReleaseEvidenceFromMain", () => {
 
 describe("buildPendingMergePhase9Status", () => {
   // rq-fixPhase9PrDetection AC4: durable fields must survive the transition
-  // from pending to pending_merge. Currently changeTipSha is dropped.
+  // from pending to pending_merge.
   it("preserves previous changeTipSha", () => {
     const result = buildPendingMergePhase9Status({
       finalization: {
