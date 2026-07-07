@@ -784,6 +784,7 @@ export const Phase9FinalizationStatusSchema = z.object({
   startedAt: z.string(),
   completedAt: z.string().optional(),
   error: z.string().optional(),
+  repo: z.string().optional(),
   prNumber: z.number().int().positive().optional(),
   prUrl: z.string().url().optional(),
   autoMergeArmed: z.boolean().optional(),

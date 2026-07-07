@@ -144,7 +144,11 @@ describe("buildPendingMergePhase9Status", () => {
         autoMergeArmed: true,
       },
       startedAt: "2026-01-01T00:00:00Z",
-      previousChangeTipSha: "tip-202-abc",
+      previous: {
+        status: "pending",
+        startedAt: "2026-01-01T00:00:00Z",
+        changeTipSha: "tip-202-abc",
+      },
     });
 
     expect(result.changeTipSha).toBe("tip-202-abc");

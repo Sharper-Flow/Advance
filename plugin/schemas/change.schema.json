@@ -3011,6 +3011,9 @@
           "format": "uri",
           "type": "string"
         },
+        "repo": {
+          "type": "string"
+        },
         "route": {
           "enum": [
             "no_remote",

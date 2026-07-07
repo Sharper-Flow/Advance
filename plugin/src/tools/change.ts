@@ -72,6 +72,7 @@ import {
   getArchiveGatePreflightError,
   buildReleaseCompletionEvidence,
   buildPendingMergePhase9Status,
+  preservePhase9Evidence,
   reconcileArchivedBundleRetry,
   buildFailedPhase9Classification,
   recordPhase9Status,
@@ -2642,6 +2643,7 @@ export const changeTools = {
                     status: buildPendingMergePhase9Status({
                       finalization: currentFinalization,
                       startedAt: currentChange.phase9_status?.startedAt ?? now,
+                      previous: currentChange.phase9_status,
                     }),
                   });
                   return;
@@ -2675,11 +2677,11 @@ export const changeTools = {
                 await recordPhase9Status({
                   store,
                   changeId,
-                  status: {
+                  status: preservePhase9Evidence(currentChange.phase9_status, {
                     status: "done",
                     startedAt: currentChange.phase9_status?.startedAt ?? now,
                     completedAt: archivedAt,
-                  },
+                  }),
                 });
                 currentChange.status = "archived";
                 await store.changes.save(currentChange);
@@ -2820,6 +2822,7 @@ export const changeTools = {
                 finalization,
                 startedAt:
                   change.phase9_status?.startedAt ?? new Date().toISOString(),
+                previous: change.phase9_status,
               }),
             });
             return formatToolOutput({
@@ -2919,12 +2922,12 @@ export const changeTools = {
             await recordPhase9Status({
               store,
               changeId,
-              status: {
+              status: preservePhase9Evidence(change.phase9_status, {
                 status: "done",
                 startedAt:
                   change.phase9_status.startedAt ?? new Date().toISOString(),
                 completedAt: new Date().toISOString(),
-              },
+              }),
             });
           }
           releaseGateCompletion = {
