@@ -568,19 +568,21 @@ describe("createChangeOps", () => {
 
     test("defers to authoritative listResolvedChanges for archived/closed filters", async () => {
       const memo = new ChangeSummaryMemo();
-      const listResolvedChanges = vi.fn().mockResolvedValue([
-        {
-          id: "archivedC",
-          title: "Archived",
-          status: "archived",
-          created_at: "2026-05-10T00:00:00.000Z",
-          tasks: [],
-          deltas: {},
-          wisdom: [],
-          gates: {},
-          reentry_history: [],
-        },
-      ]);
+      const listResolvedChanges = vi.fn().mockResolvedValue({
+        changes: [
+          {
+            id: "archivedC",
+            title: "Archived",
+            status: "archived",
+            created_at: "2026-05-10T00:00:00.000Z",
+            tasks: [],
+            deltas: {},
+            wisdom: [],
+            gates: {},
+            reentry_history: [],
+          },
+        ],
+      });
       const legacy = {
         paths: { changes: "/tmp/changes", root: "/tmp/project" },
         changes: { get: vi.fn() },
@@ -615,6 +617,87 @@ describe("createChangeOps", () => {
       expect(result.changes.map((c) => c.id)).toEqual(["archivedC"]);
       expect(result.hydrationStats?.fromMemo).toBe(0);
       expect(result.hydrationStats?.fromHydration).toBeGreaterThan(0);
+    });
+
+    test("default active/in-flight listSummary excludes terminal rows and stays on the memo path", async () => {
+      const memo = new ChangeSummaryMemo();
+      const allDone = {
+        proposal: "done" as const,
+        discovery: "done" as const,
+        design: "done" as const,
+        planning: "done" as const,
+        execution: "done" as const,
+        acceptance: "done" as const,
+        release: "done" as const,
+      };
+      memo.set("activeA", {
+        id: "activeA",
+        title: "Active A",
+        status: "active",
+        gateProgress: allDone,
+        taskCounts: { total: 1, done: 0, pending: 1 },
+        lastActivityAt: "2026-05-26T00:00:00.000Z",
+      });
+      memo.set("archivedB", {
+        id: "archivedB",
+        title: "Archived B",
+        status: "archived",
+        gateProgress: allDone,
+        taskCounts: { total: 0, done: 0, pending: 0 },
+        lastActivityAt: "2026-05-25T00:00:00.000Z",
+      });
+      memo.set("closedC", {
+        id: "closedC",
+        title: "Closed C",
+        status: "closed",
+        gateProgress: allDone,
+        taskCounts: { total: 0, done: 0, pending: 0 },
+        lastActivityAt: "2026-05-24T00:00:00.000Z",
+      });
+
+      const listResolvedChanges = vi
+        .fn()
+        .mockRejectedValue(
+          new Error("listResolvedChanges should not be called for active-only"),
+        );
+      const getTemporalChange = vi
+        .fn()
+        .mockRejectedValue(
+          new Error("getTemporalChange should not be called for memo-only"),
+        );
+      const legacy = {
+        paths: { changes: "/tmp/changes", root: "/tmp/project" },
+        changes: { get: vi.fn() },
+      };
+      const workflowClient = { workflow: { getHandle: vi.fn() } };
+
+      const ops = createChangeOps({
+        input: {
+          legacy,
+          temporal: { client: workflowClient },
+          projectId: "pid-active-fast",
+        },
+        legacy,
+        invalidateChange: vi.fn(),
+        updateOverlay: vi.fn(),
+        emitChangeSummarySignal: vi.fn(),
+        indexTasksFromState: vi.fn(),
+        setCachedChange: vi.fn(),
+        getTemporalChange,
+        listResolvedChanges,
+        getTemporalWorkflowClient: () => workflowClient,
+        dualWriteAfterMutation: vi.fn(),
+        memo,
+        changeCache: new Map(),
+      } as never);
+
+      const result = await ops.listSummary!();
+
+      expect(listResolvedChanges).not.toHaveBeenCalled();
+      expect(getTemporalChange).not.toHaveBeenCalled();
+      expect(result.changes.map((c) => c.id)).toEqual(["activeA"]);
+      expect(result.warnings).toBeUndefined();
+      expect(result.hydrationStats?.fromHydration).toBe(0);
     });
   });
 

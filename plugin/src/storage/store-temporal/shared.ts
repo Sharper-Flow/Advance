@@ -334,7 +334,7 @@ export interface StoreDeps {
   listResolvedChanges: (filter?: {
     includeArchived?: boolean;
     includeClosed?: boolean;
-  }) => Promise<Change[]>;
+  }) => Promise<import("../store-types").ResolvedChangeList>;
   reseedChangeFromDisk: (
     changeId: string,
     reason?: "missing_workflow" | "poisoned_history",

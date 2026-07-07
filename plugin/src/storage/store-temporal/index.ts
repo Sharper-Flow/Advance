@@ -8,6 +8,10 @@ import type {
   EpicMembership,
   ProjectStatus,
   Spec,
+  TerminalSource,
+  TerminalWarning,
+  TerminalWarningCode,
+  HydrationStats,
 } from "../../types";
 import { SpecSchema } from "../../types";
 import { listSpecsActivity, showSpecActivity } from "../../temporal/activities";
@@ -465,6 +469,28 @@ export function createTemporalStoreBackend(
     return null;
   };
 
+  /**
+   * rq-terminalProjectionTruth01: durable terminal projection dominates stale
+   * non-terminal workflow, memo, disk, and visibility projections. Check the
+   * archive bundle first, then a closed disk snapshot. Active/missing changes
+   * fall through to the live workflow path.
+   */
+  const loadTerminalProjection = async (
+    changeId: string,
+    reason: ProjectionRecoveryReason = "missing_workflow",
+  ): Promise<Change | null> => {
+    const archiveProjection = await loadArchiveBundleDominantProjection(
+      changeId,
+      reason,
+    );
+    if (archiveProjection) return archiveProjection;
+
+    const diskClosed = await loadDiskTerminalProjection(changeId);
+    if (diskClosed) return setCachedProjection(diskClosed);
+
+    return null;
+  };
+
   const reseedChangeFromDisk = async (
     changeId: string,
     reason: ProjectionRecoveryReason = "missing_workflow",
@@ -560,25 +586,31 @@ export function createTemporalStoreBackend(
   const getTemporalChange = async (
     changeId: string,
   ): Promise<ReturnType<Store["changes"]["get"]>> => {
-    const terminalDiskProjection = await loadDiskTerminalProjection(changeId);
-    if (terminalDiskProjection) {
-      indexTasksFromChange(terminalDiskProjection);
-      return { success: true, data: terminalDiskProjection };
+    // rq-terminalProjectionTruth01: durable terminal projection dominates
+    // stale non-terminal shadows before any live workflow round-trip.
+    const terminalProjection = await loadTerminalProjection(changeId);
+    if (terminalProjection) {
+      indexTasksFromChange(terminalProjection);
+      const source =
+        (terminalProjection as Change & { _source?: "disk" | "archive" })
+          ._source ?? "archive";
+      return {
+        success: true,
+        data: terminalProjection,
+        source,
+      };
     }
 
     const cached = changeCache.get(changeId);
     if (cached) {
-      if (cached.status !== "archived" && cached.status !== "closed") {
-        const archiveProjection = await loadArchiveBundleDominantProjection(
-          changeId,
-          "missing_workflow",
-        );
-        if (archiveProjection) {
-          return { success: true, data: archiveProjection };
-        }
-      }
       indexTasksFromChange(cached);
-      return { success: true, data: cached };
+      return {
+        success: true,
+        data: cached,
+        source:
+          (cached as Change & { _source?: "disk" | "archive" })._source ??
+          "workflow",
+      };
     }
     try {
       const state = (await runTemporalQuery(async () =>
@@ -592,17 +624,11 @@ export function createTemporalStoreBackend(
         state.worktree_auto_managed,
         undefined,
       );
-      const change = setCachedChange(state);
-      if (change.status !== "archived" && change.status !== "closed") {
-        const archiveProjection = await loadArchiveBundleDominantProjection(
-          changeId,
-          "missing_workflow",
-        );
-        if (archiveProjection) {
-          return { success: true, data: archiveProjection };
-        }
-      }
-      return { success: true, data: change };
+      return {
+        success: true,
+        data: setCachedChange(state),
+        source: "workflow",
+      };
     } catch (error) {
       // P1.5 — orphan-tolerant changes.get with re-seed. When the
       // workflow is missing but a disk snapshot exists, seed a fresh
@@ -630,7 +656,13 @@ export function createTemporalStoreBackend(
             undefined,
             reseeded.worktree_auto_managed,
           );
-          return { success: true, data: reseeded };
+          return {
+            success: true,
+            data: reseeded,
+            source:
+              (reseeded as Change & { _source?: "disk" | "archive" })._source ??
+              "disk",
+          };
         }
       }
       throw error;
@@ -683,10 +715,21 @@ export function createTemporalStoreBackend(
   const listResolvedChanges = async (filter?: {
     includeArchived?: boolean;
     includeClosed?: boolean;
-  }): Promise<Change[]> => {
+  }): Promise<import("../store-types").ResolvedChangeList> => {
     const wantsTerminalStatuses = Boolean(
       filter?.includeArchived || filter?.includeClosed,
     );
+
+    // Track source-class failures and per-candidate outcomes so terminal
+    // aggregate reads can surface structured degraded metadata instead of
+    // masquerading as complete success.
+    const degradedSources = new Set<TerminalSource>();
+    const candidateResolutions: Array<{
+      id: string;
+      terminal: boolean;
+      source?: "workflow" | "disk" | "archive";
+      omitted: boolean;
+    }> = [];
 
     // Union three sources to find every change ID. Memo is used as a
     // cache within per-change hydration (getTemporalChange), not as a
@@ -730,6 +773,7 @@ export function createTemporalStoreBackend(
         logger.warn(
           `[P2.4] Visibility list failed; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
         );
+        degradedSources.add("visibility");
       }
     }
 
@@ -740,6 +784,7 @@ export function createTemporalStoreBackend(
       logger.warn(
         `Disk listChangeDirs failed: ${err instanceof Error ? err.message : String(err)}`,
       );
+      degradedSources.add("active_disk");
     }
 
     // (4) Archive bundles — required when caller asks for terminal statuses.
@@ -757,6 +802,7 @@ export function createTemporalStoreBackend(
         logger.warn(
           `Disk listChangeDirs(archive) failed: ${err instanceof Error ? err.message : String(err)}`,
         );
+        degradedSources.add("archive");
       }
     }
 
@@ -807,8 +853,10 @@ export function createTemporalStoreBackend(
           try {
             return await getTemporalChange(changeId);
           } catch {
-            // Workflow may not exist (pre-Temporal, terminated, or evicted).
-            // Fall back to legacy JSON store.
+            // rq-terminalAggregateRead01: per-candidate failure is bounded;
+            // one bad/missing workflow does not abort the aggregate read.
+            // Degraded metadata lives in the omission (missing row) rather
+            // than an unclassified whole-tool timeout.
             try {
               const result = await legacy.changes.get(changeId);
 
@@ -876,7 +924,146 @@ export function createTemporalStoreBackend(
         byCanonicalId.set(change.id, change);
       }
     }
-    return Array.from(byCanonicalId.values());
+    const resolvedChanges = Array.from(byCanonicalId.values());
+
+    // Degraded metadata is only surfaced for terminal aggregate reads.
+    if (!wantsTerminalStatuses) {
+      return { changes: resolvedChanges };
+    }
+
+    // Re-run the per-candidate load bookkeeping with source tracking so
+    // we can classify terminal candidates by origin and count omissions.
+    // This intentionally mirrors the load logic above to keep classification
+    // structural rather than timer-based.
+    for (let i = 0; i < changeIds.length; i += CHANGE_LIST_BATCH_SIZE) {
+      const batch = changeIds.slice(i, i + CHANGE_LIST_BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (changeId) => {
+          const isArchiveCandidate = archiveIds.includes(changeId);
+          const isTerminalCandidate = isArchiveCandidate;
+
+          try {
+            const result = await getTemporalChange(changeId);
+            if (result.success && result.data) {
+              const terminal =
+                result.data.status === "archived" ||
+                result.data.status === "closed";
+              candidateResolutions.push({
+                id: changeId,
+                terminal,
+                source: result.source,
+                omitted: false,
+              });
+              return;
+            }
+          } catch {
+            // fall through to explicit fallback classification
+          }
+
+          try {
+            const result = await legacy.changes.get(changeId);
+            if (result.success && result.data) {
+              const terminal =
+                result.data.status === "archived" ||
+                result.data.status === "closed";
+              if (!terminal && (await checkArchiveBundle(changeId))) {
+                candidateResolutions.push({
+                  id: changeId,
+                  terminal: true,
+                  source: "archive",
+                  omitted: false,
+                });
+                return;
+              }
+              candidateResolutions.push({
+                id: changeId,
+                terminal,
+                source: "disk",
+                omitted: false,
+              });
+              return;
+            }
+
+            if (
+              !result.success &&
+              legacy.paths.archive &&
+              (await checkArchiveBundle(changeId))
+            ) {
+              try {
+                const archiveLoad = await loadChange(
+                  legacy.paths.archive,
+                  changeId,
+                );
+                if (archiveLoad.success && archiveLoad.data) {
+                  candidateResolutions.push({
+                    id: changeId,
+                    terminal: true,
+                    source: "archive",
+                    omitted: false,
+                  });
+                  return;
+                }
+              } catch {
+                // fall through to omission
+              }
+            }
+          } catch {
+            // fall through to omission
+          }
+
+          if (isTerminalCandidate) {
+            candidateResolutions.push({
+              id: changeId,
+              terminal: true,
+              omitted: true,
+            });
+          }
+        }),
+      );
+    }
+
+    const terminalResolutions = candidateResolutions.filter((r) => r.terminal);
+    const omitted = terminalResolutions.filter((r) => r.omitted).length;
+    const terminalFromArchive = terminalResolutions.filter(
+      (r) => !r.omitted && r.source === "archive",
+    ).length;
+    const terminalFromDisk = terminalResolutions.filter(
+      (r) => !r.omitted && r.source === "disk",
+    ).length;
+    const terminalFromWorkflow = terminalResolutions.filter(
+      (r) => !r.omitted && r.source === "workflow",
+    ).length;
+
+    const warnings: TerminalWarning[] = [];
+    for (const source of degradedSources) {
+      warnings.push({
+        code: "TERMINAL_SOURCE_DEGRADED" as TerminalWarningCode,
+        source,
+        message: `Terminal ${source} source could not be enumerated; rows may be incomplete.`,
+      });
+    }
+    if (omitted > 0) {
+      warnings.push({
+        code: "TERMINAL_CANDIDATE_OMITTED" as TerminalWarningCode,
+        source: "workflow_query",
+        message: `${omitted} terminal candidate(s) could not be loaded from any available source.`,
+        omittedCount: omitted,
+      });
+    }
+
+    const hydrationStats: HydrationStats = {
+      terminalCandidates: terminalResolutions.length,
+      terminalFromArchive,
+      terminalFromDisk,
+      terminalFromWorkflow,
+      omitted,
+    };
+
+    return {
+      changes: resolvedChanges,
+      ...(warnings.length > 0 ? { warnings } : {}),
+      ...(terminalResolutions.length > 0 ? { hydrationStats } : {}),
+    };
   };
 
   const buildTemporalStatus = async (): Promise<ProjectStatus> => {
@@ -890,7 +1077,7 @@ export function createTemporalStoreBackend(
     });
     const specCapabilities = specsResult.ok ? specsResult.specs : [];
 
-    const changes = await listResolvedChanges();
+    const { changes } = await listResolvedChanges();
     const now = new Date();
     const byStatus: Record<ChangeStatus, number> = {
       draft: 0,

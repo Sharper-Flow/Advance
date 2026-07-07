@@ -26,6 +26,43 @@ export interface SpecListResponse {
   }>;
 }
 
+export type TerminalSource =
+  | "visibility"
+  | "active_disk"
+  | "archive"
+  | "workflow_query";
+
+export type TerminalWarningCode =
+  | "TERMINAL_SOURCE_DEGRADED"
+  | "TERMINAL_CANDIDATE_OMITTED";
+
+export interface TerminalWarning {
+  code: TerminalWarningCode;
+  source: TerminalSource;
+  message: string;
+  omittedCount?: number;
+}
+
+export interface TerminalHydrationStats {
+  terminalCandidates: number;
+  terminalFromArchive: number;
+  terminalFromDisk: number;
+  terminalFromWorkflow: number;
+  omitted: number;
+}
+
+export interface HydrationStats {
+  totalIds?: number;
+  fromMemo?: number;
+  fromCache?: number;
+  fromHydration?: number;
+  terminalCandidates?: number;
+  terminalFromArchive?: number;
+  terminalFromDisk?: number;
+  terminalFromWorkflow?: number;
+  omitted?: number;
+}
+
 export interface ChangeListResponse {
   changes: Array<{
     id: string;
@@ -46,6 +83,8 @@ export interface ChangeListResponse {
     /** Optional Epic membership projection for bounded list/status annotation. */
     epic_membership?: import("./epics").EpicMembership;
   }>;
+  warnings?: TerminalWarning[];
+  hydrationStats?: HydrationStats;
 }
 
 export interface TaskReadyResponse {

@@ -1343,6 +1343,137 @@ describe("change tools — signal-driven lifecycle", () => {
       });
       expect(store.epics.get).not.toHaveBeenCalled();
     });
+
+    test("passes through terminal degraded metadata from listSummary", async () => {
+      const store = createMockStore();
+      store.changes.listSummary = vi.fn().mockResolvedValue({
+        changes: [
+          {
+            id: "degraded-terminal",
+            title: "Degraded Terminal",
+            status: "archived",
+            created_at: "2026-01-01T00:00:00Z",
+            lastActivityAt: "2026-01-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+        ],
+        warnings: [
+          {
+            code: "TERMINAL_SOURCE_DEGRADED",
+            source: "visibility",
+            message: "Visibility list failed",
+          },
+        ],
+        hydrationStats: {
+          terminalCandidates: 1,
+          terminalFromArchive: 1,
+          terminalFromDisk: 0,
+          terminalFromWorkflow: 0,
+          omitted: 0,
+        },
+      });
+
+      const result = await changeTools.adv_change_list.execute(
+        { includeArchived: true },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed.warnings).toEqual([
+        {
+          code: "TERMINAL_SOURCE_DEGRADED",
+          source: "visibility",
+          message: "Visibility list failed",
+        },
+      ]);
+      expect(parsed.hydrationStats).toEqual({
+        terminalCandidates: 1,
+        terminalFromArchive: 1,
+        terminalFromDisk: 0,
+        terminalFromWorkflow: 0,
+        omitted: 0,
+      });
+    });
+
+    test("does not include degraded terminal metadata on default list from listSummary", async () => {
+      const store = createMockStore();
+      store.changes.listSummary = vi.fn().mockResolvedValue({
+        changes: [
+          {
+            id: "active-only",
+            title: "Active Only",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            lastActivityAt: "2026-01-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+        ],
+      });
+
+      const result = await changeTools.adv_change_list.execute({}, store);
+      const parsed = JSON.parse(result);
+      expect(parsed.warnings).toBeUndefined();
+      expect(parsed.hydrationStats).toBeUndefined();
+    });
+
+    test("default active/in-flight adv_change_list excludes terminal rows from listSummary", async () => {
+      const store = createMockStore();
+      store.changes.listSummary = vi.fn().mockResolvedValue({
+        changes: [
+          {
+            id: "activeA",
+            title: "Active A",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            lastActivityAt: "2026-01-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "archivedB",
+            title: "Archived B",
+            status: "archived",
+            created_at: "2025-12-01T00:00:00Z",
+            lastActivityAt: "2025-12-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "closedC",
+            title: "Closed C",
+            status: "closed",
+            created_at: "2025-11-01T00:00:00Z",
+            lastActivityAt: "2025-11-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+        ],
+      });
+      vi.mocked(store.changes.list).mockRejectedValue(
+        new Error("full changes.list should not be called for default list"),
+      );
+
+      const result = await changeTools.adv_change_list.execute(
+        { status: "in-flight" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.changes.map((c: { id: string }) => c.id)).toEqual([
+        "activeA",
+      ]);
+      expect(store.changes.listSummary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: undefined,
+          includeArchived: undefined,
+          includeClosed: undefined,
+        }),
+      );
+      expect(store.changes.list).not.toHaveBeenCalled();
+      expect(parsed.warnings).toBeUndefined();
+      expect(parsed.hydrationStats).toBeUndefined();
+    });
   });
 
   describe("adv_change_update", () => {

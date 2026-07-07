@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.25.0
-> **Updated:** 2026-07-02
+> **Version:** 1.26.0
+> **Updated:** 2026-07-07
 
 ## Purpose
 
@@ -1116,6 +1116,118 @@ When adv_change_archive completes successfully, ADV MUST create the archive bund
 - The change status is verified as archived before source removal
 - Active changes are skipped with a structured warning
 - A candidate that is not archived is not removed
+
+---
+
+### Terminal Aggregate Reads Degrade Structurally Instead of Timing Out
+
+**ID:** `rq-terminalAggregateRead01` | **Priority:** **[MUST]**
+
+ADV aggregate read surfaces that include archived or closed changes MUST use bounded per-candidate resolution and MUST return either complete terminal rows or structured degraded metadata that names failed or omitted source classes. A single slow, unreachable, missing, or corrupt terminal candidate source MUST NOT surface as an unclassified whole-tool `ToolExecutionTimeout` for the aggregate read. Degraded results MUST remain explicit and machine-readable; partial terminal reads MUST NOT masquerade as complete success.
+
+**Tags:** `workflow`, `terminal-state`, `read-model`, `performance`, `degraded`
+
+#### Scenarios
+
+**Terminal list source failure returns degraded metadata** (`rq-terminalAggregateRead01.1`)
+
+**Given:**
+- A caller requests an aggregate change list that includes archived or closed changes
+- One terminal candidate source is slow, unreachable, missing, or corrupt
+
+**When:** The aggregate read resolves terminal candidates
+
+**Then:**
+- The response returns all successfully resolved rows
+- The response includes structured degraded metadata naming the failed source class
+- The response identifies the omitted count or bounded omission reason
+- The aggregate read does not fail only as an unclassified whole-tool ToolExecutionTimeout
+
+**Degraded terminal output is not complete success** (`rq-terminalAggregateRead01.2`)
+
+**Given:**
+- A terminal aggregate read omitted one or more candidates because a source failed
+
+**When:** The tool response is formatted
+
+**Then:**
+- The degraded condition is visible in machine-readable output
+- The response does not claim that omitted terminal data was successfully loaded
+- Existing changes and pagination fields remain present for callers that ignore optional metadata
+
+---
+
+### Durable Terminal Projection Dominates Stale Non-Terminal Shadows
+
+**ID:** `rq-terminalProjectionTruth01` | **Priority:** **[MUST]**
+
+When a durable terminal projection exists for a change, terminal-aware reads MUST prefer that terminal truth over stale non-terminal workflow, memo, disk, or visibility projections. Archive bundle state MUST dominate draft, pending, or active shadows for the same canonical change ID. Terminal-aware reads MUST dedupe archive directories by the canonical `change.json.id` rather than by archive directory name.
+
+**Tags:** `workflow`, `archive`, `terminal-state`, `read-model`, `recovery`
+
+#### Scenarios
+
+**Archive bundle dominates stale active projection** (`rq-terminalProjectionTruth01.1`)
+
+**Given:**
+- An archive bundle exists for a change
+- Another projection source reports the same change as draft, pending, or active
+
+**When:** A terminal-aware read resolves the change
+
+**Then:**
+- The returned change status is archived
+- Default active change lists do not include the stale non-terminal shadow
+- The archive bundle is treated as the durable terminal record
+
+**Archive directories dedupe by canonical ID** (`rq-terminalProjectionTruth01.2`)
+
+**Given:**
+- An archived change bundle is stored in a directory whose name is not exactly the change ID
+- The bundle's change.json has the canonical change ID
+
+**When:** A terminal aggregate read loads archive directories
+
+**Then:**
+- Rows are deduplicated by change.json.id
+- The archived change appears at most once
+- The canonical change ID is preserved in the returned row
+
+---
+
+### Active Lists Preserve Summary Fast Path
+
+**ID:** `rq-activeListFastPath01` | **Priority:** **[MUST]**
+
+Default active or in-flight change listing MUST preserve the summary/memo/cache fast path when row data is sufficient. Fixes for archived or closed terminal reads MUST NOT force active-only callers through full terminal reconciliation, archive bundle scans, or per-change workflow query fan-out except when a stale terminal shadow must be invalidated for correctness.
+
+**Tags:** `workflow`, `read-model`, `performance`, `active-list`
+
+#### Scenarios
+
+**Default active list avoids terminal reconciliation** (`rq-activeListFastPath01.1`)
+
+**Given:**
+- A caller requests the default active or in-flight change list
+- Memo or summary projection contains sufficient row data
+
+**When:** The list is resolved
+
+**Then:**
+- The response uses summary, memo, or cache row data
+- The read does not perform full terminal reconciliation for every candidate
+- Archived and closed terminal rows are excluded from the active list
+
+**Terminal fixes do not broaden status TTL scope** (`rq-activeListFastPath01.2`)
+
+**Given:**
+- A change fixes terminal aggregate read behavior
+
+**When:** The active-list path is inspected or tested
+
+**Then:**
+- The active-list fast path remains distinct from terminal-list reconciliation
+- Broader status health TTL or worktree cleanup behavior is not introduced unless it shares the terminal-list primitive
 
 ---
 

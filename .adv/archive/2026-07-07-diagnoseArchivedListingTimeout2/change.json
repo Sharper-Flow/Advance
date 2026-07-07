@@ -1,0 +1,1856 @@
+{
+  "id": "diagnoseArchivedListingTimeout2",
+  "title": "Diagnose archived listing timeout",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-07T04:09:02.345Z",
+  "tasks": [
+    {
+      "id": "tk-551addf7bb03",
+      "title": "Add terminal aggregate read spec deltas",
+      "type": "docs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-07T04:48:18.295Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T04:50:56.805Z",
+      "verification": "Static check passed: JSON parsed via python -m json.tool; node assertion confirmed rq-terminalAggregateRead01, rq-terminalProjectionTruth01, rq-activeListFastPath01 and six scenario IDs are present in spec JSON and docs mirror (adv_run_test tr_mra6c1yj_41e055de).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "checkpointSha": "612a1340e04817ff8eebc2b7833490201a522f46",
+      "completedAt": "2026-07-07T04:54:16.231Z",
+      "completed_at": "2026-07-07T04:54:16.231Z"
+    },
+    {
+      "id": "tk-fbc6a762e51a",
+      "title": "Implement archive-first terminal projection resolution",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-07T04:48:32.295Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-551addf7bb03"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC3",
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T04:55:01.222Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "diagnoseArchivedListingTimeout2",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/diagnoseArchivedListingTimeout2",
+          "task_id": "tk-fbc6a762e51a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-fbc6a762e51a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/storage/store-temporal/index.ts",
+            "plugin/src/storage/store-temporal/changes.ts",
+            "plugin/src/storage/store-temporal/index.test.ts",
+            "plugin/src/ops-follow-up-assets.test.ts",
+            "plugin/src/adv-skill-backed-commands-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm test -- src/storage/store-temporal/index.test.ts",
+              "exit_code": 0,
+              "summary": "All tests in index.test.ts pass, including new archive-first terminal projection tests."
+            },
+            {
+              "command": "pnpm test -- src/storage/store-temporal/changes.test.ts",
+              "exit_code": 0,
+              "summary": "listSummary and change ops tests still pass."
+            },
+            {
+              "command": "pnpm test -- src/ops-follow-up-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Version-bumped asset tests pass."
+            },
+            {
+              "command": "pnpm test -- src/__tests__/spec-citation-invariant.test.ts",
+              "exit_code": 0,
+              "summary": "New rq-* requirements are cited in code comments."
+            },
+            {
+              "command": "pnpm run lint",
+              "exit_code": 0,
+              "summary": "ESLint passes."
+            },
+            {
+              "command": "pnpm exec prettier --check src/storage/store-temporal/index.test.ts",
+              "exit_code": 0,
+              "summary": "New tests are formatted."
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 2,
+              "summary": "Fails pre-existing in plugin/src/temporal/change-state.ts (unrelated to touched files)."
+            },
+            {
+              "command": "pnpm run format:check",
+              "exit_code": 1,
+              "summary": "Fails pre-existing in plugin/src/types/subagent-reports.test.ts (unrelated to touched files)."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Checked durable terminal projection before live workflow query, cache, or re-seed in getTemporalChange",
+              "why": "Ensures archive bundle and closed disk dominate stale active/memo/workflow/visibility projections per rq-terminalProjectionTruth01 and avoids live workflow round-trips for archived candidates per rq-terminalAggregateRead01."
+            },
+            {
+              "what": "Reused existing loadArchiveBundleDominantProjection and loadDiskTerminalProjection inside a new loadTerminalProjection helper",
+              "why": "Minimizes new code and keeps canonical-id dedupe, archive bundle dominance, and closed-disk dominance in one place."
+            },
+            {
+              "what": "Updated advance-workflow version assertions from 1.25.1 to 1.26.0 in ops-follow-up-assets.test.ts and adv-skill-backed-commands-assets.test.ts",
+              "why": "The spec.json was already at 1.26.0 for the newly added rq-terminal* requirements; the asset tests were stale."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Fix pre-existing typecheck error in plugin/src/temporal/change-state.ts (adv-visual-review subagent report type).",
+            "Fix pre-existing prettier violation in plugin/src/types/subagent-reports.test.ts."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Removed duplicate archive checks inside getTemporalChange cached/after-query branches because the new terminal-first helper covers them.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Implemented archive-first terminal projection resolution in plugin/src/storage/store-temporal/index.ts. New loadTerminalProjection checks archive bundle and closed disk before any live workflow query, satisfying rq-terminalProjectionTruth01 and rq-terminalAggregateRead01. Default active list remains on the summary/memo fast path (rq-activeListFastPath01). Added RED tests with call-count assertions for no live workflow query when archive projection exists, canonical-id dedupe, and fast-path preservation. Updated two asset tests to match the already-bumped advance-workflow spec version 1.26.0. Typecheck and format:check failures observed are pre-existing and unrelated to touched files.",
+            "suggested_next_action": "Run the full pnpm run check after the pre-existing typecheck/format:check failures in temporal/change-state.ts and subagent-reports.test.ts are resolved elsewhere."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/storage/store-temporal/index.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/storage/store-temporal/changes.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/ops-follow-up-assets.test.ts src/adv-skill-backed-commands-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/__tests__/spec-citation-invariant.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/storage/store-temporal/index.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            }
+          ]
+        }
+      ],
+      "verification": "Targeted verification passed after rerouting through bin/oc-test to avoid concurrent direct Vitest/Temporal worker contention: tr_mra732u3_ad1029a2 (index.test.ts 27 passed); tr_mra738ov_e573801b (changes/assets/spec-citation tests 88 passed); tr_mra73nk7_6b3d132f (lint passed). Earlier direct parallel pnpm test attempts tr_mra72mzi_31f1d842/tr_mra72mlu_7e353639/tr_mra72mmb_b478d93a failed from unrelated Temporal workflow test timeouts under concurrent direct Vitest runs, then passed with repo test wrapper.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/index.ts"
+      ],
+      "checkpointSha": "7670bc0cb13617b90ff0c89f8ccdc5bd254b0308",
+      "completedAt": "2026-07-07T05:15:40.726Z",
+      "completed_at": "2026-07-07T05:15:40.726Z"
+    },
+    {
+      "id": "tk-17bdbbbce65b",
+      "title": "Add degraded terminal list envelope",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-07T04:48:43.291Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-551addf7bb03"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "OOS1"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T05:15:58.411Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "diagnoseArchivedListingTimeout2",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/diagnoseArchivedListingTimeout2",
+          "task_id": "tk-17bdbbbce65b",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-17bdbbbce65b"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/responses.ts",
+            "plugin/src/types/index.ts",
+            "plugin/src/storage/json.ts",
+            "plugin/src/storage/store-types.ts",
+            "plugin/src/storage/store-temporal/shared.ts",
+            "plugin/src/storage/store-temporal/index.ts",
+            "plugin/src/storage/store-temporal/changes.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/storage/store-temporal/index.test.ts",
+            "plugin/src/storage/store-temporal/changes.test.ts",
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "143 targeted tests pass"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts src/tools/change.read-artifact.test.ts src/tools/change.cross-project-create.test.ts",
+              "exit_code": 0,
+              "summary": "209 related tests pass"
+            },
+            {
+              "command": "pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "Public JSON schemas unchanged/drift-free"
+            },
+            {
+              "command": "pnpm exec eslint src/storage/json.ts src/storage/store-types.ts src/types/responses.ts src/types/index.ts src/storage/store-temporal/shared.ts src/storage/store-temporal/index.ts src/storage/store-temporal/changes.ts src/tools/change.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "No lint errors on changed files"
+            },
+            {
+              "command": "pnpm exec prettier --check src/storage/json.ts src/storage/store-types.ts src/types/responses.ts src/types/index.ts src/storage/store-temporal/shared.ts src/storage/store-temporal/index.ts src/storage/store-temporal/changes.ts src/tools/change.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "Prettier formatting passes on changed files"
+            },
+            {
+              "command": "pnpm exec tsc --noEmit",
+              "exit_code": 2,
+              "summary": "Only pre-existing error in src/temporal/change-state.ts (adv-visual-review exhaustiveness), unrelated to this change"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added optional source field to LoadResult success branch",
+              "why": "Allows getTemporalChange to report whether a loaded change came from workflow, disk, or archive, which is required for terminal hydration stats."
+            },
+            {
+              "what": "Changed listResolvedChanges return type from Change[] to ResolvedChangeList",
+              "why": "Carries warnings and hydrationStats alongside the change array without breaking the internal contract for callers that only need changes."
+            },
+            {
+              "what": "Surfaced degraded metadata only when wantsTerminalStatuses is true",
+              "why": "Preserves active/default list behavior and caller compatibility per OOS1/AC4."
+            },
+            {
+              "what": "Used a second candidate-resolution pass to classify terminal sources",
+              "why": "Kept the existing fallback logic intact and minimized structural risk while still achieving structural per-candidate classification."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated changes.test.ts mock listResolvedChanges to return new ResolvedChangeList shape; ensured active/default list paths do not emit degraded metadata.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added structured degraded metadata for terminal aggregate list reads. listResolvedChanges now returns ResolvedChangeList with optional warnings and hydrationStats; adv_change_list, store.changes.list, and store.changes.listSummary propagate them only when terminal rows are requested or terminal failure occurred. Active/default lists remain unchanged. Pre-existing tsc error in src/temporal/change-state.ts (adv-visual-review exhaustiveness) is unrelated to this change.",
+            "suggested_next_action": "Run full plugin test suite (bin/oc-test full) to confirm no regressions, then proceed to review/acceptance gate."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts src/tools/change.read-artifact.test.ts src/tools/change.cross-project-create.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/storage/json.ts src/storage/store-types.ts src/types/responses.ts src/types/index.ts src/storage/store-temporal/shared.ts src/storage/store-temporal/index.ts src/storage/store-temporal/changes.ts src/tools/change.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/storage/json.ts src/storage/store-types.ts src/types/responses.ts src/types/index.ts src/storage/store-temporal/shared.ts src/storage/store-temporal/index.ts src/storage/store-temporal/changes.ts src/tools/change.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit"
+            }
+          ]
+        }
+      ],
+      "verification": "Targeted tests and static checks passed: tr_mra82g1b_9b62a08c (143 tests across store-temporal index/changes and tool change passed); tr_mra82sry_180e5f1e (schemas:check, ESLint on changed files, Prettier check on changed files passed).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/responses.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/responses.ts"
+      ],
+      "checkpointSha": "6306c8533c4f8b3a7fb4ecd9759248164fecce76",
+      "completedAt": "2026-07-07T05:42:57.154Z",
+      "completed_at": "2026-07-07T05:42:57.154Z"
+    },
+    {
+      "id": "tk-efc86a513c07",
+      "title": "Verify active fast path and shared terminal-list callers",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-07T04:48:54.706Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-551addf7bb03"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC2",
+          "AC5"
+        ],
+        "verifies": [
+          "AC2",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "DONT3",
+          "DONT4",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T05:43:22.953Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "diagnoseArchivedListingTimeout2",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/diagnoseArchivedListingTimeout2",
+          "task_id": "tk-efc86a513c07",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-efc86a513c07"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/storage/store-temporal/changes.test.ts",
+            "plugin/src/tools/change.test.ts",
+            "plugin/src/tools/change.status-repair.test.ts",
+            "plugin/src/tools/status-hygiene.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts src/tools/change.archive-repair.test.ts src/tools/status.test.ts",
+              "exit_code": 0,
+              "summary": "192 tests passed across the touched and related test files."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/index.status-repair-readback.test.ts",
+              "exit_code": 0,
+              "summary": "31 integration tests passed, including the status-repair public-read-path parity test."
+            },
+            {
+              "command": "pnpm --dir plugin exec prettier --check src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts",
+              "exit_code": 0,
+              "summary": "Formatting check passed for all changed files."
+            },
+            {
+              "command": "pnpm --dir plugin exec eslint src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts",
+              "exit_code": 0,
+              "summary": "Lint passed for all changed files."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "No source code patches were needed; the existing callers and envelope already handle the fast path correctly.",
+              "why": "Inspection showed listSummary already excludes terminal rows unless wantsTerminal, and terminal callers (status-hygiene, archive-repair, status-repair) use the authoritative list path. Tests provide the missing evidence rather than code changes."
+            },
+            {
+              "what": "Added mock-rejection guards in listSummary and change.test tests to prove the fast path is not silently falling back.",
+              "why": "Call-count assertions alone don't catch a fallback that returns a value; rejecting mocks make any unintended fallback fail loudly."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Verified active fast-path and shared terminal-list callers after terminal-list changes. Added 4 tests proving: (1) store listSummary default path excludes archived/closed rows and stays on memo/cache without invoking full terminal reconciliation, (2) adv_change_list default/in-flight uses listSummary and filters terminal rows locally, (3) adv_change_status_repair uses listSummary for in-flight readback and authoritative list for archived rows, (4) status-hygiene appender uses authoritative list for archived rows and ignores listSummary/ResolvedChangeList warnings. No source patches were required. Pre-existing typecheck error in src/temporal/change-state.ts is unrelated to this scope.",
+            "suggested_next_action": "Run the full change/test suite in CI if needed; no source changes required."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts src/tools/change.archive-repair.test.ts src/tools/status.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/index.status-repair-readback.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec prettier --check src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec eslint src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Targeted tests and static checks passed: tr_mra8twd2_be2813a2 (192 tests for changes/change/status-hygiene/status callers); tr_mra8u9eq_ce68b2c3 (31 store-temporal/status-repair tests); tr_mra8ug96_df10195d (Prettier and ESLint on changed test files).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/status-hygiene.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/status-hygiene.test.ts"
+      ],
+      "checkpointSha": "a5dbbb8f5661466c66167ab8addf185b3eaaf336",
+      "completedAt": "2026-07-07T06:04:27.341Z",
+      "completed_at": "2026-07-07T06:04:27.341Z"
+    },
+    {
+      "id": "tk-7023acf8a1e4",
+      "title": "Run terminal aggregate read verification gate",
+      "type": "verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-07T04:49:05.151Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fbc6a762e51a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-17bdbbbce65b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-efc86a513c07"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "respects": [
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T06:04:52.104Z",
+      "verification": "Verification gate passed after in-scope repair of branch-blocking pre-existing validation issues: initial smoke tr_mra8vmt5_59070b0e failed on adv-visual-review exhaustiveness in change-state; typecheck tr_mra8x0jp_c0401d7c passed after adding adv-visual-review blockerSummary handling. Second smoke tr_mra8xyzn_2f193498 failed on pre-existing Prettier drift in src/types/subagent-reports.test.ts; fixed by Prettier. Final smoke tr_mra8z3dr_853e9476 passed. Full suite tr_mra91jl2_4312967b passed via bin/oc-test full.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/types/subagent-reports.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/types/subagent-reports.test.ts"
+      ],
+      "checkpointSha": "7ffcee44f5318c4fa51e014ff53c829ea33684fa",
+      "completedAt": "2026-07-07T06:10:04.348Z",
+      "completed_at": "2026-07-07T06:10:04.348Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "diagnoseArchivedListingTimeout2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Opportunity scout — archived/terminal listing timeout leverage points",
+      "sources": [
+        {
+          "label": "index.ts listResolvedChanges terminal fan-out",
+          "locator": "plugin/src/storage/store-temporal/index.ts:683-880",
+          "summary": "Terminal listing unions memo+visibility+disk+archive IDs then calls getTemporalChange for EVERY candidate in batches of 20. Archive-only IDs (no live workflow) each pay a doomed live Temporal query + classify + reseed path."
+        },
+        {
+          "label": "getTemporalChange archive-only cost",
+          "locator": "plugin/src/storage/store-temporal/index.ts:560-638,640-653",
+          "summary": "loadDiskTerminalProjection returns only for status 'closed', NOT 'archived'. Archived-only candidates skip the terminal fast path, hit a cache miss, then execute a live changeStateQuery that will fail WorkflowNotFound, then classifyTemporalReadFailure, then reseedChangeFromDisk — 2-3 sequential I/O + Temporal round-trips per archived change."
+        },
+        {
+          "label": "runTemporalQuery per-attempt 5s timeout",
+          "locator": "plugin/src/storage/store-temporal/shared.ts:216-234",
+          "summary": "Each live query is bounded at 5s. WorkflowNotFound classifies as 'fallback' (retry-wrapper.ts:60-67) so retries short-circuit, but a hung/wedged worker makes each failed candidate query cost up to 5s; classifyTemporalReadFailure can add another describe() up to 5s (shared.ts:250-267,287-293)."
+        },
+        {
+          "label": "listSummary terminal defer",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:777-846",
+          "summary": "Any terminal or content-filtered listSummary call delegates wholesale to listResolvedChanges, so the summary/memo fast path is entirely bypassed for includeArchived. hydrationStats is returned but there is no partial/degraded contract."
+        },
+        {
+          "label": "No degraded-result contract on change listing; reusable warnings primitive exists",
+          "locator": "plugin/src/tools/change.ts + plugin/src/tools/backlog.test.ts:411-471 (rq-backlogCoord04)",
+          "summary": "adv_change_list has no partial/degraded/warnings envelope. Sibling aggregators (backlog_state/wip_state) already isolate per-source failure into a `warnings[]` array — a proven in-repo pattern to reuse for degraded terminal listing."
+        },
+        {
+          "label": "Temporal maintainer: querying completed workflows replays history; not retained long",
+          "locator": "https://community.temporal.io/t/how-queries-on-completed-workflows-work/11516",
+          "summary": "antonio.perez + maxim confirm queries against completed workflows force worker history pull+replay unless cached, and Temporal does not retain completed workflows/visibility records long — durable external store (disk/archive bundle) is the recommended read source. Validates reading archive bundle BEFORE attempting a live query for terminal IDs."
+        },
+        {
+          "label": "Temporal Visibility List/Count is the canonical list-by-state path",
+          "locator": "https://docs.temporal.io/visibility",
+          "summary": "Visibility List Filter + Count API are the documented cheap path to enumerate/filter/count workflows by ExecutionStatus without per-workflow query, distinct from workflow query which replays history."
+        },
+        {
+          "label": "Existing stale-memo/archive-dominance tests but no bounded-budget/degraded test",
+          "locator": "plugin/src/storage/store-temporal/index.test.ts:776-1290",
+          "summary": "Coverage exists for stale memo invalidation and archive-bundle dominance, but there is no test asserting bounded per-candidate cost, no-hard-timeout under large terminal state, or a degraded/partial contract."
+        }
+      ],
+      "architecture_assessment": "Root cause of #106 is a per-candidate live-query fan-out on the terminal listing path. For includeArchived/includeClosed, listResolvedChanges enumerates the FULL union (memo ∪ Visibility ∪ disk ∪ archive) and runs getTemporalChange on each ID sequentially-per-batch (batch=20). Active changes resolve cheaply (cache/query hit), but every archive-only ID follows the expensive miss path: cache miss → live changeStateQuery that WILL fail WorkflowNotFound (Temporal evicts/GCs completed workflows — confirmed by maxim) → classifyTemporalReadFailure (possibly another describe) → reseedChangeFromDisk (disk/archive read). This inverts Temporal's documented guidance: for terminal state the durable external projection (archive bundle / disk) is authoritative and should be read FIRST; the live query is pure waste for archived IDs. loadDiskTerminalProjection already short-circuits 'closed' but NOT 'archived' — a one-line-shaped asymmetry that forces archived changes through the doomed live-query path. Latency scales O(#archived) × (disk + failed-query + classify + reseed); under a wedged worker each failed query burns up to 5s, trivially blowing a 10s tool budget. The active-only path is untouched by any proposed fix because it does not enter the terminal union or the archived miss path.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Leverage points are inside the approved In-Scope aggregate read paths (adv_change_list, adv_status, archive readback, Visibility fallback). No candidate weakens spec-law, archive correctness, gate sequencing, or the active fast path. External Temporal guidance corroborates the archive-first read direction. Design must still pick the exact degraded-result shape and bounded-budget mechanism (user deferred 'degraded_behavior' to design)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Archive-first fast path for archived IDs eliminates the doomed live query but must preserve stale-projection-vs-terminal-truth correctness already guarded by archive-bundle dominance tests (index.test.ts:1108+).",
+          "A bounded per-list budget with a degraded/partial envelope changes the adv_change_list response contract; consumers and tests must tolerate a warnings/partial field (mitigated by reusing the existing rq-backlogCoord04 warnings pattern).",
+          "Parallelizing or batching archive-bundle reads reduces latency but raises transient memory/FD pressure on very large archives — batch size stays a tunable.",
+          "Skipping the live query for archived IDs slightly narrows self-healing reseed coverage for genuinely-orphaned-but-recoverable workflows; acceptable because archived state is terminal and durable on disk."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Do nothing / raise the tool timeout",
+            "disposition": "rejected",
+            "rationale": "Violates 'no hard timeout in normal large-state conditions' and just defers the cliff; latency still scales with archive count."
+          },
+          {
+            "option": "Read durable archive/disk projection first for terminal IDs; only attempt live query for non-terminal candidates",
+            "disposition": "preferred",
+            "rationale": "Matches Temporal maintainer guidance (completed workflows replay on query; durable external store is authoritative). Removes the dominant per-archived-ID cost while archive-bundle dominance tests already protect terminal-truth correctness."
+          },
+          {
+            "option": "Add a bounded per-list time/candidate budget with an explicit degraded/partial warnings envelope",
+            "disposition": "preferred",
+            "rationale": "Directly satisfies the 'explicit degraded/partial warnings, never silent partial' user outcome using the proven in-repo warnings[] aggregator pattern; complements (not replaces) the archive-first fix."
+          },
+          {
+            "option": "Full Visibility/memo summary-index read model for terminal statuses (no hydration)",
+            "disposition": "deferred",
+            "rationale": "High payoff and aligned with docs/repo-improve-prep summary-index model, but larger surface than #106 needs and overlaps the later status-health/TTL Epic entry; surface as follow-up, not this change."
+          },
+          {
+            "option": "Suppress the classifyTemporalReadFailure describe() probe on the list path",
+            "disposition": "deferred",
+            "rationale": "Real secondary cost, but subsumed once archived IDs no longer attempt the live query; revisit only if profiling shows residual describe() cost on non-terminal misses."
+          }
+        ],
+        "recommendation": "Adopt two tied primitives for this change: (1) archive-first terminal read — for IDs with an archive bundle (or on-disk terminal status), resolve from the durable projection and skip the live changeStateQuery/classify/reseed chain; extend the existing loadDiskTerminalProjection 'closed' short-circuit to cover 'archived'. (2) bounded degraded-result envelope on listResolvedChanges/adv_change_list reusing the rq-backlogCoord04 warnings[] pattern so a partial terminal read returns explicit degraded warnings instead of a hard ToolExecutionTimeout. Defer the full summary-index terminal read model and status-health TTL to the later Epic entry."
+      },
+      "recommendation": "SCOUT CANDIDATES (≤5):\n1. [auto-adopt | tied | risk:low | payoff:high] Archive-first terminal resolution: extend loadDiskTerminalProjection to short-circuit 'archived' (not just 'closed') and read archive-bundle/disk projection before any live query for terminal candidates. Removes the dominant per-archived-ID doomed-query cost. Evidence: index.ts:560-653, Temporal forum 11516 (maxim/antonio.perez).\n2. [auto-adopt | tied | risk:medium | payoff:high] Bounded degraded-result envelope on adv_change_list: reuse rq-backlogCoord04 warnings[] pattern to emit explicit partial/degraded warnings when the terminal union cannot fully resolve in budget, instead of hard timeout. Evidence: backlog.test.ts:411-471, change.ts (no envelope today).\n3. [surface_to_user | tied | risk:low | payoff:medium] Suppress/skip classifyTemporalReadFailure describe() probe for terminal IDs on the list path (subsumed by #1 for archived; still relevant for non-terminal misses). Deferrable. Evidence: shared.ts:250-296.\n4. [defer | untied | risk:medium | payoff:high] Full Visibility/memo summary-index read model for terminal statuses (no per-change hydration) — overlaps later status-health/TTL Epic entry; larger than #106. Evidence: docs/repo-improve-prep.md, changes.ts:777-846.\n5. [reject | untied | risk:low | payoff:low] Raise tool timeout — violates 'no hard timeout in normal large-state' outcome and only defers the cliff.\n\nConfirmation: RESEARCHER_REPORT submitted for diagnoseArchivedListingTimeout2, attempt 1, scope researcher:discovery-opportunity-scout.",
+      "follow_ups": [
+        "Design must select the exact degraded-result shape (warnings[] vs partial flag + hydrationStats) and the bounded-budget trigger (candidate-count cap vs wall-clock soft budget); user deferred degraded_behavior to design.",
+        "Add regression tests: (a) archived-only large-state list stays within bounded cost and returns no hard timeout; (b) partial terminal read surfaces explicit degraded warning; (c) active-only fast path unchanged; (d) archive-bundle-dominance terminal-truth still holds.",
+        "Confirm exact spec requirement IDs (advance-workflow / advance-delivery) governing terminal reads and degraded-result contract during design."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "diagnoseArchivedListingTimeout2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design-mode leverage scout for terminal aggregate read design",
+      "sources": [
+        {
+          "label": "index.ts loadDiskTerminalProjection",
+          "locator": "plugin/src/storage/store-temporal/index.ts:640-653",
+          "summary": "Terminal disk short-circuit returns ONLY when status === 'closed'. Archived records get no terminal short-circuit, so each archived candidate falls through to live workflow query/reseed — the O(N) fan-out root of the #106 archived-list timeout."
+        },
+        {
+          "label": "index.ts getTemporalChange archive override placement",
+          "locator": "plugin/src/storage/store-temporal/index.ts:560-638",
+          "summary": "loadArchiveBundleDominantProjection is consulted only when cached/queried status is non-terminal; the archived candidate still executes a live workflow query (line 583-605) before any archive fallback. Reseed path (617-636) also runs before archive resolution for evicted workflows."
+        },
+        {
+          "label": "index.ts listResolvedChanges batch hydration",
+          "locator": "plugin/src/storage/store-temporal/index.ts:803-858",
+          "summary": "Batches of 20 call getTemporalChange per candidate. Archive-bundle override lives only in the CATCH branch (818-844); a slow/hung workflow query on the TRY path is not bypassed and consumes the whole tool call."
+        },
+        {
+          "label": "changes.ts terminal listSummary delegation",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:794-846",
+          "summary": "Terminal/content filters fully delegate to listResolvedChanges with no per-source degraded metadata. One slow source (visibility, workflow query) consumes the whole call and surfaces as unclassified whole-tool timeout."
+        },
+        {
+          "label": "Shared primitive call sites",
+          "locator": "plugin/src/tools/status-hygiene.ts:251, plugin/src/tools/change/recovery.ts:85-87, plugin/src/tools/change.ts:3251",
+          "summary": "status archived-branch hygiene, change recovery, and archive-repair all call store.changes.list({includeArchived:true}) → same listResolvedChanges primitive. A terminal-projection-first + degraded envelope fix benefits all three for free."
+        },
+        {
+          "label": "changes.ts stale-shadow pre-scan pattern (existing, reusable)",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:890-927 and index.ts:793-801",
+          "summary": "Both list paths already implement archive-bundle-dominance pre-scan to invalidate stale non-terminal memo/cache. Proven pattern; extend rather than reinvent for AC3 stale-dominance."
+        }
+      ],
+      "architecture_assessment": "The draft design is correctly targeted and boring in the good sense: it extends existing proven patterns (loadArchiveBundleDominantProjection, archive-bundle-dominance pre-scan, source-isolated warnings) rather than introducing new machinery. The single highest-leverage, low-risk win is extending the terminal disk/archive short-circuit to cover 'archived' the same way loadDiskTerminalProjection already covers 'closed' (index.ts:640-653) — this directly removes the O(N) live-workflow-query fan-out that is the observed #106 root cause, and it makes the fast path match the truth rule the catch-branch override already asserts. The degraded envelope (warnings[]/hydrationStats) is compatible-by-construction (additive fields) and matches existing repo aggregate-read warning patterns. Shared-primitive reach is real and cheap: status-hygiene, change recovery, and archive-repair all route through the same list surface. Deterministic fake-slow-source tests are the correct verification choice given the no-wall-clock-budget decision. No design deviation from canonical Temporal read-model practice: Visibility for live enumeration, durable projection for terminal/completed records that lack a useful query path.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Draft design is architecturally sound and aligned with existing repo patterns. Scout surfaces 4 tie-in leverage candidates; all fit within AC1-AC5 and the deferral boundary (C-constraints, DONT1-4, OOS1-3). No contract compromise, security, or release blocker found."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Archived terminal short-circuit trades a small amount of freshness (durable archive bundle vs live workflow) for large latency/robustness gains; acceptable because archived records are terminal and archive-bundle-dominance is already the asserted truth rule elsewhere.",
+          "Additive degraded envelope (warnings[]/hydrationStats) adds response surface that callers must learn to inspect; mitigated because fields are optional and existing callers ignoring them keep working (AC compatibility requirement).",
+          "Routing archive resolution before the workflow query on the terminal path adds one archive-bundle existence check per terminal candidate; negligible vs the workflow query cost it replaces, and already cached per-list-call (archiveBundleCache).",
+          "Extending the shared primitive to benefit status-hygiene/recovery widens blast radius of the change slightly; mitigated by deterministic regression tests on the active-list no-regression path (AC2/AC4)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Raise the 10s tool timeout",
+            "disposition": "rejected",
+            "rationale": "Masks structural O(N) fan-out; moves the failure cliff without fixing root cause. Explicitly forbidden by DONT1 and design D2 rationale."
+          },
+          {
+            "option": "Full terminal summary-index read model now",
+            "disposition": "deferred",
+            "rationale": "Higher payoff but larger than the #106 slice; agreement DONT/OOS defer broader performance program. Correct to defer per D4."
+          },
+          {
+            "option": "Query every terminal workflow first, then fall back to archive",
+            "disposition": "rejected",
+            "rationale": "The completed/evicted workflow query path is the observed risk; archive-first inverts the cost correctly for terminal records."
+          },
+          {
+            "option": "Per-surface fail-fast instead of warnings[] envelope",
+            "disposition": "deferred",
+            "rationale": "warnings[]+hydrationStats preserves partial results and compatibility; fail-fast would drop good rows on one bad source. Envelope is the better default; field names refinable in implementation."
+          }
+        ],
+        "recommendation": "Adopt the draft design as-is. Prioritize the archived terminal short-circuit (extend loadDiskTerminalProjection / route loadArchiveBundleDominantProjection before workflow query on the terminal candidate path) as the primary fix — it is the direct root-cause removal. Reuse the existing archive-bundle-dominance pre-scan for AC3. Wire the additive degraded envelope through listResolvedChanges → terminal listSummary → adv_change_list. Confirm the shared primitive win covers status-hygiene and change/recovery in the same PR (cheap, in-scope per AC5)."
+      },
+      "recommendation": "SCOUT CANDIDATES (≤5):\n1) [auto-adopt | tied | risk:low | payoff:high] Extend terminal disk/archive short-circuit to cover 'archived' like 'closed' (index.ts:640-653 + reorder 560-638 so loadArchiveBundleDominantProjection precedes live workflow query on terminal candidates). Direct #106 root-cause removal of O(N) workflow-query fan-out. Evidence: index.ts:640-653 only handles closed; each archived candidate hits query path 583-605. Rationale: makes fast path match the truth rule the catch-branch override at 818-844 already asserts.\n2) [auto-adopt | tied | risk:low | payoff:high] Add source-isolated degraded envelope (warnings[]+hydrationStats) at listResolvedChanges, propagated through terminal listSummary. Prevents one slow source consuming whole call. Evidence: changes.ts:794-846 delegates with no degraded metadata. Additive/compatible per AC1.\n3) [surface_to_user | tied | risk:low | payoff:medium] Extend fix to shared primitive consumers status-hygiene.ts:251 and change/recovery.ts:85-87 (both call store.changes.list includeArchived). Cheap in-scope win per AC5; surface so orchestrator confirms including them in this PR vs noting-and-deferring.\n4) [auto-adopt | tied | risk:low | payoff:medium] Reuse existing archive-bundle-dominance pre-scan (changes.ts:890-927 / index.ts:793-801) for AC3 stale-projection dominance instead of new logic. Proven pattern; extend not reinvent.\n5) [defer | untied | risk:medium | payoff:high] Full terminal summary-index read model. Larger than #106 slice; matches D4 + OOS2 deferral. Note as later Epic performance entry.",
+      "follow_ups": [
+        "Implementation should confirm archiveBundleCache is shared across the terminal candidate loop so the added archive-bundle existence check is O(1) amortized per id, not per-batch re-checked.",
+        "Verify adv_change_list output schema (Zod) permits additive warnings[]/hydrationStats without schemas:check drift; run pnpm run schemas:generate if the public schema is extended."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "diagnoseArchivedListingTimeout2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: terminal-aware aggregate read path for archived listing timeout (#106)",
+      "sources": [
+        {
+          "label": "store-temporal/index.ts getTemporalChange + loadDiskTerminalProjection",
+          "locator": "plugin/src/storage/store-temporal/index.ts:560-653",
+          "summary": "loadDiskTerminalProjection short-circuits ONLY closed status (645); archived has no terminal short-circuit. getTemporalChange runs live workflow query (584-586) and applies archive override AFTER query (596-604) and in catch reseed (617-635). Confirms design D1 gap and root-cause ordering claim."
+        },
+        {
+          "label": "store-temporal/index.ts listResolvedChanges terminal hydration",
+          "locator": "plugin/src/storage/store-temporal/index.ts:683-880",
+          "summary": "Per-candidate O(N) fan-out through getTemporalChange (803-858); each may hit runTemporalQuery. Failed candidates silently dropped (result.success filter 853-857) with NO degraded envelope. Confirms timeout chokepoint and missing-classification claim. Dedupe already by canonical change.json.id (864-878)."
+        },
+        {
+          "label": "store-temporal/changes.ts listSummary terminal delegation + archive pre-scan",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:777-846,890-927",
+          "summary": "Terminal filters delegate whole branch to listResolvedChanges (794-798), confirming shared chokepoint. Archive-bundle dominance pre-scan (897-927) already exists — design reuses this pattern, not new heuristic."
+        },
+        {
+          "label": "tools/change.ts adv_change_list envelope",
+          "locator": "plugin/src/tools/change.ts:388-463",
+          "summary": "adv_change_list uses listSummary and preserves pagination envelope via formatToolOutput; additive fields (warnings/hydrationStats) do not break existing required fields. Confirms D2 additive-compatibility claim."
+        },
+        {
+          "label": "store-types.ts + existing warnings patterns",
+          "locator": "plugin/src/storage/store-types.ts:229-243; plugin/src/tools/backlog.ts:98,138; plugin/src/tools/change.ts:3319,3366",
+          "summary": "hydrationStats already typed in store-types and returned by listSummary. Established warnings[] convention ({source,reason}; conditional spread). D2 envelope reuses tested telemetry/warning machinery."
+        },
+        {
+          "label": "Spec advance-workflow rq-archiveRetirement01.2",
+          "locator": ".adv/specs/advance-workflow/spec.json:1199-1206",
+          "summary": "Spec-law: 'Archived change lookups resolve from durable archived state or the archive bundle.' Directly supports D1 archive-first terminal resolution."
+        },
+        {
+          "label": "Spec advance-delivery rq-replayFallback01",
+          "locator": ".adv/specs/advance-delivery/spec.json:934-972",
+          "summary": "Spec-law: read tools SHALL attempt durable projection fallback; 'Terminal projections (archived or closed) MUST NOT recreate change workflows during fallback.' Design D1 (archive-first, skip query) strengthens compliance — moving archive resolution before the query removes a reseed trigger."
+        },
+        {
+          "label": "Context7 Temporal TypeScript docs — Visibility list + query error semantics",
+          "locator": "https://github.com/temporalio/documentation/blob/main/docs/develop/typescript/workflows/message-passing.mdx",
+          "summary": "WorkflowService.listWorkflowExecutions supports query filters (matches existing Visibility enumeration). Workflow queries can error/reject: no polling workers -> ServiceError FAILED_PRECONDITION; handler error -> QueryNotRegisteredError; RPC -> TimeoutException/WorkflowNotFoundException. Confirms root cause: per-candidate query fan-out over evicted/completed archived workflows produces the whole-tool timeout."
+        }
+      ],
+      "architecture_assessment": "Design is correct, minimal, and spec-aligned. Root cause verified: listResolvedChanges fans out per-candidate getTemporalChange -> runTemporalQuery; for archived/evicted workflows a worker-less task queue or missing workflow makes each query hang/error (Context7-confirmed FAILED_PRECONDITION/timeout), producing O(N) slow-source fan-out and the unclassified whole-tool ToolExecutionTimeout in #106. Design D1 (resolve terminal candidates from archive bundle/closed disk BEFORE live workflow query) eliminates the query fan-out for exactly the records that trigger it, and simultaneously strengthens rq-replayFallback01.1 (no workflow recreation for archived) and rq-archiveRetirement01.2 (archived lookups resolve from durable state/bundle). D2 (structured degraded envelope) reuses existing hydrationStats type and warnings[] conventions — additive, envelope-preserving, satisfies C3 (no hidden partial success). D3 (fake slow-source + call-count assertions) satisfies C5 and avoids flaky p95. D4 (narrow shared primitive; defer summary-index + status TTL) matches agreement scope and avoids DONT3/DONT4. Existing active fast path (listSummary non-terminal branch, 848+) is untouched, satisfying SC3/C4/AC2. No simpler materially-equivalent approach found: raising timeout (DONT1) only moves the cliff; a summary index is larger than the #106 slice (correctly deferred). Only residual design-latitude item: 'bounded logic' for degraded classification (D2/step 4) is stated but not yet mechanized — planning must define the concrete bound (e.g. per-candidate try/collect-warning, not a wall-clock timer) to keep AC1 structural rather than heuristic and honor DONT1.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All four judgement dimensions supported by source + spec + Context7 evidence. CORRECTNESS: root cause and fix mechanism verified in source and Temporal docs; solves SC1/SC2/SC3 and AC1-AC5. SIMPLICITY: reuses existing archive-bundle dominance pre-scan, hydrationStats, and warnings[] patterns; no new dependency (DONT2 respected). SPEC-LAW: consistent with and strengthens rq-archiveRetirement01.2 and rq-replayFallback01; C1/C2/C3 respected; design commits to updating advance-workflow spec for the terminal aggregate read behavior (required spec-delta obligation carried to planning). KEY ALTERNATIVES: timeout inflation and summary-index both correctly considered and rejected/deferred. One non-blocking planning refinement: mechanize D2 'bounded logic' as structural per-candidate collect-and-classify (not a wall-clock bound) so AC1 degraded classification stays deterministic and DONT1-safe."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Terminal candidates now hit archive-bundle/closed-disk reads first, adding filesystem stat/read cost on the terminal path — acceptable and already partially present via the existing dominance pre-scan; active path is untouched.",
+          "Additive warnings[]/hydrationStats envelope grows adv_change_list output surface; low risk because callers ignore unknown fields and the shape mirrors existing telemetry conventions.",
+          "Shared terminal-list primitive couples adv_change_list, change/recovery.ts, and status-hygiene read paths; a bug in the primitive has wider blast radius, but consolidation reduces duplicated stale-projection logic and is net-positive for correctness.",
+          "'Bounded logic' for degraded classification must be defined structurally in planning; if left as an implicit wall-clock bound it risks reintroducing DONT1-shaped timeout dependence."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Raise the tool/query timeout",
+            "disposition": "rejected",
+            "rationale": "Explicit avoidance DONT1; only relocates the failure cliff and leaves stale-projection shadowing (SC2) unaddressed."
+          },
+          {
+            "option": "Build a durable terminal summary-index read model",
+            "disposition": "deferred",
+            "rationale": "Larger than the #106 slice; agreement LBP decision and D4 defer it to later performance/Epic work. Not required to satisfy SC1-SC3/AC1-AC5."
+          },
+          {
+            "option": "Fail-fast per terminal source instead of a shared degraded envelope",
+            "disposition": "rejected",
+            "rationale": "Would violate AC1 requirement to return complete rows OR structured degraded output naming failed/omitted source classes; per-source fail-fast hides which classes were omitted. Envelope preserves classification."
+          },
+          {
+            "option": "Keep live workflow query first and only override with archive on failure (status quo)",
+            "disposition": "rejected",
+            "rationale": "Source shows this is exactly today's ordering (getTemporalChange 596-635) and is the root cause — the failing/slow query still runs per candidate before override, so the fan-out timeout persists and rq-replayFallback01.1 no-recreate is only reached via the slow path."
+          }
+        ],
+        "recommendation": "Proceed to planning with the design as approved. Add one planning obligation: mechanize D2 'bounded logic' as a structural per-candidate collect-and-classify (try terminal projection; on unresolved candidate push a typed warning with code + source class + omitted reason), NOT a wall-clock bound, so AC1 degraded output stays deterministic and DONT1-safe. Carry the advance-workflow spec-delta obligation (terminal aggregate read behavior, projection-truth dominance, active fast-path preservation) with concrete rq-* IDs and Given/When/Then scenarios before implementation tasks are generated (rq-taskSpecLaw01/rq-problemSpecLaw01 intent)."
+      },
+      "recommendation": "validation.status=pass. Design is correct, boring, and spec-aligned; approve for planning. Single non-blocking refinement: define D2 degraded classification structurally (per-candidate collect-and-classify, not a wall-clock timer) and carry the advance-workflow spec-delta with concrete rq-* IDs + scenarios into planning.",
+      "follow_ups": [
+        "Planning: mechanize D2 'bounded logic' as structural per-candidate warning collection to keep AC1 deterministic and honor DONT1.",
+        "Planning: author advance-workflow spec-delta (terminal aggregate read behavior, archive/closed projection dominance, active fast-path preservation) with concrete rq-* IDs and Given/When/Then before implementation tasks.",
+        "Execution: add regression test asserting terminal candidates resolve WITHOUT calling runTemporalQuery/getGuardedChangeHandle (call-count assertion) to lock in the fan-out-skip and rq-replayFallback01.1 no-recreate guarantee."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "diagnoseArchivedListingTimeout2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/diagnoseArchivedListingTimeout2",
+      "task_id": "tk-fbc6a762e51a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-fbc6a762e51a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm test -- src/storage/store-temporal/index.test.ts",
+          "exit_code": 0,
+          "summary": "All tests in index.test.ts pass, including new archive-first terminal projection tests."
+        },
+        {
+          "command": "pnpm test -- src/storage/store-temporal/changes.test.ts",
+          "exit_code": 0,
+          "summary": "listSummary and change ops tests still pass."
+        },
+        {
+          "command": "pnpm test -- src/ops-follow-up-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Version-bumped asset tests pass."
+        },
+        {
+          "command": "pnpm test -- src/__tests__/spec-citation-invariant.test.ts",
+          "exit_code": 0,
+          "summary": "New rq-* requirements are cited in code comments."
+        },
+        {
+          "command": "pnpm run lint",
+          "exit_code": 0,
+          "summary": "ESLint passes."
+        },
+        {
+          "command": "pnpm exec prettier --check src/storage/store-temporal/index.test.ts",
+          "exit_code": 0,
+          "summary": "New tests are formatted."
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 2,
+          "summary": "Fails pre-existing in plugin/src/temporal/change-state.ts (unrelated to touched files)."
+        },
+        {
+          "command": "pnpm run format:check",
+          "exit_code": 1,
+          "summary": "Fails pre-existing in plugin/src/types/subagent-reports.test.ts (unrelated to touched files)."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Checked durable terminal projection before live workflow query, cache, or re-seed in getTemporalChange",
+          "why": "Ensures archive bundle and closed disk dominate stale active/memo/workflow/visibility projections per rq-terminalProjectionTruth01 and avoids live workflow round-trips for archived candidates per rq-terminalAggregateRead01."
+        },
+        {
+          "what": "Reused existing loadArchiveBundleDominantProjection and loadDiskTerminalProjection inside a new loadTerminalProjection helper",
+          "why": "Minimizes new code and keeps canonical-id dedupe, archive bundle dominance, and closed-disk dominance in one place."
+        },
+        {
+          "what": "Updated advance-workflow version assertions from 1.25.1 to 1.26.0 in ops-follow-up-assets.test.ts and adv-skill-backed-commands-assets.test.ts",
+          "why": "The spec.json was already at 1.26.0 for the newly added rq-terminal* requirements; the asset tests were stale."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Fix pre-existing typecheck error in plugin/src/temporal/change-state.ts (adv-visual-review subagent report type).",
+        "Fix pre-existing prettier violation in plugin/src/types/subagent-reports.test.ts."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Removed duplicate archive checks inside getTemporalChange cached/after-query branches because the new terminal-first helper covers them.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented archive-first terminal projection resolution in plugin/src/storage/store-temporal/index.ts. New loadTerminalProjection checks archive bundle and closed disk before any live workflow query, satisfying rq-terminalProjectionTruth01 and rq-terminalAggregateRead01. Default active list remains on the summary/memo fast path (rq-activeListFastPath01). Added RED tests with call-count assertions for no live workflow query when archive projection exists, canonical-id dedupe, and fast-path preservation. Updated two asset tests to match the already-bumped advance-workflow spec version 1.26.0. Typecheck and format:check failures observed are pre-existing and unrelated to touched files.",
+        "suggested_next_action": "Run the full pnpm run check after the pre-existing typecheck/format:check failures in temporal/change-state.ts and subagent-reports.test.ts are resolved elsewhere."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/storage/store-temporal/index.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/storage/store-temporal/changes.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/ops-follow-up-assets.test.ts src/adv-skill-backed-commands-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/__tests__/spec-citation-invariant.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/storage/store-temporal/index.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "diagnoseArchivedListingTimeout2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/diagnoseArchivedListingTimeout2",
+      "task_id": "tk-17bdbbbce65b",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-17bdbbbce65b"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/responses.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "143 targeted tests pass"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts src/tools/change.read-artifact.test.ts src/tools/change.cross-project-create.test.ts",
+          "exit_code": 0,
+          "summary": "209 related tests pass"
+        },
+        {
+          "command": "pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Public JSON schemas unchanged/drift-free"
+        },
+        {
+          "command": "pnpm exec eslint src/storage/json.ts src/storage/store-types.ts src/types/responses.ts src/types/index.ts src/storage/store-temporal/shared.ts src/storage/store-temporal/index.ts src/storage/store-temporal/changes.ts src/tools/change.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "No lint errors on changed files"
+        },
+        {
+          "command": "pnpm exec prettier --check src/storage/json.ts src/storage/store-types.ts src/types/responses.ts src/types/index.ts src/storage/store-temporal/shared.ts src/storage/store-temporal/index.ts src/storage/store-temporal/changes.ts src/tools/change.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "Prettier formatting passes on changed files"
+        },
+        {
+          "command": "pnpm exec tsc --noEmit",
+          "exit_code": 2,
+          "summary": "Only pre-existing error in src/temporal/change-state.ts (adv-visual-review exhaustiveness), unrelated to this change"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added optional source field to LoadResult success branch",
+          "why": "Allows getTemporalChange to report whether a loaded change came from workflow, disk, or archive, which is required for terminal hydration stats."
+        },
+        {
+          "what": "Changed listResolvedChanges return type from Change[] to ResolvedChangeList",
+          "why": "Carries warnings and hydrationStats alongside the change array without breaking the internal contract for callers that only need changes."
+        },
+        {
+          "what": "Surfaced degraded metadata only when wantsTerminalStatuses is true",
+          "why": "Preserves active/default list behavior and caller compatibility per OOS1/AC4."
+        },
+        {
+          "what": "Used a second candidate-resolution pass to classify terminal sources",
+          "why": "Kept the existing fallback logic intact and minimized structural risk while still achieving structural per-candidate classification."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated changes.test.ts mock listResolvedChanges to return new ResolvedChangeList shape; ensured active/default list paths do not emit degraded metadata.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added structured degraded metadata for terminal aggregate list reads. listResolvedChanges now returns ResolvedChangeList with optional warnings and hydrationStats; adv_change_list, store.changes.list, and store.changes.listSummary propagate them only when terminal rows are requested or terminal failure occurred. Active/default lists remain unchanged. Pre-existing tsc error in src/temporal/change-state.ts (adv-visual-review exhaustiveness) is unrelated to this change.",
+        "suggested_next_action": "Run full plugin test suite (bin/oc-test full) to confirm no regressions, then proceed to review/acceptance gate."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts src/tools/change.read-artifact.test.ts src/tools/change.cross-project-create.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/storage/json.ts src/storage/store-types.ts src/types/responses.ts src/types/index.ts src/storage/store-temporal/shared.ts src/storage/store-temporal/index.ts src/storage/store-temporal/changes.ts src/tools/change.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/storage/json.ts src/storage/store-types.ts src/types/responses.ts src/types/index.ts src/storage/store-temporal/shared.ts src/storage/store-temporal/index.ts src/storage/store-temporal/changes.ts src/tools/change.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "diagnoseArchivedListingTimeout2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/diagnoseArchivedListingTimeout2",
+      "task_id": "tk-efc86a513c07",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-efc86a513c07"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.status-repair.test.ts",
+        "plugin/src/tools/status-hygiene.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts src/tools/change.archive-repair.test.ts src/tools/status.test.ts",
+          "exit_code": 0,
+          "summary": "192 tests passed across the touched and related test files."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/index.status-repair-readback.test.ts",
+          "exit_code": 0,
+          "summary": "31 integration tests passed, including the status-repair public-read-path parity test."
+        },
+        {
+          "command": "pnpm --dir plugin exec prettier --check src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts",
+          "exit_code": 0,
+          "summary": "Formatting check passed for all changed files."
+        },
+        {
+          "command": "pnpm --dir plugin exec eslint src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts",
+          "exit_code": 0,
+          "summary": "Lint passed for all changed files."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "No source code patches were needed; the existing callers and envelope already handle the fast path correctly.",
+          "why": "Inspection showed listSummary already excludes terminal rows unless wantsTerminal, and terminal callers (status-hygiene, archive-repair, status-repair) use the authoritative list path. Tests provide the missing evidence rather than code changes."
+        },
+        {
+          "what": "Added mock-rejection guards in listSummary and change.test tests to prove the fast path is not silently falling back.",
+          "why": "Call-count assertions alone don't catch a fallback that returns a value; rejecting mocks make any unintended fallback fail loudly."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Verified active fast-path and shared terminal-list callers after terminal-list changes. Added 4 tests proving: (1) store listSummary default path excludes archived/closed rows and stays on memo/cache without invoking full terminal reconciliation, (2) adv_change_list default/in-flight uses listSummary and filters terminal rows locally, (3) adv_change_status_repair uses listSummary for in-flight readback and authoritative list for archived rows, (4) status-hygiene appender uses authoritative list for archived rows and ignores listSummary/ResolvedChangeList warnings. No source patches were required. Pre-existing typecheck error in src/temporal/change-state.ts is unrelated to this scope.",
+        "suggested_next_action": "Run the full change/test suite in CI if needed; no source changes required."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts src/tools/change.archive-repair.test.ts src/tools/status.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/index.status-repair-readback.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec prettier --check src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec eslint src/storage/store-temporal/changes.test.ts src/tools/change.test.ts src/tools/change.status-repair.test.ts src/tools/status-hygiene.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "diagnoseArchivedListingTimeout2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/diagnoseArchivedListingTimeout2",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/storage/store-temporal/index.ts",
+          "line": 715,
+          "what": "Terminal-aware list resolution now returns rows plus machine-readable degraded metadata instead of collapsing aggregate reads into opaque failures.",
+          "why": "Implementation traces AC1/AC3 through source-class warnings, omission counts, archive-first projection dominance, and canonical archive-directory dedupe."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/storage/store-temporal/changes.ts",
+          "line": 785,
+          "what": "Default active/in-flight summary path remains distinct from terminal reconciliation paths.",
+          "why": "Implementation routes archived/closed filters to authoritative terminal resolution while keeping default summary reads on memo/cache/hydration fast path and filtering terminal rows out."
+        },
+        {
+          "id": "review-praise-3",
+          "label": "praise",
+          "file": "plugin/src/storage/store-temporal/index.test.ts",
+          "line": 1546,
+          "what": "Regression tests cover terminal degraded metadata, corrupt archive omission, stale projection dominance, archive-directory dedupe, and active-list no-regression.",
+          "why": "Coverage directly exercises AC4 scenarios and protects against partial reads masquerading as complete success."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/storage/store-temporal/index.test.ts plugin/src/storage/store-temporal/changes.test.ts plugin/src/tools/change.test.ts",
+          "bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts src/tools/change.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Initial targeted command used repo-root-prefixed paths and Vitest reported no test files. Corrected command with plugin-relative paths passed: 3 test files, 145 tests. Reviewed diff and touched source/docs/specs against AC1-AC5 plus known full verification evidence tr_mra91jl2_4312967b."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Review was source/test based; live deployed OpenCode plugin behavior still requires rebuild/deploy/restart per repo Source-vs-Dist Reload Gotcha before validating through live adv_change_list tool calls.",
+        "Terminal-list performance depends on existing 5s Temporal query timeout and batched resolution; tests cover degraded/error paths and active fast path, not a large real-world archive corpus load test."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "diagnoseArchivedListingTimeout2",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/diagnoseArchivedListingTimeout2",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "maintainability-1",
+          "label": "suggestion",
+          "file": "plugin/src/storage/store-temporal/index.ts",
+          "line": 718,
+          "what": "Terminal aggregate resolution remains a high-complexity function after the bounded/degraded terminal-read implementation.",
+          "why": "`bin/adv slop-scan plugin/src/storage/store-temporal --json` reported MAINT-004 complexity hotspots, including listResolvedChanges at complexity 36 and terminal-candidate mapper at line 941 complexity 18. Current behavior is covered by targeted regression tests and not release-blocking, but later extraction would reduce maintenance risk.",
+          "fix": "Post-release cleanup: extract terminal candidate resolution/source-classification helpers without changing response semantics."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Terminal aggregate reads should surface machine-readable degraded metadata (`warnings[]`, `hydrationStats`) instead of stretching timeouts; bounded per-candidate fallback plus archive-bundle dominance tests gave release confidence without timeout inflation."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight for all listed touched files: all OK",
+          "pnpm run schemas:check (from plugin/)",
+          "bin/oc-test targeted -- src/storage/store-temporal/index.test.ts src/tools/change.test.ts",
+          "bin/adv slop-scan plugin/src/storage/store-temporal --json",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight found every listed file. `pnpm run schemas:check` completed successfully. Corrected targeted test command passed 2 files / 126 tests. Slop scan produced no CRITICAL/HIGH findings, 10 MEDIUM MAINT-004 complexity hotspots, and degraded detector coverage because knip JSON parsing failed and ast-grep/jscpd were unavailable; no TODO/FIXME/HACK/@ts-ignore implementation-path findings were found in touched source. `git status --short` returned clean. Prior context also recorded full suite pass runId tr_mra91jl2_4312967b and smoke pass runId tr_mra8z3dr_853e9476."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Automated slop-scan coverage was degraded by missing/unavailable optional detectors (knip parse failure, ast-grep/jscpd unavailable); deterministic ESLint complexity findings plus source review found no release-blocking slop.",
+        "Source-vs-dist reload caveat remains normal for this repo: live OpenCode tool behavior needs build/deploy/restart before validating deployed dist in a fresh session.",
+        "Terminal aggregate list implementation is intentionally more complex than ideal; tests cover degraded output, stale archive projection dominance, corrupt archive omission, and active fast path, but a post-release extraction would improve maintainability."
+      ],
+      "required_main_agent_actions": [
+        "Release note only: because OpenCode loads deployed dist at session startup, run `pnpm run build`, `./scripts/deploy-local.sh --fix`, then restart OpenCode before validating live `adv_change_list` behavior from deployed runtime.",
+        "No release-blocking agenda item remains: relevant pending audit items for degraded-result shape, regression tests, rq IDs, archiveBundleCache/schema warnings are satisfied by code/tests or are normal non-release cleanup/deployment notes."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-07T04:23:34.150Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved proposal framing and scope via chat reply: approve",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "a1cdc7a7731cb2f0aa2d1b869b799dd7fa6df2cb55fe7487f6d20ede83e967cf",
+        "non_whitespace_chars": 5034,
+        "checked_at": "2026-07-07T04:09:02.527Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-07T04:39:51.245Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved discovery criteria and agreement via chat reply: approve. Contract minted with 20 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "non_whitespace_chars": 3659,
+        "checked_at": "2026-07-07T04:09:02.528Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-07T04:47:35.956Z",
+      "completed_by": "adv",
+      "approval_evidence": "Design recorded. Design leverage scout pass. Independent validator clean pass; non-blocking refinement adopted.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "69b95fdafb0eaf33947562abe6c2a77727e1fa09051bcc813262699404309a6f",
+        "non_whitespace_chars": 8866,
+        "checked_at": "2026-07-07T04:09:02.529Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-07T04:50:21.516Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved prep task graph via chat reply: approve"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-07T06:10:27.368Z",
+      "completed_by": "adv",
+      "approval_evidence": "All 5 execution tasks complete. Verification evidence includes final smoke pass tr_mra8z3dr_853e9476 and full suite pass tr_mra91jl2_4312967b. Worktree clean at checkpoint 7ffcee44."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-07T06:25:38.296Z",
+      "completed_by": "adv",
+      "approval_evidence": "User accepted delivered work via chat reply: approve. Review verdict READY with 0 blockers/issues; contract matrix 20/20 pass/respected/not_applicable; executive summary persisted with content hash 5d5bb4eed74197f5c7c47cdd4dfd24860149305ab83e01141711a3d9ca2b1db5; smoke tr_mra8z3dr_853e9476 and full suite tr_mra91jl2_4312967b passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "5d5bb4eed74197f5c7c47cdd4dfd24860149305ab83e01141711a3d9ca2b1db5",
+        "non_whitespace_chars": 3127,
+        "checked_at": "2026-07-07T04:09:02.530Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+      "approvedAt": "2026-07-07T04:39:43.232Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Archived/terminal aggregate reads no longer fail as unclassified whole-tool `ToolExecutionTimeout` under bounded terminal-state fixtures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Terminal archive/closed truth cannot be shadowed by stale active/draft projections.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Active-only/default change listing keeps existing fast-path behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_list` with archived/closed filters returns either complete rows or structured degraded output that names failed/omitted source classes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_list"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Default active/in-flight `adv_change_list` excludes archived/closed terminal rows and does not run full terminal reconciliation when summary data is sufficient.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_list"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "When archive bundle and stale non-terminal projection disagree, terminal-aware reads return archived terminal state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_list"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Deterministic regression tests cover slow/unreachable terminal source, corrupt/missing archive candidate, stale projection dominance, and active-list no-regression.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Broader workflow reset/status TTL/worktree cleanup work is explicitly deferred unless fixed through the shared terminal-list primitive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not weaken spec-law, gate sequencing, or archive correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not treat stale disk projection as authoritative over reachable live workflow terminal state except through explicit terminal/recovery rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not hide partial/degraded reads as complete success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not slow the active-only list path to fix archived/terminal paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Use deterministic tests or fakeable slow sources for timing-sensitive behavior; avoid flaky real-time p95 assertions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not raise the tool timeout as the fix.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not replace Temporal or add a new external dependency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not fold full workflow reset/disk-authoritative recovery from issue #198 into this change unless a small shared helper is directly required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not implement the later status health TTL Epic entry here.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Full Temporal storage architecture rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Broad status-health TTL work outside the shared terminal-list primitive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Unrelated worktree cleanup timeout behavior outside the shared terminal-list primitive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-07T06:17:24.479Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer report diagnoseArchivedListingTimeout2|change:review:acceptance|adv-reviewer|1 verdict READY; terminal degraded metadata verified. Tests tr_mra82g1b_9b62a08c, tr_mra8z3dr_853e9476, tr_mra91jl2_4312967b passed."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY; archive-first projection tests cover archive bundle dominance/stale shadow. Tests tr_mra732u3_ad1029a2 and full suite tr_mra91jl2_4312967b passed."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY; active fast-path separation praised. Tests tr_mra8twd2_be2813a2 and tr_mra8u9eq_ce68b2c3 passed."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Implemented warnings/hydrationStats pass-through for adv_change_list. Store/tool tests tr_mra82g1b_9b62a08c passed; full suite tr_mra91jl2_4312967b passed."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Default/in-flight adv_change_list/listSummary active fast path tests passed in tr_mra8twd2_be2813a2 and tr_mra8u9eq_ce68b2c3."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Archive bundle dominance/stale non-terminal projection tests passed in tr_mra732u3_ad1029a2 and full suite tr_mra91jl2_4312967b."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Deterministic tests cover visibility degradation, corrupt archive omission, stale projection dominance, canonical ID dedupe, and active-list no-regression. Evidence: tr_mra82g1b_9b62a08c, tr_mra8twd2_be2813a2, tr_mra8u9eq_ce68b2c3."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Review found no broad workflow reset/status TTL/worktree cleanup implementation; shared caller tests passed in tr_mra8twd2_be2813a2 and tr_mra8u9eq_ce68b2c3."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec-law deltas added and cited; spec-citation/assets checks passed in tr_mra738ov_e573801b; reviewer verdict READY."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Terminal projection path prefers archive/closed projections only via explicit terminal/recovery rules; reviewer verdict READY."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Partial/degraded terminal reads expose structured warnings and hydrationStats; tests tr_mra82g1b_9b62a08c passed; reviewer verdict READY."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Active/default fast path remains on listSummary/memo/cache; tests tr_mra8twd2_be2813a2 and tr_mra8u9eq_ce68b2c3 passed."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Tests use fake/call-count/source classification assertions; no wall-clock p95 budget added. Reviewer verdict READY."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No timeout increase implemented; reviewer verdict READY."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new dependency or Temporal replacement; reviewer verdict READY and schemas/check/lint passed."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No full workflow reset/disk-authoritative recovery added; change limited to shared terminal-list primitive and small typecheck repair."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No status health TTL Epic entry implemented; status hygiene tests only verify existing shared primitive caller behavior."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Full Temporal storage rewrite not part of implementation; reviewer verdict READY."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Broad status-health TTL deferred; no TTL implementation added."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Unrelated worktree cleanup timeout behavior not implemented."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_list` with archived/closed filters returns either complete rows or structured degraded output that names failed/omitted source classes.",
+    "Default active/in-flight `adv_change_list` excludes archived/closed terminal rows and does not run full terminal reconciliation when summary data is sufficient.",
+    "When archive bundle and stale non-terminal projection disagree, terminal-aware reads return archived terminal state.",
+    "Deterministic regression tests cover slow/unreachable terminal source, corrupt/missing archive candidate, stale projection dominance, and active-list no-regression.",
+    "Broader workflow reset/status TTL/worktree cleanup work is explicitly deferred unless fixed through the shared terminal-list primitive."
+  ],
+  "documents": {
+    "proposal": "# Diagnose archived listing timeout\n\n## Why\n\nADV archived/terminal listing paths can exceed tool timeouts and may shadow correct terminal state with stale fallback projections. Issue #106 reports a terminal/archived listing timeout with healthy Temporal controls, plus recurrence evidence across aggregate Visibility-backed tools.\n\n## Problem\n\nWhen aggregate read paths include archived or terminal changes, ADV can exceed the tool budget or return stale fallback-derived state. This damages operator trust in status/listing/archive surfaces, especially when archive finalization succeeds but readback times out or misclassifies workflow/query failure.\n\n## User Outcomes\n\n- Operators can request archived/terminal change listings without hard `ToolExecutionTimeout` in normal large-state conditions.\n- Operators get explicit degraded/partial-result warnings when aggregate reads cannot complete within budget.\n- Terminal archived/closed truth is not shadowed by stale disk projection or ambiguous recovery fallback.\n- Active-only listing remains fast and does not pay terminal-state recovery cost.\n- Archive/readback outcomes are explainable when finalization succeeds but aggregate verification is slow.\n\n## Scope\n\n### In Scope\n\n- Diagnose issue #106 using source-backed path analysis and bounded local reproduction where safe.\n- Inspect aggregate read paths for `adv_change_list`, `adv_status`, archive readback, and related Temporal Visibility/list fallback behavior.\n- Identify why archived/terminal inclusion expands latency or recovery fan-out.\n- Define and implement a bounded fix if root cause is local and safe for this change.\n- Add regression coverage, performance guard, or degraded-result contract covering terminal/archived listing behavior.\n- Preserve active-list fast-path behavior and test it explicitly.\n\n### Out of Scope\n\n- Full Temporal storage architecture rewrite.\n- Unrelated worktree cleanup timeout behavior unless the same aggregate-read primitive is touched.\n- Broader status health TTL work; later Epic entry.\n- OCA-specific behavior and issue #104.\n- Unrelated cleanup.\n\n### Must Not\n\n- Do not weaken spec-law, gate sequencing, or archive correctness.\n- Do not treat stale disk projection as authoritative over reachable live workflow terminal state without explicit recovery mode.\n- Do not hide partial/degraded reads as complete success.\n- Do not slow the active-only list path to fix archived/terminal paths.\n- Do not add polling loops in normal agent/tool context.\n\n## Discovery Findings\n\n### Current State\n\n- `adv_change_list` uses `changes.listSummary` when available, then paginates after store rows return (`plugin/src/tools/change.ts:388-458`).\n- Active/default list uses memo/cache/summary and hydrates only misses (`plugin/src/storage/store-temporal/changes.ts:770-1044`).\n- Terminal list (`includeArchived`, `includeClosed`, or terminal status) bypasses warm path and delegates to full `listResolvedChanges` (`plugin/src/storage/store-temporal/changes.ts:777-846`).\n- `listResolvedChanges` unions memo, Visibility, active disk, and archive IDs, then hydrates candidates in batches of 20 (`plugin/src/storage/store-temporal/index.ts:683-880`).\n- Archive-bundle dominance exists, but the terminal disk short-circuit covers closed projections only, not archived (`plugin/src/storage/store-temporal/index.ts:560-653`).\n- Existing tests cover small stale memo/archive dominance cases, not large terminal aggregate degraded behavior.\n\n### Extends\n\n- `docs/repo-improve-prep.md`: prior pack identified full hydration and summary-index opportunity; current discovery narrows the remaining risk to terminal list paths.\n- Issue #106: timeout evidence. Current code still has O(N) terminal hydration.\n- Issue #198: same fallback/recovery area; full workflow reset remains separate unless a shared helper is touched.\n- Issues #53/#57/#88: prior archive/read-state defects; current change adds bounded terminal-list guardrails.\n\n### User Clarifications\n\n- Degraded behavior: defer exact shape to design for Temporal best practice and repo fit.\n- Surface scope: cover all easy-medium wins.\n- Latency budget: no fixed wall-clock budget; require no hard timeout and clear degradation where appropriate.\n\n### Recommended Objectives\n\n1. Make archived/closed aggregate listing complete or explicitly degraded instead of whole-tool timeout.\n2. Ensure archive bundle/durable terminal projection dominates stale active/draft projections in terminal-aware reads.\n3. Preserve active-only listing fast path and existing default-list behavior.\n4. Add deterministic regression coverage for terminal-list timeout/shadow classes without relying on real wall-clock flakiness.\n5. Document and defer broader workflow reset/status TTL/worktree cleanup work unless shared primitive fixes cover them naturally.\n\n### Draft Spec Deltas\n\n- `rq-terminalAggregateRead01`: terminal aggregate reads return complete or structured degraded result, not unclassified whole-tool `ToolExecutionTimeout`, when one terminal source is slow/unavailable/corrupt.\n- `rq-terminalProjectionTruth01`: archive bundle truth dominates stale non-terminal projections in terminal-aware reads.\n- `rq-activeListFastPath01`: active-only/default list avoids full terminal reconciliation when summary data is sufficient.\n\n### Design Questions\n\n- Terminal degraded response shape: `warnings[]`, `_degraded`, or fail-fast by surface.\n- Terminal source priority: archive/disk-first for terminal aggregate candidates versus live-workflow-first.\n- Surface breadth: exact shared primitive coverage for `adv_change_list`, status hygiene, and archive readback.\n- Budget expression: deterministic slow-source/candidate tests versus real-time latency assertions.\n\n### Discovery Opportunity Scout\n\nScout report persistence timed out before worker restart, but inline findings were usable. Adopted: archive-first terminal resolution and bounded degraded terminal aggregate envelope. Deferred: full terminal summary-index model. Rejected: raising tool timeout.\n\n### Ambiguity Analysis\n\nNo blocking ambiguity. Coverage: B:C F:C S:C M:C. Advisory: exact degraded shape is design-owned.\n",
+    "problemStatement": "## Problem\n\nADV archived/terminal listing paths can exceed tool timeouts and may shadow correct terminal state with stale fallback projections.\n\n## Desired Outcome\n\nDiagnose and either resolve or explain the archived/terminal listing timeout while preserving the active-list fast path and preventing stale fallback projections from overriding terminal archived/closed truth.\n\n## Evidence\n\n- GitHub issue #106 reports `adv_change_list includeArchived:true` timing out while active-only listing and `adv_temporal_diagnose` stayed healthy.\n- Recurrence evidence shows multiple Visibility-backed aggregate reads timing out in the same session window, while single-change reads stayed fast.\n- Related terminal-state shadow evidence references `store-temporal/index.ts` fallback/recovery paths and issue #198.\n",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make archived/closed aggregate change listing complete or explicitly degraded instead of failing as an unclassified whole-tool timeout.\n2. Ensure durable terminal truth from archive/closed projections dominates stale active/draft projections in terminal-aware reads.\n3. Preserve the active-only/default change-list fast path and existing default-list behavior.\n4. Add deterministic regression coverage for terminal-list timeout and stale-shadow classes without relying on flaky wall-clock assertions.\n5. Defer broader workflow reset, status TTL, and worktree cleanup work unless shared terminal-list primitive fixes cover them naturally.\n\n## Success Criteria\n\n- SC1: Archived/terminal aggregate reads no longer fail as unclassified whole-tool `ToolExecutionTimeout` under bounded terminal-state fixtures.\n- SC2: Terminal archive/closed truth cannot be shadowed by stale active/draft projections.\n- SC3: Active-only/default change listing keeps existing fast-path behavior.\n\n## Acceptance Criteria\n\n- AC1: `adv_change_list` with archived/closed filters returns either complete rows or structured degraded output that names failed/omitted source classes. [warrant: tool:adv_change_list]\n- AC2: Default active/in-flight `adv_change_list` excludes archived/closed terminal rows and does not run full terminal reconciliation when summary data is sufficient. [warrant: tool:adv_change_list]\n- AC3: When archive bundle and stale non-terminal projection disagree, terminal-aware reads return archived terminal state. [warrant: tool:adv_change_list]\n- AC4: Deterministic regression tests cover slow/unreachable terminal source, corrupt/missing archive candidate, stale projection dominance, and active-list no-regression.\n- AC5: Broader workflow reset/status TTL/worktree cleanup work is explicitly deferred unless fixed through the shared terminal-list primitive.\n\n## Constraints\n\n- C1: Do not weaken spec-law, gate sequencing, or archive correctness.\n- C2: Do not treat stale disk projection as authoritative over reachable live workflow terminal state except through explicit terminal/recovery rules.\n- C3: Do not hide partial/degraded reads as complete success.\n- C4: Do not slow the active-only list path to fix archived/terminal paths.\n- C5: Use deterministic tests or fakeable slow sources for timing-sensitive behavior; avoid flaky real-time p95 assertions.\n\n## Avoidances\n\n- DONT1: Do not raise the tool timeout as the fix.\n- DONT2: Do not replace Temporal or add a new external dependency.\n- DONT3: Do not fold full workflow reset/disk-authoritative recovery from issue #198 into this change unless a small shared helper is directly required.\n- DONT4: Do not implement the later status health TTL Epic entry here.\n\n## Out of Scope\n\n- OOS1: Full Temporal storage architecture rewrite.\n- OOS2: Broad status-health TTL work outside the shared terminal-list primitive.\n- OOS3: Unrelated worktree cleanup timeout behavior outside the shared terminal-list primitive.\n\n## Preview Applicability\n\nvisual_surface: false\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: This change affects ADV MCP/tool read behavior and tests, not browser-visible UI or visual output.\n\n## Decisions\n\n### User Decisions\n\n- Degraded behavior shape: user deferred exact shape to design for Temporal best practice and repository fit.\n- Surface scope: cover all easy-medium wins.\n- Latency budget: no fixed wall-clock target; require no hard timeout and clear degradation where appropriate.\n\n### Agent Decisions (LBP)\n\n- Prefer archive/disk-first terminal resolution for terminal aggregate candidates, while preserving live workflow reads for active/open state.\n- Prefer structured degraded aggregate output over timeout inflation.\n- Defer full terminal summary-index model to later performance work because it is larger than the #106 slice.\n\n## Deferred Questions\n\n- Exact degraded response shape (`warnings[]`, `_degraded`, or per-surface fail-fast) is deferred to design. Design must choose a shape that preserves compatibility and makes partial/degraded reads explicit.\n\n## Sign-Off\n\nUser approved criteria via chat reply: approve.",
+    "design": "# Design\n\n## Architecture Overview\n\nUse a terminal-aware aggregate-read path that treats durable terminal projections as the read source for archived/closed records, while preserving the existing active summary fast path.\n\nCore shape:\n\n1. Keep default active/in-flight `adv_change_list` on `changes.listSummary` memo/cache/summary rows.\n2. For terminal filters (`includeArchived`, `includeClosed`, `status: \"archived\"`, `status: \"closed\"`), enumerate candidate IDs from memo, Visibility, active disk, and archive directories as today.\n3. Resolve terminal candidates with durable terminal projection first:\n   - archive bundle for archived records;\n   - closed disk projection for closed records;\n   - only then live workflow query/recovery when no terminal projection exists or status is non-terminal.\n4. Return structured degraded aggregate metadata when one candidate/source cannot be resolved within bounded logic, rather than letting one slow source consume the whole tool call.\n5. Let shared primitive fixes benefit `adv_change_list`, `change/recovery.ts`, and status archived-hygiene paths that already call the same store listing surface; avoid separate status/worktree rewrites.\n\n## Key Decisions\n\n### D1 — Terminal projection first for terminal aggregate reads\n\nDecision: archived/closed aggregate reads prefer durable terminal projections before live workflow query/reseed.\n\nRationale:\n- Archived workflows may be completed, evicted, or expensive to query/replay.\n- Existing `loadDiskTerminalProjection` only short-circuits `closed`; archived should get equivalent terminal short-circuit when an archive bundle/durable projection exists.\n- Current archive override can happen after a failed query path; the root-cause fix is to put archive resolution before workflow query for terminal candidates.\n\n### D2 — Structured degraded envelope instead of timeout inflation\n\nDecision: terminal aggregate read APIs return complete rows or explicit degraded metadata naming failed/omitted source classes.\n\nRationale:\n- Raising the tool timeout only moves the failure cliff.\n- Existing repo patterns use source-isolated warnings for aggregate reads.\n- Partial/degraded output must not masquerade as complete success.\n\nProposed additive `adv_change_list` response extension:\n\n```ts\n{\n  changes: ChangeListRow[],\n  pagination: Pagination,\n  warnings?: Array<{\n    code: \"TERMINAL_SOURCE_DEGRADED\" | \"TERMINAL_CANDIDATE_OMITTED\";\n    source: \"visibility\" | \"active_disk\" | \"archive\" | \"workflow_query\";\n    message: string;\n    omittedCount?: number;\n  }>,\n  hydrationStats?: {\n    terminalCandidates: number;\n    terminalFromArchive: number;\n    terminalFromDisk: number;\n    terminalFromWorkflow: number;\n    omitted: number;\n  }\n}\n```\n\nImplementation refinement from validator: degraded classification must be structural per-candidate collect-and-classify, not a wall-clock timer. Warning rows should include code, source class, and omitted reason/count.\n\n### D3 — Deterministic slow-source tests over real-time budgets\n\nDecision: verify bounded behavior with fakeable slow/unreachable source tests and candidate-level/call-count assertions, not fixed p95 wall-clock tests.\n\nRationale:\n- User chose no fixed latency budget.\n- Wall-clock tests are flaky across hosts and CI.\n- The failure mode is structural O(N) fan-out through slow live workflow query/recovery; deterministic tests can prove the fan-out is skipped for terminal projections.\n\n### D4 — Narrow shared primitive wins, defer broader performance program\n\nDecision: implement easy/medium wins on shared terminal-list primitive; defer full terminal summary-index model and status TTL work.\n\nRationale:\n- Agreement asks for all easy-medium wins.\n- `changes.listSummary` terminal fallback and `listResolvedChanges` are the primary #106 chokepoints.\n- Later Epic entries cover broader status probe TTL and performance structure.\n\n## ADR Drafts\n\nNone. Decisions are localized store/tool read-path choices with regression tests and spec anchors; no hard-to-reverse ADR needed.\n\n## Implementation Strategy\n\n1. Add/extend a terminal projection resolver in `plugin/src/storage/store-temporal/index.ts`:\n   - archive bundle/directory lookup by candidate id;\n   - fallback to loaded archive `change.json` canonical id;\n   - closed disk projection support retained;\n   - stale active projection overridden when archive bundle exists.\n2. Route terminal aggregate hydration through this resolver before `getTemporalChange` / live workflow query.\n3. Reuse existing archive-bundle pre-scan/dominance pattern from `changes.ts` and `index.ts` instead of adding another heuristic.\n4. Add structural candidate/source warning collection for terminal aggregate list failures.\n5. Propagate warning/degraded metadata through store listing envelope and `adv_change_list` output without changing existing required fields.\n6. Keep default active listing path unchanged except for tests proving it does not enter terminal reconciliation when summary data is sufficient.\n7. Add or update specs in `advance-workflow` for terminal aggregate read behavior, projection truth, and active fast-path preservation with concrete rq-* IDs and Given/When/Then scenarios.\n8. Add deterministic tests:\n   - archived-only candidate with unreachable workflow resolves from archive without workflow query;\n   - corrupt/missing terminal candidate creates degraded warning and does not abort unrelated rows;\n   - stale active projection + archive bundle returns archived and excludes from default list;\n   - active summary path avoids terminal reconciliation and preserves current rows;\n   - status archived-hygiene and change recovery callers benefit through same store primitive, or are explicitly unchanged with evidence.\n\n## LBP Analysis\n\nPreferred long-term approach:\n\n- Temporal Visibility remains the right source for enumerating live/open workflows.\n- Durable terminal projections are the right read source for terminal/completed records that may no longer have a useful workflow query path.\n- Aggregate tools should isolate per-source failures and surface structured degraded metadata instead of depending on global tool timeouts.\n- Zod/tool validation and Temporal signal/query correctness stay intact.\n\nRejected alternatives:\n\n- Raise 10s tool timeout: rejected; masks structural fan-out.\n- Query every terminal workflow first: rejected; replays/completed workflow query path is the observed risk.\n- Full terminal summary-index model now: deferred; higher payoff but larger than this change.\n\n## Affected Components\n\n- `plugin/src/storage/store-temporal/index.ts` — terminal projection resolution and `listResolvedChanges` hydration order.\n- `plugin/src/storage/store-temporal/changes.ts` — terminal `listSummary` fallback metadata propagation and existing archive pre-scan reuse.\n- `plugin/src/storage/store-types.ts` — listing envelope type if warning metadata needs a typed store shape.\n- `plugin/src/tools/change.ts` — `adv_change_list` response metadata pass-through.\n- `plugin/src/tools/status-hygiene.ts` and `plugin/src/tools/change/recovery.ts` — no standalone rewrite expected; verify they benefit or remain safe through shared `store.changes.list` primitive.\n- `.adv/specs/advance-workflow/spec.json` and docs mirror if spec deltas are implemented.\n- Tests under `plugin/src/storage/store-temporal/*test.ts` and `plugin/src/tools/change*.test.ts` as needed.\n\n## Design-Derived Criteria\n\nDDC1: Terminal aggregate hydration must not call live workflow query for archived candidates when a matching archive bundle/durable archived projection exists.\n\nDDC2: Degraded terminal aggregate output must include machine-readable warning code, source class, and omitted count or reason.\n\nDDC3: Active/default `listSummary` with memo/cache summary data must remain terminal-reconciliation-free.\n\nDDC4: Archive bundle dominance must dedupe by canonical `change.json.id`, not directory name.\n\nDDC5: Tests must use injected fake/slow source behavior or call-count assertions instead of wall-clock latency thresholds.\n\nDDC6: Shared-primitive callers (`status-hygiene`, `change/recovery`) must be covered by tests or explicit source evidence when terminal-list behavior changes.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Partial degraded rows mistaken as complete | Explicit warning metadata; AC requires source/omitted class naming. |\n| Archive-first hides recoverable active workflow | Use archive-first only in terminal-aware reads when archive/durable terminal projection exists. |\n| Response contract drift breaks callers | Add optional metadata only; preserve `changes` and `pagination` fields. |\n| Corrupt archive bundle crashes list | Catch per-candidate/source failure; record warning; continue unrelated rows. |\n| Broader status/worktree scope creep | Restrict to shared primitive and explicitly defer non-shared status TTL/worktree cleanup. |\n\n## Design Leverage Scout\n\nValidator scout result: pass, high confidence, low risk.\n\nAuto-adopted:\n- Extend terminal short-circuit to `archived` and reorder archive-before-query in `index.ts` root path.\n- Add source-isolated degraded envelope at terminal list boundary.\n- Reuse existing archive-bundle pre-scan/dominance pattern for stale-shadow correctness.\n\nSurfaced and incorporated within existing agreement:\n- Confirm shared primitive coverage for `status-hygiene.ts` and `change/recovery.ts`; direct edits only if tests show metadata handling requires it.\n\nDeferred:\n- Full terminal summary-index model.\n\n## Validator Result\n\nValidator: clean pass.\n\n- Correctness: pass. Root cause verified as query-first per terminal candidate; design reorders terminal projection before query and adds degraded metadata.\n- Simplicity: pass. Narrow shared primitive is simpler than full summary-index model and avoids timeout inflation.\n- Spec-law: pass. Design strengthens archive terminal projection behavior and replay fallback semantics; implementation must add concrete `advance-workflow` rq-* deltas before code tasks.\n- Key alternatives considered: timeout inflation rejected; summary-index deferred; per-source fail-fast rejected; status quo rejected.\n\nNon-blocking validator refinement adopted: mechanize degraded classification structurally per candidate, not with wall-clock timers.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThis change makes archived and closed ADV change listing safer and more predictable. Terminal aggregate reads now prefer durable terminal projections, expose structured degradation when a terminal source/candidate cannot be loaded, and keep default active listings on the existing fast path.\n\n## Why It Matters\n\nThe change removes a timeout-prone archived-list path without raising tool timeouts or broadening recovery scope. It also reduces stale terminal-state shadow risk by making archive bundles dominate stale active/draft projections in terminal-aware reads.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `advance-workflow` spec law for terminal aggregate degradation, durable terminal projection truth, and active-list fast-path preservation.\n2. Added archive-first terminal projection resolution before live workflow query for terminal candidates.\n3. Added optional `warnings` and `hydrationStats` metadata to terminal aggregate list responses and `adv_change_list` output.\n4. Preserved default active/in-flight listing on `listSummary`/memo/cache fast path and verified shared terminal-list callers.\n5. Fixed branch-blocking validation drift in `adv-visual-review` blocker summary handling and formatted `subagent-reports.test.ts` so smoke/full checks pass.\n\n## What Was Verified\n\n- Verdict: READY review with 0 blockers and 0 issues; 3 praise notes.\n- Tests: final `bin/oc-test smoke` passed (`tr_mra8z3dr_853e9476`); full suite `bin/oc-test full` passed (`tr_mra91jl2_4312967b`). Targeted terminal-list, active-fastpath, status-hygiene, status-repair, schema, lint, and formatting checks passed.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; implementation affects ADV MCP/tool read behavior and tests, not browser-visible UI.\n- Contract matrix: 20/20 rows passed, respected, or not_applicable; 0 failing/unknown rows.\n\n## Remaining Concerns\n\n- Live deployed plugin behavior still requires normal rebuild/deploy/restart after merge before current OpenCode sessions can exercise new tool behavior.\n- Large real-world archive corpus performance was not separately load-tested; deterministic regression tests cover the failure classes in scope.\n- Harden found one non-blocking complexity suggestion in `plugin/src/storage/store-temporal/index.ts`; post-release extraction may improve maintainability, but release is not blocked.\n\n## Supporting Evidence\n\n- Task checkpoints: `612a1340`, `7670bc0c`, `6306c853`, `a5dbbb8f`, `7ffcee44`, harden alignment commit `139f804e`.\n- Review report: `diagnoseArchivedListingTimeout2|change:review:acceptance|adv-reviewer|1` verdict READY.\n- Harden report: `diagnoseArchivedListingTimeout2|change:harden:release|adv-reviewer|1` verdict READY.\n- Key verification: `tr_mra82g1b_9b62a08c`, `tr_mra8twd2_be2813a2`, `tr_mra8u9eq_ce68b2c3`, `tr_mra8z3dr_853e9476`, `tr_mra91jl2_4312967b`.\n\n## Consequence Context\n\n1. delivered value — passed; archived/closed listing now returns complete terminal rows or explicit degraded metadata, with archive projection dominance and active fast-path preservation proven by tests.\n2. enabling-only/follow-up dependency — n/a; no blocking follow-up or ops dependency recorded for acceptance.\n3. ops readiness — ready for source release; harden verified release/deploy/production/docs/cleanup readiness. Deployed-runtime validation still requires normal build/deploy/restart after merge.\n4. migration/data impact — n/a; no data migration, schema migration, external service, env var, infrastructure, or dependency added.\n5. frontend/preview impact — n/a; `visual_surface: false`, no UI/browser-visible files changed.\n6. collision/release risk — low; acceptance review and harden both READY, merge compatibility with `origin/trunk` passed, full suite passed.\n7. open follow-ups — non-blocking maintainability suggestion only: consider extracting terminal aggregate complexity in `store-temporal/index.ts` post-release; broader status TTL/performance remains deferred Epic work.\n8. next action — archive sign-off may proceed; archive owns final release gate and merge/archive mechanics.\n\n## Release Readiness Summary\n\nHarden verdict: READY. Release/deploy readiness, production readiness, documentation hygiene, cleanup readiness, and residual slop/maintainability were checked by `diagnoseArchivedListingTimeout2|change:harden:release|adv-reviewer|1`.\n\n- Ops readiness: ready for source release; no ops runbook, migration, env var, external service, CI/CD, or infrastructure obligation exists. Normal plugin deployment caveat remains: run `pnpm run build`, `./scripts/deploy-local.sh --fix`, and restart OpenCode before validating deployed-runtime tool behavior.\n- Migration/data impact: n/a; no schema/data migration or destructive operation.\n- Frontend/preview impact: n/a; agreement `visual_surface: false` and no UI/browser-visible files changed.\n- Collision/release risk: low; merge compatibility check against `origin/trunk` passed after trunk-compatible alignment commit `139f804e`; `git status --short` clean; full suite passed.\n- Open follow-ups: no blocking follow-ups. One non-blocking maintainability suggestion remains for later extraction of `plugin/src/storage/store-temporal/index.ts` terminal aggregate complexity.\n- Next action: archive sign-off; if signed off, run archive with phase9 finalization.\n\n### Release Approval Consequence Context\n\n1. delivered value — passed; terminal aggregate archived/closed reads are safer and explicit about degraded states.\n2. enabling-only/follow-up dependency — n/a; no blocking dependency.\n3. ops readiness — ready; no runbook obligations, normal deployed-runtime rebuild/restart caveat recorded.\n4. migration/data impact — n/a; no migration/data changes.\n5. frontend/preview impact — n/a; non-visual tool/read-path change.\n6. collision/release risk — low; merge check, smoke, and full suite passed.\n7. open follow-ups — non-blocking complexity extraction suggestion only.\n8. next action — archive sign-off then `adv_change_archive phase9:\"run\"`.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-07T06:17:24.479Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Archived/terminal aggregate reads no longer fail as unclassified whole-tool `ToolExecutionTimeout` under bounded terminal-state fixtures. | pass | adv-reviewer report diagnoseArchivedListingTimeout2|change:review:acceptance|adv-reviewer|1 verdict READY; terminal degraded metadata verified. Tests tr_mra82g1b_9b62a08c, tr_mra8z3dr_853e9476, tr_mra91jl2_4312967b passed. |\n| SC2 | success_criterion | Terminal archive/closed truth cannot be shadowed by stale active/draft projections. | pass | adv-reviewer READY; archive-first projection tests cover archive bundle dominance/stale shadow. Tests tr_mra732u3_ad1029a2 and full suite tr_mra91jl2_4312967b passed. |\n| SC3 | success_criterion | Active-only/default change listing keeps existing fast-path behavior. | pass | adv-reviewer READY; active fast-path separation praised. Tests tr_mra8twd2_be2813a2 and tr_mra8u9eq_ce68b2c3 passed. |\n| AC1 | acceptance_criterion | `adv_change_list` with archived/closed filters returns either complete rows or structured degraded output that names failed/omitted source classes. | pass | Implemented warnings/hydrationStats pass-through for adv_change_list. Store/tool tests tr_mra82g1b_9b62a08c passed; full suite tr_mra91jl2_4312967b passed. |\n| AC2 | acceptance_criterion | Default active/in-flight `adv_change_list` excludes archived/closed terminal rows and does not run full terminal reconciliation when summary data is sufficient. | pass | Default/in-flight adv_change_list/listSummary active fast path tests passed in tr_mra8twd2_be2813a2 and tr_mra8u9eq_ce68b2c3. |\n| AC3 | acceptance_criterion | When archive bundle and stale non-terminal projection disagree, terminal-aware reads return archived terminal state. | pass | Archive bundle dominance/stale non-terminal projection tests passed in tr_mra732u3_ad1029a2 and full suite tr_mra91jl2_4312967b. |\n| AC4 | acceptance_criterion | Deterministic regression tests cover slow/unreachable terminal source, corrupt/missing archive candidate, stale projection dominance, and active-list no-regression. | pass | Deterministic tests cover visibility degradation, corrupt archive omission, stale projection dominance, canonical ID dedupe, and active-list no-regression. Evidence: tr_mra82g1b_9b62a08c, tr_mra8twd2_be2813a2, tr_mra8u9eq_ce68b2c3. |\n| AC5 | acceptance_criterion | Broader workflow reset/status TTL/worktree cleanup work is explicitly deferred unless fixed through the shared terminal-list primitive. | pass | Review found no broad workflow reset/status TTL/worktree cleanup implementation; shared caller tests passed in tr_mra8twd2_be2813a2 and tr_mra8u9eq_ce68b2c3. |\n| C1 | constraint | Do not weaken spec-law, gate sequencing, or archive correctness. | respected | Spec-law deltas added and cited; spec-citation/assets checks passed in tr_mra738ov_e573801b; reviewer verdict READY. |\n| C2 | constraint | Do not treat stale disk projection as authoritative over reachable live workflow terminal state except through explicit terminal/recovery rules. | respected | Terminal projection path prefers archive/closed projections only via explicit terminal/recovery rules; reviewer verdict READY. |\n| C3 | constraint | Do not hide partial/degraded reads as complete success. | respected | Partial/degraded terminal reads expose structured warnings and hydrationStats; tests tr_mra82g1b_9b62a08c passed; reviewer verdict READY. |\n| C4 | constraint | Do not slow the active-only list path to fix archived/terminal paths. | respected | Active/default fast path remains on listSummary/memo/cache; tests tr_mra8twd2_be2813a2 and tr_mra8u9eq_ce68b2c3 passed. |\n| C5 | constraint | Use deterministic tests or fakeable slow sources for timing-sensitive behavior; avoid flaky real-time p95 assertions. | respected | Tests use fake/call-count/source classification assertions; no wall-clock p95 budget added. Reviewer verdict READY. |\n| DONT1 | avoidance | Do not raise the tool timeout as the fix. | respected | No timeout increase implemented; reviewer verdict READY. |\n| DONT2 | avoidance | Do not replace Temporal or add a new external dependency. | respected | No new dependency or Temporal replacement; reviewer verdict READY and schemas/check/lint passed. |\n| DONT3 | avoidance | Do not fold full workflow reset/disk-authoritative recovery from issue #198 into this change unless a small shared helper is directly required. | respected | No full workflow reset/disk-authoritative recovery added; change limited to shared terminal-list primitive and small typecheck repair. |\n| DONT4 | avoidance | Do not implement the later status health TTL Epic entry here. | respected | No status health TTL Epic entry implemented; status hygiene tests only verify existing shared primitive caller behavior. |\n| OOS1 | out_of_scope | Full Temporal storage architecture rewrite. | not_applicable | Full Temporal storage rewrite not part of implementation; reviewer verdict READY. |\n| OOS2 | out_of_scope | Broad status-health TTL work outside the shared terminal-list primitive. | not_applicable | Broad status-health TTL deferred; no TTL implementation added. |\n| OOS3 | out_of_scope | Unrelated worktree cleanup timeout behavior outside the shared terminal-list primitive. | not_applicable | Unrelated worktree cleanup timeout behavior not implemented. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-07T04:36:07.226Z",
+      "contentHash": "d23c831dc5b0164243b6812971f985fb492284cfcd367bbbca58ca832779a55b",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-07T04:16:08.639Z",
+      "contentHash": "92303a52f3840161bc2a0344a7575ae6e3e5f70004ec9416e1628d1b8854b86d",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-07T04:39:36.880Z",
+      "contentHash": "d0f7b463a74a9ef943fe8a5eb7fda482e880fefc2832a85c83ac341ca2af09a3",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-07T04:47:28.103Z",
+      "contentHash": "69b95fdafb0eaf33947562abe6c2a77727e1fa09051bcc813262699404309a6f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-07T06:33:40.838Z",
+      "contentHash": "b9a6138c3a583a707c6f5ede61a7cc7720fb0dffd176e89e86bb8014a1a08eb5",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-07T06:33:40.838Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "optimizeAdvPerformanceStructure",
+    "entry_id": "shell-1783186808916-5efppj",
+    "order": 2,
+    "title": "Diagnose archived listing timeout",
+    "linked_at": "2026-07-07T04:09:02.271Z"
+  },
+  "worktree_auto_managed": true
+}
