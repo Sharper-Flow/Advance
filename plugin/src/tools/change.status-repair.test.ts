@@ -174,6 +174,44 @@ describe("adv_change_status_repair", () => {
     });
   });
 
+  test("uses listSummary for in-flight readback when store exposes it", async () => {
+    const change = wedgedChange();
+    const store = createMockStore(change);
+    const archivedChange = { ...change, status: "archived" as const };
+    (store.changes.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ success: true, data: change })
+      .mockResolvedValue({ success: true, data: archivedChange });
+    store.changes.listSummary = vi.fn().mockResolvedValue({ changes: [] });
+    (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
+      async ({ status }: { status?: string } = {}) => ({
+        changes: status === "archived" ? [archivedChange] : [],
+      }),
+    );
+
+    const result = await changeTools.adv_change_status_repair.execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: STATUS_REPAIR_EVIDENCE,
+        recoveryReason: STATUS_REPAIR_REASON,
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(store.changes.listSummary).toHaveBeenCalledWith({});
+    expect(store.changes.list).toHaveBeenCalledWith({
+      status: "archived",
+      includeArchived: true,
+    });
+    expect(parsed.readback).toMatchObject({
+      showStatus: "archived",
+      inFlightCount: 0,
+      archivedCount: 1,
+    });
+  });
+
   test("fails when status repair read-after-write still sees in-flight state", async () => {
     const change = wedgedChange();
     const store = createMockStore(change);

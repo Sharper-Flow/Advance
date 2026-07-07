@@ -1416,6 +1416,64 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.warnings).toBeUndefined();
       expect(parsed.hydrationStats).toBeUndefined();
     });
+
+    test("default active/in-flight adv_change_list excludes terminal rows from listSummary", async () => {
+      const store = createMockStore();
+      store.changes.listSummary = vi.fn().mockResolvedValue({
+        changes: [
+          {
+            id: "activeA",
+            title: "Active A",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            lastActivityAt: "2026-01-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "archivedB",
+            title: "Archived B",
+            status: "archived",
+            created_at: "2025-12-01T00:00:00Z",
+            lastActivityAt: "2025-12-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+          {
+            id: "closedC",
+            title: "Closed C",
+            status: "closed",
+            created_at: "2025-11-01T00:00:00Z",
+            lastActivityAt: "2025-11-01T01:00:00Z",
+            taskCount: 0,
+            completedTasks: 0,
+          },
+        ],
+      });
+      vi.mocked(store.changes.list).mockRejectedValue(
+        new Error("full changes.list should not be called for default list"),
+      );
+
+      const result = await changeTools.adv_change_list.execute(
+        { status: "in-flight" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.changes.map((c: { id: string }) => c.id)).toEqual([
+        "activeA",
+      ]);
+      expect(store.changes.listSummary).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: undefined,
+          includeArchived: undefined,
+          includeClosed: undefined,
+        }),
+      );
+      expect(store.changes.list).not.toHaveBeenCalled();
+      expect(parsed.warnings).toBeUndefined();
+      expect(parsed.hydrationStats).toBeUndefined();
+    });
   });
 
   describe("adv_change_update", () => {
