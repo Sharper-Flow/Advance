@@ -1,0 +1,1063 @@
+{
+  "id": "addAdvVerifier",
+  "title": "Add ADV verifier",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-07T04:36:01.737Z",
+  "tasks": [
+    {
+      "id": "tk-148bb463d7f7",
+      "title": "Add adv-verifier agent asset and permission contract tests",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-07T05:14:20.624Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T05:19:32.749Z",
+      "verification": "RED: bin/oc-test targeted -- src/adv-verifier-assets.test.ts failed as expected with missing adv-verifier agent (runId tr_mra7ahet_eba334e9). GREEN: same targeted test passed, 6 tests passed (runId tr_mra7bnl0_9ef31996).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-verifier.md",
+        "plugin/src/adv-verifier-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-verifier.md",
+        "plugin/src/adv-verifier-assets.test.ts"
+      ],
+      "checkpointSha": "262e35046ed63db8462e854a1695fca7ab6ecbeb",
+      "completedAt": "2026-07-07T05:22:10.276Z",
+      "completed_at": "2026-07-07T05:22:10.276Z"
+    },
+    {
+      "id": "tk-b4993b7e1563",
+      "title": "Update delegation-defaults spec, generated docs, and matrix tests for adv-verifier routing",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-07T05:14:35.324Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-148bb463d7f7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC7",
+          "SC1",
+          "SC2",
+          "SC3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "DONT4",
+          "DONT5",
+          "DONT8",
+          "C1",
+          "C2",
+          "C4",
+          "C5",
+          "C6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T05:22:50.029Z",
+      "verification": "RED: bin/oc-test targeted -- src/delegation-matrix.test.ts src/subagent-reports-spec-assets.test.ts failed on expected adv-verifier routing before spec updates (runId tr_mra7eweq_a7acf61f). GREEN: same targeted test passed, 45 tests passed (runId tr_mra7gn5q_12dd0b06).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/delegation-defaults/spec.json",
+        "docs/specs/delegation-defaults.md",
+        "plugin/src/delegation-matrix.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/delegation-defaults/spec.json",
+        "docs/specs/delegation-defaults.md",
+        "plugin/src/delegation-matrix.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "d3c8bd11e87f73d0c9b496712eae524f2649a733",
+      "completedAt": "2026-07-07T05:25:46.215Z",
+      "completed_at": "2026-07-07T05:25:46.215Z"
+    },
+    {
+      "id": "tk-3c63f8c3a1e2",
+      "title": "Update ADV apply/orchestrator routing surfaces for adv-verifier",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-07T05:14:52.244Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b4993b7e1563"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC4",
+          "AC8",
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C6",
+          "C7"
+        ],
+        "verifies": [
+          "AC2",
+          "AC4",
+          "AC8",
+          "SC1",
+          "SC4"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "DONT8",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T05:26:00.494Z",
+      "verification": "RED: bin/oc-test targeted -- src/orchestrator-ops-delegation-assets.test.ts failed after tests expected adv-verifier routing before active surfaces were updated (runId tr_mra7ia53_ffbec006). GREEN: same targeted test passed, 5 tests passed (runId tr_mra7kpkn_7d7e2e04). Related scan found no stale exact references to `Verify-Only Burst uses general`, `repeated verify/test bursts route to general`, or `subagent_type: \"general\"`.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md",
+        "plugin/src/orchestrator-ops-delegation-assets.test.ts"
+      ],
+      "checkpointSha": "1dc81f365dd7669b7160732ef7db69220fcfeaeb",
+      "completedAt": "2026-07-07T05:29:30.211Z",
+      "completed_at": "2026-07-07T05:29:30.211Z"
+    },
+    {
+      "id": "tk-35eaa5466085",
+      "title": "Run contract-wide verifier integration and release-readiness validation",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-07T05:15:24.653Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3c63f8c3a1e2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "DONT8"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T05:29:45.105Z",
+      "verification": "Targeted contract suite passed after formatting: bin/oc-test targeted -- src/adv-verifier-assets.test.ts src/subagent-reports-spec-assets.test.ts src/delegation-matrix.test.ts src/orchestrator-ops-delegation-assets.test.ts src/phantom-subagent-roster.test.ts (156 tests, runId tr_mra7pq8q_4f840a15). Smoke passed after fixing an exhaustiveness typecheck failure for existing adv-visual-review report handling and formatting drift: bin/oc-test smoke (schemas:check, typecheck, lint, format:check, 57 tests; runId tr_mra7ph5s_54f4404e). Earlier smoke failures recorded: typecheck adv-visual-review exhaustive switch (runId tr_mra7mpen_9253fd67) and format drift (runId tr_mra7o65u_a2c25f2b). adv_change_validate strict passed with warning only NO_DELTAS.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-verifier-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/types/subagent-reports.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-verifier-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/types/subagent-reports.test.ts"
+      ],
+      "checkpointSha": "6ff3791f66ce1d19c627db1947deedd490a1b803",
+      "completedAt": "2026-07-07T05:33:00.126Z",
+      "completed_at": "2026-07-07T05:33:00.126Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvVerifier",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvVerifier",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "traceability-praise-1",
+          "label": "praise",
+          "file": ".opencode/agents/adv-verifier.md",
+          "line": 82,
+          "what": "adv-verifier packet anchors, authority boundaries, failure taxonomy, route predicates, bin/oc-test preference, bounded-output discipline, and one-rerun transient policy are all present in the agent asset.",
+          "why": "These anchors trace to AC1, AC3, AC4, AC5, and AC6 and are covered by plugin/src/adv-verifier-assets.test.ts."
+        },
+        {
+          "id": "routing-praise-1",
+          "label": "praise",
+          "file": ".opencode/command/adv-apply.md",
+          "line": 479,
+          "what": "Verify-Burst Delegation packet uses adv-verifier primary with general unavailable-runtime fallback only, and main ADV wraps results as adv-verification-triage-bundle.",
+          "why": "This matches AC2 and AC3 while preserving orchestrator authority over persistence, escalation, and final synthesis."
+        },
+        {
+          "id": "spec-praise-1",
+          "label": "praise",
+          "file": ".adv/specs/delegation-defaults/spec.json",
+          "line": 90,
+          "what": "Delegation matrix adds a Verify-Only Burst substep with orchestrator_submitted_verification_bundle transport and strict identity anchors.",
+          "why": "This gives machine-checkable spec coverage for routing and packet identity, with matching docs and asset tests."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "Path preflight for all referenced in-scope files via test -e loop",
+          "bin/oc-test targeted -- src/adv-verifier-assets.test.ts src/subagent-reports-spec-assets.test.ts src/delegation-matrix.test.ts src/orchestrator-ops-delegation-assets.test.ts src/phantom-subagent-roster.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight: all referenced in-scope files existed. Targeted suite passed locally: 5 files, 156 tests passed in 533ms. User-provided prior evidence also records targeted contract suite pass runId tr_mra7pq8q_4f8404e, smoke pass runId tr_mra7ph5s_54f4404e (schemas:check, typecheck, lint, format:check, 57 tests), and strict adv_change_validate pass with warning only NO_DELTAS."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live OpenCode sessions will not consume the new repo-owned agent asset until deploy/sync and session restart; source-level asset/spec tests passed in this review worktree.",
+        "adv-verifier relies on bash for command execution, so the edit prohibition is enforced by agent instructions plus disabled edit/write/patch tools rather than a command-level shell allowlist. This appears intentional for verify-only command execution and is covered by authority-boundary prose/tests."
+      ],
+      "required_main_agent_actions": [
+        "Use the recorded REVIEWER_REPORT as acceptance evidence for addAdvVerifier.",
+        "If proceeding beyond acceptance, validate deployment/runtime sync in a fresh OpenCode session after deploy-local per repository Source-vs-Dist Reload Gotcha."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addAdvVerifier",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addAdvVerifier",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "test_coverage",
+        "ai_slop",
+        "documentation_hygiene",
+        "cleanup",
+        "production_readiness",
+        "deployment_readiness",
+        "merge_collision_readiness"
+      ],
+      "summary": "READY. Harden checked release/deploy readiness, production readiness, documentation hygiene, cleanup readiness, residual slop/maintainability, and test coverage. No blockers or high findings remain. One scanner-reported HIGH documentation concern was rejected with evidence because acceptance DONT8 already records the prior no-verifier avoidance and supersession rationale; archived history is historical evidence, not live conflicting docs. Merge dry-run passed; strict validation passed with warning only NO_DELTAS; worktree clean. Non-blocking deployment note: run deploy-local and restart OpenCode after merge so live sessions consume the new agent asset.",
+      "findings": [
+        {
+          "scanner": "documentation_hygiene",
+          "severity": "info",
+          "summary": "Scanner concern about prior no-verifier archive record rejected with evidence; current acceptance artifact explicitly covers DONT8 and supersession rationale, and archived acceptance remains historical truth.",
+          "evidence": [
+            {
+              "label": "acceptance DONT8",
+              "locator": "ADV acceptance artifact",
+              "summary": "DONT8 respected: no active prior no-spawnable-adv-verifier avoidance found; conditional supersession rationale explicit in design and no silent contradiction introduced."
+            },
+            {
+              "label": "acceptance AC8",
+              "locator": "ADV acceptance artifact",
+              "summary": "AC8 passed: implementation explicitly supersedes prior no-verifier avoidance with permission lock, routing clarity, and main-context hygiene."
+            }
+          ]
+        },
+        {
+          "scanner": "cleanup",
+          "severity": "info",
+          "summary": "Incidental adv-visual-review exhaustive switch fix is documented as a campsite fix, not release risk.",
+          "evidence": [
+            {
+              "label": "executive summary",
+              "locator": "_executiveSummary What Was Built #4",
+              "summary": "Records existing exhaustive sub-agent report switch gap fixed for adv-visual-review so smoke/typecheck passes."
+            },
+            {
+              "label": "verification",
+              "locator": "tk-35eaa5466085",
+              "summary": "Smoke passed after fixing exhaustiveness typecheck failure and formatting drift."
+            }
+          ]
+        },
+        {
+          "scanner": "deployment_readiness",
+          "severity": "info",
+          "summary": "Live OpenCode sessions require deploy-local sync and restart after merge to consume .opencode/agents/adv-verifier.md.",
+          "evidence": [
+            {
+              "label": "project gotcha",
+              "locator": "AGENTS.md Source-vs-Dist Reload Gotcha",
+              "summary": "Live plugin/agent assets are consumed from deployed runtime/global config and loaded at session startup."
+            },
+            {
+              "label": "acceptance summary",
+              "locator": "_executiveSummary Remaining Concerns",
+              "summary": "Non-blocking release note already records deploy/sync + restart requirement."
+            }
+          ]
+        },
+        {
+          "scanner": "test_coverage",
+          "severity": "suggestion",
+          "summary": "Optional future hardening: add a focused regression test for adv-visual-review blockerSummary if desired; compile-time exhaustiveness and smoke currently cover the fixed gap.",
+          "evidence": [
+            {
+              "label": "typecheck evidence",
+              "locator": "tk-35eaa5466085",
+              "summary": "Typecheck failed before campsite fix and passed in smoke after the fix."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "After merge, run ./scripts/deploy-local.sh --fix and restart OpenCode sessions to consume the new adv-verifier agent asset.",
+        "Optional future polish: clarify adv-verifier as bundled-global rather than repo-local in ADV_INSTRUCTIONS roster prose, matching deploy-local behavior."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-07T04:41:10.219Z",
+      "completed_by": "user:command-as-approval /adv-discover addAdvVerifier",
+      "approval_evidence": "User previously approved proposal framing, then invoked `/adv-discover addAdvVerifier`; exact continuation command from proposal handoff counts as Tier A command-as-approval.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "7be1a3b0f739c2ed415e14d2129f7ad90f4fab6362d7da451e59443e70250fc0",
+        "non_whitespace_chars": 5382,
+        "checked_at": "2026-07-07T04:36:01.765Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-07T04:55:10.044Z",
+      "completed_by": "adv",
+      "approval_evidence": "Discovery completed. User approved criteria/agreement with reply `approve`; agreement persisted and ChangeContract minted with SC1-SC4, AC1-AC8, constraints, and avoidances.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "non_whitespace_chars": 5540,
+        "checked_at": "2026-07-07T04:36:01.766Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-07T05:04:29.599Z",
+      "completed_by": "adv",
+      "approval_evidence": "Design completed. Mandatory leverage scout and independent validator both returned pass inline; report persistence degraded in subagents due workflow reachability but source-backed findings were incorporated. No user-value tradeoff, contract-compromise risk, or validator conflict remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "b0caeb25c725336c492adef1422b5b829e400c3b17f38732cb020a39693c25b7",
+        "non_whitespace_chars": 12083,
+        "checked_at": "2026-07-07T04:36:01.767Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-07T05:19:05.468Z",
+      "completed_by": "user:approve",
+      "approval_evidence": "User approved prep vision with reply `approve`; 4-task graph created with contract refs and validation passed with warning only NO_DELTAS."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-07T05:33:18.998Z",
+      "completed_by": "adv",
+      "approval_evidence": "All 4 tasks completed with checkpoints. Verification: targeted contract suite passed (156 tests, runId tr_mra7pq8q_4f8404e); smoke passed (schemas:check, typecheck, lint, format:check, 57 tests, runId tr_mra7ph5s_54f4404e); strict validation passed with warning only NO_DELTAS. Worktree clean at HEAD 6ff3791f."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-07T05:50:58.252Z",
+      "completed_by": "user:approve",
+      "approval_evidence": "User approved acceptance summary with reply `approve`. Review verdict READY with 0 blockers/issues; contract review matrix persisted with 27 rows and 0 failing/unknown; executive summary persisted and verified with content hash; targeted suite and smoke passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "7bcc76d251933ec1b0097d3e76b932c8e0e0f5b69339a62afad398086ee013da",
+        "non_whitespace_chars": 3045,
+        "checked_at": "2026-07-07T04:36:01.768Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-07-07T04:36:00.519Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+      "approvedAt": "2026-07-07T04:55:01.811Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Main ADV verify-only bursts use a dedicated `adv-verifier` lane instead of absorbing noisy local verification in primary context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Verifier output is bounded, classified, source-backed, and actionable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "ADV authority boundaries remain intact: verifier never edits, mutates ADV state, completes gates/tasks, or decides acceptance/release.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Existing task-level `adv_run_test` and CI/PR `adv-ci-waiter` semantics remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`.opencode/agents/adv-verifier.md` exists as hidden `mode: subagent` with structural permission limits: no edits, no nested `task`, no `question`/`todowrite`, no ADV mutation tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Verify-Only Burst routing uses `adv-verifier` as primary worker; `general` is only unavailable-runtime fallback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`adv-verifier` returns verification evidence for orchestrator persistence through existing `adv-verification-triage-bundle`; `adv-verifier` itself does not call `adv_subagent_report_submit`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-subagentReports02"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "For suite-level verification in repos with `bin/oc-test`, `adv-verifier` routes through `bin/oc-test targeted|smoke|full`; native commands are allowed only when no wrapper exists or orchestrator supplied an exact command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Failure classification supports `SEMANTIC`, `TRANSIENT`, `ENVIRONMENTAL`, `FATAL`, and `UNKNOWN`; `route_adv_engineer` is only valid with semantic, scoped, medium/high-confidence evidence and populated handoff.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-subagentReports02"
+        ]
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`adv-verifier` may perform exactly one rerun only to substantiate suspected transient/flaky classification; no flaky/transient label without evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Asset/spec tests fail if agent permissions, routing matrix, packet anchors, bounded-output/no-edit rules, or report identity drift.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Implementation explicitly supersedes any confirmed prior “no spawnable adv-verifier” avoidance with fresh rationale: permission lock, routing clarity, and main-context hygiene.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve `adv_run_test` for task-level TDD/evidence capture.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve `adv-ci-waiter` as the CI/PR polling lane.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve `oc-test-gate` / `bin/oc-test` routing rules for host-safe test execution.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "`adv-verifier` is authority-free: no edits, no ADV state mutation, no gate/task completion, no final acceptance/release conclusions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "`adv-verifier` is a spawn identity; `adv-verification-triage-bundle` remains the persisted report identity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Worker output is evidence, not authority; orchestrator owns persistence, routing synthesis, and user-facing conclusions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Bounded hybrid command selection must report chosen command and rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not replace `adv_run_test` for task-level TDD evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not replace `adv-ci-waiter` for CI/PR polling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not let `adv-verifier` edit code or perform remediation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not let `adv-verifier` call `adv_subagent_report_submit`; the orchestrator persists verifier evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not add `adv-verifier` as a persisted report identity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not run unbounded polling loops or open-ended rerun cycles.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not bypass `bin/oc-test` / `oc-test-gate` when the repo provides the wrapper.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT8",
+        "kind": "avoidance",
+        "text": "Do not silently contradict a confirmed prior “no spawnable adv-verifier” avoidance; supersede it explicitly with fresh rationale if found.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-07T05:38:36.135Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review READY. Verify-only burst routing now names `adv-verifier` in ADV_INSTRUCTIONS.md and `.opencode/command/adv-apply.md`; targeted contract suite passed (tr_mra7pq8q_4f8404e)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`adv-verifier` prompt defines bounded output, failure taxonomy, evidence_basis, findings, recommended_next_action, and strict JSON; `plugin/src/adv-verifier-assets.test.ts` passed."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Agent asset disables edit/write/patch/task/question/todowrite/ADV mutation/report-submit tools; reviewer found 0 blockers and praised authority boundaries."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`adv_run_test` remains task-level evidence path and was used for all task verification; `adv-ci-waiter` unchanged for CI/PR polling. No replacement references introduced."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/adv-verifier-assets.test.ts` asserts `.opencode/agents/adv-verifier.md` exists, hidden `mode: subagent`, and blocks edits/nested task/question/todowrite/ADV mutation tools. Passed in tr_mra7pq8q_4f8404e."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`delegation-matrix.test.ts`, `subagent-reports-spec-assets.test.ts`, and `orchestrator-ops-delegation-assets.test.ts` assert `adv-verifier` primary and `general` fallback-only for Verify-Only Burst. Passed in tr_mra7pq8q_4f8404e."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv-verifier-assets.test.ts` asserts JSON `agent` is `adv-verification-triage-bundle` and forbids `adv_subagent_report_submit`; `subagent-reports-spec-assets.test.ts` asserts orchestrator-submitted bundle transport. Passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv-verifier-assets.test.ts` asserts `bin/oc-test targeted`, `bin/oc-test smoke`, `bin/oc-test full`, native-command fallback only when no wrapper/exact command, and chosen-command rationale. Passed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv-verifier-assets.test.ts` asserts SEMANTIC/TRANSIENT/ENVIRONMENTAL/FATAL/UNKNOWN, route_adv_engineer, scope_risk, confidence, and suggested_handoff anchors. Passed."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv-verifier-assets.test.ts` asserts exactly one rerun and no flaky/no transient labels without evidence. Passed."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted drift suite passed: verifier asset, subagent reports spec assets, delegation matrix, orchestrator ops delegation, phantom roster — 156 tests, runId tr_mra7pq8q_4f8404e."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Active-source search found no `no spawnable adv-verifier` avoidance to supersede. Design/implementation record carries conditional rationale: permission lock, routing clarity, main-context hygiene; no contradiction remains."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`adv_run_test` remains unchanged and was used for RED/GREEN/verify evidence across tasks; no prompt/spec change replaces it."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`adv-ci-waiter` remains the CI/PR polling lane; no CI polling behavior moved to `adv-verifier`; agent prompt explicitly says `adv-ci-waiter` owns CI/PR waiting."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`adv-verifier` prompt prefers `bin/oc-test targeted|smoke|full`; smoke and targeted verification were run through `bin/oc-test`."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Agent asset blocks edit/write/patch/task/question/todowrite/ADV mutation/report-submit tools and states no final acceptance/release conclusions; asset test passed."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`adv-verifier` is only a spawn identity. Persisted report identity remains `adv-verification-triage-bundle` in prompt, spec, and tests."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`adv-apply.md` and agent prompt keep worker output as evidence only; main ADV wraps/submits bundle and owns routing/user-facing conclusions."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Agent prompt requires reporting chosen command and rationale; `adv-verifier-assets.test.ts` asserts both anchors."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "`adv_run_test` not replaced; task evidence uses it throughout."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "`adv-ci-waiter` not replaced; verifier prompt explicitly defers CI/PR waiting to `adv-ci-waiter`."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "`adv-verifier` edit/write/patch tools disabled and prompt says no remediation; reviewer found no blockers."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "`adv-verifier` has `adv_subagent_report_submit: false`; prompt says main ADV submits bundle."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No `adv-verifier` persisted report schema/identity was added; bundle identity remains `adv-verification-triage-bundle`."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Prompt allows exactly one rerun only for transient evidence and forbids open-ended rerun loops; no polling loop added."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Prompt and tests require `bin/oc-test` preference; all suite verification used `bin/oc-test`."
+        },
+        {
+          "contractId": "DONT8",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Search found no active prior no-spawnable-adv-verifier avoidance. Conditional supersession rationale remains explicit in design and no silent contradiction was introduced."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`.opencode/agents/adv-verifier.md` exists as hidden `mode: subagent` with structural permission limits: no edits, no nested `task`, no `question`/`todowrite`, no ADV mutation tools.",
+    "Verify-Only Burst routing uses `adv-verifier` as primary worker; `general` is only unavailable-runtime fallback.",
+    "`adv-verifier` returns verification evidence for orchestrator persistence through existing `adv-verification-triage-bundle`; `adv-verifier` itself does not call `adv_subagent_report_submit`.",
+    "For suite-level verification in repos with `bin/oc-test`, `adv-verifier` routes through `bin/oc-test targeted|smoke|full`; native commands are allowed only when no wrapper exists or orchestrator supplied an exact command.",
+    "Failure classification supports `SEMANTIC`, `TRANSIENT`, `ENVIRONMENTAL`, `FATAL`, and `UNKNOWN`; `route_adv_engineer` is only valid with semantic, scoped, medium/high-confidence evidence and populated handoff.",
+    "`adv-verifier` may perform exactly one rerun only to substantiate suspected transient/flaky classification; no flaky/transient label without evidence.",
+    "Asset/spec tests fail if agent permissions, routing matrix, packet anchors, bounded-output/no-edit rules, or report identity drift.",
+    "Implementation explicitly supersedes any confirmed prior “no spawnable adv-verifier” avoidance with fresh rationale: permission lock, routing clarity, and main-context hygiene."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\nLineage confirmed by user during discovery: toolbox conversation is the correct originating context.\n\n## Why\n\nADV needs a dedicated low-cost verification sub-agent that can run local tests and static checks, distill bounded evidence, classify failures, and hand structured results back to the orchestrator without editing code, mutating ADV state, completing gates, or making acceptance/release decisions. The intended outcome is to replace the generic verify-only burst lane currently routed through `general`, while preserving `adv_run_test` for task-level TDD evidence and `adv-ci-waiter` for CI/PR polling.\n\n## What Changes\n\nCreate a dedicated `adv-verifier` verification-only worker lane for local verification bursts. The worker runs bounded verification commands, summarizes evidence, classifies failures, and returns structured data for orchestrator-submitted verification bundle persistence.\n\nThe lane is an authority-free executor: it may execute local verification and report evidence, but it must not edit code, mutate ADV state, complete tasks/gates, publish user-facing conclusions, poll CI, or spawn nested workers.\n\nThe existing verify-only burst path moves from generic `general` routing to `adv-verifier` as the primary worker. `general` may remain only as unavailable-runtime fallback if the dedicated agent cannot be spawned.\n\n## User Outcomes\n\n- Main ADV sessions stay focused on synthesis and decisions instead of absorbing noisy local test output.\n- Local verification produces compact, structured evidence that the orchestrator can use reliably.\n- Failed verification has clear failure classification and next-action guidance.\n- Low-cost execution can handle repetitive verification bursts without weakening task-level TDD evidence or CI release semantics.\n\n## Affected Code\n\nRelevant ADV repo surfaces identified during discovery:\n\n- `.opencode/agents/adv-verifier.md` — new hidden `mode: subagent` agent definition.\n- `.opencode/agents/adv-ci-waiter.md` — precedent for bounded, no-edit, single-purpose worker instructions.\n- `.opencode/agents/adv.md` and `ADV_INSTRUCTIONS.md` — orchestrator routing prose currently routes verify bursts to `general`.\n- `.opencode/command/adv-apply.md` — Verify-Burst Delegation section currently says `subagent_type: \"general\"` and defines the verification triage packet/result.\n- `docs/specs/delegation-defaults.md` — matrix currently lists apply allowed sub-agents as `adv-engineer, adv-designer, general`; `rq-delDefaults05` says Verify-Only Burst uses `general` with `orchestrator_submitted_verification_bundle` transport.\n- `docs/specs/advance-meta.md` — orchestrator operational delegation law references repeated verify/test bursts and structured verification triage.\n- `plugin/src/types/subagent-reports.ts` — `VerificationTriageBundleSubagentReportSchema` already defines the report identity and route predicates; likely reused unchanged.\n- `plugin/src/types/briefing-packets.ts` and `plugin/src/utils/briefing-packet-renderer.ts` — existing verifier lane support.\n- `plugin/src/subagent-reports-spec-assets.test.ts`, `plugin/src/delegation-matrix.test.ts`, `plugin/src/orchestrator-ops-delegation-assets.test.ts`, `plugin/src/phantom-subagent-roster.test.ts` — structural tests likely needing updates.\n- `bin/oc-test` and `AGENTS.md` — repo-local throttle wrapper and test-routing guidance.\n\n## Related Repositories\n\n- Primary: `/home/jon/dev/advance`.\n- Current session repo `/home/jon/toolbox` only provided operating context; no toolbox implementation is expected unless design finds global deploy/model-routing docs must mention the new bundled worker.\n\n## Constraints\n\n- Preserve `adv_run_test` for task-level TDD/evidence capture.\n- Preserve `adv-ci-waiter` as the CI/PR polling lane.\n- Preserve `oc-test-gate` / `bin/oc-test` routing rules for host-safe test execution.\n- Worker remains authority-free: no edits, no ADV state mutation, no gate/task completion, no final acceptance/release conclusions.\n- Structured output remains compatible with orchestrator-submitted verification bundle persistence.\n- Worker does not use open-ended polling or nested sub-agent delegation.\n- `adv-verifier` is a spawn identity; `adv-verification-triage-bundle` remains the report identity.\n\n## Impact\n\nThis change reduces main-agent context noise, makes local verification results more consistent, and aligns verify-only bursts with the same explicit agent-contract style already used for CI waiting and typed ADV worker reports.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts` and `customize-opencode`; no relevant pending-review skill frontmatter found. |\n| Prior Research Extension | PASS | Cited `docs/adv-run-test-prep.md`; no `temp/*.md`; relevant `docs/*-prep.md` pack found. New finding: repo now has `bin/oc-test`, so verifier should route through it rather than re-solve wrapper creation. |\n| Conflict & Related-Work Scan | PASS | Active/archived list reviewed. Related: `optimizeCiWaiter`, `autoDrivePrArchiveCompletion`, `fixGptSubagentRouting`, `addRepoBacklog`. Validation tool lacks target-path support in this session and failed against current project with `WorkflowNotFoundError`; treated as tool limitation, not target conflict. Agenda scan found many toolbox-local items but no exact `adv-verifier` overlap. |\n| Edge Case Investigation | PASS | Edge cases captured below. |\n| Design Question Depth | PASS | Open design questions include routing replacement vs fallback, command autonomy, rerun policy, and prior-decision supersession. |\n| Draft Spec Delta Shapes | PASS | Draft deltas listed below. |\n| P25 Related-Pattern Scan | PASS | Explore scan found verify-burst, subagent-report, asset-test, routing-table, and `bin/oc-test` patterns. |\n| LBP Check | PASS | Internal structural solution preferred; external-solution check skipped because no external library/service option is viable. |\n| Completeness Verification | PASS | Full problem is a routing/worker-identity gap, not only test output handling; solution scope includes agent, routing, specs, tests, and prompt guidance. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts` — loaded. Direct match: adding/modifying ADV sub-agent and packet/report contracts.\n- `customize-opencode` — loaded. Direct match: project `.opencode/agents/*.md` sub-agent definition shape.\n- No new skill created: existing skills cover the core problem.\n\n### Extends\n\n- `docs/adv-run-test-prep.md` — relevant prior research on structured test evidence, `adv_run_test`, `bin/oc-test`, and verification output. New finding: this repo now contains `bin/oc-test` (`bin/oc-test:1-52`), so the verifier can build on existing tiered local throttle behavior rather than adding the wrapper first.\n- Archived `optimizeCiWaiter` — establishes `adv-ci-waiter` as repo-owned bounded worker with asset tests and explicit CI-success-is-not-merge boundary.\n- Archived `autoDrivePrArchiveCompletion` — reinforces `adv-ci-waiter` as CI/PR release lane and a hard separation from local verification.\n- Archived `fixGptSubagentRouting` — relevant precedent for provider/routing salience and preserving allowed sub-agent roster via structural tests.\n- No reusable `/adv-improve` pack directly focused on verifier-agent identity was found.\n\n### Conflict Scan\n\n- Active related work: `optimizeCiWaiter` appeared recently active/archived during the session; scope is CI waiter optimization, not local verification.\n- Active changes `diagnoseArchivedListingTimeout*`, `fixAdvStatusStdoutTruncation`, `strengthenMinimaxProviderHint` do not own verifier routing.\n- Potential historical conflict: researcher/explore reported an older verification-triage decision that avoided introducing a spawnable `adv-verifier`. Current ADV index could not load a matching `addVerificationTriage` change by ID. User selected: supersede the prior avoidance if confirmed, with fresh rationale.\n- `adv_change_validate` target-path gap: tool does not accept `target_path`; call against current project returned `WorkflowNotFoundError` for `addAdvVerifier`. Discovery records this as tooling limitation, not a change conflict.\n\n### Current State\n\n- Verify-only bursts currently route to `general` in `.opencode/command/adv-apply.md` and delegation/spec tests.\n- The verification report shape already exists as `adv-verification-triage-bundle`; it is change-scoped, uses `scope_key: verifier:<slug>`, supports `phase: local_verify | ci_check`, classifies failures, and enforces `route_adv_engineer` predicates.\n- `bin/oc-test` exists and delegates to `oc-test-gate` when installed; tiers: `targeted`, `smoke`, `full`.\n- `adv-ci-waiter` gives an asset-test and prompt precedent for a dedicated bounded worker that denies edits/delegation and reports bounded output.\n- `adv-visual-review` gives a recent precedent for hidden, read-only, single-purpose agent shape.\n- Briefing packet verifier lane exists and maps to `adv-verification-triage-bundle` report identity.\n\n### Edge Cases\n\nGap: worker identity/routing\n- Edge case 1: Task tool cannot spawn `adv-verifier` because agent file is absent or not deployed. Expected behavior: orchestrator falls back to current bounded `general` path or inline verification, not gate completion based on missing worker.\n- Edge case 2: Routing tables mention `adv-verifier` but `KNOWN_SPAWNABLE_SUBAGENTS` / phantom roster tests do not include it. Expected behavior: deterministic tests fail before release.\n\nGap: command execution\n- Edge case 1: Repo has `bin/oc-test`; verifier must not bypass it for suite-level test runs.\n- Edge case 2: Repo lacks `bin/oc-test`; verifier may use explicit native commands and must report the fallback rationale.\n\nGap: failure classification\n- Edge case 1: A command times out or dependency/service is missing; verifier must classify as `TRANSIENT` or `ENVIRONMENTAL` with evidence, not `SEMANTIC`.\n- Edge case 2: Output is too large or malformed; verifier must return bounded evidence/artifact pointer and may return `UNKNOWN`/`inconclusive`, not invent root cause.\n\nGap: authority boundary\n- Edge case 1: Verifier identifies a scoped semantic failure; it may suggest `route_adv_engineer` only with required predicates and handoff, never edit directly.\n- Edge case 2: Verifier sees acceptance/release implications; it must return evidence to orchestrator, not publish final user-facing conclusions.\n\n### Open Design Questions\n\n1. Verify-Burst routing replacement vs fallback.\n   - Trust model: joint, because it changes user-facing autonomy and worker identity.\n   - Blast radius: delegation matrix, command prompts, provider guidance, roster tests, fallback behavior.\n   - Alternatives: replace `general` primary; allow both equally; keep `general`. User chose `adv-verifier` primary with `general` only as unavailable-runtime fallback.\n\n2. Command-selection autonomy.\n   - Trust model: joint, because it affects predictability vs worker usefulness.\n   - Blast radius: agent prompt, test evidence, failure reproducibility.\n   - Alternatives: explicit-only; bounded hybrid; worker chooses. User chose bounded hybrid.\n\n3. Rerun policy.\n   - Trust model: joint, because it trades confidence against time/noise.\n   - Blast radius: transient classification, command runtime, no-polling discipline.\n   - Alternatives: no rerun; exactly one; up to two. User chose exactly one rerun only for transient classification evidence.\n\n4. Prior avoidance supersession.\n   - Trust model: joint, because it may reverse prior project rationale.\n   - Blast radius: traceability and acceptance of new agent identity.\n   - Alternatives: supersede if confirmed; do not supersede; defer to design. User chose supersede if confirmed.\n\n### Draft Spec Deltas\n\n- `rq-delDefaultsVerify01` — Verify-only bursts use `adv-verifier` primary.\n  - Given the apply step needs a verify-only burst\n  - When the burst is delegated\n  - Then ADV uses `adv-verifier` as the primary sub-agent\n  - And `general` is used only as unavailable-runtime fallback, not as the first-class preferred verify worker\n\n- `rq-delDefaultsVerify02` — Verifier packet preserves authority boundaries.\n  - Given `adv-verifier` receives a verification packet\n  - When it runs local verification commands\n  - Then it returns bounded structured evidence\n  - And it does not edit code, mutate ADV state, complete gates/tasks, publish final conclusions, or spawn remediation workers\n\n- `rq-subagentReportsVerifier01` — `adv-verifier` reuses orchestrator-submitted verification triage bundle.\n  - Given `adv-verifier` returns local verification evidence\n  - When the orchestrator persists evidence\n  - Then the persisted report uses `adv-verification-triage-bundle` with `scope_key: verifier:<slug>`\n  - And `adv-verifier` itself does not call `adv_subagent_report_submit`\n\n- `rq-advVerifierAssets01` — Asset tests pin agent existence and permissions.\n  - Given the repo ships `.opencode/agents/adv-verifier.md`\n  - When asset tests run\n  - Then the agent is `mode: subagent`, hidden, edit-denied, task-denied, and bounded-output/one-rerun/no-ADV-mutation rules are present\n\n### Related Pattern Scan\n\nSimilar patterns found:\n- `adv-ci-waiter`: dedicated bounded worker with no edit/delegation and asset tests.\n- `adv-visual-review`: hidden single-purpose worker precedent.\n- `adv-temporal-repair`: classifier-style sub-agent with restricted permissions.\n- `Verify-Only Burst` in `adv-apply`: existing packet/result contract for `general`.\n- `adv-verification-triage-bundle`: existing structured report schema and sidecar persistence path.\n- `bin/oc-test`: repo-local test throttle wrapper and tiers.\n\nNo similar local-verification dedicated sub-agent exists today.\n\n### Completeness Verification\n\nProblem-completeness check: PASS, high confidence. The problem is not missing test execution capability; local verification already exists through commands and `general`. The full problem is lack of a dedicated permission-locked, low-cost, low-noise verifier lane for repeated local verification bursts.\n\nSolution-scope check: PASS, high confidence. The full intended solution includes: new agent identity, routing/spec updates, command prompt updates, asset tests, roster/provider guidance updates, and preservation of existing report schema. No sole-entry claim is needed beyond replacing known verify-burst routing surfaces found by the related scan.\n\nSecondary-surface disposition:\n- In scope: apply verify-burst packet, orchestration routing prose, delegation matrix/spec docs/tests, agent asset tests, provider/routing hints that mention verify bursts.\n- Out of scope: `adv_run_test` task-level TDD evidence, `adv-ci-waiter` CI polling, schema rewrite for `adv-verification-triage-bundle`, code remediation agents.\n- Unresolved: none after user choices above.\n\n### LBP Check\n\nLikely best practice: dedicated permission-locked worker for repeated local verification bursts, while reusing the existing `adv-verification-triage-bundle` report schema. This follows structural-correctness: agent permissions and asset tests enforce boundaries; report schema stays validated; orchestration keeps authority.\n\nExternal-solution check skipped: this is an internal ADV orchestration/agent-contract change. No external library/service option is viable or needed.\n\n### Discovery Opportunity Scout\n\nScout decision: run. Reason: broad agent-routing and contract-surface change.\n\nCandidates considered: 5.\n- Auto-adopted: reuse existing `adv-verification-triage-bundle`; model `adv-verifier` on `adv-visual-review`/`adv-ci-waiter`; add `adv-verifier-assets.test.ts`.\n- User-surfaced and resolved: switch Verify-Only Burst to `adv-verifier` primary; supersede prior `adv-verifier` avoidance if confirmed.\n- Inconclusive/degraded: researcher report persistence failed because `adv_subagent_report_submit` rejected the report and/or change workflow was unreachable to the worker; inline findings were returned and used.\n\n### Recommended Objectives\n\n1. Add a hidden, permission-locked `adv-verifier` sub-agent for local verify-only bursts.\n2. Route Verify-Only Burst to `adv-verifier` primary; preserve `general` only as unavailable-runtime fallback.\n3. Reuse `adv-verification-triage-bundle` as the orchestrator-submitted durable evidence report identity.\n4. Encode bounded hybrid command selection, `bin/oc-test` preference, one-rerun transient policy, and no-ADV-mutation boundaries in the agent prompt.\n5. Add structural tests/spec updates that prevent routing, permission, and report-identity drift.\n\n### AMBIGUITY ANALYSIS\n\nAdvisory finding:\n\nM1 HIGH Missing Information Prior `adv-verifier` avoidance is reported by researcher/explore but not currently loadable through `adv_change_show`.\n  Evidence: \"If confirmed during implementation, should this change explicitly supersede that prior avoidance?\" (discovery user question)\n  Reason: unclear because the older change ID was not reachable through current ADV target-path state, but user resolved the decision by choosing supersession if confirmed.\n\nCoverage: B:C F:C S:C M:P\n\nTrigger evaluation: one HIGH, zero CRITICAL. Continue to agreement; carry as design/prep verification item.\n\n## Scope\n\n### In Scope\n\n- Add a dedicated `adv-verifier` verification-only sub-agent contract.\n- Route local verify-only bursts through `adv-verifier` as primary.\n- Preserve `general` only as unavailable-runtime fallback.\n- Support local tests, lint, typecheck, format checks, build/compile, and repo-defined schema/codegen drift checks.\n- Support bounded hybrid command selection: run orchestrator-provided commands and may choose obvious repo wrapper/tier from explicit verification intent, reporting why.\n- Permit exactly one rerun only when transient/flaky classification needs evidence.\n- Return bounded structured evidence with command identity, exit code, duration when available, summary, failure classification, file/line evidence when available, and recommended next action.\n- Keep orchestrator responsible for ADV persistence via `adv-verification-triage-bundle` unless design proves a schema extension is required.\n- Add or update tests/docs/spec assets needed to make the contract structural.\n\n### Out of Scope\n\n- Replacing `adv_run_test` for task-level TDD evidence.\n- Replacing `adv-ci-waiter` for CI/PR polling.\n- Code-writing remediation by `adv-verifier`.\n- Task/gate completion by `adv-verifier`.\n- Acceptance/release decisions by `adv-verifier`.\n- Broad repo refactors unrelated to verifier routing and contract enforcement.\n- Rewriting the existing `adv-verification-triage-bundle` schema unless design proves a narrow compatibility extension is required.\n\n### Must Not\n\n- Must not edit files.\n- Must not mutate ADV state or call ADV mutation tools.\n- Must not call `adv_subagent_report_submit`; the orchestrator persists verifier evidence.\n- Must not spawn nested sub-agents.\n- Must not run unbounded polling loops.\n- Must not label failures as flaky/transient without evidence and the permitted one-rerun check.\n- Must not dump full logs into the main context when bounded summaries or artifact paths suffice.\n- Must not bypass `bin/oc-test` / `oc-test-gate` when the repo provides the wrapper.\n- Must not add `adv-verifier` as the persisted report identity; `adv-verification-triage-bundle` remains the report identity.\n",
+    "problemStatement": "ADV needs a dedicated low-cost verification sub-agent that can run local tests and static checks, distill bounded evidence, classify failures, and hand structured results back to the orchestrator without editing code, mutating ADV state, completing gates, or making acceptance/release decisions. This should replace the generic verify-only burst lane currently routed through `general`, while preserving `adv_run_test` for task-level TDD evidence and `adv-ci-waiter` for CI/PR polling.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add a hidden, permission-locked `adv-verifier` sub-agent for local verify-only bursts.\n2. Route Verify-Only Burst work to `adv-verifier` as the primary worker, with `general` only as unavailable-runtime fallback.\n3. Reuse the existing `adv-verification-triage-bundle` report identity and orchestrator-submitted persistence path.\n4. Encode bounded hybrid command selection, `bin/oc-test` preference, one-rerun transient policy, and no-ADV-mutation boundaries in the verifier agent contract.\n5. Add structural tests/spec updates that prevent routing, permission, packet-anchor, and report-identity drift.\n\n## Success Criteria\n\n- SC1: Main ADV verify-only bursts use a dedicated `adv-verifier` lane instead of absorbing noisy local verification in primary context.\n- SC2: Verifier output is bounded, classified, source-backed, and actionable.\n- SC3: ADV authority boundaries remain intact: verifier never edits, mutates ADV state, completes gates/tasks, or decides acceptance/release.\n- SC4: Existing task-level `adv_run_test` and CI/PR `adv-ci-waiter` semantics remain unchanged.\n\n## Acceptance Criteria\n\n- AC1: `.opencode/agents/adv-verifier.md` exists as hidden `mode: subagent` with structural permission limits: no edits, no nested `task`, no `question`/`todowrite`, no ADV mutation tools.\n- AC2: Verify-Only Burst routing uses `adv-verifier` as primary worker; `general` is only unavailable-runtime fallback.\n- AC3: `adv-verifier` returns verification evidence for orchestrator persistence through existing `adv-verification-triage-bundle`; `adv-verifier` itself does not call `adv_subagent_report_submit`. [warrant: spec:rq-subagentReports02]\n- AC4: For suite-level verification in repos with `bin/oc-test`, `adv-verifier` routes through `bin/oc-test targeted|smoke|full`; native commands are allowed only when no wrapper exists or orchestrator supplied an exact command.\n- AC5: Failure classification supports `SEMANTIC`, `TRANSIENT`, `ENVIRONMENTAL`, `FATAL`, and `UNKNOWN`; `route_adv_engineer` is only valid with semantic, scoped, medium/high-confidence evidence and populated handoff. [warrant: spec:rq-subagentReports02]\n- AC6: `adv-verifier` may perform exactly one rerun only to substantiate suspected transient/flaky classification; no flaky/transient label without evidence.\n- AC7: Asset/spec tests fail if agent permissions, routing matrix, packet anchors, bounded-output/no-edit rules, or report identity drift.\n- AC8: Implementation explicitly supersedes any confirmed prior “no spawnable adv-verifier” avoidance with fresh rationale: permission lock, routing clarity, and main-context hygiene.\n\n## Constraints\n\n- C1: Preserve `adv_run_test` for task-level TDD/evidence capture.\n- C2: Preserve `adv-ci-waiter` as the CI/PR polling lane.\n- C3: Preserve `oc-test-gate` / `bin/oc-test` routing rules for host-safe test execution.\n- C4: `adv-verifier` is authority-free: no edits, no ADV state mutation, no gate/task completion, no final acceptance/release conclusions.\n- C5: `adv-verifier` is a spawn identity; `adv-verification-triage-bundle` remains the persisted report identity.\n- C6: Worker output is evidence, not authority; orchestrator owns persistence, routing synthesis, and user-facing conclusions.\n- C7: Bounded hybrid command selection must report chosen command and rationale.\n\n## Avoidances\n\n- DONT1: Do not replace `adv_run_test` for task-level TDD evidence.\n- DONT2: Do not replace `adv-ci-waiter` for CI/PR polling.\n- DONT3: Do not let `adv-verifier` edit code or perform remediation.\n- DONT4: Do not let `adv-verifier` call `adv_subagent_report_submit`; the orchestrator persists verifier evidence.\n- DONT5: Do not add `adv-verifier` as a persisted report identity.\n- DONT6: Do not run unbounded polling loops or open-ended rerun cycles.\n- DONT7: Do not bypass `bin/oc-test` / `oc-test-gate` when the repo provides the wrapper.\n- DONT8: Do not silently contradict a confirmed prior “no spawnable adv-verifier” avoidance; supersede it explicitly with fresh rationale if found.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects ADV agent prompts, routing/spec/test assets, and local verification orchestration. It does not alter browser-visible UI or visual output.\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: no front-end or visual preview surface is expected.\n\n## Decisions\n\n### User Decisions\n\n1. Question: Should `adv-verifier` replace `general` as the primary Verify-Only Burst worker, or be added alongside it?\n   - User choice: `adv-verifier` primary.\n   - Why it matters: sets the routing and matrix change as an intentional behavior change rather than a passive extra option.\n\n2. Question: How much command-selection autonomy should `adv-verifier` have?\n   - User choice: bounded hybrid.\n   - Why it matters: allows useful repo-wrapper/tier choice while preserving reproducibility and explicit rationale.\n\n3. Question: Should `adv-verifier` be allowed one rerun for suspected transient failures?\n   - User choice: one rerun.\n   - Why it matters: gives evidence for transient/flaky classification without creating an unbounded loop.\n\n4. Question: If a prior avoidance of spawnable `adv-verifier` is confirmed, should this change supersede it?\n   - User choice: supersede if confirmed.\n   - Why it matters: avoids silently reversing prior project rationale; implementation must cite the new reason.\n\n### Agent Decisions (LBP)\n\n1. Reuse `adv-verification-triage-bundle` instead of adding a new persisted report schema.\n   - Rationale: existing schema already covers local verification targets, failure classification, route predicates, and `verifier:<slug>` scope keys.\n\n2. Model `adv-verifier` on `adv-ci-waiter` and `adv-visual-review` patterns.\n   - Rationale: these provide repo-owned, hidden, permission-bounded, single-purpose sub-agent precedents.\n\n3. Use asset/spec tests to enforce the contract.\n   - Rationale: prompt prose alone is too weak for routing/permission/report identity correctness.\n\n4. Treat `general` as fallback only.\n   - Rationale: the change's value is a dedicated permission-locked verification identity; keeping `general` as equal peer would preserve the ambiguity this change removes.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved by user reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\n`adv-verifier` becomes the dedicated spawn identity for local verify-only bursts. It does **not** become a new persisted report identity.\n\n```\nMain ADV orchestrator\n  ├─ decides verify-burst is heavy/noisy enough to delegate\n  ├─ builds Verification Triage Packet\n  ├─ spawns adv-verifier (primary)\n  │    ├─ runs bounded local commands\n  │    ├─ prefers bin/oc-test targeted|smoke|full when repo provides wrapper\n  │    ├─ may rerun exactly once only for transient classification evidence\n  │    └─ returns strict Verification Triage Result JSON\n  ├─ falls back to general only if adv-verifier runtime is unavailable\n  ├─ validates result predicates\n  └─ submits adv-verification-triage-bundle sidecar evidence\n```\n\nExisting identities stay distinct:\n\n- `adv-verifier` = spawnable sub-agent, authority-free local verification executor.\n- `adv-verification-triage-bundle` = orchestrator-submitted persisted report identity.\n- `adv_run_test` = task-level TDD evidence tool, unchanged.\n- `adv-ci-waiter` = CI/PR polling lane, unchanged.\n\n## Key Decisions\n\n### 1. Dedicated spawn identity, existing report identity\n\nUse a new `.opencode/agents/adv-verifier.md` agent for execution, but preserve `adv-verification-triage-bundle` for persisted reports.\n\nRationale: existing schema already provides command/check targets, status, error class, confidence, bounded evidence, route predicates, `suggested_handoff`, and `verifier:<slug>` scope keys. Adding `adv-verifier` as a persisted report agent would blur authority boundaries and duplicate schema.\n\n### 2. Verify-Only Burst primary route changes from `general` to `adv-verifier`\n\nUpdate the apply/delegation surfaces so verify-only bursts prefer `adv-verifier`. Keep `general` structurally present only as unavailable-runtime fallback, not an equal preferred worker.\n\nRationale: the change's value is permission lock and routing clarity. Keeping `general` as equal first-class worker would preserve the ambiguity this change removes, but removing all fallback would contradict the approved fallback behavior.\n\n### 3. Permission lock follows the `adv-ci-waiter` execution template\n\nModel `adv-verifier` primarily on `adv-ci-waiter`: bash allowed for command execution, edits/delegation denied, no self-submitted report. Borrow only `hidden: true` and read-only-agent conventions from `adv-visual-review`; do **not** copy its self-submit behavior.\n\nRequired agent boundaries:\n\n- hidden `mode: subagent`\n- edits disabled\n- nested `task` disabled\n- `question` / `todowrite` disabled\n- ADV mutation tools disabled\n- `adv_subagent_report_submit` disabled\n- shell allowed only for verification commands\n- bounded output required\n\nRationale: structural permission limits make the no-authority boundary enforceable. `adv-ci-waiter` is the closest precedent because it runs commands and does not persist reports.\n\n### 4. Bounded hybrid command selection\n\nThe verifier runs orchestrator-provided commands by default. When the orchestrator provides a verification intent/tier rather than exact commands, the verifier may choose an obvious repo-local wrapper command (`bin/oc-test targeted|smoke|full`) and must report the command plus rationale.\n\nRationale: explicit-only command selection is safest but too weak for a low-cost verification lane; unconstrained worker choice is too surprising. Bounded hybrid preserves reproducibility and local policy.\n\n### 5. One-rerun transient policy\n\nThe verifier may rerun exactly once only to substantiate suspected `TRANSIENT`/flaky classification. It must not label a result flaky or transient without evidence from the rerun or external condition.\n\nRationale: one rerun provides useful classification evidence without creating a polling loop or noisy test churn.\n\n### 6. Supersede prior avoidance only with evidence\n\nIf implementation confirms a prior verification-triage avoidance of spawnable `adv-verifier`, this change should explicitly supersede it with the new rationale: permission lock, routing clarity, and main-context hygiene. Discovery/scout indicates the earlier avoidance may have been specifically about not adding a phantom worker route without shipped agent assets; this change ships the assets, so the rationale can be superseded rather than contradicted.\n\nRationale: reversing prior decisions silently creates governance drift. This keeps traceability without blocking the approved direction.\n\n## ADR Drafts\n\nNo ADR required. The decision is structural but localized to ADV sub-agent routing and can be reversed by restoring `general` routing plus removing the agent asset.\n\n## Implementation Strategy\n\n1. **Agent asset**\n   - Add `.opencode/agents/adv-verifier.md` with hidden `mode: subagent` frontmatter.\n   - Use `adv-ci-waiter`-style permissions: command execution allowed, edits and nested delegation denied.\n   - Encode required packet anchors: `WORKING DIRECTORY`, `CHANGE`, `SCOPE KEY`, `PHASE`, `ATTEMPT`, `TASK_SCOPE`, `IN_SCOPE`, `OUT_OF_SCOPE`, `DONE_WHEN`, `STOP_WHEN`, `VERIFICATION`, `COMMANDS`.\n   - Encode final strict JSON shape matching the existing Verification Triage Result in `adv-apply.md`.\n   - Explicitly forbid `adv_subagent_report_submit`, code edits, ADV mutation, gate/task completion, final conclusions, CI polling, and nested agents.\n\n2. **Routing/spec law**\n   - Update `.adv/specs/delegation-defaults/spec.json` and `docs/specs/delegation-defaults.md`: Verify-Only Burst lists `adv-verifier` primary and `general` unavailable-runtime fallback; preserve `orchestrator_submitted_verification_bundle` transport and anchors.\n   - Update the `rq-delDefaults05` sentence currently pinning `general` as executor to say `adv-verifier` is primary and `general` is unavailable-runtime fallback.\n   - Update `.adv/specs/advance-meta/spec.json` and `docs/specs/advance-meta.md` where repeated verify/test bursts route to `general`.\n   - Keep `subagent-reports` schema semantics unchanged unless implementation finds a narrow warrant issue.\n\n3. **Command/orchestrator prompts**\n   - Update `.opencode/command/adv-apply.md` Verify-Burst Delegation: `subagent_type: \"adv-verifier\"`, fallback wording, packet/result unchanged except worker identity.\n   - Update `.opencode/agents/adv.md` and `ADV_INSTRUCTIONS.md` operational routing: repeated verify/test bursts → `adv-verifier`; `general` remains generic fallback only.\n   - Check model-routing/provider-hint docs for stale verify-burst/general references; update only if they name verify-burst worker identity.\n\n4. **Tests**\n   - Add `plugin/src/adv-verifier-assets.test.ts` modelled on `adv-ci-waiter-assets.test.ts` and `adv-temporal-repair-assets.test.ts`.\n   - Update `plugin/src/subagent-reports-spec-assets.test.ts` Verify-Only Burst expected agent from `general` to primary `adv-verifier` plus fallback `general` if represented structurally.\n   - Update `plugin/src/delegation-matrix.test.ts` spawnable roster and apply allowed-agent expectations.\n   - Update `plugin/src/orchestrator-ops-delegation-assets.test.ts` for operational routing text.\n   - Update `plugin/src/phantom-subagent-roster.test.ts` allowlist regex if needed.\n   - Add/adjust tests to assert `adv-verifier` is not added as the persisted report identity.\n\n5. **Verification**\n   - Targeted tests: `bin/oc-test targeted -- plugin/src/adv-verifier-assets.test.ts plugin/src/subagent-reports-spec-assets.test.ts plugin/src/delegation-matrix.test.ts plugin/src/orchestrator-ops-delegation-assets.test.ts plugin/src/phantom-subagent-roster.test.ts`.\n   - Smoke: `bin/oc-test smoke`.\n   - Full/check if touched spec/schema surfaces require it: `bin/oc-test full` or plugin `pnpm run check` through wrapper policy.\n\n## LBP Analysis\n\nPreferred long-term approach is a dedicated permission-locked worker backed by existing typed report schema.\n\nAlternatives considered:\n\n- **Keep `general`**: lowest diff, but keeps broad permissions/context and ambiguous routing. Rejected by user decision.\n- **Allow both `general` and `adv-verifier` equally**: preserves compatibility but weakens the dedicated lane's value. Rejected by user decision.\n- **New `adv-verifier` report schema**: unnecessary and worse. Existing `adv-verification-triage-bundle` already owns evidence semantics; new persisted identity would increase migration and reader blast radius.\n- **Verifier self-submits like `adv-visual-review`**: rejected because agreement requires orchestrator persistence and authority-free worker output.\n- **Full autonomous command selection**: useful but too broad. Bounded hybrid gives wrapper/tier utility without surprising command choice.\n\nThis design follows P33 structural correctness: correctness lives in agent permissions, Zod/report schema, matrix/spec law, packet anchors, and asset tests rather than heuristic worker prose.\n\n## Affected Components\n\n- `.opencode/agents/adv-verifier.md` — new sub-agent.\n- `.opencode/command/adv-apply.md` — Verify-Burst Delegation worker identity and fallback wording.\n- `.opencode/agents/adv.md` — orchestration guidance and worker table.\n- `ADV_INSTRUCTIONS.md` — operational routing table and spawnable roster.\n- `.adv/specs/delegation-defaults/spec.json` and `docs/specs/delegation-defaults.md` — matrix and requirement text.\n- `.adv/specs/advance-meta/spec.json` and `docs/specs/advance-meta.md` — orchestrator operational delegation law.\n- `plugin/src/adv-verifier-assets.test.ts` — new asset tests.\n- `plugin/src/subagent-reports-spec-assets.test.ts` — Verify-Only Burst packet contract expected agent.\n- `plugin/src/delegation-matrix.test.ts` — spawnable roster/allowed agents.\n- `plugin/src/orchestrator-ops-delegation-assets.test.ts` — routing anchors.\n- `plugin/src/phantom-subagent-roster.test.ts` — allowed sub-agent mention guard if needed.\n- model-routing/provider-hint docs — inspect and update only if they hard-code verify-burst worker identity.\n- `bin/oc-test` — no implementation change expected; used by verifier and verification commands.\n\n## Design-Derived Criteria\n\n- DDC1: `adv-verifier` final output is strict JSON matching the current Verification Triage Result fields; prose summaries alone are invalid.\n- DDC2: Agent asset tests assert no edit capability, no nested task capability, no ADV mutation tools, and no `adv_subagent_report_submit` capability.\n- DDC3: Verification commands route through repo-local `bin/oc-test` for suite-level runs when present.\n- DDC4: One-rerun limit is explicit in agent prompt and asset-tested.\n- DDC5: Matrix/spec tests keep `adv-verifier` as primary Verify-Only Burst worker while preserving `adv-verification-triage-bundle` as report identity.\n- DDC6: Any confirmed prior avoidance of spawnable `adv-verifier` is documented as superseded in implementation notes or design/update comments.\n- DDC7: Hard-coded `general` pins in `subagent-reports-spec-assets.test.ts`, `delegation-matrix.test.ts`, `phantom-subagent-roster.test.ts`, and `orchestrator-ops-delegation-assets.test.ts` move in the same delta.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| New agent creates stale routing references to `general` | Update matrix, command, ADV instructions, provider/routing tests in same change. |\n| Worker accidentally mutates state or edits code | Permission lock + asset tests + prompt prohibition. |\n| Report readers break if agent identity changes | Keep persisted report identity `adv-verification-triage-bundle`; do not add `adv-verifier` to report schema unless design is re-entered. |\n| Verifier bypasses local throttle | Prompt + asset tests require `bin/oc-test` preference; verification uses wrapper. |\n| Rerun behavior becomes polling loop | Exactly one rerun only for transient classification evidence; no CI polling. |\n| Prior avoidance is silently reversed | Implementation must verify and explicitly supersede if found. |\n\n## Design Leverage Scout\n\nScout status: pass, report persistence degraded due workflow reachability in the worker; inline findings were used.\n\nCandidates considered: 5.\n\nAuto-adopted:\n\n1. Reuse `adv-verification-triage-bundle` and `verifier:<slug>` unchanged; zero new report schema work.\n2. Model `adv-verifier` primarily on `adv-ci-waiter` (bash allowed, no self-submit), borrowing only hidden/read-only conventions from `adv-visual-review`.\n3. Treat exact hard-coded `general` pins as mandatory in-scope edits.\n4. Update the `rq-delDefaults05` sentence that currently names `general`.\n\nSurfaced/resolved by existing discovery decisions:\n\n1. The prior DONT-style avoidance is consciously superseded if confirmed.\n2. The spawn/report identity split is accepted by the approved agreement.\n\nInconclusive/degraded:\n\n- `adv_subagent_report_submit` from the researcher worker failed with workflow reachability issues; this did not block design because findings were source-backed and returned inline.\n\n## Validator Result\n\nIndependent validator status: pass. Report persistence degraded due worker-side workflow reachability, but inline findings were source-backed.\n\nValidator judgement:\n\n- Correctness: pass — design satisfies approved objectives and preserves `adv_run_test`, `adv-ci-waiter`, and `adv-verification-triage-bundle` boundaries.\n- Simplicity: pass — reuses existing report schema, scope-key namespace, `bin/oc-test`, and bounded agent precedents.\n- Spec-law compliance: pass with sequencing caution — existing `general`-pinning spec/docs/tests must be amended atomically.\n- Alternatives considered: keep `general`, new report identity, verifier self-submit, no fallback; all rejected for reasons recorded above.\n\nCompleteness conditions for prep:\n\n1. Amend the `general`-pinning triple atomically: `delegation-defaults/spec.json`, `docs/specs/delegation-defaults.md`, and `subagent-reports-spec-assets.test.ts`.\n2. Represent fallback structurally as `adv-verifier` primary plus `general` unavailable-runtime fallback.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThis change adds a dedicated `adv-verifier` verification worker path and routes local verify-only bursts to it while keeping ADV state changes, report persistence, and final decisions with the main orchestrator.\n\n## Why It Matters\n\nThe change reduces noisy verification work in the main ADV context without expanding worker authority: verifier output is bounded evidence only, `adv_run_test` remains task-level proof, and `adv-ci-waiter` remains the CI/PR polling lane.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `.opencode/agents/adv-verifier.md` as a hidden, permission-bounded sub-agent with read/command execution only, no edits, no nested delegation, no prompts/todos, no ADV mutations, and no self-submitted report.\n2. Updated delegation specs/docs and asset tests so Verify-Only Burst uses `adv-verifier` as primary worker and `general` only as unavailable-runtime fallback.\n3. Updated active ADV routing surfaces (`adv-apply`, ADV agent instructions, ADV_INSTRUCTIONS, advance-meta spec/docs) to route repeated local verify/test bursts through `adv-verifier` while preserving `adv_run_test` and `adv-ci-waiter` roles.\n4. Fixed an existing exhaustive sub-agent report switch gap for `adv-visual-review` so smoke/typecheck passes with the current report union.\n\n## What Was Verified\n\n- Verdict: READY review with 0 blocking findings and 0 issues from `adv-reviewer`.\n- Tests: targeted verifier/routing/roster suite passed — 5 files, 156 tests (`tr_mra7pq8q_4f8404e`). Smoke passed — schemas:check, typecheck, lint, format:check, and 57 tests (`tr_mra7ph5s_54f4404e`).\n- Preview URL: not_applicable — agreement declared `visual_surface: false`; implementation changes agent prompts, specs, docs, and tests only.\n- Contract matrix: 27 required rows passed/respected; 0 failed/violated/unknown.\n\n## Remaining Concerns\n\nNo acceptance blockers. Non-blocking release note: live OpenCode sessions will not consume the new repo-owned agent asset until deploy/sync and session restart, per project Source-vs-Dist Reload Gotcha.\n\n## Supporting Evidence\n\n- Tasks/checkpoints: `tk-148bb463d7f7` (`262e3504`), `tk-b4993b7e1563` (`d3c8bd11`), `tk-3c63f8c3a1e2` (`1dc81f36`), `tk-35eaa5466085` (`6ff3791f`).\n- Review report: `addAdvVerifier|change:review:acceptance|adv-reviewer|1`, verdict READY.\n- Harden scanner bundle: `addAdvVerifier|change:scanner-bundle:harden|adv-scanner-bundle|1`, READY.\n- Contract proof: review matrix persisted with 27 rows and 0 failing rows.\n- Validation: `adv_change_validate strict` passed with warning only `NO_DELTAS`.\n\n## Consequence Context\n\n1. delivered value — pass: dedicated local verifier lane is implemented and source-tested; evidence `adv-verifier` asset + routing/spec tests.\n2. enabling-only/follow-up dependency — n/a: no blocking follow-up dependency; deploy/restart is release/deployment operational context, not acceptance blocker.\n3. ops readiness — pending: harden/release owns deploy-local/runtime sync verification before archive.\n4. migration/data impact — n/a: no persistence/data migration; changes are agent/spec/docs/tests plus a typecheck exhaustiveness fix.\n5. frontend/preview impact — n/a: `visual_surface: false`; no browser-visible UI or preview surface.\n6. collision/release risk — warning: branch touches ADV global instruction/agent assets and specs; review found no blockers, harden should re-check release collision/sync.\n7. open follow-ups — n/a: no required follow-ups or ops obligations recorded.\n8. next action — pending: user acceptance proceeds inline to harden/release readiness review.\n\n## Release Readiness Summary\n\nRelease harden status: READY.\n\nHarden checked release/deploy readiness, production readiness, documentation hygiene, cleanup readiness, residual slop/maintainability, test coverage, and merge/collision readiness. No blocker or high finding remains.\n\n- Ops readiness — pass with note: no runbooks, migrations, production operations, external services, env vars, or infrastructure changes. Deploy-local sync and OpenCode restart are required after merge so live sessions load `.opencode/agents/adv-verifier.md`.\n- Migration/data impact — n/a: no database, storage, or data migration surface changed.\n- Frontend/preview impact — n/a: agreement declared `visual_surface: false`; no UI, browser preview, or screenshot review needed.\n- Collision/release risk — pass with warnings: merge dry-run against `origin/trunk` passed; strict validation passed with warning only `NO_DELTAS`; worktree clean. Broad instruction/spec/agent surfaces are covered by targeted asset/spec tests and smoke. Historical no-verifier archive text remains valid history; current acceptance AC8/DONT8 explicitly records supersession rationale.\n- Open follow-ups — non-blocking: after merge, run `./scripts/deploy-local.sh --fix` and restart OpenCode sessions; optional future polish can clarify `adv-verifier` as bundled-global in roster prose.\n- Next action — archive sign-off, then archive/release finalization.\n\n### Release Approval Consequence Context\n\n1. delivered value — pass: Verify-Only Burst now has a dedicated permission-bounded verifier lane, reducing primary ADV context noise without giving the worker release authority.\n2. enabling-only/follow-up dependency — n/a: no blocking child/follow-up required before release.\n3. ops readiness — pass with note: deploy sync/restart is operational follow-through after merge, not a release blocker.\n4. migration/data impact — n/a: no data or schema changes.\n5. frontend/preview impact — n/a: no visual surface.\n6. collision/release risk — pass with warnings: merge dry-run clean; no high harden findings; live-session reload required after deploy.\n7. open follow-ups — non-blocking: deploy/restart reminder and optional roster wording polish.\n8. next action — archive if user signs off.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-07T05:38:36.135Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Main ADV verify-only bursts use a dedicated `adv-verifier` lane instead of absorbing noisy local verification in primary context. | pass | Review READY. Verify-only burst routing now names `adv-verifier` in ADV_INSTRUCTIONS.md and `.opencode/command/adv-apply.md`; targeted contract suite passed (tr_mra7pq8q_4f8404e). |\n| SC2 | success_criterion | Verifier output is bounded, classified, source-backed, and actionable. | pass | `adv-verifier` prompt defines bounded output, failure taxonomy, evidence_basis, findings, recommended_next_action, and strict JSON; `plugin/src/adv-verifier-assets.test.ts` passed. |\n| SC3 | success_criterion | ADV authority boundaries remain intact: verifier never edits, mutates ADV state, completes gates/tasks, or decides acceptance/release. | pass | Agent asset disables edit/write/patch/task/question/todowrite/ADV mutation/report-submit tools; reviewer found 0 blockers and praised authority boundaries. |\n| SC4 | success_criterion | Existing task-level `adv_run_test` and CI/PR `adv-ci-waiter` semantics remain unchanged. | pass | `adv_run_test` remains task-level evidence path and was used for all task verification; `adv-ci-waiter` unchanged for CI/PR polling. No replacement references introduced. |\n| AC1 | acceptance_criterion | `.opencode/agents/adv-verifier.md` exists as hidden `mode: subagent` with structural permission limits: no edits, no nested `task`, no `question`/`todowrite`, no ADV mutation tools. | pass | `plugin/src/adv-verifier-assets.test.ts` asserts `.opencode/agents/adv-verifier.md` exists, hidden `mode: subagent`, and blocks edits/nested task/question/todowrite/ADV mutation tools. Passed in tr_mra7pq8q_4f8404e. |\n| AC2 | acceptance_criterion | Verify-Only Burst routing uses `adv-verifier` as primary worker; `general` is only unavailable-runtime fallback. | pass | `delegation-matrix.test.ts`, `subagent-reports-spec-assets.test.ts`, and `orchestrator-ops-delegation-assets.test.ts` assert `adv-verifier` primary and `general` fallback-only for Verify-Only Burst. Passed in tr_mra7pq8q_4f8404e. |\n| AC3 | acceptance_criterion | `adv-verifier` returns verification evidence for orchestrator persistence through existing `adv-verification-triage-bundle`; `adv-verifier` itself does not call `adv_subagent_report_submit`. | pass | `adv-verifier-assets.test.ts` asserts JSON `agent` is `adv-verification-triage-bundle` and forbids `adv_subagent_report_submit`; `subagent-reports-spec-assets.test.ts` asserts orchestrator-submitted bundle transport. Passed. |\n| AC4 | acceptance_criterion | For suite-level verification in repos with `bin/oc-test`, `adv-verifier` routes through `bin/oc-test targeted|smoke|full`; native commands are allowed only when no wrapper exists or orchestrator supplied an exact command. | pass | `adv-verifier-assets.test.ts` asserts `bin/oc-test targeted`, `bin/oc-test smoke`, `bin/oc-test full`, native-command fallback only when no wrapper/exact command, and chosen-command rationale. Passed. |\n| AC5 | acceptance_criterion | Failure classification supports `SEMANTIC`, `TRANSIENT`, `ENVIRONMENTAL`, `FATAL`, and `UNKNOWN`; `route_adv_engineer` is only valid with semantic, scoped, medium/high-confidence evidence and populated handoff. | pass | `adv-verifier-assets.test.ts` asserts SEMANTIC/TRANSIENT/ENVIRONMENTAL/FATAL/UNKNOWN, route_adv_engineer, scope_risk, confidence, and suggested_handoff anchors. Passed. |\n| AC6 | acceptance_criterion | `adv-verifier` may perform exactly one rerun only to substantiate suspected transient/flaky classification; no flaky/transient label without evidence. | pass | `adv-verifier-assets.test.ts` asserts exactly one rerun and no flaky/no transient labels without evidence. Passed. |\n| AC7 | acceptance_criterion | Asset/spec tests fail if agent permissions, routing matrix, packet anchors, bounded-output/no-edit rules, or report identity drift. | pass | Targeted drift suite passed: verifier asset, subagent reports spec assets, delegation matrix, orchestrator ops delegation, phantom roster — 156 tests, runId tr_mra7pq8q_4f8404e. |\n| AC8 | acceptance_criterion | Implementation explicitly supersedes any confirmed prior “no spawnable adv-verifier” avoidance with fresh rationale: permission lock, routing clarity, and main-context hygiene. | pass | Active-source search found no `no spawnable adv-verifier` avoidance to supersede. Design/implementation record carries conditional rationale: permission lock, routing clarity, main-context hygiene; no contradiction remains. |\n| C1 | constraint | Preserve `adv_run_test` for task-level TDD/evidence capture. | respected | `adv_run_test` remains unchanged and was used for RED/GREEN/verify evidence across tasks; no prompt/spec change replaces it. |\n| C2 | constraint | Preserve `adv-ci-waiter` as the CI/PR polling lane. | respected | `adv-ci-waiter` remains the CI/PR polling lane; no CI polling behavior moved to `adv-verifier`; agent prompt explicitly says `adv-ci-waiter` owns CI/PR waiting. |\n| C3 | constraint | Preserve `oc-test-gate` / `bin/oc-test` routing rules for host-safe test execution. | respected | `adv-verifier` prompt prefers `bin/oc-test targeted|smoke|full`; smoke and targeted verification were run through `bin/oc-test`. |\n| C4 | constraint | `adv-verifier` is authority-free: no edits, no ADV state mutation, no gate/task completion, no final acceptance/release conclusions. | respected | Agent asset blocks edit/write/patch/task/question/todowrite/ADV mutation/report-submit tools and states no final acceptance/release conclusions; asset test passed. |\n| C5 | constraint | `adv-verifier` is a spawn identity; `adv-verification-triage-bundle` remains the persisted report identity. | respected | `adv-verifier` is only a spawn identity. Persisted report identity remains `adv-verification-triage-bundle` in prompt, spec, and tests. |\n| C6 | constraint | Worker output is evidence, not authority; orchestrator owns persistence, routing synthesis, and user-facing conclusions. | respected | `adv-apply.md` and agent prompt keep worker output as evidence only; main ADV wraps/submits bundle and owns routing/user-facing conclusions. |\n| C7 | constraint | Bounded hybrid command selection must report chosen command and rationale. | respected | Agent prompt requires reporting chosen command and rationale; `adv-verifier-assets.test.ts` asserts both anchors. |\n| DONT1 | avoidance | Do not replace `adv_run_test` for task-level TDD evidence. | respected | `adv_run_test` not replaced; task evidence uses it throughout. |\n| DONT2 | avoidance | Do not replace `adv-ci-waiter` for CI/PR polling. | respected | `adv-ci-waiter` not replaced; verifier prompt explicitly defers CI/PR waiting to `adv-ci-waiter`. |\n| DONT3 | avoidance | Do not let `adv-verifier` edit code or perform remediation. | respected | `adv-verifier` edit/write/patch tools disabled and prompt says no remediation; reviewer found no blockers. |\n| DONT4 | avoidance | Do not let `adv-verifier` call `adv_subagent_report_submit`; the orchestrator persists verifier evidence. | respected | `adv-verifier` has `adv_subagent_report_submit: false`; prompt says main ADV submits bundle. |\n| DONT5 | avoidance | Do not add `adv-verifier` as a persisted report identity. | respected | No `adv-verifier` persisted report schema/identity was added; bundle identity remains `adv-verification-triage-bundle`. |\n| DONT6 | avoidance | Do not run unbounded polling loops or open-ended rerun cycles. | respected | Prompt allows exactly one rerun only for transient evidence and forbids open-ended rerun loops; no polling loop added. |\n| DONT7 | avoidance | Do not bypass `bin/oc-test` / `oc-test-gate` when the repo provides the wrapper. | respected | Prompt and tests require `bin/oc-test` preference; all suite verification used `bin/oc-test`. |\n| DONT8 | avoidance | Do not silently contradict a confirmed prior “no spawnable adv-verifier” avoidance; supersede it explicitly with fresh rationale if found. | respected | Search found no active prior no-spawnable-adv-verifier avoidance. Conditional supersession rationale remains explicit in design and no silent contradiction was introduced. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-07T04:53:09.412Z",
+      "contentHash": "1c0c6d1da284c2961662957ebdac8fe60ee16b0e4c0bd6f39a54f27873e3ce5e",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-07T04:36:01.784Z",
+      "contentHash": "d5b8e381c71e5d6823d9b15aef18f44dcec04e122eed7ee59f69d18fc62c130a",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-07T04:54:52.075Z",
+      "contentHash": "d730b58924d22d80d7d3b86ceb836a58f4d6d101f3f27ce066c1c695da650585",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-07T05:04:20.547Z",
+      "contentHash": "b0caeb25c725336c492adef1422b5b829e400c3b17f38732cb020a39693c25b7",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-07T06:12:19.530Z",
+      "contentHash": "54fc99a0b9c46b63c6b8e5ec3cde954f96d5f285e2c2a689c1c3dae8695a4aa6",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-07T06:12:19.530Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-07T05:11:50.594Z"
+    }
+  ]
+}
