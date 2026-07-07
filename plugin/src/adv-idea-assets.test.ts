@@ -19,7 +19,9 @@ describe("adv-idea entry-point contract", () => {
 
   test("command dispatches a subagent via the task tool", () => {
     expect(command).toMatch(/subagent/i);
-    expect(command).toMatch(/`task`[\s\S]*?subagent_type|dispatch a subagent|Task-tool subagent/i);
+    expect(command).toMatch(
+      /`task`[\s\S]*?subagent_type|dispatch a subagent|Task-tool subagent/i,
+    );
   });
 
   test("command invokes adv-researcher with validation status flow", () => {
