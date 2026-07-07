@@ -43,6 +43,10 @@ Provider hint source markdown lives in `~/toolbox/plugins/opencode-provider-hint
 
 If a model is routed through a provider that does not expose model identity to the system transform, the plugin emits no hint until structured identity is available.
 
+### Recent hint updates
+
+- **2026-07-07 — `minimax` hint strengthened ([Sharper-Flow/Advance#196](https://github.com/Sharper-Flow/Advance/issues/196))**: The `minimax` provider hint now includes a verifiable-name rule that prevents fabrication of `/adv-*` commands, `skill("…")` args, `Task(subagent_type="…")` args, and loadable file paths from context shape. Implementation follows MiniMax docs' three anti-hallucination patterns (permission to refuse, reference grounding, boundaries before generation) and aligns with peer-hint style (`gpt.md:7`, `kimi.md:6`). Sibling fix: [`JRedeker/toolbox#15`](https://github.com/JRedeker/toolbox/pull/15). Cross-provider `claude.md` gap tracked as fast-follow change `strengthenClaudeProviderHint`.
+
 ## Sync Behavior
 
 `scripts/deploy-local.sh --fix` now:
