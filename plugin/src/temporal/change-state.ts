@@ -967,7 +967,7 @@ function blockerSummary(
       if (report.blockers.length === 0) return null;
       return {
         summary: report.blockers.join("; "),
-        diagnosis: report.confidence_reason,
+        diagnosis: report.blockers.join("; "),
       };
 
     default: {
