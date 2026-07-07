@@ -963,6 +963,13 @@ function blockerSummary(
     case "adv-verification-triage-bundle":
       return null;
 
+    case "adv-visual-review":
+      if (report.blockers.length === 0) return null;
+      return {
+        summary: report.blockers.join("; "),
+        diagnosis: report.confidence_reason,
+      };
+
     default: {
       const exhaustive: never = report;
       return assertNeverSubagentReport(exhaustive);

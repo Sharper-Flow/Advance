@@ -723,9 +723,9 @@ describe("Subagent report schemas", () => {
     expect(ChangeReportScopeKeySchema.parse("verifier:local-verify")).toBe(
       "verifier:local-verify",
     );
-    expect(
-      ChangeReportScopeKeySchema.parse("visual-review:screenshot"),
-    ).toBe("visual-review:screenshot");
+    expect(ChangeReportScopeKeySchema.parse("visual-review:screenshot")).toBe(
+      "visual-review:screenshot",
+    );
     expect(() => ChangeReportScopeKeySchema.parse("freeform")).toThrow();
   });
 
