@@ -586,7 +586,7 @@ Each row MUST include a status plus a brief source/evidence pointer. Empty categ
 
 ### Persist Executive Summary
 
-Before acceptance prompt, persist durable executive summary:
+Before acceptance prompt, persist durable executive summary for non-technical release-approval readers. Translate task/gate evidence into plain English first; keep technical terms only as parenthetical supporting detail. Use evidence-only impact wording: user/business benefit appears only when proposal, agreement, task, review, harden, archive, or follow-up evidence supports it.
 
 1. Use `adv_change_show` task/gate evidence already loaded for review: task counts, implementation summaries, verification notes, retry summaries, and gate state.
 2. Compose from acceptance summary + task/gate evidence:
@@ -594,22 +594,28 @@ Before acceptance prompt, persist durable executive summary:
    # Executive Summary
 
    ## Outcome
-   {1–2 sentence narrative verdict.}
+   {1–2 sentence plain-English release-approval verdict: what changes and what decision the approver is making.}
+
+   ## Why It Matters
+   {Evidence-only impact: delivered value, operational/risk impact, or enabling value supported by source evidence. No unsupported business/user claims.}
 
    ## Verdict
    {APPROVED | CHANGES_REQUESTED | BLOCKED}
 
    ## What Was Built
-   1. {ordered list from change.tasks, using implementation_summary}
+   1. {ordered list from change.tasks, using implementation_summary; lead with user/release meaning, then technical terms only as parenthetical supporting detail}
 
-    ## What Was Verified
-     - Verdict: {verdict} with {N} findings ({severity breakdown})
-     - Tests: {pass/fail summary}
-     - Preview URL: {sanitized url + exact-route/state/hydration/viewport/freshness proof + verification timestamp | not_applicable + rationale | blocked + reason}
-     - Contract matrix: {required rows passed/respected, if contract exists}
+   ## What Was Verified
+   - Verdict: {verdict} with {N} findings ({severity breakdown})
+   - Tests: {pass/fail summary}
+   - Preview URL: {sanitized url + exact-route/state/hydration/viewport/freshness proof + verification timestamp | not_applicable + rationale | blocked + reason}
+   - Contract matrix: {required rows passed/respected, if contract exists}
 
    ## Remaining Concerns
-   {open items or "None".}
+   {risks/follow-ups/open items or "None". Include blocking vs non-blocking status when known.}
+
+   ## Supporting Evidence
+   {Brief pointers to task IDs, review reports, tests, contract matrix, release evidence, and supporting technical evidence that support the summary. No raw logs, diffs, task spam, or full scanner reports.}
 
    ## Consequence Context
    {Rendered Approval Consequence Context from `buildApprovalConsequenceContext`, including all 8 required categories and source/evidence pointers.}

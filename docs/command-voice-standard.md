@@ -180,6 +180,7 @@ Manifest descriptions and command doc text cover **what** and **when**. This sec
 - Command doc frontmatter descriptions (governed by manifest rules above)
 - Safety warnings, destructive-action confirmations, cancellation approval prose
 - Multi-step sequences where fragment order risks misread
+- Executive-summary/release-readiness artifact substance: outcome, value/why it matters, verification, risks/follow-ups, supporting evidence, and approval consequence context stay intact for release-approval decisions
 
 ### Bad / good
 
@@ -251,6 +252,7 @@ Caveman-full is a wording-density layer on top of these templates, not a competi
 | Wording | Drop filler, pleasantries, hedging, and repeated rationale |
 | Structure | Prefer tables, bullets, fragments, and exact triggers |
 | Safety | Exact contract tokens stay unchanged |
+| Executive-summary/release-readiness artifact substance | Must not compress away outcome, value/why it matters, verification, risks/follow-ups, supporting evidence, or approval consequence context |
 
 Contract tokens include tool names, gate IDs, statuses, slash commands, enum values, quoted errors, `MUST`, `NEVER`, approval checkpoints, cancellation approval, archive sign-off, and JSON/code examples.
 

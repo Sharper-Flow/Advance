@@ -557,7 +557,7 @@ If READY → do **not** complete a gate here; `/adv-archive` owns the `release` 
 
 ### Carry Forward Release Readiness Summary
 
-Before starting `/adv-archive`, synthesize a durable `Release Readiness Summary` for the archive-time `Approval Consequence Context`. Use the shared renderer/model contract in `plugin/src/utils/approval-consequence-context.ts` (`buildApprovalConsequenceContext`) for category vocabulary, status values, N/A behavior, missing-evidence handling, and output bounds.
+Before starting `/adv-archive`, synthesize a durable `Release Readiness Summary` for the archive-time `Approval Consequence Context`. Preserve the executive-readable layer from `_executiveSummary`: lead with plain-English release meaning, then use technical terms as parenthetical supporting detail. Do not append dense scanner/report jargon as lead prose. Use the shared renderer/model contract in `plugin/src/utils/approval-consequence-context.ts` (`buildApprovalConsequenceContext`) for category vocabulary, status values, N/A behavior, missing-evidence handling, and output bounds.
 
 Populate release-owned rows from harden evidence:
 
@@ -571,6 +571,8 @@ Populate release-owned rows from harden evidence:
 Rules:
 
 - Every row must include status plus brief source/evidence pointer.
+- Summary prose must keep outcome, value/why it matters, verification, risks/follow-ups, and supporting evidence visible; caveman-full wording may tighten wording but must not remove those decision essentials.
+- Impact wording is evidence-only. If only operational or release-risk impact is proven, say that plainly instead of inventing user/business benefit.
 - Ops readiness and open follow-ups must cite runbook/reconciliation fields when present: `status_source`, `completion_proof`, completion signal, health verification, rollback/cleanup disposition, and any unreachable child warning/blocker.
 - Missing scanner/sub-agent output needed for a release-owned row is `warning` or `blocked` with evidence `harden evidence unavailable`; never render it as `n/a`.
 - Do not include raw logs, diffs, task spam, or full scanner reports.

@@ -960,6 +960,64 @@
       ]
     },
     {
+      "id": "rq-executiveSummaryAudience01",
+      "title": "Executive Summaries Serve Release-Approval Decisions",
+      "body": "ADV executive summaries MUST be written for non-technical release-approval readers while preserving audit evidence and technical traceability. Each summary MUST include the decision essentials: outcome, delivered value or why it matters, verification, risks/follow-ups, and supporting evidence. Summary guidance MUST use evidence-only impact wording: do not fabricate user or business benefit beyond proposal, agreement, task, review, harden, archive, or follow-up evidence. Unavoidable technical terms MAY appear only as parenthetical supporting detail after the plain-English meaning. Caveman-full voice MUST NOT compress away executive-summary or release-readiness artifact substance.",
+      "priority": "must",
+      "tags": ["workflow", "executive-summary", "release", "approval", "voice"],
+      "scenarios": [
+        {
+          "id": "rq-executiveSummaryAudience01.1",
+          "title": "Summary includes release-approval decision essentials",
+          "given": ["An ADV review persists an executive summary before acceptance"],
+          "when": "The summary is composed",
+          "then": [
+            "The summary leads with non-technical release-approval context",
+            "The summary covers outcome, value, verification, risks/follow-ups, and supporting evidence",
+            "Technical traceability remains available as supporting evidence"
+          ]
+        },
+        {
+          "id": "rq-executiveSummaryAudience01.2",
+          "title": "Impact wording stays evidence-only",
+          "given": [
+            "A change has proposal, agreement, task, review, harden, archive, or follow-up evidence"
+          ],
+          "when": "The executive summary describes why the change matters",
+          "then": [
+            "User or business impact appears only when source evidence supports it",
+            "Internal or technical impact is stated plainly when that is the supported impact",
+            "The summary does not replace audit evidence with vague marketing prose"
+          ]
+        },
+        {
+          "id": "rq-executiveSummaryAudience01.3",
+          "title": "Technical terms support the plain-English explanation",
+          "given": ["A summary needs a technical term for traceability"],
+          "when": "The term is included",
+          "then": [
+            "The summary first states the plain-English release meaning",
+            "Technical terms appear as parenthetical supporting detail",
+            "Dense implementation jargon does not lead the summary"
+          ]
+        },
+        {
+          "id": "rq-executiveSummaryAudience01.4",
+          "title": "Caveman-full preserves summary substance",
+          "given": [
+            "Caveman-full voice compression applies to runtime prose",
+            "The content is executive-summary or release-readiness artifact substance"
+          ],
+          "when": "The artifact is written or displayed",
+          "then": [
+            "Caveman-full may make wording scannable",
+            "Caveman-full must not compress away outcome, value, verification, risks/follow-ups, or supporting evidence",
+            "Required approval consequence context remains visible"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-productLinking01",
       "title": "Product-Linked ADV State",
       "body": "ADV MAY link separate repositories into one product state plane. Linked products MUST keep two identity planes: repo_project_id for repo-local git/spec/worktree mechanics, and product_project_id for canonical product state (changes, agenda, wisdom, reflections, status aggregation). Product topology MUST be declared in project.json via product metadata plus related_repos entries; single-repo projects without product config MUST keep existing behavior unchanged. Missing or invalid primary repo resolution MUST fail structurally unless the explicit missing_primary_policy allows read_only or isolated degradation.",

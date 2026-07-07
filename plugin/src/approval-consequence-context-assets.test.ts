@@ -43,6 +43,10 @@ describe("approval consequence context command assets", () => {
       promptIndex,
     );
     expect(executiveSummarySection).toContain("## Consequence Context");
+    expect(executiveSummarySection).toMatch(/non-technical release-approval/i);
+    expect(executiveSummarySection).toMatch(/evidence-only impact/i);
+    expect(executiveSummarySection).toMatch(/technical terms.*parenthetical supporting detail/i);
+    expect(executiveSummarySection).toMatch(/supporting technical evidence/i);
 
     for (const category of REQUIRED_CATEGORIES) {
       expect(review).toContain(category);
@@ -58,6 +62,8 @@ describe("approval consequence context command assets", () => {
     expect(harden).toContain("adv_change_update");
     expect(harden).toContain("executiveSummary");
     expect(harden).toContain("harden evidence unavailable");
+    expect(harden).toMatch(/preserve the executive-readable layer/i);
+    expect(harden).toMatch(/dense scanner\/report jargon/i);
 
     for (const category of [
       "ops readiness",
@@ -81,6 +87,7 @@ describe("approval consequence context command assets", () => {
       expect(content).toContain("harden evidence unavailable");
       expect(content).toContain("checkOpsFollowupReleaseBlockers");
       expect(content).toContain("getOpenOpsFollowupObligations");
+      expect(content).toMatch(/preserve.*improved summary context|source from _executiveSummary/i);
     }
 
     const contextIndex = archive.indexOf("Approval Consequence Context");

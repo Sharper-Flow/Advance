@@ -836,6 +836,67 @@ Release-repair recovery for completed or poisoned change workflows MUST be expli
 
 ---
 
+### Executive Summaries Serve Release-Approval Decisions
+
+**ID:** `rq-executiveSummaryAudience01` | **Priority:** **[MUST]**
+
+ADV executive summaries MUST be written for non-technical release-approval readers while preserving audit evidence and technical traceability. Each summary MUST include the decision essentials: outcome, delivered value or why it matters, verification, risks/follow-ups, and supporting evidence. Summary guidance MUST use evidence-only impact wording: do not fabricate user or business benefit beyond proposal, agreement, task, review, harden, archive, or follow-up evidence. Unavoidable technical terms MAY appear only as parenthetical supporting detail after the plain-English meaning. Caveman-full voice MUST NOT compress away executive-summary or release-readiness artifact substance.
+
+**Tags:** `workflow`, `executive-summary`, `release`, `approval`, `voice`
+
+#### Scenarios
+
+**Summary includes release-approval decision essentials** (`rq-executiveSummaryAudience01.1`)
+
+**Given:**
+- An ADV review persists an executive summary before acceptance
+
+**When:** The summary is composed
+
+**Then:**
+- The summary leads with non-technical release-approval context
+- The summary covers outcome, value, verification, risks/follow-ups, and supporting evidence
+- Technical traceability remains available as supporting evidence
+
+**Impact wording stays evidence-only** (`rq-executiveSummaryAudience01.2`)
+
+**Given:**
+- A change has proposal, agreement, task, review, harden, archive, or follow-up evidence
+
+**When:** The executive summary describes why the change matters
+
+**Then:**
+- User or business impact appears only when source evidence supports it
+- Internal or technical impact is stated plainly when that is the supported impact
+- The summary does not replace audit evidence with vague marketing prose
+
+**Technical terms support the plain-English explanation** (`rq-executiveSummaryAudience01.3`)
+
+**Given:**
+- A summary needs a technical term for traceability
+
+**When:** The term is included
+
+**Then:**
+- The summary first states the plain-English release meaning
+- Technical terms appear as parenthetical supporting detail
+- Dense implementation jargon does not lead the summary
+
+**Caveman-full preserves summary substance** (`rq-executiveSummaryAudience01.4`)
+
+**Given:**
+- Caveman-full voice compression applies to runtime prose
+- The content is executive-summary or release-readiness artifact substance
+
+**When:** The artifact is written or displayed
+
+**Then:**
+- Caveman-full may make wording scannable
+- Caveman-full must not compress away outcome, value, verification, risks/follow-ups, or supporting evidence
+- Required approval consequence context remains visible
+
+---
+
 ### Product-Linked ADV State
 
 **ID:** `rq-productLinking01` | **Priority:** **[MUST]**
