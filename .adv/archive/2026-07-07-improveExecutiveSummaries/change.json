@@ -1,0 +1,1145 @@
+{
+  "id": "improveExecutiveSummaries",
+  "title": "Improve executive summaries",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-07T03:18:46.509Z",
+  "tasks": [
+    {
+      "id": "tk-62d43c3249ec",
+      "title": "Add executive-summary audience spec law and mirror",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-07T03:44:15.873Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6",
+          "C4"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "OOS1",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T03:51:27.793Z",
+      "verification": "RED: targeted asset tests failed for missing rq-executiveSummaryAudience01 anchors. GREEN: bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/approval-consequence-context-assets.test.ts src/adv-skill-backed-commands-assets.test.ts passed (72 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "docs/command-voice-standard.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/approval-consequence-context-assets.test.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "docs/command-voice-standard.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/approval-consequence-context-assets.test.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "checkpointSha": "3515665fbc2a26bcd84a9d51026b6b5537cddeca",
+      "completedAt": "2026-07-07T03:56:26.555Z",
+      "completed_at": "2026-07-07T03:56:26.555Z"
+    },
+    {
+      "id": "tk-5bb16da9d15b",
+      "title": "Update review/harden/archive executive-summary guidance and anchors",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-07T03:44:28.200Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6",
+          "C1",
+          "C2",
+          "C4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T03:56:47.531Z",
+      "verification": "RED: targeted asset tests failed on missing executive-summary/release guidance anchors. GREEN: bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/approval-consequence-context-assets.test.ts src/adv-skill-backed-commands-assets.test.ts passed (72 tests). Guidance updates included in checkpoint 3515665fbc2a26bcd84a9d51026b6b5537cddeca.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "3515665fbc2a26bcd84a9d51026b6b5537cddeca",
+      "completedAt": "2026-07-07T03:56:54.669Z",
+      "completed_at": "2026-07-07T03:56:54.669Z"
+    },
+    {
+      "id": "tk-46aa74582fb0",
+      "title": "Add repo-owned caveman carve-out for executive-summary substance",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-07T03:44:38.336Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "SC5",
+          "AC4",
+          "AC6",
+          "C2",
+          "C4"
+        ],
+        "verifies": [
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "OOS2",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T03:57:07.510Z",
+      "verification": "RED: targeted asset tests failed on missing caveman-full executive-summary carve-out anchors. GREEN: bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/approval-consequence-context-assets.test.ts src/adv-skill-backed-commands-assets.test.ts passed (72 tests). Caveman carve-out updates included in checkpoint 3515665fbc2a26bcd84a9d51026b6b5537cddeca.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "3515665fbc2a26bcd84a9d51026b6b5537cddeca",
+      "completedAt": "2026-07-07T03:57:14.126Z",
+      "completed_at": "2026-07-07T03:57:14.126Z"
+    },
+    {
+      "id": "tk-dd549b58711e",
+      "title": "Run final contract and regression verification",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-07T03:44:57.985Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-62d43c3249ec"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5bb16da9d15b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-46aa74582fb0"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T03:57:35.175Z",
+      "verification": "Targeted regression: bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/approval-consequence-context-assets.test.ts src/adv-skill-backed-commands-assets.test.ts passed (72 tests). Smoke/check: bin/oc-test smoke passed (schemas:check, typecheck, test isolation, lockfile policy, lint, format:check, and 57 smoke tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/approval-consequence-context-assets.test.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/approval-consequence-context-assets.test.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "checkpointSha": "13a51a9046774a6826e11bd624797cf4b148d26e",
+      "completedAt": "2026-07-07T03:59:33.121Z",
+      "completed_at": "2026-07-07T03:59:33.121Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "improveExecutiveSummaries",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout: executive summary quality, caveman voice contribution, spec-vs-test routing",
+      "sources": [
+        {
+          "label": "adv-review.md Persist Executive Summary (repo source)",
+          "locator": ".opencode/command/adv-review.md:587-620",
+          "summary": "Current durable executive-summary template: Outcome/Verdict/What Was Built/What Was Verified/Remaining Concerns/Consequence Context. No non-technical audience directive; 'What Was Built' pulls task implementation_summary verbatim, which is where technical changelog prose enters."
+        },
+        {
+          "label": "command-voice-standard.md Voice Contract (repo source)",
+          "locator": "docs/command-voice-standard.md:156-203",
+          "summary": "Repo-internal 'caveman-full' voice contract mandates 'uniform wording-density compression: drop fluff/hedging, technical terms exact.' Applies-to list includes 'Phase summaries', 'Progress reports and gate summaries'. Does-not-apply list does NOT exempt executive summaries. This ambient directive biases the summary-composing agent toward terse, jargon-preserving prose."
+        },
+        {
+          "label": "advance-workflow spec rq-archiveVisibility01 (spec law)",
+          "locator": ".adv/specs/advance-workflow/spec.json:918,951,956",
+          "summary": "Noise-reduction slice explicitly disclaimed executive-summary ownership: 'MUST NOT absorb separate active-change scope such as first-class executive-summary ownership; those remain coordinated boundaries.' No existing spec requirement owns executive-summary audience/plain-English quality — this change is the deferred coordinated home."
+        },
+        {
+          "label": "Approval Consequence Context renderer (repo source)",
+          "locator": "plugin/src/utils/approval-consequence-context.ts:1-70 + spec rq at spec.json:4291",
+          "summary": "8-category consequence context (delivered_value first) is owned by a single programmatic renderer/model, spec-enforced against duplication. Provides an existing structural surface where 'delivered value / plain-English outcome' can be strengthened rather than adding a parallel prose block."
+        },
+        {
+          "label": "workflow-noise-reduction-assets.test.ts (repo test)",
+          "locator": "plugin/src/workflow-noise-reduction-assets.test.ts:214-230",
+          "summary": "Existing test bans 'Investment:'-style investment-report noise in archive/review/voice surfaces. New plain-English requirement must not reintroduce banned marketing-report framing; the two must be reconciled, not contradicted."
+        },
+        {
+          "label": "Release-notes plain-language best practice (external, 3 corroborating sources)",
+          "locator": "https://doc.holiday/blog/how-to-write-release-notes-technical-non-technical",
+          "summary": "Canonical model: tiered single document, outcome-first sentence ('what can someone now do'), then layered technical detail. 'Translation is not simplification; it is reframing — technical fact stays true, frame shifts from what changed in code to what changed for the user.' Directly supports proposal's translate-and-layer direction and Must-Not against vague marketing copy."
+        }
+      ],
+      "architecture_assessment": "The reported symptom (terse technical changelog executive summaries) has TWO structural contributors, not one. (1) The adv-review Persist Executive Summary template lacks any non-technical audience/reframing directive and sources 'What Was Built' from raw task implementation_summary. (2) The repo-internal 'caveman-full' voice contract (docs/command-voice-standard.md) is an ambient compression directive whose applies-to scope covers gate/phase/progress summaries and does NOT exempt executive summaries — actively biasing the composing agent toward terse, jargon-preserving output. This is the specific caveman contribution the user asked to investigate: caveman is a real contributing pressure, but it is agent-facing runtime-prose compression, correctly aimed at handoffs/banners/verdicts; the defect is that executive summaries were never carved out as an exception. Routing: rq-archiveVisibility01 already deferred 'first-class executive-summary ownership' to a separate change (this one), so a durable advance-workflow spec requirement is the coordinated home — command-contract tests alone would leave the audience rule unlawed and re-driftable. The 8-category consequence-context renderer is the right structural anchor for 'delivered value' plain-English framing; reuse it rather than adding a parallel prose section. Note the caveman voice contract visible in THIS session's system prompt is a distinct GLOBAL user-config plugin (~/.config/opencode/instructions/caveman.md), out of repo scope; only the repo-internal command-voice-standard caveman scope is in-scope and actionable.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Proposal direction is architecturally sound and confirmed by external best practice and internal spec history. No blockers. Two coordination requirements: (a) explicitly exempt executive summaries from caveman-full voice scope in docs/command-voice-standard.md, and (b) reconcile with the existing anti-investment-report noise test to avoid ban-vs-require contradiction."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Spec-law requirement adds durable governance but requires spec + doc + asset-test triad maintenance (higher ceremony than test-only).",
+          "Exempting executive summaries from caveman-full loosens uniform compression on one surface; acceptable because that surface's audience is non-technical approvers, not the agent.",
+          "Structural section-shape assertions resist regression but risk brittleness if they match exact prose; prefer structural/audience assertions over wording matches (consistent with existing rq-proseReduction structural-not-content test convention)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Command-contract/asset tests only, no spec law",
+            "disposition": "rejected",
+            "rationale": "rq-archiveVisibility01 explicitly deferred first-class executive-summary ownership to a separate change; leaving it unlawed re-creates the exact drift that produced the defect. Spec law is the coordinated home the prior slice pointed at."
+          },
+          {
+            "option": "Add a parallel plain-English prose block separate from consequence context",
+            "disposition": "rejected",
+            "rationale": "spec rq at spec.json:4291 mandates single-renderer ownership of approval consequence vocabulary; a parallel block duplicates and risks contradiction. Strengthen delivered_value framing inside the existing renderer/template instead."
+          },
+          {
+            "option": "Leave caveman voice contract untouched, only edit the summary template",
+            "disposition": "rejected",
+            "rationale": "The ambient caveman-full applies-to scope still covers gate/progress summaries and does not exempt executive summaries, so template guidance would fight an unstated compression directive. The exemption must be explicit to remove the structural bias."
+          },
+          {
+            "option": "Modify sub-agent report / implementation_summary schema",
+            "disposition": "deferred",
+            "rationale": "Out of scope per proposal unless proven blocking. Not blocking: the reframing happens at summary composition, not at task-summary capture."
+          }
+        ],
+        "recommendation": "Adopt spec-law route (advance-workflow requirement for executive-readable summaries) AND explicitly exempt executive summaries from caveman-full voice scope. Reuse the 8-category consequence-context renderer as the delivered-value plain-English anchor. Use structural/audience asset assertions, not exact-prose matching. Reconcile with the existing anti-investment-report noise test."
+      },
+      "recommendation": "Route as spec-law requirement in advance-workflow (the coordinated home deferred by rq-archiveVisibility01), not tests-only. Two must-do coordination items surfaced by scout: (1) add explicit executive-summary exemption to docs/command-voice-standard.md caveman-full 'Does not apply to' list; (2) reconcile new plain-English requirement with workflow-noise-reduction-assets.test.ts anti-marketing-noise ban. Surface the caveman-voice finding to the user since they explicitly asked.",
+      "follow_ups": [
+        "Design should decide whether the plain-English 'delivered value' lives inside the consequence-context renderer output or as a lead sentence in the executive-summary template Outcome section (or both).",
+        "Confirm whether the global ~/.config/opencode caveman plugin (session-visible, out of repo scope) should be noted to the user as a separate non-actionable contributor."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveExecutiveSummaries",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout for executive-summary audience improvement",
+      "sources": [
+        {
+          "label": "advance-workflow spec body boundary reservation",
+          "locator": "docs/specs/advance-workflow.md:794",
+          "summary": "rq-archiveVisibility01 body reserves first-class executive-summary ownership as a coordinated boundary, not duplicate implementation. Confirms a new rq-executiveSummaryAudience01 is correct placement."
+        },
+        {
+          "label": "rq-approvalConsequenceContext01 single-renderer law",
+          "locator": "docs/specs/advance-workflow.md:4165",
+          "summary": "Category vocab/order/status/bounds MUST be owned by one programmatic renderer across acceptance, harden, archive, and executive-summary prose. Validates reject-duplication stance."
+        },
+        {
+          "label": "buildApprovalConsequenceContext renderer",
+          "locator": "plugin/src/utils/approval-consequence-context.ts:195",
+          "summary": "Stable pure renderer: 8 fixed categories, finite status vocab, non-empty evidence, byte budget, no raw logs. Reuse verbatim; no modification needed."
+        },
+        {
+          "label": "Caveman carve-out insertion point",
+          "locator": "docs/command-voice-standard.md:175",
+          "summary": "Voice Contract Does-not-apply-to list has no executive-summary/release-readiness line. Clean one-line structural extension point for the caveman carve-out."
+        },
+        {
+          "label": "Persist Executive Summary command template",
+          "locator": ".opencode/command/adv-review.md:587",
+          "summary": "Existing template already has Outcome, Verdict, What Was Built, What Was Verified, Remaining Concerns, Consequence Context sections. Hybrid-minimum-sections can strengthen this in place."
+        },
+        {
+          "label": "Existing executive-summary asset anchors",
+          "locator": "plugin/src/approval-consequence-context-assets.test.ts:42",
+          "summary": "Asset tests already bind the Persist Executive Summary heading and its Consequence Context sub-block via substring/regex. Reusable low-brittleness anchors."
+        },
+        {
+          "label": "Anti-investment-report coupling test",
+          "locator": "plugin/src/workflow-noise-reduction-assets.test.ts:214",
+          "summary": "Bans Investment: token and forces bounded nonblocking shapes on adv-review.md and voice doc. New evidence-only wording must reconcile or the asset tests conflict."
+        }
+      ],
+      "architecture_assessment": "Draft design is boring-correct and high-leverage: strengthens existing spec/command/test anchors instead of building new subsystems. Spec boundary confirmed: rq-archiveVisibility01 body already carved out first-class executive-summary ownership as a deferred boundary, so a new rq-executiveSummaryAudience01 under advance-workflow is by-the-book placement. Renderer reuse confirmed: rq-approvalConsequenceContext01 already mandates a single renderer authority spanning executive-summary prose, so refusing a parallel 8-category model is spec-required, not just simpler. Caveman carve-out is a one-line edit to an existing Does-not-apply-to list. The Persist-Executive-Summary command template and two asset tests already exist to be strengthened, not authored. Single integration hazard: the anti-investment-report asset test bans marketing tokens on the same adv-review.md surface the new plain-English requirement edits; design already names this but should treat it as a hard test-design constraint.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All draft leverage points backed by located source anchors. No scope expansion beyond agreement. One coupling constraint (anti-investment-report test) must be honored during test design; already acknowledged in draft."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Strengthening existing template and asset tests preserves locality but couples this change to the anti-investment-report test surface; banned-marketing and required-plain-English assertions must coexist on adv-review.md.",
+          "New rq-executiveSummaryAudience01 adds a durable anchor but adds one more spec.json to docs mirror pair to keep drift-test synced.",
+          "Caveman carve-out as a prose list line is structurally weaker than a code guard, but the protected substance is inherently prose, so a prose-plus-asset-test anchor is proportionate."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Add a parallel executive-summary release-context renderer",
+            "disposition": "rejected",
+            "rationale": "rq-approvalConsequenceContext01 mandates a single renderer authority explicitly covering executive-summary prose; a duplicate would violate spec law and fail its own tests."
+          },
+          {
+            "option": "Overload rq-archiveVisibility01 instead of a new requirement",
+            "disposition": "rejected",
+            "rationale": "That requirement body states it MUST NOT absorb first-class executive-summary ownership; those remain coordinated boundaries. A new requirement is intended placement."
+          },
+          {
+            "option": "Tests-only enforcement with no spec law",
+            "disposition": "rejected",
+            "rationale": "Agreement C4 and Agent Decision LBP1 require spec-law plus asset anchors for durable workflow behavior; prose/tests-only would drift."
+          },
+          {
+            "option": "Full-prose exact-match asset assertions",
+            "disposition": "deferred",
+            "rationale": "Design DDC1 prefers small stable substring/category anchors; exact full-prose matching would be brittle and collide with caveman and anti-noise tests."
+          }
+        ],
+        "recommendation": "Proceed with the draft design as-is. Elevate the anti-investment-report reconciliation to an explicit design constraint: new evidence-only wording must assert plain-English audience and decision-essential anchors without introducing tokens the noise test bans. Extend the two existing asset anchors rather than authoring new asset files. Add the caveman carve-out as one line under the Does-not-apply-to section."
+      },
+      "recommendation": "Proceed with the draft design as-is; it is boring-correct and spec-aligned. Treat the anti-investment-report test reconciliation as a hard constraint, reuse buildApprovalConsequenceContext without modification, mint a new rq-executiveSummaryAudience01, and extend existing asset anchors instead of new files.",
+      "follow_ups": [
+        "During planning, confirm manifest-doc-drift and checkpoint-surface-drift tests do not assert exact adv-review.md text that would conflict with the strengthened Persist Executive Summary template."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveExecutiveSummaries",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for executive-summary audience law",
+      "sources": [
+        {
+          "label": "advance-workflow spec rq-archiveVisibility01 body",
+          "locator": ".adv/specs/advance-workflow/spec.json:918",
+          "summary": "Requirement body explicitly states this policy MUST NOT absorb first-class executive-summary ownership; those remain coordinated boundaries. Confirms design Decision 1: minting a separate rq-executiveSummaryAudience01 is correct, not overloading rq-archiveVisibility01."
+        },
+        {
+          "label": "approval-consequence-context.ts renderer",
+          "locator": "plugin/src/utils/approval-consequence-context.ts:12-54,195",
+          "summary": "buildApprovalConsequenceContext exports stable 8-category vocabulary (delivered_value..next_action), bounded evidence (MAX_EVIDENCE_CHARS=600, DEFAULT_MAX_BYTES=4000), never emits raw logs/diffs. Confirms Decision 3 (reuse single renderer) and DDC2 (preserve 8 categories/bounds/evidence)."
+        },
+        {
+          "label": "adv-review.md executive summary shape",
+          "locator": ".opencode/command/adv-review.md:587-629",
+          "summary": "Persist Executive Summary already defines hybrid sections (What Was Built, What Was Verified, Consequence Context) with all 8 categories. Confirms Decision 2: strengthen-in-place rather than new artifact."
+        },
+        {
+          "label": "adv-harden.md + adv-archive.md carry-forward",
+          "locator": ".opencode/command/adv-harden.md:560-577; .opencode/command/adv-archive.md:82,207",
+          "summary": "Harden persists Release Readiness Summary + Approval Consequence Context by reading _executiveSummary; archive renders archive-time context at Tier B. Confirms Implementation Strategy steps 3-4 target real surfaces."
+        },
+        {
+          "label": "workflow-noise-reduction-assets.test.ts",
+          "locator": "plugin/src/workflow-noise-reduction-assets.test.ts:158,214",
+          "summary": "Existing 'investment report removal' test asserts executive-summary surfaces avoid investment-report noise. Confirms Decision 6/DDC4 anti-marketing anchor exists and must be reconciled with new plain-English rules."
+        },
+        {
+          "label": "command-voice-standard.md caveman policy",
+          "locator": "docs/command-voice-standard.md:175,244-255",
+          "summary": "'Does not apply to (keep normal)' list and 'Caveman-full composition' Safety row ('Exact contract tokens stay unchanged') are existing, natural slots for a narrow executive-summary/release-readiness carve-out. Confirms Implementation Strategy 5 and AC4/DDC3 are feasible and scoped."
+        },
+        {
+          "label": "Asset test file inventory (glob)",
+          "locator": "plugin/src/*-assets.test.ts",
+          "summary": "approval-consequence-context-assets, workflow-noise-reduction-assets, adv-skill-backed-commands-assets EXIST. No human-checkpoints-assets.test.ts exists anywhere in plugin/src. Design names it as a candidate regression anchor; that specific anchor is unverified and must not be assumed present."
+        }
+      ],
+      "architecture_assessment": "Design is a command-contract/spec/test refinement (no runtime data migration, no schema change), which matches the agreement scope and DONT4. Its authority layering (spec law defines behavior -> command docs operationalize -> asset tests anchor -> single consequence renderer) is sound and evidence-backed. Every material claim in Key Decisions verified against source: rq-archiveVisibility01 explicitly reserves executive-summary ownership as a coordinated boundary (Decision 1 correct); buildApprovalConsequenceContext is the single 8-category bounded renderer (Decision 3/DDC2 correct); adv-review.md already carries the hybrid summary shape to strengthen in place (Decision 2 correct); harden/archive carry-forward surfaces exist (Impl 3-4 correct); the investment-report-removal test exists and must be reconciled (Decision 6/DDC4 correct); command-voice-standard.md has existing carve-out slots for a narrow caveman exemption (Impl 5/AC4 feasible). One minor accuracy defect: the design lists 'human-checkpoints-assets' as a candidate regression anchor, but no such test file exists in plugin/src; the other three named anchors do exist. This is a non-blocking planning-precision issue, not a design flaw, and the design already hedges anchors with 'where possible'/'maybe'. Simplicity is good: it rejects tests-only (too weak for durable behavior per C4), a parallel consequence block (would duplicate the renderer), global caveman changes (OOS2), and schema changes (DONT4/OOS). No materially simpler viable alternative was overlooked. No existing spec requirement is contradicted; rq-archiveVisibility01 is complemented, not violated. Anti-marketing (DONT1) and evidence-only impact (AC2/DONT2) are treated as hard constraints reconciled against the existing noise-reduction test.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. Design is correct, spec-law compliant, and evidence-backed across all six key decisions. Single non-blocking accuracy nit for planning: 'human-checkpoints-assets' is named as a regression anchor but does not exist in plugin/src (verified via glob); prep should drop or replace it with a real anchor (human-checkpoints coverage may live under a different filename or a new test may be needed for AC5 archive/sign-off preservation). Existing verified anchors: approval-consequence-context-assets, workflow-noise-reduction-assets, adv-skill-backed-commands-assets."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Spec-law + asset-test anchoring adds maintenance surface (new rq-*, docs mirror, structural assertions) vs prose-only, but satisfies C4's durable-behavior requirement and prevents drift.",
+          "Narrow caveman carve-out for executive-summary substance adds a policy exception that must stay scoped; overbroad wording risks exempting routine prose (design mitigates via narrow scoping + DDC3).",
+          "Strengthening the existing summary shape in place preserves the single renderer but couples plain-English rules to the same review/harden/archive surfaces, requiring reconciliation with the existing investment-report-removal test."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Tests-only, no spec law",
+            "disposition": "rejected",
+            "rationale": "C4 requires spec/test anchors for correctness-critical durable behavior; prose/tests alone would leave workflow behavior unspecified and driftable."
+          },
+          {
+            "option": "Overload rq-archiveVisibility01 instead of new requirement",
+            "disposition": "rejected",
+            "rationale": "That requirement's body (spec.json:918) explicitly reserves executive-summary ownership as a coordinated boundary; overloading would hide behavior in the wrong policy slice."
+          },
+          {
+            "option": "Parallel/duplicate release-context block",
+            "disposition": "rejected",
+            "rationale": "buildApprovalConsequenceContext is the single 8-category bounded vocabulary; a second block would fork the model and violate DDC2 and single-source-of-truth."
+          },
+          {
+            "option": "Global/user caveman config change",
+            "disposition": "rejected",
+            "rationale": "OOS2 and Scope note (command-voice-standard.md:203): global caveman is user-config, not repo-synced; only repo-owned command-voice policy is actionable."
+          },
+          {
+            "option": "Task/sub-agent summary schema change",
+            "disposition": "rejected",
+            "rationale": "DONT4/OOS: no evidence these schemas block the executive-summary audience outcome; design correctly keeps them untouched."
+          }
+        ],
+        "recommendation": "Proceed to planning. Design is validated: correct against objectives SC1-SC5/AC1-AC7, spec-law compliant (complements rq-archiveVisibility01, contradicts nothing), reuses the single consequence renderer, and picks the boring spec+asset-anchor route over duplication. During prep, correct one non-blocking accuracy nit: drop or replace the unverified 'human-checkpoints-assets' anchor (it does not exist in plugin/src) with a real anchor for AC5 archive/sign-off preservation, and keep the caveman carve-out narrowly worded so it exempts only executive-summary/release-readiness substance, not routine gate/chat prose."
+      },
+      "recommendation": "Validated (pass, high confidence, low risk). Proceed to planning. All six key design decisions are source-verified and spec-law compliant. The only correction needed is a planning-precision fix: the 'human-checkpoints-assets' regression anchor named in the design does not exist in plugin/src (verified via glob) — prep should replace it with a real test anchor for AC5, while keeping the verified anchors (approval-consequence-context-assets, workflow-noise-reduction-assets, adv-skill-backed-commands-assets). Keep the caveman carve-out narrowly scoped to executive-summary/release-readiness artifact substance.",
+      "follow_ups": [
+        "Prep: replace or drop the non-existent 'human-checkpoints-assets' regression anchor; identify the real test surface for AC5 (archive/sign-off summary-context preservation).",
+        "Prep: ensure the new plain-English AC1-AC3 rules are reconciled against the existing workflow-noise-reduction investment-report-removal test so they coexist without conflict."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveExecutiveSummaries",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveExecutiveSummaries",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/approval-consequence-context-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+          "git diff --check $(git merge-base HEAD origin/trunk)..HEAD",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Targeted asset tests passed: 3 files, 72 tests. git diff --check produced no whitespace errors. git status --short produced no output, so worktree is clean."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveExecutiveSummaries",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveExecutiveSummaries",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "Release-readiness prose changes are safest when spec law, docs mirror, command prompts, ADV sign-off template, and asset tests all carry the same audience/impact/traceability terms; this keeps agent-side prose guidance auditable despite being partly prose-enforced."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "Path preflight: test -e for 10 changed files",
+          "git diff --check origin/trunk...HEAD",
+          "Manual harden scan of changed spec/docs/command/test assets for placeholder/slop/conflicting guidance/unsupported impact/follow-up blockers",
+          "bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/approval-consequence-context-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Initial task-scoped submit failed with INVALID_TASK_ANCHOR because packet TASK was descriptive, not an existing ADV task id; resubmitted as independent harden:release report per tool guidance. All 10 referenced changed files exist. git diff --check emitted no whitespace errors. Reviewed rq-executiveSummaryAudience01 spec and docs mirror; adv-review executive summary persistence; adv-harden Release Readiness Summary carry-forward; adv-archive Tier B sign-off context; ADV Sign-Off Boundary; and regression asset tests. No placeholder, duplicate/conflicting guidance, overbroad caveman carve-out, unsupported impact wording, hidden deploy/migration/data/frontend/ops/cleanup risk, or archive sign-off blocker found. Targeted asset tests passed: 3 files, 72 tests. Worktree clean (git status --short no output). Test output included existing warn-only advisory token-budget line ceiling warnings, not release blockers."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Executive-summary/release-readiness behavior remains partly prose-enforced by command/agent guidance and asset drift tests rather than a runtime summary-quality validator.",
+        "Asset test run reports warn-only command line ceiling baseline warnings; unrelated to release safety but indicates existing instruction-size pressure."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with archive/release sign-off flow; no harden remediation required.",
+        "Do not revisit docs/spec/command/test assets for this harden pass unless new evidence appears."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-07T03:19:59.785Z",
+      "completed_by": "user:command-as-approval",
+      "approval_evidence": "User invoked exact continuation command /adv-discover improveExecutiveSummaries after proposal approval prompt; Tier A command-as-approval accepted. User also requested discovery investigate whether caveman voice requirements contributed to the summary quality issue.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "40851d98efe3963a361b6b5c7fc9c964ef0f6b37483dc15c62dcce10aba05b02",
+        "non_whitespace_chars": 5270,
+        "checked_at": "2026-07-07T03:18:46.548Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-07T03:35:35.917Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings persisted, user clarified and approved criteria, agreement.md captured, and ChangeContract minted with 24 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "non_whitespace_chars": 4194,
+        "checked_at": "2026-07-07T03:18:46.549Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-07T03:43:21.070Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Leverage scout completed. Independent adv-researcher validator returned pass/Validated with low risk and no blockers; no contract-compromise risk or user-value tradeoff requires pause.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "27f6909503d7058cf819f71c86482e6a1c7de1cd2ada742526580f15be569d35",
+        "non_whitespace_chars": 8047,
+        "checked_at": "2026-07-07T03:18:46.550Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-07T03:47:08.473Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep plan with multiple Tier A whitelist words."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-07T03:59:55.081Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done. Targeted regression passed: bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/approval-consequence-context-assets.test.ts src/adv-skill-backed-commands-assets.test.ts (72 tests). Smoke/check passed: bin/oc-test smoke (schemas:check, typecheck, test isolation, lockfile policy, lint, format:check, 57 smoke tests). adv_change_validate strict passed with nonblocking NO_DELTAS warning. Worktree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-07T04:08:07.585Z",
+      "completed_by": "user",
+      "approval_evidence": "User replied `approve` to acceptance prompt. Acceptance evidence: executive summary persisted and verified with content hash; independent adv-reviewer READY report with 0 blockers/issues; contract review matrix has 24 rows and 0 failing rows; targeted tests and smoke/check passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "9b248d6231199e23841cf07e7dc3f1fd7dc482232c23761723fbd2e82b3794a8",
+        "non_whitespace_chars": 3312,
+        "checked_at": "2026-07-07T03:18:46.551Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+      "approvedAt": "2026-07-07T03:35:19.079Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Future executive summaries give non-technical release-approval context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Each summary covers decision essentials: what changes, why it matters, verification, risk/follow-ups, and supporting evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Technical terms appear only as parenthetical support, not lead explanation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Repo-owned caveman-full policy no longer compresses away executive-summary substance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Regression coverage prevents return to terse technical changelog summaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Executive-summary guidance requires hybrid minimum sections for outcome, value, verification, risks/follow-ups, and supporting evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Summary guidance uses evidence-only impact wording: no unsupported business/user benefit claims.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Unavoidable technical terms are allowed as parenthetical supporting detail.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Repo-owned caveman-full policy carves out executive-summary/release-readiness substance from context-removing compression.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Archive/sign-off guidance preserves improved summary context at approval time.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Tests/assets fail if non-technical audience, decision essentials, evidence-only impact, caveman carve-out, or traceability preservation are missing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Historical archived summaries are not rewritten.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve technical traceability, release evidence, verification, risk, and follow-up context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep summaries scannable; do not turn executive summaries into long essays.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep this change current-repo scoped to `advance`; no product-linked or cross-repo scope is in effect.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Use spec/test/asset anchors where durable behavior is required; avoid relying on prose-only guidance for correctness-critical workflow behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not replace audit evidence with vague marketing prose.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not fabricate business or user impact that is not supported by proposal, agreement, task, review, or release evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not hide release risks, follow-ups, migrations, frontend impact, rollback readiness, or ops readiness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not change task implementation summaries or sub-agent report schemas unless later design proves they directly block the approved outcome.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Rewriting historical archived executive summaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing global user-owned caveman configuration under `~/.config/opencode`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Adding a new dependency or external summarization service.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Changing unrelated gate handoff voice outside executive-summary and release-approval surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-07T04:03:15.037Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY report: executive-summary guidance now targets non-technical release-approval readers; no blockers/issues."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY report and command assets require outcome, why it matters/value, verification, risks/follow-ups, and supporting evidence."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY report confirmed technical terms are constrained to parenthetical/supporting detail and dense jargon does not lead."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY report confirmed caveman carve-out is scoped to executive-summary/release-readiness artifact substance."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Targeted asset regression passed: workflow-noise-reduction, approval-consequence-context, and adv-skill-backed-commands tests (72 tests)."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted tests assert executive-summary audience law and adv-review summary sections for outcome, value/why it matters, verification, risks/follow-ups, and supporting evidence."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted tests assert evidence-only impact wording in spec/docs and review command guidance."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted tests assert technical terms appear as parenthetical supporting detail in spec/docs and review command guidance."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-skill-backed-commands asset test asserts caveman-full preserves executive-summary/release-readiness artifact substance and must not compress away decision essentials."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "approval-consequence-context asset test asserts adv-archive and ADV sign-off preserve improved summary context/source from _executiveSummary before Tier B approval."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted regression suite passed: 3 asset files, 72 tests; bin/oc-test smoke also passed check and smoke tests."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Implementation touched only current workflow/spec/docs/command/test assets; no archived summary files or archive bundles rewritten; git status clean."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Guidance keeps supporting evidence, technical traceability, verification, risk/follow-up, and Approval Consequence Context rows visible."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Guidance uses scannable sections/bullets and explicitly warns against long essay or dense scanner/report jargon; no raw logs/diffs/task spam."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All changed files are in current advance repo/worktree; no product-linked or cross-repo files modified."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Added spec law plus structural asset-test anchors; behavior not left as prose-only guidance."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY report found no vague marketing prose replacing audit evidence."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Guidance requires evidence-only impact; reviewer found no unsupported impact language."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Guidance requires risks/follow-ups, ops/readiness context, and warning/blocked states for missing harden evidence."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No task implementation summary or sub-agent report schemas changed."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Historical archived executive summaries were not modified."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Global user-owned caveman config under ~/.config/opencode was not modified."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No dependency or external summarization service was added."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Changes stayed on executive-summary and release-approval surfaces, not unrelated gate handoff voice."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Executive-summary guidance requires hybrid minimum sections for outcome, value, verification, risks/follow-ups, and supporting evidence.",
+    "Summary guidance uses evidence-only impact wording: no unsupported business/user benefit claims.",
+    "Unavoidable technical terms are allowed as parenthetical supporting detail.",
+    "Repo-owned caveman-full policy carves out executive-summary/release-readiness substance from context-removing compression.",
+    "Archive/sign-off guidance preserves improved summary context at approval time.",
+    "Tests/assets fail if non-technical audience, decision essentials, evidence-only impact, caveman carve-out, or traceability preservation are missing.",
+    "Historical archived summaries are not rewritten."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Improve Executive Summaries\n\n## Why\nADV executive summaries can currently become dense technical changelog prose. That fails release-approval use: non-technical executives need plain-English context about what they are approving, why it matters, what user/business outcome changes, what was verified, and what risks or follow-ups remain.\n\n## What Changes\nADV should make executive summaries behave as release-approval decision surfaces for non-technical stakeholders. The workflow should guide agents to translate technical evidence into plain English, lead with release consequence and delivered value, and keep technical traceability as supporting evidence rather than lead prose.\n\nThis is expected to affect ADV workflow instructions and adjacent command/agent contract assets around review, harden, and archive sign-off. Discovery will determine whether spec law needs a durable requirement update or whether command-contract tests are sufficient.\n\n## User Outcomes\n- A non-technical approver can understand what they are approving without decoding engineering shorthand.\n- A release sign-off includes plain-English context about delivered value, verification, risk, and remaining follow-ups.\n- Technical evidence remains available for audit and traceability without overwhelming the executive-facing summary.\n- Future archived changes avoid terse changelog-style executive summaries like migration numbers, SQL predicate names, and error-shape details as the primary explanation.\n\n## Scope\n\n### In Scope\n- Improve the executive-summary authoring guidance used before acceptance and archive sign-off.\n- Clarify audience, tone, and content layering for executive summaries.\n- Preserve release evidence, verification, risk, and approval consequence context.\n- Add or update tests/asset checks that prevent regression to terse technical changelog summaries.\n- Determine during discovery whether `advance-workflow` spec law should gain a requirement for executive-readable summaries.\n\n### Out of Scope\n- Rewriting historical archived executive summaries.\n- Changing task implementation summaries or sub-agent report schemas unless discovery proves they directly block the outcome.\n- Removing technical traceability, evidence pointers, or approval consequence context.\n- Adding a new dependency or external summarization service.\n- Changing unrelated gate handoff voice outside executive-summary/release-approval surfaces.\n\n### Must Not\n- Must not replace audit evidence with vague marketing prose.\n- Must not make summaries so long that approval context becomes hard to scan.\n- Must not hide release risks, follow-ups, migrations, frontend impact, or rollback/ops readiness.\n- Must not fabricate business impact that is not supported by proposal/agreement/task/review evidence.\n\n## Affected Code\nLikely areas from triage evidence:\n- `.opencode/command/adv-review.md` executive-summary persistence and review-summary wording.\n- `.opencode/command/adv-harden.md` release-readiness summary enrichment.\n- `.opencode/agents/adv.md` pre-archive Change Report rendering guidance.\n- Asset tests under `plugin/src/__tests__/human-checkpoints-assets.test.ts` and `plugin/src/approval-consequence-context-assets.test.ts`.\n\n## Related Repositories\nCurrent repository only: `advance`. `project.json` does not declare product-linked multi-repo scope.\n\n## Constraints\n- Keep the change implementation-free at proposal stage; discovery owns acceptance criteria and engineering detail.\n- Preserve technical traceability through structured artifacts and evidence pointers.\n- Keep summaries scannable and approval-focused.\n- Follow existing ADV seven-gate workflow and command-asset test conventions.\n\n## Impact\nRelease approvers should receive clearer, more useful context at the exact point they decide whether to accept or ship a change. Engineering teams retain auditability while reducing the chance that non-technical stakeholders approve unclear technical jargon.\n\n## Context\nTriage found the current durable executive summary template in `.opencode/command/adv-review.md` asks for a short narrative verdict and task implementation summaries but does not define a non-technical executive audience. Archive sign-off reads the artifact verbatim, so poor source guidance flows directly into release approval. External release-readiness and plain-language guidance supports a layered summary: decision and business/user impact first, verification/risk next, exact technical traceability in supporting evidence.\n\n## Knowledge Gap Analysis\n\n### Codebase unknowns\n- Exact final set of command/agent surfaces that must carry the audience rule. Deferred to discovery.\n- Whether tests should assert exact wording, structural sections, or both. Deferred to discovery.\n\n### Ecosystem unknowns\n- No external library or runtime dependency is expected. General plain-language/release-readiness guidance already supports the direction; discovery may cite it when shaping criteria.\n\n### Domain unknowns\n- Preferred strictness for summary length and section shape is not yet decided. Deferred to discovery.\n- Whether executives should see a fixed section order or a flexible prose template is not yet decided. Deferred to discovery.\n\n### Integration unknowns\n- Whether `advance-workflow` spec law should gain an explicit requirement or command-contract tests are enough. Deferred to discovery.\n- Whether harden release-readiness additions should be rewritten into the same plain-English layer or appended as a separate technical readiness block. Deferred to discovery.\n\n## Discovery Agenda\n- Decide whether executive-readable summary behavior is a spec-law requirement or command-contract/test requirement.\n- Inspect review, harden, archive, and ADV sign-off assets for all places where executive-summary content is created, enriched, or displayed.\n- Define a bounded summary shape that preserves verification/risk/traceability while remaining plain-English and scannable.\n- Identify regression tests that enforce audience, layering, and non-jargon guidance without brittle prose matching.\n\n## Discovery Findings\n\n### Discovery Checklist\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | `adv-instructions-audit` matched instruction/prose-anchor work and was loaded. No pending skill-review frontmatter found; only a documentation example of `review_status: \"pending\"` was matched. |\n| Prior Research Extension | PASS | No relevant `temp/*.md` or `docs/*-prep.md` research pack found. Four unrelated prep docs exist. New finding: changelog intent already frames `executive-summary.md` as release-note/user-facing communication, but command guidance does not carry that audience forward. |\n| Conflict Scan | PASS | No active overlapping changes. Validation warnings `NO_TASKS` and `NO_DELTAS` are expected pre-prep. Agenda has many unrelated planning follow-ups; scout added two related design notes (`ag-4i6FX5mV`, `ag-aA0B2zo7`). |\n| Edge Case Investigation | PASS | Edge cases recorded below. |\n| Design Question Depth | PASS | Open design questions annotated below. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-executiveSummaryAudience01` proposed below. |\n| Related Pattern Scan | PASS | Similar pattern found in `adv-review.md` one-paragraph review summary; no repo-wide plain-English/non-technical summary rule found. |\n| LBP Check | PASS | Best path is layered summary: plain-English decision surface plus linked/structured technical traceability; no external tool needed. |\n| Completeness Verification | PASS | Full problem is broader than one bad summary: missing audience rule + raw technical inputs + caveman compression pressure. |\n\n### Skills Considered\n- `adv-instructions-audit`: loaded. Relevant because this is instruction prose backed by asset/spec tests.\n- `customize-opencode`: considered, not loaded. This change affects repo-owned ADV command/agent surfaces, not user OpenCode config.\n- Skill creation: skipped. Existing skill covers instruction-audit methodology.\n\n### Extends\n- No relevant `temp/*.md` or `docs/*-prep.md` prior research found.\n- Related existing intent: `CHANGELOG.md` describes `executive-summary.md` as a communication artifact for release notes, changelogs, and user-facing communication. New finding: current `adv-review.md` generation instructions do not preserve that audience.\n\n### Conflict Scan\n- `adv_change_list includeArchived/includeClosed`: no active overlap besides this change.\n- `adv_change_validate`: passed; `NO_TASKS`/`NO_DELTAS` expected before prep/spec deltas.\n- `adv_agenda_list`: no blocking overlap. Related scout-created notes:\n  - `ag-4i6FX5mV`: decide renderer-vs-template placement for plain-English delivered value.\n  - `ag-aA0B2zo7`: note global caveman plugin as out-of-repo contributor.\n\n### Current State\n- `adv-review.md:257-261` review display summary asks for one concise paragraph: verdict, finding counts, fixes, concerns.\n- `adv-review.md:587-617` durable executive summary template has no audience rule; `Outcome` is 1-2 sentence narrative verdict; `What Was Built` uses task implementation summaries.\n- `adv-harden.md:560-578` appends/replaces release readiness and consequence context, but does not specify executive-readable translation.\n- `adv-archive.md:76-93` presents release signoff with approval consequence context categories and evidence rules.\n- `docs/command-voice-standard.md:160-203` defines caveman-full terse style for phase summaries, findings, verdicts, recommendations, and gate summaries. It does not exempt executive summaries.\n- `ADV_INSTRUCTIONS.md:9-12` tells instruction surfaces to use caveman-full wording while preserving exact contract tokens.\n- Existing tests assert executive-summary presence, ordering, metadata, and noise avoidance, but not audience quality.\n\n### Edge Cases\n1. Technical-only change with little user-facing value:\n   - Summary must still explain why release matters in plain English, even if value is operational risk reduction.\n   - Must not fabricate user/business impact beyond evidence.\n2. Highly technical migration/security/runtime change:\n   - Technical terms may be necessary, but must be defined or moved behind supporting evidence.\n   - Risk/rollback/data impact must remain visible; plain language must not hide severity.\n3. Caveman voice active in session:\n   - Repo-owned caveman-full can compress needed context unless executive summaries are exempted or specifically layered.\n   - Global caveman plugin is user config and out of repo scope; change can only document/avoid repo-owned conflict.\n4. Regression-test brittleness:\n   - Exact prose matching could make summaries formulaic and fragile.\n   - Too-loose tests could pass while dense jargon returns.\n\n### Open Design Questions\n1. Where should the primary plain-English layer live?\n   - Trust model: agent-owned technical decision.\n   - Blast radius: wrong placement can duplicate consequence context or leave archive signoff unchanged.\n   - Alternatives: executive-summary template lead section; approval-consequence renderer `delivered value`; both with clear ownership. Recommendation: both, with renderer owning category evidence and template owning narrative lead.\n2. How strict should the section shape be?\n   - Trust model: joint; user preference affects summary readability.\n   - Blast radius: too rigid creates boilerplate; too loose allows regressions.\n   - Alternatives: fixed headings, rubric-only prose, hybrid. Recommendation: hybrid fixed minimum headings with flexible bullets.\n3. How should caveman-full interact with executive summaries?\n   - Trust model: agent-owned with user-visible policy consequence.\n   - Blast radius: if unchanged, compression pressure may keep causing terse summaries; if over-exempted, chat output may get verbose.\n   - Alternatives: exempt all executive-summary artifacts from caveman-full; keep caveman but add detail requirement; exempt only archive signoff rendering. Recommendation: exempt executive-summary artifacts and release-readiness summary content from caveman-full while preserving scannability.\n4. How much business/user impact may be inferred?\n   - Trust model: joint; user decides tolerance for extrapolation.\n   - Blast radius: unsupported benefit claims reduce trust.\n   - Alternatives: strict evidence-only, allow bounded inference, or require explicit uncertainty. Recommendation: evidence-only with explicit “no direct user-facing impact” phrasing when needed.\n\n### Draft Spec Deltas\n- `rq-executiveSummaryAudience01` — Executive summaries are executive-readable release approval surfaces.\n  - Given a change is ready for acceptance or archive sign-off,\n  - When ADV composes or displays `executive-summary.md`,\n  - Then the summary leads with plain-English release consequence and delivered value for a non-technical approver, summarizes verification/risk/follow-ups in scannable form, and places technical identifiers/details as supporting evidence rather than the lead explanation.\n- `rq-executiveSummaryAudience01.2` — Caveman voice does not override executive summary substance.\n  - Given caveman-full wording compression applies to runtime prose,\n  - When an executive-summary artifact or release-readiness summary is composed,\n  - Then compression must not remove required plain-English context, approval consequence, risk, or verification explanation.\n\n### Related Pattern Scan\n- Found related terse-summary pattern: `adv-review.md:261` one concise paragraph instruction for code-review display summary.\n- Found related communication intent: `CHANGELOG.md:431` says executive summaries are for release notes, changelogs, and user-facing communication.\n- No repo-wide `plain English` or `non-technical` rule exists today.\n- No broad code-path scan beyond instruction/assets needed; this is a command-contract/instruction surface issue, not a runtime data-path defect.\n\n### Completeness Verification\n- Problem-completeness: high confidence. Evidence shows three contributors: missing executive audience rule, raw technical implementation-summary inputs, and caveman-full compression pressure.\n- Solution-scope: high confidence. Intended scope spans creation (`adv-review`), enrichment (`adv-harden`), display (`adv-archive`/ADV signoff), and regression anchors (spec/tests/docs). No sole-entry runtime chokepoint claim is used.\n- Secondary surfaces:\n  - In scope: `adv-review.md`, `adv-harden.md`, `adv-archive.md`, `.opencode/agents/adv.md`, `docs/command-voice-standard.md`, relevant asset/spec docs/tests.\n  - Out of scope: global `~/.config/opencode` caveman plugin config; historical archived summaries; unrelated gate handoff voice.\n\n### LBP Check\nRecommended direction matches long-term best practice: layered executive summary. Plain-English decision surface first; structured traceability and exact technical evidence remain available underneath. No external library/service is warranted.\n\nOpportunity scout result: run. Five candidates considered; auto-adopt spec-law requirement and caveman-exemption direction; design-around renderer/template placement and anti-noise test reconciliation; surface global caveman as out-of-repo contributor.\n\n### Recommended Objectives\n1. Define executive summaries as non-technical release approval decision surfaces.\n2. Ensure summaries lead with release consequence and delivered value, not implementation jargon.\n3. Preserve verification, risk, follow-up, and approval-consequence evidence.\n4. Clarify caveman-full does not compress away required executive-summary context.\n5. Add durable spec/test anchors so the behavior does not drift.\n\n### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C\n\n## Clarify Resolution Log\n- Q1 (resolved 2026-07-07T05:30:51+02:00): Minimum executive-summary content is “Decision essentials” — what changes, why it matters, verification, risk/follow-ups, and supporting evidence.\n- Q2 (resolved 2026-07-07T05:30:51+02:00): Unavoidable technical terms may appear parenthetically; the summary should not require a full technical explanation for every term and should not ban technical terms entirely.\n- Q3 (resolved 2026-07-07T05:30:51+02:00): Do not mention global caveman voice in the agreement; keep scope focused on repo-owned behavior and repo-owned caveman-full carve-out.\n",
+    "problemStatement": "ADV executive summaries can currently become dense technical changelog prose. That fails release-approval use: non-technical executives need plain-English context about what they are approving, why it matters, what user/business outcome changes, what was verified, and what risks or follow-ups remain.\n\nDesired outcome: executive summaries become executive-readable decision surfaces that lead with plain-English release consequence, explain delivered value before technical detail, summarize verification and risk without jargon overload, and preserve technical traceability as supporting evidence rather than main prose.\n\nExpected scope: workflow/instruction quality change in ADV review/harden/archive summary surfaces, with tests or asset checks to prevent regression. Discovery will firm exact affected files and acceptance criteria.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make executive summaries serve as non-technical release-approval decision surfaces.\n2. Ensure each summary explains decision essentials: what changes, why it matters, verification, risk/follow-ups, and supporting evidence.\n3. Preserve auditability, technical traceability, and approval consequence context without leading with dense implementation jargon.\n4. Ensure repo-owned caveman-full guidance cannot compress away required executive-summary or release-readiness substance.\n5. Add durable spec/test anchors so this behavior does not drift.\n\n## Success Criteria\n\n- SC1: Future executive summaries give non-technical release-approval context.\n- SC2: Each summary covers decision essentials: what changes, why it matters, verification, risk/follow-ups, and supporting evidence.\n- SC3: Technical terms appear only as parenthetical support, not lead explanation.\n- SC4: Repo-owned caveman-full policy no longer compresses away executive-summary substance.\n- SC5: Regression coverage prevents return to terse technical changelog summaries.\n\n## Acceptance Criteria\n\n- AC1: Executive-summary guidance requires hybrid minimum sections for outcome, value, verification, risks/follow-ups, and supporting evidence.\n- AC2: Summary guidance uses evidence-only impact wording: no unsupported business/user benefit claims.\n- AC3: Unavoidable technical terms are allowed as parenthetical supporting detail.\n- AC4: Repo-owned caveman-full policy carves out executive-summary/release-readiness substance from context-removing compression.\n- AC5: Archive/sign-off guidance preserves improved summary context at approval time.\n- AC6: Tests/assets fail if non-technical audience, decision essentials, evidence-only impact, caveman carve-out, or traceability preservation are missing.\n- AC7: Historical archived summaries are not rewritten.\n\n## Constraints\n\n- C1: Preserve technical traceability, release evidence, verification, risk, and follow-up context.\n- C2: Keep summaries scannable; do not turn executive summaries into long essays.\n- C3: Keep this change current-repo scoped to `advance`; no product-linked or cross-repo scope is in effect.\n- C4: Use spec/test/asset anchors where durable behavior is required; avoid relying on prose-only guidance for correctness-critical workflow behavior.\n\n## Avoidances\n\n- DONT1: Do not replace audit evidence with vague marketing prose.\n- DONT2: Do not fabricate business or user impact that is not supported by proposal, agreement, task, review, or release evidence.\n- DONT3: Do not hide release risks, follow-ups, migrations, frontend impact, rollback readiness, or ops readiness.\n- DONT4: Do not change task implementation summaries or sub-agent report schemas unless later design proves they directly block the approved outcome.\n\n## Out of Scope\n\n- OOS1: Rewriting historical archived executive summaries.\n- OOS2: Changing global user-owned caveman configuration under `~/.config/opencode`.\n- OOS3: Adding a new dependency or external summarization service.\n- OOS4: Changing unrelated gate handoff voice outside executive-summary and release-approval surfaces.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: This change affects ADV command/spec/test guidance and release-summary text artifacts. It does not affect frontend, browser-visible UI, or visual output.\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: No browser preview surface is affected.\n\n## Decisions\n\n### User Decisions\n\n1. Minimum summary shape: hybrid sections — fixed minimum decision-essential sections with flexible prose/bullets inside.\n2. Impact wording: evidence-only — direct user/business impact only when supported; otherwise state operational or risk impact plainly.\n3. Caveman scope: repo carve-out — fix repo-owned caveman-full behavior; keep global user config out of agreement scope.\n4. Decision essentials: what changes, why it matters, verification, risk/follow-ups, and supporting evidence.\n5. Technical terms: allowed only as parenthetical supporting detail.\n\n### Agent Decisions (LBP)\n\n1. Route executive-summary audience quality as `advance-workflow` spec law plus asset/test anchors, not tests-only.\n2. Reuse and strengthen existing approval-consequence context surfaces rather than adding a parallel duplicate release context block.\n3. Reconcile new plain-English requirements with existing anti-investment-report-noise tests so summaries are explanatory without becoming marketing reports.\n4. Keep global caveman plugin behavior out of repo scope; only repo-owned command-voice policy is actionable here.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved criteria with reply `approve` during `/adv-discover improveExecutiveSummaries` on 2026-07-07.",
+    "design": "# Design\n\n## Architecture Overview\n\nThis is a command-contract/spec/test change, not a runtime data migration. Add first-class executive-summary audience law to `advance-workflow`, then align the command surfaces that create, enrich, and display the artifact.\n\nAuthority layering:\n\n1. `advance-workflow` spec defines durable behavior.\n2. Command/agent docs operationalize that behavior at review, harden, and archive sign-off.\n3. Existing asset tests verify stable anchors in command/docs/spec surfaces.\n4. `buildApprovalConsequenceContext` remains the single structured release-consequence vocabulary; no parallel consequence model is added.\n\n## Key Decisions\n\n1. **Mint a new `rq-executiveSummaryAudience01` requirement.** Existing `rq-archiveVisibility01` explicitly leaves first-class executive-summary ownership to a coordinated boundary, so overloading that requirement would hide the new behavior in the wrong policy slice.\n2. **Strengthen existing executive-summary shape in place.** `adv-review.md` already has a hybrid artifact shape (`Outcome`, `Verdict`, `What Was Built`, `What Was Verified`, `Remaining Concerns`, `Consequence Context`). The design updates its audience/content rules instead of creating a new artifact.\n3. **Reuse the Approval Consequence Context renderer.** The renderer already owns the 8-category approval vocabulary and evidence bounds. The change should strengthen how summary authors use `delivered value`/context evidence, not duplicate the renderer.\n4. **Carve out executive-summary substance from repo-owned caveman-full compression.** Caveman-full remains correct for routine chat/gate prose, but must not remove decision essentials from executive-summary or release-readiness artifact content.\n5. **Keep evidence-only impact.** For internal or technical changes, summaries state operational/risk impact plainly and avoid unsupported business/user claims.\n6. **Treat anti-investment-report noise as a hard design constraint.** Plain-English executive summaries must explain release context without reintroducing vague marketing or banned investment-report framing.\n\n## ADR Drafts\n\nNone. Decisions are workflow-contract refinements with low reversal cost and no new external architecture.\n\n## Implementation Strategy\n\n1. **Spec law**\n   - Add `rq-executiveSummaryAudience01` under `advance-workflow`.\n   - Include scenarios for: executive-readable decision essentials, technical details as parenthetical/supporting evidence, evidence-only impact, and caveman-full not overriding summary substance.\n   - Update `docs/specs/advance-workflow.md` mirror.\n\n2. **Review summary authoring**\n   - Update `.opencode/command/adv-review.md` `### Persist Executive Summary`.\n   - Require hybrid minimum sections/content: outcome, delivered value/why it matters, verification, risks/follow-ups, supporting technical evidence, and consequence context.\n   - Direct summary authors to translate task/gate evidence into plain English before listing technical terms.\n   - Allow unavoidable technical terms only as parenthetical supporting detail.\n\n3. **Harden/release readiness carry-forward**\n   - Update `.opencode/command/adv-harden.md` so release-readiness additions preserve the executive-readable layer and do not append dense scanner/report jargon as lead prose.\n   - Preserve `harden evidence unavailable` semantics and release-owned category rules.\n\n4. **Archive/sign-off display**\n   - Update `.opencode/command/adv-archive.md` and `.opencode/agents/adv.md` only where needed to preserve and display the improved summary at Tier B sign-off.\n   - Do not recompose historical summaries and do not add a second approval context block.\n\n5. **Caveman policy**\n   - Update `docs/command-voice-standard.md` `Does not apply to` or caveman composition rules to exempt executive-summary/release-readiness artifact substance from context-removing compression.\n   - Scope carve-out narrowly: not general gate handoff voice, not global user-owned caveman config.\n\n6. **Regression anchors**\n   - Extend existing asset tests where possible:\n     - `plugin/src/__tests__/human-checkpoints-assets.test.ts`\n     - `plugin/src/approval-consequence-context-assets.test.ts`\n     - `plugin/src/workflow-noise-reduction-assets.test.ts`\n     - `plugin/src/adv-skill-backed-commands-assets.test.ts` if caveman composition anchors are the right locality.\n   - Use structural substring/category assertions instead of full prose snapshots.\n\n## LBP Analysis\n\nPreferred long-term path: spec-law plus command-contract tests.\n\nWhy:\n\n- The defect is not an isolated typo; it is a durable workflow-quality requirement that should survive future prompt edits.\n- Existing specs already separate archive-visibility noise policy from executive-summary ownership, making a new requirement the clean home.\n- Existing renderer and asset-test surfaces provide low-risk anchors; no runtime schema or external dependency is needed.\n- Evidence-only impact and anti-investment-report constraints prevent the plain-English summary from becoming marketing copy.\n\nRejected alternatives:\n\n- **Tests only:** too easy to drift because no spec law owns the audience requirement.\n- **Parallel consequence context block:** duplicates the existing 8-category renderer and risks contradiction.\n- **Global caveman config changes:** out of repo scope and user-owned.\n- **Task/sub-agent summary schema changes:** not needed unless later implementation proves the summary authoring layer cannot translate existing evidence.\n\n## Affected Components\n\n- `.adv/specs/advance-workflow/spec.json`\n- `docs/specs/advance-workflow.md`\n- `.opencode/command/adv-review.md`\n- `.opencode/command/adv-harden.md`\n- `.opencode/command/adv-archive.md`\n- `.opencode/agents/adv.md`\n- `docs/command-voice-standard.md`\n- `plugin/src/__tests__/human-checkpoints-assets.test.ts`\n- `plugin/src/approval-consequence-context-assets.test.ts`\n- `plugin/src/workflow-noise-reduction-assets.test.ts`\n- Possibly `plugin/src/adv-skill-backed-commands-assets.test.ts` for caveman composition anchors\n\n## Design-Derived Criteria\n\nDDC1: Asset tests must assert stable anchors for non-technical audience, decision essentials, evidence-only impact, parenthetical technical terms, caveman carve-out, and traceability preservation without snapshotting full summary prose.\n\nDDC2: Any Approval Consequence Context changes must preserve `rq-approvalConsequenceContext01`: all 8 categories, stable order, bounded rows, evidence pointers, no raw logs/diffs/task spam/full scanner reports.\n\nDDC3: Caveman carve-out must be scoped to executive-summary/release-readiness artifact substance only; general chat/gate handoff prose remains under caveman-full voice.\n\nDDC4: Plain-English requirements must coexist with the existing investment-report-noise ban; tests must prove both explanatory context and no vague marketing/investment-report framing.\n\nDDC5: Verification should use targeted asset tests first, then broader repo checks per prep; no live plugin reload is required to prove command/spec asset behavior in source tests.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n|---|---|\n| Summary becomes vague marketing | Evidence-only impact, anti-investment-report constraint, DONT1/DONT2 contract checks |\n| Summary hides technical risk or follow-ups | Required risks/follow-ups/supporting-evidence sections and preserved Approval Consequence Context |\n| Duplicate consequence context | Keep `buildApprovalConsequenceContext` as single renderer; command docs display/preserve it |\n| Tests become brittle | Structural substring/category assertions, not exact full prose matching |\n| Caveman carve-out expands too far | Scope to executive-summary/release-readiness artifact substance only |\n| Historical archived summaries accidentally touched | Explicit OOS and AC7; implementation should not run archive rewrites |\n\n## Design Leverage Scout\n\n- Trigger: run — workflow/spec/test design with multiple instruction surfaces.\n- Candidates considered: 5.\n- Auto-adopted: 4.\n  - Mint new `rq-executiveSummaryAudience01`, not overload `rq-archiveVisibility01`.\n  - Reuse `buildApprovalConsequenceContext`; reject parallel 8-category model.\n  - Extend existing asset anchors where possible.\n  - Strengthen existing `adv-review.md` executive-summary template in place.\n- Surfaced/integrated: 1.\n  - Anti-investment-report reconciliation elevated from mitigation to hard design-derived criterion DDC4.\n- Inconclusive/skipped: none.\n\n## Validator Notes\n\nValidator result: pass / Validated.\n\nEvidence cited:\n\n- `rq-archiveVisibility01` reserves first-class executive-summary ownership as a coordinated boundary.\n- `buildApprovalConsequenceContext` is the single 8-category bounded renderer.\n- `adv-review.md` already has the hybrid executive-summary shape targeted by this design.\n- `adv-harden.md` and `adv-archive.md` provide real carry-forward/sign-off surfaces.\n- `workflow-noise-reduction-assets.test.ts` provides the investment-report-noise anchor.\n- `docs/command-voice-standard.md` has existing carve-out slots for narrowly scoping caveman behavior.\n\nValidator recommendation: proceed to planning. Keep caveman carve-out narrow and use the full existing asset-test paths during prep.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nThis change makes ADV executive summaries useful at release approval time for non-technical readers. Future summaries must explain what changed, why it matters, what was verified, and what risks or follow-ups remain before sign-off.\n\n## Why It Matters\nRelease approvers get decision context instead of terse technical changelog prose. The impact is evidence-only: the workflow now requires supported operational, release-risk, user, or business impact statements and forbids invented benefits.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Added durable workflow law for executive-summary audience and decision essentials (`rq-executiveSummaryAudience01`).\n2. Updated review, harden, archive, and ADV sign-off guidance so executive summaries and release-readiness summaries preserve outcome, value/why it matters, verification, risks/follow-ups, and supporting evidence.\n3. Added a narrow repo-owned caveman-full carve-out so wording compression cannot remove executive-summary/release-readiness substance.\n4. Added asset-test anchors that fail if non-technical audience, evidence-only impact, parenthetical technical terms, caveman preservation, archive sign-off preservation, or traceability anchors drift.\n\n## What Was Verified\n- Verdict: READY from independent adv-reviewer report; 0 blockers/issues.\n- Tests: `bin/oc-test targeted -- src/workflow-noise-reduction-assets.test.ts src/approval-consequence-context-assets.test.ts src/adv-skill-backed-commands-assets.test.ts` passed (72 tests).\n- Smoke/check: `bin/oc-test smoke` passed (`schemas:check`, `typecheck`, test isolation, lockfile policy, lint, `format:check`, and 57 smoke tests).\n- ADV validation: `adv_change_validate strict` passed with one nonblocking warning: `NO_DELTAS`.\n- Contract matrix: 24/24 required rows pass/respected/not_applicable; 0 failing rows.\n- Preview URL: not_applicable — no browser-visible UI or frontend route changed.\n\n## Remaining Concerns\nNone blocking. Nonblocking validation warning: change has no ADV spec-delta entries (`NO_DELTAS`) because implementation directly updates the in-repo spec law and docs mirror on this branch.\n\n## Supporting Evidence\n- Spec/docs: `.adv/specs/advance-workflow/spec.json`, `docs/specs/advance-workflow.md`.\n- Command/agent guidance: `.opencode/command/adv-review.md`, `.opencode/command/adv-harden.md`, `.opencode/command/adv-archive.md`, `.opencode/agents/adv.md`.\n- Caveman carve-out: `docs/command-voice-standard.md`.\n- Regression tests: `plugin/src/workflow-noise-reduction-assets.test.ts`, `plugin/src/approval-consequence-context-assets.test.ts`, `plugin/src/adv-skill-backed-commands-assets.test.ts`.\n- Checkpoints: `3515665fbc2a26bcd84a9d51026b6b5537cddeca`, `13a51a9046774a6826e11bd624797cf4b148d26e`.\n\n## Consequence Context\n| Category | Status | Evidence |\n|---|---|---|\n| delivered value | pass | Executive-summary guidance now targets release-approval decisions and has spec/test anchors. |\n| enabling-only/follow-up dependency | n/a | This is direct workflow guidance/spec/test work; no required follow-up blocks acceptance. |\n| ops readiness | pending | Harden owns release/deploy/production/docs/cleanup readiness. No ops runbook or production migration introduced. |\n| migration/data impact | n/a | No data model, database, migration, or runtime storage changes. |\n| frontend/preview impact | n/a | Agreement marked `visual_surface: false`; no UI/route/preview surface changed. |\n| collision/release risk | pass | Worktree clean; smoke/check and targeted assets pass; reviewer found no blockers/issues. |\n| open follow-ups | n/a | No required follow-ups or ops obligations reported. |\n| next action | pass | User acceptance can proceed to harden/release readiness review. |\n\n## Release Readiness Summary\nRelease hardening found this documentation/spec/test change ready for archive. No deploy, migration, data, frontend, ops-runbook, or cleanup blocker was introduced.\n\n| Category | Status | Evidence |\n|---|---|---|\n| delivered value | pass | Accepted workflow guidance improves executive-summary release approval context with spec/test anchors. |\n| enabling-only/follow-up dependency | n/a | Change is complete in this repo; no blocking child change or required follow-up. |\n| ops readiness | n/a | No production operations, deployment config, runbook, external service, or cleanup action introduced. |\n| migration/data impact | n/a | No data model, database, migration, archive-state, or runtime storage behavior changed. |\n| frontend/preview impact | n/a | No UI, browser route, visual surface, or preview artifact changed. |\n| collision/release risk | pass | Dry-run merge with `origin/trunk` clean; `git diff --check origin/trunk...HEAD` passed; worktree clean. |\n| open follow-ups | n/a | Harden reviewer found no hidden follow-up blocker. Existing project agenda items are unrelated to this release. |\n| next action | pass | Archive sign-off can proceed; `adv_change_archive phase9: \"run\"` owns final release proof. |\n\nHarden evidence: adv-reviewer harden report `improveExecutiveSummaries|change:harden:release|adv-reviewer|1` READY with 0 findings; targeted 72-test suite passed; smoke/check passed; `adv_change_validate strict` passed with nonblocking `NO_DELTAS` warning.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-07T04:03:15.037Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Future executive summaries give non-technical release-approval context. | pass | adv-reviewer READY report: executive-summary guidance now targets non-technical release-approval readers; no blockers/issues. |\n| SC2 | success_criterion | Each summary covers decision essentials: what changes, why it matters, verification, risk/follow-ups, and supporting evidence. | pass | adv-reviewer READY report and command assets require outcome, why it matters/value, verification, risks/follow-ups, and supporting evidence. |\n| SC3 | success_criterion | Technical terms appear only as parenthetical support, not lead explanation. | pass | adv-reviewer READY report confirmed technical terms are constrained to parenthetical/supporting detail and dense jargon does not lead. |\n| SC4 | success_criterion | Repo-owned caveman-full policy no longer compresses away executive-summary substance. | pass | adv-reviewer READY report confirmed caveman carve-out is scoped to executive-summary/release-readiness artifact substance. |\n| SC5 | success_criterion | Regression coverage prevents return to terse technical changelog summaries. | pass | Targeted asset regression passed: workflow-noise-reduction, approval-consequence-context, and adv-skill-backed-commands tests (72 tests). |\n| AC1 | acceptance_criterion | Executive-summary guidance requires hybrid minimum sections for outcome, value, verification, risks/follow-ups, and supporting evidence. | pass | Targeted tests assert executive-summary audience law and adv-review summary sections for outcome, value/why it matters, verification, risks/follow-ups, and supporting evidence. |\n| AC2 | acceptance_criterion | Summary guidance uses evidence-only impact wording: no unsupported business/user benefit claims. | pass | Targeted tests assert evidence-only impact wording in spec/docs and review command guidance. |\n| AC3 | acceptance_criterion | Unavoidable technical terms are allowed as parenthetical supporting detail. | pass | Targeted tests assert technical terms appear as parenthetical supporting detail in spec/docs and review command guidance. |\n| AC4 | acceptance_criterion | Repo-owned caveman-full policy carves out executive-summary/release-readiness substance from context-removing compression. | pass | adv-skill-backed-commands asset test asserts caveman-full preserves executive-summary/release-readiness artifact substance and must not compress away decision essentials. |\n| AC5 | acceptance_criterion | Archive/sign-off guidance preserves improved summary context at approval time. | pass | approval-consequence-context asset test asserts adv-archive and ADV sign-off preserve improved summary context/source from _executiveSummary before Tier B approval. |\n| AC6 | acceptance_criterion | Tests/assets fail if non-technical audience, decision essentials, evidence-only impact, caveman carve-out, or traceability preservation are missing. | pass | Targeted regression suite passed: 3 asset files, 72 tests; bin/oc-test smoke also passed check and smoke tests. |\n| AC7 | acceptance_criterion | Historical archived summaries are not rewritten. | pass | Implementation touched only current workflow/spec/docs/command/test assets; no archived summary files or archive bundles rewritten; git status clean. |\n| C1 | constraint | Preserve technical traceability, release evidence, verification, risk, and follow-up context. | respected | Guidance keeps supporting evidence, technical traceability, verification, risk/follow-up, and Approval Consequence Context rows visible. |\n| C2 | constraint | Keep summaries scannable; do not turn executive summaries into long essays. | respected | Guidance uses scannable sections/bullets and explicitly warns against long essay or dense scanner/report jargon; no raw logs/diffs/task spam. |\n| C3 | constraint | Keep this change current-repo scoped to `advance`; no product-linked or cross-repo scope is in effect. | respected | All changed files are in current advance repo/worktree; no product-linked or cross-repo files modified. |\n| C4 | constraint | Use spec/test/asset anchors where durable behavior is required; avoid relying on prose-only guidance for correctness-critical workflow behavior. | respected | Added spec law plus structural asset-test anchors; behavior not left as prose-only guidance. |\n| DONT1 | avoidance | Do not replace audit evidence with vague marketing prose. | respected | adv-reviewer READY report found no vague marketing prose replacing audit evidence. |\n| DONT2 | avoidance | Do not fabricate business or user impact that is not supported by proposal, agreement, task, review, or release evidence. | respected | Guidance requires evidence-only impact; reviewer found no unsupported impact language. |\n| DONT3 | avoidance | Do not hide release risks, follow-ups, migrations, frontend impact, rollback readiness, or ops readiness. | respected | Guidance requires risks/follow-ups, ops/readiness context, and warning/blocked states for missing harden evidence. |\n| DONT4 | avoidance | Do not change task implementation summaries or sub-agent report schemas unless later design proves they directly block the approved outcome. | respected | No task implementation summary or sub-agent report schemas changed. |\n| OOS1 | out_of_scope | Rewriting historical archived executive summaries. | not_applicable | Historical archived executive summaries were not modified. |\n| OOS2 | out_of_scope | Changing global user-owned caveman configuration under `~/.config/opencode`. | not_applicable | Global user-owned caveman config under ~/.config/opencode was not modified. |\n| OOS3 | out_of_scope | Adding a new dependency or external summarization service. | not_applicable | No dependency or external summarization service was added. |\n| OOS4 | out_of_scope | Changing unrelated gate handoff voice outside executive-summary and release-approval surfaces. | not_applicable | Changes stayed on executive-summary and release-approval surfaces, not unrelated gate handoff voice. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-07T03:31:57.097Z",
+      "contentHash": "c3ff521f7df59d0e2f368f6c8da1802c19e9b557569d7fd8f49a6d8c649eda8a",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-07T03:18:46.619Z",
+      "contentHash": "0d3cc43af3f330110953e4447a9a2b6ed9296325294430f810ea00e84c8ae613",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-07T03:35:13.674Z",
+      "contentHash": "da27e7955fcd3c491dd5d14ab6ac310b0de590b629f6f6c72da1a5381a87a591",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-07T03:43:12.509Z",
+      "contentHash": "27f6909503d7058cf819f71c86482e6a1c7de1cd2ada742526580f15be569d35",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-07T04:13:07.096Z",
+      "contentHash": "a15f81ef6ec238d4f7dbdce05ce34be2f32297cac6df07ea1c3ffea0301dc383",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-07T04:13:07.096Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
