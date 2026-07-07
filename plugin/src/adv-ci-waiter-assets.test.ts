@@ -6,7 +6,10 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-ci-waiter.md");
 const ARCHIVE_COMMAND = join(REPO_ROOT, ".opencode/command/adv-archive.md");
 
-function splitFrontmatter(content: string): { frontmatter: string; body: string } {
+function splitFrontmatter(content: string): {
+  frontmatter: string;
+  body: string;
+} {
   const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) {
     throw new Error("File does not have a valid YAML frontmatter block");
@@ -39,21 +42,27 @@ describe("adv-ci-waiter assets", () => {
 
   test("samples oc-ci-wait result with bounded 20-30s cadence, not sleep 15 polling loop", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
-    expect(content).toMatch(/20[\s–—\-]*(?:to|or|–|—|\-)[\s–—\-]*30\s*s(?:econds)?/i);
+    expect(content).toMatch(
+      /20[\s–—\\-]*(?:to|or|–|—|-)[\s–—\\-]*30\s*s(?:econds)?/i,
+    );
     expect(content).not.toMatch(/sleep\s+15\b/);
   });
 
   test("oc-ci-wait result uses --watch-id <id> --json and never --repo/--sha/--pr", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     expect(content).toMatch(/--watch-id\s+<id>\s+--json/i);
-    expect(content).toMatch(/(never|no)\s+pass[\s\S]{0,80}(--repo|--sha|--pr)/i);
+    expect(content).toMatch(
+      /(never|no)\s+pass[\s\S]{0,80}(--repo|--sha|--pr)/i,
+    );
   });
 
   test("distinguishes CI success from PR MERGED", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     expect(content).toMatch(/CI\s+success/i);
     expect(content).toMatch(/MERGED/i);
-    expect(content).toMatch(/(MERGED[^.\n]*PR\s+state|PR\s+state[^.\n]*MERGED|not\s+PR\s+MERGED|CI\s+success\s+is\s+not\s+PR)/i);
+    expect(content).toMatch(
+      /(MERGED[^.\n]*PR\s+state|PR\s+state[^.\n]*MERGED|not\s+PR\s+MERGED|CI\s+success\s+is\s+not\s+PR)/i,
+    );
   });
 
   test("forbids gh run watch and gh pr checks --watch", () => {
@@ -65,7 +74,9 @@ describe("adv-ci-waiter assets", () => {
   test("preserves bounded output and excludes raw log dumps", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     expect(content).toMatch(/bounded\s+output/i);
-    expect(content).toMatch(/(do\s+not|didn't|doesn't|don't)[\s\S]{0,80}(dump|stream)[\s\S]{0,40}raw\s+logs?/i);
+    expect(content).toMatch(
+      /(do\s+not|didn't|doesn't|don't)[\s\S]{0,80}(dump|stream)[\s\S]{0,40}raw\s+logs?/i,
+    );
   });
 
   test("renders final response shape with conclusion, checks, URL, watch ID, next action", () => {
@@ -81,6 +92,8 @@ describe("adv-ci-waiter assets", () => {
     expect(content).toContain("oc-ci-wait");
     // Either keep MERGED with explicit PR-state evidence requirement, or
     // explicitly call out that CI success alone is not MERGED.
-    expect(content).toMatch(/(PR\s+state\s*==\s*MERGED|MERGED[^.\n]*PR\s+state|state[^.\n]*MERGED|PR[^.\n]*MERGED|MERGED[^.\n]*PR)/i);
+    expect(content).toMatch(
+      /(PR\s+state\s*==\s*MERGED|MERGED[^.\n]*PR\s+state|state[^.\n]*MERGED|PR[^.\n]*MERGED|MERGED[^.\n]*PR)/i,
+    );
   });
 });
