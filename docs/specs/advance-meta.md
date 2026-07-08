@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.20.0
-> **Updated:** 2026-06-27
+> **Version:** 1.21.0
+> **Updated:** 2026-07-08
 
 ## Purpose
 
@@ -196,6 +196,65 @@ The default /adv-status slash command must remain a thin OpenCode shell-output b
 - The JSON contains live-status metadata such as `source: "temporal"` on success or fail-closed live error metadata
 - The JSON does not use stale disk-only `schema_version: 1` as readiness proof
 - The installed CLI exposes no mutation subcommands
+
+---
+
+### Root CLI Uses Explicit Plugin Source Boundaries
+
+**ID:** `rq-cliSourceBoundary01` | **Priority:** **[MUST]**
+
+Root `bin/adv` CLI source may import plugin source only through explicit CLI-safe boundary modules. The allowed plugin-source crossings are the pure CLI projection surface and a named live Temporal CLI boundary (or an equivalent explicitly documented CLI-safe adapter). Broad plugin internals such as storage, tools, tool registry, plugin init, plugin index, and unlisted `plugin/src` paths must be rejected by deterministic boundary tests. The boundary must preserve deployed sibling-module imports, live Temporal fail-closed status/Epic behavior, and must not introduce stale disk active-state fallback.
+
+**Tags:** `cli`, `source-boundary`, `import-boundary`, `temporal`
+
+#### Scenarios
+
+**Root CLI imports only approved plugin source surfaces** (`rq-cliSourceBoundary01.1`)
+
+**Given:**
+- Root `bin/adv` or `bin/lib/*` source imports from `plugin/src`
+
+**When:** The CLI source-boundary tests run
+
+**Then:**
+- Imports are limited to the pure CLI projection surface and the named live Temporal CLI boundary or equivalent explicitly documented CLI-safe adapter
+- Any import into unlisted `plugin/src` paths fails the structural test
+- Same-tier root CLI imports remain allowed
+
+**Broad plugin internals stay out of the root CLI graph** (`rq-cliSourceBoundary01.2`)
+
+**Given:**
+- A root CLI source file or CLI-safe boundary module attempts to import plugin storage, tools, tool registry, plugin init, plugin index, or another forbidden plugin runtime surface
+
+**When:** Boundary tests inspect the direct or transitive CLI boundary import graph
+
+**Then:**
+- The test fails with the forbidden import path identified
+- The CLI boundary remains enforced by deterministic tests rather than prose-only guidance
+
+**Live Temporal CLI behavior is preserved** (`rq-cliSourceBoundary01.3`)
+
+**Given:**
+- The root CLI reads active change rows or Epic IDs through the approved Temporal CLI boundary
+
+**When:** Temporal is reachable or unavailable
+
+**Then:**
+- Reachable Temporal reads keep live status/Epic behavior compatible with existing CLI contracts
+- Unavailable Temporal still fails closed with live error metadata
+- Disk projections are not used as a substitute source for active rows
+
+**Local install preserves CLI-safe plugin-relative imports** (`rq-cliSourceBoundary01.4`)
+
+**Given:**
+- The local `adv` CLI payload has been deployed by `scripts/deploy-local.sh` or release packaging
+
+**When:** The installed CLI resolves its sibling modules and approved plugin-source boundaries
+
+**Then:**
+- The deployed CLI entrypoint continues to resolve sibling `bin/` modules
+- Approved plugin-relative CLI-safe boundary imports remain resolvable
+- No unrelated public package API is implied by the internal boundary module
 
 ---
 
