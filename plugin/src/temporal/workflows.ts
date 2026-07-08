@@ -1773,8 +1773,11 @@ export async function epicWorkflow(input: EpicWorkflowInput): Promise<void> {
     }
   }
 
-  const upsertEpicStatusSearchAttribute = (op: string): void => {
-    if (input.searchAttributesEnabled === false) return;
+  const upsertEpicStatusSearchAttribute = (
+    op: string,
+    options: { force?: boolean } = {},
+  ): void => {
+    if (!options.force && input.searchAttributesEnabled === false) return;
     try {
       wf.upsertSearchAttributes({
         [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.epicStatus]: [
@@ -1959,7 +1962,13 @@ export async function epicWorkflow(input: EpicWorkflowInput): Promise<void> {
     searchAttributesRefreshedSignal,
     signalAsync("searchAttributesRefreshed", (payload) => {
       const result = applySearchAttributesRefreshedToState(state, payload);
-      handleMutationResult("searchAttributesRefreshed", result);
+      if (!result.ok) {
+        handleMutationResult("searchAttributesRefreshed", result);
+        return;
+      }
+      upsertEpicStatusSearchAttribute("searchAttributesRefreshed", {
+        force: true,
+      });
     }),
   );
 
