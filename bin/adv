@@ -55,7 +55,6 @@ import {
 import {
   buildLiveEpicListFailure,
   buildLiveEpicListPayload,
-  loadCurrentChildByEpicId,
   loadLiveEpicIds,
 } from "./lib/epic-list";
 
@@ -246,14 +245,10 @@ async function runEpicListCommand(json: boolean): Promise<number> {
       : QUERY_TIMEOUT_MS;
 
   try {
-    const root = resolveExternalRoot(projectId);
-    const [ids, currentChildByEpicId] = await Promise.all([
-      loadLiveEpicIds(projectId, timeoutMs),
-      loadCurrentChildByEpicId(root),
-    ]);
+    const ids = await loadLiveEpicIds(projectId, timeoutMs);
     process.stdout.write(
       emitJson(
-        buildLiveEpicListPayload(ids, { projectId, now, currentChildByEpicId }),
+        buildLiveEpicListPayload(ids, { projectId, now }),
       ) + "\n",
     );
     return 0;
