@@ -56,7 +56,9 @@ function makeInput(): ChangeWorkflowInput {
   };
 }
 
-function makeEpicInput(): EpicWorkflowInput {
+function makeEpicInput(
+  overrides: Partial<EpicWorkflowInput> = {},
+): EpicWorkflowInput {
   return {
     projectId: "search-attrs-proj",
     epicId: `search-attrs-epic-${Date.now()}`,
@@ -64,6 +66,7 @@ function makeEpicInput(): EpicWorkflowInput {
     narrative: "Search attribute Epic test.",
     initializedAt: "2026-05-05T00:00:00.000Z",
     searchAttributesEnabled: true,
+    ...overrides,
   };
 }
 
@@ -224,6 +227,64 @@ describe("epicWorkflow search attribute upserts", () => {
           expect(after.epic.progress.status).toBe("active");
           expect(after.idempotencyLedger).toHaveProperty("repair-1");
           expect(after.lastSignalAt).toBe("2026-05-05T00:01:00.000Z");
+
+          const description = await handle.describe();
+          const serialized = JSON.stringify(description);
+          expect(serialized).toContain("AdvEpicStatus");
+          expect(serialized).toContain("active");
+        });
+      },
+    );
+  }, 30_000);
+
+  it("searchAttributesRefreshed signal backfills legacy epics started with search attributes disabled", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        await registerSearchAttributes(env);
+        const taskQueue = "epic-search-attrs-refresh-legacy";
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue,
+        });
+
+        await worker.runUntil(async () => {
+          const input = makeEpicInput({ searchAttributesEnabled: false });
+          const handle = await env.client.workflow.start("epicWorkflow", {
+            workflowId: `epic-search-attrs-refresh-legacy-${input.epicId}`,
+            taskQueue,
+            args: [input],
+          });
+
+          await handle.signal(epicCreatedSignal, {
+            id: input.epicId,
+            title: input.title,
+            narrative: input.narrative,
+            entries: [],
+            progress: {
+              status: "active" as const,
+              total_entries: 0,
+              completed_entries: 0,
+              active_entries: 0,
+              next_entry_id: null,
+              updated_at: input.initializedAt,
+            },
+            created_at: input.initializedAt,
+            updated_at: input.initializedAt,
+            version: 0,
+          });
+
+          await handle.signal(searchAttributesRefreshedSignal, {
+            evidence: "Legacy index repair",
+            refreshedAt: "2026-05-05T00:01:00.000Z",
+            idempotencyKey: "legacy-repair-1",
+          });
+
+          const after = await handle.query(getEpicStateQuery);
+          expect(after.epic.version).toBe(0);
+          expect(after.epic.progress.status).toBe("active");
+          expect(after.idempotencyLedger).toHaveProperty("legacy-repair-1");
 
           const description = await handle.describe();
           const serialized = JSON.stringify(description);

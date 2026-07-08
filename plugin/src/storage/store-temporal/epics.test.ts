@@ -67,7 +67,10 @@ function makeState(epic: Epic): EpicWorkflowState {
 function setup() {
   const signalMock = vi.fn();
   const queryMock = vi.fn(async () => makeState(makeEpic()));
-  const handle = { signal: signalMock, query: queryMock };
+  const describeMock = vi.fn(async () => ({
+    searchAttributes: { AdvEpicStatus: ["active"] },
+  }));
+  const handle = { signal: signalMock, query: queryMock, describe: describeMock };
   const startMock = vi.fn(async () => handle);
   const getHandleMock = vi.fn(() => handle);
   const client = {
@@ -84,7 +87,15 @@ function setup() {
       client as ReturnType<StoreDeps["getTemporalWorkflowClient"]>,
   } as unknown as StoreDeps;
 
-  return { deps, handle, signalMock, queryMock, startMock, getHandleMock };
+  return {
+    deps,
+    handle,
+    signalMock,
+    queryMock,
+    describeMock,
+    startMock,
+    getHandleMock,
+  };
 }
 
 async function setupWithRetiredEpicsDir() {
@@ -934,8 +945,8 @@ describe("createEpicOps", () => {
       expect(signalMock).not.toHaveBeenCalled();
     });
 
-    test("non-dry-run signals refresh and reports refreshed", async () => {
-      const { deps, queryMock, signalMock } = setup();
+    test("non-dry-run confirms refreshed only after describe proof shows the current Epic status", async () => {
+      const { deps, queryMock, signalMock, describeMock } = setup();
       const temporal = deps.input.temporal as unknown as {
         workflow: { list: ReturnType<typeof vi.fn> };
       };
@@ -953,17 +964,53 @@ describe("createEpicOps", () => {
 
       expect(report.total).toBe(1);
       expect(report.refreshed).toBe(1);
+      expect(report.unverified).toBe(0);
       expect(report.skipped).toBe(0);
       expect(report.unreachable).toBe(0);
       expect(report.epics).toEqual([
         { epic_id: "activeEpic", status: "active", action: "refreshed" },
       ]);
       expect(signalMock).toHaveBeenCalled();
+      expect(describeMock).toHaveBeenCalled();
       const [signalDef, payload] = signalMock.mock.calls[0];
       expect(signalDef).toBe(searchAttributesRefreshedSignal);
       expect(payload).toMatchObject({
         evidence: "Legacy index repair",
       });
+    });
+
+    test("non-dry-run reports unverified when signal is delivered but describe proof is missing", async () => {
+      const { deps, queryMock, describeMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(() => {
+        return (async function* iter() {
+          yield { workflowId: "adv/epic/project-id/activeEpic" };
+        })();
+      });
+      queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
+      describeMock.mockResolvedValue({ searchAttributes: {} });
+
+      const ops = createEpicOps(deps);
+      const report = await ops.repairIndex({
+        evidence: "Legacy index repair",
+      });
+
+      expect(report.total).toBe(1);
+      expect(report.refreshed).toBe(0);
+      expect(report.unverified).toBe(1);
+      expect(report.skipped).toBe(0);
+      expect(report.unreachable).toBe(0);
+      expect(report.epics).toEqual([
+        {
+          epic_id: "activeEpic",
+          status: "active",
+          action: "unverified",
+          error:
+            "Search-attribute refresh signal delivered, but AdvEpicStatus=active was not present in workflow describe output.",
+        },
+      ]);
     });
 
     test("reports unreachable when workflow state cannot be queried", async () => {
