@@ -247,8 +247,10 @@ function bindToolWithContext<TArgs>(
         async (args, sdkContext) =>
           def.execute(args as TArgs, {
             store,
-            worktree: (sdkContext as { worktree?: string } | undefined)?.worktree,
-            directory: (sdkContext as { directory?: string } | undefined)?.directory,
+            worktree: (sdkContext as { worktree?: string } | undefined)
+              ?.worktree,
+            directory: (sdkContext as { directory?: string } | undefined)
+              ?.directory,
           }),
         name,
       ),
