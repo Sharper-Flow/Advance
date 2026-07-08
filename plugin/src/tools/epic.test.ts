@@ -136,6 +136,7 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
       repairIndex: vi.fn(async () => ({
         total: 2,
         refreshed: 1,
+        unverified: 0,
         skipped: 0,
         unreachable: 1,
         epics: [
@@ -3072,6 +3073,7 @@ describe("Epic owner routing", () => {
     expect(parsed.dryRun).toBe(true);
     expect(parsed.total).toBe(2);
     expect(parsed.refreshed).toBe(1);
+    expect(parsed.unverified).toBe(0);
     expect(parsed.unreachable).toBe(1);
     expect(store.epics.repairIndex).toHaveBeenCalledWith({
       evidence: "Legacy unindexed Epic repair.",

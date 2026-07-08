@@ -2765,6 +2765,7 @@ export const epicTools = {
               action: "refresh_search_attributes",
               total: report.total,
               refreshed: report.refreshed,
+              unverified: report.unverified,
               skipped: report.skipped,
               unreachable: report.unreachable,
               epics: report.epics,

@@ -23,10 +23,12 @@ import {
   loadRetiredEpicProjection,
   saveRetiredEpicProjection,
 } from "../epic-projection";
+import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "../../temporal/contracts";
 
 interface EpicHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
   signal: (definition: unknown, ...args: unknown[]) => Promise<void>;
+  describe?: () => Promise<unknown>;
 }
 
 function asEpicHandle(handle: unknown): EpicHandleLike {
@@ -110,6 +112,84 @@ async function tryQueryEpicState(
   } catch (error) {
     if (isWorkflowNotFoundError(error)) return null;
     throw error;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function searchAttributeValueMatches(
+  value: unknown,
+  expected: string,
+): boolean {
+  if (value === expected) return true;
+  if (Array.isArray(value)) {
+    return value.some((item) => searchAttributeValueMatches(item, expected));
+  }
+  if (isRecord(value) && "value" in value) {
+    return searchAttributeValueMatches(value.value, expected);
+  }
+  return false;
+}
+
+function describedSearchAttributesContainStatus(
+  description: unknown,
+  expectedStatus: string,
+): boolean {
+  if (!isRecord(description)) return false;
+  const attrName = ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.epicStatus;
+  const searchAttributes = description.searchAttributes;
+  if (isRecord(searchAttributes)) {
+    const value = searchAttributes[attrName];
+    if (searchAttributeValueMatches(value, expectedStatus)) return true;
+  }
+
+  const typedSearchAttributes = description.typedSearchAttributes;
+  if (Array.isArray(typedSearchAttributes)) {
+    return typedSearchAttributes.some((pair) => {
+      if (!isRecord(pair)) return false;
+      const key = pair.key;
+      const keyName = isRecord(key) ? key.name : key;
+      return (
+        keyName === attrName &&
+        searchAttributeValueMatches(pair.value, expectedStatus)
+      );
+    });
+  }
+
+  return false;
+}
+
+async function verifyEpicStatusSearchAttribute(
+  handle: EpicHandleLike,
+  status: string,
+): Promise<{ verified: true } | { verified: false; error: string }> {
+  if (!handle.describe) {
+    return {
+      verified: false,
+      error:
+        "Search-attribute refresh signal delivered, but workflow describe is unavailable for AdvEpicStatus verification.",
+    };
+  }
+  try {
+    const description = await runTemporal(() => handle.describe!(), {
+      opType: "describe-epic-search-attributes",
+      timeoutMs: 5_000,
+    });
+    if (describedSearchAttributesContainStatus(description, status)) {
+      return { verified: true };
+    }
+    return {
+      verified: false,
+      error: `Search-attribute refresh signal delivered, but AdvEpicStatus=${status} was not present in workflow describe output.`,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      verified: false,
+      error: `Search-attribute refresh signal delivered, but workflow describe failed: ${message}`,
+    };
   }
 }
 
@@ -877,6 +957,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         ReturnType<Store["epics"]["repairIndex"]>
       >["epics"] = [];
       let refreshed = 0;
+      let unverified = 0;
       let skipped = 0;
       let unreachable = 0;
 
@@ -938,12 +1019,26 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
             searchAttributesRefreshedSignal,
             payload,
           );
-          refreshed += 1;
-          report.push({
-            epic_id: epicId,
+          const verification = await verifyEpicStatusSearchAttribute(
+            handle,
             status,
-            action: "refreshed",
-          });
+          );
+          if (verification.verified) {
+            refreshed += 1;
+            report.push({
+              epic_id: epicId,
+              status,
+              action: "refreshed",
+            });
+          } else {
+            unverified += 1;
+            report.push({
+              epic_id: epicId,
+              status,
+              action: "unverified",
+              error: verification.error,
+            });
+          }
         } catch (err) {
           const typed = extractMutationRejection(err);
           skipped += 1;
@@ -959,6 +1054,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       return {
         total: ids.length,
         refreshed,
+        unverified,
         skipped,
         unreachable,
         epics: report,
