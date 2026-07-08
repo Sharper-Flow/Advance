@@ -117,7 +117,7 @@ function releaseGateHasPhase9Evidence(
   // (defaultBranch, pushStatus, mergeCommitSha). Avoid matching prose that
   // merely mentions "Phase 9" without carrying the structured proof.
   return (
-    evidence.includes("Phase 9 finalization") &&
+    evidence.includes("Phase 9 finalization shipped;") &&
     (evidence.includes("defaultBranch=") ||
       evidence.includes("pushStatus=") ||
       evidence.includes("mergeCommitSha="))
