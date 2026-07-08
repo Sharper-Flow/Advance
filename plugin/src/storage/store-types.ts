@@ -475,12 +475,18 @@ export interface Store {
     repairIndex: (input: { evidence: string; dryRun?: boolean }) => Promise<{
       total: number;
       refreshed: number;
+      unverified: number;
       skipped: number;
       unreachable: number;
       epics: Array<{
         epic_id: string;
         status: string;
-        action: "would_refresh" | "refreshed" | "skipped" | "unreachable";
+        action:
+          | "would_refresh"
+          | "refreshed"
+          | "unverified"
+          | "skipped"
+          | "unreachable";
         error?: string;
       }>;
     }>;
