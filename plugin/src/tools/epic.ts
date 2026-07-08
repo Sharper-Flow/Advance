@@ -770,6 +770,7 @@ const EpicRepairModeSchema = z.enum([
   "mark_target_unreachable",
   "remove_stale_entry",
   "retarget_stale_entry",
+  "refresh_search_attributes",
 ]);
 
 const EpicMergeResolutionSchema = z.object({
@@ -2651,9 +2652,9 @@ export const epicTools = {
 
   adv_epic_repair_membership: {
     description:
-      "Repair stale Epic membership projection state. Supports dry-run preview, target-path routing, and bounded member-status output.",
+      "Repair stale Epic membership projection state or refresh the AdvEpicStatus search-attribute index for legacy running Epics. Supports dry-run preview, target-path routing, and bounded member-status output.",
     args: {
-      epic_id: EPIC_ID_SCHEMA,
+      epic_id: EPIC_ID_SCHEMA.optional(),
       mode: EpicRepairModeSchema,
       entry_id: z.string().min(1).optional(),
       change_id: z.string().min(1).optional(),
@@ -2696,7 +2697,7 @@ export const epicTools = {
         epic_owner_confirmationEvidence,
         dryRun,
       }: {
-        epic_id: string;
+        epic_id?: string;
         mode: z.infer<typeof EpicRepairModeSchema>;
         entry_id?: string;
         change_id?: string;
@@ -2742,6 +2743,41 @@ export const epicTools = {
             ...shapeError,
             ownerContext: routing.owner.context,
             childContext: explicitChildStore.context,
+          });
+        }
+
+        if (mode === "refresh_search_attributes") {
+          if (epic_id) {
+            return formatToolOutput({
+              error:
+                "epic_id must be omitted for refresh_search_attributes; this mode scans all running Epics in the owner project.",
+              code: "REPAIR_SCOPE_CONFLICT",
+            });
+          }
+          const report = await ownerStore.epics.repairIndex({
+            evidence,
+            dryRun: dryRun ?? false,
+          });
+          return formatEpicRoutingOutput(
+            formatToolOutput({
+              success: true,
+              dryRun: dryRun ?? false,
+              action: "refresh_search_attributes",
+              total: report.total,
+              refreshed: report.refreshed,
+              skipped: report.skipped,
+              unreachable: report.unreachable,
+              epics: report.epics,
+            }),
+            routing.owner,
+            explicitChildStore,
+          );
+        }
+
+        if (!epic_id) {
+          return formatToolOutput({
+            error: "epic_id is required for this repair mode.",
+            code: "MISSING_EPIC_ID",
           });
         }
 

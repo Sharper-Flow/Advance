@@ -140,6 +140,7 @@ export const EPIC_WORKFLOW_SIGNAL_NAMES = {
   entriesReordered: "adv.epic.entriesReordered",
   entryTerminalSummary: "adv.epic.entryTerminalSummary",
   epicArchived: "adv.epic.epicArchived",
+  searchAttributesRefreshed: "adv.epic.searchAttributesRefreshed",
 } as const;
 
 export function subagentReportKey(input: {

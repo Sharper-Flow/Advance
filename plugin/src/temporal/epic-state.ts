@@ -23,6 +23,7 @@ import type {
   EpicArchivedSignalPayload,
   EpicMergedSignalPayload,
   EpicScopeUpdatedSignalPayload,
+  EpicSearchAttributesRefreshedSignalPayload,
 } from "../types";
 import { EpicStatusSchema } from "../types";
 import type {
@@ -790,6 +791,23 @@ export function applyEpicArchivedToState(
   recomputeEpicProgress(state);
 
   return { ok: true, value: { version: state.epic.version } };
+}
+
+export function applySearchAttributesRefreshedToState(
+  state: EpicWorkflowState,
+  payload: EpicSearchAttributesRefreshedSignalPayload,
+): EpicMutationResult<void> {
+  const idempotency = checkIdempotency(state, payload.idempotencyKey);
+  if (idempotency) return idempotency;
+
+  recordIdempotency(
+    state,
+    payload.idempotencyKey,
+    payload.refreshedAt,
+    "refreshed",
+  );
+  setLastSignalAt(state, payload.refreshedAt);
+  return { ok: true, value: undefined };
 }
 
 export function recordEpicSignalRejectionToState(

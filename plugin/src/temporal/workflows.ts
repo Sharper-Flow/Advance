@@ -96,6 +96,7 @@ import {
   applyEpicMergedToState,
   applyEpicScopeUpdatedToState,
   applyEpicUpdatedToState,
+  applySearchAttributesRefreshedToState,
   applyShellAddedToState,
   applyShellPromotedToState,
   buildEpicSeedState,
@@ -467,6 +468,9 @@ const entryTerminalSummarySignal = wf.defineSignal<
 const epicArchivedSignal = wf.defineSignal<
   [import("../types").EpicArchivedSignalPayload]
 >(EPIC_WORKFLOW_SIGNAL_NAMES.epicArchived);
+const searchAttributesRefreshedSignal = wf.defineSignal<
+  [import("../types").EpicSearchAttributesRefreshedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.searchAttributesRefreshed);
 
 function deriveInvestmentReportFromState(state: ChangeWorkflowState): {
   taskCounts: {
@@ -1949,6 +1953,13 @@ export async function epicWorkflow(input: EpicWorkflowInput): Promise<void> {
     signalAsync("epicArchived", (payload) => {
       const result = applyEpicArchivedToState(state, payload);
       handleMutationResult("epicArchived", result);
+    }),
+  );
+  wf.setHandler(
+    searchAttributesRefreshedSignal,
+    signalAsync("searchAttributesRefreshed", (payload) => {
+      const result = applySearchAttributesRefreshedToState(state, payload);
+      handleMutationResult("searchAttributesRefreshed", result);
     }),
   );
 

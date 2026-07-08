@@ -133,6 +133,25 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
         source_version: epic.version,
         projection_status: "prepared" as const,
       })),
+      repairIndex: vi.fn(async () => ({
+        total: 2,
+        refreshed: 1,
+        skipped: 0,
+        unreachable: 1,
+        epics: [
+          {
+            epic_id: "activeEpic",
+            status: "active",
+            action: "refreshed" as const,
+          },
+          {
+            epic_id: "missingEpic",
+            status: "unknown",
+            action: "unreachable" as const,
+            error: "Workflow state unavailable",
+          },
+        ],
+      })),
     },
     changes: {
       get: vi.fn(async () => ({ success: true, data: change })),
@@ -3033,6 +3052,49 @@ describe("Epic owner routing", () => {
       root: "/workspace/child",
       projectId: "project-child",
     });
+  });
+
+  test("adv_epic_repair_membership refresh_search_attributes reports without epic_id", async () => {
+    const store = makeStore();
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        mode: "refresh_search_attributes",
+        evidence: "Legacy unindexed Epic repair.",
+        dryRun: true,
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.action).toBe("refresh_search_attributes");
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.total).toBe(2);
+    expect(parsed.refreshed).toBe(1);
+    expect(parsed.unreachable).toBe(1);
+    expect(store.epics.repairIndex).toHaveBeenCalledWith({
+      evidence: "Legacy unindexed Epic repair.",
+      dryRun: true,
+    });
+  });
+
+  test("adv_epic_repair_membership refresh_search_attributes rejects epic_id", async () => {
+    const store = makeStore();
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        mode: "refresh_search_attributes",
+        evidence: "Legacy unindexed Epic repair.",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.code).toBe("REPAIR_SCOPE_CONFLICT");
+    expect(parsed.error).toContain("epic_id must be omitted");
+    expect(store.epics.repairIndex).not.toHaveBeenCalled();
   });
 
   test("adv_epic_repair_membership routes owner Epic through epic_owner_target_path", async () => {

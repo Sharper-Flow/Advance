@@ -465,6 +465,25 @@ export interface Store {
         dryRun?: boolean;
       },
     ) => Promise<RetiredEpicProjection>;
+    /**
+     * Audited backfill/repair of the AdvEpicStatus search index for running
+     * Epic workflows. Enumerates running epicWorkflow executions without the
+     * AdvEpicStatus filter, hydrates each state, and signals reachable Epics
+     * to upsert their current status. Does not retire, archive, or mutate Epic
+     * records beyond the idempotency ledger and lastSignalAt.
+     */
+    repairIndex: (input: { evidence: string; dryRun?: boolean }) => Promise<{
+      total: number;
+      refreshed: number;
+      skipped: number;
+      unreachable: number;
+      epics: Array<{
+        epic_id: string;
+        status: string;
+        action: "would_refresh" | "refreshed" | "skipped" | "unreachable";
+        error?: string;
+      }>;
+    }>;
   };
 }
 

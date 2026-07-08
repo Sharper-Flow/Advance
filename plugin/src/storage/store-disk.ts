@@ -1029,6 +1029,9 @@ export async function createDiskStore(
       retire: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },
+      repairIndex: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
     },
 
     // -------------------------------------------------------------------

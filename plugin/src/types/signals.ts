@@ -755,3 +755,18 @@ export const EpicArchivedSignalPayloadSchema = z.object({
 export type EpicArchivedSignalPayload = z.infer<
   typeof EpicArchivedSignalPayloadSchema
 >;
+
+/**
+ * Refresh Epic search-attribute indexing for legacy workflows that started
+ * before `AdvEpicStatus` was registered. Purely additive: records the
+ * idempotency key and timestamp, upserts the current `AdvEpicStatus`, and
+ * does not mutate the Epic record, version, or progress.
+ */
+export const EpicSearchAttributesRefreshedSignalPayloadSchema = z.object({
+  evidence: z.string().min(1),
+  refreshedAt: IsoTimestampSchema,
+  idempotencyKey: z.string().min(1),
+});
+export type EpicSearchAttributesRefreshedSignalPayload = z.infer<
+  typeof EpicSearchAttributesRefreshedSignalPayloadSchema
+>;

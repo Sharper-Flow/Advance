@@ -24,6 +24,7 @@ import {
   changeUnlinkedSignal,
   entriesReorderedSignal,
   getEpicStateQuery,
+  searchAttributesRefreshedSignal,
 } from "../../temporal/messages";
 import type { Epic, EpicWorkflowState } from "../../types";
 
@@ -845,7 +846,7 @@ describe("createEpicOps", () => {
       temporal.workflow.list.mockImplementation(
         ({ query }: { query: string }) => {
           expect(query).toBe(
-            `WorkflowType = "epicWorkflow" AND ExecutionStatus = "Running"`,
+            `WorkflowType = "epicWorkflow" AND AdvEpicStatus = "active" AND ExecutionStatus = "Running"`,
           );
           return (async function* iter() {
             yield { workflowId: "adv/epic/project-id/completedEpic" };
@@ -899,6 +900,93 @@ describe("createEpicOps", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe("activeEpic");
+    });
+  });
+
+  describe("repairIndex", () => {
+    test("dry-run reports running Epics with current progress status and no mutations", async () => {
+      const { deps, queryMock, signalMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(() => {
+        return (async function* iter() {
+          yield { workflowId: "adv/epic/project-id/activeEpic" };
+          yield { workflowId: "adv/epic/project-id/otherEpic" };
+        })();
+      });
+      queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
+
+      const ops = createEpicOps(deps);
+      const report = await ops.repairIndex({
+        evidence: "Dry-run legacy index repair",
+        dryRun: true,
+      });
+
+      expect(report.total).toBe(2);
+      expect(report.refreshed).toBe(0);
+      expect(report.skipped).toBe(0);
+      expect(report.unreachable).toBe(0);
+      expect(report.epics).toEqual([
+        { epic_id: "activeEpic", status: "active", action: "would_refresh" },
+        { epic_id: "otherEpic", status: "active", action: "would_refresh" },
+      ]);
+      expect(signalMock).not.toHaveBeenCalled();
+    });
+
+    test("non-dry-run signals refresh and reports refreshed", async () => {
+      const { deps, queryMock, signalMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(() => {
+        return (async function* iter() {
+          yield { workflowId: "adv/epic/project-id/activeEpic" };
+        })();
+      });
+      queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
+
+      const ops = createEpicOps(deps);
+      const report = await ops.repairIndex({
+        evidence: "Legacy index repair",
+      });
+
+      expect(report.total).toBe(1);
+      expect(report.refreshed).toBe(1);
+      expect(report.skipped).toBe(0);
+      expect(report.unreachable).toBe(0);
+      expect(report.epics).toEqual([
+        { epic_id: "activeEpic", status: "active", action: "refreshed" },
+      ]);
+      expect(signalMock).toHaveBeenCalled();
+      const [signalDef, payload] = signalMock.mock.calls[0];
+      expect(signalDef).toBe(searchAttributesRefreshedSignal);
+      expect(payload).toMatchObject({
+        evidence: "Legacy index repair",
+      });
+    });
+
+    test("reports unreachable when workflow state cannot be queried", async () => {
+      const { deps, queryMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(() => {
+        return (async function* iter() {
+          yield { workflowId: "adv/epic/project-id/missingEpic" };
+        })();
+      });
+      queryMock.mockRejectedValue(new Error("Workflow not found"));
+
+      const ops = createEpicOps(deps);
+      const report = await ops.repairIndex({
+        evidence: "Legacy index repair",
+      });
+
+      expect(report.total).toBe(1);
+      expect(report.unreachable).toBe(1);
+      expect(report.epics[0].action).toBe("unreachable");
+      expect(report.epics[0].error).toContain("Workflow state unavailable");
     });
   });
 });

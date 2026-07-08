@@ -16,8 +16,10 @@ export interface ListEpicWorkflowIdsOptions {
    * Active/default mode restricts the query to running executions only.
    * "all" returns every epicWorkflow execution and is used by richer MCP
    * candidate reports that hydrate state in-process.
+   * "running" returns running executions without the AdvEpicStatus filter; used
+   * by the legacy search-attribute index repair path.
    */
-  status?: "active" | "all";
+  status?: "active" | "all" | "running";
   /** Hard cap on result count — stops iteration early. */
   limit?: number;
 }
@@ -42,11 +44,13 @@ export interface ListEpicClient {
  */
 export function buildEpicVisibilityQuery(
   _projectId: string,
-  status: "active" | "all" = "active",
+  status: "active" | "all" | "running" = "active",
 ): string {
   const parts = [`WorkflowType = "${EPIC_WORKFLOW_NAME}"`];
   if (status === "active") {
     parts.push('AdvEpicStatus = "active"');
+    parts.push('ExecutionStatus = "Running"');
+  } else if (status === "running") {
     parts.push('ExecutionStatus = "Running"');
   }
   return parts.join(" AND ");

@@ -16,6 +16,7 @@ import {
   entriesReorderedSignal,
   entryTerminalSummarySignal,
   getEpicStateQuery,
+  searchAttributesRefreshedSignal,
 } from "../../temporal/messages";
 import { runTemporal, runTemporalQuery, type StoreDeps } from "./shared";
 import {
@@ -861,6 +862,107 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         throw new Error(`Epic disappeared during reorder: ${epicId}`);
       }
       return updated;
+    },
+
+    repairIndex: async ({ evidence, dryRun }) => {
+      const client =
+        getTemporalClient() as unknown as import("../../temporal/list-epic-workflows").ListEpicClient;
+      const ids = await listEpicWorkflowIds(client, {
+        projectId: input.projectId,
+        status: "running",
+      });
+
+      const refreshedAt = new Date().toISOString();
+      const report: Awaited<
+        ReturnType<Store["epics"]["repairIndex"]>
+      >["epics"] = [];
+      let refreshed = 0;
+      let skipped = 0;
+      let unreachable = 0;
+
+      for (const epicId of ids) {
+        const handle = getEpicHandle(epicId);
+        let state: import("../../temporal/contracts").EpicWorkflowState | null;
+        try {
+          state = await tryQueryEpicState(handle);
+        } catch {
+          state = null;
+        }
+        if (!state) {
+          unreachable += 1;
+          report.push({
+            epic_id: epicId,
+            status: "unknown",
+            action: "unreachable",
+            error: "Workflow state unavailable",
+          });
+          continue;
+        }
+
+        const status = state.epic.progress.status;
+        if (state.status === "archived" || state.status === "merged") {
+          skipped += 1;
+          report.push({
+            epic_id: epicId,
+            status,
+            action: "skipped",
+          });
+          continue;
+        }
+
+        if (dryRun) {
+          report.push({
+            epic_id: epicId,
+            status,
+            action: "would_refresh",
+          });
+          continue;
+        }
+
+        const payload = {
+          evidence,
+          refreshedAt,
+          idempotencyKey: idempotencyKey(
+            "repair-index",
+            input.projectId,
+            epicId,
+            refreshedAt,
+          ),
+        };
+
+        try {
+          await fireEpicSignal(
+            handle,
+            "searchAttributesRefreshed",
+            refreshedAt,
+            searchAttributesRefreshedSignal,
+            payload,
+          );
+          refreshed += 1;
+          report.push({
+            epic_id: epicId,
+            status,
+            action: "refreshed",
+          });
+        } catch (err) {
+          const typed = extractMutationRejection(err);
+          skipped += 1;
+          report.push({
+            epic_id: epicId,
+            status,
+            action: "skipped",
+            error: typed.message,
+          });
+        }
+      }
+
+      return {
+        total: ids.length,
+        refreshed,
+        skipped,
+        unreachable,
+        epics: report,
+      };
     },
   };
 }

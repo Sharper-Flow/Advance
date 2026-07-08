@@ -842,7 +842,7 @@
     {
       "id": "rq-epicRetiredListing01",
       "title": "Active Epic Lists Exclude Retired Epics Structurally",
-      "body": "Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = \"active\"`, `ExecutionStatus = \"Running\"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Existing completed Epics MUST have a manual dry-run candidate report that lists retirement candidates and blockers without mutating state.",
+      "body": "Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = \"active\"`, `ExecutionStatus = \"Running\"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Existing completed Epics MUST have a manual dry-run candidate report that lists retirement candidates and blockers without mutating state. Legacy running Epic workflows that started without `AdvEpicStatus` indexed MUST have an explicit audited index repair/backfill path (`adv_epic_repair_membership mode=refresh_search_attributes`) that enumerates running `epicWorkflow` executions without the `AdvEpicStatus` filter, hydrates each state, and signals reachable Epics to upsert their current `AdvEpicStatus`; the default active-only listing MUST remain unchanged and MUST NOT perform automatic mutation.",
       "priority": "must",
       "tags": ["epics", "listing", "cli", "visibility", "retirement"],
       "scenarios": [
@@ -876,6 +876,18 @@
           "then": [
             "The report lists eligible candidates and blocked Epics with blocker details",
             "The dry-run does not retire or archive any Epic"
+          ]
+        },
+        {
+          "id": "rq-epicRetiredListing01.4",
+          "title": "Legacy unindexed running Epics have audited index repair path",
+          "given": ["Running Epic workflows exist without AdvEpicStatus indexed"],
+          "when": "An operator invokes the explicit repair/backfill path",
+          "then": [
+            "The tool enumerates running epicWorkflow executions without the AdvEpicStatus filter",
+            "Each reachable Epic is reported with its current progress status and action",
+            "Reachable Epics are signaled to upsert their current AdvEpicStatus",
+            "The default active-only listing remains unchanged and does not mutate state"
           ]
         }
       ]

@@ -68,4 +68,27 @@ describe("listEpicWorkflowIds", () => {
       `WorkflowType = "${EPIC_WORKFLOW_NAME}"`,
     );
   });
+
+  it("builds running-all repair query without AdvEpicStatus but with ExecutionStatus = Running", () => {
+    expect(buildEpicVisibilityQuery("pid-abc", "running")).toBe(
+      `WorkflowType = "${EPIC_WORKFLOW_NAME}" AND ExecutionStatus = "Running"`,
+    );
+  });
+
+  it("lists running Epic workflows without AdvEpicStatus filter", async () => {
+    const client = makeClient([
+      { workflowId: "adv/epic/pid-abc/cardIdentity" },
+      { workflowId: "adv/epic/pid-abc/addLauncherRows" },
+    ]);
+
+    const ids = await listEpicWorkflowIds(client, {
+      projectId: "pid-abc",
+      status: "running",
+    });
+
+    expect(ids).toEqual(["cardIdentity", "addLauncherRows"]);
+    expect(client.workflow.list).toHaveBeenCalledWith({
+      query: `WorkflowType = "${EPIC_WORKFLOW_NAME}" AND ExecutionStatus = "Running"`,
+    });
+  });
 });
