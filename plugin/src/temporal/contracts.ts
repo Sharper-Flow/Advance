@@ -44,6 +44,7 @@ export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {
   worktreePaths: "AdvWorktreePaths",
   backlogIssueNumber: "AdvBacklogIssueNumber",
   epicId: "AdvEpicId",
+  epicStatus: "AdvEpicStatus",
 } as const;
 
 export const CHANGE_WORKFLOW_QUERY_NAMES = {

@@ -240,7 +240,6 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       title: epicId,
       narrative: "",
       initializedAt: new Date().toISOString(),
-      searchAttributesEnabled: false,
     });
     return asEpicHandle(handle);
   }

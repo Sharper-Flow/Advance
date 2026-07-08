@@ -21,6 +21,8 @@ const mocks = vi.hoisted(() => {
     AdvBacklogIssueNumber: { indexedValueType: 2 },
     // rq-epicTemporalConstraints01 — added by Advance Epics v1.
     AdvEpicId: { indexedValueType: 2 },
+    // rq-epicRetiredListing01 — lifecycle index for active/default Epic lists.
+    AdvEpicStatus: { indexedValueType: 2 },
   };
   const connectionClose = vi.fn().mockResolvedValue(undefined);
   const addSearchAttributes = vi.fn().mockResolvedValue({});

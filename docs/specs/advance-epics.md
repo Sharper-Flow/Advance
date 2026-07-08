@@ -1070,7 +1070,7 @@ Completed Epics MUST be retired through a typed `adv_epic_retire` lifecycle path
 
 **ID:** `rq-epicRetiredListing01` | **Priority:** **[MUST]**
 
-Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `ExecutionStatus = "Running"` and project-prefix filtering. Completed-but-unretired Epics MAY remain visible to operator surfaces until explicitly retired. Existing completed Epics MUST have a manual dry-run candidate report that lists retirement candidates and blockers without mutating state.
+Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = "active"`, `ExecutionStatus = "Running"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Existing completed Epics MUST have a manual dry-run candidate report that lists retirement candidates and blockers without mutating state.
 
 **Tags:** `epics`, `listing`, `cli`, `visibility`, `retirement`
 
@@ -1096,6 +1096,7 @@ Default Epic listing surfaces MUST represent active Epics only and MUST exclude 
 
 **Then:**
 - The query includes WorkflowType = epicWorkflow
+- The query includes AdvEpicStatus = "active"
 - The query includes ExecutionStatus = "Running"
 - The payload remains live Temporal-backed and active-only by default
 

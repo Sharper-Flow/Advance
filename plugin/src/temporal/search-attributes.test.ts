@@ -64,6 +64,7 @@ describe("ADV search attributes", () => {
       AdvBacklogIssueNumber: "Keyword",
       // rq-epicTemporalConstraints01: single-value Keyword for one Epic per change.
       AdvEpicId: "Keyword",
+      AdvEpicStatus: "Keyword",
     });
   });
 
@@ -82,6 +83,7 @@ describe("ADV search attributes", () => {
       { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
       { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
       { name: "AdvEpicId", type: "Keyword", typeCode: 2 },
+      { name: "AdvEpicStatus", type: "Keyword", typeCode: 2 },
     ]);
   });
 
@@ -137,6 +139,7 @@ describe("ADV search attributes", () => {
       "AdvWorktreePaths",
       "AdvBacklogIssueNumber",
       "AdvEpicId",
+      "AdvEpicStatus",
     ]);
     expect(addSearchAttributes).toHaveBeenCalledWith({
       namespace: "default",
@@ -153,6 +156,7 @@ describe("ADV search attributes", () => {
         AdvWorktreePaths: 7,
         AdvBacklogIssueNumber: 2,
         AdvEpicId: 2,
+        AdvEpicStatus: 2,
       },
     });
   });

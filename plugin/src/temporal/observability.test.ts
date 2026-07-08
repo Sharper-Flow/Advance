@@ -24,6 +24,8 @@ const SIGNAL_SEARCH_ATTRIBUTE_NAMES = [
   "AdvBacklogIssueNumber",
   // rq-epicTemporalConstraints01 — single-value Keyword indexing the per-change Epic.
   "AdvEpicId",
+  // rq-epicRetiredListing01 — single-value Keyword indexing Epic workflow lifecycle.
+  "AdvEpicStatus",
 ] as const;
 
 const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
@@ -42,6 +44,8 @@ const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
   { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
   // rq-epicTemporalConstraints01 — added by advance-epics v1.
   { name: "AdvEpicId", type: "Keyword", typeCode: 2 },
+  // rq-epicRetiredListing01 — lifecycle index for active/default Epic lists.
+  { name: "AdvEpicStatus", type: "Keyword", typeCode: 2 },
 ] as const;
 
 describe("temporal observability helpers", () => {
@@ -168,6 +172,7 @@ describe("temporal observability helpers", () => {
       "AdvWorktreePaths",
       "AdvBacklogIssueNumber",
       "AdvEpicId",
+      "AdvEpicStatus",
     ]);
     expect(result.wrongType).toEqual([
       {
@@ -246,6 +251,7 @@ describe("temporal observability helpers", () => {
         AdvWorktreePaths: 7,
         AdvBacklogIssueNumber: 2,
         AdvEpicId: 2,
+        AdvEpicStatus: 2,
       },
     });
     expect(result).toEqual({
@@ -263,6 +269,7 @@ describe("temporal observability helpers", () => {
         { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
         { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
         { name: "AdvEpicId", type: "Keyword", typeCode: 2 },
+        { name: "AdvEpicStatus", type: "Keyword", typeCode: 2 },
       ],
       skipped: [
         { name: "AdvChangeId", type: "Keyword", typeCode: 2 },

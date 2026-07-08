@@ -32,8 +32,14 @@ describe("listEpicWorkflowIds", () => {
 
     expect(ids).toEqual(["cardIdentity", "simplifiedChineseCardData"]);
     expect(client.workflow.list).toHaveBeenCalledWith({
-      query: `WorkflowType = "${EPIC_WORKFLOW_NAME}" AND ExecutionStatus = "Running"`,
+      query: `WorkflowType = "${EPIC_WORKFLOW_NAME}" AND AdvEpicStatus = "active" AND ExecutionStatus = "Running"`,
     });
+  });
+
+  it("uses structural Epic status so merged/completed running workflows do not leak into active CLI lists", () => {
+    expect(buildEpicVisibilityQuery("pid-abc")).toContain(
+      'AdvEpicStatus = "active"',
+    );
   });
 
   it("supports all-executions mode with no ExecutionStatus filter", async () => {
@@ -53,7 +59,7 @@ describe("listEpicWorkflowIds", () => {
 
   it("does not use WorkflowId LIKE in visibility query", () => {
     expect(buildEpicVisibilityQuery("pid-abc")).toBe(
-      `WorkflowType = "${EPIC_WORKFLOW_NAME}" AND ExecutionStatus = "Running"`,
+      `WorkflowType = "${EPIC_WORKFLOW_NAME}" AND AdvEpicStatus = "active" AND ExecutionStatus = "Running"`,
     );
   });
 

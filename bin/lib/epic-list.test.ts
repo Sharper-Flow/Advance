@@ -145,7 +145,7 @@ describe("epic list CLI helper", () => {
 
     expect(ids).toEqual(["cardIdentity", "addLauncherRows"]);
     expect(client.queries).toEqual([
-      'WorkflowType = "epicWorkflow" AND ExecutionStatus = "Running"',
+      'WorkflowType = "epicWorkflow" AND AdvEpicStatus = "active" AND ExecutionStatus = "Running"',
     ]);
   });
 

@@ -1769,6 +1769,25 @@ export async function epicWorkflow(input: EpicWorkflowInput): Promise<void> {
     }
   }
 
+  const upsertEpicStatusSearchAttribute = (op: string): void => {
+    if (input.searchAttributesEnabled === false) return;
+    try {
+      wf.upsertSearchAttributes({
+        [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.epicStatus]: [
+          state.epic.progress.status,
+        ],
+      });
+    } catch (saErr) {
+      wf.log.warn("search-attribute-upsert-failed", {
+        op,
+        epicId: state.epicId,
+        error: saErr instanceof Error ? saErr.message : String(saErr),
+      });
+    }
+  };
+
+  upsertEpicStatusSearchAttribute("epicWorkflow:start");
+
   wf.setHandler(getEpicStateQuery, () => state);
   wf.setHandler(getEpicQuery, () => state.epic);
 
@@ -1823,6 +1842,7 @@ export async function epicWorkflow(input: EpicWorkflowInput): Promise<void> {
   ): ((payload: Payload) => void) =>
     signalAsync(signalName, (payload: Payload) => {
       handler(payload);
+      upsertEpicStatusSearchAttribute(signalName);
     });
 
   const handleMutationResult = <T>(
@@ -1836,6 +1856,8 @@ export async function epicWorkflow(input: EpicWorkflowInput): Promise<void> {
         payload: undefined,
         rejectedAt: workflowNow(),
       });
+    } else {
+      upsertEpicStatusSearchAttribute(signalName);
     }
   };
 

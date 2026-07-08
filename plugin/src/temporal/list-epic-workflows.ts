@@ -2,9 +2,9 @@
  * Visibility-API-backed Epic enumeration.
  *
  * Mirrors list-change-workflows.ts but scopes to the Epic workflow type.
- * Epic workflows do not use custom search attributes; the workflow ID carries
- * project scope, so we enumerate by workflow type and filter the canonical
- * `adv/epic/{projectId}/` prefix in-process.
+ * Epic workflows expose lifecycle through `AdvEpicStatus`; the workflow ID
+ * carries project scope, so we enumerate by workflow type/status and filter the
+ * canonical `adv/epic/{projectId}/` prefix in-process.
  * rq-epicCliList01
  */
 
@@ -36,9 +36,9 @@ export interface ListEpicClient {
 /**
  * Build the visibility-API query string for epic-workflow enumeration.
  *
- * Default active mode filters to running executions (`ExecutionStatus = "Running"`).
- * Retired/archived Epic workflows are no longer running, so they are
- * structurally excluded without per-Epic hydration (rq-epicRetiredListing01).
+ * Default active mode filters to running executions whose Epic status is
+ * structurally active. Retired/archived, merged, and completed candidate Epics
+ * are excluded without per-Epic hydration (rq-epicRetiredListing01).
  */
 export function buildEpicVisibilityQuery(
   _projectId: string,
@@ -46,6 +46,7 @@ export function buildEpicVisibilityQuery(
 ): string {
   const parts = [`WorkflowType = "${EPIC_WORKFLOW_NAME}"`];
   if (status === "active") {
+    parts.push('AdvEpicStatus = "active"');
     parts.push('ExecutionStatus = "Running"');
   }
   return parts.join(" AND ");

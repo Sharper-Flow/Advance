@@ -131,6 +131,8 @@ describe("Advance Epics spec documentation", () => {
       (r: { id: string }) => r.id === "rq-epicRetiredListing01",
     );
     expect(retiredListingReq).toBeDefined();
+    expect(JSON.stringify(retiredListingReq)).toContain("AdvEpicStatus");
+    expect(JSON.stringify(retiredListingReq)).toContain("active");
     expect(JSON.stringify(retiredListingReq)).toContain("ExecutionStatus");
     expect(JSON.stringify(retiredListingReq)).toContain("Running");
     expect(JSON.stringify(retiredListingReq)).toContain("dry-run");
