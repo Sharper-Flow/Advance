@@ -801,4 +801,104 @@ describe("createEpicOps", () => {
       ).rejects.toMatchObject({ code: "stale_version" });
     });
   });
+
+  describe("list", () => {
+    function makeCompletedEpic(overrides?: Partial<Epic>): Epic {
+      const now = new Date().toISOString();
+      return makeEpic({
+        id: "completedEpic",
+        title: "Completed Epic",
+        entries: [
+          {
+            kind: "change",
+            entry_id: "entry-1",
+            order: 0,
+            change_id: "change-1",
+            title: "Done Change",
+            membership_status: "terminal",
+            linked_at: "2026-06-24T00:01:00.000Z",
+            linked_by: "agent",
+            terminal_summary: {
+              status: "archived",
+              completed_at: "2026-06-24T00:02:00.000Z",
+            },
+          },
+        ],
+        progress: {
+          status: "completed",
+          total_entries: 1,
+          completed_entries: 1,
+          active_entries: 0,
+          next_entry_id: null,
+          updated_at: now,
+        },
+        version: 1,
+        ...overrides,
+      });
+    }
+
+    test("active mode uses ExecutionStatus=Running and returns only active Epics", async () => {
+      const { deps, queryMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(
+        ({ query }: { query: string }) => {
+          expect(query).toBe(
+            `WorkflowType = "epicWorkflow" AND ExecutionStatus = "Running"`,
+          );
+          return (async function* iter() {
+            yield { workflowId: "adv/epic/project-id/completedEpic" };
+          })();
+        },
+      );
+      queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.list({ status: "active" });
+
+      expect(result).toHaveLength(0);
+    });
+
+    test("all mode returns running Epics regardless of progress status", async () => {
+      const { deps, queryMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(
+        ({ query }: { query: string }) => {
+          expect(query).toBe(`WorkflowType = "epicWorkflow"`);
+          return (async function* iter() {
+            yield { workflowId: "adv/epic/project-id/completedEpic" };
+          })();
+        },
+      );
+      queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.list({ status: "all" });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("completedEpic");
+    });
+
+    test("active mode includes active Epics", async () => {
+      const { deps, queryMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(() => {
+        return (async function* iter() {
+          yield { workflowId: "adv/epic/project-id/activeEpic" };
+        })();
+      });
+      queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.list({ status: "active" });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("activeEpic");
+    });
+  });
 });

@@ -142,11 +142,14 @@ export function buildLiveEpicListFailure(
 
 export async function listEpicIdsFromVisibility(
   client: ListEpicClient,
-  options: { projectId: string; timeoutMs?: number },
+  options: { projectId: string; timeoutMs?: number; status?: "active" | "all" },
 ): Promise<string[]> {
   const timeoutMs = options.timeoutMs ?? QUERY_TIMEOUT_MS;
   return await withTimeout(
-    listEpicWorkflowIds(client, { projectId: options.projectId }),
+    listEpicWorkflowIds(client, {
+      projectId: options.projectId,
+      status: options.status ?? "active",
+    }),
     timeoutMs,
     "Temporal Epic Visibility list",
   );
@@ -164,7 +167,7 @@ export async function loadLiveEpicIds(
   try {
     return await listEpicIdsFromVisibility(
       bundle.client as unknown as ListEpicClient,
-      { projectId, timeoutMs },
+      { projectId, timeoutMs, status: "active" },
     );
   } finally {
     await bundle.connection.close();

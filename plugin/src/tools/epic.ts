@@ -1041,8 +1041,15 @@ export const epicTools = {
   },
 
   adv_epic_list: {
-    description: "List all active Epics for the project.",
+    description:
+      "List active Epics by default, or enumerate retirement candidates/completed Epics without mutating state.",
     args: {
+      status: z
+        .enum(["active", "completed", "all"])
+        .optional()
+        .describe(
+          "List mode: active (default, running active Epics), all (running Epics of any progress status), or completed (dry-run retirement candidates with blockers).",
+        ),
       limit: z
         .number()
         .int()
@@ -1055,12 +1062,14 @@ export const epicTools = {
     },
     execute: async (
       {
+        status,
         limit,
         offset,
         epic_owner_target_path,
         epic_owner_target_confirmed,
         epic_owner_confirmationEvidence,
       }: {
+        status?: "active" | "completed" | "all";
         limit?: number;
         offset?: number;
         epic_owner_target_path?: string;
@@ -1076,15 +1085,96 @@ export const epicTools = {
           epic_owner_target_confirmed,
           epic_owner_confirmationEvidence,
         });
-        const epics = await owner.store.epics.list();
-        const { items, pagination } = paginate(epics, {
+        const mode = status ?? "active";
+
+        if (mode === "active" || mode === "all") {
+          const epics = await owner.store.epics.list({
+            status: mode === "active" ? "active" : "all",
+          });
+          const { items, pagination } = paginate(epics, {
+            limit,
+            offset,
+            tool: "adv_epic_list",
+          });
+          const output = formatToolOutput({
+            success: true,
+            status_filter: mode,
+            epics: items.map(formatEpic),
+            pagination,
+          });
+          return formatEpicRoutingOutput(output, owner, owner);
+        }
+
+        // Completed-candidate dry-run report: use the existing store retirement
+        // dry-run path to verify eligibility without mutating state. Eligible
+        // Epics become candidates; ineligible Epics are reported as blocked.
+        const allRunning = await owner.store.epics.list({ status: "all" });
+        const candidates: Array<{
+          id: string;
+          title: string;
+          version: number;
+          status: string;
+          projection_status: string;
+        }> = [];
+        const blocked: Array<{
+          id: string;
+          title: string;
+          status: string;
+          code: string;
+          reason: string;
+          blockers?: Array<{ entry_id: string; kind: string; reason: string }>;
+        }> = [];
+
+        for (const epic of allRunning) {
+          try {
+            const projection = await owner.store.epics.retire(epic.id, {
+              expectedVersion: epic.version,
+              evidence: "completed-candidate dry-run report",
+              retiredBy: "agent",
+              dryRun: true,
+            });
+            candidates.push({
+              id: epic.id,
+              title: epic.title,
+              version: epic.version,
+              status: epic.progress.status,
+              projection_status: projection.projection_status,
+            });
+          } catch (err) {
+            const typed = err as {
+              code?: string;
+              message?: string;
+              blockers?: Array<{
+                entry_id: string;
+                kind: string;
+                reason: string;
+              }>;
+            };
+            blocked.push({
+              id: epic.id,
+              title: epic.title,
+              status: epic.progress.status,
+              code: typed.code ?? "unknown",
+              reason: typed.message ?? String(err),
+              blockers: typed.blockers,
+            });
+          }
+        }
+
+        const { items: pageItems, pagination } = paginate(candidates, {
           limit,
           offset,
           tool: "adv_epic_list",
         });
+
         const output = formatToolOutput({
           success: true,
-          epics: items.map(formatEpic),
+          status_filter: "completed",
+          report: {
+            candidates: pageItems,
+            total_candidates: candidates.length,
+            blocked,
+          },
           pagination,
         });
         return formatEpicRoutingOutput(output, owner, owner);

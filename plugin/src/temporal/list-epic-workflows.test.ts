@@ -20,7 +20,7 @@ function makeClient(results: Array<{ workflowId: string }>): {
 }
 
 describe("listEpicWorkflowIds", () => {
-  it("uses workflow type only and filters project scope by workflow ID prefix", async () => {
+  it("defaults to active/running mode and filters project scope by workflow ID prefix", async () => {
     const client = makeClient([
       { workflowId: "adv/epic/pid-abc/cardIdentity" },
       { workflowId: "adv/epic/other-pid/providerArchitecture" },
@@ -32,12 +32,33 @@ describe("listEpicWorkflowIds", () => {
 
     expect(ids).toEqual(["cardIdentity", "simplifiedChineseCardData"]);
     expect(client.workflow.list).toHaveBeenCalledWith({
+      query: `WorkflowType = "${EPIC_WORKFLOW_NAME}" AND ExecutionStatus = "Running"`,
+    });
+  });
+
+  it("supports all-executions mode with no ExecutionStatus filter", async () => {
+    const client = makeClient([
+      { workflowId: "adv/epic/pid-abc/cardIdentity" },
+    ]);
+
+    await listEpicWorkflowIds(client, {
+      projectId: "pid-abc",
+      status: "all",
+    });
+
+    expect(client.workflow.list).toHaveBeenCalledWith({
       query: `WorkflowType = "${EPIC_WORKFLOW_NAME}"`,
     });
   });
 
   it("does not use WorkflowId LIKE in visibility query", () => {
     expect(buildEpicVisibilityQuery("pid-abc")).toBe(
+      `WorkflowType = "${EPIC_WORKFLOW_NAME}" AND ExecutionStatus = "Running"`,
+    );
+  });
+
+  it("builds all-executions query without ExecutionStatus", () => {
+    expect(buildEpicVisibilityQuery("pid-abc", "all")).toBe(
       `WorkflowType = "${EPIC_WORKFLOW_NAME}"`,
     );
   });

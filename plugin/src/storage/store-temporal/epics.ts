@@ -437,11 +437,13 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       return projection;
     },
 
-    list: async () => {
+    list: async (filter?: { status?: "active" | "all" }) => {
       const client =
         getTemporalClient() as unknown as import("../../temporal/list-epic-workflows").ListEpicClient;
+      const status = filter?.status ?? "active";
       const ids = await listEpicWorkflowIds(client, {
         projectId: input.projectId,
+        status,
       });
       const epics: Epic[] = [];
       for (const id of ids) {
@@ -456,8 +458,12 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
           );
         }
       }
-      epics.sort((a, b) => b.created_at.localeCompare(a.created_at));
-      return epics;
+      const filtered =
+        status === "active"
+          ? epics.filter((epic) => epic.progress.status === "active")
+          : epics;
+      filtered.sort((a, b) => b.created_at.localeCompare(a.created_at));
+      return filtered;
     },
 
     update: async (epicId, { title, narrative, expectedVersion }) => {

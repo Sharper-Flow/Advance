@@ -124,6 +124,15 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
       reorder: vi.fn(async () => epic),
       getRetiredProjection: vi.fn(async () => ({ success: true, data: null })),
       saveRetiredProjection: vi.fn(async () => {}),
+      retire: vi.fn(async () => ({
+        epic_snapshot: epic,
+        retired_at: new Date().toISOString(),
+        retired_by: "agent",
+        evidence: "mock",
+        source_workflow_id: "adv/epic/project-id/addAuthEpic",
+        source_version: epic.version,
+        projection_status: "prepared" as const,
+      })),
     },
     changes: {
       get: vi.fn(async () => ({ success: true, data: change })),
@@ -3043,6 +3052,127 @@ describe("Epic owner routing", () => {
       root: "/workspace/owner",
       projectId: "project-owner",
     });
+  });
+
+  test("adv_epic_list defaults to active status and passes filter to store.list", async () => {
+    const store = makeStore();
+
+    const output = await epicTools.adv_epic_list.execute({}, store);
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.status_filter).toBe("active");
+    expect(store.epics.list).toHaveBeenCalledWith({ status: "active" });
+  });
+
+  test("adv_epic_list status=completed returns dry-run candidate report", async () => {
+    const completedEpic = makeEpic({
+      id: "completedEpic",
+      title: "Completed Epic",
+      progress: {
+        status: "completed",
+        total_entries: 1,
+        completed_entries: 1,
+        active_entries: 0,
+        next_entry_id: null,
+        updated_at: new Date().toISOString(),
+      },
+    });
+    const ownerStore = makeStore(completedEpic);
+    const currentStore = makeStore();
+    currentStore.paths.root = "/workspace/current";
+    mockedWithTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/workspace/owner",
+          projectId: "project-owner",
+          externalRoot: "/xdg/project-owner",
+          trusted: true,
+          trustSource: "related_repos",
+          stateMode: "temporal",
+        },
+        store: ownerStore,
+      }),
+    );
+
+    const output = await epicTools.adv_epic_list.execute(
+      {
+        status: "completed",
+        epic_owner_target_path: "/workspace/owner",
+        epic_owner_target_confirmed: true,
+        epic_owner_confirmationEvidence: "owner approved",
+      },
+      currentStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.status_filter).toBe("completed");
+    expect(parsed.report.total_candidates).toBe(1);
+    expect(parsed.report.candidates[0].id).toBe("completedEpic");
+    expect(ownerStore.epics.retire).toHaveBeenCalledWith(
+      "completedEpic",
+      expect.objectContaining({ dryRun: true }),
+    );
+  });
+
+  test("adv_epic_list status=completed reports blocked Epics with dry-run errors", async () => {
+    const activeEpic = makeEpic({
+      id: "activeEpic",
+      title: "Active Epic",
+      progress: {
+        status: "active",
+        total_entries: 1,
+        completed_entries: 0,
+        active_entries: 1,
+        next_entry_id: "entry-1",
+        updated_at: new Date().toISOString(),
+      },
+    });
+    const ownerStore = makeStore(activeEpic);
+    vi.mocked(ownerStore.epics.retire).mockRejectedValue(
+      Object.assign(
+        new Error("Epic has incomplete entries: change:entry-1(active)"),
+        {
+          code: "epic_incomplete",
+          blockers: [{ entry_id: "entry-1", kind: "change", reason: "active" }],
+        },
+      ),
+    );
+    const currentStore = makeStore();
+    currentStore.paths.root = "/workspace/current";
+    mockedWithTargetPathStore.mockImplementationOnce(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/workspace/owner",
+          projectId: "project-owner",
+          externalRoot: "/xdg/project-owner",
+          trusted: true,
+          trustSource: "related_repos",
+          stateMode: "temporal",
+        },
+        store: ownerStore,
+      }),
+    );
+
+    const output = await epicTools.adv_epic_list.execute(
+      {
+        status: "completed",
+        epic_owner_target_path: "/workspace/owner",
+        epic_owner_target_confirmed: true,
+        epic_owner_confirmationEvidence: "owner approved",
+      },
+      currentStore,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.report.total_candidates).toBe(0);
+    expect(parsed.report.blocked).toHaveLength(1);
+    expect(parsed.report.blocked[0].code).toBe("epic_incomplete");
+    expect(parsed.report.blocked[0].blockers).toEqual([
+      { entry_id: "entry-1", kind: "change", reason: "active" },
+    ]);
   });
 
   test("adv_epic_update routes owner Epic through epic_owner_target_path", async () => {

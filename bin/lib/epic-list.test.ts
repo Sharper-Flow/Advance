@@ -144,6 +144,22 @@ describe("epic list CLI helper", () => {
     });
 
     expect(ids).toEqual(["cardIdentity", "addLauncherRows"]);
+    expect(client.queries).toEqual([
+      'WorkflowType = "epicWorkflow" AND ExecutionStatus = "Running"',
+    ]);
+  });
+
+  test("can request all execution statuses without ExecutionStatus filter", async () => {
+    const client = fakeEpicClient([
+      "adv/epic/pid-abc/cardIdentity",
+    ]);
+
+    await listEpicIdsFromVisibility(client, {
+      projectId: "pid-abc",
+      timeoutMs: 1000,
+      status: "all",
+    });
+
     expect(client.queries).toEqual(['WorkflowType = "epicWorkflow"']);
   });
 

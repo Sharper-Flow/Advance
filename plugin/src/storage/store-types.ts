@@ -345,7 +345,7 @@ export interface Store {
       options?: { epicScope?: Epic["epic_scope"] },
     ) => Promise<Epic>;
     get: (epicId: string) => Promise<LoadResult<Epic | null>>;
-    list: () => Promise<Epic[]>;
+    list: (filter?: { status?: "active" | "all" }) => Promise<Epic[]>;
     update: (
       epicId: string,
       input: { title?: string; narrative?: string; expectedVersion: number },

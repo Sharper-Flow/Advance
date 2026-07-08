@@ -988,7 +988,7 @@ export async function createDiskStore(
           data: null,
         };
       },
-      list: async () => [],
+      list: async (_filter?: { status?: "active" | "all" }) => [],
       update: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },
