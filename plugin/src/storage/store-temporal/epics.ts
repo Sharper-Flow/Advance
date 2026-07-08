@@ -119,7 +119,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function searchAttributeValueMatches(value: unknown, expected: string): boolean {
+function searchAttributeValueMatches(
+  value: unknown,
+  expected: string,
+): boolean {
   if (value === expected) return true;
   if (Array.isArray(value)) {
     return value.some((item) => searchAttributeValueMatches(item, expected));
@@ -149,7 +152,8 @@ function describedSearchAttributesContainStatus(
       const key = pair.key;
       const keyName = isRecord(key) ? key.name : key;
       return (
-        keyName === attrName && searchAttributeValueMatches(pair.value, expectedStatus)
+        keyName === attrName &&
+        searchAttributeValueMatches(pair.value, expectedStatus)
       );
     });
   }

@@ -70,7 +70,11 @@ function setup() {
   const describeMock = vi.fn(async () => ({
     searchAttributes: { AdvEpicStatus: ["active"] },
   }));
-  const handle = { signal: signalMock, query: queryMock, describe: describeMock };
+  const handle = {
+    signal: signalMock,
+    query: queryMock,
+    describe: describeMock,
+  };
   const startMock = vi.fn(async () => handle);
   const getHandleMock = vi.fn(() => handle);
   const client = {

@@ -3,7 +3,7 @@
   "name": "advance-epics",
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "updated_at": "2026-07-08T00:00:00.000Z",
   "requirements": [
     {
@@ -16,7 +16,9 @@
         {
           "id": "rq-epicEntity01.1",
           "title": "Valid Epic record parses successfully",
-          "given": ["A caller provides an Epic record with all required typed fields"],
+          "given": [
+            "A caller provides an Epic record with all required typed fields"
+          ],
           "when": "The record is validated against the Epic schema",
           "then": [
             "Validation succeeds",
@@ -104,7 +106,9 @@
         {
           "id": "rq-epicCreateCommand01.2",
           "title": "Overlap requires user choice before duplicate creation",
-          "given": ["The related-work scan finds one or more plausible overlapping open Epics"],
+          "given": [
+            "The related-work scan finds one or more plausible overlapping open Epics"
+          ],
           "when": "The command presents the overlap evidence",
           "then": [
             "The evidence is presented neutrally",
@@ -115,7 +119,9 @@
         {
           "id": "rq-epicCreateCommand01.3",
           "title": "Initial entries remain optional",
-          "given": ["A user has confirmed an Epic title, ultimate goal, and narrative but has no initial child work"],
+          "given": [
+            "A user has confirmed an Epic title, ultimate goal, and narrative but has no initial child work"
+          ],
           "when": "The command creates the Epic",
           "then": [
             "The Epic may be created with zero initial roadmap entries",
@@ -155,7 +161,9 @@
         {
           "id": "rq-epicCoordinateCommand01.3",
           "title": "Durable actions require approval and typed tools",
-          "given": ["Narrative edits, reorders, or membership repairs are proposed"],
+          "given": [
+            "Narrative edits, reorders, or membership repairs are proposed"
+          ],
           "when": "The user has not explicitly approved the proposed durable action",
           "then": [
             "No Epic mutation tool is executed",
@@ -198,7 +206,9 @@
         {
           "id": "rq-epicCoordinateRepoFreshness01.2",
           "title": "Freshness-limited repository state blocks evidence-backed claims",
-          "given": ["Remote freshness, default branch relation, or local repository evidence cannot be established"],
+          "given": [
+            "Remote freshness, default branch relation, or local repository evidence cannot be established"
+          ],
           "when": "`/adv-coordinate` prepares its report",
           "then": [
             "Affected findings are marked `freshness_limited`",
@@ -209,7 +219,9 @@
         {
           "id": "rq-epicCoordinateRepoFreshness01.3",
           "title": "Overlap findings compare plans with current repository evidence",
-          "given": ["Active Epic entries or linked changes may overlap recent repository changes"],
+          "given": [
+            "Active Epic entries or linked changes may overlap recent repository changes"
+          ],
           "when": "`/adv-coordinate` recommends cancel, supersede, narrative update, reorder, retarget, or no-action outcomes",
           "then": [
             "The recommendation cites typed ADV evidence, current repository evidence, or both",
@@ -220,7 +232,9 @@
         {
           "id": "rq-epicCoordinateRepoFreshness01.4",
           "title": "Repository freshness discovery does not mutate product code or bypass approval",
-          "given": ["`/adv-coordinate` attempts to establish current repository evidence"],
+          "given": [
+            "`/adv-coordinate` attempts to establish current repository evidence"
+          ],
           "when": "Repository freshness discovery runs",
           "then": [
             "A bounded remote-ref refresh such as `git fetch --prune` may be used",
@@ -323,7 +337,10 @@
           "title": "Non-Epic changes remain unchanged",
           "given": ["A change has no epic_membership"],
           "when": "The change is shown or resumed",
-          "then": ["No Epic context is rendered", "Existing fields and behavior are unchanged"]
+          "then": [
+            "No Epic context is rendered",
+            "Existing fields and behavior are unchanged"
+          ]
         }
       ]
     },
@@ -367,7 +384,9 @@
         {
           "id": "rq-epicOptionalMembership01.2",
           "title": "Malformed epic_membership is rejected",
-          "given": ["A change record contains an epic_membership object missing required fields"],
+          "given": [
+            "A change record contains an epic_membership object missing required fields"
+          ],
           "when": "The change is parsed",
           "then": ["Validation fails with a clear schema error"]
         }
@@ -421,7 +440,9 @@
         {
           "id": "rq-epicMembershipRepair01.3",
           "title": "Unreachable target remains recoverable",
-          "given": ["An Epic entry references a target project that cannot be reached"],
+          "given": [
+            "An Epic entry references a target project that cannot be reached"
+          ],
           "when": "Membership is shown or repaired",
           "then": [
             "The Epic remains readable",
@@ -457,12 +478,59 @@
         {
           "id": "rq-epicMembershipRepair01.6",
           "title": "Retarget refuses conflicting child membership",
-          "given": ["The proposed target child already belongs to a different Epic or entry"],
+          "given": [
+            "The proposed target child already belongs to a different Epic or entry"
+          ],
           "when": "An operator attempts stale-entry retarget",
           "then": [
             "The repair returns a typed membership mismatch",
             "The parent Epic entry is not mutated",
             "No second simultaneous Epic membership is created"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicSearchAttributeRepair01",
+      "title": "Epic Search-Attribute Repair Backfills Legacy Visibility",
+      "body": "Epic repair tooling MUST provide an audited `refresh_search_attributes` path for running legacy Epic workflows whose immutable start input disabled initial search-attribute upserts. The repair MUST derive `AdvEpicStatus` from structural Epic workflow progress state, MUST be able to force the upsert after the namespace search attribute is registered, and MUST NOT require operators to restart or recreate legacy Epic workflows. Repair reports MUST distinguish confirmed search-attribute refresh proof from skipped, unreachable, or unverified signal-delivery outcomes; successful signal dispatch alone MUST NOT be reported as a confirmed refresh. Synchronous confirmation MAY use workflow describe point-value evidence and MUST NOT rely solely on eventually consistent active-list visibility propagation.",
+      "priority": "must",
+      "tags": ["epics", "repair", "search-attributes", "visibility", "legacy"],
+      "scenarios": [
+        {
+          "id": "rq-epicSearchAttributeRepair01.1",
+          "title": "Legacy Epic refresh forces status upsert",
+          "given": [
+            "A running Epic workflow was started with search-attribute upserts disabled in immutable workflow input",
+            "The namespace has registered `AdvEpicStatus`"
+          ],
+          "when": "An operator runs audited `refresh_search_attributes` repair",
+          "then": [
+            "The workflow upserts `AdvEpicStatus` from structural Epic progress state",
+            "The repair does not require restarting or recreating the Epic workflow"
+          ]
+        },
+        {
+          "id": "rq-epicSearchAttributeRepair01.2",
+          "title": "Repair report separates confirmed and unverified outcomes",
+          "given": ["A repair signal is delivered to a running Epic workflow"],
+          "when": "The repair report is returned",
+          "then": [
+            "Confirmed refresh count includes only Epics with structural search-attribute proof",
+            "Missing proof is reported as unverified, skipped, or unreachable instead of confirmed refreshed",
+            "Successful signal dispatch alone is not counted as confirmed refresh"
+          ]
+        },
+        {
+          "id": "rq-epicSearchAttributeRepair01.3",
+          "title": "Describe proof is sufficient before visibility propagation",
+          "given": [
+            "Temporal active-list visibility may be eventually consistent after an upsert"
+          ],
+          "when": "Repair confirmation checks the workflow after signal delivery",
+          "then": [
+            "Workflow describe point-value evidence may confirm the search attribute synchronously",
+            "Eventually consistent list-query visibility is not the sole synchronous success proof"
           ]
         }
       ]
@@ -477,23 +545,36 @@
         {
           "id": "rq-epicScopeDerivation01.1",
           "title": "Single-repo scope renders local",
-          "given": ["An Epic scope contains exactly one repo entry", "The legacy kind field says `product`"],
+          "given": [
+            "An Epic scope contains exactly one repo entry",
+            "The legacy kind field says `product`"
+          ],
           "when": "The Epic is rendered or classified",
-          "then": ["The derived scope label is local or repo-scoped", "The legacy kind field is not used as the classification authority"]
+          "then": [
+            "The derived scope label is local or repo-scoped",
+            "The legacy kind field is not used as the classification authority"
+          ]
         },
         {
           "id": "rq-epicScopeDerivation01.2",
           "title": "Multi-repo scope renders product-spanning",
           "given": ["An Epic scope contains two repo/project entries"],
           "when": "The Epic is rendered or classified",
-          "then": ["The derived scope label is product-spanning", "Owner project and repo_project_id metadata are preserved"]
+          "then": [
+            "The derived scope label is product-spanning",
+            "Owner project and repo_project_id metadata are preserved"
+          ]
         },
         {
           "id": "rq-epicScopeDerivation01.3",
           "title": "Missing scope remains legacy-readable",
           "given": ["A legacy Epic has no epic_scope"],
           "when": "The Epic is parsed or shown",
-          "then": ["Validation succeeds", "The derived scope label is legacy/unscoped", "The Epic can be backfilled through typed scope mutation"]
+          "then": [
+            "Validation succeeds",
+            "The derived scope label is legacy/unscoped",
+            "The Epic can be backfilled through typed scope mutation"
+          ]
         }
       ]
     },
@@ -507,23 +588,36 @@
         {
           "id": "rq-epicMutableScope01.1",
           "title": "Active Epic expands scope",
-          "given": ["An active Epic has one scoped repo", "The caller supplies a current expected version and audit evidence"],
+          "given": [
+            "An active Epic has one scoped repo",
+            "The caller supplies a current expected version and audit evidence"
+          ],
           "when": "A typed scope update adds a second repo/project entry",
-          "then": ["The Epic scope contains both repos", "The Epic version increments", "The derived scope label becomes product-spanning"]
+          "then": [
+            "The Epic scope contains both repos",
+            "The Epic version increments",
+            "The derived scope label becomes product-spanning"
+          ]
         },
         {
           "id": "rq-epicMutableScope01.2",
           "title": "Stale scope update is rejected",
           "given": ["An active Epic has version 3"],
           "when": "A scope update is submitted with expected version 2",
-          "then": ["A typed stale-version conflict is returned", "The existing scope is unchanged"]
+          "then": [
+            "A typed stale-version conflict is returned",
+            "The existing scope is unchanged"
+          ]
         },
         {
           "id": "rq-epicMutableScope01.3",
           "title": "Scope removal cannot orphan children silently",
           "given": ["An Epic has a linked child entry for repo A"],
           "when": "A scope update removes repo A",
-          "then": ["The update is rejected, requires explicit disposition, or surfaces typed repair status", "No child epic_membership projection is silently detached"]
+          "then": [
+            "The update is rejected, requires explicit disposition, or surfaces typed repair status",
+            "No child epic_membership projection is silently detached"
+          ]
         }
       ]
     },
@@ -537,30 +631,52 @@
         {
           "id": "rq-epicMerge01.1",
           "title": "Unique entries move to survivor",
-          "given": ["Two active Epics contain unique linked changes", "The caller supplies audit evidence and current versions"],
+          "given": [
+            "Two active Epics contain unique linked changes",
+            "The caller supplies audit evidence and current versions"
+          ],
           "when": "The source Epic is merged into the survivor",
-          "then": ["Unique entries appear on the survivor", "Reachable child epic_membership projections point to the survivor", "No child change has two owning Epic memberships"]
+          "then": [
+            "Unique entries appear on the survivor",
+            "Reachable child epic_membership projections point to the survivor",
+            "No child change has two owning Epic memberships"
+          ]
         },
         {
           "id": "rq-epicMerge01.2",
           "title": "Conflicting entries require disposition",
-          "given": ["The source and survivor Epics contain similar shell entries or duplicate child changes"],
+          "given": [
+            "The source and survivor Epics contain similar shell entries or duplicate child changes"
+          ],
           "when": "A merge is executed without conflict resolution",
-          "then": ["The merge is rejected with typed conflict details", "No heuristic title-based dedupe is applied", "No source entries are silently dropped"]
+          "then": [
+            "The merge is rejected with typed conflict details",
+            "No heuristic title-based dedupe is applied",
+            "No source entries are silently dropped"
+          ]
         },
         {
           "id": "rq-epicMerge01.3",
           "title": "Merged source remains readable but inactive",
-          "given": ["A source Epic has been successfully merged into a survivor"],
+          "given": [
+            "A source Epic has been successfully merged into a survivor"
+          ],
           "when": "The source Epic is shown or considered for next work",
-          "then": ["The source Epic exposes a merged_into survivor pointer with audit evidence", "The source Epic has no active next-work recommendation", "The source Epic remains queryable for history"]
+          "then": [
+            "The source Epic exposes a merged_into survivor pointer with audit evidence",
+            "The source Epic has no active next-work recommendation",
+            "The source Epic remains queryable for history"
+          ]
         },
         {
           "id": "rq-epicMerge01.4",
           "title": "Terminal sources are historical references only",
           "given": ["A source Epic is completed, archived, or already merged"],
           "when": "A caller attempts to merge it into an active survivor",
-          "then": ["The merge mutation is rejected", "The source may be referenced as historical context only"]
+          "then": [
+            "The merge mutation is rejected",
+            "The source may be referenced as historical context only"
+          ]
         }
       ]
     },
@@ -574,7 +690,10 @@
         {
           "id": "rq-epicArchiveSync01.1",
           "title": "Epic child archive records terminal summary",
-          "given": ["A change has an `epic_membership` projection", "The archive flow has obtained valid release proof for the child change"],
+          "given": [
+            "A change has an `epic_membership` projection",
+            "The archive flow has obtained valid release proof for the child change"
+          ],
           "when": "The change is marked archived",
           "then": [
             "The parent Epic entry receives a terminal summary or equivalent typed terminal-history state",
@@ -585,7 +704,9 @@
         {
           "id": "rq-epicArchiveSync01.2",
           "title": "Stale projection uses typed repair path",
-          "given": ["An archived child change has an Epic entry whose membership projection is stale, pending, or target-unreachable"],
+          "given": [
+            "An archived child change has an Epic entry whose membership projection is stale, pending, or target-unreachable"
+          ],
           "when": "Archive verification inspects the parent Epic",
           "then": [
             "The flow uses `adv_epic_repair_membership` or another typed Epic tool to repair or mark the projection",
@@ -596,7 +717,9 @@
         {
           "id": "rq-epicArchiveSync01.3",
           "title": "Retroactive repair backfills archived child progress",
-          "given": ["An Epic entry remains active even though the linked child change is already `archived` or `closed`"],
+          "given": [
+            "An Epic entry remains active even though the linked child change is already `archived` or `closed`"
+          ],
           "when": "`adv_epic_repair_membership mode=sync_child_projection` runs with canonical child/archive evidence",
           "then": [
             "The existing Epic entry receives terminal summary state",
@@ -618,7 +741,10 @@
         {
           "id": "rq-epicArchiveSync01.5",
           "title": "Earlier incomplete Epic entries do not block archive by order",
-          "given": ["A child change belongs to an Epic", "An earlier Epic entry is incomplete"],
+          "given": [
+            "A child change belongs to an Epic",
+            "An earlier Epic entry is incomplete"
+          ],
           "when": "The child change archive flow verifies Epic context",
           "then": [
             "The earlier incomplete entry may be reported as advisory context",
@@ -665,44 +791,83 @@
         {
           "id": "rq-epicOwnerRouting01.1",
           "title": "Same-project membership routing",
-          "given": ["An Epic and child change both live in the current project"],
+          "given": [
+            "An Epic and child change both live in the current project"
+          ],
           "when": "The membership tool is called with no routing parameters",
-          "then": ["The tool resolves owner and child in the current project", "The operation succeeds"]
+          "then": [
+            "The tool resolves owner and child in the current project",
+            "The operation succeeds"
+          ]
         },
         {
           "id": "rq-epicOwnerRouting01.2",
           "title": "Owner local and child remote",
-          "given": ["An Epic lives in the current project", "A child change lives in another ADV project"],
+          "given": [
+            "An Epic lives in the current project",
+            "A child change lives in another ADV project"
+          ],
           "when": "The membership tool is called with target_path for the child project and no owner route",
-          "then": ["The owner Epic resolves in the current project", "The child change resolves in the target project", "The operation succeeds"]
+          "then": [
+            "The owner Epic resolves in the current project",
+            "The child change resolves in the target project",
+            "The operation succeeds"
+          ]
         },
         {
           "id": "rq-epicOwnerRouting01.3",
           "title": "Owner remote and child same remote",
-          "given": ["An Epic and child change both live in the same remote ADV project"],
+          "given": [
+            "An Epic and child change both live in the same remote ADV project"
+          ],
           "when": "The membership tool is called with epic_owner_target_path and either the same target_path or a structural same-owner proof",
-          "then": ["Both owner and child resolve in the remote project", "The operation succeeds"]
+          "then": [
+            "Both owner and child resolve in the remote project",
+            "The operation succeeds"
+          ]
         },
         {
           "id": "rq-epicOwnerRouting01.4",
           "title": "Owner remote and child different remote",
-          "given": ["An Epic lives in remote project A", "A child change lives in remote project C"],
+          "given": [
+            "An Epic lives in remote project A",
+            "A child change lives in remote project C"
+          ],
           "when": "The membership tool is called with epic_owner_target_path=A and target_path=C",
-          "then": ["Owner resolves in project A", "Child resolves in project C", "Trust confirmation is enforced for each remote project", "The operation succeeds"]
+          "then": [
+            "Owner resolves in project A",
+            "Child resolves in project C",
+            "Trust confirmation is enforced for each remote project",
+            "The operation succeeds"
+          ]
         },
         {
           "id": "rq-epicOwnerRouting01.5",
           "title": "Ambiguous child-only routing fails before mutation",
-          "given": ["A caller provides only target_path for a child project", "The Epic owner is not in the current project"],
+          "given": [
+            "A caller provides only target_path for a child project",
+            "The Epic owner is not in the current project"
+          ],
           "when": "The membership tool resolves the owner Epic",
-          "then": ["The tool fails before durable mutation", "The error code is OWNER_ROUTING_AMBIGUOUS or OWNER_ROUTING_REQUIRED", "No remote Epic is mutated"]
+          "then": [
+            "The tool fails before durable mutation",
+            "The error code is OWNER_ROUTING_AMBIGUOUS or OWNER_ROUTING_REQUIRED",
+            "No remote Epic is mutated"
+          ]
         },
         {
           "id": "rq-epicOwnerRouting01.6",
           "title": "Partial owner-only routing fails when child is not locatable",
-          "given": ["A caller provides only epic_owner_target_path", "The child change does not exist in the owner project"],
+          "given": [
+            "A caller provides only epic_owner_target_path",
+            "The child change does not exist in the owner project"
+          ],
           "when": "The membership tool resolves the child change",
-          "then": ["The tool fails before durable mutation", "The error identifies the missing child route", "No Epic is mutated with an orphan entry"]
+          "then": [
+            "The tool fails before durable mutation",
+            "The error identifies the missing child route",
+            "No Epic is mutated with an orphan entry"
+          ]
         }
       ]
     },
@@ -716,7 +881,9 @@
         {
           "id": "rq-epicNoJiraClone01.1",
           "title": "Epic schema rejects project-management fields",
-          "given": ["A caller attempts to add assignee, estimate, sprint, or board fields to an Epic record"],
+          "given": [
+            "A caller attempts to add assignee, estimate, sprint, or board fields to an Epic record"
+          ],
           "when": "The record is validated",
           "then": ["Those fields are not recognized as required Epic structure"]
         }
@@ -755,7 +922,9 @@
         {
           "id": "rq-epicCliList01.1",
           "title": "Epic list returns live JSON IDs",
-          "given": ["A git-backed project has Epic workflows visible to Temporal"],
+          "given": [
+            "A git-backed project has Epic workflows visible to Temporal"
+          ],
           "when": "`adv epic list --json` runs from the project",
           "then": [
             "The command exits 0",
@@ -766,7 +935,9 @@
         {
           "id": "rq-epicCliList01.2",
           "title": "Epic list filters by current project prefix",
-          "given": ["Temporal Visibility returns Epic workflow IDs for multiple ADV projects"],
+          "given": [
+            "Temporal Visibility returns Epic workflow IDs for multiple ADV projects"
+          ],
           "when": "The Epic list CLI builds its payload",
           "then": [
             "Only workflow IDs under `adv/epic/{projectId}/` appear in `epics`",
@@ -777,7 +948,9 @@
         {
           "id": "rq-epicCliList01.3",
           "title": "Epic list fails closed on unavailable live state",
-          "given": ["Temporal connection or Visibility listing fails, or the command is run outside a git project"],
+          "given": [
+            "Temporal connection or Visibility listing fails, or the command is run outside a git project"
+          ],
           "when": "`adv epic list --json` handles the failure",
           "then": [
             "The command exits non-zero",
@@ -808,7 +981,10 @@
         {
           "id": "rq-epicRetirement01.1",
           "title": "Completed Epic retires with audit evidence and expected version",
-          "given": ["An Epic has completed progress", "Every Epic entry is terminal"],
+          "given": [
+            "An Epic has completed progress",
+            "Every Epic entry is terminal"
+          ],
           "when": "A caller invokes adv_epic_retire with expected_version and audit evidence",
           "then": [
             "The version guard is checked before mutation",
@@ -849,7 +1025,9 @@
         {
           "id": "rq-epicRetiredListing01.1",
           "title": "Default MCP list excludes retired Epics",
-          "given": ["Temporal Visibility contains running Epic workflows and retired completed Epic workflows"],
+          "given": [
+            "Temporal Visibility contains running Epic workflows and retired completed Epic workflows"
+          ],
           "when": "adv_epic_list runs with default arguments",
           "then": [
             "Only active/running Epic workflows are listed",
@@ -881,7 +1059,9 @@
         {
           "id": "rq-epicRetiredListing01.4",
           "title": "Legacy unindexed running Epics have audited index repair path",
-          "given": ["Running Epic workflows exist without AdvEpicStatus indexed"],
+          "given": [
+            "Running Epic workflows exist without AdvEpicStatus indexed"
+          ],
           "when": "An operator invokes the explicit repair/backfill path",
           "then": [
             "The tool enumerates running epicWorkflow executions without the AdvEpicStatus filter",
@@ -912,7 +1092,9 @@
         {
           "id": "rq-epicRetiredHistory01.2",
           "title": "Show reads retired Epic history by ID",
-          "given": ["An Epic has been retired and its workflow is no longer queryable"],
+          "given": [
+            "An Epic has been retired and its workflow is no longer queryable"
+          ],
           "when": "A caller invokes adv_epic_show for that Epic ID",
           "then": [
             "The response is loaded from the retired projection",
@@ -922,9 +1104,14 @@
         {
           "id": "rq-epicRetiredHistory01.3",
           "title": "Missing live and retired state fails deterministically",
-          "given": ["No live Epic workflow or retired projection exists for an Epic ID"],
+          "given": [
+            "No live Epic workflow or retired projection exists for an Epic ID"
+          ],
           "when": "A caller invokes adv_epic_show",
-          "then": ["A typed not-found error is returned", "No ADV state files are read directly by agents"]
+          "then": [
+            "A typed not-found error is returned",
+            "No ADV state files are read directly by agents"
+          ]
         }
       ]
     },
@@ -957,7 +1144,10 @@
         {
           "id": "rq-epicTerminalChildProjection01.1",
           "title": "Archived child link projects terminal summary",
-          "given": ["An ADV change has status archived", "The change is not yet linked to an Epic"],
+          "given": [
+            "An ADV change has status archived",
+            "The change is not yet linked to an Epic"
+          ],
           "when": "adv_epic_link_change links the change to an Epic",
           "then": [
             "The Epic entry receives a terminal_summary with status archived and a completed_at timestamp",
@@ -999,14 +1189,22 @@
           "title": "Non-Epic change renders a valid briefing packet",
           "given": ["An ADV change has no Epic membership"],
           "when": "A briefing packet is rendered",
-          "then": ["The packet is valid", "No Epic context section is required", "Rendering does not fail due to missing Epic"]
+          "then": [
+            "The packet is valid",
+            "No Epic context section is required",
+            "Rendering does not fail due to missing Epic"
+          ]
         },
         {
           "id": "rq-epicBriefingContext01.2",
           "title": "Epic change includes compact membership context",
           "given": ["An ADV change is linked to an Epic"],
           "when": "A briefing packet is rendered",
-          "then": ["The packet MAY include a compact Epic context section", "The section includes Epic ID, title, and membership status", "The section does not dump the full Epic entry list"]
+          "then": [
+            "The packet MAY include a compact Epic context section",
+            "The section includes Epic ID, title, and membership status",
+            "The section does not dump the full Epic entry list"
+          ]
         }
       ]
     }
