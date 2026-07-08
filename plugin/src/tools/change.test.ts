@@ -39,6 +39,17 @@ const mocks = vi.hoisted(() => {
       list: vi.fn(async () => ({ changes: [] })),
     },
     tasks: { ready: vi.fn(async () => ({ ready: [], blocked: [] })) },
+    gates: {
+      get: vi.fn(async () => ({
+        proposal: { status: "done" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      })),
+    },
     specs: {
       list: vi.fn(async () => ({ specs: [] })),
       get: vi.fn(async () => ({ success: false, error: "not found" })),
@@ -3504,6 +3515,112 @@ describe("change tools — signal-driven lifecycle", () => {
         scopeDelta: "Add new module",
         reenteredBy: "agent",
       });
+    });
+
+    test("target_path reentry uses target project handle, target store refresh, and project context", async () => {
+      const store = createMockStore();
+      mocks.getProjectId.mockImplementationOnce(async (root: string) => {
+        expect(root).toBe("/tmp/target");
+        return "target-project-id";
+      });
+
+      const result = await changeTools.adv_change_reenter.execute(
+        {
+          changeId: "test-change",
+          fromGate: "discovery",
+          reason: "Target scope expanded",
+          scopeDelta: "Reset target gates",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "User approved target reentry",
+        } as Parameters<typeof changeTools.adv_change_reenter.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._projectContext).toMatchObject({
+        root: "/tmp/target",
+        projectId: "target-project-id",
+        stateMode: "temporal",
+      });
+      expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentProjectPath: "/tmp/test",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "User approved target reentry",
+          stateRequirement: "temporal-required",
+        }),
+        expect.any(Function),
+      );
+      expect(mocks.getChangeHandle).toHaveBeenCalledWith(
+        mocks.temporalBundle.client,
+        "target-project-id",
+        "test-change",
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        mocks.targetStore,
+        "test-change",
+        expect.anything(),
+        expect.objectContaining({
+          fromGateId: "discovery",
+          reason: "Target scope expanded",
+          scopeDelta: "Reset target gates",
+        }),
+      );
+    });
+
+    test("target_path reentry dryRun validates target state without signaling", async () => {
+      const store = createMockStore();
+
+      const result = await changeTools.adv_change_reenter.execute(
+        {
+          changeId: "test-change",
+          fromGate: "execution",
+          reason: "Preview target reentry",
+          dryRun: true,
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "User approved target preview",
+        } as Parameters<typeof changeTools.adv_change_reenter.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.dryRun).toBe(true);
+      expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
+      expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stateRequirement: "snapshot-ok",
+          mutation: false,
+        }),
+        expect.any(Function),
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.getChangeHandle).not.toHaveBeenCalled();
+    });
+
+    test("target_path reentry rejects unconfirmed target mutation before signaling", async () => {
+      mocks.withTargetPathStore.mockRejectedValueOnce(
+        new Error("target confirmation required"),
+      );
+
+      const result = await changeTools.adv_change_reenter.execute(
+        {
+          changeId: "test-change",
+          fromGate: "execution",
+          reason: "Target scope expanded",
+          target_path: "/tmp/target",
+        } as Parameters<typeof changeTools.adv_change_reenter.execute>[0],
+        createMockStore(),
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("target confirmation required");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("blocks reenter on archived/closed changes", async () => {

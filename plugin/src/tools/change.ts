@@ -3878,6 +3878,24 @@ export const changeTools = {
         .boolean()
         .optional()
         .describe("Preview re-entry without firing gate reset signal."),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, routes the re-entry through that project's Temporal-backed target store.",
+        ),
+      target_confirmed: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+        ),
+      confirmationEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+        ),
     },
     execute: async (
       {
@@ -3887,6 +3905,9 @@ export const changeTools = {
         scopeDelta,
         approvalEvidence: _approvalEvidence,
         dryRun,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         changeId: string;
         fromGate: GateId;
@@ -3895,77 +3916,122 @@ export const changeTools = {
         approvedByUser?: boolean;
         approvalEvidence?: string;
         dryRun?: boolean;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      const result = await store.changes.get(changeId);
-      if (!result.success) {
-        return formatToolOutput({ error: result.error });
-      }
-      if (!result.data) {
-        return formatToolOutput({ error: `Change not found: ${changeId}` });
-      }
-      // M2a (terminatechangeworkflowonarchi): change workflows now Complete
-      // on archive/close. Reenter on a Completed workflow would fail with an
-      // opaque WorkflowExecutionAlreadyCompleted error from Temporal. Reject
-      // at the tool layer with a domain-level message and remediation hint.
-      if (
-        result.data.status === "archived" ||
-        result.data.status === "closed"
-      ) {
-        return formatToolOutput({
-          error: `Cannot reenter ${result.data.status} change ${changeId}. Reenter is for scope expansion on active changes; archived/closed changes cannot be reopened. Use adv_temporal_diagnose if workflow recovery is needed.`,
-          changeId,
-        });
-      }
-      if (dryRun) {
-        return formatToolOutput({
-          success: true,
-          dryRun: true,
-          changeId,
-          fromGate,
-          reason,
-          scopeDelta,
-          message: `Would reenter change ${changeId} from ${fromGate}.`,
-        });
-      }
-      try {
-        const bundle = getService();
-        if (!bundle) {
+      const runReenter = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        const result = await activeStore.changes.get(changeId);
+        if (!result.success) {
+          return formatToolOutput({ error: result.error });
+        }
+        if (!result.data) {
           return formatToolOutput({
-            error: "Temporal service not available",
+            error: `Change not found: ${changeId}`,
             changeId,
           });
         }
-        const projectId = await getProjectId(store.paths.root);
-        if (!projectId) {
+
+        // M2a (terminatechangeworkflowonarchi): change workflows now Complete
+        // on archive/close. Reenter on a Completed workflow would fail with an
+        // opaque WorkflowExecutionAlreadyCompleted error from Temporal. Reject
+        // at the tool layer with a domain-level message and remediation hint.
+        if (
+          result.data.status === "archived" ||
+          result.data.status === "closed"
+        ) {
           return formatToolOutput({
-            error: "Could not resolve project ID",
+            error: `Cannot reenter ${result.data.status} change ${changeId}. Reenter is for scope expansion on active changes; archived/closed changes cannot be reopened. Use adv_temporal_diagnose if workflow recovery is needed.`,
             changeId,
           });
         }
-        const handle = getChangeHandle(bundle.client, projectId, changeId);
-        // rq-cacheRefresh01: refresh after reenter so buildReentryResult
-        // reads the reset-gates state from a fresh cache, not stale gates.
-        await fireSignalAndRefresh(
-          handle,
-          store,
-          changeId,
-          gateReenteredSignal,
-          {
-            fromGateId: fromGate,
+
+        if (dryRun) {
+          return formatToolOutput({
+            success: true,
+            dryRun: true,
+            changeId,
+            fromGate,
             reason,
             scopeDelta,
-            reenteredBy: "agent",
-            reenteredAt: new Date().toISOString(),
-          },
-        );
-        return buildReentryResult(store, changeId, fromGate);
-      } catch (error) {
-        return formatToolOutput({
-          error: error instanceof Error ? error.message : String(error),
-        });
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+            message: `Would reenter change ${changeId} from ${fromGate}.`,
+          });
+        }
+
+        try {
+          const bundle = getService();
+          if (!bundle) {
+            return formatToolOutput({
+              error: "Temporal service not available",
+              changeId,
+            });
+          }
+          const projectId = await getProjectId(activeStore.paths.root);
+          if (!projectId) {
+            return formatToolOutput({
+              error: "Could not resolve project ID",
+              changeId,
+            });
+          }
+          const handle = getChangeHandle(bundle.client, projectId, changeId);
+          // rq-cacheRefresh01: refresh after reenter so buildReentryResult
+          // reads the reset-gates state from a fresh cache, not stale gates.
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            changeId,
+            gateReenteredSignal,
+            {
+              fromGateId: fromGate,
+              reason,
+              scopeDelta,
+              reenteredBy: "agent",
+              reenteredAt: new Date().toISOString(),
+            },
+          );
+          const output = await buildReentryResult(
+            activeStore,
+            changeId,
+            fromGate,
+          );
+          return projectContext
+            ? appendTargetProjectContextOutput(output, projectContext)
+            : output;
+        } catch (error) {
+          return formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      };
+
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              target_confirmed,
+              confirmationEvidence,
+              stateRequirement: dryRun ? "snapshot-ok" : "temporal-required",
+              mutation: dryRun ? false : undefined,
+            },
+            async ({ context, store: targetStore }) =>
+              runReenter(targetStore, formatTargetProjectContext(context)),
+          );
+        } catch (error) {
+          return formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
+
+      return runReenter(store);
     },
   },
   adv_change_status_repair: {
