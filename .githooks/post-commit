@@ -50,9 +50,13 @@ if [[ ! -x "$DEPLOY_SCRIPT" ]]; then
   exit 0
 fi
 
-echo "[adv-post-commit] Deployed ADV assets to the local install (touched: $(echo "$CHANGED" | head -3 | tr '\n' ' '))"
-"$DEPLOY_SCRIPT" --fix >/dev/null 2>&1 || {
+if ! deploy_output="$($DEPLOY_SCRIPT --fix 2>&1)"; then
+  if [[ -n "$deploy_output" ]]; then
+    printf '%s\n' "$deploy_output" >&2
+  fi
   echo "[adv-post-commit] deploy-local.sh failed; run manually:" >&2
   echo "  $DEPLOY_SCRIPT --fix" >&2
   exit 0
-}
+fi
+
+echo "[adv-post-commit] Deployed ADV assets to the local install (touched: $(echo "$CHANGED" | head -3 | tr '\n' ' '))"

@@ -444,6 +444,7 @@ The `--fix` flag will:
 - Rebuild `plugin/dist` when it is missing or older than plugin build inputs
 - Refuse to deploy stale dist if the build fails or freshness is still unproven
 - Sync `plugin/` to the stable runtime path `~/.local/share/Advance/plugin/`
+- Bounce exact-path deployed Temporal workers running `dist/temporal/worker.js` with `SIGTERM`; fail with an `[ADV:ACTION_REQUIRED]` block if refresh cannot be proven
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
 - Copy the repo-owned `adv` runtime agent as a full file and leave repo-local-only agents in-tree
 - Apply repo-owned managed overlay blocks to shared global agents like `general`, `build`, and `plan` without replacing the full file

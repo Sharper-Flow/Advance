@@ -6,6 +6,9 @@ import { SpecSchema } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
+const POST_COMMIT_HOOK_PATH = join(REPO_ROOT, ".githooks/post-commit");
+const PRE_PUSH_HOOK_PATH = join(REPO_ROOT, ".githooks/pre-push");
+const SETUP_DOC_PATH = join(REPO_ROOT, "SETUP.md");
 const PROVIDER_EVAL_PATH = join(REPO_ROOT, "scripts/provider-eval.ts");
 const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv.md");
 const PROVIDER_ASSEMBLY_DOC_PATH = join(
@@ -74,6 +77,9 @@ function duplicateFrontmatterKeys(markdown: string) {
 
 describe("deploy-local.sh", () => {
   const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
+  const postCommitHook = readFileSync(POST_COMMIT_HOOK_PATH, "utf8");
+  const prePushHook = readFileSync(PRE_PUSH_HOOK_PATH, "utf8");
+  const setupDoc = readFileSync(SETUP_DOC_PATH, "utf8");
 
   test("script exists and is non-empty", () => {
     expect(existsSync(DEPLOY_SCRIPT_PATH)).toBe(true);
@@ -231,7 +237,10 @@ describe("deploy-local.sh", () => {
     test("refreshes deployed Temporal workers after runtime sync", () => {
       expect(content).toContain("refresh_deployed_temporal_workers");
       expect(content).toContain(
-        'local worker_script="$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js"',
+        'worker_script="$runtime_plugin_path/dist/temporal/worker.js"',
+      );
+      expect(content).toContain(
+        'cd "$ADV_RUNTIME_PLUGIN_PATH" 2>/dev/null && pwd -P',
       );
       expect(content).toContain('kill -TERM "$pid"');
       expect(content).toContain("[ADV:ACTION_REQUIRED]");
@@ -258,6 +267,28 @@ describe("deploy-local.sh", () => {
       expect(content).toContain('refresh_deployed_temporal_workers "check"');
       expect(content).toContain('refresh_deployed_temporal_workers "dry-run"');
       expect(content).toContain("No worker processes were signaled.");
+    });
+
+    test("deploy worker refresh failure evidence is not swallowed by hooks", () => {
+      expect(postCommitHook).toContain(
+        'deploy_output="$($DEPLOY_SCRIPT --fix 2>&1)"',
+      );
+      expect(prePushHook).toContain(
+        'deploy_output="$($DEPLOY_SCRIPT --fix 2>&1)"',
+      );
+      expect(postCommitHook).toContain("printf '%s\\n' \"$deploy_output\" >&2");
+      expect(prePushHook).toContain("printf '%s\\n' \"$deploy_output\" >&2");
+      expect(postCommitHook).not.toContain(
+        '"$DEPLOY_SCRIPT" --fix >/dev/null 2>&1',
+      );
+      expect(prePushHook).not.toContain(
+        '"$DEPLOY_SCRIPT" --fix >/dev/null 2>&1',
+      );
+    });
+
+    test("setup docs mention deployed Temporal worker bounce", () => {
+      expect(setupDoc).toContain("Bounce exact-path deployed Temporal workers");
+      expect(setupDoc).toContain("[ADV:ACTION_REQUIRED]");
     });
 
     test("removes legacy non-ADV commands", () => {
@@ -656,6 +687,12 @@ describe("deploy-local.sh", () => {
       const workerHealth = parsed.requirements.find(
         (rq) => rq.id === "rq-workerHealth01",
       );
+      const deployWorkerBounce = parsed.requirements.find(
+        (rq) => rq.id === "rq-deployWorkerBounce01",
+      );
+      const deployWorkerBounceReadOnly = parsed.requirements.find(
+        (rq) => rq.id === "rq-deployWorkerBounce02",
+      );
 
       const restartScenario = timeoutOverride?.scenarios?.find(
         (s) => s.id === "rq-toolTimeoutOverride01.2",
@@ -725,6 +762,15 @@ describe("deploy-local.sh", () => {
           ?.find((s) => s.id === "rq-workerHealth01.4")
           ?.then.join("\n"),
       ).toContain("STSL");
+      expect(deployWorkerBounce?.body).toContain("SIGTERM");
+      expect(deployWorkerBounce?.body).toContain("[ADV:ACTION_REQUIRED]");
+      expect(deployWorkerBounce?.scenarios).toHaveLength(3);
+      expect(scenarioIds).toContain("rq-deployWorkerBounce01.1");
+      expect(scenarioIds).toContain("rq-deployWorkerBounce01.2");
+      expect(scenarioIds).toContain("rq-deployWorkerBounce01.3");
+      expect(deployWorkerBounceReadOnly?.scenarios).toHaveLength(2);
+      expect(scenarioIds).toContain("rq-deployWorkerBounce02.1");
+      expect(scenarioIds).toContain("rq-deployWorkerBounce02.2");
     });
 
     test("advance-meta spec captures stability feature-flag defaults and probe freshness", () => {

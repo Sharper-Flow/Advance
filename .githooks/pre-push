@@ -14,9 +14,12 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 DEPLOY_SCRIPT="$REPO_ROOT/scripts/deploy-local.sh"
 
 if [[ -x "$DEPLOY_SCRIPT" ]]; then
-  "$DEPLOY_SCRIPT" --fix >/dev/null 2>&1 || {
+  if ! deploy_output="$($DEPLOY_SCRIPT --fix 2>&1)"; then
+    if [[ -n "$deploy_output" ]]; then
+      printf '%s\n' "$deploy_output" >&2
+    fi
     echo "[adv-pre-push] deploy-local.sh failed; continuing push anyway" >&2
-  }
+  fi
 fi
 
 exit 0

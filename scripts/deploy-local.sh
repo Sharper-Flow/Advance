@@ -22,6 +22,7 @@
 #
 # What it does:
 #   0. Ensures plugin/dist is fresh, then syncs plugin/ -> ~/.local/share/Advance/plugin
+#      and bounces exact-path deployed Temporal worker.js processes after sync
 #   1. Copies .opencode/command/*.md  -> ~/.config/opencode/command/
 #   2. Removes stale commands from global that no longer exist in repo
 #   3. Removes legacy non-ADV commands
@@ -1167,9 +1168,26 @@ print_worker_action_required() {
 
 refresh_deployed_temporal_workers() {
 	local mode="$1"
-	local worker_script="$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js"
+	local runtime_plugin_path worker_script
 	local matches failures remaining pid cmd
 	local bounce_grace_seconds=2
+
+	if runtime_plugin_path="$(cd "$ADV_RUNTIME_PLUGIN_PATH" 2>/dev/null && pwd -P)"; then
+		worker_script="$runtime_plugin_path/dist/temporal/worker.js"
+	else
+		worker_script="$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js"
+	fi
+
+	if [ ! -d /proc ]; then
+		print_worker_action_required "$worker_script" "process enumeration via /proc is unavailable; deployed worker refresh cannot be proven"
+		case "$mode" in
+		check | dry-run)
+			echo "      No worker processes were signaled."
+			return 0
+			;;
+		esac
+		return 1
+	fi
 
 	matches="$(list_deployed_temporal_worker_matches "$worker_script")"
 	if [ -z "$matches" ]; then
