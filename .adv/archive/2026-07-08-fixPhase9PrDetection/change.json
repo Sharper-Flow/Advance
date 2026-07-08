@@ -1,0 +1,2055 @@
+{
+  "id": "fixPhase9PrDetection",
+  "title": "Fix phase9 PR detection",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-07T15:22:48.981Z",
+  "tasks": [
+    {
+      "id": "tk-6b5a512d2bd4",
+      "title": "RED tests for Phase-9 PR metadata loss and branch auto-delete",
+      "type": "code",
+      "section": "Tests",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-07T15:33:20.014Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T15:44:51.402Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixPhase9PrDetection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+          "task_id": "tk-6b5a512d2bd4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6b5a512d2bd4"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts",
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/src/tools/gate.release-enforcement.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts",
+              "exit_code": 1,
+              "summary": "6 RED tests fail as expected; 138 existing tests pass. RED failures correspond to AC1 (pr_auto_merge no prNumber), AC2 (verifyReleaseEvidenceFromMain PR mode), AC3 (adv_gate_complete PR mode without pushed branch), AC4 (changeTipSha preservation in pending_merge and done status), and AC5/AC6 (distinct failure classification for missing metadata)."
+            },
+            {
+              "command": "cd plugin && pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all pass."
+            },
+            {
+              "command": "cd plugin && pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit passes with the new optional parameters and test file."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "96 tests pass; scaffolding changes did not regress change.test.ts."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/gate.test.ts",
+              "exit_code": 0,
+              "summary": "30 tests pass; gate.test.ts unaffected."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added optional `deps?: Pick<GitFinalizeDeps, \"runGit\" | \"runGh\">` to `verifyReleaseEvidenceFromMain`",
+              "why": "Required to inject runGit/runGh in unit tests so `verifyReleaseEvidenceFromMain` can exercise real `classifyFinalizationRoute`/`resolveReleaseReachability` behavior instead of relying on mocks. Does not change behavior when omitted."
+            },
+            {
+              "what": "Added optional `previousChangeTipSha?: string` to `buildPendingMergePhase9Status`",
+              "why": "Needed to test preservation of the durable tip SHA when the pending_merge status is rebuilt; function body left intentionally unchanged so the test stays RED."
+            },
+            {
+              "what": "Relaxed existing `change.archive-phase9.test.ts` mock assertions from strict `toHaveBeenCalledWith` to per-call argument checks",
+              "why": "The new `deps` argument is forwarded as `undefined` when not provided, which changed the exact call signature observed by the mocked functions. The tests now verify the meaningful arguments while tolerating the optional trailing `undefined`."
+            },
+            {
+              "what": "Wrote the AC4 done-status preservation test through `adv_change_archive` signal payloads rather than `buildPendingMergePhase9Status` alone",
+              "why": "The terminal done status is built inline in `change.ts`/`archive-gate.ts`; the only observable contract is the `phase9_status` recorded by `recordPhase9Status`. This test proves `changeTipSha` is currently dropped there too."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated existing mock assertions in `change.archive-phase9.test.ts` for the new `deps` forwarding path. No same-pattern production code changes were made beyond the minimal scaffolding, so no broader fixes applied.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added 6 RED tests for issue #202. All fail against the current implementation as intended. Minimal scaffolding added: optional `deps` parameter on `verifyReleaseEvidenceFromMain` and optional `previousChangeTipSha` parameter on `buildPendingMergePhase9Status`. Existing `change.archive-phase9.test.ts` expectations were relaxed to tolerate the new `deps` argument in mock calls. Typecheck, lint, format:check, and `pnpm run check` all pass; `change.test.ts` and `gate.test.ts` remain green.",
+            "suggested_next_action": "Implement production fixes so the 6 RED tests pass: (1) move PR auto-discovery from the `direct` branch into the PR branch of `resolveReleaseReachability`; (2) update `getReleaseFinalizationBlocker` in `gate.ts` to call `resolveReleaseReachability` in PR mode even when the change branch is not pushed; (3) preserve `changeTipSha` through `buildPendingMergePhase9Status` and the terminal done-status builders in `change.ts`/`archive-gate.ts`. Then rerun `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts`."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/gate.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "RED evidence recorded via adv_run_test tr_mrau8tih_3baf5226: targeted archive/gate tests fail with 5+ expected failures proving PR metadata loss, missing merged-PR discovery, branch auto-delete gate blocker, and changeTipSha preservation gaps.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added six failing regression tests for issue #202 across git-finalize, archive-gate, and gate release enforcement. Added minimal test scaffolding to allow dependency injection into verifyReleaseEvidenceFromMain and changeTipSha preservation input. RED evidence proves missing PR discovery in PR route, archived retry blocked instead of shipped, release gate branch-push blocker after auto-delete, and status evidence loss.",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts"
+      ],
+      "checkpointSha": "a4488277cbaf3a4e6464002bb09f876b2c7cda96",
+      "completedAt": "2026-07-07T16:03:30.220Z",
+      "completed_at": "2026-07-07T16:03:30.220Z",
+      "notes": "RED tests added and committed. adv_run_test tr_mrau8tih_3baf5226 fails as expected against current implementation.",
+      "updatedAt": "2026-07-07T16:03:37.439Z"
+    },
+    {
+      "id": "tk-95a8ba76002e",
+      "title": "Add durable Phase-9 evidence schema and preservation helper",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-07T15:33:29.909Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6b5a512d2bd4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC4",
+          "AC8"
+        ],
+        "verifies": [
+          "AC4",
+          "AC8"
+        ],
+        "respects": [
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T16:03:50.816Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixPhase9PrDetection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+          "task_id": "tk-95a8ba76002e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-95a8ba76002e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/changes.ts",
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/schemas/change.schema.json"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts",
+              "exit_code": 1,
+              "summary": "AC4 preservation tests pass (33/34). One expected failure remains: archive-gate.test.ts 'returns shipped when PR mode has no prNumber but a merged PR is discoverable' (PR-route reachability cascade, out of task scope)."
+            },
+            {
+              "command": "pnpm --dir plugin run schemas:check",
+              "exit_code": 0,
+              "summary": "Schema artifacts match generated output."
+            },
+            {
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "No TypeScript errors."
+            },
+            {
+              "command": "pnpm --dir plugin run format:check",
+              "exit_code": 0,
+              "summary": "All source files match Prettier style."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Replaced buildPendingMergePhase9Status previousChangeTipSha input with full previous Phase9FinalizationStatus",
+              "why": "The design requires preserving multiple durable fields (repo, prNumber, prUrl, route, changeTipSha, autoMergeArmed), not just changeTipSha. Passing the full previous status keeps the helper generic and the caller code simple."
+            },
+            {
+              "what": "Used explicit per-field spreads instead of a dynamic loop in preservePhase9Evidence",
+              "why": "TypeScript could not infer safe assignment through a dynamic key union; per-field spreads keep the helper type-safe without casts."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern subsystem sweep needed; all phase9_status transitions in change.ts and archive-gate.ts now route through the preservation helper.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added optional `repo` to Phase9FinalizationStatusSchema, introduced `preservePhase9Evidence` helper, and wired it into `buildPendingMergePhase9Status` plus all terminal done recordings (archive retry, async phase9 callback, sync archive path) so durable fields (repo/prNumber/prUrl/route/changeTipSha/autoMergeArmed) survive transitions. Schema check, typecheck, format:check, and AC4 preservation tests pass. One PR-route test still fails as expected (out of task scope).",
+            "suggested_next_action": "Task 2 complete. PR-route reachability cascade remains (1 RED test in archive-gate.test.ts). Move to task 3 if that owns PR-route/gate fixes, or run full test suite to confirm no regressions."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run schemas:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run format:check"
+            }
+          ]
+        }
+      ],
+      "verification": "GREEN evidence: adv_run_test tr_mraupib5 passed preservation test; adv_run_test tr_mraupozo passed schemas:check. Remaining archive-gate failure is PR-route cascade for next task.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added optional repo field to Phase9FinalizationStatusSchema and regenerated schema. Added preservePhase9Evidence helper and wired status transitions so existing repo/prNumber/prUrl/route/changeTipSha/autoMergeArmed evidence is retained across pending_merge and done status recordings in archive retry and async/sync archive paths.",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "0398df70610322534aa0b868bb7b31bf6ecb9ca7",
+      "completedAt": "2026-07-07T16:16:29.817Z",
+      "completed_at": "2026-07-07T16:16:29.817Z",
+      "notes": "Durable Phase-9 evidence schema/preservation complete. GREEN tr_mraupib5; schema check tr_mraupozo.",
+      "updatedAt": "2026-07-07T16:16:36.874Z"
+    },
+    {
+      "id": "tk-261c0a2ad20f",
+      "title": "Repair PR-route reachability cascade",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-07T15:33:40.834Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6b5a512d2bd4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T16:16:43.460Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixPhase9PrDetection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+          "task_id": "tk-261c0a2ad20f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-261c0a2ad20f"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/change/archive-gate.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts",
+              "exit_code": 0,
+              "summary": "101/101 tests passed (git-finalize 99, archive-gate 2)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts",
+              "exit_code": 1,
+              "summary": "143/144 tests passed; 1 expected failure in gate.release-enforcement ('allows release completion in pr mode when branch is not pushed but merged PR is discoverable') due to task 4 gate integration"
+            },
+            {
+              "command": "pnpm run typecheck && pnpm run lint",
+              "exit_code": 0,
+              "summary": "TypeScript and ESLint pass after formatting"
+            },
+            {
+              "command": "pnpm run format:check",
+              "exit_code": 0,
+              "summary": "Prettier formatting verified after running pnpm run format"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added pr_missing_merge_proof unreachable proof classification",
+              "why": "Distinguishes missing PR metadata / undiscoverable proof from an actual PR that exists and is not merged, preventing the PR_NOT_MERGED blocker from firing on missing metadata."
+            },
+            {
+              "what": "Made repo optional in discoverMergedPr and readPrMergeState and added repo?: string to ReleaseReachabilityInput",
+              "why": "Allows PR discovery to fall back to the gh CLI's current working directory when repo is not explicitly known, which is needed for archive-gate retries where route.repo may be absent."
+            },
+            {
+              "what": "Forced pr_auto_merge route in verifyReleaseEvidenceFromMain when archiveMode is pr",
+              "why": "Ensures PR-mode finalization retries flow through the new PR discovery branch in resolveReleaseReachability instead of being classified as no_remote/local_unmerged."
+            },
+            {
+              "what": "Preserved direct-route and fail-closed behavior",
+              "why": "PR branch only returns pr_merged when a PR is actually discovered and read as MERGED; otherwise it returns pr_missing_merge_proof or pr_unmerged (when a PR exists but is not merged). No GitHub mutations."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "gate.release-enforcement.test.ts: 'allows release completion in pr mode when branch is not pushed but merged PR is discoverable' still fails because getReleaseFinalizationBlocker in src/tools/gate.ts requires verifyChangeBranchPushed before considering PR merge proof. Task 4 owns this gate integration."
+          ],
+          "required_main_agent_actions": [
+            "Task 4: Update src/tools/gate.ts getReleaseFinalizationBlocker to allow PR-mode release completion when the change branch is not pushed but a merged PR is structurally discoverable."
+          ],
+          "related_scan": "No same-pattern issues found; direct-route discovery and tree-fallback paths were left unchanged.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task 3 PR-route reachability is fixed. resolveReleaseReachability now auto-discovers merged PRs when prNumber is missing, returns pr_missing_merge_proof instead of pr_unmerged for missing metadata, and accepts an optional repo override. verifyReleaseEvidenceFromMain now routes PR-mode retries through the pr_auto_merge branch so the discovery logic is exercised. All git-finalize and archive-gate tests pass; gate.release-enforcement still has one expected failure for task 4.",
+            "suggested_next_action": "Hand off to task 4 for release-gate blocker wiring in src/tools/gate.ts so the 'branch not pushed but merged PR discoverable' case can complete"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck && pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            }
+          ]
+        }
+      ],
+      "verification": "GREEN evidence: adv_run_test tr_mrave1l7 passed git-finalize + archive-gate 101/101. Broader verify tr_mraveex7 leaves expected gate.release-enforcement failure for task tk-55adf23bc63c.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated PR-route release reachability to discover merged PRs when prNumber is absent, return pr_merged proof with PR number/merge commit, and classify missing PR metadata/proof distinctly from actual pr_unmerged. Wired verifyReleaseEvidenceFromMain through the new cascade so archived-bundle PR retry can return shipped when merged PR is discoverable. Direct-route behavior and fail-closed safety preserved.",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "checkpointSha": "7f026d0c7d84675acc4055a3910d177d76d99996",
+      "completedAt": "2026-07-07T16:35:46.746Z",
+      "completed_at": "2026-07-07T16:35:46.746Z",
+      "notes": "PR-route reachability cascade complete. GREEN tr_mrave1l7. Remaining gate blocker is owned by integration task.",
+      "updatedAt": "2026-07-07T16:36:12.142Z"
+    },
+    {
+      "id": "tk-55adf23bc63c",
+      "title": "Wire Phase-9 dispatch, retry, and release-gate blocker to durable PR evidence",
+      "type": "code",
+      "section": "Integration",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-07T15:33:53.322Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-95a8ba76002e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-261c0a2ad20f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C5",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T16:36:26.769Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixPhase9PrDetection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+          "task_id": "tk-55adf23bc63c",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-55adf23bc63c"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/gate.ts",
+            "plugin/src/tools/gate.release-enforcement.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts",
+              "exit_code": 0,
+              "summary": "4 test files, 144 tests passed (targeted RED command)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "96 tests passed after change.ts edits"
+            },
+            {
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit clean after type changes"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Recorded durable route/repo metadata at async Phase-9 dispatch in change.ts",
+              "why": "Gives resolveReleaseReachability the repo and PR route it needs after a squash-merged branch is auto-deleted."
+            },
+            {
+              "what": "Passed phase9_status repo/changeTipSha into reachability in both gate.ts and archive-gate.ts",
+              "why": "Closes the fallback gap where the route object or live branch ref is missing after PR merge."
+            },
+            {
+              "what": "Rewired PR-mode release gate blocker to check resolveReleaseReachability before branch push status",
+              "why": "Branch auto-delete after merged PR is normal in PR mode; proof should come from durable PR evidence, not a live branch."
+            },
+            {
+              "what": "Updated 'allows release completion when change branch is pushed (pr mode)' test to require merged PR proof",
+              "why": "Branch push alone no longer satisfies PR-mode release under the new structural rule."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "None beyond the targeted PR-mode release gate wiring; no same-pattern issues found in scope.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Phase-9 wiring complete. Initial async dispatch now records route/repo with changeTipSha; PR archive mode release gate checks resolveReleaseReachability first and no longer requires a live/pushed branch when merged PR proof exists. All targeted tests pass 144/144 and change.test.ts 96/96 pass; typecheck clean.",
+            "suggested_next_action": "Run full `bin/oc-test smoke` or CI gate to confirm no regressions beyond targeted set."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+            }
+          ]
+        }
+      ],
+      "verification": "GREEN evidence: tr_mravtqyx archive/gate suite 144/144 passed; tr_mravtztx change.test 96/96 passed; tr_mravub0o typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Recorded route/repo metadata at async Phase-9 dispatch, threaded phase9_status.repo into verifyReleaseEvidenceFromMain, and changed release-gate PR-mode blocker to call resolveReleaseReachability before branch-push checks. Branch auto-delete no longer blocks release when merged PR proof exists; missing proof still fails closed with details.",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "18ec3c4d768652484d2e7fc736321ed8c3b8f10a",
+      "completedAt": "2026-07-07T16:48:07.143Z",
+      "completed_at": "2026-07-07T16:48:07.143Z",
+      "notes": "Integration wiring complete. GREEN tr_mravtqyx/tr_mravtztx; typecheck tr_mravub0o.",
+      "updatedAt": "2026-07-07T16:48:14.872Z"
+    },
+    {
+      "id": "tk-38ceecdbb115",
+      "title": "Verification sweep and release-readiness evidence",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-07T15:34:04.034Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-55adf23bc63c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C6",
+          "C7"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-07T16:48:33.395Z",
+      "verification": "Harden remediation verification: targeted archive/gate/change suite 246/246 passed (tr_mrbavv99_678c167c); pnpm --dir plugin run check passed (tr_mrbawel5_95146f16).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "checkpointSha": "91cf8a7437b243a986b69f6f1af0f55816e36862",
+      "completedAt": "2026-07-07T23:49:43.444Z",
+      "completed_at": "2026-07-07T23:49:43.444Z",
+      "notes": "Verification sweep complete. Changed-scope and smoke/check pass. Full suite red classified as unrelated/order-sensitive concurrent-signaling timeout after targeted failing test rerun passed.",
+      "error_recovery": {
+        "last_error": "bin/oc-test full failed twice on src/temporal/__tests__/concurrent-signaling.itest.ts timeout: State predicate never satisfied; targeted rerun of same test passed.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "Proceed with changed-scope/smoke/check evidence; surface full-suite order-sensitive failure as remaining concern for acceptance.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "bin/oc-test full exit 1; concurrent-signaling.itest timeout",
+            "diagnosis": "Failure outside touched archive/gate/schema surfaces; likely suite-order/contention-sensitive Temporal integration behavior. Needed rerun evidence before classification.",
+            "fix_tried": "Reran targeted failing test via bin/oc-test targeted -- src/temporal/__tests__/concurrent-signaling.itest.ts",
+            "strategy_label": "targeted_rerun",
+            "outcome": "succeeded",
+            "attempted_at": "2026-07-07T16:51:50Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "bin/oc-test full exit 1 again; same concurrent-signaling.itest timeout",
+            "diagnosis": "Repeated only under full suite; targeted test passed and smoke/check/changed-scope tests pass. Not caused by changed files.",
+            "fix_tried": "Ran bin/oc-test smoke and pnpm check; both passed. Documented full-suite red as unrelated/order-sensitive concern.",
+            "strategy_label": "scope_verification",
+            "outcome": "succeeded",
+            "attempted_at": "2026-07-07T16:55:18Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-07-07T16:55:19.884Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixPhase9PrDetection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+          "task_id": "tk-38ceecdbb115",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-38ceecdbb115"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "246 tests passed across 5 targeted files"
+            },
+            {
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used coercePrWorkflowRoute for archive-gate PR-mode route coercion",
+              "why": "Single shared policy between archive retry and dispatch/gate; preserves no_remote/pr_manual semantics."
+            },
+            {
+              "what": "Added explicit PR_MERGE_PROOF_MISSING branch in verifyReleaseEvidenceFromMain",
+              "why": "Surfaces distinct reason and details for missing merge proof instead of generic reachability."
+            },
+            {
+              "what": "Wrapped recordFailure store.changes.get in try/catch",
+              "why": "Degrades previousPhase9 to undefined on read failure so failed status recording is still attempted."
+            },
+            {
+              "what": "Used input.repo ?? route.repo in direct-route PR autodiscovery/readPrMergeState",
+              "why": "Matches PR-route fallback behavior."
+            },
+            {
+              "what": "Strengthened tests and updated existing PR-discovery test to provide a configured origin remote",
+              "why": "CoercePrWorkflowRoute now preserves no_remote, so the integration test needed a real origin to reach pr_auto_merge."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Fixed same route-coercion policy in archive-gate by delegating to git-finalize coercePrWorkflowRoute; direct-route PR discovery now honors input.repo override consistently.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "All five release-readiness findings fixed; targeted tests and full check gate pass. No blockers.",
+            "suggested_next_action": "Run bin/oc-test full or proceed to release/archive"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9PrDetection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Phase-9 PR-mode squash-merge release detection design validation",
+      "sources": [
+        {
+          "label": "resolveReleaseReachability PR-route branch (defect site)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2470-2508",
+          "summary": "PR route returns proof:'pr_unmerged' + details ['PR merge state requires repo and prNumber'] immediately when !route.repo || !input.prNumber. No auto-discovery, no readPrMergeState-when-present branch beyond the single call, no tree fallback. This is the exact string from issue #202."
+        },
+        {
+          "label": "resolveReleaseReachability direct-route reference pattern",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2388-2468",
+          "summary": "Direct route already implements the correct 4-step cascade: origin ancestry -> discoverMergedPr when prNumber missing -> readPrMergeState (MERGED+mergedAt) -> detectSquashMergeByTree(changeTipSha). Design point 3 ports this proven cascade to the PR route. This is a by-the-book copy of an in-repo canonical pattern, not a novel mechanism."
+        },
+        {
+          "label": "ReleaseReachabilityProof union",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:339-358",
+          "summary": "Failure proof enum: local_unmerged | origin_unmerged | origin_push_unverified | pr_unmerged | blocked. There is currently no distinct 'missing proof / could not determine' classification separate from 'PR observed and confirmed NOT merged'. Design point 3 requires adding one (e.g. pr_proof_unavailable)."
+        },
+        {
+          "label": "Phase9FinalizationStatusSchema",
+          "locator": "plugin/src/types/changes.ts:782-804",
+          "summary": "Schema has prNumber, prUrl, autoMergeArmed, route, changeTipSha — but NO repo field. Design point 1 adds optional repo. Schema is Zod-authoritative; adding a field requires pnpm run schemas:generate + schemas:check (AGENTS.md schema source-of-truth)."
+        },
+        {
+          "label": "recordPhase9Status full-object replacement + call sites",
+          "locator": "plugin/src/tools/change.ts:2603-2607,2639-2646,2675-2683 ; plugin/src/tools/change/archive-gate.ts:426-449",
+          "summary": "recordPhase9Status persists the full Phase9FinalizationStatus object each call (phase9StatusUpdatedSignal). The pending seed (2606) and done transition (2678) construct fresh objects that DROP prNumber/prUrl/route/repo. buildPendingMergePhase9Status (archive-gate.ts:179-191) carries prNumber/prUrl/autoMergeArmed/route but not repo/changeTipSha. Without a merge/preserve helper, evidence captured at pending_merge is lost on the done transition — confirms design point 1 is load-bearing, not cosmetic."
+        },
+        {
+          "label": "Initial phase9 pending dispatch metadata",
+          "locator": "plugin/src/tools/change.ts:2580-2607",
+          "summary": "Initial pending status records only changeTipSha; no repo/route classification captured at dispatch. Design point 2 derives repo/route from main-checkout classifyFinalizationRoute at dispatch time and persists it."
+        },
+        {
+          "label": "verifyReleaseEvidenceFromMain retry path",
+          "locator": "plugin/src/tools/change/archive-gate.ts:502-528",
+          "summary": "Retry coerces PR route via coercePrWorkflowRoute(classifiedRoute) and passes only phase9_status.prNumber + changeTipSha. route.repo comes from live classifyFinalizationRoute, which after branch auto-delete still resolves repo from the remote URL (repo != branch). Design point 2's 'retry prefers phase9_status.repo, falls back to route.repo' is a resilience belt-and-suspenders; route.repo is usually still available because it derives from origin remote, not the deleted branch."
+        },
+        {
+          "label": "getReleaseFinalizationBlocker PR-mode gate",
+          "locator": "plugin/src/tools/gate.ts:203-259",
+          "summary": "PR-mode branch (212-221) calls verifyChangeBranchPushed and returns releaseRequiresPrHandoffResponse when !pushed, returning null (unblocked) only when branch is live/pushed. After squash-merge + branch auto-delete the branch is gone, so this permanently blocks release even when the PR is merged. Design point 4 correctly reorders to resolveReleaseReachability-first."
+        },
+        {
+          "label": "coercePrWorkflowRoute",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:728-744",
+          "summary": "Preserves route.repo (returns route unchanged when !route.repo). So the PR route retains repo when the remote exists; the failure at 2470 is driven by missing prNumber (branch/PR list not consulted), not missing repo, in the common squash-delete case."
+        },
+        {
+          "label": "GitHub gh pr list --state merged --head discovery",
+          "locator": "https://cli.github.com/manual/gh_pr_list",
+          "summary": "discoverMergedPr uses `gh pr list --state merged --head change/<id>`. gh pr list matches PRs by head branch name even after the branch ref is deleted on the remote, because merged PR records retain headRefName. This validates that PR auto-discovery by head is a supported, canonical way to recover prNumber post-branch-delete."
+        }
+      ],
+      "architecture_assessment": "The design is a by-the-book consolidation, not a novel architecture. Point 3 ports the direct-route reachability cascade (ancestry -> discover-by-head -> readPrMergeState -> tree fallback) verbatim into the PR route, eliminating an asymmetry where two routes that must answer the same question ('is this change durably merged?') used different logic. That asymmetry is the #202 root cause: the PR route short-circuits to pr_unmerged when prNumber is absent, exactly the state produced by squash-merge + auto branch delete before phase9 runs. Points 1-2 close a durable-state gap: recordPhase9Status is a full-object replace, and current call sites drop evidence fields across transitions, so repo/prNumber must be captured early (dispatch) and preserved (merge helper) rather than re-derived from a branch that no longer exists. Point 4 fixes a strictly-too-strict gate that requires a live pushed branch as the sole PR-mode proof, which is unsatisfiable post-delete; reordering to reachability-first with merged-PR proof is the correct relaxation. Point 5 keeps the fail-closed invariant intact. The one genuinely new type surface is the missing-proof classification (point 3): the current union conflates 'PR confirmed NOT merged' (pr_unmerged) with 'could not obtain proof' (gh/auth/API failure). Splitting these is structurally correct (P33) — a distinct classification lets the gate fail closed with actionable, differentiated remediation instead of falsely asserting the PR is unmerged when it simply couldn't be read. Recommend the new proof value carry the underlying failure details (gh stderr) so the fail-closed message is actionable per the agreement.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All five design points are grounded in verified source. No release-safety regression: every reachable:true path still requires structural proof (merged PR with mergedAt, origin/default ancestry, local merge, or content-addressed tree match). The design fixes an under-detection (false block) without opening an over-completion (false ship). Non-blocking cautions: (a) add a DISTINCT proof enum value for missing-proof rather than reusing pr_unmerged, and make getReleaseFinalizationBlocker + verifyReleaseEvidenceFromMain map it to a fail-closed 'proof unavailable' response separate from 'PR not merged'; (b) implement field preservation as an explicit merge helper over the prior phase9_status inside recordPhase9Status or its callers, because recordPhase9Status replaces the whole object and the done-transition currently drops repo/prNumber/prUrl/route; add a regression test that pending_merge->done retains repo+prNumber; (c) adding repo to Phase9FinalizationStatusSchema requires pnpm run schemas:generate and green schemas:check; (d) point 2 fallback ordering (phase9_status.repo then route.repo) is sound but note route.repo is normally still present post-branch-delete since it derives from the origin remote, so phase9_status.repo is the belt for detached/renamed-remote edge cases; (e) discoverMergedPr already exists and is reused — no new gh surface, keeping the change minimal."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Adding a distinct missing-proof classification widens the ReleaseReachabilityProof union and forces every consumer (gate blocker, verifyReleaseEvidenceFromMain, tests) to handle the new case — more surface, but structurally correct fail-closed differentiation vs. conflating unknown with unmerged.",
+          "Persisting repo/route/prNumber durably at dispatch + preserving across transitions adds write coupling and a merge helper, but removes reliance on re-deriving evidence from a branch that may be deleted — trades a little state for detection robustness.",
+          "Reordering getReleaseFinalizationBlocker to reachability-first for PR mode means the blocker now runs gh/git probes (network) on the gate path rather than a cheap local branch-pushed check; slightly heavier but necessary because the cheap check is unsatisfiable post-squash-delete.",
+          "Extending Phase9FinalizationStatusSchema requires regenerating public JSON schemas and keeping schemas:check green — a small CI-gated maintenance cost."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Skip durable repo persistence; re-derive repo/route purely from live classifyFinalizationRoute at retry time",
+            "disposition": "rejected",
+            "rationale": "Works in the common case (repo derives from origin remote, survives branch delete) but fails on detached/renamed/removed-remote edge cases the agreement wants to survive. Durable persistence is the fail-closed-with-proof choice; live re-derivation is a heuristic dependency on remote state."
+          },
+          {
+            "option": "Reuse existing pr_unmerged proof for the missing-proof case instead of adding a distinct classification",
+            "disposition": "rejected",
+            "rationale": "Conflates 'PR confirmed NOT merged' with 'could not determine merge state' (gh/auth/API failure). Violates P33 structural-correctness and the agreement's 'missing proof fails closed with actionable details' — the remediation text differs (fix credentials/retry vs. merge the PR). A distinct value keeps both fail-closed but actionable."
+          },
+          {
+            "option": "Relax the gate to complete release on branch-absent alone (assume delete implies merge)",
+            "disposition": "rejected",
+            "rationale": "Directly violates design point 5 and the agreement: branch deletion is not merge proof (branch could be deleted while PR is closed-unmerged). Would open a false-ship hole. Must require merged-PR / ancestry / tree proof."
+          },
+          {
+            "option": "Add a whole new PR-recovery function instead of extending resolveReleaseReachability's PR route",
+            "disposition": "rejected",
+            "rationale": "Duplicates the direct-route cascade a third time and re-forks the two-routes-answer-same-question asymmetry that caused #202. Extending the existing function to mirror the direct route consolidates the logic (P04 locality, P19 simplicity)."
+          }
+        ],
+        "recommendation": "Proceed. Implement the PR route as a mirror of the direct-route cascade (discoverMergedPr when prNumber missing -> readPrMergeState -> detectSquashMergeByTree with threaded changeTipSha), add a DISTINCT missing-proof proof value that carries gh/git failure details, persist repo at dispatch and preserve prNumber/prUrl/route/repo/changeTipSha across pending->pending_merge->done via an explicit merge over prior phase9_status, and reorder getReleaseFinalizationBlocker PR mode to reachability-first. Add regression tests: (1) PR route + missing prNumber + deleted branch + merged PR discoverable by head -> reachable pr_merged; (2) PR route + gh failure -> missing-proof classification, gate fails closed; (3) pending_merge->done preserves repo+prNumber; (4) branch deleted + PR closed-unmerged -> still blocked. Run pnpm run schemas:generate + schemas:check for the repo field."
+      },
+      "recommendation": "Design is APPROVED (validation.status: pass, high confidence, low risk). It is a boring, proven consolidation that ports the already-shipped direct-route reachability cascade into the PR route, closing the #202 false-block without opening a false-ship. Two must-do structural refinements before/within implementation: (1) add a DISTINCT missing-proof classification (do not reuse pr_unmerged) that both getReleaseFinalizationBlocker and verifyReleaseEvidenceFromMain map to a fail-closed 'proof unavailable, actionable details' response; (2) make field preservation an explicit merge over prior phase9_status because recordPhase9Status is a whole-object replace and today's done-transition drops repo/prNumber/prUrl/route. Regenerate public JSON schemas for the new repo field and keep schemas:check green.",
+      "follow_ups": [
+        "Confirm during planning that verifyReleaseEvidenceFromMain and getReleaseFinalizationBlocker share one reachability decision path so PR-mode retry and the pre-archive gate cannot diverge on what counts as merged proof.",
+        "Add a regression test asserting pending_merge -> done phase9_status transition preserves repo and prNumber (guards the whole-object-replace drop identified in change.ts:2675-2683).",
+        "Verify the new missing-proof classification's details surface gh/git stderr (redacted) so the fail-closed message is actionable per the agreement's 'actionable details' requirement."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9PrDetection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+      "task_id": "tk-6b5a512d2bd4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6b5a512d2bd4"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts",
+          "exit_code": 1,
+          "summary": "6 RED tests fail as expected; 138 existing tests pass. RED failures correspond to AC1 (pr_auto_merge no prNumber), AC2 (verifyReleaseEvidenceFromMain PR mode), AC3 (adv_gate_complete PR mode without pushed branch), AC4 (changeTipSha preservation in pending_merge and done status), and AC5/AC6 (distinct failure classification for missing metadata)."
+        },
+        {
+          "command": "cd plugin && pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all pass."
+        },
+        {
+          "command": "cd plugin && pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit passes with the new optional parameters and test file."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "96 tests pass; scaffolding changes did not regress change.test.ts."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/gate.test.ts",
+          "exit_code": 0,
+          "summary": "30 tests pass; gate.test.ts unaffected."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added optional `deps?: Pick<GitFinalizeDeps, \"runGit\" | \"runGh\">` to `verifyReleaseEvidenceFromMain`",
+          "why": "Required to inject runGit/runGh in unit tests so `verifyReleaseEvidenceFromMain` can exercise real `classifyFinalizationRoute`/`resolveReleaseReachability` behavior instead of relying on mocks. Does not change behavior when omitted."
+        },
+        {
+          "what": "Added optional `previousChangeTipSha?: string` to `buildPendingMergePhase9Status`",
+          "why": "Needed to test preservation of the durable tip SHA when the pending_merge status is rebuilt; function body left intentionally unchanged so the test stays RED."
+        },
+        {
+          "what": "Relaxed existing `change.archive-phase9.test.ts` mock assertions from strict `toHaveBeenCalledWith` to per-call argument checks",
+          "why": "The new `deps` argument is forwarded as `undefined` when not provided, which changed the exact call signature observed by the mocked functions. The tests now verify the meaningful arguments while tolerating the optional trailing `undefined`."
+        },
+        {
+          "what": "Wrote the AC4 done-status preservation test through `adv_change_archive` signal payloads rather than `buildPendingMergePhase9Status` alone",
+          "why": "The terminal done status is built inline in `change.ts`/`archive-gate.ts`; the only observable contract is the `phase9_status` recorded by `recordPhase9Status`. This test proves `changeTipSha` is currently dropped there too."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated existing mock assertions in `change.archive-phase9.test.ts` for the new `deps` forwarding path. No same-pattern production code changes were made beyond the minimal scaffolding, so no broader fixes applied.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added 6 RED tests for issue #202. All fail against the current implementation as intended. Minimal scaffolding added: optional `deps` parameter on `verifyReleaseEvidenceFromMain` and optional `previousChangeTipSha` parameter on `buildPendingMergePhase9Status`. Existing `change.archive-phase9.test.ts` expectations were relaxed to tolerate the new `deps` argument in mock calls. Typecheck, lint, format:check, and `pnpm run check` all pass; `change.test.ts` and `gate.test.ts` remain green.",
+        "suggested_next_action": "Implement production fixes so the 6 RED tests pass: (1) move PR auto-discovery from the `direct` branch into the PR branch of `resolveReleaseReachability`; (2) update `getReleaseFinalizationBlocker` in `gate.ts` to call `resolveReleaseReachability` in PR mode even when the change branch is not pushed; (3) preserve `changeTipSha` through `buildPendingMergePhase9Status` and the terminal done-status builders in `change.ts`/`archive-gate.ts`. Then rerun `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts`."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/gate.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9PrDetection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+      "task_id": "tk-95a8ba76002e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-95a8ba76002e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/schemas/change.schema.json"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts",
+          "exit_code": 1,
+          "summary": "AC4 preservation tests pass (33/34). One expected failure remains: archive-gate.test.ts 'returns shipped when PR mode has no prNumber but a merged PR is discoverable' (PR-route reachability cascade, out of task scope)."
+        },
+        {
+          "command": "pnpm --dir plugin run schemas:check",
+          "exit_code": 0,
+          "summary": "Schema artifacts match generated output."
+        },
+        {
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "No TypeScript errors."
+        },
+        {
+          "command": "pnpm --dir plugin run format:check",
+          "exit_code": 0,
+          "summary": "All source files match Prettier style."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Replaced buildPendingMergePhase9Status previousChangeTipSha input with full previous Phase9FinalizationStatus",
+          "why": "The design requires preserving multiple durable fields (repo, prNumber, prUrl, route, changeTipSha, autoMergeArmed), not just changeTipSha. Passing the full previous status keeps the helper generic and the caller code simple."
+        },
+        {
+          "what": "Used explicit per-field spreads instead of a dynamic loop in preservePhase9Evidence",
+          "why": "TypeScript could not infer safe assignment through a dynamic key union; per-field spreads keep the helper type-safe without casts."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern subsystem sweep needed; all phase9_status transitions in change.ts and archive-gate.ts now route through the preservation helper.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added optional `repo` to Phase9FinalizationStatusSchema, introduced `preservePhase9Evidence` helper, and wired it into `buildPendingMergePhase9Status` plus all terminal done recordings (archive retry, async phase9 callback, sync archive path) so durable fields (repo/prNumber/prUrl/route/changeTipSha/autoMergeArmed) survive transitions. Schema check, typecheck, format:check, and AC4 preservation tests pass. One PR-route test still fails as expected (out of task scope).",
+        "suggested_next_action": "Task 2 complete. PR-route reachability cascade remains (1 RED test in archive-gate.test.ts). Move to task 3 if that owns PR-route/gate fixes, or run full test suite to confirm no regressions."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run format:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9PrDetection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+      "task_id": "tk-261c0a2ad20f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-261c0a2ad20f"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change/archive-gate.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts",
+          "exit_code": 0,
+          "summary": "101/101 tests passed (git-finalize 99, archive-gate 2)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts",
+          "exit_code": 1,
+          "summary": "143/144 tests passed; 1 expected failure in gate.release-enforcement ('allows release completion in pr mode when branch is not pushed but merged PR is discoverable') due to task 4 gate integration"
+        },
+        {
+          "command": "pnpm run typecheck && pnpm run lint",
+          "exit_code": 0,
+          "summary": "TypeScript and ESLint pass after formatting"
+        },
+        {
+          "command": "pnpm run format:check",
+          "exit_code": 0,
+          "summary": "Prettier formatting verified after running pnpm run format"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added pr_missing_merge_proof unreachable proof classification",
+          "why": "Distinguishes missing PR metadata / undiscoverable proof from an actual PR that exists and is not merged, preventing the PR_NOT_MERGED blocker from firing on missing metadata."
+        },
+        {
+          "what": "Made repo optional in discoverMergedPr and readPrMergeState and added repo?: string to ReleaseReachabilityInput",
+          "why": "Allows PR discovery to fall back to the gh CLI's current working directory when repo is not explicitly known, which is needed for archive-gate retries where route.repo may be absent."
+        },
+        {
+          "what": "Forced pr_auto_merge route in verifyReleaseEvidenceFromMain when archiveMode is pr",
+          "why": "Ensures PR-mode finalization retries flow through the new PR discovery branch in resolveReleaseReachability instead of being classified as no_remote/local_unmerged."
+        },
+        {
+          "what": "Preserved direct-route and fail-closed behavior",
+          "why": "PR branch only returns pr_merged when a PR is actually discovered and read as MERGED; otherwise it returns pr_missing_merge_proof or pr_unmerged (when a PR exists but is not merged). No GitHub mutations."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "gate.release-enforcement.test.ts: 'allows release completion in pr mode when branch is not pushed but merged PR is discoverable' still fails because getReleaseFinalizationBlocker in src/tools/gate.ts requires verifyChangeBranchPushed before considering PR merge proof. Task 4 owns this gate integration."
+      ],
+      "required_main_agent_actions": [
+        "Task 4: Update src/tools/gate.ts getReleaseFinalizationBlocker to allow PR-mode release completion when the change branch is not pushed but a merged PR is structurally discoverable."
+      ],
+      "related_scan": "No same-pattern issues found; direct-route discovery and tree-fallback paths were left unchanged.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task 3 PR-route reachability is fixed. resolveReleaseReachability now auto-discovers merged PRs when prNumber is missing, returns pr_missing_merge_proof instead of pr_unmerged for missing metadata, and accepts an optional repo override. verifyReleaseEvidenceFromMain now routes PR-mode retries through the pr_auto_merge branch so the discovery logic is exercised. All git-finalize and archive-gate tests pass; gate.release-enforcement still has one expected failure for task 4.",
+        "suggested_next_action": "Hand off to task 4 for release-gate blocker wiring in src/tools/gate.ts so the 'branch not pushed but merged PR discoverable' case can complete"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck && pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9PrDetection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+      "task_id": "tk-55adf23bc63c",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-55adf23bc63c"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts",
+          "exit_code": 0,
+          "summary": "4 test files, 144 tests passed (targeted RED command)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "96 tests passed after change.ts edits"
+        },
+        {
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit clean after type changes"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Recorded durable route/repo metadata at async Phase-9 dispatch in change.ts",
+          "why": "Gives resolveReleaseReachability the repo and PR route it needs after a squash-merged branch is auto-deleted."
+        },
+        {
+          "what": "Passed phase9_status repo/changeTipSha into reachability in both gate.ts and archive-gate.ts",
+          "why": "Closes the fallback gap where the route object or live branch ref is missing after PR merge."
+        },
+        {
+          "what": "Rewired PR-mode release gate blocker to check resolveReleaseReachability before branch push status",
+          "why": "Branch auto-delete after merged PR is normal in PR mode; proof should come from durable PR evidence, not a live branch."
+        },
+        {
+          "what": "Updated 'allows release completion when change branch is pushed (pr mode)' test to require merged PR proof",
+          "why": "Branch push alone no longer satisfies PR-mode release under the new structural rule."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "None beyond the targeted PR-mode release gate wiring; no same-pattern issues found in scope.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Phase-9 wiring complete. Initial async dispatch now records route/repo with changeTipSha; PR archive mode release gate checks resolveReleaseReachability first and no longer requires a live/pushed branch when merged PR proof exists. All targeted tests pass 144/144 and change.test.ts 96/96 pass; typecheck clean.",
+        "suggested_next_action": "Run full `bin/oc-test smoke` or CI gate to confirm no regressions beyond targeted set."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run typecheck"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9PrDetection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "NB-001",
+          "label": "issue",
+          "what": "`bin/oc-test full` failed twice on `src/temporal/__tests__/concurrent-signaling.itest.ts` timeout, while the targeted failing test passed and changed-scope/smoke/check verification passed.",
+          "why": "Full-suite result remains a release-readiness concern, but evidence indicates order/contention-sensitive Temporal integration behavior outside touched archive/gate/schema scope.",
+          "fix": "Track separately if repeated outside this change; do not block this Phase-9 PR detection fix on unrelated full-suite contention."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For PR-mode archive release proof, branch existence is not authoritative after squash-merge/auto-delete. Check structural PR/default-branch reachability first; branch push status is only diagnostic when no merge proof exists."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change/archive-gate.test.ts src/tools/change.test.ts (240/240)",
+          "pnpm --dir plugin run schemas:check",
+          "pnpm --dir plugin run check",
+          "bin/oc-test smoke",
+          "adv_change_validate strict:true",
+          "bin/oc-test targeted -- src/temporal/__tests__/concurrent-signaling.itest.ts"
+        ],
+        "results": "pass",
+        "evidence": "Changed-scope 240/240 pass; schemas/check/smoke pass; strict validation pass with NO_DELTAS warning; targeted concurrent-signaling rerun pass after full-suite timeout."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live ADV MCP behavior requires build/deploy/restart because OpenCode caches deployed dist at session startup.",
+        "Full `bin/oc-test full` remains order-sensitive red on concurrent-signaling timeout in this run; targeted failing test passes."
+      ],
+      "required_main_agent_actions": [
+        "Surface full-suite timeout as nonblocking remaining concern at acceptance.",
+        "Mention source-vs-deployed runtime boundary in executive summary."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9PrDetection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 1,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance"
+      ],
+      "summary": "Acceptance review found no blocking issues. Contract matrix persisted 27/27 pass/respected. Source review confirmed PR-mode reachability requires structural proof; gate blocker no longer treats live branch as hard requirement. Verification reran changed-scope tests 241/241 and pnpm check green. Full-suite concern remains previously documented as unrelated concurrent-signaling timeout with targeted rerun pass.",
+      "findings": [],
+      "follow_ups": [
+        "Monitor unrelated full-suite concurrent-signaling timeout separately; not blocking this change because changed-scope, check, smoke, and targeted failing-test rerun evidence passed."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9PrDetection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+      "task_id": "tk-38ceecdbb115",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-38ceecdbb115"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "246 tests passed across 5 targeted files"
+        },
+        {
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used coercePrWorkflowRoute for archive-gate PR-mode route coercion",
+          "why": "Single shared policy between archive retry and dispatch/gate; preserves no_remote/pr_manual semantics."
+        },
+        {
+          "what": "Added explicit PR_MERGE_PROOF_MISSING branch in verifyReleaseEvidenceFromMain",
+          "why": "Surfaces distinct reason and details for missing merge proof instead of generic reachability."
+        },
+        {
+          "what": "Wrapped recordFailure store.changes.get in try/catch",
+          "why": "Degrades previousPhase9 to undefined on read failure so failed status recording is still attempted."
+        },
+        {
+          "what": "Used input.repo ?? route.repo in direct-route PR autodiscovery/readPrMergeState",
+          "why": "Matches PR-route fallback behavior."
+        },
+        {
+          "what": "Strengthened tests and updated existing PR-discovery test to provide a configured origin remote",
+          "why": "CoercePrWorkflowRoute now preserves no_remote, so the integration test needed a real origin to reach pr_auto_merge."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Fixed same route-coercion policy in archive-gate by delegating to git-finalize coercePrWorkflowRoute; direct-route PR discovery now honors input.repo override consistently.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "All five release-readiness findings fixed; targeted tests and full check gate pass. No blockers.",
+        "suggested_next_action": "Run bin/oc-test full or proceed to release/archive"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPhase9PrDetection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPhase9PrDetection",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 4,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability"
+      ],
+      "summary": "Harden review completed. Initial scanners found no release blockers but identified medium in-scope hardening gaps around route coercion, missing-proof mapping, failure-status durability, direct-route repo fallback, and test coverage. adv-engineer remediated them, branch was reconciled with origin/trunk, merge compatibility is clean (origin/trunk is ancestor of HEAD), targeted archive/gate/change tests pass 246/246 (tr_mrbb3kmh_9e335a44), and pnpm --dir plugin run check passes (tr_mrbb4b2u_a1fe2e9f). Remaining complexity/slop signals are non-blocking: pre-existing large archive helper complexity and detector coverage degradation from missing ast-grep/jscpd plus knip JSON parse failure.",
+      "findings": [
+        {
+          "scanner": "production-readiness",
+          "severity": "suggestion",
+          "summary": "Residual complexity hotspots remain in archive helper functions; not release-blocking after targeted tests/check pass and scope would require broad refactor.",
+          "evidence": [
+            {
+              "label": "slop-scan",
+              "locator": "plugin/src/tools/archive-helpers/git-finalize.ts / plugin/src/tools/change/archive-gate.ts",
+              "summary": "Medium MAINT-004 complexity findings; no blocker/high findings."
+            }
+          ]
+        },
+        {
+          "scanner": "deployment-readiness",
+          "severity": "info",
+          "summary": "No migrations, env vars, external services, CI/CD, infrastructure, or feature flags introduced.",
+          "evidence": [
+            {
+              "label": "source audit",
+              "locator": "changed files",
+              "summary": "Changed files limited to archive/gate TypeScript helpers, tests, schema additive field."
+            }
+          ]
+        },
+        {
+          "scanner": "cleanup-readiness",
+          "severity": "info",
+          "summary": "No debug/temp/untracked cleanup candidates after harden; branch reconciled with origin/trunk and worktree clean.",
+          "evidence": [
+            {
+              "label": "git",
+              "locator": "worktree",
+              "summary": "git status clean after merge commit a2f6c2b9; origin/trunk is ancestor of HEAD."
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Non-blocking: consider separate refactor to reduce archive helper complexity hotspots surfaced by slop scan.",
+        "Non-blocking: investigate slop-scan degraded detector setup (knip JSON parse failure; ast-grep/jscpd unavailable)."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-uzpucw",
+      "type": "pattern",
+      "content": "For PR-mode archive release proof, branch existence is not authoritative after squash-merge/auto-delete. Check structural PR/default-branch reachability first; branch push status is only diagnostic when no merge proof exists.",
+      "source_task": "tk-55adf23bc63c",
+      "recorded_at": "2026-07-07T16:48:22.835Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-07T15:25:40.276Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved proposal with reply: approve. Problem statement and proposal persisted for GitHub issue #202.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "7c8c4b44d9df55468ade7da60c96888867376b4763d043f7c875a83831eee496",
+        "non_whitespace_chars": 3221,
+        "checked_at": "2026-07-07T15:22:49.115Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-07T15:28:47.574Z",
+      "completed_at": "2026-07-07T15:29:01.257Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved agreement with reply: approve. Contract minted with 27 items covering SC1-3, AC1-8, constraints, avoidances, out-of-scope.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "non_whitespace_chars": 5152,
+        "checked_at": "2026-07-07T15:22:49.116Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-07T15:32:45.772Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Independent adv-researcher validator submitted PASS/high confidence/low risk, confirming defect, durable-state gap, gate branch-deletion issue, and recommending two structural refinements already included: distinct missing-proof classification and explicit phase9_status evidence preservation.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "7df1f0f23acfba0621117dc8a15d2c91c89631f697d805e572229156856de96f",
+        "non_whitespace_chars": 6102,
+        "checked_at": "2026-07-07T15:22:49.117Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-07T15:44:27.985Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep task graph with reply: approve. Five tasks cover RED tests, durable phase9 evidence, PR reachability repair, integration wiring, and verification sweep."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-07T16:55:30.310Z",
+      "completed_by": "agent",
+      "approval_evidence": "All five tasks complete with checkpoints. Verification: changed-scope tests 240/240 passed, schemas:check passed, pnpm check passed, smoke passed, strict ADV validation passed with NO_DELTAS warning. Full suite red twice only on unrelated/order-sensitive concurrent-signaling test; targeted rerun of that test passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-07T23:26:18.449Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work with reply: approve.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "5af9c9fa1cd9783507f10b5db59aa2dfe8a34848b6c41511add3c7ede2afb79f",
+        "non_whitespace_chars": 3512,
+        "checked_at": "2026-07-07T15:22:49.118Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 202
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+      "approvedAt": "2026-07-07T15:28:53.094Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Archived-bundle retry for PR-mode archive can complete release from merged PR evidence even when `origin/change/<id>` no longer exists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "`phase9_status` persists enough metadata to avoid losing PR evidence across pending, pending-merge, failed, and done transitions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "When neither PR merge state nor default-branch/tip proof is available, finalization fails closed with actionable missing-proof details.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given archive mode `pr`, `phase9_status` lacks `prNumber`, the change branch is deleted, and `discoverMergedPr(repo, changeId)` returns a merged PR, then `verifyReleaseEvidenceFromMain` returns `status: \"shipped\"`, `route: \"pr_auto_merge\"` or `\"pr_manual\"`, `prNumber`, and `mergeCommitSha`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given archive mode `pr`, `phase9_status.prNumber` exists and `gh pr view` returns `MERGED`, then `verifyReleaseEvidenceFromMain` returns `status: \"shipped\"` without checking for a live `origin/change/<id>` branch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given archive mode `pr`, no `prNumber`, no discoverable merged PR, and no positive tip/default-branch proof, then finalization returns blocked with reason distinct from `PR_NOT_MERGED` unless a PR was actually found and unmerged; details name missing `prNumber` / missing merged PR proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Phase-9 status update helpers preserve existing durable fields (`prNumber`, `prUrl`, `route`, `changeTipSha`) across `pending_merge`, `failed`, and `done` transitions unless intentionally absent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Release gate blocker logic for PR archive mode accepts existing merged PR proof from `phase9_status.prNumber` or discovered merged PR proof; it does not require `verifyChangeBranchPushed` after a normal branch auto-delete.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Regression tests cover the issue #202 failure string `PR merge state requires repo and prNumber` and prove it no longer appears for a discoverable merged PR.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Existing direct-route, pending auto-merge, unmerged PR, no-remote, and origin-push-unverified tests continue to pass unchanged or with only expectation updates that preserve release safety.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Public schema artifacts remain deterministic: if `Phase9FinalizationStatusSchema` gains fields, `pnpm run schemas:generate` and `pnpm run schemas:check` pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not complete `release` without positive structural proof: merged PR state, default-branch reachability, local merge proof, or trusted content-addressed tip/tree proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not depend on live `origin/change/<id>` after PR merge; branch auto-delete is normal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not mutate GitHub PR state or repository merge policy as part of detection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not use direct ADV state-file reads/edits or disk projection as the normal fix.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep Temporal workflow code deterministic and keep git/GitHub I/O in tool/helper layers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Use isolated tests and the repo-local `bin/oc-test` wrapper for verification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Preserve source-vs-deployed runtime boundary in final notes: live ADV tool behavior needs build/deploy/restart before in-session MCP validation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not classify missing PR metadata as `PR_NOT_MERGED` when a merged PR can be discovered.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not require manual branch resurrection for normal squash-merge/auto-delete archives.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not weaken or bypass release-gate readiness checks unrelated to PR merge proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not fix unrelated backlog issues #192 or #198 in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not introduce heuristic title matching as release proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Full disk-authoritative recovery/reset tooling (#198).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Cross-project target_path artifact/close routing cleanup (#192).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Archive worktree cleanup policy changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Changing GitHub branch protection or repository settings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-07T22:56:56.859Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_mrb8zyic_c95f3daa: 241 changed-scope archive/gate/change tests passed; PR-mode retry returns shipped from merged PR proof after branch auto-delete."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Phase9FinalizationStatus adds repo and preservePhase9Evidence carries repo/prNumber/prUrl/route/changeTipSha/autoMergeArmed across transitions; schemas:check passed tr_mrb8yx44_33a0b150."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted tests cover missing PR proof and fail-closed classification; tr_mrb8zyic_c95f3daa passed."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "git-finalize/archive-gate regression tests passed in tr_mrb8zyic_c95f3daa: missing prNumber + deleted branch + discoverable merged PR returns shipped PR proof."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "PR-number-present MERGED path covered by archive/gate tests; tr_mrb8zyic_c95f3daa passed without requiring live origin/change branch."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Missing prNumber + no merged proof path returns pr_missing_merge_proof / blocked details instead of PR_NOT_MERGED; tr_mrb8zyic_c95f3daa passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Preservation tests plus static inspection confirm phase9_status durable fields survive pending_merge/failed/done; tr_mrb8zyic_c95f3daa and tr_mrb8yx44_33a0b150 passed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate.release-enforcement tests passed in tr_mrb8zyic_c95f3daa; PR archive release gate uses merged PR reachability before branch-push checks."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression tests cover the issue #202 string `PR merge state requires repo and prNumber`; changed-scope suite passed tr_mrb8zyic_c95f3daa."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing direct-route, pending auto-merge, unmerged PR, no-remote, and push-unverified tests remain green in git-finalize/gate suites; tr_mrb8zyic_c95f3daa."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Phase9FinalizationStatusSchema gained optional repo; public schema check passed tr_mrb8yx44_33a0b150."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reachability returns shipped only for merged PR state, origin/default reachability, local merge, or tree/tip proof; no branch-absence-only success path observed."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "PR-mode tests prove branch auto-delete/no live origin/change branch does not block when merged PR proof exists; tr_mrb8zyic_c95f3daa."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation reads GitHub PR state via gh view/list only; no code path mutates PR state or repo merge policy."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_audit",
+          "evidence": "ADV state accessed through tools/signals and phase9_status helpers; no direct ADV state-file read/edit path added."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Changes remain in tool/helper layers; Temporal workflow code untouched; pnpm check passed tr_mrb8yx44_33a0b150."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Verification used adv_run_test and repo-local bin/oc-test targeted plus pnpm --dir plugin run check; runs tr_mrb8zyic_c95f3daa and tr_mrb8yx44_33a0b150 passed."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Executive summary preserves source-vs-deployed runtime boundary: live ADV tool behavior needs build/deploy/restart before current host validation."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Missing PR metadata now returns missing-proof classification / discoverable PR success, not PR_NOT_MERGED; tr_mrb8zyic_c95f3daa passed."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Branch auto-delete after squash merge is handled through merged PR/default/tip proof; no manual branch resurrection required in tests."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Release gate still fails closed when merged PR/default/tip proof is absent; no unrelated release readiness checks bypassed."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Touched implementation files are archive/gate/schema/tests for #202; no #192/#198 target_path or disk-authoritative recovery work implemented."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No heuristic title matching added; PR discovery uses GitHub PR head branch and PR merge state plus structural git/tree proof."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No full disk-authoritative recovery/reset tooling added."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No cross-project target_path artifact/close routing cleanup implemented."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No archive worktree cleanup policy change implemented."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No GitHub branch protection or repository settings changed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given archive mode `pr`, `phase9_status` lacks `prNumber`, the change branch is deleted, and `discoverMergedPr(repo, changeId)` returns a merged PR, then `verifyReleaseEvidenceFromMain` returns `status: \"shipped\"`, `route: \"pr_auto_merge\"` or `\"pr_manual\"`, `prNumber`, and `mergeCommitSha`.",
+    "Given archive mode `pr`, `phase9_status.prNumber` exists and `gh pr view` returns `MERGED`, then `verifyReleaseEvidenceFromMain` returns `status: \"shipped\"` without checking for a live `origin/change/<id>` branch.",
+    "Given archive mode `pr`, no `prNumber`, no discoverable merged PR, and no positive tip/default-branch proof, then finalization returns blocked with reason distinct from `PR_NOT_MERGED` unless a PR was actually found and unmerged; details name missing `prNumber` / missing merged PR proof.",
+    "Phase-9 status update helpers preserve existing durable fields (`prNumber`, `prUrl`, `route`, `changeTipSha`) across `pending_merge`, `failed`, and `done` transitions unless intentionally absent.",
+    "Release gate blocker logic for PR archive mode accepts existing merged PR proof from `phase9_status.prNumber` or discovered merged PR proof; it does not require `verifyChangeBranchPushed` after a normal branch auto-delete.",
+    "Regression tests cover the issue #202 failure string `PR merge state requires repo and prNumber` and prove it no longer appears for a discoverable merged PR.",
+    "Existing direct-route, pending auto-merge, unmerged PR, no-remote, and origin-push-unverified tests continue to pass unchanged or with only expectation updates that preserve release safety.",
+    "Public schema artifacts remain deterministic: if `Phase9FinalizationStatusSchema` gains fields, `pnpm run schemas:generate` and `pnpm run schemas:check` pass."
+  ],
+  "documents": {
+    "proposal": "# Fix phase9 PR detection\n\n## Why\n\nGitHub issue #202 is the highest-priority open bug (`priority:critical`). Archive Phase-9 finalization fails to detect merged archive PRs after squash-merge/auto-delete, leaving `release` gate state pending for already-shipped archived changes.\n\nObserved issue evidence:\n\n- `adv_change_archive phase9:\"run\"` writes archive bundle and status becomes `archived`, but release gate remains pending.\n- Retry fails with `PR_NOT_MERGED` and details `PR merge state requires repo and prNumber`.\n- Auto-deleted branches also trigger `RELEASE_REQUIRES_PR_HANDOFF` despite PRs being merged.\n- Three consecutive PokeEdge archives reproduced the same failure.\n\n## What Changes\n\nDiagnose and repair the Phase-9 PR merge detection path so archive finalization derives or persists the repository and PR number needed to query PR merge state. Treat squash-merge plus branch auto-delete as normal terminal evidence when GitHub PR state and/or default-branch reachability prove the archive branch shipped.\n\n## User Outcomes\n\n- Archive finalization completes the release gate for already-merged archive PRs without manual branch resurrection.\n- `adv_gate_status` no longer reports cosmetic release-pending state for shipped archived changes when PR merge proof exists.\n- Release safety remains strict: no release gate completion without positive PR merge or default-branch reachability evidence.\n- Recovery evidence/error messages clearly distinguish missing proof from missing derivation data.\n\n## Scope\n\n### In Scope\n\n- `plugin/src/tools/archive-helpers/git-finalize.ts` PR merge-state detection and repo/PR derivation.\n- `plugin/src/tools/change.ts` / Phase-9 status handoff if PR metadata must be persisted when the PR is created or reused.\n- `plugin/src/tools/change/archive-gate.ts` and `plugin/src/tools/gate.ts` release retry/recovery interaction where needed to consume durable PR evidence.\n- Regression tests for squash-merged PRs with deleted archive branches and missing/recovered `repo` + `prNumber` metadata.\n- Spec alignment with existing release-finalization law if current spec text leaves the repo/PR metadata contract implicit.\n\n### Out of Scope\n\n- Broad archive workflow redesign unrelated to Phase-9 PR merge detection.\n- Changing GitHub repository merge policies.\n- Closing or rewriting unrelated target_path / disk-authoritative recovery bugs (#192, #198).\n- Weakening release proof requirements.\n\n### Must Not\n\n- Must not mark release done when neither PR merge state nor default-branch reachability can be proven.\n- Must not depend on a still-existing `origin/change/<id>` branch after PR merge.\n- Must not require operators to manually re-push deleted archive branches for normal squash-merge releases.\n- Must not use direct ADV state-file edits as recovery.\n\n## Evidence Gathered\n\n- `adv_backlog_state` ranks #202 as the only critical bug.\n- `gh issue view 202` provides repeated reproduction and failure strings.\n- Source search shows `git-finalize.ts` has paths returning `PR merge state requires repo and prNumber`, plus existing `readPrMergeState`, `discoverMergedPr`, and `phase9_status.prNumber` surfaces.\n- Project wisdom notes source tests can pass before live deployed plugin behavior changes; final validation must call out build/deploy/restart boundary.\n\n## Initial Validation Plan\n\n- Reproduce with a focused unit/integration test: PR-mode finalization where branch ref is missing but merged PR proof exists.\n- Add a RED test for missing repo/prNumber derivation producing current `PR_NOT_MERGED` behavior.\n- Implement durable repo/prNumber derivation/persistence.\n- Verify targeted archive/gate tests, schema checks if public status schema changes, and `bin/oc-test` per repo policy.",
+    "problemStatement": "## Problem\n\nArchive Phase-9 finalization cannot reliably derive `repo` and `prNumber` for merged archive PRs after squash-merge and branch auto-delete. It returns `PR_NOT_MERGED` with `PR merge state requires repo and prNumber`, leaving the `release` gate pending even when the archive is shipped and the change status is archived.\n\n## Desired Outcome\n\nFor normal PR-mode archive releases, merged PR evidence is detected from durable metadata or GitHub/default-branch proof, and the release gate reaches `done` without manual branch resurrection. If proof is truly unavailable, the tool returns a precise missing-proof error instead of a false `PR_NOT_MERGED` classification.\n\n## Confirmed Scope\n\nThis change tracks GitHub issue #202, the current top critical backlog item.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make PR-mode Phase-9 archive finalization complete `release` when a merged archive PR is provable after squash-merge and branch auto-delete.\n2. Ensure retry/readback paths have durable PR evidence (`repo`, `prNumber`, `prUrl`, route, and change tip where relevant) instead of depending on a live `origin/change/<id>` branch.\n3. Reuse existing structural proof mechanisms (`gh pr view`, merged-PR discovery, default-branch reachability, tree/tip evidence) and keep all release completion fail-closed when proof is absent.\n4. Improve release blocker classification so missing metadata/derivation is reported distinctly from an actually unmerged PR.\n5. Cover the regression with focused tests that reproduce missing `repo`/`prNumber` on PR workflow retry.\n\n## Discovery Findings\n\n- Current `resolveReleaseReachability` direct-route path can auto-discover merged PRs when `prNumber` is missing, but the PR workflow path (`pr_auto_merge` / `pr_manual`) returns `pr_unmerged` immediately when `route.repo` or `input.prNumber` is missing.\n- `verifyReleaseEvidenceFromMain` coerces archive-mode `pr` retries into a PR workflow route and passes only `phase9_status.prNumber` and `phase9_status.changeTipSha`; if status lacks `prNumber`, it produces `PR_NOT_MERGED` with `PR merge state requires repo and prNumber`.\n- Initial async Phase-9 dispatch records `status: pending` with `changeTipSha`, but not `repo`/`prNumber`/`prUrl`.\n- `buildPendingMergePhase9Status` records `prNumber`/`prUrl` when finalization reaches pending merge, but does not preserve `changeTipSha`; later `done` status also drops PR metadata.\n- `classifyFinalizationRoute` derives `repo` from origin URL, so missing `repo` should be rare and should surface as an explicit derivation failure, not generic `PR_NOT_MERGED`.\n- Existing release safety law remains valid: release completion requires positive proof (`pr_merged`, default-branch reachability, local merge, or equivalent structural proof).\n\n## Success Criteria\n\n- SC1: Archived-bundle retry for PR-mode archive can complete release from merged PR evidence even when `origin/change/<id>` no longer exists.\n- SC2: `phase9_status` persists enough metadata to avoid losing PR evidence across pending, pending-merge, failed, and done transitions.\n- SC3: When neither PR merge state nor default-branch/tip proof is available, finalization fails closed with actionable missing-proof details.\n\n## Acceptance Criteria\n\n- AC1: Given archive mode `pr`, `phase9_status` lacks `prNumber`, the change branch is deleted, and `discoverMergedPr(repo, changeId)` returns a merged PR, then `verifyReleaseEvidenceFromMain` returns `status: \"shipped\"`, `route: \"pr_auto_merge\"` or `\"pr_manual\"`, `prNumber`, and `mergeCommitSha`.\n- AC2: Given archive mode `pr`, `phase9_status.prNumber` exists and `gh pr view` returns `MERGED`, then `verifyReleaseEvidenceFromMain` returns `status: \"shipped\"` without checking for a live `origin/change/<id>` branch.\n- AC3: Given archive mode `pr`, no `prNumber`, no discoverable merged PR, and no positive tip/default-branch proof, then finalization returns blocked with reason distinct from `PR_NOT_MERGED` unless a PR was actually found and unmerged; details name missing `prNumber` / missing merged PR proof.\n- AC4: Phase-9 status update helpers preserve existing durable fields (`prNumber`, `prUrl`, `route`, `changeTipSha`) across `pending_merge`, `failed`, and `done` transitions unless intentionally absent.\n- AC5: Release gate blocker logic for PR archive mode accepts existing merged PR proof from `phase9_status.prNumber` or discovered merged PR proof; it does not require `verifyChangeBranchPushed` after a normal branch auto-delete.\n- AC6: Regression tests cover the issue #202 failure string `PR merge state requires repo and prNumber` and prove it no longer appears for a discoverable merged PR.\n- AC7: Existing direct-route, pending auto-merge, unmerged PR, no-remote, and origin-push-unverified tests continue to pass unchanged or with only expectation updates that preserve release safety.\n- AC8: Public schema artifacts remain deterministic: if `Phase9FinalizationStatusSchema` gains fields, `pnpm run schemas:generate` and `pnpm run schemas:check` pass.\n\n## Constraints\n\n- C1: Do not complete `release` without positive structural proof: merged PR state, default-branch reachability, local merge proof, or trusted content-addressed tip/tree proof.\n- C2: Do not depend on live `origin/change/<id>` after PR merge; branch auto-delete is normal.\n- C3: Do not mutate GitHub PR state or repository merge policy as part of detection.\n- C4: Do not use direct ADV state-file reads/edits or disk projection as the normal fix.\n- C5: Keep Temporal workflow code deterministic and keep git/GitHub I/O in tool/helper layers.\n- C6: Use isolated tests and the repo-local `bin/oc-test` wrapper for verification.\n- C7: Preserve source-vs-deployed runtime boundary in final notes: live ADV tool behavior needs build/deploy/restart before in-session MCP validation.\n\n## Avoidances\n\n- DONT1: Do not classify missing PR metadata as `PR_NOT_MERGED` when a merged PR can be discovered.\n- DONT2: Do not require manual branch resurrection for normal squash-merge/auto-delete archives.\n- DONT3: Do not weaken or bypass release-gate readiness checks unrelated to PR merge proof.\n- DONT4: Do not fix unrelated backlog issues #192 or #198 in this change.\n- DONT5: Do not introduce heuristic title matching as release proof.\n\n## Out of Scope\n\n- OOS1: Full disk-authoritative recovery/reset tooling (#198).\n- OOS2: Cross-project target_path artifact/close routing cleanup (#192).\n- OOS3: Archive worktree cleanup policy changes.\n- OOS4: Changing GitHub branch protection or repository settings.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: this change affects ADV archive/release tool logic and tests only; no browser-visible UI or preview route.\n\n## Sign-Off\n\nPending user agreement approval.",
+    "design": "# Design\n\n## Architecture Decision\n\nRepair Phase-9 PR-mode release proof in the archive helper layer, not in Temporal workflow state or disk projection. `resolveReleaseReachability` becomes the single release-proof state machine for direct and PR archive routes. It will derive/discover PR evidence before classifying PR-mode retries as unmerged.\n\n## Current Failure Path\n\n1. `adv_change_archive phase9:\"run\"` records `phase9_status: { status:\"pending\", changeTipSha }`.\n2. Async finalization can write archive state and later a retry calls `reconcileArchivedBundleRetry`.\n3. `verifyReleaseEvidenceFromMain` coerces archive mode `pr` into `pr_auto_merge`/`pr_manual` route.\n4. It calls `resolveReleaseReachability` with `prNumber: change.phase9_status?.prNumber`.\n5. For PR routes, current logic immediately returns `pr_unmerged` with details `PR merge state requires repo and prNumber` when `prNumber` is absent.\n6. Branch auto-delete means `verifyChangeBranchPushed` in `gate.ts` can also block before merged PR evidence is considered.\n\n## Target State\n\n### 1. Add durable repo metadata to Phase-9 status\n\nExtend `Phase9FinalizationStatusSchema` with optional:\n\n- `repo?: string` — GitHub `owner/repo` derived from origin remote.\n- Preserve existing `prNumber`, `prUrl`, `route`, `changeTipSha` fields across transitions.\n\n`repo` is correctness metadata, not proof by itself. It only enables structural PR lookup through `gh pr view` / `gh pr list`.\n\n### 2. Centralize status-field preservation\n\nAdd a small pure helper near `buildPendingMergePhase9Status`, e.g. `mergePhase9StatusEvidence(previous, next)`, that copies durable evidence fields unless `next` explicitly supplies them:\n\n- `repo`\n- `prNumber`\n- `prUrl`\n- `route`\n- `changeTipSha`\n- `autoMergeArmed` where applicable\n\nUse it for pending→pending_merge, pending→done, and failed recording paths touched by archive finalization. This prevents evidence loss without widening workflow responsibilities.\n\n### 3. Derive `repo` at dispatch and retry\n\nAt initial async Phase-9 dispatch in `change.ts`:\n\n- use `classifyFinalizationRoute(store.paths.root, defaultBranch)` or a lighter exported helper if needed to derive `route.repo` and route name from the main checkout;\n- record `repo` and `route` in `phase9_status` alongside `changeTipSha`.\n\nAt retry in `verifyReleaseEvidenceFromMain`:\n\n- prefer `change.phase9_status.repo` when present;\n- fall back to `route.repo` from `classifyFinalizationRoute`;\n- if neither exists, return missing-repo proof details, not `PR_NOT_MERGED`.\n\n### 4. Make PR-route reachability discover before failing\n\nChange `resolveReleaseReachability` PR-route branch:\n\n1. Determine `effectiveRepo = input.repo ?? route.repo`.\n2. Determine `effectivePrNumber = input.prNumber`.\n3. If no PR number and repo exists, call `discoverMergedPr(mainCheckout, repo, changeId)`.\n4. If a merged PR is discovered, use its number and merge commit as `pr_merged` proof.\n5. If PR number exists, call `readPrMergeState`; if state is `MERGED`, return `pr_merged`.\n6. If no PR number and no discovered merged PR, then try existing branch/tip structural fallbacks where safe:\n   - `detectSquashMergeByTree` with `changeTipSha`;\n   - default-branch reachability checks that do not require live remote change branch.\n7. If still no proof, return a proof classification distinct from actual unmerged PR, e.g. `pr_missing_merge_proof` or `pr_metadata_missing`, with details naming missing `prNumber`, missing merged PR, and absence of branch/tip proof.\n\nThis keeps heuristics out of correctness: only GitHub PR state or git object reachability/tree identity can prove shipped status.\n\n### 5. Fix release gate blocker for PR archive mode\n\nUpdate `getReleaseFinalizationBlocker` in `gate.ts` so archive mode `pr` does not stop at `verifyChangeBranchPushed` after branch deletion. Instead:\n\n- call `resolveReleaseReachability` with route coerced to PR workflow, `prNumber`, `repo`, and `changeTipSha` from `phase9_status`;\n- if reachable, return `null`;\n- if not reachable and branch push check fails, include that as detail, not the sole authority;\n- only emit `RELEASE_REQUIRES_PR_HANDOFF` when neither merged PR proof nor structural git proof exists.\n\n### 6. Preserve release proof strictness\n\nRelease completion remains allowed only when `ReleaseReachabilityProof.reachable === true`. Missing metadata, GitHub API failure, unauthenticated `gh`, unavailable origin, and no merged PR found all fail closed with actionable details.\n\n## Type / Schema Changes\n\n- Add `repo?: string` to `Phase9FinalizationStatusSchema` and regenerated public JSON schema.\n- If adding new `ReleaseReachabilityProof.proof` enum variants, update local TypeScript union and affected tests only; this is internal helper shape unless currently exported in schemas.\n\n## Test Strategy\n\n### RED tests\n\n1. `verifyReleaseEvidenceFromMain` PR-mode, missing `phase9_status.prNumber`, branch deleted, `discoverMergedPr` returns PR → currently returns blocked `PR_NOT_MERGED`; expected shipped.\n2. `resolveReleaseReachability` PR-route missing `prNumber` discovers merged PR and returns `pr_merged`.\n3. `getReleaseFinalizationBlocker` archive mode `pr`, branch not pushed/deleted but merged PR discoverable → returns `null`.\n4. `buildPendingMergePhase9Status` / done-status path preserves `changeTipSha`, `repo`, `prNumber`, `prUrl`, and `route`.\n5. Missing PR number + no merged PR + no tip proof returns missing-proof classification, not `PR_NOT_MERGED`.\n\n### GREEN verification\n\n- `bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts`\n- `pnpm --dir plugin run schemas:check` after schema generation.\n- `bin/oc-test targeted -- src/tools/change.test.ts` if change.ts phase9 status behavior tests live there.\n- `bin/oc-test smoke` or `bin/oc-test full` before acceptance depending touched scope.\n\n## Rollout / Runtime Boundary\n\nSource tests validate the fix in-session. Live ADV MCP behavior requires normal plugin `pnpm run build`, `./scripts/deploy-local.sh --fix`, and OpenCode/plugin host restart because current sessions cache deployed `dist`.\n\n## Risk Controls\n\n- No new external dependency.\n- No GitHub mutation in detection path.\n- No direct ADV state-file reads/edits.\n- No branch recreation/resurrection.\n- All proof paths use structural state: `gh pr view`, `gh pr list --state merged`, git commit/tree identity, or default branch reachability.\n\n## Alternatives Considered\n\n### Only persist `prNumber` at PR creation\n\nRejected as insufficient. It helps future archives but does not recover current archived-bundle retries where `prNumber` is absent but the merged PR is discoverable.\n\n### Treat branch-deleted state as release proof\n\nRejected. Branch deletion is consistent with merge but is not proof of merge. It must be combined with PR state or git reachability.\n\n### Disk projection repair as normal path\n\nRejected. It bypasses the normal release-proof path and overlaps issue #198. Disk repair remains recovery-only.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nImplemented the critical Phase-9 PR detection fix for issue #202. PR-mode archive finalization now treats squash-merge plus branch auto-delete as a normal release path when structural merged-PR or git proof exists; missing `repo`/`prNumber` metadata is no longer misclassified as an actually unmerged PR.\n\n## Why It Matters\n\nAlready-shipped archive PRs can finish the ADV release gate without manually resurrecting deleted branches, while release safety remains fail-closed unless merged PR, default-branch reachability, local merge, or content-addressed tree/tip proof exists.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added durable Phase-9 `repo` metadata to `Phase9FinalizationStatusSchema` and regenerated public schema output.\n2. Added explicit Phase-9 evidence preservation so `repo`, `prNumber`, `prUrl`, `route`, `changeTipSha`, and `autoMergeArmed` survive pending, pending-merge, done, failed, and retry transitions.\n3. Updated PR-route release reachability to discover merged PRs when `prNumber` is missing, then confirm PR state before returning release proof.\n4. Added `pr_missing_merge_proof` classification so missing metadata or missing proof is distinct from a real unmerged PR.\n5. Updated archive retry and release gate blocker paths to use merged PR/default/tip proof before branch-push checks; branch auto-delete no longer blocks a shipped PR archive.\n6. Hardened release-readiness gaps after acceptance: shared route coercion, explicit `PR_MERGE_PROOF_MISSING` mapping, failure-status durability when readback fails, direct-route repo fallback, and stronger regression coverage.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 blocking review findings and no harden release blockers.\n- Tests: changed-scope archive/gate/change suite passed 246/246 after hardening (`tr_mrbb3kmh_9e335a44`).\n- Static/check gate: `pnpm --dir plugin run check` passed after hardening (`tr_mrbb4b2u_a1fe2e9f`).\n- Prior smoke evidence: `bin/oc-test smoke` passed during execution.\n- Merge compatibility: branch reconciled with `origin/trunk`; `origin/trunk` is ancestor of `HEAD` (`a2f6c2b9` merge commit).\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; implementation changes ADV archive/release tool logic only, no browser-visible surface.\n- Contract matrix: 27/27 rows passed/respected.\n- ADV validation: strict validation passed with one non-blocking `NO_DELTAS` warning.\n\n## Remaining Concerns\n\n- Non-blocking: `bin/oc-test full` failed twice during execution on `src/temporal/__tests__/concurrent-signaling.itest.ts` timeout. Targeted rerun of that same test passed; changed-scope/check/smoke evidence passed. Tracked as unrelated suite-order/contention risk, not a blocker for this change.\n- Non-blocking: slop scan still reports medium complexity hotspots in archive helper code; broad refactor is separate from this release fix.\n- Non-blocking: slop-scan detector coverage degraded because knip JSON parsing failed and `ast-grep`/`jscpd` were unavailable.\n- Live ADV MCP behavior requires normal source build, local deploy, and OpenCode/plugin host restart before validation through the running tool host, because current sessions cache deployed `dist`.\n\n## Supporting Evidence\n\nTask checkpoints: `tk-6b5a512d2bd4`, `tk-95a8ba76002e`, `tk-261c0a2ad20f`, `tk-55adf23bc63c`, `tk-38ceecdbb115`. Review scanner bundle: `scanner-bundle:review` attempt 1. Harden scanner bundle: `scanner-bundle:harden` attempt 1. Harden remediation checkpoint/merge evidence: `91cf8a74` and `a2f6c2b9`. Contract matrix persisted with 27 rows and 0 failing rows. Tests/checks: `tr_mrbb3kmh_9e335a44`, `tr_mrbb4b2u_a1fe2e9f`, and earlier execution verification noted in task `tk-38ceecdbb115`.\n\n## Consequence Context\n\n1. delivered value — pass: critical archive finalizer bug fixed; shipped PR archives can complete release gate after branch auto-delete when merged PR/default/tip proof exists.\n2. enabling-only/follow-up dependency — warning: unrelated full-suite concurrent-signaling timeout is tracked separately; no required follow-up blocks this fix.\n3. ops readiness — pass: no migrations, env vars, external services, or GitHub setting changes.\n4. migration/data impact — low: optional `phase9_status.repo` is additive; existing statuses remain valid.\n5. frontend/preview impact — n/a: agreement `visual_surface: false`; no visual/browser surface.\n6. collision/release risk — medium-low: branch is reconciled with `origin/trunk`; target tests and check pass; archive/gate behavior changed but release proof remains structural/fail-closed.\n7. open follow-ups — non-blocking agenda items monitor unrelated full-suite timeout, archive-helper complexity refactor, and slop-scan detector setup; no release blocker.\n8. next action — archive sign-off, then Phase 9 PR/default-branch release finalization.\n\n## Release Readiness Summary\n\n- Status: READY for archive sign-off.\n- Release/deploy readiness: pass — no migrations, env vars, external services, CI/CD, infrastructure, feature flags, or production deploy steps added.\n- Production readiness: pass with warnings — harden findings fixed; remaining complexity/degraded-detector signals are non-blocking and tracked as follow-ups.\n- Cleanup readiness: pass — no temp/debug/untracked cleanup candidates; worktree clean after merge reconciliation.\n- Merge/collision readiness: pass — `origin/trunk` is ancestor of `HEAD`; archive can proceed from reconciled change worktree.\n- Verification readiness: pass — 246 changed-scope tests and `pnpm --dir plugin run check` passed after harden remediation.\n- Open follow-ups: non-blocking only (`ag-RWLCu8GU`, `ag-HMvzlkyu`, `ag-xBF8NU0V`).",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-07T22:56:56.859Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Archived-bundle retry for PR-mode archive can complete release from merged PR evidence even when `origin/change/<id>` no longer exists. | pass | tr_mrb8zyic_c95f3daa: 241 changed-scope archive/gate/change tests passed; PR-mode retry returns shipped from merged PR proof after branch auto-delete. |\n| SC2 | success_criterion | `phase9_status` persists enough metadata to avoid losing PR evidence across pending, pending-merge, failed, and done transitions. | pass | Phase9FinalizationStatus adds repo and preservePhase9Evidence carries repo/prNumber/prUrl/route/changeTipSha/autoMergeArmed across transitions; schemas:check passed tr_mrb8yx44_33a0b150. |\n| SC3 | success_criterion | When neither PR merge state nor default-branch/tip proof is available, finalization fails closed with actionable missing-proof details. | pass | Targeted tests cover missing PR proof and fail-closed classification; tr_mrb8zyic_c95f3daa passed. |\n| AC1 | acceptance_criterion | Given archive mode `pr`, `phase9_status` lacks `prNumber`, the change branch is deleted, and `discoverMergedPr(repo, changeId)` returns a merged PR, then `verifyReleaseEvidenceFromMain` returns `status: \"shipped\"`, `route: \"pr_auto_merge\"` or `\"pr_manual\"`, `prNumber`, and `mergeCommitSha`. | pass | git-finalize/archive-gate regression tests passed in tr_mrb8zyic_c95f3daa: missing prNumber + deleted branch + discoverable merged PR returns shipped PR proof. |\n| AC2 | acceptance_criterion | Given archive mode `pr`, `phase9_status.prNumber` exists and `gh pr view` returns `MERGED`, then `verifyReleaseEvidenceFromMain` returns `status: \"shipped\"` without checking for a live `origin/change/<id>` branch. | pass | PR-number-present MERGED path covered by archive/gate tests; tr_mrb8zyic_c95f3daa passed without requiring live origin/change branch. |\n| AC3 | acceptance_criterion | Given archive mode `pr`, no `prNumber`, no discoverable merged PR, and no positive tip/default-branch proof, then finalization returns blocked with reason distinct from `PR_NOT_MERGED` unless a PR was actually found and unmerged; details name missing `prNumber` / missing merged PR proof. | pass | Missing prNumber + no merged proof path returns pr_missing_merge_proof / blocked details instead of PR_NOT_MERGED; tr_mrb8zyic_c95f3daa passed. |\n| AC4 | acceptance_criterion | Phase-9 status update helpers preserve existing durable fields (`prNumber`, `prUrl`, `route`, `changeTipSha`) across `pending_merge`, `failed`, and `done` transitions unless intentionally absent. | pass | Preservation tests plus static inspection confirm phase9_status durable fields survive pending_merge/failed/done; tr_mrb8zyic_c95f3daa and tr_mrb8yx44_33a0b150 passed. |\n| AC5 | acceptance_criterion | Release gate blocker logic for PR archive mode accepts existing merged PR proof from `phase9_status.prNumber` or discovered merged PR proof; it does not require `verifyChangeBranchPushed` after a normal branch auto-delete. | pass | gate.release-enforcement tests passed in tr_mrb8zyic_c95f3daa; PR archive release gate uses merged PR reachability before branch-push checks. |\n| AC6 | acceptance_criterion | Regression tests cover the issue #202 failure string `PR merge state requires repo and prNumber` and prove it no longer appears for a discoverable merged PR. | pass | Regression tests cover the issue #202 string `PR merge state requires repo and prNumber`; changed-scope suite passed tr_mrb8zyic_c95f3daa. |\n| AC7 | acceptance_criterion | Existing direct-route, pending auto-merge, unmerged PR, no-remote, and origin-push-unverified tests continue to pass unchanged or with only expectation updates that preserve release safety. | pass | Existing direct-route, pending auto-merge, unmerged PR, no-remote, and push-unverified tests remain green in git-finalize/gate suites; tr_mrb8zyic_c95f3daa. |\n| AC8 | acceptance_criterion | Public schema artifacts remain deterministic: if `Phase9FinalizationStatusSchema` gains fields, `pnpm run schemas:generate` and `pnpm run schemas:check` pass. | pass | Phase9FinalizationStatusSchema gained optional repo; public schema check passed tr_mrb8yx44_33a0b150. |\n| C1 | constraint | Do not complete `release` without positive structural proof: merged PR state, default-branch reachability, local merge proof, or trusted content-addressed tip/tree proof. | respected | Reachability returns shipped only for merged PR state, origin/default reachability, local merge, or tree/tip proof; no branch-absence-only success path observed. |\n| C2 | constraint | Do not depend on live `origin/change/<id>` after PR merge; branch auto-delete is normal. | respected | PR-mode tests prove branch auto-delete/no live origin/change branch does not block when merged PR proof exists; tr_mrb8zyic_c95f3daa. |\n| C3 | constraint | Do not mutate GitHub PR state or repository merge policy as part of detection. | respected | Implementation reads GitHub PR state via gh view/list only; no code path mutates PR state or repo merge policy. |\n| C4 | constraint | Do not use direct ADV state-file reads/edits or disk projection as the normal fix. | respected | ADV state accessed through tools/signals and phase9_status helpers; no direct ADV state-file read/edit path added. |\n| C5 | constraint | Keep Temporal workflow code deterministic and keep git/GitHub I/O in tool/helper layers. | respected | Changes remain in tool/helper layers; Temporal workflow code untouched; pnpm check passed tr_mrb8yx44_33a0b150. |\n| C6 | constraint | Use isolated tests and the repo-local `bin/oc-test` wrapper for verification. | respected | Verification used adv_run_test and repo-local bin/oc-test targeted plus pnpm --dir plugin run check; runs tr_mrb8zyic_c95f3daa and tr_mrb8yx44_33a0b150 passed. |\n| C7 | constraint | Preserve source-vs-deployed runtime boundary in final notes: live ADV tool behavior needs build/deploy/restart before in-session MCP validation. | respected | Executive summary preserves source-vs-deployed runtime boundary: live ADV tool behavior needs build/deploy/restart before current host validation. |\n| DONT1 | avoidance | Do not classify missing PR metadata as `PR_NOT_MERGED` when a merged PR can be discovered. | respected | Missing PR metadata now returns missing-proof classification / discoverable PR success, not PR_NOT_MERGED; tr_mrb8zyic_c95f3daa passed. |\n| DONT2 | avoidance | Do not require manual branch resurrection for normal squash-merge/auto-delete archives. | respected | Branch auto-delete after squash merge is handled through merged PR/default/tip proof; no manual branch resurrection required in tests. |\n| DONT3 | avoidance | Do not weaken or bypass release-gate readiness checks unrelated to PR merge proof. | respected | Release gate still fails closed when merged PR/default/tip proof is absent; no unrelated release readiness checks bypassed. |\n| DONT4 | avoidance | Do not fix unrelated backlog issues #192 or #198 in this change. | respected | Touched implementation files are archive/gate/schema/tests for #202; no #192/#198 target_path or disk-authoritative recovery work implemented. |\n| DONT5 | avoidance | Do not introduce heuristic title matching as release proof. | respected | No heuristic title matching added; PR discovery uses GitHub PR head branch and PR merge state plus structural git/tree proof. |\n| OOS1 | out_of_scope | Full disk-authoritative recovery/reset tooling (#198). | respected | No full disk-authoritative recovery/reset tooling added. |\n| OOS2 | out_of_scope | Cross-project target_path artifact/close routing cleanup (#192). | respected | No cross-project target_path artifact/close routing cleanup implemented. |\n| OOS3 | out_of_scope | Archive worktree cleanup policy changes. | respected | No archive worktree cleanup policy change implemented. |\n| OOS4 | out_of_scope | Changing GitHub branch protection or repository settings. | respected | No GitHub branch protection or repository settings changed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-07T15:22:49.260Z",
+      "contentHash": "7c8c4b44d9df55468ade7da60c96888867376b4763d043f7c875a83831eee496",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-07T15:22:49.260Z",
+      "contentHash": "2fce67b830d8ca4a088c624593c265cedf0c1bfdd5fad95df44d2e6af8d0af47",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-07T15:26:53.846Z",
+      "contentHash": "d8c0d20a72d11160001d420a4977b4478a1939de3904ac1d1f19e8f99abf0e08",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-07T15:29:40.237Z",
+      "contentHash": "7df1f0f23acfba0621117dc8a15d2c91c89631f697d805e572229156856de96f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-07T23:56:48.682Z",
+      "contentHash": "6aff92d7e9a76021356c9dec7c2d060b9b99be79e84d5cf22e32d5eccfb5e00c",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-07T23:56:48.682Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-uzpucw",
+      "type": "pattern",
+      "content": "For PR-mode archive release proof, branch existence is not authoritative after squash-merge/auto-delete. Check structural PR/default-branch reachability first; branch push status is only diagnostic when no merge proof exists.",
+      "source_task": "tk-55adf23bc63c",
+      "recorded_at": "2026-07-07T16:48:22.835Z"
+    }
+  ],
+  "count": 1
+}
