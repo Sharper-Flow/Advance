@@ -257,7 +257,7 @@ describe("deploy-local.sh", () => {
     test("read-only deploy modes report worker refresh without signaling", () => {
       expect(content).toContain('refresh_deployed_temporal_workers "check"');
       expect(content).toContain('refresh_deployed_temporal_workers "dry-run"');
-      expect(content).toContain('No worker processes were signaled.');
+      expect(content).toContain("No worker processes were signaled.");
     });
 
     test("removes legacy non-ADV commands", () => {
