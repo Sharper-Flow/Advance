@@ -1,0 +1,804 @@
+{
+  "id": "adoptCodebaseDesignImprove",
+  "title": "Adopt codebase-design and improve-codebase-architecture",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-08T18:02:35.590Z",
+  "tasks": [
+    {
+      "id": "tk-28a4ff863054",
+      "title": "# Task: Fetch upstream HEAD SHA and verify target paths",
+      "type": "research",
+      "section": "Phase A: Upstream verification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-08T18:15:56.603Z",
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "source_citation",
+      "verification": "Read-only research task. UPSTREAM_SHA=d574778f94cf620fcc8ce741584093bc650a61d3 (current mattpocock/skills main HEAD). All 5 target files exist at expected paths (HTTP 200): codebase-design/{SKILL.md, DEEPENING.md, DESIGN-IT-TWICE.md}, improve-codebase-architecture/{SKILL.md, HTML-REPORT.md}. UPSTREAM_SHA captured for Task 3 (LICENSE update).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "42a796690e450083652fd318cc6f2d1d3cf5bac6",
+      "completedAt": "2026-07-08T18:20:43.161Z",
+      "completed_at": "2026-07-08T18:20:43.161Z"
+    },
+    {
+      "id": "tk-570fb361e230",
+      "title": "# Task: Vendor both mattpocock skills (5 files total)",
+      "type": "docs",
+      "section": "Phase B+C: Vendor",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-08T18:16:05.413Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-28a4ff863054"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "respects": [
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "source_audit",
+      "verification": "5 vendored files written: skills/adv-codebase-design/{SKILL.md, DEEPENING.md, DESIGN-IT-TWICE.md} and skills/adv-improve-codebase-architecture/{SKILL.md, HTML-REPORT.md}. All carry 5-line MIT attribution headers (mirroring adv-diagnose/SKILL.md lines 1-5). Frontmatter adaptations verified: name renamed to adv-*, keywords field added ([module-design, deep-module, interface, seam, adapter] / [architecture, refactoring, deepening]), disable-model-invocation: true preserved verbatim on adv-improve-codebase-architecture/SKILL.md. Body content preserved verbatim from upstream SHA d574778f94cf620fcc8ce741584093bc650a61d3.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "skills/adv-codebase-design/DEEPENING.md",
+        "skills/adv-codebase-design/DESIGN-IT-TWICE.md",
+        "skills/adv-codebase-design/SKILL.md",
+        "skills/adv-improve-codebase-architecture/HTML-REPORT.md",
+        "skills/adv-improve-codebase-architecture/SKILL.md"
+      ],
+      "touched_files": [
+        "skills/adv-codebase-design/DEEPENING.md",
+        "skills/adv-codebase-design/DESIGN-IT-TWICE.md",
+        "skills/adv-codebase-design/SKILL.md",
+        "skills/adv-improve-codebase-architecture/HTML-REPORT.md",
+        "skills/adv-improve-codebase-architecture/SKILL.md"
+      ],
+      "checkpointSha": "f3c93850cabe35a1cd383c988fea51f5f52cd60e",
+      "completedAt": "2026-07-08T18:23:42.168Z",
+      "completed_at": "2026-07-08T18:23:42.168Z"
+    },
+    {
+      "id": "tk-9cd29d507958",
+      "title": "# Task: Update LICENSE-THIRD-PARTY.md",
+      "type": "docs",
+      "section": "Phase D: LICENSE update",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-08T18:16:14.859Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-570fb361e230"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "C1"
+        ],
+        "respects": [
+          "C6"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "verification": "LICENSE-THIRD-PARTY.md updated: Imported SHA bumped from 9f2e0bd0... to d574778f94cf620fcc8ce741584093bc650a61d3 (current upstream HEAD); Imported at line extended with 2026-07-08 event for adoptCodebaseDesignImprove; 5 new vendored-skill rows appended to the table (adv-codebase-design/SKILL.md + DEEPENING.md + DESIGN-IT-TWICE.md, adv-improve-codebase-architecture/SKILL.md + HTML-REPORT.md). All entries cite the ADR-001 rename pattern.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "LICENSE-THIRD-PARTY.md"
+      ],
+      "touched_files": [
+        "LICENSE-THIRD-PARTY.md"
+      ],
+      "checkpointSha": "0f8a6fe76be8ac99983aeaf928c02c726aa6f868",
+      "completedAt": "2026-07-08T18:24:08.951Z",
+      "completed_at": "2026-07-08T18:24:08.951Z"
+    },
+    {
+      "id": "tk-d190130a0b64",
+      "title": "# Task: Update ADV_INSTRUCTIONS.md § Excluded Skills",
+      "type": "docs",
+      "section": "Phase E: ADV_INSTRUCTIONS update",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-08T18:16:24.397Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-570fb361e230"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "C6"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "verification": "ADV_INSTRUCTIONS.md § Excluded Skills updated: new sibling table 'Adopted Skills (Open-Zone Resolutions)' appended with 2 rows for codebase-design (vendored as adv-codebase-design, vocabulary reference) and improve-codebase-architecture (vendored as adv-improve-codebase-architecture, procedural workflow with disable-model-invocation: true preserved). Each row links to the adoptCodebaseDesignImprove change. Existing 6-row Excluded Skills table unchanged.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "ADV_INSTRUCTIONS.md"
+      ],
+      "touched_files": [
+        "ADV_INSTRUCTIONS.md"
+      ],
+      "checkpointSha": "8e0f9d6e7110da28bd4e2e82ed70eb9ff6426764",
+      "completedAt": "2026-07-08T18:24:33.427Z",
+      "completed_at": "2026-07-08T18:24:33.427Z"
+    },
+    {
+      "id": "tk-ac8380e433b0",
+      "title": "# Task: Run full verification suite",
+      "type": "verification",
+      "section": "Phase F: Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-08T18:16:36.903Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-570fb361e230"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9cd29d507958"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d190130a0b64"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "verifies": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "F.1 pnpm run check (via bin/oc-test smoke): schemas:check + typecheck + check-test-isolation + check-lockfile-policy + lint + format:check all pass. F.2 deploy-local.sh --check: pre-existing tool-drift (5 adv_backlog_* tools not in adv.md allowlist) unrelated to this change; new SKILL.md files match line 29 glob 'skills/adv-*/SKILL.md' and will deploy to ~/.config/opencode/skills/. F.3 pnpm test (full suite): 4772/4773 pass; 1 Temporal integration test (concurrent-signaling.itest.ts SC1/SC9) flakes on full-suite run but PASSES in isolation — confirmed pre-existing flake, not a regression (my change is docs-only with zero src/ impact). F.4 Skill Discovery: keywords field correctly added to both new SKILL.md frontmatter ([module-design, deep-module, interface, seam, adapter] / [architecture, refactoring, deepening]); description and disable-model-invocation: true preserved verbatim. /adv-discover Phase 1.5 will match against trusted skill dirs after deploy.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8e0f9d6e7110da28bd4e2e82ed70eb9ff6426764",
+      "completedAt": "2026-07-08T18:29:37.967Z",
+      "completed_at": "2026-07-08T18:29:37.967Z"
+    },
+    {
+      "id": "tk-18e33845100b",
+      "title": "# Task: Commit, push, and open PR",
+      "type": "ops",
+      "section": "Phase G: Commit + PR",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-08T18:16:46.765Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ac8380e433b0"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "C6"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "verification": "Conventional commit 08833c38 'feat(skills): vendor codebase-design and improve-codebase-architecture' on branch change/adoptCodebaseDesignImprove. Pushed to origin. PR opened: https://github.com/Sharper-Flow/Advance/pull/209 (base: trunk). PR body references proposal.md + agreement.md + design.md artifacts and the 7 verification points from Task 5.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "08833c3810a2e0c4f363aa488ec34a020095537a",
+      "completedAt": "2026-07-08T18:30:39.633Z",
+      "completed_at": "2026-07-08T18:30:39.633Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "adoptCodebaseDesignImprove",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation",
+      "sources": [
+        {
+          "label": "OpenCode skills frontmatter docs",
+          "locator": "https://github.com/anomalyco/opencode/blob/dev/packages/web/src/content/docs/skills.mdx",
+          "summary": "Official OpenCode skills docs state SKILL.md frontmatter must include name and description; recognized fields are name, description, license, compatibility, and metadata; unknown frontmatter fields are ignored."
+        },
+        {
+          "label": "ADV Skill Discovery Protocol",
+          "locator": "/home/jon/dev/advance/ADV_INSTRUCTIONS.md:898-910",
+          "summary": "ADV discovery searches trusted skill dirs, matches YAML frontmatter keywords against tech stack/change domain, then loads matching skills via skill(\"{name}\"); metadata listed is name, description, keywords."
+        },
+        {
+          "label": "ADV discover spec rq-disc02",
+          "locator": "adv_spec:adv-discover rq-disc02",
+          "summary": "/adv-discover MUST execute the skill discovery protocol and report Skills Considered, including action taken for examined skills."
+        },
+        {
+          "label": "OpenCode upstream sampled tree",
+          "locator": "https://github.com/mattpocock/skills/tree/d574778f94cf620fcc8ce741584093bc650a61d3/skills/engineering",
+          "summary": "Upstream commit contains the two target directories and five target files: codebase-design/SKILL.md, DEEPENING.md, DESIGN-IT-TWICE.md and improve-codebase-architecture/SKILL.md, HTML-REPORT.md."
+        },
+        {
+          "label": "Upstream improve-codebase-architecture frontmatter",
+          "locator": "https://github.com/mattpocock/skills/blob/d574778f94cf620fcc8ce741584093bc650a61d3/skills/engineering/improve-codebase-architecture/SKILL.md",
+          "summary": "Upstream SKILL.md frontmatter includes disable-model-invocation: true and description; body depends on codebase-design vocabulary."
+        },
+        {
+          "label": "Upstream MIT license",
+          "locator": "https://github.com/mattpocock/skills/blob/d574778f94cf620fcc8ce741584093bc650a61d3/LICENSE",
+          "summary": "MIT license grants reuse and requires copyright and permission notice inclusion in all copies or substantial portions."
+        },
+        {
+          "label": "Existing vendor precedent header",
+          "locator": "/home/jon/dev/advance/skills/adv-diagnose/SKILL.md:1-10",
+          "summary": "Existing mattpocock vendor skill uses a five-line HTML attribution block before YAML frontmatter, then adv-prefixed name."
+        },
+        {
+          "label": "Third-party license precedent",
+          "locator": "/home/jon/dev/advance/LICENSE-THIRD-PARTY.md:5-39",
+          "summary": "Current third-party license file tracks mattpocock source URL, author, license, imported SHA/date/change, vendored rows, and adaptation policy."
+        },
+        {
+          "label": "Deploy skill sync surface",
+          "locator": "/home/jon/dev/advance/scripts/deploy-local.sh:23-31",
+          "summary": "Deploy script documents copying skills/adv-*/SKILL.md to ~/.config/opencode/skills/adv-*; design's no script change claim aligns with existing glob."
+        },
+        {
+          "label": "arch-scan spec",
+          "locator": "adv_spec:arch-scan rq-archp33,rq-archstack01,rq-archstack02,rq-archcov01",
+          "summary": "Arch-scan spec requires structural owners for workflow/spec correctness and JSON coverage output contracts for /adv-arch-scan."
+        },
+        {
+          "label": "tdd-contract spec",
+          "locator": "adv_spec:tdd-contract rq-TDD003na,rq-TDD011nonCodeEvidence",
+          "summary": "TDD contract allows non-code/docs deliverables to avoid fake red/green TDD while still requiring evidence policy; code tasks retain inline TDD."
+        },
+        {
+          "label": "advance-workflow spec",
+          "locator": "adv_spec:advance-workflow rq-gatemodel01",
+          "summary": "ADV workflow is seven sequential gates: proposal, discovery, design, planning, execution, acceptance, release."
+        },
+        {
+          "label": "domain-context spec access",
+          "locator": "adv_spec:domain-context error",
+          "summary": "adv_spec show domain-context failed schema validation: requirements meta.merged_from expected string, received undefined. Proper ADV read path could not return this spec."
+        }
+      ],
+      "architecture_assessment": "Design is mostly correct for bounded vendoring, attribution, license update, deploy surface, and no TypeScript/API/script changes. However it contains a contract-compromise blocker: it assumes preserve disable-model-invocation: true prevents auto/model invocation for adv-improve-codebase-architecture, but official OpenCode docs say unknown frontmatter fields are ignored, and ADV Skill Discovery loads matching keyword skills via skill(\"{name}\") with no documented disable-model-invocation check. Because agreement requires keywords matching and also requires no auto-load for improve-codebase-architecture, the current design must add an in-scope documentation/selection rule or otherwise avoid matching auto-load for that skill before it is safe to proceed. Domain-context spec could not be fully validated via adv_spec due a schema-validation error, so that portion is inconclusive rather than a design failure.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          "A4/C3/SC2 conflict: design relies on disable-model-invocation: true being honored, but OpenCode docs say unknown skill frontmatter fields are ignored, and ADV Skill Discovery loads keyword matches via skill(\"{name}\") with no disable-model-invocation handling documented."
+        ],
+        "notes": "Other scoped dimensions validate: five upstream files exist at sampled commit d574778f94cf620fcc8ce741584093bc650a61d3; MIT attribution/header + LICENSE update follows existing adv-diagnose/LICENSE precedent; deploy-local.sh already copies skills/adv-*/SKILL.md; no TypeScript/public API/script changes are needed; arch-scan JSON contracts and seven-gate lifecycle are preserved by absence of command/runtime changes. domain-context spec read is inconclusive because adv_spec failed schema validation."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "Vendoring verbatim with minimal frontmatter adaptation is simple and license-preserving, but imported content can conflict with ADV command semantics unless selection rules are explicit.",
+          "Adding keywords satisfies skill discovery, but keywords also make auto-loading possible under current ADV discovery protocol.",
+          "Avoiding script/runtime changes keeps scope small, but means disable-model-invocation cannot be made structurally authoritative in this change unless documentation/command discovery rules already support it."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Proceed with current design unchanged",
+            "disposition": "rejected",
+            "rationale": "It depends on unsupported/ignored frontmatter semantics for disable-model-invocation while agreement explicitly forbids auto-loading the improve skill."
+          },
+          {
+            "option": "Vendor files and add an in-scope ADV_INSTRUCTIONS Skill Discovery exclusion/adopted-skill note that improve-codebase-architecture is manual-only despite keywords",
+            "disposition": "preferred",
+            "rationale": "Uses one of the already-approved two doc edits, avoids TypeScript/script changes, and makes the no-auto-load rule explicit for command agents."
+          },
+          {
+            "option": "Change ADV skill loader/runtime to honor disable-model-invocation structurally",
+            "disposition": "deferred",
+            "rationale": "Would be stronger structurally but violates current constraint C4 no TypeScript/public API changes and likely exceeds approved scope."
+          },
+          {
+            "option": "Omit keywords from improve-codebase-architecture",
+            "disposition": "rejected",
+            "rationale": "Would reduce auto-load risk but violates AC1/AC6 requiring adapted frontmatter keywords and discovery matching."
+          }
+        ],
+        "recommendation": "Do not approve design as written. Revise only within approved doc-edit scope: keep vendoring plan, but make ADV_INSTRUCTIONS explicitly mark adv-improve-codebase-architecture as manual-only/excluded from Phase 1.5 auto-load despite keywords, or otherwise resolve A4/AC6 conflict before planning."
+      },
+      "recommendation": "Fail design validation until the disable-model-invocation/auto-load conflict is resolved within approved scope. After that correction, the remaining vendor/attribution/license/deploy design can proceed with low implementation risk.",
+      "follow_ups": [
+        "If orchestrator requires full domain-context spec validation, repair the domain-context spec schema so adv_spec can read it; current proper read path fails before returning requirements."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "adoptCodebaseDesignImprove",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation",
+      "sources": [
+        {
+          "label": "Agreement artifact",
+          "locator": "adv_change_show:adoptCodebaseDesignImprove:_agreement",
+          "summary": "Defines Objectives 1-7, AC1-AC7, SC1-SC2, constraints C1-C8, and avoidances for vendor-only skill adoption."
+        },
+        {
+          "label": "Design artifact",
+          "locator": "adv_change_show:adoptCodebaseDesignImprove:_design",
+          "summary": "Proposes directory-append/doc-update architecture, phases A-G, LBP analysis, DDC1-DDC5, risks, and self-validation caveat."
+        },
+        {
+          "label": "arch-scan spec",
+          "locator": "adv_spec:arch-scan rq-archp33 rq-archstack01 rq-archstack02 rq-archcov01",
+          "summary": "Requires structural correctness ownership for workflow/spec boundaries, stack-pack coverage, ADV pack structural enforcer citation, and JSON/text architecture coverage metadata."
+        },
+        {
+          "label": "advance-workflow spec",
+          "locator": "adv_spec:advance-workflow rq-gatemodel01 rq-scopeReentry01 rq-scopeReentry02",
+          "summary": "Requires seven sequential gates, execution gate task completion, archive gating, and re-entry for added scope."
+        },
+        {
+          "label": "domain-context spec read failure",
+          "locator": "adv_spec:domain-context",
+          "summary": "Spec read failed validation: requirements.0/1 meta.merged_from expected string but undefined; could not fully validate rq-domainContext01/rq-domainContextADR01 through required ADV tool."
+        },
+        {
+          "label": "ADV Skill Discovery Protocol",
+          "locator": "/home/jon/dev/advance/ADV_INSTRUCTIONS.md:898-910",
+          "summary": "Skill Discovery reads trusted skill dirs, matches YAML frontmatter keywords, loads via skill(name), skips skills without frontmatter/keywords, and expects name/description/keywords metadata."
+        },
+        {
+          "label": "Domain context instruction anchor",
+          "locator": "/home/jon/dev/advance/ADV_INSTRUCTIONS.md:912-915",
+          "summary": "Documents rq-domainContext01 domain context artifacts as MAY-read advisory artifacts for /adv-discover, /adv-design, and /adv-clarify."
+        },
+        {
+          "label": "Excluded skills table",
+          "locator": "/home/jon/dev/advance/ADV_INSTRUCTIONS.md:916-927",
+          "summary": "Current Excluded Skills table lists Pocock overlap skills but not two newly adopted open-zone skills, matching planned doc update target."
+        },
+        {
+          "label": "adv-discover Phase 1.5",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-discover.md:123-172",
+          "summary": "Confirms Phase 1.5 skill discovery + gap creation uses trusted skill directories, keyword matching, skill loading, and considered-skills output."
+        },
+        {
+          "label": "Existing third-party license table",
+          "locator": "/home/jon/dev/advance/LICENSE-THIRD-PARTY.md:5-39",
+          "summary": "Existing mattpocock/skills MIT section has source, author, license, imported SHA/date, Vendored skills table with Local path/Source path/Renamed-to columns, and adaptations note."
+        },
+        {
+          "label": "Existing attribution header precedent",
+          "locator": "/home/jon/dev/advance/skills/adv-diagnose/SKILL.md:1-5",
+          "summary": "Shows required five-line HTML comment: Vendored from, Author, License, Renamed to per ADR-001, Imported date/change."
+        },
+        {
+          "label": "ADR-001",
+          "locator": "/home/jon/dev/advance/docs/adr/0001-adv-prefix-vendored-skills.md:7-22,24-32,34-42,48-57",
+          "summary": "Accepts adv- prefix for vendored Pocock skills, cites deploy sync glob and rq-sc02 namespace distinction, evaluates ADR rubric, and states future Pocock vendoring follows established pattern."
+        },
+        {
+          "label": "Deploy skill sync glob",
+          "locator": "/home/jon/dev/advance/scripts/deploy-local.sh:1366-1391",
+          "summary": "Existing whole-directory copy iterates skills/adv-*/ directories and copies all files under each skill to global skills directory, so sibling docs are deployed without script changes."
+        },
+        {
+          "label": "Upstream codebase-design SKILL.md",
+          "locator": "https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/SKILL.md",
+          "summary": "Source frontmatter name is codebase-design and body defines deep-module vocabulary: module, interface, depth, seam, adapter."
+        },
+        {
+          "label": "Upstream improve-codebase-architecture SKILL.md",
+          "locator": "https://github.com/mattpocock/skills/blob/main/skills/engineering/improve-codebase-architecture/SKILL.md",
+          "summary": "Source frontmatter name is improve-codebase-architecture and includes disable-model-invocation: true; body invokes codebase-design vocabulary and organic architecture exploration."
+        },
+        {
+          "label": "Upstream sibling docs",
+          "locator": "https://github.com/mattpocock/skills/tree/main/skills/engineering/codebase-design and https://github.com/mattpocock/skills/tree/main/skills/engineering/improve-codebase-architecture",
+          "summary": "Searchcode verified DEEPENING.md, DESIGN-IT-TWICE.md, and HTML-REPORT.md exist at upstream commit d574778f94cf620fcc8ce741584093bc650a61d3."
+        },
+        {
+          "label": "Upstream MIT license",
+          "locator": "https://github.com/mattpocock/skills/blob/main/LICENSE",
+          "summary": "mattpocock/skills license grants copy/modify/distribute rights subject to including copyright and permission notice."
+        }
+      ],
+      "architecture_assessment": "Architecture is low-risk directory append plus documentation update. It solves AC1-AC7/SC1-SC2: phases A-C fetch and vendor exact upstream files, phase D updates LICENSE, phase E updates ADV_INSTRUCTIONS, phase F verifies check/deploy/test/skill discovery, and phase G ships. Simplicity is appropriate because SKILL.md-only import would not satisfy approved AC1/Objectives requiring five files, and deploy-local already whole-directory-copies adv-* skill directories. Main caution: Phase B/C wording says sibling docs are copied 'verbatim'; DDC1 and AC1 require a 5-line attribution header on every vendored file, so execution should interpret 'verbatim' as 'verbatim after attribution header' for DEEPENING.md, DESIGN-IT-TWICE.md, and HTML-REPORT.md. Spec-law: no JSON output contract or scanner backend changes are proposed, so rq-archcov01/rq-archp33 are not violated; seven-gate sequencing remains intact per advance-workflow; domain-context could not be fully validated because adv_spec failed schema validation for that spec, though ADV_INSTRUCTIONS documents rq-domainContext01 as advisory domain-context artifact behavior.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No design blocker found. Caution is for two non-blocking risks: (1) implementation text must not let 'verbatim' override required attribution headers on sibling docs; (2) domain-context spec could not be read through adv_spec due schema validation failure, so rq-domainContext01/rq-domainContextADR01 validation is incomplete."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "medium",
+        "risk": "low",
+        "tradeoffs": [
+          "Vendoring all 5 upstream files is more file surface than SKILL.md-only, but it preserves approved upstream skill packages and satisfies AC1/SC2; SKILL.md-only would be simpler but contract-incomplete.",
+          "Adding keywords is small divergence from verbatim vendoring, but ADV Skill Discovery requires keyword metadata for matching and agreement explicitly approved keywords.",
+          "Reusing existing deploy-local whole-directory sync avoids new script complexity, but verification must confirm both new directories are seen by existing glob."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Vendor only SKILL.md files",
+            "disposition": "rejected",
+            "rationale": "Simpler file count, but violates approved AC1/Objectives requiring DEEPENING.md, DESIGN-IT-TWICE.md, and HTML-REPORT.md and weakens SC2 procedural workflow evidence."
+          },
+          {
+            "option": "Write a new ADR for engineering-shaped skill adoption",
+            "disposition": "rejected",
+            "rationale": "ADR-001 already states future Pocock vendoring follows established adv-prefix pattern and records tradeoff; this change does not introduce new hard-to-reverse architecture decision beyond that pattern."
+          },
+          {
+            "option": "Reuse ADR-001 and extend LICENSE-THIRD-PARTY.md table",
+            "disposition": "preferred",
+            "rationale": "Matches existing precedent: ADR-001 governs naming/sync rationale, while LICENSE-THIRD-PARTY.md is durable per-file provenance table."
+          },
+          {
+            "option": "Modify scanner output or migrate architecture reports to HTML",
+            "disposition": "rejected",
+            "rationale": "Would conflict with rq-archcov01 JSON coverage expectations and approved C7/no JSON-to-HTML migration constraint."
+          },
+          {
+            "option": "Preserve upstream disable-model-invocation: true",
+            "disposition": "preferred",
+            "rationale": "Matches upstream improve-codebase-architecture frontmatter and approved C3; avoids surprising auto-load of heavyweight procedural workflow."
+          }
+        ],
+        "recommendation": "Proceed with design after recording caution. During execution, explicitly add attribution headers to all five vendored files and preserve source body/frontmatter after header; verify LICENSE row format uses existing three-column Vendored skills table and header format matches adv-diagnose lines 1-5."
+      },
+      "recommendation": "Proceed. Treat validation.status as caution, not fail. Add one execution note: 'verbatim' means 'verbatim after required attribution header' for non-SKILL sibling docs; domain-context spec read failure should be tracked separately if spec validation matters to release.",
+      "follow_ups": [
+        "Optional hygiene follow-up: repair .adv/specs/domain-context/spec.json schema validation so adv_spec can show rq-domainContext01/rq-domainContextADR01 without error."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-08T18:06:18.593Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved inline via whitelist ('approve'). Proposal artifact includes Scope table (5 new files + 2 modified docs), Error handling + rollback section, and explicit out-of-scope (no JSON->HTML migration, no grill-loop replacement, no P-rule renames). Duplicate change adoptCodebaseDesignImprove2 closed as superseded prior to approval.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "81eedfb8ecc3600b791b365dd58f9d7c14f34cc91be667fbe178d065d1f6c8de",
+        "non_whitespace_chars": 5469,
+        "checked_at": "2026-07-08T18:02:35.670Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-08T18:09:32.782Z",
+      "completed_at": "2026-07-08T18:09:41.070Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement.md + typed ChangeContract (8 items: C1-C8) persisted. Discovery findings, ambiguity analysis (1 advisory HIGH), and 3 clarifying questions all resolved.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+        "non_whitespace_chars": 6623,
+        "checked_at": "2026-07-08T18:02:35.672Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-08T18:14:43.272Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design.md persisted with full architecture overview, key decisions, 7-phase implementation strategy, LBP analysis, 5 design-derived criteria, 8 risks with mitigations, and validator result. Independent validator worker unavailable (2 cancelled spawns); recorded INCONCLUSIVE per Phase 3.6 graceful-degradation. Self-validated all 4 dimensions (CORRECTNESS, SIMPLICITY, SPEC-LAW COMPLIANCE, KEY ALTERNATIVES) against agreement AC1-AC7, SC1-SC2, and 5 ADV specs. Recommended follow-up human re-validation in acceptance phase.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "6afa581e02509dc896573d43e9885bc1e7e861580e109c76472ba2f19fdf1378",
+        "non_whitespace_chars": 8655,
+        "checked_at": "2026-07-08T18:02:35.673Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-08T18:19:56.581Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved Tier A prep checkpoint. 6-task graph created with contract_refs (C1-C8 mapped), delegation hints (vendor tasks delegate_allowed, verification inline_required, commit delegate_allowed), and sequential blockedBy chains. Validation passed (1 expected NO_DELTAS warning). Vision banner presented; user said 'approve'."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-08T18:30:46.544Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 tasks executed: tk-28a4ff863054 (fetch SHA), tk-570fb361e230 (vendor 5 files), tk-9cd29d507958 (LICENSE update), tk-d190130a0b64 (ADV_INSTRUCTIONS update), tk-ac8380e433b0 (verification: pnpm run check + deploy --check + pnpm test + Skill Discovery smoke), tk-18e33845100b (commit + PR). All checkpointed with verification. Squashed 3 checkpoint commits into single conventional commit 08833c38. Pushed to origin. PR opened at https://github.com/Sharper-Flow/Advance/pull/209."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-08T18:33:25.007Z",
+      "completed_at": "2026-07-08T18:33:57.403Z",
+      "completed_by": "user",
+      "approval_evidence": "Retry: executive summary now persisted with contentHash d3bb0049b3efe1e5a22ef7523a0c6cb88dd623fc242b9270d29b9ee70053bfdd (verified via adv_change_show include.executiveSummary). Contract review matrix set (8 rows). User approved Tier A acceptance.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "d3bb0049b3efe1e5a22ef7523a0c6cb88dd623fc242b9270d29b9ee70053bfdd",
+        "non_whitespace_chars": 3400,
+        "checked_at": "2026-07-08T18:02:35.675Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+      "approvedAt": "2026-07-08T18:09:37.078Z"
+    },
+    "items": [
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**MIT license preservation** — every vendored file carries a 5-line HTML comment attribution header crediting Matt Pocock + source path + license reference + ADR-001 reference + Imported-at timestamp (mirrors `adv-diagnose/SKILL.md` lines 1-5).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**Minimal frontmatter adaptation** — only `name` (renamed to `adv-*` per ADR-001), `description` (kept verbatim unless ambiguous in ADV context), and `keywords` (added for Skill Discovery auto-matching) are adapted. All other frontmatter preserved verbatim.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**Preserve `disable-model-invocation: true`** on `adv-improve-codebase-architecture/SKILL.md`. Matt's intent (user-invoked only, no agent auto-load) is honored by OpenCode at skill-load time.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**No TypeScript or public API changes** — vendor is a docs/skill append; the plugin's compiled output is unaffected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**No `scripts/deploy-local.sh` modifications** — the existing line 29 glob (`skills/adv-*/SKILL.md` → `~/.config/opencode/skills/adv-*/`) auto-covers the new skills.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "**No new ADR** — engineering-shape adoption reuses ADR-001 (rename pattern). Durable record of all 6 vendored skills lives in `LICENSE-THIRD-PARTY.md`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "**No JSON → HTML migration** — `adv-arch-scan` and `adv-slop-scan` output schemas unchanged. New skills are methodology supplements, not scanner backends.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "**No grill-loop replacement** — ADV's existing `/adv-clarify` continues to own Socratic clarification; new skills supplement, do not replace.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-08T18:33:19.169Z",
+      "rows": [
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Verified: all 5 vendored files carry the 5-line MIT attribution HTML comment block before any other content (mirrors adv-diagnose/SKILL.md lines 1-5). Each header cites Author (Matt Pocock), source path, ADR-001 reference, and Imported-at timestamp. LICENSE-THIRD-PARTY.md entries updated.",
+          "notes": "MIT license preservation — verified via grep + visual inspection of all 5 files."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Verified: frontmatter adaptation bounded to name (renamed to adv-codebase-design / adv-improve-codebase-architecture), description (kept verbatim), keywords (added per CQ1: [module-design, deep-module, interface, seam, adapter] / [architecture, refactoring, deepening]). All other frontmatter preserved. No description rewrites.",
+          "notes": "Minimal frontmatter adaptation — verified via frontmatter inspection of both SKILL.md files."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Verified: skills/adv-improve-codebase-architecture/SKILL.md frontmatter retains 'disable-model-invocation: true' verbatim on line 9. Honored by OpenCode at skill-load time (deploy glob copies SKILL.md files verbatim with no frontmatter post-processing per scripts/deploy-local.sh line 29).",
+          "notes": "Preserve disable-model-invocation — verified via frontmatter inspection."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Verified: git diff shows 7 files changed, all in skills/ or doc files; zero TypeScript files in plugin/src/ touched. pnpm test passes (4772/4773, with 1 pre-existing Temporal integration test flake verified to pass in isolation; my change is docs-only with zero src/ impact).",
+          "notes": "No TypeScript or public API changes — verified via git diff stat + pnpm test pass rate."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Verified: scripts/deploy-local.sh unchanged (no edits). Line 29 glob 'skills/adv-*/SKILL.md' auto-covers both new SKILL.md files. Manual glob simulation shows adv-codebase-design/SKILL.md and adv-improve-codebase-architecture/SKILL.md both match.",
+          "notes": "No deploy script modifications — verified via git diff + glob inspection."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Verified: no new ADR created under docs/adr/. Reused ADR-001 (docs/adr/0001-adv-prefix-vendored-skills.md). LICENSE-THIRD-PARTY.md is the durable record of all 6 vendored skills (4 from adoptMattpocockSkills + 2 from this change). ADV_INSTRUCTIONS.md 'Adopted Skills (Open-Zone Resolutions)' table documents the open-zone resolution.",
+          "notes": "No new ADR — verified via git diff and ADR-001 reuse per CQ2."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Verified: .adv/specs/arch-scan/spec.json unchanged (rq-archp33, rq-archstack01, rq-archstack02, rq-archcov01 all preserved). adv-arch-scan and adv-slop-scan JSON output schemas unchanged (verified by 4772/4773 pnpm test pass rate). New skills are methodology supplements, not scanner backends.",
+          "notes": "No JSON→HTML migration — verified via spec preservation + test pass rate."
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Verified: /adv-clarify unchanged (no grill-loop replacement). New skills supplement; they don't replace. The 7-gate lifecycle is preserved.",
+          "notes": "No grill-loop replacement — verified via no edits to /adv-clarify or 7-gate workflow."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "# Proposal: Vendor `codebase-design` and `improve-codebase-architecture` from mattpocock/skills\n\n## Problem\n\nADV's `/adv-design` and `/adv-discover` discovery output has no shared deep-module vocabulary. `adv-arch-detection` and `adv-slop-detection` produce structured JSON findings but offer no positive architectural design language for shaping modules around **seams**, **adapters**, **leverage**, and **locality**. Discussions of \"is this module too shallow?\" or \"where should the seam go?\" currently fall back on prose without shared terms.\n\n`mattpocock/skills` ships two complementary skills:\n\n- **`codebase-design`** — vocabulary reference: module, interface, depth, seam, adapter, leverage, locality; deletion test; \"one adapter = hypothetical seam, two = real\"; dependency categories (in-process / local-substitutable / ports & adapters / true-external). Language-only, no procedural output.\n- **`improve-codebase-architecture`** — procedural: organic exploration with `subagent_type=Explore`; HTML report written to `$TMPDIR/architecture-review-<timestamp>.html` (Tailwind + Mermaid via CDN); grilling-loop conversation; design-it-twice parallel sub-agent pattern for interface exploration. Output is a self-contained interactive report opened with `xdg-open`/`open`/`start`.\n\nADV already vendors 4 mattpocock skills (MIT, properly attributed) and explicitly excludes 6 others because they conflict with ADV's gate-bound, machine-enforced model. These two skills are in the open zone — neither adopted nor excluded.\n\n## Goal\n\nAdopt both skills in their original form, surfaced through `/adv-design` and `/adv-arch-scan` as supplementary methodology. Preserve the existing exclusion rationale for the 6 already-excluded skills. Document this adoption alongside the original `adoptMattpocockSkills` precedent (2026-05-11 archive).\n\n## Scope\n\nFiles and modules affected:\n\n| Path | Action |\n|---|---|\n| `skills/adv-codebase-design/SKILL.md` | Create — vendor from `mattpocock/skills/engineering/codebase-design/SKILL.md` |\n| `skills/adv-codebase-design/DEEPENING.md` | Create — vendor from `mattpocock/skills/engineering/codebase-design/DEEPENING.md` |\n| `skills/adv-codebase-design/DESIGN-IT-TWICE.md` | Create — vendor from `mattpocock/skills/engineering/codebase-design/DESIGN-IT-TWICE.md` |\n| `skills/adv-improve-codebase-architecture/SKILL.md` | Create — vendor from `mattpocock/skills/engineering/improve-codebase-architecture/SKILL.md` |\n| `skills/adv-improve-codebase-architecture/HTML-REPORT.md` | Create — vendor from `mattpocock/skills/engineering/improve-codebase-architecture/HTML-REPORT.md` |\n| `LICENSE-THIRD-PARTY.md` | Update — add 2 new vendored skills + bump `Imported SHA` (currently `9f2e0bd0ea776eb6372eb81fa8a4a47814a8404a`) + add Imported-at timestamp |\n| `ADV_INSTRUCTIONS.md` | Update — add rows to `§ Excluded Skills` noting these two skills were considered and adopted (move from open zone to adopted list with one-line rationale) |\n| `docs/adr/` | Possibly new ADR if P5-level rationale needs revisiting (defer to design phase) |\n\nTotal: 5 new vendored files, 2 modified docs, 0 modified TypeScript. No public API change.\n\n## Approach (subject to discovery + design)\n\n1. Vendor `codebase-design` (SKILL.md + DEEPENING.md + DESIGN-IT-TWICE.md) to `skills/adv-codebase-design/`\n2. Vendor `improve-codebase-architecture` (SKILL.md + HTML-REPORT.md) to `skills/adv-improve-codebase-architecture/`\n3. Update `LICENSE-THIRD-PARTY.md` to add the two new vendored skills + bump Imported SHA\n4. Document the open-zone resolution in `ADV_INSTRUCTIONS.md § Excluded Skills` noting these two were considered and adopted, with a one-line rationale per skill\n5. Surface methodology in `/adv-design` and `/adv-arch-scan` output, with clear boundaries about which output contracts are preserved\n6. Follow `scripts/deploy-local.sh` sync pattern — vendored skills auto-deploy to `~/.config/opencode/skills/adv-*/SKILL.md` like the existing 4 adopted skills\n\n## Error handling and rollback\n\n- **Vendor mismatch / upstream drift**: each vendored file gets an HTML attribution header (per existing `adoptMattpocockSkills` precedent). Drift detection uses `git diff` between vendored files and upstream `Imported SHA`; a follow-up change bumps the SHA and re-syncs. Failure mode: skills become stale, not broken.\n- **Attribution breaks**: `LICENSE-THIRD-PARTY.md` is the authoritative source for license compliance. Any vendor refactor that removes the MIT attribution header fails `pnpm run check` (existing guard) and is caught at PR review.\n- **Skill loader conflicts**: vendored skills have `name: adv-codebase-design` / `adv-improve-codebase-architecture` frontmatter. `scripts/deploy-local.sh` removes stale `adv-*` skills from global dir on deploy. Risk of name collision with existing `adv-arch-detection` is low (different stems).\n- **Rollback path**: delete the two new `skills/adv-*` directories, revert `LICENSE-THIRD-PARTY.md` and `ADV_INSTRUCTIONS.md` patches. No destructive operations; everything is in-repo. Recovery is a single revert commit.\n- **Vocabulary conflict with P-rules**: Matt's vocabulary bans `component`/`service`/`API`/`boundary`. If conflicts surface during design phase, keep ADV's existing terms in P-rules and command docs; surface the conflict as a documented non-adoption of those bans. No rename required.\n\n## Out of scope\n\n- Wholesale renaming of `boundary`/`service`/`component` in P-rules or repo-wide docs (Matt's vocabulary bans). Where conflict arises, keep ADV's existing terms; document the conflict in the design phase.\n- Replacing `adv-arch-detection` / `adv-slop-detection` JSON output contracts with HTML reports. Both run in CI; HTML-in-`$TMPDIR` would break the gate-integrated report contract.\n- Forcing `grilling loop` over the existing 7-gate lifecycle. ADV already has `/adv-clarify` for Socratic grilling; the new skills supplement, not replace.\n- Auto-loading `improve-codebase-architecture` via Skill Discovery Protocol. Original skill has `disable-model-invocation: true`; preserve that, surface via user invocation only.\n- Modifying `adv-arch-scan` / `adv-slop-scan` output schemas. New skills are supplementary methodology, not scanner backends.\n\n---\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| # | Step | Result | Reason |\n|---|---|---|---|\n| 1 | Skill Discovery | PASS | New skills `adv-codebase-design` / `adv-improve-codebase-architecture` not present; no gap-creation needed (vendoring, not net-new authoring) |\n| 2 | Prior Research Extension | PASS | Cited `.adv/archive/2026-05-11-adoptMattpocockSkills/`; new finding: structure drift check (current upstream HEAD still exposes `codebase-design` and `improve-codebase-architecture` at the same paths, so the original import SHA `9f2e0bd0...` may be stale but the layout is stable) |\n| 3 | Conflict & Related-Work Scan | PASS | One unrelated in-flight change (`diagnoseArchivedListingTimeout`); no overlap. `adv_agenda_list` empty for this topic |\n| 4 | Edge Case Investigation | PASS | 3 edge cases (drift, attribution-header preservation, deploy-frontmatter-flag preservation) — see Edge Cases section |\n| 5 | Design Question Depth | PASS | 2 open design questions with trust/blast/alternatives — see Open Design Questions section |\n| 6 | Draft Spec Deltas | SKIP | No spec deltas required. `.adv/specs/arch-scan/spec.json` requirements (`rq-archp33`, `rq-archstack01`, `rq-archstack02`, `rq-archcov01`) govern capability output contract, not vocabulary references. New skills supplement methodology without changing JSON output schema |\n| 7 | P25 Related-Pattern Scan | PASS | Mirrors 4 existing vendored mattpocock skills (`adv-diagnose`, `adv-zoom-out`, `adv-prototype`, `adv-skill-author`). Same attribution-header shape, same `scripts/deploy-local.sh` glob sync, same `LICENSE-THIRD-PARTY.md` entry shape |\n| 8 | LBP Check | PASS | Vendor original with attribution is the LBP for 3rd-party skill adoption; mirrors `adoptMattpocockSkills` precedent. No competing approach |\n| 9 | Completeness Verification | PASS | Problem (vocabulary + procedural gap in design output) and solution scope (5 new files + 2 modified docs) both fully scoped. Secondary surface (surfacability in `/adv-design` and `/adv-arch-scan` output) flagged in Open Design Questions as scope question for agreement phase |\n\n### Skills Considered\n\n| Skill | Source | Match |\n|---|---|---|\n| `adv-arch-detection` | bundled ADV | Adjacent — arch-scan methodology; not a vocabulary reference |\n| `adv-slop-detection` | bundled ADV | Adjacent — quality methodology; not a vocabulary reference |\n| `adv-opportunity-scout` | bundled ADV | Partial — uses \"leverage\" vocabulary already, but scope is opportunity hunting not module design |\n| `adv-prototype` | vendored mattpocock | Partial — uses \"small pure interface\" phrasing consistent with deep-module vocabulary |\n| `adv-codebase-design` (target) | upstream mattpocock | Strong match for vocabulary gap |\n| `adv-improve-codebase-architecture` (target) | upstream mattpocock | Strong match for procedural gap |\n\n### Extends\n\nCited: `.adv/archive/2026-05-11-adoptMattpocockSkills/{proposal,agreement,design,ARCHIVE_SUMMARY}.md` (2026-05-11).\n\nNew finding: the original adoption archive vendored 4 mattpocock skills that are command-/productivity-shaped (`diagnose`, `zoom-out`, `prototype`, `write-a-skill`). The two skills this change proposes to vendor are **engineering/design-shaped** — the first engineering-shape additions to the vendored set. The original ADR-001 (`docs/adr/0001-adv-prefix-vendored-skills.md`) covers renaming but does not anticipate engineering-shape additions. We may want to consider whether a new ADR (or ADR-001 amendment) is warranted to record that engineering-shape adoption follows the same vendor pattern but lands in `/adv-design` / `/adv-arch-scan` rather than as standalone skills. **Defer to design phase** — no new ADR required for the vendor mechanics themselves.\n\n### Conflict Scan\n\n| Source | Result |\n|---|---|\n| `adv_change_list` (in-flight) | 1 unrelated change (`diagnoseArchivedListingTimeout`); no overlap |\n| `adv_change_list` (archived) | 1 relevant prior change (`adoptMattpocockSkills`, 2026-05-11) — extends section above |\n| `adv_change_validate` | Pre-prep warnings (NO_TASKS, NO_DELTAS) expected; not blocking |\n| `adv_agenda_list` | Empty for this topic |\n\n### Current State\n\n- **Adopted mattpocock skills (4):** `adv-diagnose`, `adv-zoom-out`, `adv-prototype`, `adv-skill-author` — all command/productivity-shaped.\n- **Excluded mattpocock skills (6):** `grill-me`, `grill-with-docs`, `to-prd`, `to-issues`, `triage`, `tdd` — all overlap with gate-bound ADV equivalents (per `ADV_INSTRUCTIONS.md § Excluded Skills` and `LICENSE-THIRD-PARTY.md`).\n- **Open zone (2):** `codebase-design`, `improve-codebase-architecture` — neither adopted nor excluded. This change resolves the open zone by adoption.\n\n### Edge Cases\n\n1. **Upstream drift between vendor SHA and current HEAD.** The original `Imported SHA` `9f2e0bd0ea776eb6372eb81fa8a4a47814a8404a` (2026-05-11) may have changed upstream. Mitigation: during vendor, fetch current HEAD SHA, record it in `LICENSE-THIRD-PARTY.md`, and compare against archived import for drift. Same drift-detection pattern as the existing 4 skills (implicit; no automated drift check today, relies on git diff at vendor time).\n2. **`disable-model-invocation: true` preservation.** Matt's `improve-codebase-architecture/SKILL.md` has `disable-model-invocation: true` frontmatter (not present in any of the existing 4 adopted skills). `scripts/deploy-local.sh` line 29 glob-copies `skills/adv-*/SKILL.md` to `~/.config/opencode/skills/adv-*/` verbatim (no frontmatter post-processing). The flag survives deployment and is honored by OpenCode at skill-load time. Mitigation: confirm during planning that the deploy glob does not strip or transform frontmatter; flag as a checkpoint in the planning gate.\n3. **Vocabulary conflict with P-rules and command docs.** Matt's glossary bans `component`/`service`/`API`/`boundary`/`unit`/`signature`. ADV's P-rule P33 is named `structural-correctness`; `boundary` appears throughout `ADV_INSTRUCTIONS.md`, `skills/adv-arch-detection/SKILL.md` (\"input parsing/normalization\" boundary), and command docs (`.opencode/command/adv-arch-scan.md`). Renaming would touch many in-repo files and is out-of-scope per the proposal. Mitigation: documentation-only — note the vocabulary conflict in the design phase; do not enforce Matt's bans in ADV output. The new skills reference the glossary terms, ADV's existing prose keeps its existing terms; readers see both.\n\n### Open Design Questions\n\n| # | Question | Trust model | Blast radius | Alternatives |\n|---|---|---|---|---|\n| 1 | Should `/adv-design` and `/adv-arch-scan` commands include an explicit \"Reference methodology\" footer linking to the new skills (in command output), or should the new skills be discoverable via Skill Discovery Protocol only? | joint (user + agent) | Low — additive reference, no output schema change | (a) Command footer — visible, opt-in for reviewers. (b) Skill Discovery only — invisible until user invokes `/adv-discover` or types `skill(...)`. (c) Both — redundant. **Recommended: (b)** — discoverable on demand, no command output contract change. The vendored skills auto-deploy via `scripts/deploy-local.sh`; `/adv-discover` Phase 1.5 Skill Discovery will match `keywords` if the user queries a relevant domain. (a) requires touching `.opencode/command/*.md` files and is best deferred unless a downstream task needs it. |\n| 2 | Should `improve-codebase-architecture` (which has `disable-model-invocation: true`) preserve that flag exactly, or strip it for ADV (where skills are typically auto-loadable)? | user-only | Low — flag controls agent auto-loading behavior | (a) Preserve — keeps Matt's intent (user invokes manually). (b) Strip — exposes the skill to auto-loading, risks agents spawning the full procedural flow unprompted. **Recommended: (a) preserve** — matches the skill's original intent and is consistent with Matt's design (the skill is heavyweight and chat-loop-shaped, not auto-invocation-shaped). |\n\n### Related Pattern Scan\n\nMirrors the 4 existing vendored mattpocock skills:\n- **Attribution header shape** (5-line HTML comment block crediting author, source path, license reference, ADR-001 reference, import timestamp) — identical pattern.\n- **`scripts/deploy-local.sh` glob** (`skills/adv-*/SKILL.md` → `~/.config/opencode/skills/adv-*/`) — auto-covers new skills.\n- **`LICENSE-THIRD-PARTY.md` entry shape** (table row with local path, source path, ADR-001 rename) — identical pattern.\n\nNo divergences from the precedent.\n\n### Completeness Verification\n\n- **Problem-completeness check:** The full problem identified is **vocabulary gap** (deep-module terms for design output) + **procedural gap** (organic architecture review workflow). Both are scoped in the proposal's Problem and Goal sections. Confidence: **high**. No other problem class is in scope.\n- **Solution-scope check:** The full intended solution is **5 new vendored files + 2 modified docs**. No implementation pieces omitted. The \"surface methodology in /adv-design and /adv-arch-scan output\" item is a follow-up question (Open Design Question #1) — explicitly deferred to agreement, not silently scoped in. Confidence: **high**.\n- **Sole-entry claim status:** None. No sole-chokepoint claim is made. The vendor is a multi-file append.\n- **Secondary-surface disposition:**\n  - **`/adv-design` and `/adv-arch-scan` command output references** — out-of-scope-with-rationale (avoid breaking output contract); resolved in Open Design Question #1 as deferred.\n  - **`/adv-discover` Skill Discovery Protocol auto-matching** — in-scope (automatic once the skills are vendored; no code change).\n  - **`scripts/deploy-local.sh` glob coverage** — verified in-scope (line 29 glob covers `skills/adv-*/`); no script change required.\n\n### LBP Check\n\nVendor original (verbatim content + MIT attribution header) is the long-term best practice for 3rd-party skill adoption. The existing `adoptMattpocockSkills` precedent (2026-05-11) confirms this for ADV. No competing approach (e.g., rewriting the skill content, partial vendor, or rewrite-and-credit) is justified. **External-Solution Check: skipped** — purely internal change (vendoring + license bookkeeping); no external alternative is viable for a license-preserving copy.\n\n### Recommended Objectives\n\n1. Vendor `codebase-design` (SKILL.md + DEEPENING.md + DESIGN-IT-TWICE.md) to `skills/adv-codebase-design/` with MIT attribution headers, preserving `disable-model-invocation` if present.\n2. Vendor `improve-codebase-architecture` (SKILL.md + HTML-REPORT.md) to `skills/adv-improve-codebase-architecture/` with MIT attribution headers, preserving `disable-model-invocation: true`.\n3. Update `LICENSE-THIRD-PARTY.md` with current upstream HEAD SHA, the two new vendored skill entries (Local path + Source path), and Imported-at timestamp.\n4. Update `ADV_INSTRUCTIONS.md § Excluded Skills` table — note that `codebase-design` and `improve-codebase-architecture` were considered and adopted (move from open zone to \"adopted, see skills/\" with one-line rationale).\n5. Verify `pnpm run check` passes (schemas + lint + format + check-test-isolation + check-lockfile-policy) post-vendor.\n6. Verify `scripts/deploy-local.sh` (default sync mode) deploys the two new skills to `~/.config/opencode/skills/adv-codebase-design/` and `~/.config/opencode/skills/adv-improve-codebase-architecture/` without frontmatter post-processing.\n\n### AMBIGUITY ANALYSIS\n\n```\nB1  HIGH  Boundaries  \"scope of /adv-design and /adv-arch-scan command output integration is undefined\"\n  Evidence: proposal.approach item 5 — \"Surface methodology in /adv-design and /adv-arch-scan output, with clear boundaries about which output contracts are preserved\"\n  Reason: unclear because the item names both commands without specifying whether the integration is a footer reference, a Skill Discovery auto-load, or both; affects whether command files need modification.\n  Resolution: deferred to agreement phase as Open Design Question #1; resolution: Skill Discovery only (no command file changes).\n```\n\n`Coverage: B:P F:C S:C M:C`\n\n- **B (Boundaries):** Partial — Open Design Question #1 captures the integration-boundary ambiguity. Resolved at agreement.\n- **F (Functional Scope):** Clear — 5 new files + 2 modified docs, no behavior change.\n- **S (Completion Signals):** Clear — `pnpm run check` green + `scripts/deploy-local.sh` deploys new skills + `LICENSE-THIRD-PARTY.md` reflects new entries.\n- **M (Missing Information):** Clear — upfront SHA fetch + verification in plan.\n\nTrigger evaluation: 1 HIGH finding, single — **advisory ambiguity** per Phase 2.5 classification table. Continue to agreement.\n\n### Discovery Opportunity Scout\n\n`Scout: skipped — {rationale}` — change is narrow (bounded file vendor + 2 doc updates); opportunity surface is small (vendor mechanics are fully precedent-bound; no architectural leverage points in scope). Auto-load via `adv-researcher` not justified.\n\n---\n\n## User Outcomes\n\nAfter this change:\n- `/adv-design` and `/adv-arch-scan` reviewers can `skill(\"adv-codebase-design\")` to load the deep-module vocabulary (module/interface/depth/seam/adapter/leverage/locality + deletion test + dependency categories) as a reference while designing or reviewing modules.\n- `/adv-design` can `skill(\"adv-improve-codebase-architecture\")` for the procedural organic-exploration + HTML-report flow when a deep review is requested (user-invoked; respects `disable-model-invocation: true`).\n- License compliance: `LICENSE-THIRD-PARTY.md` reflects all 6 vendored mattpocock skills with current SHA + Imported-at timestamp.\n- The 2-skill open zone is resolved — adopted, not orphaned.",
+    "agreement": "# Agreement: Adopt `codebase-design` and `improve-codebase-architecture` from mattpocock/skills\n\n## Objectives\n\n1. **Vendor `codebase-design`** (SKILL.md + DEEPENING.md + DESIGN-IT-TWICE.md) to `skills/adv-codebase-design/` with MIT attribution headers and minimal frontmatter adaptation (`name: adv-codebase-design`, added `keywords: [\"module-design\", \"deep-module\", \"interface\", \"seam\", \"adapter\"]`).\n2. **Vendor `improve-codebase-architecture`** (SKILL.md + HTML-REPORT.md) to `skills/adv-improve-codebase-architecture/` with MIT attribution headers and minimal frontmatter adaptation (`name: adv-improve-codebase-architecture`, added `keywords: [\"architecture\", \"refactoring\", \"deepening\"]`, **preserve `disable-model-invocation: true`**).\n3. **Update `LICENSE-THIRD-PARTY.md`** — bump `Imported SHA` to current upstream HEAD (fetched at vendor time), add 5 new entry rows (Local path + Source path for each vendored file), add Imported-at timestamp for this change.\n4. **Update `ADV_INSTRUCTIONS.md § Excluded Skills`** — note that `codebase-design` and `improve-codebase-architecture` were considered and adopted (move from open zone to adopted list with one-line rationale per skill).\n5. **Verify `pnpm run check` passes** post-vendor (schemas:check → typecheck → check-test-isolation → check-lockfile-policy → lint → format:check).\n6. **Verify `scripts/deploy-local.sh --check`** reports the two new skills as ready to deploy.\n7. **Reuse ADR-001** (`docs/adr/0001-adv-prefix-vendored-skills.md`) — no new ADR. Engineering-shape adoption follows the same vendor + rename + attribute + LICENSE pattern as the existing 4 command/productivity-shaped skills.\n\n## Acceptance Criteria\n\n| ID | Criterion |\n|---|---|\n| AC1 | All 5 vendored files exist at the paths listed in proposal.md Scope table with 5-line MIT attribution headers and adapted frontmatter (`name: adv-*`, `keywords: [...]`). |\n| AC2 | `LICENSE-THIRD-PARTY.md` updated with current upstream HEAD SHA (fetched at vendor time), 5 new entry rows in the Vendored skills table, and Imported-at timestamp `2026-07-08`. |\n| AC3 | `ADV_INSTRUCTIONS.md § Excluded Skills` table resolves the 2-skill open zone — note that `codebase-design` and `improve-codebase-architecture` were considered and adopted, with one-line rationale per skill. |\n| AC4 | `pnpm run check` passes post-vendor. |\n| AC5 | `scripts/deploy-local.sh --check` reports the two new skills as ready to deploy with no frontmatter post-processing warnings. |\n| AC6 | `/adv-discover` Phase 1.5 Skill Discovery matches `adv-codebase-design` when keywords `module-design`/`deep-module`/`interface`/`seam`/`adapter` are queried, and matches `adv-improve-codebase-architecture` when `architecture`/`refactoring`/`deepening` are queried. |\n| AC7 | `pnpm test` passes post-vendor — no regressions in existing test suite. |\n\n## Success Criteria\n\n| ID | Criterion |\n|---|---|\n| SC1 | A reviewer reading `skills/adv-codebase-design/SKILL.md` (post-deploy at `~/.config/opencode/skills/adv-codebase-design/SKILL.md`) can apply the deep-module vocabulary (module/interface/depth/seam/adapter/leverage/locality) and the deletion test in design output. |\n| SC2 | A user invoking `/adv-design` can `skill(\"adv-improve-codebase-architecture\")` and get the procedural organic-exploration + HTML-report workflow (with `disable-model-invocation: true` honored — not auto-loaded by agents). |\n\n## Constraints\n\n- **MIT license preservation** — every vendored file carries a 5-line HTML comment attribution header crediting Matt Pocock + source path + license reference + ADR-001 reference + Imported-at timestamp (mirrors `adv-diagnose/SKILL.md` lines 1-5).\n- **Minimal frontmatter adaptation** — only `name` (renamed to `adv-*` per ADR-001), `description` (kept verbatim unless ambiguous in ADV context), and `keywords` (added for Skill Discovery auto-matching) are adapted. All other frontmatter preserved verbatim.\n- **Preserve `disable-model-invocation: true`** on `adv-improve-codebase-architecture/SKILL.md`. Matt's intent (user-invoked only, no agent auto-load) is honored by OpenCode at skill-load time.\n- **No TypeScript or public API changes** — vendor is a docs/skill append; the plugin's compiled output is unaffected.\n- **No `scripts/deploy-local.sh` modifications** — the existing line 29 glob (`skills/adv-*/SKILL.md` → `~/.config/opencode/skills/adv-*/`) auto-covers the new skills.\n- **No new ADR** — engineering-shape adoption reuses ADR-001 (rename pattern). Durable record of all 6 vendored skills lives in `LICENSE-THIRD-PARTY.md`.\n- **No JSON → HTML migration** — `adv-arch-scan` and `adv-slop-scan` output schemas unchanged. New skills are methodology supplements, not scanner backends.\n- **No grill-loop replacement** — ADV's existing `/adv-clarify` continues to own Socratic clarification; new skills supplement, do not replace.\n\n## Avoidances / rejected approaches\n\n| ID | Avoidance | Reason |\n|---|---|---|\n| A1 | Wholesale rename of `boundary`/`service`/`component`/`unit`/`signature` in P-rules and command docs to satisfy Matt's vocabulary bans | Renames would touch many in-repo files; out of scope per proposal. The vocabulary conflict is documented in the design phase as a non-adoption of those bans; readers see both vocabularies. |\n| A2 | Replace `adv-arch-detection` / `adv-slop-detection` JSON output contracts with HTML reports in `$TMPDIR` | Both scanners run in CI; HTML output breaks the gate-integrated report contract (`rq-archcov01` JSON schema, `--json` CLI flag). |\n| A3 | Force the `grilling-loop` conversation pattern over the 7-gate lifecycle | ADV's `/adv-clarify` already owns Socratic clarification. The new skills supplement; they don't replace. |\n| A4 | Auto-load `adv-improve-codebase-architecture` via Skill Discovery Protocol | Original Matt frontmatter has `disable-model-invocation: true`; preserving the flag is the safest path. Auto-loading the full procedural flow unprompted would be expensive and user-surprising. |\n| A5 | Modify scanner backends (`adv-arch-scan` / `adv-slop-scan` implementations) to call the new skills | New skills are methodology supplements, not implementation backends. No scanner integration. |\n\n## Preview applicability\n\n- **`visual_surface`**: `false` — change is a docs/skill vendor; no visual output affected.\n- **`preview_expectation`**: `not_applicable` — no UI / browser-visible surface.\n\n## Open questions\n\nAll clarifying questions resolved in this round:\n\n| ID | Question | Resolution |\n|---|---|---|\n| CQ1 | Add `keywords` field for Skill Discovery auto-matching? | **Yes** — add minimal `keywords: [...]` to both skills (user direction). |\n| CQ2 | Write new ADR for engineering-shape vendor pattern? | **No** — reuse ADR-001 (user direction). |\n| CQ3 | Imported SHA strategy? | **Bump to current upstream HEAD** (user direction; fetch at vendor time). |\n\nDeferred from discovery (B1 — command-output integration boundary): resolved as **Skill Discovery only, no command file changes**. `/adv-design` and `/adv-arch-scan` command output schemas unchanged; new skills are discoverable via `skill(\"...\")` invocation only.\n\n## Scope notes\n\n- **Cross-project origin:** none (single-repo change in advance repo).\n- **Fast-follow lineage:** none.\n- **Epic membership:** none (open zone resolution; not part of any existing Epic).\n- **Product-linked repo scope:** `repo` (current repo only; no product-wide distribution).\n\n## Sign-off\n\nInline Approval prompt (Tier A checkpoint). Reply `approve`/`proceed`/`confirm` to advance to design gate. Run `/adv-design adoptCodebaseDesignImprove` for command-as-approval equivalent.",
+    "design": "# Design: Adopt `codebase-design` and `improve-codebase-architecture` from mattpocock/skills\n\n## Architecture Overview\n\nThis change appends two vendored mattpocock skill packages to ADV's `skills/` directory and updates two existing docs (LICENSE-THIRD-PARTY.md, ADV_INSTRUCTIONS.md). No TypeScript, public API, or runtime behavior changes. The architecture is a **directory-append + doc-update** with five new files in two new sibling directories.\n\nFiles affected:\n- 5 NEW: `skills/adv-codebase-design/{SKILL.md, DEEPENING.md, DESIGN-IT-TWICE.md}` and `skills/adv-improve-codebase-architecture/{SKILL.md, HTML-REPORT.md}`\n- 2 MODIFIED: `LICENSE-THIRD-PARTY.md`, `ADV_INSTRUCTIONS.md`\n\nComponent boundaries:\n\n| Component | Boundary | Owner |\n|---|---|---|\n| Vendored skills | Read-only at runtime; auto-deployed to `~/.config/opencode/skills/` by `scripts/deploy-local.sh` | `skills/adv-*/` glob |\n| Attribution headers | 5-line HTML comment, before YAML frontmatter (mirrors `adv-diagnose/SKILL.md` lines 1-5) | In-repo, lintable |\n| LICENSE record | Single source of truth for third-party attribution | `LICENSE-THIRD-PARTY.md` |\n| Deploy sync | `scripts/deploy-local.sh` line 29 glob covers `skills/adv-*/` automatically | Existing script |\n\n## Key Decisions and Rationale\n\n| Decision | Rationale | Source |\n|---|---|---|\n| Vendor original content verbatim | License preservation (MIT) + durable record of provenance | `LICENSE-THIRD-PARTY.md` precedent (2026-05-11) |\n| Minimal frontmatter adaptation only (`name`, `keywords`, optional `description`) | ADR-001 covers rename; keywords per CQ1; preserve all else including `disable-model-invocation: true` | Agreement Objectives 1, 2; ADR-001 |\n| Reuse ADR-001, no new ADR | Engineering-shape adoption follows the same vendor + rename + attribute + LICENSE pattern | Agreement CQ2 (user direction) |\n| Bump `Imported SHA` to current upstream HEAD | Drift detection becomes a follow-up concern; matches precedent pattern | Agreement CQ3 (user direction) |\n| Preserve `disable-model-invocation: true` on `improve-codebase-architecture` | Honoring Matt's intent; skill is heavyweight and chat-loop-shaped | Agreement Open Question #2 |\n| No command file modifications | Output schemas unchanged; new skills discoverable via Skill Discovery Protocol | Agreement Open Question #1 resolution |\n\n## ADR Drafts\n\n**None.** Per CQ2 (user direction): reuse ADR-001. 3-criteria ADR rubric evaluated:\n- (1) Hard-to-reverse? No — single revert restores prior state.\n- (2) Surprising-without-context? No — mechanically identical to the existing 4 adoptions.\n- (3) Real tradeoff? No — no competing viable approach.\n\n## Implementation Strategy / Sequencing\n\n**Sequential vendor with verification gates.** Total: 5 file creations + 2 doc edits + 3 verifications.\n\n### Phase A: Fetch upstream SHA + content (planning gate task)\n\n1. Fetch current upstream HEAD SHA via `git ls-remote https://github.com/mattpocock/skills.git refs/heads/main`.\n2. Verify both target directories still exist at expected paths.\n3. Capture SHA as `UPSTREAM_SHA` for `LICENSE-THIRD-PARTY.md`.\n\n### Phase B: Vendor `adv-codebase-design` (3 files)\n\n1. Read upstream `skills/engineering/codebase-design/SKILL.md`.\n2. Compose `skills/adv-codebase-design/SKILL.md`:\n   - Prepend 5-line MIT attribution header.\n   - Replace `name: codebase-design` with `name: adv-codebase-design`.\n   - Append `keywords: [\"module-design\", \"deep-module\", \"interface\", \"seam\", \"adapter\"]`.\n   - Preserve all other frontmatter and body verbatim.\n3. Compose `DEEPENING.md` and `DESIGN-IT-TWICE.md` verbatim.\n\n### Phase C: Vendor `adv-improve-codebase-architecture` (2 files)\n\n1. Compose `skills/adv-improve-codebase-architecture/SKILL.md`:\n   - Prepend 5-line MIT attribution header.\n   - Replace `name: improve-codebase-architecture` with `name: adv-improve-codebase-architecture`.\n   - **Preserve `disable-model-invocation: true` verbatim**.\n   - Append `keywords: [\"architecture\", \"refactoring\", \"deepening\"]`.\n   - Preserve `description` and body verbatim.\n2. Compose `HTML-REPORT.md` verbatim.\n\n### Phase D: Update `LICENSE-THIRD-PARTY.md`\n\n1. Update `Imported SHA` with `UPSTREAM_SHA`.\n2. Update `Imported at` with `2026-07-08`.\n3. Add 5 new rows to the \"Vendored skills\" table.\n\n### Phase E: Update `ADV_INSTRUCTIONS.md § Excluded Skills`\n\n1. Add a parallel \"Adopted open-zone resolutions\" table listing the 2 new skills with one-line rationale per skill.\n\n### Phase F: Verification\n\n1. **AC4**: `pnpm run check`.\n2. **AC5**: `scripts/deploy-local.sh --check`.\n3. **AC7**: `pnpm test`.\n4. **AC6**: Manual smoke test of `/adv-discover` Phase 1.5.\n\n### Phase G: Commit + PR\n\nConventional commit + push to `change/adoptCodebaseDesignImprove` branch + open PR.\n\n## Affected Components\n\n| Interface | Direction | Notes |\n|---|---|---|\n| Vendored skill content | Read-only at runtime | Preserved verbatim per license |\n| Attribution header | Write-once at vendor time | 5-line HTML comment, lintable via `pnpm run check` |\n| `LICENSE-THIRD-PARTY.md` | Authoritative record | Bump on every vendor event |\n| `scripts/deploy-local.sh` glob | Auto-deploy | No script changes |\n| Skill Discovery Protocol | `/adv-discover` Phase 1.5 | Auto-matches via new `keywords` |\n| OpenCode skill loader | `~/.config/opencode/skills/adv-*/` | Honors `disable-model-invocation: true` |\n\n## LBP Analysis\n\nVendor original (verbatim content + MIT attribution header) is the LBP. Alternatives considered and rejected:\n\n| Alternative | Disposition | Rationale |\n|---|---|---|\n| Rewrite skill content for ADV context | rejected | License requires preserving original; rewrite loses provenance |\n| Vendor partial content only | rejected | Matt's skills are coherent units; partial creates ambiguity |\n| Vendor as git submodule | rejected | Adds git complexity not justified; precedent uses direct copy |\n| Vendor without LICENSE bump | rejected | `LICENSE-THIRD-PARTY.md` is authoritative; bump is part of the pattern |\n| Add `keywords` field for auto-matching | **adopted** | User-selected (CQ1); minimal divergence from verbatim pattern |\n\n## Design-Derived Criteria\n\n| ID | Criterion | Reason |\n|---|---|---|\n| DDC1 | Every vendored file MUST start with a 5-line MIT attribution HTML comment block before any other content | License compliance gate |\n| DDC2 | Frontmatter adaptation bounded to `name`, optional `description`, and `keywords` only | Preserves provenance; minimizes diff surface |\n| DDC3 | `disable-model-invocation: true` on `adv-improve-codebase-architecture/SKILL.md` MUST be preserved verbatim | OpenCode skill-loader semantics |\n| DDC4 | `LICENSE-THIRD-PARTY.md Imported SHA` MUST be the SHA of the upstream HEAD at vendor time | Drift detection at future bumps |\n| DDC5 | Attribution header MUST cite `LICENSE-THIRD-PARTY.md` (not SPDX short-form) | Provenance discipline |\n\n## Risks / Mitigations\n\n| Risk | Severity | Mitigation |\n|---|---|---|\n| Upstream drift between planning and execution | low | Fetch SHA in Phase A; record in LICENSE; re-verify if delta > 24h |\n| `disable-model-invocation: true` accidentally stripped during frontmatter edit | low | DDC3 + `git diff` review + AC5 verification |\n| `scripts/deploy-local.sh` glob misses the new directories | very low | Verified line 29 glob covers `skills/adv-*/`; AC5 explicit verification |\n| New skills auto-loaded by Skill Discovery Protocol in unwanted contexts | low | `disable-model-invocation: true` on the procedural skill; `adv-codebase-design` is vocabulary-only |\n| Vendor content drift from upstream at next bump | medium (long-term) | `LICENSE-THIRD-PARTY.md Imported SHA` enables future diff detection |\n| Vocabulary conflicts cause user confusion | low | Documented in proposal Out of Scope; no rename forced |\n| Existing test suite breaks due to new skill auto-loading | very low | `disable-model-invocation: true`; vocabulary-only skill has no side effects |\n| Conventional commit / CHANGELOG noise from non-functional docs addition | low | Conventional commit + CHANGELOG entry |\n\n## Design Leverage Scout\n\n`Scout: skipped` — change is bounded (5 file appends + 2 doc edits, all precedent-bound); opportunity surface is small. Vendor mechanics are fully precedent-bound (mirrors `adoptMattpocockSkills` 2026-05-11). No architectural leverage opportunities; no parallelism opportunities (sequential vendor with verification gates is correct ordering).\n\n## Contract-Compromise Risk Assessment\n\n**No compromise risk.** All 7 agreement AC, 2 SC, 5 avoidances, 7 constraints map cleanly onto the implementation strategy.\n\n---\n\n## Validator Result\n\n**Status: INCONCLUSIVE (`NEEDS_MORE_INFO`)**\n\nPer `.opencode/command/adv-design.md` Phase 3.5/3.6 graceful-degradation path: validator worker (`adv-researcher`) was unavailable in this session — two spawn attempts returned `Task cancelled` without producing a `RESEARCHER_REPORT`. Recorded here per workflow spec; design gate proceeds without auto-block.\n\nSelf-validated dimensions (orchestrator-side, in lieu of independent validator):\n\n| Dimension | Self-assessment | Evidence |\n|---|---|---|\n| **CORRECTNESS** | pass | All 7 agreement objectives map to implementation phases; no logical gaps; 5-phase vendor + verification gates are coherent |\n| **SIMPLICITY** | pass | Vendor-original is the LBP; alternatives enumerated and rejected in LBP Analysis section |\n| **SPEC-LAW COMPLIANCE** | pass (manual check) | `arch-scan` spec `rq-archcov01` JSON output contract preserved (no schema change); `domain-context` spec `rq-domainContext01` unchanged; `advance-workflow` spec 7-gate lifecycle preserved; `tdd-contract` N/A (no code change) |\n| **KEY ALTERNATIVES** | pass | Alternatives enumerated in LBP Analysis; CQ2 user-directed ADR-001 reuse; CQ3 user-directed SHA bump |\n\nCaveat: an independent validator would normally catch edge cases the orchestrator's self-check misses (e.g., subtle SPEC-LAW conflicts in untested combinations). Recommend re-validating in a follow-up session when the validator worker is available, or by a human reviewer in the acceptance phase.",
+    "executiveSummary": "# Executive Summary: Adopt `codebase-design` and `improve-codebase-architecture`\n\n## Outcome\n\nAdopted two open-zone `mattpocock/skills` into ADV as `skills/adv-codebase-design/` and `skills/adv-improve-codebase-architecture/`. All five vendored files preserve Matt Pocock's original content (MIT licensed) with a 5-line attribution header prepended and minimal frontmatter adaptations. The 2-skill \"open zone\" in ADV's mattpocock exclusion policy is now resolved — these skills are documented in a new \"Adopted Skills (Open-Zone Resolutions)\" table in `ADV_INSTRUCTIONS.md`.\n\n## Value / Why it matters\n\n`/adv-design` and `/adv-discover` discovery output now have a shared deep-module vocabulary (module / interface / depth / seam / adapter / leverage / locality) plus the deletion test and dependency categories. Discussions of \"is this module too shallow?\" or \"where should the seam go?\" can use these shared terms instead of prose-only phrasing. The procedural `adv-improve-codebase-architecture` skill is also available for organic architecture reviews when a user explicitly invokes it (it preserves Matt's `disable-model-invocation: true`, so it won't auto-fire).\n\nFor the non-technical release-approval reader: this is a documentation-and-skill-append change. It does not modify the plugin's runtime behavior, the existing 27+ ADV skills, the scanner output schemas (`adv-arch-scan` / `adv-slop-scan`), or any of the 6 already-excluded mattpocock skills. The vocabulary gains and procedural workflow are additive.\n\n## Verification\n\n- **`pnpm run check` (CI gate):** schemas + typecheck + lint + format + isolation + lockfile all pass.\n- **`pnpm test` (full suite):** 4772 / 4773 tests pass. The 1 failing test (`concurrent-signaling.itest.ts` SC1/SC9) is a Temporal integration test that flakes on full-suite runs but **passes in isolation** — confirmed pre-existing, not a regression (this change has zero `src/` impact).\n- **`scripts/deploy-local.sh --check`:** line 29 glob (`skills/adv-*/SKILL.md`) covers both new SKILL.md files; no frontmatter post-processing warnings. A pre-existing tool-drift issue (`adv_backlog_*` tools not in `adv.md` allowlist) is unrelated to this change.\n- **License compliance:** `LICENSE-THIRD-PARTY.md` updated with current upstream HEAD SHA (`d574778f94cf620fcc8ce741584093bc650a61d3`) and 5 new vendored rows.\n\n## Risks / Follow-ups\n\n- **Design validator INCONCLUSIVE:** the independent `adv-researcher` worker was unavailable in this session (2 cancelled spawns). The orchestrator self-validated all 4 dimensions (CORRECTNESS, SIMPLICITY, SPEC-LAW COMPLIANCE, KEY ALTERNATIVES) against the agreement ACs and ADV specs. A human re-validation in a future session is recommended but not blocking.\n- **Pre-existing Temporal test flake:** `concurrent-signaling.itest.ts` SC1/SC9 should be addressed by a follow-up change to make it more robust under full-suite runs. Not introduced by this change.\n- **Pre-existing tool-drift:** `adv_backlog_*` tools not registered in `adv.md` allowlist. Unrelated to this change but worth a separate cleanup.\n- **Vocabulary conflict (non-blocking):** Matt's glossary bans `component` / `service` / `API` / `boundary`. ADV's P-rules and command docs use some of these terms (e.g., P33 `structural-correctness`, `boundary` in `ADV_INSTRUCTIONS.md`). This is documented as a non-adoption of those bans; no rename required for this change.\n\n## Supporting evidence\n\n- PR: https://github.com/Sharper-Flow/Advance/pull/209 (commit `08833c38`, base `trunk`)\n- 7 files changed: 5 new (vendored skills) + 2 modified (`LICENSE-THIRD-PARTY.md`, `ADV_INSTRUCTIONS.md`)\n- 6 tasks executed and checkpointed\n- 8 typed ChangeContract items (C1–C8) all marked `respected` in the contract review matrix\n- Artifacts: `proposal.md`, `agreement.md` (7 AC + 2 SC + 7 constraints + 5 avoidances), `design.md` (architecture + 7-phase strategy + 5 design-derived criteria + 8 risks)",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-08T18:33:19.169Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| C1 | constraint | **MIT license preservation** — every vendored file carries a 5-line HTML comment attribution header crediting Matt Pocock + source path + license reference + ADR-001 reference + Imported-at timestamp (mirrors `adv-diagnose/SKILL.md` lines 1-5). | respected | Verified: all 5 vendored files carry the 5-line MIT attribution HTML comment block before any other content (mirrors adv-diagnose/SKILL.md lines 1-5). Each header cites Author (Matt Pocock), source path, ADR-001 reference, and Imported-at timestamp. LICENSE-THIRD-PARTY.md entries updated. |\n| C2 | constraint | **Minimal frontmatter adaptation** — only `name` (renamed to `adv-*` per ADR-001), `description` (kept verbatim unless ambiguous in ADV context), and `keywords` (added for Skill Discovery auto-matching) are adapted. All other frontmatter preserved verbatim. | respected | Verified: frontmatter adaptation bounded to name (renamed to adv-codebase-design / adv-improve-codebase-architecture), description (kept verbatim), keywords (added per CQ1: [module-design, deep-module, interface, seam, adapter] / [architecture, refactoring, deepening]). All other frontmatter preserved. No description rewrites. |\n| C3 | constraint | **Preserve `disable-model-invocation: true`** on `adv-improve-codebase-architecture/SKILL.md`. Matt's intent (user-invoked only, no agent auto-load) is honored by OpenCode at skill-load time. | respected | Verified: skills/adv-improve-codebase-architecture/SKILL.md frontmatter retains 'disable-model-invocation: true' verbatim on line 9. Honored by OpenCode at skill-load time (deploy glob copies SKILL.md files verbatim with no frontmatter post-processing per scripts/deploy-local.sh line 29). |\n| C4 | constraint | **No TypeScript or public API changes** — vendor is a docs/skill append; the plugin's compiled output is unaffected. | respected | Verified: git diff shows 7 files changed, all in skills/ or doc files; zero TypeScript files in plugin/src/ touched. pnpm test passes (4772/4773, with 1 pre-existing Temporal integration test flake verified to pass in isolation; my change is docs-only with zero src/ impact). |\n| C5 | constraint | **No `scripts/deploy-local.sh` modifications** — the existing line 29 glob (`skills/adv-*/SKILL.md` → `~/.config/opencode/skills/adv-*/`) auto-covers the new skills. | respected | Verified: scripts/deploy-local.sh unchanged (no edits). Line 29 glob 'skills/adv-*/SKILL.md' auto-covers both new SKILL.md files. Manual glob simulation shows adv-codebase-design/SKILL.md and adv-improve-codebase-architecture/SKILL.md both match. |\n| C6 | constraint | **No new ADR** — engineering-shape adoption reuses ADR-001 (rename pattern). Durable record of all 6 vendored skills lives in `LICENSE-THIRD-PARTY.md`. | respected | Verified: no new ADR created under docs/adr/. Reused ADR-001 (docs/adr/0001-adv-prefix-vendored-skills.md). LICENSE-THIRD-PARTY.md is the durable record of all 6 vendored skills (4 from adoptMattpocockSkills + 2 from this change). ADV_INSTRUCTIONS.md 'Adopted Skills (Open-Zone Resolutions)' table documents the open-zone resolution. |\n| C7 | constraint | **No JSON → HTML migration** — `adv-arch-scan` and `adv-slop-scan` output schemas unchanged. New skills are methodology supplements, not scanner backends. | respected | Verified: .adv/specs/arch-scan/spec.json unchanged (rq-archp33, rq-archstack01, rq-archstack02, rq-archcov01 all preserved). adv-arch-scan and adv-slop-scan JSON output schemas unchanged (verified by 4772/4773 pnpm test pass rate). New skills are methodology supplements, not scanner backends. |\n| C8 | constraint | **No grill-loop replacement** — ADV's existing `/adv-clarify` continues to own Socratic clarification; new skills supplement, do not replace. | respected | Verified: /adv-clarify unchanged (no grill-loop replacement). New skills supplement; they don't replace. The 7-gate lifecycle is preserved. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-08T18:08:03.712Z",
+      "contentHash": "5bb8517c0c40b1161a625ba2fd2266bc68e66c13b870687283089a7b77ef5ae8",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-08T18:09:28.744Z",
+      "contentHash": "1a5683c7e465d6810d107a6ca371cd6bc93fbc1d8b7e4b693faaa276e9118041",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-08T18:14:37.118Z",
+      "contentHash": "6afa581e02509dc896573d43e9885bc1e7e861580e109c76472ba2f19fdf1378",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-08T18:33:41.698Z",
+      "contentHash": "d3bb0049b3efe1e5a22ef7523a0c6cb88dd623fc242b9270d29b9ee70053bfdd",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-08T18:33:57.403Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-08T18:03:07.832Z",
+      "resolved": true,
+      "resolved_at": "2026-07-08T18:12:58.559Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-08T18:03:07.832Z",
+      "resolved": true,
+      "resolved_at": "2026-07-08T18:12:58.559Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
