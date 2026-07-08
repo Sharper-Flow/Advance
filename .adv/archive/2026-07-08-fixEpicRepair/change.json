@@ -1,0 +1,715 @@
+{
+  "id": "fixEpicRepair",
+  "title": "Fix epic repair",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-08T19:25:21.860Z",
+  "tasks": [
+    {
+      "id": "tk-f77c3254e142",
+      "title": "Add red regression coverage for legacy Epic search-attribute refresh",
+      "type": "code",
+      "section": "Regression tests",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-08T19:30:26.927Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T19:35:00.647Z",
+      "verification": "RED evidence tr_mrchcouh_6bd8af89: targeted tests fail as expected; legacy workflow describe lacks AdvEpicStatus after repair signal and store reporting tests expect unverified count before implementation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/epics.test.ts",
+        "plugin/src/temporal/workflows.search-attrs.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/epics.test.ts",
+        "plugin/src/temporal/workflows.search-attrs.test.ts"
+      ],
+      "checkpointSha": "d2f9d37188aba046f6991c8678baead987beef0f",
+      "completedAt": "2026-07-08T19:38:07.473Z",
+      "completed_at": "2026-07-08T19:38:07.473Z"
+    },
+    {
+      "id": "tk-9a3f9b1748fa",
+      "title": "Implement forced Epic repair search-attribute upsert",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-08T19:30:49.467Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f77c3254e142"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T19:38:38.224Z",
+      "verification": "RED tr_mrchebj2_ccb227b4: legacy refresh test failed with missing AdvEpicStatus. GREEN tr_mrchex44_ad91b4df: workflows.search-attrs test passed (4 tests) after forced repair upsert.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "eac998a26b5fbe527cdeae1be5197dbc7d83c9a0",
+      "completedAt": "2026-07-08T19:39:46.306Z",
+      "completed_at": "2026-07-08T19:39:46.306Z"
+    },
+    {
+      "id": "tk-b798186127f1",
+      "title": "Make Epic repairIndex reporting structurally honest",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-08T19:30:49.634Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f77c3254e142"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "verifies": [
+          "AC2"
+        ],
+        "respects": [
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T19:39:53.699Z",
+      "verification": "RED tr_mrchfift_0d3a99bd: store repairIndex tests failed because unverified reporting/proof was absent. GREEN tr_mrchif7k_54fe0e33: store-temporal/epics.test.ts passed (38 tests) with confirmed/unverified reporting.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "54d5381d13c84f9b81c48e65f6091934aa864f5c",
+      "completedAt": "2026-07-08T19:42:30.204Z",
+      "completed_at": "2026-07-08T19:42:30.204Z"
+    },
+    {
+      "id": "tk-1528f02b4a2d",
+      "title": "Update advance-epics spec law for search-attribute repair",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-08T19:30:49.713Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f77c3254e142"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C2"
+        ]
+      },
+      "evidence_policy": "review",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T19:42:37.506Z",
+      "verification": "Spec law updated in .adv/specs/advance-epics/spec.json with rq-epicSearchAttributeRepair01. Verification tr_mrchmsfv_0420597c: schemas:check passed. Verification tr_mrchmze1_d6e4983c: advance-epics spec JSON parses.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        "plugin/src/storage/store-temporal/epics.test.ts",
+        "plugin/src/storage/store-temporal/epics.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        "plugin/src/storage/store-temporal/epics.test.ts",
+        "plugin/src/storage/store-temporal/epics.ts"
+      ],
+      "checkpointSha": "c17e3106efa2b90f198413237427f3bac2508b09",
+      "completedAt": "2026-07-08T19:46:00.492Z",
+      "completed_at": "2026-07-08T19:46:00.492Z"
+    },
+    {
+      "id": "tk-0d7cd34975fa",
+      "title": "Audit AdvChangeStatus legacy gate",
+      "type": "code",
+      "section": "Audit",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-08T19:30:51.220Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f77c3254e142"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_policy": "review",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T19:44:01.795Z",
+      "verification": "Audit complete. Source evidence: change archive/close AdvChangeStatus gates are terminal compatibility upserts; active/default change listing is documented/tested to use AdvLifecycleState=open and not AdvChangeStatus. Verification tr_mrchncyl_a6720ccf: list-change-workflows.test.ts passed (11 tests), including assertions that default open listing does not contain AdvChangeStatus.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c17e3106efa2b90f198413237427f3bac2508b09",
+      "completedAt": "2026-07-08T19:46:21.069Z",
+      "completed_at": "2026-07-08T19:46:21.069Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:signal-upsert-search-attributes"
+      },
+      "agent": "adv-researcher",
+      "topic": "Temporal TS signal-handler upsertSearchAttributes backfill determinism + describe/visibility verification (issue #210)",
+      "sources": [
+        {
+          "label": "Temporal TS SDK source (workflow.ts upsertSearchAttributes)",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts",
+          "summary": "upsertSearchAttributes() calls assertInWorkflowContext then activator.pushCommand({upsertWorkflowSearchAttributes}). It is a buffered workflow COMMAND recorded in history, not a side-effect. Any workflow-context code path (main OR signal handler) may call it; determinism comes from command buffering + replay, identical to timers/activities."
+        },
+        {
+          "label": "Temporal TS SDK worker-interface (activation/command model)",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/worker-interface.ts",
+          "summary": "activate() dispatches signal jobs to handlers which pushCommand(); concludeActivation() returns buffered commands. Signal handlers run inside the same deterministic activation loop, so commands they emit (incl. upsertWorkflowSearchAttributes) are replay-safe as long as the handler logic is deterministic."
+        },
+        {
+          "label": "Temporal TS samples (search-attributes/workflows.ts)",
+          "locator": "https://github.com/temporalio/samples-typescript/blob/master/search-attributes/src/workflows.ts",
+          "summary": "Canonical sample upserts search attributes mid-execution and reads back via workflowInfo().searchAttributes. Confirms upsert-during-execution is the by-the-book pattern; client reads via handle.describe()."
+        },
+        {
+          "label": "Temporal Platform docs — Search Attributes",
+          "locator": "https://docs.temporal.io/search-attribute",
+          "summary": "Custom search attributes must be registered in the Visibility store per-Namespace BEFORE use. Server v1.20+ supports custom SAs on MySQL/Postgres/SQLite (no Elasticsearch required). Values become queryable via List Filters and readable via DescribeWorkflowExecution."
+        },
+        {
+          "label": "Temporal Community — register-before-use + describe read-back",
+          "locator": "https://community.temporal.io/t/badsearchattributes-search-attribute-xxxx-is-not-defined/6652",
+          "summary": "Unregistered custom SA -> BadSearchAttributes failure. Cluster namespace SA cache refresh has a short (~10s) lag after registration. Confirms the register-first hard constraint that ADV already guards via searchAttributesEnabled."
+        },
+        {
+          "label": "Temporal Community — SA values in DescribeWorkflowExecution",
+          "locator": "https://community.temporal.io/t/custom-searchattributes/2943",
+          "summary": "Upserted SA values are returned by DescribeWorkflowExecution; List/visibility filtering additionally requires visibility-store indexing (advanced visibility). Verifying via describe reads the point value; verifying via List proves index propagation."
+        },
+        {
+          "label": "ADV repo — existing signal-time upsert + refresh pattern",
+          "locator": "plugin/src/temporal/workflows.ts:1598,1629,1779; plugin/src/types/signals.ts:759-772; plugin/src/temporal/contracts.ts:236,303",
+          "summary": "ADV already upserts AdvChangeStatus/AdvEpicStatus from signal handlers (archiveChange/closeChange) guarded by input.searchAttributesEnabled !== false, wrapped in try/catch that logs and swallows SA failures. EpicSearchAttributesRefreshed signal is purpose-built to backfill AdvEpicStatus for legacy workflows started before registration — precisely the #210 pattern."
+        }
+      ],
+      "architecture_assessment": "Calling wf.upsertSearchAttributes from a signal handler is valid, deterministic, and replay-safe in the Temporal TypeScript SDK. It emits a buffered upsertWorkflowSearchAttributes workflow command inside the normal activation loop — identical determinism class to timers/activities/child-workflows. Signal-handler origin is irrelevant to determinism; determinism depends only on the handler logic itself being deterministic (fixed key/value derived from replay-safe state, no wall-clock/random-driven branching). Backfilling on a long-running workflow whose start-time input disabled the initial upsert is sound: the start-time searchAttributesEnabled=false path only skipped emitting the command; there is no history poison to unwind, so a later additive upsert simply appends a new command from that activation forward. ADV already ships this exact pattern (EpicSearchAttributesRefreshed signal + refresh_search_attributes repair mode). Two hard constraints, both non-negotiable and both already respected by the existing code: (1) the custom SA MUST be registered in the namespace Visibility store before any workflow emits the upsert command, else the command fails the workflow task (BadSearchAttributes); ADV gates this with searchAttributesEnabled and defensive try/catch. (2) Visibility/List-filter searchability is eventually consistent — describe() returns the point value promptly, but List queries depend on visibility-store index propagation (and, on the server side, SA namespace cache refresh ~10s after registration).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Signal-handler upsertSearchAttributes is a supported, deterministic, replay-safe pattern (SDK source + canonical sample). Backfill on long-running workflows that skipped the start-time upsert is safe and additive. Verification design must distinguish point-read (describe) from index propagation (List/visibility), and registration must precede emission."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Signal-driven backfill is deterministic but the emitted command's SUCCESS depends on external server state (SA registration + namespace cache refresh); handler must tolerate failure (try/catch + log) rather than assume success, which ADV already does.",
+          "describe()-based repair verification proves the SA value was accepted onto the execution but does NOT prove List/visibility index propagation, which is eventually consistent — a repair report that only checks describe may over-claim 'searchable'.",
+          "Guarding with searchAttributesEnabled avoids workflow-task failures on clusters without the SA registered, but a stale/false flag can silently suppress a legitimate backfill; repair flow should be able to re-enable/refresh explicitly (as the refresh signal does)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Upsert search attributes from a signal handler (chosen / #210 approach)",
+            "disposition": "preferred",
+            "rationale": "Deterministic buffered command; matches SDK sample and existing ADV EpicSearchAttributesRefreshed pattern; works on long-running workflows without history rewrite."
+          },
+          {
+            "option": "Client-side / server-side backfill via Operator or admin tooling instead of in-workflow signal",
+            "disposition": "rejected",
+            "rationale": "Temporal has no client API to set SAs on a running workflow out-of-band; SA upsert must originate from workflow code. Only registration (addSearchAttributes) is an operator/admin operation."
+          },
+          {
+            "option": "continue-as-new to re-run start-time upsert",
+            "disposition": "rejected",
+            "rationale": "Heavier, resets history, changes runId, and is unnecessary — a signal-driven additive upsert achieves the same end-state with lower blast radius."
+          },
+          {
+            "option": "Verify repair success via List/visibility query only",
+            "disposition": "deferred",
+            "rationale": "List proves index propagation but is eventually consistent and can transiently fail right after upsert; combine describe (point value, prompt) as primary structural proof with optional List as propagation confirmation."
+          }
+        ],
+        "recommendation": "Proceed with the signal-handler upsertSearchAttributes backfill for #210. Keep the searchAttributesEnabled guard + try/catch. Ensure the target SA is registered (addSearchAttributes / registration tool) before emitting; treat NOT-registered as a precondition, not a runtime surprise. For structural repair verification, use handle.describe() (via store) as the authoritative point-value check of the emitted SA, and treat List/visibility queries as best-effort propagation confirmation with retry/eventual-consistency tolerance — do not gate repair success solely on a List query."
+      },
+      "recommendation": "Signal-handler upsertSearchAttributes is valid, deterministic, and replay-safe; the #210 backfill on long-running workflows (including those that disabled the start-time upsert) is architecturally sound and already precedented by ADV's EpicSearchAttributesRefreshed signal + refresh_search_attributes repair mode. Constraints: (1) register the custom SA in the namespace before emission (else workflow-task failure); keep the searchAttributesEnabled guard + try/catch. (2) Verify writes primarily via workflow describe (prompt point-value read), and treat visibility List queries as eventually-consistent propagation confirmation, not a hard success gate. (3) Keep handler logic deterministic (derive SA value from replay-safe state only).",
+      "follow_ups": [
+        "Confirm the repair reporting path reads the SA back via store-level workflow describe rather than asserting solely on a List/visibility query, to avoid eventual-consistency false negatives.",
+        "Confirm registration of the target SA is a precondition (or auto-registered) before the repair signal fires, mirroring the existing AdvEpicStatus registration path."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicRepair",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/storage/store-temporal/epics.ts",
+          "line": 1022,
+          "what": "repairIndex now separates confirmed refresh from signal-delivered-but-unverified outcomes.",
+          "why": "Confirmed count is only incremented after workflow describe proves AdvEpicStatus matches structural Epic progress status; missing proof reports action: unverified."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 1962,
+          "what": "searchAttributesRefreshedSignal forces AdvEpicStatus upsert for legacy workflows with searchAttributesEnabled:false.",
+          "why": "Fix respects immutable workflow start input for normal mutations while allowing audited repair signal to backfill AdvEpicStatus without bumping Epic version/progress."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/temporal/workflows.search-attrs.test.ts plugin/src/storage/store-temporal/epics.test.ts plugin/src/tools/epic.test.ts",
+          "bin/oc-test targeted -- src/temporal/workflows.search-attrs.test.ts src/storage/store-temporal/epics.test.ts src/tools/epic.test.ts",
+          "pnpm run check",
+          "bin/oc-test targeted -- src/advance-epics-assets.test.ts src/temporal/list-epic-workflows.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Initial targeted command used repo-root-prefixed paths and found no files. Corrected scoped targeted run passed: 3 files, 131 tests. pnpm run check passed: schemas:check, typecheck, test-isolation, lockfile policy, lint, format:check. Extra spec/visibility guard passed: 2 files, 62 tests."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live deployed OpenCode plugin behavior still requires repo-standard rebuild/deploy/restart for end-to-end tool validation; source tests and check passed in this worktree."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicRepair",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicRepair",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "hardening-praise-1",
+          "label": "praise",
+          "file": "plugin/src/storage/store-temporal/epics.ts",
+          "line": 1022,
+          "what": "Repair confirmation counts refreshed only after workflow describe proves AdvEpicStatus contains the expected structural status.",
+          "why": "This satisfies rq-epicSearchAttributeRepair01 by preventing successful signal dispatch from being reported as confirmed refresh without proof."
+        },
+        {
+          "id": "hardening-praise-2",
+          "label": "praise",
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 1969,
+          "what": "searchAttributesRefreshed forces AdvEpicStatus upsert even for legacy workflows started with searchAttributesEnabled=false.",
+          "why": "This addresses immutable start-input legacy workflows without restart/recreate and keeps normal signal upsert behavior gated for replay compatibility."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "Path preflight for scoped files/spec: all OK",
+          "bin/oc-test targeted -- src/temporal/workflows.search-attrs.test.ts src/storage/store-temporal/epics.test.ts src/tools/epic.test.ts src/temporal/list-change-workflows.test.ts",
+          "git status --short && git diff --stat"
+        ],
+        "results": "pass",
+        "evidence": "Scoped paths existed. Targeted hardening suite passed: 4 files, 142 tests. git status/diff produced no output, confirming no reviewer edits or dirty worktree. Initial task-scoped report submission failed because TASK release-hardening is not a durable task anchor; submitted as change-scoped harden:release per tool guidance."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live OpenCode tool behavior still follows deployed dist until plugin is rebuilt/deployed and session restarted; source-level Temporal/workflow/store/tool behavior is covered by tests."
+      ],
+      "required_main_agent_actions": [
+        "No hardening blockers found. Orchestrator may proceed with release/archive steps after its normal release checks.",
+        "If validating live adv_epic_repair_membership behavior through OpenCode tools, rebuild/deploy plugin and restart OpenCode per repository source-vs-dist reload gotcha."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-08T19:25:38.951Z",
+      "completed_by": "adv",
+      "approval_evidence": "User confirmed quick contract for GitHub issue #210 via question tool; proposal/problem/agreement/design seed artifacts created.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "3db2030b316e76616d6ed82403c513d423b9e02e005edbdc64b346a261154f15",
+        "non_whitespace_chars": 964,
+        "checked_at": "2026-07-08T19:25:21.904Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-08T19:29:13.196Z",
+      "completed_at": "2026-07-08T19:29:25.927Z",
+      "completed_by": "adv",
+      "approval_evidence": "Spec-law assessment: Modify advance-epics; discovery evidence from issue, source inspection, and Temporal TypeScript SDK validation. Contract minted from approved agreement.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+        "non_whitespace_chars": 1511,
+        "checked_at": "2026-07-08T19:25:21.905Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-08T19:29:26.132Z",
+      "completed_by": "adv",
+      "approval_evidence": "Design validated by adv-researcher: signal-handler upsertSearchAttributes is replay-safe/deterministic when derived from workflow state; custom SA registration remains precondition; describe point-value preferred over eventual list propagation. No validator conflict.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "e5cf3cb67bff87e49a6d1efe367f6cabc401830016638fce653d3eec93ba2ef1",
+        "non_whitespace_chars": 2566,
+        "checked_at": "2026-07-08T19:25:21.906Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-08T19:34:42.550Z",
+      "completed_by": "adv",
+      "approval_evidence": "User replied `approve`; task graph approved for GitHub issue #210."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-08T19:47:31.667Z",
+      "completed_by": "adv",
+      "approval_evidence": "All five implementation/spec/audit tasks done. Verification: targeted suite tr_mrcho4ne_4640f2ce passed (142 tests across workflows/search attrs, store epics, epic tool, list-change workflows); pnpm run check tr_mrchop9i_2ec85564 passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-08T20:05:47.289Z",
+      "completed_by": "adv",
+      "approval_evidence": "User replied `approve` after acceptance summary. Acceptance evidence: contract review matrix all pass/respected; independent reviewer verdict READY; targeted suite and `pnpm run check` passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "5b5b8c5a52686b5a349862d1493a16c1c97a06cb76aa80390f91e5756de68eca",
+        "non_whitespace_chars": 1284,
+        "checked_at": "2026-07-08T19:25:21.907Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 210
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+      "approvedAt": "2026-07-08T19:29:18.597Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given an epic workflow started with `searchAttributesEnabled:false`, when `searchAttributesRefreshed` is signaled with active status, then `AdvEpicStatus` is upserted from structural workflow state despite the legacy input flag.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_epic_repair_membership mode:\"refresh_search_attributes\"` runs against legacy epics, then returned result distinguishes confirmed refresh/write evidence from skipped, unreachable, or unverified signal-delivery outcomes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given the change workflow has the same immutable-gate pattern, then either equivalent repair behavior is implemented or source/tests document why it is not affected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given the implementation is complete, targeted tests for epic search-attribute refresh/repair reporting pass through `bin/oc-test targeted -- ...` or `adv_run_test` evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve Temporal workflow determinism and workflow-bundle import boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep repair behavior structural; no heuristic success inference for correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not require operators to restart/recreate legacy workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not use eventual list-query visibility as the only synchronous success proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-08T19:53:18.403Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN tr_mrchex44_ad91b4df and verify tr_mrcho4ne_4640f2ce: workflows.search-attrs test includes legacy `searchAttributesEnabled:false` Epic refresh and passed; reviewer verdict READY."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN tr_mrchif7k_54fe0e33 and verify tr_mrcho4ne_4640f2ce: store-temporal/epics.test proves confirmed refresh after describe proof and unverified reporting; reviewer verdict READY."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Verify tr_mrchncyl_a6720ccf and tr_mrcho4ne_4640f2ce: list-change-workflows.test passed and asserts default open listing uses AdvLifecycleState and not AdvChangeStatus; reviewer verdict READY."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Verify tr_mrcho4ne_4640f2ce: 142 targeted tests passed; tr_mrchop9i_2ec85564: `pnpm run check` passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`pnpm run check` tr_mrchop9i_2ec85564 passed typecheck/lint; reviewer confirmed workflow-bundle-safe deterministic changes."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "repairIndex uses workflow describe point-value proof before incrementing confirmed `refreshed`; unverified signal delivery is separate."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Forced repair signal upserts current Epic status on the existing running workflow; no restart/recreate path introduced."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Synchronous confirmation uses `handle.describe()` point-value proof; list-query propagation is not the sole success proof."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given an epic workflow started with `searchAttributesEnabled:false`, when `searchAttributesRefreshed` is signaled with active status, then `AdvEpicStatus` is upserted from structural workflow state despite the legacy input flag.",
+    "Given `adv_epic_repair_membership mode:\"refresh_search_attributes\"` runs against legacy epics, then returned result distinguishes confirmed refresh/write evidence from skipped, unreachable, or unverified signal-delivery outcomes.",
+    "Given the change workflow has the same immutable-gate pattern, then either equivalent repair behavior is implemented or source/tests document why it is not affected.",
+    "Given the implementation is complete, targeted tests for epic search-attribute refresh/repair reporting pass through `bin/oc-test targeted -- ...` or `adv_run_test` evidence."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Fix epic repair\n\n## Intent\nFix GitHub issue #210: `adv_epic_repair_membership mode:\"refresh_search_attributes\"` must actually backfill `AdvEpicStatus` for legacy running epic workflows started with `searchAttributesEnabled:false`, and must not report false success when no attribute is written.\n\n## LBP Targets\n- Temporal epic workflow repair signal path can force a registered search-attribute upsert independent of immutable start-time `searchAttributesEnabled`.\n- Repair indexing reports honest outcomes instead of counting signals as successful writes.\n- Equivalent `AdvChangeStatus` legacy gate is audited and handled if affected.\n\n## Scope\nLikely files: `plugin/src/temporal/workflows.ts`, `plugin/src/temporal/epic-state.ts`, `plugin/src/storage/store-temporal/epics.ts`, `plugin/src/tools/epic.ts`, and related tests.\n\n## User Outcomes\n- Legacy running epics become visible to active epic lists after repair.\n- Repair output distinguishes actually written/refreshed work from skipped/no-op cases.\n- Regression tests cover legacy `searchAttributesEnabled:false` workflows.\n\n## Spec-law impact\nModify `advance-epics`, because `rq-epicMembershipRepair01` requires typed repair paths and deterministic recoverable status for stale/unreachable membership state but does not yet explicitly cover legacy Epic workflow search-attribute visibility/index repair. Draft delta obligation:\n\n- `rq-epicSearchAttributeRepair01` (new or modify `rq-epicMembershipRepair01`): Epic repair tooling MUST support an audited `refresh_search_attributes` path that backfills `AdvEpicStatus` for running legacy Epic workflows whose start input disabled initial search-attribute upserts, provided the namespace attribute is currently registered.\n  - Given a running legacy Epic workflow with `searchAttributesEnabled:false`, when audited `refresh_search_attributes` runs, then `AdvEpicStatus` is upserted from structural Epic progress state.\n  - Given the refresh signal is delivered but the write cannot be proven or is skipped, when the repair report is returned, then the report distinguishes actual refresh/write evidence from skipped/unverified signal delivery and does not report false confirmed success.\n  - Given search-attribute visibility propagation lags, when repair success is assessed, then workflow describe/search-attribute point value is accepted as stronger proof than list-query visibility propagation.",
+    "problemStatement": "# Problem Statement\n\n`adv_epic_repair_membership mode:\"refresh_search_attributes\"` silently no-ops for legacy epic workflows whose immutable workflow input has `searchAttributesEnabled:false`. The repair signal is accepted, but the in-workflow upsert helper exits before writing `AdvEpicStatus`. The storage repair path then reports success by counting successful signal dispatches, not verified attribute writes.\n\nImpact: legacy running epics remain hidden from `adv epic list --json` and any `AdvEpicStatus=\"active\"` visibility query, while operators receive misleading `refreshed:N` success output.",
+    "agreement": "# Agreement\n\n## Objectives\n1. Repair signal path writes `AdvEpicStatus` for legacy running epic workflows when `refresh_search_attributes` is invoked after search attributes are registered.\n2. Repair reporting is honest: it must not claim confirmed refresh/write success solely because a signal was delivered.\n3. The equivalent legacy `AdvChangeStatus` search-attribute gate is audited and fixed or explicitly ruled not affected.\n4. Regression coverage proves the legacy path.\n5. Draft spec-law obligation for Epic search-attribute repair is preserved for archive/spec update.\n\n## Acceptance Criteria\n- Given an epic workflow started with `searchAttributesEnabled:false`, when `searchAttributesRefreshed` is signaled with active status, then `AdvEpicStatus` is upserted from structural workflow state despite the legacy input flag.\n- Given `adv_epic_repair_membership mode:\"refresh_search_attributes\"` runs against legacy epics, then returned result distinguishes confirmed refresh/write evidence from skipped, unreachable, or unverified signal-delivery outcomes.\n- Given the change workflow has the same immutable-gate pattern, then either equivalent repair behavior is implemented or source/tests document why it is not affected.\n- Given the implementation is complete, targeted tests for epic search-attribute refresh/repair reporting pass through `bin/oc-test targeted -- ...` or `adv_run_test` evidence.\n\n## Constraints\n- Preserve Temporal workflow determinism and workflow-bundle import boundaries.\n- Keep repair behavior structural; no heuristic success inference for correctness.\n- Do not require operators to restart/recreate legacy workflows.\n- Do not use eventual list-query visibility as the only synchronous success proof.",
+    "design": "# Design\n\n## Discovery evidence\n- Internal issue evidence identifies the root cause: epic workflow helper exits when immutable `input.searchAttributesEnabled === false`, including repair signal handling.\n- Source inspection confirmed `upsertEpicStatusSearchAttribute` gates all epic status upserts on `input.searchAttributesEnabled`, and `searchAttributesRefreshedSignal` routes through that helper.\n- Source inspection confirmed `repairIndex` increments `refreshed` after successful signal dispatch, not after confirmed search-attribute write.\n- Official Temporal TypeScript SDK docs show `upsertSearchAttributes` records a workflow command in history and may be used from workflow execution; researcher validation confirmed signal-handler upsert is deterministic when derived from workflow state, custom SAs must be registered, and `DescribeWorkflowExecution` is stronger point-value proof than eventually consistent list queries.\n\n## Spec-law impact\nModify `advance-epics`. Draft obligation:\n\n- `rq-epicSearchAttributeRepair01` (new or folded into `rq-epicMembershipRepair01`): Epic repair tooling MUST support audited `refresh_search_attributes` backfill for running legacy Epic workflows whose immutable start input has search-attribute upsert disabled. Repair result reporting MUST distinguish confirmed write/refresh evidence from skipped, unreachable, or unverified signal-delivery outcomes.\n\n## Approach\n1. Add a dedicated repair/upsert path for `searchAttributesRefreshedSignal` that bypasses only the immutable legacy `searchAttributesEnabled:false` gate. Keep normal start/mutation upsert safeguards unchanged where needed.\n2. Ensure repair upsert derives `AdvEpicStatus` only from deterministic workflow state (`state.epic.progress.status`) and keeps try/catch logging for unregistered search attributes.\n3. Make repair accounting honest. Prefer post-signal `handle.describe()` verification of `AdvEpicStatus`; if SDK shape or environment prevents structural proof, return explicit unverified/skipped action rather than counting confirmed `refreshed`.\n4. Add regression tests:\n   - legacy epic workflow with `searchAttributesEnabled:false` still upserts `AdvEpicStatus` after `searchAttributesRefreshedSignal`;\n   - repair reporting distinguishes signal delivery from confirmed refresh/no-op.\n5. Audit `AdvChangeStatus` immutable-gate usage at archive/close. If no live repair path exists for running legacy changes, document outcome in implementation summary; if affected by an existing repair path, add equivalent fix/tests.\n\n## Risks / constraints\n- Custom search attribute must be registered before emission; otherwise Temporal may reject the upsert. Existing try/catch behavior remains important.\n- List-query visibility may lag; do not make eventual visibility propagation the sole synchronous success proof.\n- Preserve workflow-bundle boundary tests; no storage/tool imports inside workflow code.",
+    "executiveSummary": "# Executive Summary\n\nFixed GitHub issue #210: legacy running Epics that started before `AdvEpicStatus` repair support can now be recovered by `adv_epic_repair_membership mode:\"refresh_search_attributes\"`.\n\n## Outcome\n- `searchAttributesRefreshedSignal` now forces `AdvEpicStatus` upsert for legacy Epic workflows with `searchAttributesEnabled:false`.\n- `repairIndex` no longer counts signal delivery as confirmed success. It verifies `AdvEpicStatus` through workflow describe proof before incrementing `refreshed`; missing proof is reported as `unverified`.\n- `adv_epic_repair_membership` output now surfaces `unverified` count alongside `refreshed`, `skipped`, and `unreachable`.\n- `advance-epics` spec law now includes `rq-epicSearchAttributeRepair01` covering legacy visibility backfill and honest reporting.\n- The `AdvChangeStatus` concern was audited: default/open change visibility is documented and tested to use `AdvLifecycleState=open`, not `AdvChangeStatus`; terminal `AdvChangeStatus` gates are compatibility/read-model metadata rather than open-change authority.\n\n## Verification\n- Targeted suite passed: `bin/oc-test targeted -- src/temporal/workflows.search-attrs.test.ts src/storage/store-temporal/epics.test.ts src/tools/epic.test.ts src/temporal/list-change-workflows.test.ts` (`tr_mrcho4ne_4640f2ce`, 142 tests).\n- `pnpm run check` passed (`tr_mrchop9i_2ec85564`).\n- Independent review verdict: READY; no blockers.\n\n## Release Readiness Summary\n- Harden verdict: READY; no blockers or issues.\n- Production/deployment readiness: pass.\n- Temporal determinism: pass; forced upsert path uses workflow-safe state and deterministic handler flow.\n- Search-attribute proof shape: pass; `refreshed` requires `describe()` proof of `AdvEpicStatus`, otherwise outcome is `unverified`.\n- Output compatibility: pass; repair output exposes `refreshed`, `unverified`, `skipped`, and `unreachable`.\n- Cleanup/docs/test coverage/maintainability: pass.\n- Merge compatibility: clean; branch already up to date with `origin/trunk`.\n- Worktree: clean after harden.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-08T19:53:18.403Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Given an epic workflow started with `searchAttributesEnabled:false`, when `searchAttributesRefreshed` is signaled with active status, then `AdvEpicStatus` is upserted from structural workflow state despite the legacy input flag. | pass | GREEN tr_mrchex44_ad91b4df and verify tr_mrcho4ne_4640f2ce: workflows.search-attrs test includes legacy `searchAttributesEnabled:false` Epic refresh and passed; reviewer verdict READY. |\n| AC2 | acceptance_criterion | Given `adv_epic_repair_membership mode:\"refresh_search_attributes\"` runs against legacy epics, then returned result distinguishes confirmed refresh/write evidence from skipped, unreachable, or unverified signal-delivery outcomes. | pass | GREEN tr_mrchif7k_54fe0e33 and verify tr_mrcho4ne_4640f2ce: store-temporal/epics.test proves confirmed refresh after describe proof and unverified reporting; reviewer verdict READY. |\n| AC3 | acceptance_criterion | Given the change workflow has the same immutable-gate pattern, then either equivalent repair behavior is implemented or source/tests document why it is not affected. | pass | Verify tr_mrchncyl_a6720ccf and tr_mrcho4ne_4640f2ce: list-change-workflows.test passed and asserts default open listing uses AdvLifecycleState and not AdvChangeStatus; reviewer verdict READY. |\n| AC4 | acceptance_criterion | Given the implementation is complete, targeted tests for epic search-attribute refresh/repair reporting pass through `bin/oc-test targeted -- ...` or `adv_run_test` evidence. | pass | Verify tr_mrcho4ne_4640f2ce: 142 targeted tests passed; tr_mrchop9i_2ec85564: `pnpm run check` passed. |\n| C1 | constraint | Preserve Temporal workflow determinism and workflow-bundle import boundaries. | respected | `pnpm run check` tr_mrchop9i_2ec85564 passed typecheck/lint; reviewer confirmed workflow-bundle-safe deterministic changes. |\n| C2 | constraint | Keep repair behavior structural; no heuristic success inference for correctness. | respected | repairIndex uses workflow describe point-value proof before incrementing confirmed `refreshed`; unverified signal delivery is separate. |\n| C3 | constraint | Do not require operators to restart/recreate legacy workflows. | respected | Forced repair signal upserts current Epic status on the existing running workflow; no restart/recreate path introduced. |\n| C4 | constraint | Do not use eventual list-query visibility as the only synchronous success proof. | respected | Synchronous confirmation uses `handle.describe()` point-value proof; list-query propagation is not the sole success proof. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-08T19:29:05.569Z",
+      "contentHash": "d51cdbaf844335d0de5bb29d5e2f07e9310a047f30eb92f74ceae55f6ab7c3dc",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-08T19:25:22.038Z",
+      "contentHash": "9975854bfac97cb74a5295e714280ca5bd42d150f54716ec0e56021dd7f7d7e4",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-08T19:29:05.569Z",
+      "contentHash": "deab073a1ac5ceba1037098738bbb0b0a8ce3d050de71850bd3b53e9485669f2",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-08T19:29:05.569Z",
+      "contentHash": "e5cf3cb67bff87e49a6d1efe367f6cabc401830016638fce653d3eec93ba2ef1",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-08T20:09:43.565Z",
+      "contentHash": "8be600b0cad2b85809e750d797a5a8492ebaa1506ea66044f6138fe5dc514aed",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-08T20:09:43.565Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-08T19:31:06.787Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
