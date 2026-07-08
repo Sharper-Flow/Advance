@@ -21,13 +21,13 @@ import type {
   GateState,
   LiveStatusPayload,
 } from "./types";
-import { listChangeWorkflowIds } from "../../plugin/src/temporal/list-change-workflows";
 import {
   buildChangeWorkflowId,
+  CHANGE_WORKFLOW_QUERY_NAMES,
   createTemporalClientBundle,
-} from "../../plugin/src/temporal/client";
-import { CHANGE_WORKFLOW_QUERY_NAMES } from "../../plugin/src/temporal/contracts";
-import { escapeVisibilityValue } from "../../plugin/src/temporal/lifecycle-visibility";
+  escapeVisibilityValue,
+  listChangeWorkflowIds,
+} from "../../plugin/src/cli/temporal-boundary";
 
 export const QUERY_TIMEOUT_MS = 5_000;
 

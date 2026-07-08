@@ -7,12 +7,10 @@
 
 import {
   createTemporalClientBundle,
-} from "../../plugin/src/temporal/client";
-import { listChanges } from "./changes";
-import {
   listEpicWorkflowIds,
   type ListEpicClient,
-} from "../../plugin/src/temporal/list-epic-workflows";
+} from "../../plugin/src/cli/temporal-boundary";
+import { listChanges } from "./changes";
 import { join } from "path";
 import { QUERY_TIMEOUT_MS } from "./live-status";
 

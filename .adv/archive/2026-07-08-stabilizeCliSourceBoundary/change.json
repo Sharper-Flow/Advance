@@ -1,0 +1,1409 @@
+{
+  "id": "stabilizeCliSourceBoundary",
+  "title": "Stabilize CLI source boundary",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-07T22:57:44.211Z",
+  "tasks": [
+    {
+      "id": "tk-5f09b1a5e58c",
+      "title": "Add advance-meta CLI source-boundary spec law",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-08T00:10:41.939Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC2"
+        ],
+        "verifies": [
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT1",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T00:18:28.637Z",
+      "verification": "Static verification passed: JSON parse of .adv/specs/advance-meta/spec.json (`tr_mrbbzhit_21f3140b`) and `pnpm run schemas:check` from plugin (`tr_mrbbzj56_0e023207`).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `rq-cliSourceBoundary01` to `advance-meta` and mirrored it in `docs/specs/advance-meta.md`. Requirement defines explicit root CLI plugin-source boundaries, forbids broad plugin internals via deterministic tests, preserves live Temporal fail-closed behavior, and avoids stale disk active-state fallback.",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        "docs/specs/advance-meta.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        "docs/specs/advance-meta.md"
+      ],
+      "checkpointSha": "d531e43c63be8cfdcdf7da55645b2cf7fe7bb23a",
+      "completedAt": "2026-07-08T00:20:23.598Z",
+      "completed_at": "2026-07-08T00:20:23.598Z",
+      "notes": "Completed with checkpoint d531e43c63be8cfdcdf7da55645b2cf7fe7bb23a. Verification: JSON parse run `tr_mrbbzhit_21f3140b`; `pnpm run schemas:check` run `tr_mrbbzj56_0e023207`.",
+      "updatedAt": "2026-07-08T00:20:33.715Z"
+    },
+    {
+      "id": "tk-209511755edf",
+      "title": "Enforce CLI source boundary and consolidate Temporal imports",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-08T00:10:59.069Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC3",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T00:20:41.399Z",
+      "verification": "TDD evidence: RED `bun test bin/lib/cli-source-boundary.test.ts` failed on existing direct temporal imports and missing boundary (`tr_mrbc1rz0_c171bd42`). GREEN `bun test bin/lib/cli-source-boundary.test.ts` passed after adding boundary (`tr_mrbc333z_bf6c8c2b`). Verification `bun test bin/lib/cli-source-boundary.test.ts bin/lib/cli-projection-import-safety.test.ts bin/adv.test.ts` passed 22 tests (`tr_mrbc3fj3_e01a4c05`).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added a root CLI plugin-source boundary test, introduced internal `plugin/src/cli/temporal-boundary.ts`, and updated only `bin/lib/live-status.ts` and `bin/lib/epic-list.ts` to use the new Temporal boundary. Existing Tier A `cli-projection` imports stayed intact. Boundary test includes bin-side allowlist and transitive forbidden-plugin-internal checks.",
+      "filesTouched": [
+        "bin/lib/cli-source-boundary.test.ts",
+        "bin/lib/epic-list.ts",
+        "bin/lib/live-status.ts",
+        "plugin/src/cli/temporal-boundary.ts"
+      ],
+      "touched_files": [
+        "bin/lib/cli-source-boundary.test.ts",
+        "bin/lib/epic-list.ts",
+        "bin/lib/live-status.ts",
+        "plugin/src/cli/temporal-boundary.ts"
+      ],
+      "checkpointSha": "c753b89f1280ad6eb98a118f10b69ca2c9015075",
+      "completedAt": "2026-07-08T00:23:18.120Z",
+      "completed_at": "2026-07-08T00:23:18.120Z",
+      "notes": "Completed with checkpoint c753b89f1280ad6eb98a118f10b69ca2c9015075. TDD RED `tr_mrbc1rz0_c171bd42`; GREEN `tr_mrbc333z_bf6c8c2b`; verification `tr_mrbc3fj3_e01a4c05`.",
+      "updatedAt": "2026-07-08T00:23:27.315Z"
+    },
+    {
+      "id": "tk-fa18f6c0f507",
+      "title": "Run CLI boundary compatibility verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-08T00:11:10.699Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5f09b1a5e58c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-209511755edf"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T00:23:39.490Z",
+      "verification": "Acceptance reviewer made a scoped hardening fix to `bin/lib/cli-source-boundary.test.ts` adding dynamic import detection and regression coverage. Reviewer verification passed: `bun test bin/lib/cli-source-boundary.test.ts` (3 pass), `bun test bin/` (197 pass), `pnpm --dir plugin exec prettier --check ../bin/lib/cli-source-boundary.test.ts`, and `git diff --check`.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final CLI boundary compatibility verification and incorporated acceptance-review hardening. Reviewer added dynamic import detection/regression coverage to `bin/lib/cli-source-boundary.test.ts`; all boundary/bin tests passed after the fix. Worktree checkpointed at af843af2deab75492043417dfece638753258587.",
+      "filesTouched": [
+        "bin/lib/cli-source-boundary.test.ts"
+      ],
+      "touched_files": [
+        "bin/lib/cli-source-boundary.test.ts"
+      ],
+      "checkpointSha": "af843af2deab75492043417dfece638753258587",
+      "completedAt": "2026-07-08T00:33:55.341Z",
+      "completed_at": "2026-07-08T00:33:55.341Z",
+      "notes": "Review hardening checkpoint af843af2deab75492043417dfece638753258587. Reviewer verdict READY; no blockers/issues. Additional verification from reviewer: boundary test 3 pass, `bun test bin/` 197 pass, prettier check for boundary test, git diff --check.",
+      "updatedAt": "2026-07-08T00:34:10.559Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "stabilizeCliSourceBoundary",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "CLI source-boundary discovery scout — leverage points within approved scope",
+      "sources": [
+        {
+          "label": "bin/lib/cli-projection-import-safety.test.ts",
+          "locator": "/home/jon/dev/advance/bin/lib/cli-projection-import-safety.test.ts:19-57",
+          "summary": "Existing Bun guard asserts cli-projection.ts has zero heavy imports + no import statements, and checks changes.ts/types.ts re-export shape. Covers ONLY the projection module; does not guard the Temporal reach-through set."
+        },
+        {
+          "label": "bin/lib/live-status.ts imports",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts:24-30",
+          "summary": "CLI reaches into plugin/src/temporal/{list-change-workflows,client,contracts,lifecycle-visibility} — four deep imports with no import-safety guard."
+        },
+        {
+          "label": "bin/lib/epic-list.ts imports",
+          "locator": "/home/jon/dev/advance/bin/lib/epic-list.ts:8-16",
+          "summary": "CLI reaches into plugin/src/temporal/{client,list-epic-workflows} — unguarded deep imports."
+        },
+        {
+          "label": "plugin/src/temporal/contracts.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/contracts.ts:1,12,165-571",
+          "summary": "All ../types references are `import type {` or inline `import(\"../types\").X` type positions — fully type-erased at runtime. contracts.ts is runtime-safe for CLI. Only runtime value imports are ./digest (type) and constants."
+        },
+        {
+          "label": "plugin/src/temporal/list-change-workflows.ts + lifecycle-visibility.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/list-change-workflows.ts:35 ; lifecycle-visibility.ts:1",
+          "summary": "Both import `type { ChangeStatus } from ../types` (erased). Runtime-safe today, but one accidental runtime import from ../types would silently break the CLI with no failing test."
+        },
+        {
+          "label": "plugin/src/temporal/client.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/client.ts:1",
+          "summary": "Imports @temporalio/client (real runtime dep). This is the intentional, required live-behavior dependency; not a deep plugin-internal coupling."
+        },
+        {
+          "label": "plugin/src/shared/cli-projection.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/shared/cli-projection.ts:1-111",
+          "summary": "Zero-import plain-TS contract module. Correct existing pattern: a designed CLI-facing surface, not an accidental deep import."
+        },
+        {
+          "label": "plugin/src/cli-gate-order-parity.test.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/cli-gate-order-parity.test.ts:10-33",
+          "summary": "Vitest parity guard: shared GATE_ORDER equals plugin GATE_DEFS-derived order; asserts changes.ts import/re-export shape. Establishes the parity-test precedent to extend."
+        },
+        {
+          "label": "Module public-API + enforced import boundary (canonical)",
+          "locator": "https://github.com/javierbrea/eslint-plugin-boundaries",
+          "summary": "Standard reference pattern for CLI/plugin decoupling: expose a designated public surface (index barrel / shared module) and enforce allowed import edges structurally via lint (eslint-plugin-boundaries / no-restricted-imports) or dependency-cruiser, rather than relying on convention."
+        }
+      ],
+      "architecture_assessment": "The CLI-to-plugin boundary has TWO surfaces with asymmetric protection. Surface 1 (plugin/src/shared/cli-projection.ts) is a correctly-designed zero-import contract module with a Bun import-safety guard — this is the by-the-book pattern and should be preserved. Surface 2 is a set of unguarded deep reach-throughs from bin/lib/{live-status,epic-list}.ts into plugin/src/temporal/{client,list-change-workflows,list-epic-workflows,contracts,lifecycle-visibility}.ts. Evidence confirms these Temporal modules are currently RUNTIME-SAFE for the Bun CLI: every ../types reference across contracts.ts, list-change-workflows.ts, lifecycle-visibility.ts, and list-epic-workflows.ts is `import type` or inline type position (erased at emit); the only real runtime import in the reach-through set is @temporalio/client (intentional, required for live status). So the boundary is not broken today — but it is unenforced. There is no structural guard preventing a future refactor from adding a runtime import from ../types (or storage/tools) into any of those five modules, which would silently break the Bun CLI with zero failing tests. This is a P33 structural-correctness gap (correctness by convention, not by machine check) and is the highest-leverage, in-scope target. The lowest-risk, highest-payoff shape is: (a) formalize the CLI-safe Temporal surface as a designated adapter/barrel, and (b) extend the existing import-safety guard to cover the full reach-through allowlist so any new deep import or accidental runtime coupling fails a test.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract, security, or release blocker. Boundary is runtime-safe today; the opportunity is to make that safety structural rather than incidental. All findings are within approved proposal scope (bin/adv, bin/lib/*, boundary tests, minimal plugin-side shared contract). Live Temporal behavior is preserved under every candidate — no candidate proposes regressing to disk projection or removing @temporalio/client."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Extending the import-safety guard to an explicit allowlist adds one test to maintain when the CLI legitimately needs a new plugin-side surface — but that maintenance cost is the point: it forces new deep imports to be intentional.",
+          "Introducing a CLI-facing Temporal adapter/barrel adds one indirection module; the payoff is a single named contract surface instead of five scattered deep import paths.",
+          "Keeping @temporalio/client as a direct CLI dependency preserves live behavior but means the CLI still transitively owns a heavy runtime dep — acceptable and required, not a coupling to remove."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Do nothing structural; rely on convention that Temporal reach-through modules stay type-only",
+            "disposition": "rejected",
+            "rationale": "P33 violation — correctness by convention. A future runtime import from ../types silently breaks the Bun CLI with no failing test. This is exactly the drift the change exists to close."
+          },
+          {
+            "option": "Move Temporal reach-through logic behind a new plugin/src/shared CLI-safe Temporal adapter barrel + extend import-safety allowlist guard",
+            "disposition": "preferred",
+            "rationale": "Mirrors the proven cli-projection.ts pattern, gives one named contract surface, and makes boundary correctness structural via an extended deterministic guard. Lowest risk, highest payoff, fully in-scope, preserves live behavior."
+          },
+          {
+            "option": "Add lint-level enforcement (eslint no-restricted-imports / dependency-cruiser) for bin -> plugin edges",
+            "disposition": "deferred",
+            "rationale": "Valid canonical approach but heavier setup; the existing Bun import-safety test precedent is cheaper and already the repo idiom. Surface as optional hardening, not the primary fix."
+          },
+          {
+            "option": "Eliminate all deep imports by re-implementing Temporal listing inside bin/",
+            "disposition": "rejected",
+            "rationale": "Would duplicate visibility-query/workflow-id logic, violating locality-of-behavior (P04) and creating parity drift risk worse than the current coupling."
+          }
+        ],
+        "recommendation": "Adopt the designated-CLI-surface + extended-import-safety-guard shape (mirror cli-projection.ts) as the primary design. Route the guard-extension as auto-adopt (pure test/structural hardening, no behavior change). Surface the adapter-barrel-vs-keep-flat-imports decision to the user/orchestrator since it touches module layout."
+      },
+      "recommendation": "Discovery scout result — 5 candidates, prioritized. HIGHEST LEVERAGE (auto-adopt): extend the existing Bun import-safety guard from covering only cli-projection.ts to an explicit allowlist of every bin -> plugin/src deep import, asserting each reach-through module is runtime-safe (no runtime ../types/storage/tools imports). This closes the P33 gap with zero behavior change. SECOND (user-surface): decide whether to consolidate the five scattered temporal/* deep imports behind one named CLI-safe adapter barrel (mirrors cli-projection.ts) vs keep flat imports + guard only. THIRD (auto-adopt): document @temporalio/client as the one intentional heavy CLI runtime dependency so it is not mistaken for accidental coupling. FOURTH (surface, optional): add lint-level bin->plugin edge enforcement as belt-and-suspenders. FIFTH (inconclusive): whether a spec delta belongs in advance-meta vs test-only enforcement — needs orchestrator/spec-owner decision. Preserve live Temporal status/epic behavior under all candidates.",
+      "follow_ups": [
+        "Design gate should decide adapter-barrel-vs-flat-imports (candidate 2) and spec-delta-vs-test-only (candidate 5) — both need orchestrator/user input.",
+        "Confirm with `pnpm run build` emit that contracts.ts/list-change-workflows.ts type-only ../types imports are stripped (high-confidence from source read; build-emit check would make it structural evidence)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "stabilizeCliSourceBoundary",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:boundary-strictness"
+      },
+      "agent": "adv-researcher",
+      "topic": "How strict should root bin/adv -> plugin/src import enforcement be?",
+      "sources": [
+        {
+          "label": "bin/lib/types.ts (source)",
+          "locator": "/home/jon/dev/advance/bin/lib/types.ts:8-17",
+          "summary": "Re-exports GATE_ORDER + projection types from plugin/src/shared/cli-projection only. Single guarded import surface."
+        },
+        {
+          "label": "bin/lib/changes.ts (source)",
+          "locator": "/home/jon/dev/advance/bin/lib/changes.ts:13-15",
+          "summary": "Imports GATE_ORDER/GateId from plugin/src/shared/cli-projection; otherwise uses fs/promises + path only. No other plugin coupling."
+        },
+        {
+          "label": "bin/lib/live-status.ts (source)",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts:8-30",
+          "summary": "Live tier: imports @temporalio/client plus temporal/list-change-workflows, temporal/client, temporal/contracts, temporal/lifecycle-visibility. Required for live Temporal-backed active rows."
+        },
+        {
+          "label": "bin/lib/epic-list.ts (source)",
+          "locator": "/home/jon/dev/advance/bin/lib/epic-list.ts:8-17",
+          "summary": "Live tier: imports temporal/client + temporal/list-epic-workflows. Same narrow live surface as live-status."
+        },
+        {
+          "label": "plugin/src/shared/cli-projection.ts (source)",
+          "locator": "/home/jon/dev/advance/plugin/src/shared/cli-projection.ts:1-111",
+          "summary": "Plain-TS module, zero runtime imports by design; documented as Bun-safe CLI contract. Explicitly the intended projection boundary."
+        },
+        {
+          "label": "cli-projection-import-safety.test.ts (guard)",
+          "locator": "/home/jon/dev/advance/bin/lib/cli-projection-import-safety.test.ts:19-79",
+          "summary": "Bun test: FORBIDDEN_IMPORT_PATTERNS denylist (@temporalio, temporal/, zod, ../storage/, ../tools/, ../tool-registry, ../index, node:) enforced against the shared module source + asserts zero import statements; also asserts changes.ts/types.ts re-export from shared module."
+        },
+        {
+          "label": "cli-gate-order-parity.test.ts (guard)",
+          "locator": "/home/jon/dev/advance/plugin/src/cli-gate-order-parity.test.ts:10-33",
+          "summary": "Vitest: shared GATE_ORDER equals plugin types/gates GATE_ORDER, and bin/lib/changes.ts imports+re-exports GATE_ORDER from shared module. Cross-boundary parity is already structural."
+        },
+        {
+          "label": "temporal/list-change-workflows.ts + contracts.ts + client.ts (source)",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/list-change-workflows.ts:35-41; contracts.ts:1-13; client.ts:1-8",
+          "summary": "Live-tier transitive graph is narrow: contracts.ts imports only ../types (type-only) + ./digest; client.ts imports @temporalio/client + contracts; list-* import contracts + lifecycle-visibility. No ../storage, ../tools, ../tool-registry, or plugin-init reachable from the CLI live imports."
+        },
+        {
+          "label": "adv_spec search (governance)",
+          "locator": "adv_spec action=search query=\"CLI boundary import bin adv projection\"",
+          "summary": "Zero spec results. No existing capability spec governs CLI source-boundary imports; discovery agenda item confirmed. Enforcement today is test-only."
+        }
+      ],
+      "architecture_assessment": "Two distinct import tiers exist and must be governed differently. Tier A (projection): the only CLI->plugin coupling for the pure-computation CLI path is plugin/src/shared/cli-projection.ts, a zero-runtime-import plain-TS module already fenced by a denylist Bun test and a parity Vitest. This is the canonical 'published internal contract' pattern (single narrow module + import-safety guard) and is by-the-book. Tier B (live): bin/lib/live-status.ts and bin/lib/epic-list.ts deep-import temporal/{client,contracts,list-*,lifecycle-visibility} plus the real @temporalio/client dependency. These deep imports are load-bearing: the proposal's 'Must Not' bans regressing live active rows to stale disk projection, so removing the Temporal coupling would violate a stated constraint. The transitive graph reached from those CLI live imports is narrow (contracts is type-only over ../types + ./digest; client adds @temporalio/client) and does NOT reach ../storage, ../tools, ../tool-registry, or plugin-init. The correct strictness is therefore a two-tier allowlist, not blanket prohibition: keep Tier A at its existing zero-import strictness, and make Tier B's currently-implicit allowlist explicit and structurally enforced (an allowlisted set of temporal/* CLI-contract modules) so future refactors that widen CLI coupling into storage/tools/plugin-init fail a test. Deep imports are not inherently unsafe here; unbounded/undocumented deep imports are. The boring, proven move is codify-the-allowlist, not re-architect the Temporal path.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Recommended strictness (two-tier explicit allowlist, structurally enforced by test) is fully supported by the current source: Tier A already zero-import-guarded; Tier B graph verified narrow and constraint-required. No blockers. Preserves all CLI behavior (bin/adv status/roadmap/slop-scan/epic list), respects the 'no stale disk projection' Must Not, and matches the change's own discovery-agenda preference for structural (allowlist/denylist) enforcement over prose."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Explicit temporal/* CLI allowlist must be maintained as an intentional contract surface; adding a new temporal module to the CLI now requires an intentional allowlist edit (this friction is the point).",
+          "A narrow published CLI-contract surface across temporal/* slightly constrains free refactoring of those specific modules' export shapes, in exchange for refactor safety everywhere else in the plugin.",
+          "Two-tier enforcement is marginally more test surface than a single denylist, but each tier's rule is simple and deterministic."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Blanket prohibition of all bin/adv -> plugin/src/temporal deep imports (force everything through a new shared adapter)",
+            "disposition": "rejected",
+            "rationale": "Would require re-exporting @temporalio/client-backed helpers behind a new module without reducing real coupling (the client dep and Visibility query logic still cross the boundary). Adds an indirection layer with no import-graph safety gain, and risks nudging toward disk-projection fallback which the proposal's Must Not forbids. Complexity without payoff."
+          },
+          {
+            "option": "Status quo: keep only the Tier A cli-projection denylist test; leave Tier B live imports ungoverned",
+            "disposition": "rejected",
+            "rationale": "Leaves the exact drift risk the change targets: a future refactor could add a temporal module that transitively pulls ../storage or ../tools into the CLI and no test would catch it. Enforcement would stay implicit/heuristic, violating structural-correctness preference (P33) and the discovery agenda's ask for structural guards."
+          },
+          {
+            "option": "Move cli-projection to a formally published package/entrypoint (e.g. plugin exports map) instead of a relative deep import",
+            "disposition": "deferred",
+            "rationale": "Cleaner long-term contract, but out of scope for a boundary-stability change and heavier than needed; the existing zero-import module + denylist test already delivers the safety. Note as possible future Epic work, not this change."
+          }
+        ],
+        "recommendation": "Adopt two-tier explicit-allowlist strictness. Tier A: keep plugin/src/shared/cli-projection.ts as the single zero-runtime-import CLI projection contract, retaining the existing cli-projection-import-safety denylist and gate-order parity tests unchanged. Tier B: define an explicit allowlist of the temporal/* modules the CLI is permitted to import (client, contracts, list-change-workflows, list-epic-workflows, lifecycle-visibility) and add a deterministic Bun/Vitest guard over bin/adv + bin/lib/* source that (a) permits the shared module and the allowlisted temporal modules and (b) fails on any bin/adv import reaching ../storage, ../tools, ../tool-registry, ../plugin-init, or any unlisted plugin/src path. Do not add blanket prohibition and do not re-route the live Temporal path through a new adapter. Since adv_spec search returned no governing spec, prefer test-only structural enforcement now, and record the allowlist rationale in AGENTS.md; escalate to a spec delta only if the boundary needs cross-change law."
+      },
+      "recommendation": "Recommend a two-tier explicit-allowlist boundary: keep the existing zero-import cli-projection contract + its guards (Tier A), and make the currently-implicit temporal/* CLI import set an explicit, test-enforced allowlist that fails on any bin/adv import into ../storage, ../tools, ../tool-registry, ../plugin-init, or unlisted plugin/src paths (Tier B). This preserves all live CLI behavior and the 'no stale disk projection' constraint while making drift structurally impossible. Prefer test-only enforcement (no governing spec exists); document the allowlist in AGENTS.md.",
+      "follow_ups": [
+        "No RESEARCHER_REPORT anchor was missing; all identity anchors present in packet.",
+        "Consider (future Epic work, not this change) promoting cli-projection from a relative deep import to a formally published plugin entrypoint/exports map for an even cleaner contract."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "stabilizeCliSourceBoundary",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:advance-v2-rewrite-assessment"
+      },
+      "agent": "adv-researcher",
+      "topic": "Is Advance worth a full v2 rewrite vs targeted v2 architecture program vs incremental refactor",
+      "sources": [
+        {
+          "label": "Epic optimizeAdvPerformanceStructure (narrative + 7 entries)",
+          "locator": "adv_epic_show optimizeAdvPerformanceStructure",
+          "summary": "Active repo-scoped structural-optimization initiative. 4/7 entries already archived (slop-scan fail-fast, command-boundary, archived-listing timeout, status probe TTL). Remaining shells target the exact 'v2' surfaces: 'Optimize adapter surfaces' (change/task/tool-registry coupling) and 'Deep-scan Temporal workflow hot path'. Constraint: do not weaken spec-law, Temporal replay safety, or typed tool boundaries. This IS an incremental modernization program already in motion."
+        },
+        {
+          "label": "plugin/src tools directory census",
+          "locator": "/home/jon/dev/advance/plugin/src/tools (102 entries) + plugin/src/temporal (~86 files)",
+          "summary": "~200+ source files, ~1:1 test co-location. tools/ already decomposed into change/, apply-helpers/, archive-helpers/, session/, worktree/ subdirs plus _adapters.ts. change.ts alone ~56KB. Evidence of active in-place seam extraction, not a monolith awaiting greenfield replacement."
+        },
+        {
+          "label": "Capability specs (adv_spec list)",
+          "locator": "adv_spec action=list",
+          "summary": "19 capability specs, ~370 total requirements (advance-workflow alone: 97; advance-meta: 49; subagent-reports: 21; advance-delivery: 23). Specs are branch-local laws enforced at archive gate. A rewrite must re-satisfy every rq-* requirement or explicitly retire it — the spec surface is the true rewrite cost, not the code."
+        },
+        {
+          "label": "Temporal replay-safety invariant (AGENTS.md + boundary tests)",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/workflow-bundle-boundary.test.ts ; AGENTS.md Signal-driven change workflows",
+          "summary": "Signal/query-only workflow surface; reintroducing defineUpdate poisons replay. workflow-bundle-boundary.test.ts is a transitive import walker enforcing workflow-safe module graph. A rewrite re-incurs every determinism/replay landmine already paid down here."
+        },
+        {
+          "label": "Discovery scout report on current change (P33 boundary gap)",
+          "locator": "adv_change_show stabilizeCliSourceBoundary subagent_reports[0]",
+          "summary": "Concrete example of ADV's actual defect class: correctness-by-convention gaps (unguarded CLI->plugin deep imports) closed by a designated surface + extended deterministic guard. Payoff came from a targeted structural test, not architectural replacement."
+        },
+        {
+          "label": "Martin Fowler — Strangler Fig Application (2024 rewrite)",
+          "locator": "https://martinfowler.com/bliki/StranglerFigApplication.html",
+          "summary": "Canonical guidance: cut-over rewrites of business-embedded systems are 'overflowing with risk'; old bugs and features must be re-added; big-cutover pressure degrades quality. Preferred approach is gradual seam-based replacement giving steady value and earlier ROI. Prerequisite: crystal-clear desired outcomes — muddled objectives are the top failure mode."
+        },
+        {
+          "label": "Microsoft Azure Architecture Center — Strangler Fig Pattern",
+          "locator": "https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig",
+          "summary": "Reinforces incremental façade-based replacement to reduce migration risk while the system stays functional; recommended precisely when replacing large systems / key components / complex features that introduce risk."
+        }
+      ],
+      "architecture_assessment": "Advance is a mature, spec-governed, Temporal-backed OpenCode plugin (~200+ source files, ~370 spec requirements across 19 capability specs, dense ~1:1 test co-location, replay-safety and layer-boundary invariants enforced by tests). The 'evolved over a year through many updates' history is visible as real but bounded structural debt: a few large coupled adapter modules (change.ts ~56KB, tool-registry, task.ts), Temporal hot-path/replay sensitivity, and correctness-by-convention gaps (e.g. unguarded CLI deep imports). Crucially, the codebase is NOT an undifferentiated monolith — tools/ is already decomposed into subdirectories (change/, apply-helpers/, archive-helpers/, session/, worktree/) with _adapters.ts seams, and the optimizeAdvPerformanceStructure Epic is already running the exact modernization program a 'v2' would demand (4/7 entries archived; remaining shells are 'Optimize adapter surfaces' and 'Deep-scan Temporal workflow hot path'). The dominant asset and the dominant rewrite cost are the same thing: the spec/law surface plus the paid-down Temporal determinism and typed-tool-boundary invariants. A full v2 rewrite would re-incur all ~370 requirement obligations, every replay/determinism landmine, and every gate/state-machine edge case — with no new user value during the rebuild — which is precisely the 'overflowing with risk' cut-over Fowler warns against and the strangler-fig pattern exists to avoid. The high-leverage seams the user is sensing (large adapters, Temporal hot path) are real and worth investment, but they are extract-and-decompose targets reachable in-place, not justification for greenfield replacement.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Recommendation: do NOT full-rewrite. Continue the already-running incremental (strangler-style) modernization via the optimizeAdvPerformanceStructure Epic, and open a SEPARATE bounded ADV research/proposal for the two genuinely v2-worthy seams (adapter decomposition of change/task/tool-registry; Temporal workflow hot-path map + state-machine test strategy). This routing keeps spec-law, Temporal replay safety, and typed tool boundaries intact — the exact constraints a rewrite would jeopardize. Evidence is sufficient and internally consistent; no user decision required to reach the recommendation, though the user owns whether to fund the two seam programs now vs defer. Not a fail (no blocker); not merely caution because repo + external evidence converge strongly on incremental."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Incremental refactor preserves all ~370 spec requirements and paid-down Temporal replay/determinism invariants, but progress on structural debt is slower and requires living with large adapter modules during decomposition.",
+          "A full v2 rewrite could in theory yield a cleaner module graph, but re-incurs the entire spec-law surface, every replay landmine, and every gate/state edge case with zero user value mid-rebuild — high risk, delayed ROI, and Fowler's documented cut-over failure modes (old bugs re-added, big-cutover pressure).",
+          "A targeted 'v2 architecture program' (bounded seam replacement behind stable contracts) captures most rewrite upside — cleaner adapters, mapped Temporal hot path — at a fraction of the risk, but adds transitional-contract/adapter code that exists only during migration (an accepted strangler-fig cost).",
+          "Scoping the seam work as separate tracked changes adds coordination overhead vs folding it into the current change, but protects the current change's tight CLI-boundary scope and keeps each structural change independently reviewable/testable."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Full v2 rewrite (greenfield reimplementation)",
+            "disposition": "rejected",
+            "rationale": "System is business/spec-embedded with ~370 enforced requirements and hard Temporal replay-safety + typed-tool invariants. Fowler and Azure guidance both classify cut-over rewrites of such systems as maximum-risk with delayed value; the rewrite cost is the spec/invariant surface, which a rewrite cannot avoid re-paying. No evidence the current architecture is fundamentally wrong — only that specific modules are large and coupled."
+          },
+          {
+            "option": "Targeted v2 architecture program via strangler-style bounded seam replacement (adapter decomposition + Temporal hot-path)",
+            "disposition": "preferred",
+            "rationale": "Captures the real upside the user senses (cleaner change/task/tool-registry, mapped/safer Temporal hot path) while preserving spec-law and replay safety. Directly matches the two remaining Epic shells and the strangler-fig canonical pattern. Lowest-risk path to 'vastly improved' structure with continuous value."
+          },
+          {
+            "option": "Pure incremental refactor with no dedicated program (fold into ad-hoc changes)",
+            "disposition": "deferred",
+            "rationale": "Viable and lowest-ceremony, but the adapter-decomposition and Temporal hot-path work is large enough to warrant its own scoped design/test strategy rather than opportunistic drive-by edits; surface as the fallback if the seam program is not funded now."
+          },
+          {
+            "option": "Absorb rewrite question into the current stabilizeCliSourceBoundary change",
+            "disposition": "rejected",
+            "rationale": "Out of scope for this change (CLI source boundary only). Expanding it would violate the change's explicit In/Out scope and the Epic constraint against adding implementation tasks from broad structural questions."
+          }
+        ],
+        "recommendation": "Recommend a targeted v2 architecture program executed incrementally (strangler-style) rather than a full rewrite. Concretely: (1) finish stabilizeCliSourceBoundary as scoped; (2) promote the two remaining Epic shells — 'Optimize adapter surfaces' and 'Deep-scan Temporal workflow hot path' — into a bounded ADV research/design change each, behind stable contracts, with behavior-preserving tests and Temporal state-machine/transition test strategy; (3) do NOT open a v2 rewrite. Evidence that would flip toward a larger rewrite: a load-bearing invariant proven unfixable in-place (e.g. Temporal replay model fundamentally incompatible with a required new capability), spec surface found to be largely obsolete rather than load-bearing, or the adapter coupling proven non-decomposable without cross-cutting rewrite."
+      },
+      "recommendation": "DO NOT full-rewrite. Route as: (a) current change proceeds as scoped; (b) open ONE separate bounded ADV research/proposal titled 'Assess adapter + Temporal hot-path v2 seams' (or two changes, one per Epic shell) to drive the two genuinely high-leverage decompositions incrementally under existing spec-law and replay-safety constraints; (c) this is Epic follow-up work within optimizeAdvPerformanceStructure, NOT current-change scope and NOT a backlog throwaway. The 'many updates over a year' concern is real structural debt but it is bounded, already-being-paid-down, and concentrated in a few extractable seams — a strangler-style program improves it with far less risk than a rewrite.",
+      "follow_ups": [
+        "Candidate tracked follow-up title: 'Assess adapter + Temporal hot-path v2 decomposition seams' — promote the two remaining optimizeAdvPerformanceStructure shells ('Optimize adapter surfaces', 'Deep-scan Temporal workflow hot path') into bounded design changes with behavior-preserving + state-machine test strategy.",
+        "If the user wants a harder cost signal before funding the seam program, a quick line-count/complexity pass on change.ts / task.ts / tool-registry.ts would quantify decomposition effort (change.ts already ~56KB by outline byte offsets).",
+        "TASK_SCOPE anchors present and consumed; no packet-defect. Assessment intentionally did not mutate any ADV state beyond this report."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "stabilizeCliSourceBoundary",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — CLI source boundary (Tier A projection + Tier B named Temporal boundary)",
+      "sources": [
+        {
+          "label": "bin/lib/live-status.ts (current deep imports)",
+          "locator": "/home/jon/dev/advance/bin/lib/live-status.ts:24-30",
+          "summary": "5 scattered plugin/src/temporal/* imports: list-change-workflows, client (createTemporalClientBundle,buildChangeWorkflowId), contracts (CHANGE_WORKFLOW_QUERY_NAMES), lifecycle-visibility (escapeVisibilityValue). Exactly the surface the Tier B boundary would consolidate."
+        },
+        {
+          "label": "bin/lib/epic-list.ts",
+          "locator": "/home/jon/dev/advance/bin/lib/epic-list.ts:8-17",
+          "summary": "Imports client + list-epic-workflows from plugin/src/temporal, AND listChanges from ./changes (disk enumeration in loadCurrentChildByEpicId). Disk read is same-tier CLI, not a plugin-src crossing."
+        },
+        {
+          "label": "bin/lib/cli-projection-import-safety.test.ts",
+          "locator": "/home/jon/dev/advance/bin/lib/cli-projection-import-safety.test.ts:19-57",
+          "summary": "Existing Tier A test = zero-import source scan + FORBIDDEN_IMPORT_PATTERNS regex denylist (@temporalio, storage, tools, tool-registry, index, node:, zod). Reusable pattern for Tier B, but Tier B must NOT reuse the zero-@temporalio rule."
+        },
+        {
+          "label": "plugin/src/temporal/client.ts + contracts.ts + lifecycle-visibility.ts transitive imports",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/contracts.ts:1-13,191",
+          "summary": "Boundary re-export targets transitively pull ../types and ../types/artifacts (contracts uses import type but ../types has runtime exports e.g. createDefaultGates/EpicStatusSchema). client.ts pulls @temporalio/client. Confirms Tier B is legitimately non-zero-runtime-import."
+        },
+        {
+          "label": "plugin/src/temporal/workflow-bundle-boundary.test.ts (cited in AGENTS.md)",
+          "locator": "AGENTS.md § Layer boundaries",
+          "summary": "Repo already ships a transitive import-walker denylist test for the workflow bundle (bans storage/tools/tool-registry/plugin-init/node:*). Direct precedent/pattern for a Tier B CLI boundary walker; reuse the walker approach rather than inventing new tooling."
+        }
+      ],
+      "architecture_assessment": "Design is boring and correct for a source-boundary hardening change. Two-tier split (Tier A zero-import projection preserved as-is; Tier B named CLI Temporal boundary module) matches the existing repo idiom: the codebase ALREADY enforces layer boundaries via a transitive import-walker denylist (workflow-bundle-boundary.test.ts) and a zero-import source scan (cli-projection-import-safety.test.ts). The named barrel over a scattered-path allowlist is the right LBP call — it makes the CLI runtime contract legible and is cheaper to maintain. Structural (test-enforced, denylist) over heuristic/prose satisfies P33 and the DONT1 avoidance. The 5 current deep imports map 1:1 onto the proposed boundary re-exports; behavior preservation is low-risk because no call sites change semantics, only import source paths. The single real design subtlety the draft already names but under-specifies: Tier B tests must assert an import-STRING structural denylist (no storage/tools/tool-registry/plugin-init/non-allowlisted plugin surfaces), NOT a transitive-zero-import invariant — because the Temporal client legitimately imports @temporalio/client and ../types. No blockers.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Draft is shippable as-is. Scout raises leverage refinements, not blockers. Key correctness guardrail (already implied by draft): Tier B boundary test = import-string denylist, distinct from Tier A zero-import scan; do not accidentally apply the cli-projection zero-@temporalio rule to Tier B or you break live status/epic (violates DONT2)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Named boundary module adds one indirection layer vs raw deep imports, but buys a legible, single-point CLI runtime contract and cheap enforcement — net positive for a hardening change.",
+          "Import-string structural test (regex/AST scan) is simpler and deterministic but can be defeated by dynamic import(); acceptable here because bin/ uses only static ESM imports. A first-level transitive check on the boundary module closes the main gap.",
+          "Consolidating behind a barrel risks implying a public package API surface; mitigated by naming/JSDoc as internal CLI-safe boundary (draft already notes this)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Explicit allowlist of current scattered plugin/src/temporal/* paths (no new module)",
+            "disposition": "rejected",
+            "rationale": "AC7 lets design choose; allowlist keeps import contract implicit and scattered across bin files, higher future-maintenance cost. Named barrel is the cleaner LBP per P29."
+          },
+          {
+            "option": "Reuse Tier A zero-import scan for Tier B",
+            "disposition": "rejected",
+            "rationale": "Would ban @temporalio/client and remove live status/epic — directly violates DONT2 and AC5. Tier B needs a denylist, not a zero-import rule."
+          },
+          {
+            "option": "Adopt dependency-cruiser / ESLint no-restricted-imports for enforcement",
+            "disposition": "deferred",
+            "rationale": "Agreement Deferred Q2 defers lint-level enforcement; acceptance requires deterministic tests. Repo already has a hand-rolled import-walker precedent (workflow-bundle-boundary.test.ts) — reuse it, avoid new dev-dep for this bounded change (P19/C4)."
+          }
+        ],
+        "recommendation": "Proceed with the draft. Fold in the ≤5 scout refinements below (esp. reuse the workflow-bundle-boundary import-walker pattern and add a first-level transitive assertion on the Tier B module) before planning."
+      },
+      "recommendation": "Ship the two-tier design. Highest-leverage refinements: (1) Reuse the existing transitive import-walker from plugin/src/temporal/workflow-bundle-boundary.test.ts for the Tier B boundary test instead of inventing new scanning — direct precedent, lower cost. (2) Make the Tier B test an import-STRING denylist (storage/tools/tool-registry/plugin-init + non-allowlisted plugin surfaces) plus a first-level transitive-import assertion on the boundary module itself; explicitly do NOT reuse Tier A's zero-@temporalio rule (guards AC5/DONT2). (3) In the bin/ import-scan test, allow disk-enumeration same-tier imports (epic-list.ts → ./changes → loadCurrentChildByEpicId reads changes/ dir) so the scan doesn't false-positive on legitimate CLI-tier disk reads — only plugin/src crossings are the target. (4) Assert exact allowlist set = {shared/cli-projection, new cli/temporal-boundary} so a future stray deep import fails red. (5) Keep the red test targeting a currently-present unapproved deep import (e.g. temporal/contracts) so TDD red is real before the barrel exists.",
+      "follow_ups": [
+        "Scout leverage candidates (≤5) delivered in recommendation; no source mutations performed.",
+        "Confirm ../types has no accidental heavy runtime pull the CLI can't tolerate under Bun — draft's 'source-level importability' test covers this; keep it."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "stabilizeCliSourceBoundary",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — stabilize CLI source boundary (Tier A/Tier B two-tier CLI-safe boundary)",
+      "sources": [
+        {
+          "label": "Tier A source — plugin/src/shared/cli-projection.ts",
+          "locator": "plugin/src/shared/cli-projection.ts:1-111",
+          "summary": "Confirmed pure: zero import statements, header states zero-runtime-import contract. Holds GATE_ORDER + CLI projection types only."
+        },
+        {
+          "label": "Existing crossings — bin/lib/live-status.ts",
+          "locator": "bin/lib/live-status.ts:24-30",
+          "summary": "Imports listChangeWorkflowIds, createTemporalClientBundle, buildChangeWorkflowId (temporal/client, temporal/list-change-workflows), CHANGE_WORKFLOW_QUERY_NAMES (temporal/contracts), escapeVisibilityValue (temporal/lifecycle-visibility). These are the scattered crossings the boundary consolidates."
+        },
+        {
+          "label": "Existing crossings — bin/lib/epic-list.ts",
+          "locator": "bin/lib/epic-list.ts:8-15",
+          "summary": "Imports createTemporalClientBundle (temporal/client), listEpicWorkflowIds + ListEpicClient (temporal/list-epic-workflows)."
+        },
+        {
+          "label": "Re-export target cleanliness — temporal/client.ts",
+          "locator": "plugin/src/temporal/client.ts:1-8",
+          "summary": "Imports only @temporalio/client and ./contracts. No storage/tools/tool-registry/plugin-init/index. Provides createTemporalClientBundle, buildChangeWorkflowId."
+        },
+        {
+          "label": "Re-export target cleanliness — temporal/contracts.ts",
+          "locator": "plugin/src/temporal/contracts.ts:1-49",
+          "summary": "Imports only ../types (workflow-safe) and ./digest. Exports CHANGE_WORKFLOW_QUERY_NAMES (line 49). Clean."
+        },
+        {
+          "label": "Re-export target cleanliness — list-change-workflows / list-epic-workflows / lifecycle-visibility",
+          "locator": "plugin/src/temporal/list-change-workflows.ts:35-41; list-epic-workflows.ts:11; lifecycle-visibility.ts:9",
+          "summary": "list-change-workflows imports ../types + ./lifecycle-visibility + ./contracts; list-epic-workflows imports ./contracts; lifecycle-visibility exports escapeVisibilityValue. None import storage/tools/tool-registry/plugin-init/index. The design's Tier B denylist matches the boundary these modules already respect."
+        },
+        {
+          "label": "Denylist evidence — which temporal modules DO pull heavy deps",
+          "locator": "plugin/src/temporal/activities.ts:24; workflow-start.ts:10; health-probe.ts:4",
+          "summary": "Only activities.ts (storage/json), workflow-start.ts (storage/store-temporal), health-probe.ts (plugin-init) import forbidden surfaces. NONE are in the design's re-export set — confirms Tier B stays clean transitively for the chosen exports."
+        },
+        {
+          "label": "Existing test pattern — cli-projection-import-safety.test.ts",
+          "locator": "bin/lib/cli-projection-import-safety.test.ts:19-57",
+          "summary": "Bun source-scan test with FORBIDDEN_IMPORT_PATTERNS regex + zero-import assertion. Proven deterministic pattern the design extends for Tier B root-crossing enforcement."
+        },
+        {
+          "label": "Spec law — advance-meta rq-statusCliBridge01 / rq-statusCliWorkerFree01",
+          "locator": "adv_spec advance-meta rq-statusCliBridge01, rq-statusCliWorkerFree01",
+          "summary": "Require live Temporal-backed active rows, fail-closed on Temporal/Visibility failure, no stale-disk active fallback. AC5 warrants these. A pure re-export barrel preserves runtime behavior, so no regression risk."
+        },
+        {
+          "label": "Contract — AC7 authorizes design shape choice",
+          "locator": "adv_change_show agreement item AC7",
+          "summary": "AC7: 'Design decides whether to keep explicit allowlist paths or consolidate Temporal imports behind a named CLI-safe adapter.' Design chooses named boundary module — directly satisfies AC7 and DONT2 (does not blanket-ban Temporal CLI imports)."
+        }
+      ],
+      "architecture_assessment": "The design is correct, minimal, and spec-law compliant. It solves SC1-SC3/AC1-AC7 by making an already-existing informal boundary explicit and machine-checkable (P33 structural-over-heuristic), backed by deterministic Bun source-scan tests that mirror the proven cli-projection-import-safety pattern. Source evidence confirms the two-tier split is real: Tier A (cli-projection.ts) is verifiably zero-import; the five Tier B re-export targets (client, contracts, list-change-workflows, list-epic-workflows, lifecycle-visibility) each transitively import only ../types, sibling temporal/* modules, and @temporalio/client — none reach storage/tools/tool-registry/plugin-init/index. The only temporal modules that pull heavy deps (activities.ts, workflow-start.ts, health-probe.ts) are explicitly outside the re-export set, so the Tier B denylist is satisfiable as written. Because the boundary module is a pure re-export barrel with no behavior change, AC5's fail-closed live-Temporal warrants (rq-statusCliBridge01, rq-statusCliWorkerFree01) and AC6 (cli-projection safeguards) are structurally preserved. AC7 is directly satisfied — the design consciously picks the named adapter over a bare allowlist, honoring DONT2. Scope is tight: no v2 rewrite (C4/OOS1), no OCA work (C3/OOS2), no broad adapter refactor (DONT5/OOS4). One minor caution: the named-barrel approach must guard against future drift where an editor adds a heavy import to the barrel or one of its targets; the design mitigates this with a Tier B denylist test on the barrel's own imports plus the target modules, which is the correct structural guard. Two small implementation-precision notes (non-blocking): (1) the Tier B denylist test should assert the barrel module's transitive import graph, not just the barrel file's direct imports, to prevent a target module later acquiring a storage import from silently leaking through; (2) the design should keep bin/lib/types.ts and bin/lib/changes.ts pointed at Tier A cli-projection (unchanged) and only redirect the two temporal-crossing files, to avoid touching AC6-protected surfaces.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All 5 re-export targets verified clean at direct-import level; forbidden-surface importers (activities/workflow-start/health-probe) confirmed outside the re-export set. AC7 explicitly authorizes the named-boundary shape. Pure re-export barrel preserves AC5 fail-closed live behavior and AC6 cli-projection safeguards. Recommend the Tier B enforcement test assert the barrel's TRANSITIVE import graph (not just direct barrel imports) to prevent future drift through a target module."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Named boundary barrel adds one indirection layer between bin/lib and temporal/* — cost is trivial and buys a single enforcement point plus a stable CLI-safe API surface.",
+          "Structural source-scan tests must be maintained as the temporal export surface evolves; this is the intended cost of machine-checkable boundaries (P33) and is far cheaper than prose-only rules (DONT1).",
+          "Consolidating imports behind a barrel means a future heavy import added to a re-exported target module could leak transitively unless the Tier B test walks the transitive graph — mitigated by asserting the barrel's transitive imports, not just its direct ones."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Explicit per-file import allowlist over current temporal paths (no barrel)",
+            "disposition": "rejected",
+            "rationale": "AC7 allows it, but it scatters the CLI-safe surface across multiple raw temporal/* paths, giving no single stable boundary and forcing every bin/lib edit to re-justify each raw path. The named barrel is the cleaner LBP choice and gives one enforcement point."
+          },
+          {
+            "option": "Blanket-ban all Temporal imports from bin/",
+            "disposition": "rejected",
+            "rationale": "Would remove live status/epic behavior and violate DONT2 + AC5 warrants rq-statusCliBridge01/rq-statusCliWorkerFree01 (fail-closed live Temporal required). Design correctly rejects this."
+          },
+          {
+            "option": "Move needed Temporal primitives into shared/cli-projection.ts (single tier)",
+            "disposition": "rejected",
+            "rationale": "Would pollute Tier A's verified zero-runtime-import contract with @temporalio/client, breaking AC6 and the existing cli-projection-import-safety test. Keeping Tier A pure and Tier B live is the right separation."
+          },
+          {
+            "option": "ESLint no-restricted-imports rule instead of tests",
+            "disposition": "deferred",
+            "rationale": "Agreement defers optional lint enforcement to design; acceptance requires deterministic tests, not necessarily ESLint. Tests are sufficient and match the proven cli-projection pattern; lint can be an additive follow-up."
+          }
+        ],
+        "recommendation": "Proceed with the design as written. Two precision refinements for the execution/planning phase (non-blocking): (1) make the Tier B enforcement test assert the barrel module's TRANSITIVE import graph so a target module later acquiring a storage/tools import fails closed; (2) leave bin/lib/types.ts and bin/lib/changes.ts on Tier A cli-projection unchanged, redirecting only live-status.ts and epic-list.ts to the new barrel, to avoid disturbing AC6-protected surfaces."
+      },
+      "recommendation": "PASS. Design is correct, minimal, spec-law compliant, and directly satisfies AC7 by choosing the named CLI-safe Temporal boundary barrel. Source evidence confirms all re-export targets are transitively clean of storage/tools/tool-registry/plugin-init/index, and the pure-barrel shape preserves AC5 fail-closed live behavior (rq-statusCliBridge01/rq-statusCliWorkerFree01) and AC6 cli-projection safeguards. Recommend the Tier B test assert the barrel's transitive import graph, and keep the two Tier-A-only bin/lib files (types.ts, changes.ts) untouched.",
+      "follow_ups": [
+        "Planning: Tier B enforcement test should walk the barrel's TRANSITIVE import graph, not just direct barrel imports, to catch drift where a re-exported temporal target later acquires a forbidden import.",
+        "Planning: redirect only bin/lib/live-status.ts and bin/lib/epic-list.ts to the new barrel; leave bin/lib/types.ts and bin/lib/changes.ts on Tier A cli-projection to avoid touching AC6-protected surfaces."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "stabilizeCliSourceBoundary",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/stabilizeCliSourceBoundary",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/cli/temporal-boundary.ts",
+          "line": 1,
+          "what": "Temporal root-CLI imports now route through a named CLI-safe boundary with a narrow export set.",
+          "why": "This satisfies AC1/AC7 while preserving live Temporal status and Epic behavior without adding stale disk active-state fallback."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "bin/lib/cli-source-boundary.test.ts",
+          "summary": "Hardened import-specifier scanner to include literal dynamic imports and added a regression test so dynamic imports cannot bypass the CLI source-boundary guard.",
+          "verification": "bun test bin/lib/cli-source-boundary.test.ts passed (3 pass); bun test bin/ passed (197 pass); Prettier check and git diff --check passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Structural import-boundary tests should parse dynamic import(\"...\") literals as well as static import/export declarations; otherwise forbidden paths can bypass boundary policy while still using module imports."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bun test bin/lib/cli-source-boundary.test.ts",
+          "bun test bin/",
+          "pnpm --dir plugin exec prettier --check ../bin/lib/cli-source-boundary.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all expected files. Reviewed diff against origin/trunk for specs, docs, CLI boundary test, live-status, epic-list, and temporal-boundary. Boundary test passed after reviewer hardening: 3 pass, 0 fail. Full Bun CLI suite passed: 197 pass, 0 fail. Prettier check for edited test passed. git diff --check passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "stabilizeCliSourceBoundary",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/stabilizeCliSourceBoundary",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git status --short && git diff --stat && git diff -- .adv/specs/advance-meta/spec.json docs/specs/advance-meta.md bin/lib/cli-source-boundary.test.ts bin/lib/epic-list.ts bin/lib/live-status.ts plugin/src/cli/temporal-boundary.ts",
+          "git diff --stat origin/trunk...HEAD && git diff --name-only origin/trunk...HEAD",
+          "lgrep_search_text ../../plugin/src/",
+          "lgrep_search_text plugin/src/storage",
+          "bun test bin/lib/cli-source-boundary.test.ts",
+          "pnpm run schemas:check",
+          "pnpm run format:check",
+          "bun test bin/",
+          "bin/oc-test targeted -- src/cli-bridge-contract.test.ts src/cli-gate-order-parity.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all scoped files. Worktree clean before and after harden pass. Branch diff vs origin/trunk limited to 6 in-scope files: .adv/specs/advance-meta/spec.json, docs/specs/advance-meta.md, bin/lib/cli-source-boundary.test.ts, bin/lib/epic-list.ts, bin/lib/live-status.ts, plugin/src/cli/temporal-boundary.ts. Boundary import scan showed only approved root CLI crossings: shared cli-projection and cli/temporal-boundary. No direct bin imports into storage/tools/tool-registry/plugin-init/plugin index found in scoped boundary. bun test bin/lib/cli-source-boundary.test.ts: 3 pass, 0 fail. pnpm run schemas:check: passed. pnpm run format:check: passed. bun test bin/: 197 pass, 0 fail. bin/oc-test targeted -- src/cli-bridge-contract.test.ts src/cli-gate-order-parity.test.ts: 2 files/21 tests passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Release/install caveat: this harden pass validated source and bin test surfaces in the change worktree, not a freshly deployed ~/.local/share/Advance/bin install. Normal release/deploy-local packaging should still carry the new plugin/src/cli/temporal-boundary.ts with the bin payload."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with release/archive path; no harden blockers or issues remain.",
+        "During release packaging or local deploy verification, confirm the deployed adv CLI still resolves the approved plugin/src/cli/temporal-boundary import from the deployed payload."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-HDuCTG",
+      "type": "pattern",
+      "content": "For root Bun CLI → plugin source boundaries, keep pure projection (`shared/cli-projection`) and live Temporal runtime surfaces as separate tiers. Tier A can stay zero-import; Tier B should be a narrow named boundary with transitive forbidden-import tests so live Temporal behavior is preserved without scattered deep imports.",
+      "source_task": "tk-fa18f6c0f507",
+      "recorded_at": "2026-07-08T00:24:51.522Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-07T23:27:22.250Z",
+      "completed_by": "agent",
+      "approval_evidence": "Problem framing approved by user reply 'approve'. Proposal artifact completed with scope, user outcomes, affected code, constraints, and discovery agenda.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "678ed26edbfa23581e7acf5c5c59aa146a9d52bf73c78d6e28ae6164fd40e5ad",
+        "non_whitespace_chars": 4562,
+        "checked_at": "2026-07-07T22:57:44.329Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-08T00:03:19.425Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved discovery agreement/criteria with reply 'approve' and later confirmed benefits with 'ok yes'. Contract minted successfully with 27 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "non_whitespace_chars": 4672,
+        "checked_at": "2026-07-07T22:57:44.330Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-08T00:10:06.175Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Mandatory leverage scout and independent adv-researcher validation completed. Validator status pass, confidence high, risk low. No CONFLICT, user-value tradeoff, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "5d8a31921814ce4e7542613d6442f10efcc9b59d323d2799a12bcf27a4c4611e",
+        "non_whitespace_chars": 8878,
+        "checked_at": "2026-07-07T22:57:44.331Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-08T00:18:09.100Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved prep task graph with reply 'approve'. Three tasks created with contract refs and TDD intent: spec law, boundary implementation, compatibility verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-08T00:28:40.026Z",
+      "completed_by": "agent",
+      "approval_evidence": "All three planned tasks completed with checkpoints. Verification passed: Bun CLI tests 29 pass (`tr_mrbc4rpt_3de2d6b4`), targeted plugin CLI/deploy/status tests 94 pass (`tr_mrbc4qx7_eded5d85`), schemas check pass (`tr_mrbc4odu_b26bbc70`), format check pass (`tr_mrbc54hp_0e3fe423`), and adv_change_validate strict passed with only expected NO_DELTAS warning. STSL gRPC channel issue was resolved with `adv_temporal_reconnect` before gate completion."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-08T00:38:22.141Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User approved acceptance after summary, reviewer READY evidence, tests, and contract matrix. Approval reply: 'approve'.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "d5c07524fa0309543bbee965c0b67780ae023ed184c0c65c0f39ebef30063f55",
+        "non_whitespace_chars": 3030,
+        "checked_at": "2026-07-07T22:57:44.332Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+      "approvedAt": "2026-07-07T23:52:24.568Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`bin/adv` keeps stable behavior while its plugin-source boundary becomes explicit and enforced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Future `bin/` imports into unsafe plugin internals fail structurally before release.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "CLI source-boundary law is captured in `advance-meta` and backed by tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Root `bin/adv` / `bin/lib/*` imports into `plugin/src` are limited to documented CLI-safe surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`advance-meta` contains a requirement governing the CLI source-boundary rule.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Tests fail on unapproved `bin/` imports into broad plugin internals such as `storage`, `tools`, `tool-registry`, or plugin init.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Existing CLI behavior remains compatible for `status`, `roadmap`, `slop-scan`, `epic list --json`, and dashboard commands.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Live Temporal-backed status/epic behavior is preserved; no stale disk active-state fallback is introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-statusCliBridge01",
+          "spec:rq-statusCliWorkerFree01"
+        ]
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Existing `cli-projection` zero-import/parity safeguards remain intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Design decides whether to keep explicit allowlist paths or consolidate Temporal imports behind a named CLI-safe adapter.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not weaken spec-law, Temporal replay safety, typed tool boundaries, or ADV state source-of-truth rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not make root CLI active-state reads use unsupported external-state files when a live Temporal path is required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not introduce OCA-specific API goals.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not broaden into a full CLI redesign or full Advance v2 rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Source tests may validate code in-session; live deployed ADV tool behavior requires rebuild/deploy/restart.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Runtime remains Bun for `bin/adv`; package scripts and most tests still run from `plugin/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not replace source-boundary correctness with heuristic/prose-only guidance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not blanket-ban all Temporal CLI imports if that would remove live status/epic behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not add unrelated unused-export sweeps.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not alter ADV state semantics, gate semantics, or Temporal workflow behavior beyond preserving CLI behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not absorb adapter-surface optimization or Temporal hot-path deep scan into this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Full Advance v2 rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "OCA-specific compatibility or API work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Broad CLI UX redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Broad adapter-surface refactor beyond a minimal CLI-safe boundary if design chooses one.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Deep Temporal workflow hot-path redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "`scripts/opencode-session-doctor.ts` import boundary; this change targets root `bin/adv` CLI.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-08T00:34:45.728Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; implementation moved scattered Temporal imports behind internal boundary with no CLI behavior change; Bun CLI tests passed: tr_mrbc4rpt_3de2d6b4 and reviewer `bun test bin/` 197 pass."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/lib/cli-source-boundary.test.ts` enforces bin-side allowlist and transitive forbidden-import graph; RED tr_mrbc1rz0_c171bd42 failed on old deep imports; GREEN tr_mrbc333z_bf6c8c2b passed."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`rq-cliSourceBoundary01` added to `.adv/specs/advance-meta/spec.json` and mirrored in `docs/specs/advance-meta.md`; JSON parse tr_mrbbzhit_21f3140b and schemas check tr_mrbc4odu_b26bbc70 passed."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Boundary test verifies root `bin/adv`/`bin/lib` plugin-source imports are only `shared/cli-projection` and `cli/temporal-boundary`; final reviewer boundary test passed with dynamic import coverage."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`advance-meta` now contains `rq-cliSourceBoundary01` with four scenarios governing CLI source-boundary behavior; docs mirror updated to v1.21.0."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Boundary test rejects storage/tools/tool-registry/plugin-init/index paths in the Temporal boundary transitive graph; reviewer added dynamic import detection to prevent bypass."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Bun CLI tests passed: `bun test ... bin/adv.test.ts bin/dashboard-cli.test.ts` tr_mrbc4rpt_3de2d6b4; reviewer `bun test bin/` passed 197 tests."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`live-status.ts` and `epic-list.ts` import live Temporal primitives through `plugin/src/cli/temporal-boundary`; no disk active fallback added. Existing status/bridge tests passed tr_mrbc4qx7_eded5d85."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`shared/cli-projection` remains Tier A; `bin/lib/types.ts` and `changes.ts` stay on projection imports. `cli-projection-import-safety.test.ts` passed in tr_mrbc4rpt_3de2d6b4."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "design_proof",
+          "evidence": "Design chose named internal CLI-safe Temporal adapter `plugin/src/cli/temporal-boundary.ts`; validator and reviewer both accepted this shape."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No gate/state/tool-boundary semantics changed; spec law added and tests enforce P33 structural boundary. Reviewer READY, no blockers."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No active-state disk fallback introduced; active status/Epic imports remain Temporal boundary based. Existing fail-closed status tests passed."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No OCA-specific files, API, or compatibility goals added; touched files are CLI boundary/spec/test only."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broad CLI redesign or v2 rewrite; implementation limited to spec, boundary module, import updates, and tests."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Source tests validated behavior in-session; live deployed ADV tool behavior caveat remains documented by repo context, no deployed runtime validation claimed."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Root Bun tests run and passed; plugin tests run via Node/Vitest targeted path. Runtime split preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Correctness enforced by deterministic import tests and spec requirement, not prose-only guidance."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Temporal imports were consolidated through Tier B boundary, not blanket-banned; live behavior preserved."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No unused-export sweep or unrelated cleanup performed; touched files are scoped to agreed boundary."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No ADV state, gate, or Temporal workflow behavior changed; Temporal client/list helper imports only re-exported through boundary."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No adapter-surface optimization or Temporal hot-path redesign included; changes are minimal boundary hardening."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Full Advance v2 rewrite not performed; discovery research explicitly routed it to separate Epic strategy, not this change."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "OCA-specific compatibility/API work not performed."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Broad CLI UX redesign not performed; user-visible behavior preserved."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Broad adapter refactor not performed; only minimal CLI Temporal boundary added."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Deep Temporal workflow hot-path redesign not performed."
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "`scripts/opencode-session-doctor.ts` boundary untouched; change targets root `bin/adv` only."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Root `bin/adv` / `bin/lib/*` imports into `plugin/src` are limited to documented CLI-safe surfaces.",
+    "`advance-meta` contains a requirement governing the CLI source-boundary rule.",
+    "Tests fail on unapproved `bin/` imports into broad plugin internals such as `storage`, `tools`, `tool-registry`, or plugin init.",
+    "Existing CLI behavior remains compatible for `status`, `roadmap`, `slop-scan`, `epic list --json`, and dashboard commands.",
+    "Live Temporal-backed status/epic behavior is preserved; no stale disk active-state fallback is introduced.",
+    "Existing `cli-projection` zero-import/parity safeguards remain intact.",
+    "Design decides whether to keep explicit allowlist paths or consolidate Temporal imports behind a named CLI-safe adapter."
+  ],
+  "documents": {
+    "proposal": "# Stabilize CLI Source Boundary\n\n## Problem\n\nRoot `bin/adv` CLI modules currently depend on plugin source internals through relative imports into `plugin/src`. Some coupling is intentional and guarded (`plugin/src/shared/cli-projection`), while other live Temporal imports cross into plugin-internal modules. This makes CLI packaging, runtime behavior, and plugin refactors harder to reason about.\n\n## Why\n\nThe Epic goal is faster, safer ADV structure. CLI source-boundary drift is a structural risk: root CLI code can accidentally depend on plugin internals that were not designed as a CLI contract, and future refactors can silently break CLI surfaces.\n\n## What Changes\n\n- Inspect the current root CLI import graph into `plugin/src`.\n- Decide which imports are supported contract surfaces versus unsafe deep imports.\n- Formalize the supported CLI-facing contract or move CLI-owned projection logic behind a clearer boundary.\n- Add or update deterministic tests/guards so future CLI deep imports are intentional and safe.\n- Preserve live Temporal-backed CLI behavior unless discovery proves a safer equivalent.\n\n## User Outcomes\n\n- ADV maintainers can refactor plugin internals without accidentally breaking `bin/adv`.\n- `bin/adv` keeps a stable, documented boundary to plugin-owned behavior.\n- CLI tests identify boundary violations before release.\n- Epic performance/structure work can continue without carrying ambiguous CLI coupling.\n\n## Scope\n\n### In Scope\n\n- Root CLI source under `bin/adv` and `bin/lib/*`.\n- Existing CLI projection/import-safety tests, including `bin/lib/cli-projection-import-safety.test.ts` and related parity coverage.\n- Minimal plugin-side shared contract modules if needed for CLI stability.\n- Temporal visibility/listing imports used by `adv status` and `adv epic list`, only to the extent needed to stabilize the CLI boundary.\n- `advance-meta` spec-law update for the CLI source-boundary rule, per user choice to use spec plus tests.\n\n### Out of Scope\n\n- OCA-specific API or compatibility goals.\n- Broad CLI redesign unrelated to source-boundary stability.\n- Unused-export sweeps unless directly required by the boundary fix.\n- Changes to ADV state semantics, gate semantics, or Temporal workflow behavior beyond preserving current CLI behavior.\n- Full Advance v2 rewrite decision or implementation.\n\n### Must Not\n\n- Must not weaken spec-law, Temporal replay safety, typed tool boundaries, or ADV state source-of-truth rules.\n- Must not replace source-boundary correctness with heuristic/prose-only guidance.\n- Must not make root CLI read active ADV state from unsupported external-state files when a live Temporal path is required.\n\n## Affected Code\n\nDiscovery evidence found current root CLI imports into plugin source:\n\n- `bin/lib/types.ts` re-exports types/constants from `../../plugin/src/shared/cli-projection`.\n- `bin/lib/changes.ts` imports `GATE_ORDER` / `GateId` from `../../plugin/src/shared/cli-projection`.\n- `bin/lib/live-status.ts` imports Temporal client/list/query helpers from `../../plugin/src/temporal/*`.\n- `bin/lib/epic-list.ts` imports Temporal client/list helpers from `../../plugin/src/temporal/*`.\n- `bin/lib/cli-projection-import-safety.test.ts` already guards `plugin/src/shared/cli-projection.ts` as a Bun-safe zero-import projection module.\n- `plugin/src/cli-gate-order-parity.test.ts` keeps shared CLI gate order aligned with plugin gate definitions.\n- `AGENTS.md` documents `bin/adv` as a supported Bun CLI surface covered by `bun test bin/`.\n- `advance-meta` already owns local CLI install/status bridge behavior (`rq-advCliLocalInstall01`, `rq-statusCliBridge01`, `rq-statusCliWorkerFree01`) and is the best spec home for a CLI source-boundary requirement.\n\n## Related Repositories\n\nCurrent repo only: `/home/jon/dev/advance`.\n\n## Constraints\n\n- Preserve the root CLI contract documented in `AGENTS.md`: `bin/adv status`, `bin/adv roadmap`, `bin/adv slop-scan`, `bin/adv epic list --json`, and dashboard command behavior remain compatible.\n- All commands/tests run from `plugin/` when using package scripts; root `bin/` tests run through Bun as currently documented.\n- Runtime is Bun, tests are mixed Node/Vitest plus Bun CLI tests.\n- If source edits affect deployed ADV tool behavior, source tests can verify in-session, but live tool-call validation requires rebuild/deploy/restart.\n\n## Impact\n\n- Positive: clearer CLI contract, lower refactor risk, better guardrails for future Epic structural work.\n- Risk: Temporal-backed CLI imports are load-bearing for live status/epic behavior, so the fix must preserve them or expose an equivalent narrow CLI-safe adapter.\n\n## Context\n\nEpic `optimizeAdvPerformanceStructure` completed prior entries for slop-scan fail-fast behavior, command-boundary clarification, archived-listing timeout diagnosis, and status health probe TTL. This change follows those by focusing on root CLI source coupling.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n| --- | --- | --- |\n| Skill Discovery | PASS | Loaded `adv-arch-detection`; no new skill needed. |\n| Prior Research Extension | PASS | Extended related archived Epic entries: `clarifyBinAdvCommandBoundary`, `diagnoseArchivedListingTimeout2`, and `addStatusHealthProbeTtl`. |\n| Conflict Scan | PASS | `adv_change_validate` passed with expected pre-prep warnings (`NO_TASKS`, `NO_DELTAS`); no same-scope active conflict found. |\n| Edge Case Investigation | PASS | Captured deep-import, runtime dependency, package/install, and stale-disk fallback edge cases. |\n| Design Question Depth | PASS | Open questions classified with trust model/blast radius; user resolved CLI behavior and spec governance; boundary strictness delegated to researcher. |\n| Draft Spec Deltas | PASS | New `advance-meta` CLI source-boundary requirement expected. |\n| Related Pattern Scan | PASS | Similar boundary patterns found in CLI bridge/status/dashboard and slop-scan CLI surfaces. |\n| LBP Check | PASS | Preserve live Temporal behavior; use structural allowlist/spec/test guard instead of blanket rewrite. |\n| Completeness Verification | PASS | Problem is source-boundary governance, not full CLI behavior or full v2 rewrite. |\n\n### Skills Considered\n\n- `adv-arch-detection`: matched; used for structural boundary analysis.\n- No core-domain skill gap requiring new skill creation.\n\n### Extends\n\n- `clarifyBinAdvCommandBoundary`: clarified CLI read/mutate operator boundary; current change extends that safety by addressing source import boundary.\n- `diagnoseArchivedListingTimeout2`: preserved active-list fast paths and terminal read safety; current change must not regress live Temporal/terminal semantics.\n- `addStatusHealthProbeTtl`: preserved advisory-vs-truth distinction and status performance; current change must not add stale disk fallback for active status/epic rows.\n- New finding: current `bin/adv` source coupling has two tiers, but only the projection tier is structurally guarded today.\n\n### Conflict Scan\n\n- Active related changes: `stabilizeCliSourceBoundary` only in current Epic lane. `diagnoseArchivedListingTimeout` stale draft exists but completed work is represented by archived `diagnoseArchivedListingTimeout2`; not a blocking conflict for this scope.\n- Validation: passed; expected warnings because discovery has not produced tasks or deltas yet.\n- Agenda: many unrelated follow-ups exist; none block this change's source-boundary scope.\n\n### Current State\n\n- Tier A: `plugin/src/shared/cli-projection.ts` is a zero-runtime-import shared projection module. Existing tests protect it.\n- Tier B: `bin/lib/live-status.ts` and `bin/lib/epic-list.ts` import Temporal helpers directly from `plugin/src/temporal/*`. These imports are load-bearing for live Temporal-backed `status` and `epic list --json` behavior.\n- Current guard gap: no deterministic allowlist/denylist covers all `bin/` imports into `plugin/src`.\n- Spec gap: no existing requirement directly governs root CLI source-boundary imports; `advance-meta` is nearest owning capability.\n\n### Edge Cases\n\n1. New `bin/` import into `plugin/src/tools/*` or `plugin/src/storage/*` accidentally drags ADV runtime state/mutation code into the CLI.\n2. Temporal helper gains non-type runtime imports from plugin `types`, storage, or tool modules and silently breaks Bun CLI/runtime packaging.\n3. Blanket-ban fix removes live Temporal-backed status/epic behavior and regresses to stale disk projection, violating current constraints.\n4. Local deploy copies `bin/` without the expected plugin-relative CLI-safe modules, producing an installed CLI that works in source but fails after install.\n\n### Open Design Questions\n\n1. Exact enforcement shape\n   - Trust model: agent-owned technical design.\n   - Blast radius: too weak leaves drift; too strict blocks legitimate live Temporal CLI behavior.\n   - Alternatives: two-tier allowlist, adapter/barrel, lint-level boundaries. Researcher recommends two-tier explicit allowlist; design can choose adapter/barrel if cleaner.\n2. Spec anchor shape\n   - Trust model: joint; user chose spec plus tests.\n   - Blast radius: no spec anchor makes rule easier to lose; overbroad spec can freeze implementation details.\n   - Alternatives: add `advance-meta` requirement for CLI-safe import boundary; test-only; defer. User chose spec plus tests.\n3. Full v2 rewrite consideration\n   - Trust model: research/advisory, not current-change scope.\n   - Blast radius: could derail current boundary work if absorbed.\n   - Alternatives: full rewrite, targeted v2 seam program, incremental refactor. Researcher recommends no full rewrite; route targeted v2 seams through remaining Epic entries.\n\n### Draft Spec Deltas\n\n- `rq-cliSourceBoundary01` (proposed, `advance-meta`): root `bin/adv` CLI code that imports plugin source must use explicit CLI-safe source boundaries. Imports into broad plugin internals such as storage, tools, tool registry, plugin init, or unlisted `plugin/src` paths must fail structural tests. Live Temporal-backed CLI behavior may depend on a narrow allowlisted Temporal surface or equivalent CLI-safe adapter. The rule must preserve sibling-module deploy behavior and not introduce stale disk active-state fallback.\n  - Given root `bin/` code imports `plugin/src`\n  - When boundary tests run\n  - Then imports are limited to the CLI-safe projection surface plus an explicit live Temporal status/epic surface, or an equivalent named adapter\n  - And forbidden broad plugin internals fail tests\n\n### Related Pattern Scan\n\n- `rq-statusCliBridge01`, `rq-statusCliWorkerFree01`, and dashboard worker-free requirements already model CLI surfaces as thin, live, fail-closed boundaries.\n- `rq-advCliLocalInstall01` already requires deployed CLI payload to preserve sibling imports and plugin-relative imports.\n- `docs/cli-surface-matrix.md` and `plugin/src/cli-surface-matrix.test.ts` provide precedent for CLI surface documentation backed by tests.\n- No similar import allowlist guard currently exists for all `bin/` → `plugin/src` edges.\n\n### Completeness Verification\n\n- Problem completeness: verified. The problem is not that all plugin source imports are wrong; it is that only one of two import tiers is structurally governed.\n- Solution scope: verified. Current scope is a CLI source-boundary contract and tests, not a rewrite of ADV or a redesign of CLI runtime behavior.\n- Secondary surfaces:\n  - `scripts/opencode-session-doctor.ts` imports `plugin/src/utils/opencode-session-debt`; classified out of scope because this change targets root `bin/adv` CLI, not scripts.\n  - Deployed CLI install behavior is in scope only as a preservation constraint.\n\n### LBP Check\n\n- Best direction: preserve live Temporal-backed CLI behavior and make the source boundary structural with spec plus tests.\n- Rejected: full v2 rewrite. Researcher found no evidence architecture is unfixable in place; current Epic already represents a strangler-style modernization program.\n- Rejected: blanket import ban that would force stale disk fallback or broad duplication.\n- Deferred to design: whether to keep explicit allowlist over existing paths or consolidate Temporal imports behind a named CLI-safe adapter/barrel.\n\n### Discovery Opportunity Scout\n\n- Trigger: run, because the question affects architecture and Epic direction.\n- Auto-adopted: extend import-safety guard to all `bin` → `plugin/src` imports; document/recognize `@temporalio/client` as intentional CLI runtime dependency.\n- User-surfaced/deferred: adapter/barrel consolidation and lint-level edge enforcement, for design.\n- V2 rewrite assessment: no full rewrite recommended; targeted v2 seam program should continue through remaining Epic shells (`Optimize adapter surfaces`, `Deep-scan Temporal workflow hot path`).\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings. Coverage: B:C F:C S:C M:C\n\n- Advisory: exact adapter/barrel shape is design-owned and does not block agreement.\n- Advisory: full v2 rewrite is out of current-change scope; route as Epic strategy context, not current acceptance scope.\n",
+    "problemStatement": "# Problem Statement\n\nRoot `bin/adv` CLI modules currently depend on plugin source internals through relative imports into `plugin/src`. Some of that coupling is intentional and guarded (`plugin/src/shared/cli-projection`), while other live Temporal imports pull CLI behavior across plugin-internal boundaries. This makes CLI packaging, runtime behavior, and plugin refactors harder to reason about.\n\nDesired outcome: define and enforce a stable CLI-to-plugin boundary for root CLI code, either by formalizing the supported internal contract or by removing direct deep imports where safer alternatives exist.\n\nExpected scope: `bin/adv`, `bin/lib/*`, existing CLI boundary tests, and any minimal plugin-side shared/export contract needed for CLI stability. OCA-specific API goals and unrelated cleanup remain out of scope.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make the root `bin/adv` / `bin/lib/*` to `plugin/src` source boundary explicit and structurally enforced.\n2. Preserve all existing CLI behavior for `status`, `roadmap`, `slop-scan`, `epic list --json`, and dashboard commands.\n3. Preserve live Temporal-backed status and Epic-list behavior; do not regress to stale disk active-state fallback.\n4. Capture the CLI source-boundary rule in `advance-meta` spec law and back it with deterministic tests.\n5. Keep the existing `cli-projection` zero-import and gate-order parity protections intact.\n6. Let design choose the cleanest implementation shape: explicit allowlist over current paths or a named CLI-safe Temporal adapter/barrel.\n7. Keep full Advance v2 rewrite out of this change; continue targeted v2 seam modernization through remaining Epic entries.\n\n## Success Criteria\n\n1. `bin/adv` keeps stable behavior while its plugin-source boundary becomes explicit and enforced.\n2. Future `bin/` imports into unsafe plugin internals fail structurally before release.\n3. CLI source-boundary law is captured in `advance-meta` and backed by tests.\n\n## Acceptance Criteria\n\n1. Root `bin/adv` / `bin/lib/*` imports into `plugin/src` are limited to documented CLI-safe surfaces.\n2. `advance-meta` contains a requirement governing the CLI source-boundary rule.\n3. Tests fail on unapproved `bin/` imports into broad plugin internals such as `storage`, `tools`, `tool-registry`, or plugin init.\n4. Existing CLI behavior remains compatible for `status`, `roadmap`, `slop-scan`, `epic list --json`, and dashboard commands.\n5. Live Temporal-backed status/epic behavior is preserved; no stale disk active-state fallback is introduced. [warrant: spec:rq-statusCliBridge01, spec:rq-statusCliWorkerFree01]\n6. Existing `cli-projection` zero-import/parity safeguards remain intact.\n7. Design decides whether to keep explicit allowlist paths or consolidate Temporal imports behind a named CLI-safe adapter.\n\n## Constraints\n\n1. Do not weaken spec-law, Temporal replay safety, typed tool boundaries, or ADV state source-of-truth rules.\n2. Do not make root CLI active-state reads use unsupported external-state files when a live Temporal path is required.\n3. Do not introduce OCA-specific API goals.\n4. Do not broaden into a full CLI redesign or full Advance v2 rewrite.\n5. Source tests may validate code in-session; live deployed ADV tool behavior requires rebuild/deploy/restart.\n6. Runtime remains Bun for `bin/adv`; package scripts and most tests still run from `plugin/`.\n\n## Avoidances\n\n1. Do not replace source-boundary correctness with heuristic/prose-only guidance.\n2. Do not blanket-ban all Temporal CLI imports if that would remove live status/epic behavior.\n3. Do not add unrelated unused-export sweeps.\n4. Do not alter ADV state semantics, gate semantics, or Temporal workflow behavior beyond preserving CLI behavior.\n5. Do not absorb adapter-surface optimization or Temporal hot-path deep scan into this change.\n\n## Out of Scope\n\n1. Full Advance v2 rewrite.\n2. OCA-specific compatibility or API work.\n3. Broad CLI UX redesign.\n4. Broad adapter-surface refactor beyond a minimal CLI-safe boundary if design chooses one.\n5. Deep Temporal workflow hot-path redesign.\n6. `scripts/opencode-session-doctor.ts` import boundary; this change targets root `bin/adv` CLI.\n\n## Preview Applicability\n\nvisual_surface: false\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: This change affects CLI source boundaries, specs, and tests. It does not affect frontend/browser-visible UI or visual output.\n\n## Decisions\n\n### User Decisions\n\n1. CLI behavior preservation\n   - Question: What CLI behavior must remain unchanged?\n   - User choice: Preserve all — `status`, `epic list --json`, `roadmap`, `slop-scan`, and dashboard command behavior stay compatible.\n2. Spec governance\n   - Question: Should this change add explicit spec law or rely on tests only?\n   - User choice: Spec plus tests.\n3. Boundary strictness\n   - Question: How strict should import enforcement be?\n   - User choice: Ask `adv-researcher` to answer. Researcher recommendation adopted for agreement: two-tier explicit allowlist or equivalent named CLI-safe adapter, with structural tests.\n4. V2 rewrite consideration\n   - Question: Is Advance worth a full v2 rewrite after long development?\n   - Researcher recommendation: no full rewrite; continue targeted v2 seam program through remaining Epic entries.\n\n### Agent Decisions (LBP)\n\n1. Use `advance-meta` as the spec home because it already governs CLI install/status bridge/worker-free CLI behavior.\n2. Preserve `plugin/src/shared/cli-projection.ts` as the current pure projection tier unless design identifies a clearer no-regression move.\n3. Treat current Temporal CLI imports as load-bearing until design provides an equivalent narrow CLI-safe adapter.\n4. Use deterministic structural tests as the enforcement mechanism rather than heuristic scans.\n\n## Deferred Questions\n\n1. Exact implementation shape is deferred to design: explicit import allowlist over current paths vs named CLI-safe Temporal adapter/barrel.\n2. Optional lint-level boundary enforcement is deferred to design; acceptance requires deterministic tests, not necessarily ESLint.\n\n## Sign-Off\n\nAcceptance criteria and agreement approved by user reply `approve` during discovery for `stabilizeCliSourceBoundary`.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nUse a two-tier CLI-safe source boundary for root `bin/adv` code that needs plugin-owned definitions.\n\n- **Tier A — pure projection boundary:** keep `plugin/src/shared/cli-projection.ts` as the zero-runtime-import projection contract for gate order and CLI projection types.\n- **Tier B — live Temporal CLI boundary:** introduce a named internal boundary module, proposed `plugin/src/cli/temporal-boundary.ts`, that re-exports only the live Temporal primitives used by `bin/adv` status and Epic-list code.\n- **Structural guard:** add tests that scan root `bin/adv` / `bin/lib/*` imports and fail any `plugin/src` crossing outside the approved CLI-safe surfaces.\n- **Spec law:** add `rq-cliSourceBoundary01` under `advance-meta` so the boundary is governed by spec plus tests, not prose alone.\n\nThe design preserves current behavior. `bin/adv status` and `bin/adv epic list --json` stay live Temporal-backed and fail closed when Temporal is unavailable. No stale disk active-state fallback is introduced.\n\n## Key Decisions\n\n### 1. Keep `cli-projection` pure and unchanged in role\n\n`plugin/src/shared/cli-projection.ts` remains the plain TypeScript projection module for `GATE_ORDER`, gate types, change summaries, and CLI payload types. Existing safeguards remain authoritative:\n\n- `bin/lib/cli-projection-import-safety.test.ts` checks Bun importability and forbids heavy imports.\n- `plugin/src/cli-gate-order-parity.test.ts` checks gate-order parity with plugin gate definitions.\n\nRationale: this tier is already correct and guarded. Reusing it for Temporal would weaken the clear zero-import contract.\n\n### 2. Add a separate Temporal CLI boundary instead of allowing scattered deep imports\n\n`bin/lib/live-status.ts` and `bin/lib/epic-list.ts` currently import several `plugin/src/temporal/*` modules directly. Replace those scattered imports with a single named internal boundary module, proposed `plugin/src/cli/temporal-boundary.ts`.\n\nInitial Tier B exports:\n\n- `createTemporalClientBundle`\n- `buildChangeWorkflowId`\n- `listChangeWorkflowIds`\n- `listEpicWorkflowIds`\n- `CHANGE_WORKFLOW_QUERY_NAMES`\n- `escapeVisibilityValue`\n- required public types for the CLI surface, such as `ListEpicClient`\n\nRationale: a named boundary is easier to audit and evolve than a long bin-side allowlist of temporal internals. It also avoids the harmful alternative of deleting live Temporal coupling and falling back to stale disk active state.\n\n### 3. Enforce the boundary with deterministic tests\n\nAdd import-boundary tests that scan root CLI files and boundary module imports using static source parsing/pattern checks.\n\nRequired checks:\n\n1. `bin/adv` and `bin/lib/**/*.{ts,test.ts}` must not import `../../plugin/src/*` except:\n   - `../../plugin/src/shared/cli-projection`\n   - `../../plugin/src/cli/temporal-boundary`\n2. The Temporal boundary module's direct and transitive import graph must not import forbidden plugin internals:\n   - `../storage/*`\n   - `../tools/*`\n   - `../tool-registry`\n   - `../plugin-init`\n   - `../index`\n3. The Temporal boundary module may import the specific Temporal helpers needed for live status and Epic list behavior.\n4. `cli-projection` zero-import checks remain separate and stricter than Tier B checks.\n5. Same-tier CLI imports such as `bin/lib/epic-list.ts -> ./changes` remain allowed.\n\nThe import-walker/denylist style should reuse the repo's existing structural-test idiom where practical, especially the workflow-bundle boundary test pattern.\n\n### 4. Add `advance-meta` spec law\n\nAdd `rq-cliSourceBoundary01` to `advance-meta`.\n\nRequirement intent:\n\n- Root `bin/adv` CLI source may import plugin source only through explicit CLI-safe boundary modules.\n- CLI-safe boundaries are limited to the pure projection surface and a named live Temporal surface or equivalent adapter.\n- Broad plugin internals are forbidden from the root CLI graph.\n- The rule preserves deployed sibling-module imports and live Temporal fail-closed behavior.\n- The rule must not authorize stale disk active-state fallback.\n\n### 5. No full v2 rewrite in this change\n\nThe v2 rewrite question was researched during discovery. Recommendation: do not full-rewrite Advance. Continue targeted, strangler-style modernization through the remaining Epic entries. This change only hardens one boundary needed for that modernization.\n\n## ADR Drafts\n\nNone. Decisions are important but not hard-to-reverse enough to require a separate ADR. The spec requirement and tests are the durable record.\n\n## Implementation Strategy\n\n1. **Spec delta first**\n   - Add `rq-cliSourceBoundary01` to `.adv/specs/advance-meta/spec.json` and generated docs if applicable.\n   - Run schema/spec drift checks after edits.\n\n2. **Red boundary test**\n   - Add or extend a Bun/Vitest test so current direct imports such as `../../plugin/src/temporal/contracts` fail as unapproved root CLI crossings.\n   - Keep tests deterministic; avoid heuristic correctness.\n\n3. **Create Temporal boundary module**\n   - Add `plugin/src/cli/temporal-boundary.ts` as an internal CLI-safe boundary.\n   - Re-export only agreed live Temporal primitives and types.\n   - Do not import storage, tools, tool registry, plugin init, plugin index, or ADV external-state adapters.\n\n4. **Update CLI imports**\n   - Change `bin/lib/live-status.ts` and `bin/lib/epic-list.ts` to import from `../../plugin/src/cli/temporal-boundary`.\n   - Leave same-tier CLI imports intact.\n   - Leave `cli-projection` imports in `bin/lib/types.ts` and `bin/lib/changes.ts` intact.\n\n5. **Verify behavior**\n   - Bun CLI tests for `bin/adv`, `bin/lib/cli-projection-import-safety.test.ts`, and relevant dashboard/epic/status tests.\n   - Targeted plugin tests for CLI bridge/status worker-free/deploy-local/schema/spec assets.\n   - `pnpm run schemas:check` after spec changes.\n\n## LBP Analysis\n\nA named boundary plus structural tests is the lowest-bad path.\n\n- **Better than status quo:** future accidental deep imports fail before release.\n- **Better than a blanket ban:** live Temporal-backed CLI behavior remains intact.\n- **Better than broad rewrite:** delivers the safety needed for the Epic without re-paying all ADV spec, Temporal, and gate invariants.\n- **Better than allowlisting many temporal paths in bin:** reduces future maintenance to one intentionally named module.\n\n## Affected Components\n\n- `bin/lib/live-status.ts`\n- `bin/lib/epic-list.ts`\n- `bin/lib/cli-projection-import-safety.test.ts` or a new root CLI import-boundary test\n- `plugin/src/shared/cli-projection.ts` tests remain unchanged in role\n- new `plugin/src/cli/temporal-boundary.ts`\n- `.adv/specs/advance-meta/spec.json`\n- generated spec docs/schema check surfaces as required by repo convention\n- `AGENTS.md` or nearby developer docs only if needed to document the named internal boundary\n\n## Design-Derived Criteria\n\n1. **Tier separation:** Tier A projection boundary must remain zero-runtime-import; Tier B Temporal boundary must not be judged by Tier A's zero-Temporal rule.\n2. **Forbidden runtime graph:** Root CLI source boundary tests must reject imports from plugin storage, tools, tool registry, plugin init, plugin index, or other unapproved `plugin/src` paths; Tier B enforcement should include transitive import graph checks.\n3. **Compatibility:** No user-visible CLI output/exit behavior may change except incidental import path internals.\n4. **Source-of-truth:** Active status/Epic list rows remain live Temporal-backed and fail closed on Temporal failure.\n5. **Deploy compatibility:** The installed CLI must continue to resolve sibling `bin/` modules and plugin-relative CLI-safe modules under the deploy-local/release install model.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n| --- | --- |\n| New `plugin/src/cli/temporal-boundary.ts` looks like public package API | Name/docs mark it internal CLI-safe boundary; spec says root CLI source boundary, not external public API. |\n| Tier B tests accidentally ban `@temporalio/client` and break live behavior | Keep Tier A and Tier B test policies separate; Tier B permits intentional Temporal runtime dependency. |\n| Static tests become too heuristic | Use explicit import extraction/allowlist/denylist over known files; tests own correctness, not prose. |\n| New boundary misses future transitive plugin internals | Include transitive import graph checks for the boundary using the repo's import-walker pattern. |\n| Spec delta over-constrains implementation | Spec permits either named Temporal surface or equivalent CLI-safe adapter, preserving design flexibility. |\n\n## Design Leverage Scout\n\nMandatory scout attempted with `adv-researcher`.\n\n- Candidates considered: 5\n- Auto-adopted/refined:\n  - Reuse the repo's import-walker/denylist idiom from workflow-bundle boundary tests where practical.\n  - Keep Tier B checks distinct from Tier A zero-import checks because Tier B intentionally depends on Temporal.\n  - Allow same-tier CLI imports such as `./changes` so tests do not create false positives.\n  - Assert exact bin-side plugin-source allowlist: `shared/cli-projection` and `cli/temporal-boundary`.\n  - Use a real red test against the currently present unapproved temporal deep import.\n- Surfaced to user: none. All candidates were low-risk, contract-tied refinements.\n- Inconclusive: none.\n\n## Validator Result\n\nIndependent `adv-researcher` design validation: pass, confidence high, risk low.\n\nValidator findings:\n\n- Tier A `plugin/src/shared/cli-projection.ts` is pure and existing AC6 safeguards remain intact.\n- Current temporal crossings in `bin/lib/live-status.ts` and `bin/lib/epic-list.ts` are real and map directly to the proposed Tier B boundary.\n- Proposed Tier B re-export targets are clean for this boundary: required exports exist and do not reach storage/tools/tool-registry/plugin-init/index.\n- Existing `cli-projection-import-safety.test.ts` provides a proven deterministic source-scan pattern to extend.\n- AC5 live Temporal / no stale-disk fallback is preserved because the proposed barrel is a pure re-export boundary, not a behavior change.\n\nValidator refinements adopted:\n\n1. Tier B enforcement should assert the boundary module's transitive import graph, not only direct imports.\n2. Redirect only `live-status.ts` and `epic-list.ts` to the new boundary; keep `types.ts` and `changes.ts` on Tier A `cli-projection`.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThe change is ready for release/archive sign-off. `bin/adv` now has a documented and test-enforced boundary for the plugin source modules it may import, while keeping existing CLI behavior intact.\n\n## Why It Matters\n\nThis reduces refactor risk for future ADV performance/structure work. Future root CLI imports into unsafe plugin internals now fail tests instead of silently coupling `bin/adv` to storage, tools, plugin init, or other runtime internals. Live Temporal-backed status and Epic-list behavior remains preserved.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `rq-cliSourceBoundary01` to `advance-meta` and mirrored it in `docs/specs/advance-meta.md`.\n2. Added `plugin/src/cli/temporal-boundary.ts` as the internal live Temporal boundary for root CLI code.\n3. Updated `bin/lib/live-status.ts` and `bin/lib/epic-list.ts` to use the named Temporal boundary instead of scattered `plugin/src/temporal/*` imports.\n4. Added `bin/lib/cli-source-boundary.test.ts` with bin-side allowlist checks and transitive forbidden-import graph checks.\n5. Acceptance reviewer hardened the boundary test to detect dynamic imports and verified all root `bin/` tests.\n\n## What Was Verified\n\n- Acceptance verdict: adv-reviewer READY with 0 blockers and 0 issues.\n- Harden verdict: adv-reviewer READY with 0 blockers/issues, no scope drift, and no changes made.\n- TDD: RED boundary test failed on existing deep imports (`tr_mrbc1rz0_c171bd42`); GREEN boundary test passed after implementation (`tr_mrbc333z_bf6c8c2b`).\n- Tests: Bun CLI tests passed (`tr_mrbc4rpt_3de2d6b4`, 29 pass); targeted plugin CLI/deploy/status tests passed (`tr_mrbc4qx7_eded5d85`, 94 pass); reviewer `bun test bin/` passed 197 tests; harden targeted cli-bridge/gate-order tests passed 21 tests.\n- Static checks: schema check passed (`tr_mrbc4odu_b26bbc70` and harden rerun); plugin format check passed (`tr_mrbc54hp_0e3fe423` and harden rerun); reviewer `git diff --check` passed.\n- Preview URL: not_applicable — agreement marks `visual_surface: false`; implementation changes CLI source boundaries, specs, and tests only.\n- Contract matrix: 27 rows passed/respected/not_applicable; 0 failing, violated, unknown, or missing rows.\n\n## Remaining Concerns\n\nNone blocking. Release caveat: source/bin surfaces were verified in the worktree, not freshly deployed to `~/.local/share/Advance/bin`; normal release/deploy validation should confirm deployed `adv` resolves `plugin/src/cli/temporal-boundary.ts` after rebuild/deploy/restart.\n\n## Supporting Evidence\n\n- Task checkpoints: `d531e43c` (spec law), `c753b89f` (boundary implementation), `af843af2` (review hardening).\n- Review report: `stabilizeCliSourceBoundary|change:review:acceptance|adv-reviewer|1` verdict READY.\n- Harden report: `stabilizeCliSourceBoundary|change:harden:release|adv-reviewer|1` verdict READY.\n- Contract matrix persisted with 27 rows and 0 failing rows.\n\n## Consequence Context\n\n1. Delivered value — pass: CLI source-boundary drift now fails deterministic tests and is governed by `advance-meta`.\n2. Enabling-only/follow-up dependency — n/a: change is self-contained; broader v2 seam work remains future Epic strategy, not a blocker.\n3. Ops readiness — pass for source release; no migrations, runbooks, new env vars, external services, or production manual steps introduced. Normal deployed-runtime rebuild/deploy/restart caveat remains.\n4. Migration/data impact — n/a: no data migration, storage migration, env var, or external service change.\n5. Frontend/preview impact — n/a: no visual/browser surface; preview URL not applicable.\n6. Collision/release risk — low: acceptance and harden reviewers READY; worktree clean; diff vs `origin/trunk` limited to six in-scope files.\n7. Open follow-ups — n/a: no blocking follow-ups or required ops obligations recorded.\n8. Next action — archive sign-off, then archive/release finalization.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-08T00:34:45.728Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | `bin/adv` keeps stable behavior while its plugin-source boundary becomes explicit and enforced. | pass | Reviewer READY; implementation moved scattered Temporal imports behind internal boundary with no CLI behavior change; Bun CLI tests passed: tr_mrbc4rpt_3de2d6b4 and reviewer `bun test bin/` 197 pass. |\n| SC2 | success_criterion | Future `bin/` imports into unsafe plugin internals fail structurally before release. | pass | `bin/lib/cli-source-boundary.test.ts` enforces bin-side allowlist and transitive forbidden-import graph; RED tr_mrbc1rz0_c171bd42 failed on old deep imports; GREEN tr_mrbc333z_bf6c8c2b passed. |\n| SC3 | success_criterion | CLI source-boundary law is captured in `advance-meta` and backed by tests. | pass | `rq-cliSourceBoundary01` added to `.adv/specs/advance-meta/spec.json` and mirrored in `docs/specs/advance-meta.md`; JSON parse tr_mrbbzhit_21f3140b and schemas check tr_mrbc4odu_b26bbc70 passed. |\n| AC1 | acceptance_criterion | Root `bin/adv` / `bin/lib/*` imports into `plugin/src` are limited to documented CLI-safe surfaces. | pass | Boundary test verifies root `bin/adv`/`bin/lib` plugin-source imports are only `shared/cli-projection` and `cli/temporal-boundary`; final reviewer boundary test passed with dynamic import coverage. |\n| AC2 | acceptance_criterion | `advance-meta` contains a requirement governing the CLI source-boundary rule. | pass | `advance-meta` now contains `rq-cliSourceBoundary01` with four scenarios governing CLI source-boundary behavior; docs mirror updated to v1.21.0. |\n| AC3 | acceptance_criterion | Tests fail on unapproved `bin/` imports into broad plugin internals such as `storage`, `tools`, `tool-registry`, or plugin init. | pass | Boundary test rejects storage/tools/tool-registry/plugin-init/index paths in the Temporal boundary transitive graph; reviewer added dynamic import detection to prevent bypass. |\n| AC4 | acceptance_criterion | Existing CLI behavior remains compatible for `status`, `roadmap`, `slop-scan`, `epic list --json`, and dashboard commands. | pass | Bun CLI tests passed: `bun test ... bin/adv.test.ts bin/dashboard-cli.test.ts` tr_mrbc4rpt_3de2d6b4; reviewer `bun test bin/` passed 197 tests. |\n| AC5 | acceptance_criterion | Live Temporal-backed status/epic behavior is preserved; no stale disk active-state fallback is introduced. | pass | `live-status.ts` and `epic-list.ts` import live Temporal primitives through `plugin/src/cli/temporal-boundary`; no disk active fallback added. Existing status/bridge tests passed tr_mrbc4qx7_eded5d85. |\n| AC6 | acceptance_criterion | Existing `cli-projection` zero-import/parity safeguards remain intact. | pass | `shared/cli-projection` remains Tier A; `bin/lib/types.ts` and `changes.ts` stay on projection imports. `cli-projection-import-safety.test.ts` passed in tr_mrbc4rpt_3de2d6b4. |\n| AC7 | acceptance_criterion | Design decides whether to keep explicit allowlist paths or consolidate Temporal imports behind a named CLI-safe adapter. | pass | Design chose named internal CLI-safe Temporal adapter `plugin/src/cli/temporal-boundary.ts`; validator and reviewer both accepted this shape. |\n| C1 | constraint | Do not weaken spec-law, Temporal replay safety, typed tool boundaries, or ADV state source-of-truth rules. | respected | No gate/state/tool-boundary semantics changed; spec law added and tests enforce P33 structural boundary. Reviewer READY, no blockers. |\n| C2 | constraint | Do not make root CLI active-state reads use unsupported external-state files when a live Temporal path is required. | respected | No active-state disk fallback introduced; active status/Epic imports remain Temporal boundary based. Existing fail-closed status tests passed. |\n| C3 | constraint | Do not introduce OCA-specific API goals. | respected | No OCA-specific files, API, or compatibility goals added; touched files are CLI boundary/spec/test only. |\n| C4 | constraint | Do not broaden into a full CLI redesign or full Advance v2 rewrite. | respected | No broad CLI redesign or v2 rewrite; implementation limited to spec, boundary module, import updates, and tests. |\n| C5 | constraint | Source tests may validate code in-session; live deployed ADV tool behavior requires rebuild/deploy/restart. | respected | Source tests validated behavior in-session; live deployed ADV tool behavior caveat remains documented by repo context, no deployed runtime validation claimed. |\n| C6 | constraint | Runtime remains Bun for `bin/adv`; package scripts and most tests still run from `plugin/`. | respected | Root Bun tests run and passed; plugin tests run via Node/Vitest targeted path. Runtime split preserved. |\n| DONT1 | avoidance | Do not replace source-boundary correctness with heuristic/prose-only guidance. | respected | Correctness enforced by deterministic import tests and spec requirement, not prose-only guidance. |\n| DONT2 | avoidance | Do not blanket-ban all Temporal CLI imports if that would remove live status/epic behavior. | respected | Temporal imports were consolidated through Tier B boundary, not blanket-banned; live behavior preserved. |\n| DONT3 | avoidance | Do not add unrelated unused-export sweeps. | respected | No unused-export sweep or unrelated cleanup performed; touched files are scoped to agreed boundary. |\n| DONT4 | avoidance | Do not alter ADV state semantics, gate semantics, or Temporal workflow behavior beyond preserving CLI behavior. | respected | No ADV state, gate, or Temporal workflow behavior changed; Temporal client/list helper imports only re-exported through boundary. |\n| DONT5 | avoidance | Do not absorb adapter-surface optimization or Temporal hot-path deep scan into this change. | respected | No adapter-surface optimization or Temporal hot-path redesign included; changes are minimal boundary hardening. |\n| OOS1 | out_of_scope | Full Advance v2 rewrite. | not_applicable | Full Advance v2 rewrite not performed; discovery research explicitly routed it to separate Epic strategy, not this change. |\n| OOS2 | out_of_scope | OCA-specific compatibility or API work. | not_applicable | OCA-specific compatibility/API work not performed. |\n| OOS3 | out_of_scope | Broad CLI UX redesign. | not_applicable | Broad CLI UX redesign not performed; user-visible behavior preserved. |\n| OOS4 | out_of_scope | Broad adapter-surface refactor beyond a minimal CLI-safe boundary if design chooses one. | not_applicable | Broad adapter refactor not performed; only minimal CLI Temporal boundary added. |\n| OOS5 | out_of_scope | Deep Temporal workflow hot-path redesign. | not_applicable | Deep Temporal workflow hot-path redesign not performed. |\n| OOS6 | out_of_scope | `scripts/opencode-session-doctor.ts` import boundary; this change targets root `bin/adv` CLI. | not_applicable | `scripts/opencode-session-doctor.ts` boundary untouched; change targets root `bin/adv` only. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-07T23:49:41.194Z",
+      "contentHash": "16154e5abbcfb1079e8a556815884252b8c366ad15a72d7f5a26dcd8d89e17a8",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-07T23:27:17.875Z",
+      "contentHash": "9365c8874133294845c14ce6b160fa3ceb766fe2e8c42244272db08c4bd82331",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-07T23:52:24.568Z",
+      "contentHash": "1cbd2378d2d18d5b956e0265463ce8d57c41f184d339eb52d9167439bb2374b0",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-08T00:10:00.207Z",
+      "contentHash": "5d8a31921814ce4e7542613d6442f10efcc9b59d323d2799a12bcf27a4c4611e",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-08T00:42:39.043Z",
+      "contentHash": "100a9172961016cfb70ca7e759834c4e42898a624bd13f8ab42f0675f7bedd2f",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-08T00:42:39.043Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "optimizeAdvPerformanceStructure",
+    "entry_id": "shell-1783186808918-rn64mm",
+    "order": 4,
+    "title": "Stabilize CLI source boundary",
+    "linked_at": "2026-07-07T22:57:44.196Z"
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-07T22:57:49.945Z",
+      "resolved": true,
+      "resolved_at": "2026-07-07T23:27:33.775Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

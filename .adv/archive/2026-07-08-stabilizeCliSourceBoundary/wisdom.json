@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-HDuCTG",
+      "type": "pattern",
+      "content": "For root Bun CLI → plugin source boundaries, keep pure projection (`shared/cli-projection`) and live Temporal runtime surfaces as separate tiers. Tier A can stay zero-import; Tier B should be a narrow named boundary with transitive forbidden-import tests so live Temporal behavior is preserved without scattered deep imports.",
+      "source_task": "tk-fa18f6c0f507",
+      "recorded_at": "2026-07-08T00:24:51.522Z"
+    }
+  ],
+  "count": 1
+}
