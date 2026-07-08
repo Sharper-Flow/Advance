@@ -42,15 +42,23 @@ function walkFiles(dir: string): string[] {
 
 function importSpecifiers(source: string): string[] {
   const specs: string[] = [];
-  const pattern = /(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g;
+  const pattern =
+    /(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(source)) !== null) {
+    specs.push(match[1]);
+  }
+  const dynamicPattern = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
+  while ((match = dynamicPattern.exec(source)) !== null) {
     specs.push(match[1]);
   }
   return specs;
 }
 
-function resolveRelativeImport(fromFile: string, specifier: string): string | null {
+function resolveRelativeImport(
+  fromFile: string,
+  specifier: string,
+): string | null {
   if (!specifier.startsWith(".")) return null;
   const base = resolve(dirname(fromFile), specifier);
   const candidates = [base, `${base}.ts`, join(base, "index.ts")];
@@ -68,19 +76,29 @@ function repoRelative(path: string): string {
 function assertNoForbiddenPluginSrcPath(path: string) {
   const rel = repoRelative(path);
   for (const forbidden of FORBIDDEN_PLUGIN_SRC_PREFIXES) {
-    expect(rel, `${rel} must not be reachable from CLI boundary`).not.toStartWith(
-      forbidden,
-    );
+    expect(
+      rel,
+      `${rel} must not be reachable from CLI boundary`,
+    ).not.toStartWith(forbidden);
   }
 }
 
 describe("root CLI plugin source boundary", () => {
+  test("import scanner includes dynamic imports", () => {
+    expect(importSpecifiers('await import("./local-module")')).toEqual([
+      "./local-module",
+    ]);
+  });
+
   test("bin/adv and bin/lib import plugin source only through approved boundaries", () => {
     const violations: string[] = [];
     for (const file of walkFiles(BIN_ROOT)) {
       const source = readFileSync(file, "utf8");
       for (const specifier of importSpecifiers(source)) {
-        if (specifier.includes("plugin/src") && !APPROVED_BIN_PLUGIN_IMPORTS.has(specifier)) {
+        if (
+          specifier.includes("plugin/src") &&
+          !APPROVED_BIN_PLUGIN_IMPORTS.has(specifier)
+        ) {
           violations.push(`${repoRelative(file)} -> ${specifier}`);
         }
       }
