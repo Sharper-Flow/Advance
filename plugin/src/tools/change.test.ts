@@ -3515,9 +3515,18 @@ describe("change tools — signal-driven lifecycle", () => {
           JSON.stringify({ id: "test-change", status: "archived" }),
         );
 
+        // rq-releaseProjectionDurability01: an existing-bundle retry must not
+        // succeed solely because the store release gate is marked done; the gate
+        // must carry matching Phase 9 structural evidence so the no-op path is
+        // evidence-authoritative, not status-authoritative.
+        const releaseEvidence = `Phase 9 finalization shipped; defaultBranch=main; mainCheckout=${tempDir}; pushStatus=pushed; route=no_remote`;
+        const gates = {
+          ...allDoneGates,
+          release: { status: "done", approval_evidence: releaseEvidence },
+        };
         const store = createMockStore({
           status: "archived",
-          gates: allDoneGates,
+          gates,
         });
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/.adv/changes`;

@@ -554,6 +554,25 @@ describe("adv_change_archive Phase 9 behavior", () => {
     }
   });
 
+  test("blocks existing-bundle retry when stored release done lacks matching Phase 9 evidence", async () => {
+    // T10 readArtifact fallback may call findArchiveBundle before the archive
+    // flow; use a stable default so the existing-bundle path is actually hit.
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    const store = createMockStore({ status: "archived", releaseDone: true });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.requirement).toBe("rq-releaseProjectionDurability01");
+    expect(parsed.error).toContain("durable release gate proof");
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
   test("skips finalization when phase9=skip", async () => {
     const store = createMockStore({ releaseDone: true });
     const result = await changeTools.adv_change_archive.execute(

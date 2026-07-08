@@ -331,23 +331,25 @@ export async function reconcileArchivedBundleRetry(input: {
       },
     });
   }
-  // If the store already shows release done, skip workflow interaction;
-  // this keeps archived-bundle retries bounded and avoids missing workflow
-  // mocks in no-op scenarios while still allowing metadata reconciliation.
+  // Reconcile the release gate even when the store already shows done: an
+  // existing-bundle retry must not retire as no-op success solely because
+  // store.gates.get reports release done. Structural Phase 9 evidence is
+  // re-verified and the durable proof must match before reconciliation
+  // succeeds (rq-releaseProjectionDurability01).
+  const releaseEvidence = buildReleaseCompletionEvidence(finalization);
+  let durableProof = await verifyReleaseGateDurableForArchive({
+    store: input.store,
+    changeId: input.changeId,
+    evidence: releaseEvidence,
+  });
   let releaseResult: Extract<
     ArchiveReleaseGateResult,
     {
       ok: true;
     }
   >;
-  const durableGates = await input.store.gates.get(input.changeId);
-  const storeReleaseGate = durableGates?.release;
-  if (storeReleaseGate?.status === "done") {
-    releaseResult = {
-      ok: true,
-      gate: storeReleaseGate,
-      alreadyDone: true,
-    };
+  if (durableProof.ok) {
+    releaseResult = { ok: true, gate: durableProof.gate, alreadyDone: true };
   } else {
     const completionResult = await completeReleaseGateAfterFinalization({
       store: input.store,
@@ -371,8 +373,7 @@ export async function reconcileArchivedBundleRetry(input: {
         readinessBlockers: completionResult.readinessBlockers,
       });
     }
-    const releaseEvidence = buildReleaseCompletionEvidence(finalization);
-    const durableProof = await verifyReleaseGateDurableForArchive({
+    durableProof = await verifyReleaseGateDurableForArchive({
       store: input.store,
       changeId: input.changeId,
       evidence: releaseEvidence,
@@ -393,7 +394,7 @@ export async function reconcileArchivedBundleRetry(input: {
         readinessBlockers: durableProof.readinessBlockers,
       });
     }
-    releaseResult = completionResult;
+    releaseResult = { ...completionResult, gate: durableProof.gate };
   }
   if (
     input.change.phase9_status?.status &&
