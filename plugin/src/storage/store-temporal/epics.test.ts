@@ -9,6 +9,8 @@
 import { describe, expect, test, vi } from "vitest";
 import { createEpicOps } from "./epics";
 import type { StoreDeps } from "./shared";
+import { createDiskStore } from "../store-disk";
+import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import {
   epicCreatedSignal,
   epicMergedSignal,
@@ -547,6 +549,94 @@ describe("createEpicOps", () => {
       const epics = await ops.list();
       expect(epics).toHaveLength(1);
       expect(epics[0].id).toBe("presentEpic");
+    });
+  });
+
+  describe("retired projection fallback", () => {
+    async function setupWithRetiredEpicsDir() {
+      const tempDir = await createTempDir("epic-retired-");
+      const legacy = await createDiskStore(tempDir);
+      const base = setup();
+      base.deps.legacy = legacy;
+      return { ...base, tempDir, legacy };
+    }
+
+    test("get falls back to retired projection when workflow is not found", async () => {
+      const { deps, queryMock, tempDir } = await setupWithRetiredEpicsDir();
+      queryMock.mockImplementation(async () => {
+        throw new Error("Workflow not found: adv/epic/project-id/retiredEpic");
+      });
+
+      const projection = {
+        epic_snapshot: makeEpic({
+          id: "retiredEpic",
+          title: "Retired Epic",
+          progress: {
+            status: "completed",
+            total_entries: 0,
+            completed_entries: 0,
+            active_entries: 0,
+            next_entry_id: null,
+            updated_at: "2026-07-08T00:00:00.000Z",
+          },
+        }),
+        retired_at: "2026-07-08T00:00:00.000Z",
+        retired_by: "agent",
+        evidence: "User approved retirement.",
+        source_workflow_id: "adv/epic/project-id/retiredEpic",
+        source_version: 3,
+        projection_status: "retired" as const,
+      };
+
+      await deps.legacy.epics.saveRetiredProjection("retiredEpic", projection);
+
+      const ops = createEpicOps(deps);
+      const result = await ops.get("retiredEpic");
+
+      expect(result.success).toBe(true);
+      expect(result.data?.id).toBe("retiredEpic");
+      expect(result.data?.title).toBe("Retired Epic");
+      expect(result.source).toBe("retired_projection");
+
+      await cleanupTempDir(tempDir);
+    });
+
+    test("get returns null when neither workflow nor retired projection exists", async () => {
+      const { deps, queryMock, tempDir } = await setupWithRetiredEpicsDir();
+      queryMock.mockImplementation(async () => {
+        throw new Error("Workflow not found: adv/epic/project-id/missingEpic");
+      });
+
+      const ops = createEpicOps(deps);
+      const result = await ops.get("missingEpic");
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeNull();
+
+      await cleanupTempDir(tempDir);
+    });
+
+    test("saveRetiredProjection persists projection to disk", async () => {
+      const { deps, tempDir } = await setupWithRetiredEpicsDir();
+      const projection = {
+        epic_snapshot: makeEpic({ id: "persistedEpic" }),
+        retired_at: "2026-07-08T00:00:00.000Z",
+        retired_by: "agent",
+        evidence: "Evidence",
+        source_workflow_id: "adv/epic/project-id/persistedEpic",
+        source_version: 1,
+        projection_status: "retired" as const,
+      };
+
+      const ops = createEpicOps(deps);
+      await ops.saveRetiredProjection("persistedEpic", projection);
+
+      const loaded = await ops.getRetiredProjection("persistedEpic");
+      expect(loaded.success).toBe(true);
+      expect(loaded.data?.epic_snapshot.id).toBe("persistedEpic");
+      expect(loaded.data?.projection_status).toBe("retired");
+
+      await cleanupTempDir(tempDir);
     });
   });
 });

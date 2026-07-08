@@ -66,6 +66,10 @@ import {
   type LoadResult,
 } from "./json";
 import {
+  loadRetiredEpicProjection,
+  saveRetiredEpicProjection,
+} from "./epic-projection";
+import {
   buildChangeRecency,
   computeLastActivity,
   type Store,
@@ -111,6 +115,7 @@ export async function createDiskStore(
   // Make sure the mutable side-tree exists; tools assume these dirs are
   // present at first write.
   await mkdir(paths.changes, { recursive: true });
+  await mkdir(paths.retiredEpics, { recursive: true });
   if (paths.external) {
     await mkdir(paths.external, { recursive: true });
   }
@@ -965,11 +970,24 @@ export async function createDiskStore(
       create: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },
-      get: async () =>
-        ({
+      get: async (epicId) => {
+        const retired = await loadRetiredEpicProjection(
+          paths.retiredEpics,
+          epicId,
+        );
+        if (!retired.success) return retired as LoadResult<null>;
+        if (retired.data) {
+          return {
+            success: true,
+            data: retired.data.epic_snapshot,
+            source: "retired_projection" as const,
+          };
+        }
+        return {
           success: true,
           data: null,
-        }) as LoadResult<null>,
+        };
+      },
       list: async () => [],
       update: async () => {
         throw new Error("Epics require the Temporal store backend.");
@@ -1004,6 +1022,10 @@ export async function createDiskStore(
       reorder: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },
+      getRetiredProjection: async (epicId) =>
+        loadRetiredEpicProjection(paths.retiredEpics, epicId),
+      saveRetiredProjection: async (epicId, projection) =>
+        saveRetiredEpicProjection(paths.retiredEpics, epicId, projection),
     },
 
     // -------------------------------------------------------------------

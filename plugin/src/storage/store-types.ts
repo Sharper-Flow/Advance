@@ -30,6 +30,7 @@ import type {
   EpicEntry,
   EpicChangeRef,
   EpicMembershipStatus,
+  RetiredEpicProjection,
 } from "../types";
 import type { ProjectPaths, LoadResult } from "./json";
 import type { ProductContext } from "./product-context";
@@ -434,6 +435,21 @@ export interface Store {
       entryIds: string[],
       expectedVersion: number,
     ) => Promise<Epic>;
+    /**
+     * Load the durable retired projection for an Epic, if one exists.
+     * Returns null when no retired projection has been persisted.
+     */
+    getRetiredProjection: (
+      epicId: string,
+    ) => Promise<LoadResult<RetiredEpicProjection | null>>;
+    /**
+     * Persist a durable retired projection for an Epic. Used by the
+     * retirement lifecycle path before the live workflow is completed.
+     */
+    saveRetiredProjection: (
+      epicId: string,
+      projection: RetiredEpicProjection,
+    ) => Promise<void>;
   };
 }
 

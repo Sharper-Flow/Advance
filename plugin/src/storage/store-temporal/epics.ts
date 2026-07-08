@@ -17,6 +17,10 @@ import {
   getEpicStateQuery,
 } from "../../temporal/messages";
 import { runTemporal, runTemporalQuery, type StoreDeps } from "./shared";
+import {
+  loadRetiredEpicProjection,
+  saveRetiredEpicProjection,
+} from "../epic-projection";
 
 interface EpicHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -244,11 +248,48 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
     get: async (epicId) => {
       try {
         const epic = await queryEpic(epicId);
-        if (!epic) return { success: true, data: null };
-        return { success: true, data: epic };
+        if (epic) return { success: true, data: epic };
+
+        const retired = await loadRetiredEpicProjection(
+          deps.legacy?.paths?.retiredEpics,
+          epicId,
+        );
+        if (!retired.success) {
+          return {
+            success: false,
+            error: retired.error,
+            type: retired.type,
+          };
+        }
+        if (retired.data) {
+          return {
+            success: true,
+            data: retired.data.epic_snapshot,
+            source: "retired_projection",
+          };
+        }
+        return { success: true, data: null };
       } catch (err) {
         const typed = extractMutationRejection(err);
         if (typed.code === "epic_not_found") {
+          const retired = await loadRetiredEpicProjection(
+            deps.legacy?.paths?.retiredEpics,
+            epicId,
+          );
+          if (!retired.success) {
+            return {
+              success: false,
+              error: retired.error,
+              type: retired.type,
+            };
+          }
+          if (retired.data) {
+            return {
+              success: true,
+              data: retired.data.epic_snapshot,
+              source: "retired_projection",
+            };
+          }
           return { success: true, data: null };
         }
         return {
@@ -257,6 +298,19 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
           type: "read_error",
         };
       }
+    },
+
+    getRetiredProjection: async (epicId) =>
+      loadRetiredEpicProjection(deps.legacy?.paths?.retiredEpics, epicId),
+
+    saveRetiredProjection: async (epicId, projection) => {
+      const retiredEpicsDir = deps.legacy?.paths?.retiredEpics;
+      if (!retiredEpicsDir) {
+        throw new Error(
+          `Cannot save retired projection for ${epicId}: retiredEpics path is not configured`,
+        );
+      }
+      await saveRetiredEpicProjection(retiredEpicsDir, epicId, projection);
     },
 
     list: async () => {

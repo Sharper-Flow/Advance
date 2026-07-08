@@ -16,6 +16,7 @@ import type {
   EpicEntry,
   EpicMembershipStatus,
   EpicScope,
+  RetiredEpicProjection,
 } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { getBacklogItem } from "../utils/backlog-store";
@@ -237,10 +238,62 @@ function formatEpic(epic: import("../types").Epic) {
   };
 }
 
+function formatEpicWithRetired(
+  epic: import("../types").Epic,
+  retiredProjection: RetiredEpicProjection,
+) {
+  return {
+    ...formatEpic(epic),
+    retired: {
+      retired_at: retiredProjection.retired_at,
+      retired_by: retiredProjection.retired_by,
+      evidence: retiredProjection.evidence,
+      source_workflow_id: retiredProjection.source_workflow_id,
+      source_version: retiredProjection.source_version,
+      projection_status: retiredProjection.projection_status,
+    },
+  };
+}
+
+function formatEpicCompactWithRetired(
+  epic: import("../types").Epic,
+  retiredProjection: RetiredEpicProjection,
+) {
+  return {
+    ...formatEpicCompact(epic),
+    retired: {
+      retired_at: retiredProjection.retired_at,
+      retired_by: retiredProjection.retired_by,
+      evidence: retiredProjection.evidence,
+      source_workflow_id: retiredProjection.source_workflow_id,
+      source_version: retiredProjection.source_version,
+      projection_status: retiredProjection.projection_status,
+    },
+  };
+}
+
 async function loadEpic(store: Store, epicId: string) {
   const result = await store.epics.get(epicId);
   if (!result.success || !result.data) return null;
   return result.data;
+}
+
+async function loadEpicWithRetiredProjection(
+  store: Store,
+  epicId: string,
+): Promise<{
+  epic: import("../types").Epic;
+  retiredProjection?: RetiredEpicProjection;
+} | null> {
+  const result = await store.epics.get(epicId);
+  if (!result.success || !result.data) return null;
+  if (result.source === "retired_projection") {
+    const retired = await store.epics.getRetiredProjection(epicId);
+    if (retired.success && retired.data) {
+      return { epic: result.data, retiredProjection: retired.data };
+    }
+  }
+  return { epic: result.data };
 }
 
 async function loadChange(
@@ -963,10 +1016,22 @@ export const epicTools = {
           epic_owner_target_confirmed,
           epic_owner_confirmationEvidence,
         });
-        const epic = await loadEpic(owner.store, epic_id);
-        if (!epic) return epicNotFound(epic_id);
+        const loaded = await loadEpicWithRetiredProjection(
+          owner.store,
+          epic_id,
+        );
+        if (!loaded) return epicNotFound(epic_id);
         const rendered =
-          view === "full" ? formatEpic(epic) : formatEpicCompact(epic);
+          view === "full"
+            ? loaded.retiredProjection
+              ? formatEpicWithRetired(loaded.epic, loaded.retiredProjection)
+              : formatEpic(loaded.epic)
+            : loaded.retiredProjection
+              ? formatEpicCompactWithRetired(
+                  loaded.epic,
+                  loaded.retiredProjection,
+                )
+              : formatEpicCompact(loaded.epic);
         const output = formatToolOutput({ success: true, epic: rendered });
         return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {

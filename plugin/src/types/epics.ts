@@ -382,3 +382,40 @@ export const EpicMembershipSchema = z.object({
 });
 
 export type EpicMembership = z.infer<typeof EpicMembershipSchema>;
+
+// =============================================================================
+// Retired Epic Projection
+// =============================================================================
+
+/**
+ * Durable projection persisted before a completed Epic workflow is retired.
+ * Keeps typed history access after the live workflow is no longer queryable.
+ *
+ * rq-epicRetiredHistory01 — retired Epic history remains typed and queryable.
+ */
+export const RetiredEpicProjectionStatusSchema = z.enum([
+  "prepared",
+  "retired",
+]);
+export type RetiredEpicProjectionStatus = z.infer<
+  typeof RetiredEpicProjectionStatusSchema
+>;
+
+export const RetiredEpicProjectionSchema = z.object({
+  /** Snapshot of the Epic at retirement time. */
+  epic_snapshot: EpicSchema,
+  /** ISO8601 timestamp when the Epic was retired. */
+  retired_at: z.string(),
+  /** Identity that performed the retirement. */
+  retired_by: z.string(),
+  /** Audit evidence for the retirement decision. */
+  evidence: z.string(),
+  /** Source Epic workflow ID that produced this projection. */
+  source_workflow_id: z.string(),
+  /** Optimistic-concurrency version of the Epic at retirement time. */
+  source_version: z.number().int().min(0),
+  /** Projection lifecycle status; "prepared" during preflight, "retired" after durable write. */
+  projection_status: RetiredEpicProjectionStatusSchema,
+});
+
+export type RetiredEpicProjection = z.infer<typeof RetiredEpicProjectionSchema>;

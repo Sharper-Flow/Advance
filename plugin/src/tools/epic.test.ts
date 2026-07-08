@@ -16,7 +16,7 @@ import {
 } from "./target-project";
 import { parseToolOutput } from "../__tests__/setup";
 import type { Store } from "../storage/store-types";
-import type { Change, Epic, EpicEntry } from "../types";
+import type { Change, Epic, EpicEntry, RetiredEpicProjection } from "../types";
 
 const mockedWithTargetPathStore = vi.mocked(withTargetPathStore);
 
@@ -122,6 +122,8 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
         }),
       ),
       reorder: vi.fn(async () => epic),
+      getRetiredProjection: vi.fn(async () => ({ success: true, data: null })),
+      saveRetiredProjection: vi.fn(async () => {}),
     },
     changes: {
       get: vi.fn(async () => ({ success: true, data: change })),
@@ -392,6 +394,56 @@ describe("adv_epic_show", () => {
     );
     const parsed = parseToolOutput(output);
     expect(parsed.code).toBe("EPIC_NOT_FOUND");
+  });
+
+  test("falls back to retired projection and includes retirement metadata", async () => {
+    const epic = makeEpic({
+      id: "retiredEpic",
+      title: "Retired Epic",
+      progress: {
+        status: "completed",
+        total_entries: 0,
+        completed_entries: 0,
+        active_entries: 0,
+        next_entry_id: null,
+        updated_at: "2026-07-08T00:00:00.000Z",
+      },
+    });
+    const retiredProjection: RetiredEpicProjection = {
+      epic_snapshot: epic,
+      retired_at: "2026-07-08T00:00:00.000Z",
+      retired_by: "agent",
+      evidence: "User approved retirement.",
+      source_workflow_id: "adv/epic/project-id/retiredEpic",
+      source_version: 3,
+      projection_status: "retired",
+    };
+    const store = makeStore();
+    store.epics.get = vi.fn(async () => ({
+      success: true,
+      data: epic,
+      source: "retired_projection" as const,
+    }));
+    store.epics.getRetiredProjection = vi.fn(async () => ({
+      success: true,
+      data: retiredProjection,
+    }));
+
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "retiredEpic" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.epic.id).toBe("retiredEpic");
+    expect(parsed.epic.retired).toMatchObject({
+      retired_at: "2026-07-08T00:00:00.000Z",
+      retired_by: "agent",
+      evidence: "User approved retirement.",
+      source_workflow_id: "adv/epic/project-id/retiredEpic",
+      source_version: 3,
+      projection_status: "retired",
+    });
   });
 
   test("compact view bounds history to COMPACT_HISTORY_LIMIT and includes closed children", async () => {
