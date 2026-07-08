@@ -55,7 +55,15 @@ function epicError(err: unknown) {
       ? ((err as { code?: string }).code ?? "EPIC_ERROR")
       : "EPIC_ERROR";
   const message = err instanceof Error ? err.message : String(err);
-  return formatToolOutput({ error: message, code });
+  const blockers =
+    err instanceof Error
+      ? ((err as { blockers?: unknown[] }).blockers ?? undefined)
+      : undefined;
+  return formatToolOutput({
+    error: message,
+    code,
+    ...(blockers && { blockers }),
+  });
 }
 
 function mapEpicEntry(entry: EpicEntry) {
@@ -3249,6 +3257,92 @@ export const epicTools = {
         const output = formatToolOutput({
           success: true,
           epic: formatEpic(epic),
+        });
+        return formatEpicRoutingOutput(output, owner, owner);
+      } catch (err) {
+        return epicError(err);
+      }
+    },
+  },
+
+  adv_epic_retire: {
+    description:
+      "Retire a completed Epic. Fires the terminal archive signal, persists a retired projection, and returns the retirement summary. Requires evidence and expected_version. Use dryRun to preview eligibility without mutating state.",
+    args: {
+      epic_id: EPIC_ID_SCHEMA,
+      expected_version: z
+        .number()
+        .int()
+        .min(0)
+        .describe("Current Epic version from adv_epic_show."),
+      evidence: z
+        .string()
+        .trim()
+        .min(1)
+        .describe("Required non-blank audit evidence for the retirement."),
+      retired_by: z
+        .string()
+        .trim()
+        .min(1)
+        .optional()
+        .default("agent")
+        .describe("Identity retiring the Epic. Defaults to agent."),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe(
+          "Preview retirement eligibility and projection without firing the archive signal or persisting state.",
+        ),
+      ...epicOwnerTargetPathSchema,
+    },
+    execute: async (
+      {
+        epic_id,
+        expected_version,
+        evidence,
+        retired_by,
+        dryRun,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
+      }: {
+        epic_id: string;
+        expected_version: number;
+        evidence: string;
+        retired_by?: string;
+        dryRun?: boolean;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
+      },
+      store: Store,
+    ) => {
+      try {
+        const owner = await resolveEpicOwnerStore({
+          store,
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+        });
+        const projection = await owner.store.epics.retire(epic_id, {
+          expectedVersion: expected_version,
+          evidence,
+          retiredBy: retired_by ?? "agent",
+          dryRun: dryRun ?? false,
+        });
+        const output = formatToolOutput({
+          success: true,
+          epic_id,
+          dryRun: dryRun ?? false,
+          epic: formatEpic(projection.epic_snapshot),
+          retired: {
+            retired_at: projection.retired_at,
+            retired_by: projection.retired_by,
+            evidence: projection.evidence,
+            source_workflow_id: projection.source_workflow_id,
+            source_version: projection.source_version,
+            projection_status: projection.projection_status,
+          },
         });
         return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {

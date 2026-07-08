@@ -417,6 +417,11 @@ export function createToolMap(
       "adv_epic_reorder",
       store,
     ),
+    adv_epic_retire: bindTool(
+      epicTools.adv_epic_retire,
+      "adv_epic_retire",
+      store,
+    ),
 
     // Ops Follow-up Promotion Tool
     adv_followup_promote: bindTool(
@@ -920,6 +925,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_epic_move_change",
   "adv_epic_repair_membership",
   "adv_epic_reorder",
+  "adv_epic_retire",
   "adv_followup_promote",
   "adv_ops_evidence_add",
   "adv_ops_run_upsert",
