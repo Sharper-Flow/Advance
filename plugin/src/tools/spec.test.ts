@@ -5,13 +5,15 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import { specTools } from "./spec";
+import { resolveActiveSpecsDir, specTools } from "./spec";
 import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
   createTestProject,
 } from "../__tests__/setup";
+import { mkdir } from "fs/promises";
+import { join } from "path";
 
 describe("Spec Tools", () => {
   let tempDir: string;
@@ -32,7 +34,7 @@ describe("Spec Tools", () => {
     test("returns all specs with metadata", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "list" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -48,7 +50,7 @@ describe("Spec Tools", () => {
     test("filters by capability name", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "list", capability: "test-capability" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -59,7 +61,7 @@ describe("Spec Tools", () => {
     test("returns empty array for non-matching capability", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "list", capability: "nonexistent" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -69,7 +71,7 @@ describe("Spec Tools", () => {
     test("filters by tag", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "list", tag: "security" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -80,7 +82,7 @@ describe("Spec Tools", () => {
     test("returns empty for non-matching tag", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "list", tag: "nonexistent-tag" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -92,7 +94,7 @@ describe("Spec Tools", () => {
     test("returns full spec with requirements", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "show", capability: "test-capability" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -105,7 +107,7 @@ describe("Spec Tools", () => {
     test("includes scenarios in requirements", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "show", capability: "test-capability" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -120,7 +122,7 @@ describe("Spec Tools", () => {
     test("returns error for nonexistent spec", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "show", capability: "nonexistent" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -132,7 +134,7 @@ describe("Spec Tools", () => {
     test("finds requirements by body content", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "search", query: "authentication" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -143,7 +145,7 @@ describe("Spec Tools", () => {
     test("finds requirements by title", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "search", query: "Sample" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -154,7 +156,7 @@ describe("Spec Tools", () => {
     test("respects limit parameter", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "search", query: "requirement", limit: 1 },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -164,7 +166,7 @@ describe("Spec Tools", () => {
     test("returns empty array for no matches", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "search", query: "xyznonexistent123" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
@@ -174,12 +176,109 @@ describe("Spec Tools", () => {
     test("includes spec name in results", async () => {
       const result = await specTools.adv_spec.execute(
         { action: "search", query: "testing" },
-        store,
+        { store },
       );
       const parsed = JSON.parse(result);
 
       expect(parsed.results.length).toBeGreaterThan(0);
       expect(parsed.results[0].spec).toBe("test-capability");
     });
+  });
+});
+
+describe("resolveActiveSpecsDir", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  const specsDir = (root: string) => join(root, ".adv", "specs");
+  const makeSpecsDir = async (root: string) => {
+    await mkdir(specsDir(root), { recursive: true });
+  };
+
+  test("(a) prefers SDK context.worktree when present and exists", async () => {
+    const worktree = join(tempDir, "worktree");
+    const fallback = join(tempDir, "fallback", ".adv", "specs");
+    await makeSpecsDir(worktree);
+
+    const result = resolveActiveSpecsDir({
+      contextWorktree: worktree,
+      fallbackSpecsDir: fallback,
+    });
+
+    expect(result).toBe(specsDir(worktree));
+  });
+
+  test("(b) uses context.directory when it is itself a worktree", async () => {
+    const directory = join(tempDir, "worktree-dir");
+    const fallback = join(tempDir, "fallback", ".adv", "specs");
+    await makeSpecsDir(directory);
+
+    const result = resolveActiveSpecsDir({
+      contextDirectory: directory,
+      fallbackSpecsDir: fallback,
+    });
+
+    expect(result).toBe(specsDir(directory));
+  });
+
+  test("(c) falls back to active-change worktree when no context", async () => {
+    const activeChangeId = "fixSpecMcpStaleness";
+    const fallback = join(tempDir, "fallback", ".adv", "specs");
+    const activeWorktree = join(tempDir, "change", activeChangeId);
+    await makeSpecsDir(activeWorktree);
+
+    const result = resolveActiveSpecsDir({
+      activeChangeId,
+      worktreeBase: tempDir,
+      fallbackSpecsDir: fallback,
+    });
+
+    expect(result).toBe(specsDir(activeWorktree));
+  });
+
+  test("(d) returns fallbackSpecsDir when nothing is available", () => {
+    const fallback = join(tempDir, "fallback", ".adv", "specs");
+
+    const result = resolveActiveSpecsDir({
+      fallbackSpecsDir: fallback,
+    });
+
+    expect(result).toBe(fallback);
+  });
+
+  test("context.worktree wins over context.directory", async () => {
+    const worktree = join(tempDir, "worktree");
+    const directory = join(tempDir, "directory");
+    await makeSpecsDir(worktree);
+    await makeSpecsDir(directory);
+
+    const result = resolveActiveSpecsDir({
+      contextWorktree: worktree,
+      contextDirectory: directory,
+      fallbackSpecsDir: join(tempDir, "fallback"),
+    });
+
+    expect(result).toBe(specsDir(worktree));
+  });
+
+  test("skips context.worktree branch when its specs dir does not exist", async () => {
+    const worktree = join(tempDir, "worktree");
+    const directory = join(tempDir, "directory");
+    await makeSpecsDir(directory);
+
+    const result = resolveActiveSpecsDir({
+      contextWorktree: worktree,
+      contextDirectory: directory,
+      fallbackSpecsDir: join(tempDir, "fallback"),
+    });
+
+    expect(result).toBe(specsDir(directory));
   });
 });

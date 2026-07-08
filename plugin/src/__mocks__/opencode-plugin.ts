@@ -62,6 +62,8 @@ export interface ToolContext {
   sessionID: string;
   messageID: string;
   agent: string;
+  directory?: string;
+  worktree?: string;
   abort: AbortSignal;
   metadata: (input: {
     title?: string;

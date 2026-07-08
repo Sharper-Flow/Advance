@@ -190,6 +190,16 @@ interface ToolDef<TArgs, TStore> {
   execute: (args: TArgs, store: TStore) => Promise<string>;
 }
 
+/** Tool definition shape for adv_spec, which receives SDK execution context. */
+interface ToolDefWithContext<TArgs> {
+  description: string;
+  args: ToolArgsSchema;
+  execute: (
+    args: TArgs,
+    ctx: { store: Store; worktree?: string; directory?: string },
+  ) => Promise<string>;
+}
+
 /** Tool definition shape for agenda-style tools (directory + optional path). */
 interface ToolDefSimple<TArgs> {
   description: string;
@@ -199,7 +209,7 @@ interface ToolDefSimple<TArgs> {
 
 /**
  * Bind a store-based tool definition to a store instance.
- * Usage: `adv_spec: bindTool(specTools.adv_spec, "adv_spec", store)`
+ * Usage: `adv_roadmap: bindTool(roadmapTools.adv_roadmap, "adv_roadmap", store)`
  */
 function bindTool<TArgs, TStore>(
   def: ToolDef<TArgs, TStore>,
@@ -212,6 +222,36 @@ function bindTool<TArgs, TStore>(
     namedExecute(
       name,
       safeExecute(async (args) => def.execute(args as TArgs, store), name),
+    ),
+  );
+}
+
+/**
+ * Bind adv_spec to a store instance while threading SDK execution context
+ * (worktree/directory) so spec reads can resolve the calling worktree's
+ * .adv/specs directory.
+ *
+ * Usage: `adv_spec: bindToolWithContext(specTools.adv_spec, "adv_spec", store)`
+ */
+function bindToolWithContext<TArgs>(
+  def: ToolDefWithContext<TArgs>,
+  name: string,
+  store: Store,
+) {
+  return registerTool(
+    def.description,
+    def.args,
+    namedExecute(
+      name,
+      safeExecute(
+        async (args, sdkContext) =>
+          def.execute(args as TArgs, {
+            store,
+            worktree: (sdkContext as { worktree?: string } | undefined)?.worktree,
+            directory: (sdkContext as { directory?: string } | undefined)?.directory,
+          }),
+        name,
+      ),
     ),
   );
 }
@@ -256,7 +296,7 @@ export function createToolMap(
 ) {
   return {
     // Spec Tools
-    adv_spec: bindTool(specTools.adv_spec, "adv_spec", store),
+    adv_spec: bindToolWithContext(specTools.adv_spec, "adv_spec", store),
 
     // Roadmap Tool (legacy — delegates internally to adv_backlog_state via
     // Visibility query when Temporal reachable; kept for backward compat)

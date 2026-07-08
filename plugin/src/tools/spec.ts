@@ -5,13 +5,69 @@
  * These are data retrieval tools - no banners (return pure JSON).
  */
 
+import { existsSync } from "fs";
+import { join } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 
 // =============================================================================
+// Spec directory resolution
+// =============================================================================
+
+/**
+ * Resolve the active specs directory using a pure, deterministic priority:
+ *
+ * 1. SDK context.worktree (or context.directory when it is itself a worktree).
+ * 2. Active-change worktree via join(worktreeBase, "change", activeChangeId).
+ * 3. Legacy fallback: store.paths.specs.
+ *
+ * Each candidate is guarded by existsSync so we never return a speculative path.
+ */
+export function resolveActiveSpecsDir(opts: {
+  contextWorktree?: string;
+  contextDirectory?: string;
+  activeChangeId?: string | null;
+  worktreeBase?: string | null;
+  fallbackSpecsDir: string;
+  specsDirName?: string;
+}): string {
+  const {
+    contextWorktree,
+    contextDirectory,
+    activeChangeId,
+    worktreeBase,
+    fallbackSpecsDir,
+    specsDirName = ".adv/specs",
+  } = opts;
+
+  if (contextWorktree) {
+    const dir = join(contextWorktree, specsDirName);
+    if (existsSync(dir)) return dir;
+  }
+
+  if (contextDirectory) {
+    const dir = join(contextDirectory, specsDirName);
+    if (existsSync(dir)) return dir;
+  }
+
+  if (activeChangeId && worktreeBase) {
+    const dir = join(worktreeBase, "change", activeChangeId, specsDirName);
+    if (existsSync(dir)) return dir;
+  }
+
+  return fallbackSpecsDir;
+}
+
+// =============================================================================
 // Tool Definitions
 // =============================================================================
+
+export interface SpecToolContext {
+  store: Store;
+  worktree?: string;
+  directory?: string;
+}
 
 export const specTools = {
   adv_spec: {
@@ -38,8 +94,9 @@ export const specTools = {
         limit?: number;
         offset?: number;
       },
-      store: Store,
+      ctx: SpecToolContext,
     ) => {
+      const { store } = ctx;
       switch (args.action) {
         case "list": {
           const result = await store.specs.list({
