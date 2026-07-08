@@ -11,8 +11,9 @@ import {
   createTempDir,
   cleanupTempDir,
   createTestProject,
+  SAMPLE_SPEC,
 } from "../__tests__/setup";
-import { mkdir } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 
 describe("Spec Tools", () => {
@@ -127,6 +128,104 @@ describe("Spec Tools", () => {
       const parsed = JSON.parse(result);
 
       expect(parsed.error).toContain("not found");
+    });
+  });
+
+  describe("adv_spec with worktree context", () => {
+    const writeSpec = async (specsDir: string, spec: unknown) => {
+      const name = (spec as { name: string }).name;
+      await mkdir(join(specsDir, name), { recursive: true });
+      await writeFile(
+        join(specsDir, name, "spec.json"),
+        JSON.stringify(spec, null, 2),
+      );
+    };
+
+    test("show returns edited spec from context.worktree", async () => {
+      const worktree = join(tempDir, "worktree");
+      const specsDir = join(worktree, ".adv", "specs");
+      await writeSpec(specsDir, {
+        ...SAMPLE_SPEC,
+        title: "Edited Title from Worktree",
+      });
+
+      const result = await specTools.adv_spec.execute(
+        { action: "show", capability: "test-capability" },
+        { store, worktree },
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.title).toBe("Edited Title from Worktree");
+    });
+
+    test("list returns spec from context.worktree", async () => {
+      const worktree = join(tempDir, "worktree");
+      const specsDir = join(worktree, ".adv", "specs");
+      await writeSpec(specsDir, {
+        ...SAMPLE_SPEC,
+        title: "Listed from Worktree",
+      });
+
+      const result = await specTools.adv_spec.execute(
+        { action: "list" },
+        { store, worktree },
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.specs).toHaveLength(1);
+      expect(parsed.specs[0].title).toBe("Listed from Worktree");
+    });
+
+    test("search scans specs from context.worktree", async () => {
+      const worktree = join(tempDir, "worktree");
+      const specsDir = join(worktree, ".adv", "specs");
+      await writeSpec(specsDir, {
+        ...SAMPLE_SPEC,
+        requirements: [
+          ...(SAMPLE_SPEC.requirements ?? []),
+          {
+            id: "rq-worktree0001",
+            title: "Worktree-only requirement",
+            body: "xyzzyworktreeunique phrase",
+            priority: "must",
+            scenarios: [],
+          },
+        ],
+      });
+
+      const result = await specTools.adv_spec.execute(
+        { action: "search", query: "xyzzyworktreeunique" },
+        { store, worktree },
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.results).toHaveLength(1);
+      expect(parsed.results[0].requirement).toBe("rq-worktree0001");
+    });
+
+    test("isolation: divergent worktrees each resolve their own specs", async () => {
+      const wtA = join(tempDir, "worktree-a");
+      const wtB = join(tempDir, "worktree-b");
+      await writeSpec(join(wtA, ".adv", "specs"), {
+        ...SAMPLE_SPEC,
+        title: "Worktree A",
+      });
+      await writeSpec(join(wtB, ".adv", "specs"), {
+        ...SAMPLE_SPEC,
+        title: "Worktree B",
+      });
+
+      const resA = await specTools.adv_spec.execute(
+        { action: "show", capability: "test-capability" },
+        { store, worktree: wtA },
+      );
+      const resB = await specTools.adv_spec.execute(
+        { action: "show", capability: "test-capability" },
+        { store, worktree: wtB },
+      );
+
+      expect(JSON.parse(resA).title).toBe("Worktree A");
+      expect(JSON.parse(resB).title).toBe("Worktree B");
     });
   });
 

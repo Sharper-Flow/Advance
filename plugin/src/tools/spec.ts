@@ -9,6 +9,8 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
+import { listSpecDirs, loadSpec } from "../storage/json";
+import type { SearchResult } from "../storage/store";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 
 // =============================================================================
@@ -96,14 +98,45 @@ export const specTools = {
       },
       ctx: SpecToolContext,
     ) => {
-      const { store } = ctx;
+      const { store, worktree, directory } = ctx;
+      const resolvedSpecsDir = resolveActiveSpecsDir({
+        contextWorktree: worktree,
+        contextDirectory: directory,
+        fallbackSpecsDir: store.paths.specs,
+      });
+
       switch (args.action) {
         case "list": {
-          const result = await store.specs.list({
-            capability: args.capability,
-            tag: args.tag,
-          });
-          return formatToolOutput(result);
+          const dirs = await listSpecDirs(resolvedSpecsDir);
+          const out: Array<{
+            name: string;
+            title: string;
+            version: string;
+            requirementCount: number;
+          }> = [];
+          for (const name of dirs) {
+            if (args.capability && name !== args.capability) continue;
+            const result = await loadSpec(resolvedSpecsDir, name);
+            if (!result.success || !result.data) continue;
+            if (args.tag) {
+              const specTags = (result.data.tags ?? []) as string[];
+              const reqTags = (result.data.requirements ?? []).flatMap(
+                (req) => ((req as { tags?: string[] }).tags ?? []) as string[],
+              );
+              const allTags = new Set([...specTags, ...reqTags]);
+              if (!allTags.has(args.tag)) continue;
+            }
+            out.push({
+              name: result.data.name,
+              title: result.data.title ?? result.data.name,
+              version:
+                typeof result.data.version === "string"
+                  ? result.data.version
+                  : String(result.data.version ?? "1"),
+              requirementCount: (result.data.requirements ?? []).length,
+            });
+          }
+          return formatToolOutput({ specs: out });
         }
 
         case "show": {
@@ -112,7 +145,7 @@ export const specTools = {
               error: "capability is required for 'show' action",
             });
           }
-          const result = await store.specs.get(args.capability);
+          const result = await loadSpec(resolvedSpecsDir, args.capability);
           if (!result.success) {
             return formatToolOutput({ error: result.error });
           }
@@ -141,7 +174,32 @@ export const specTools = {
               error: "query is required for 'search' action",
             });
           }
-          const results = await store.specs.search(args.query, args.limit);
+          const dirs = await listSpecDirs(resolvedSpecsDir);
+          const results: SearchResult[] = [];
+          const lower = args.query.toLowerCase();
+          for (const name of dirs) {
+            const result = await loadSpec(resolvedSpecsDir, name);
+            if (!result.success || !result.data) continue;
+            for (const req of result.data.requirements ?? []) {
+              const reqAny = req as {
+                id: string;
+                title?: string;
+                body?: string;
+              };
+              const haystack = [reqAny.title ?? "", reqAny.body ?? ""]
+                .join("\n")
+                .toLowerCase();
+              if (!haystack.includes(lower)) continue;
+              results.push({
+                spec: result.data.name,
+                requirement: reqAny.id,
+                title: reqAny.title ?? reqAny.id,
+                match: reqAny.body ?? "",
+              });
+              if (results.length >= (args.limit ?? 20))
+                return formatToolOutput({ results });
+            }
+          }
           return formatToolOutput({ results });
         }
       }
