@@ -30,11 +30,13 @@ const workspaceWarpMock = vi.hoisted(() => ({
 }));
 
 const targetProjectMock = vi.hoisted(() => ({
-  appendTargetProjectContextOutput: vi.fn((output: string, context: unknown) => {
-    const parsed = JSON.parse(output);
-    parsed._projectContext = context;
-    return JSON.stringify(parsed);
-  }),
+  appendTargetProjectContextOutput: vi.fn(
+    (output: string, context: unknown) => {
+      const parsed = JSON.parse(output);
+      parsed._projectContext = context;
+      return JSON.stringify(parsed);
+    },
+  ),
   withTargetPathStore: vi.fn(),
 }));
 

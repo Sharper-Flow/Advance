@@ -279,6 +279,7 @@ import { BulkCloseSelectorSchema } from "../types";
 import { collectErrorText } from "../temporal/retry-wrapper";
 import {
   formatTargetProjectContext,
+  type TargetProjectContext,
   type TargetProjectOutputContext,
   withOptionalTargetPathStore,
   withTargetPathStore,
@@ -3924,7 +3925,7 @@ export const changeTools = {
     ) => {
       const runReenter = async (
         activeStore: Store,
-        projectContext?: TargetProjectOutputContext,
+        projectContext?: TargetProjectContext,
       ) => {
         const result = await activeStore.changes.get(changeId);
         if (!result.success) {
@@ -3959,7 +3960,9 @@ export const changeTools = {
             fromGate,
             reason,
             scopeDelta,
-            ...(projectContext ? { _projectContext: projectContext } : {}),
+            ...(projectContext
+              ? { _projectContext: formatTargetProjectContext(projectContext) }
+              : {}),
             message: `Would reenter change ${changeId} from ${fromGate}.`,
           });
         }
@@ -4022,7 +4025,7 @@ export const changeTools = {
               mutation: dryRun ? false : undefined,
             },
             async ({ context, store: targetStore }) =>
-              runReenter(targetStore, formatTargetProjectContext(context)),
+              runReenter(targetStore, context),
           );
         } catch (error) {
           return formatToolOutput({
