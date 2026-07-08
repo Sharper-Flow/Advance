@@ -5,7 +5,8 @@
  */
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { existsSync, readFileSync } from "fs";
-import { resolve } from "path";
+import { mkdir, writeFile } from "fs/promises";
+import { join, resolve } from "path";
 import { z } from "zod";
 import {
   ADV_TOOL_NAMES,
@@ -22,6 +23,7 @@ import {
   createTempDir,
   cleanupTempDir,
   createTestProject,
+  SAMPLE_SPEC,
 } from "./__tests__/setup";
 
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
@@ -170,6 +172,38 @@ describe("createDegradedToolMap parity with createToolMap", () => {
           }),
         }),
       ]);
+    } finally {
+      store.close();
+    }
+  });
+
+  test("registered adv_spec forwards SDK worktree context", async () => {
+    const store = await createLegacyStore(tempDir);
+    await store.init();
+    try {
+      const worktree = join(tempDir, "sdk-context-worktree");
+      const specsDir = join(worktree, ".adv", "specs", SAMPLE_SPEC.name);
+      await mkdir(specsDir, { recursive: true });
+      await writeFile(
+        join(specsDir, "spec.json"),
+        JSON.stringify(
+          { ...SAMPLE_SPEC, title: "Registered Tool Worktree Spec" },
+          null,
+          2,
+        ),
+      );
+
+      const map = createToolMap(store, tempDir, store.paths.agenda);
+      const result = await map.adv_spec.execute(
+        { action: "show", capability: SAMPLE_SPEC.name },
+        {
+          worktree,
+          metadata: () => undefined,
+        } as any,
+      );
+
+      const parsed = JSON.parse((result as { output: string }).output);
+      expect(parsed.title).toBe("Registered Tool Worktree Spec");
     } finally {
       store.close();
     }
