@@ -722,6 +722,85 @@ describe("change tools — signal-driven lifecycle", () => {
       }
     });
 
+    test("applies audited disk release recovery to included context snapshot", async () => {
+      const { mkdtemp, mkdir, writeFile, rm } =
+        await import("node:fs/promises");
+      const { tmpdir } = await import("node:os");
+      const { join: pathJoin } = await import("node:path");
+      const tempRoot = await mkdtemp(
+        pathJoin(tmpdir(), "adv-snapshot-release-recovery-"),
+      );
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+
+      try {
+        const workflowGates = {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: { status: "pending" },
+        } as Change["gates"];
+        const recoveredDiskGates = {
+          ...workflowGates,
+          release: {
+            status: "done",
+            completed_at: "2026-01-01T00:00:00Z",
+            completed_by: "adv-archive",
+            recovery_audit: {
+              reason: "completed_workflow_release_gate_recovery",
+              evidence:
+                "workflow execution already completed | WorkflowNotFoundError; Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123",
+              recovered_at: "2026-01-01T00:00:01Z",
+            },
+          },
+        } as Change["gates"];
+
+        const store = createMockStore({ gates: recoveredDiskGates });
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+        vi.mocked(store.gates.get).mockResolvedValue(workflowGates);
+
+        await writeFile(
+          pathJoin(changeDir, "change.json"),
+          JSON.stringify(
+            {
+              id: "test-change",
+              title: "Test Change",
+              status: "archived",
+              created_at: "2026-01-01T00:00:00Z",
+              created_by: "test",
+              tasks: [],
+              deltas: {},
+              wisdom: [],
+              gates: recoveredDiskGates,
+            },
+            null,
+            2,
+          ),
+        );
+
+        const result = await changeTools.adv_change_show.execute(
+          { changeId: "test-change", include: { snapshot: true } },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._contextSnapshot).toContain("[✓ release]");
+        expect(parsed.gates.release).toMatchObject({
+          status: "done",
+          recovery_audit: expect.objectContaining({
+            reason: "completed_workflow_release_gate_recovery",
+          }),
+        });
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
     test("returns Temporal document content without exposing phantom artifact paths", async () => {
       const { mkdtemp, mkdir, rm } = await import("fs/promises");
       const { tmpdir } = await import("os");

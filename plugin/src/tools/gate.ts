@@ -107,18 +107,61 @@ function hasCompatibilityRecoveryEvidence(gates: Gates): boolean {
   return GATE_ORDER.some((gateId) => hasGateRecoveryAudit(gates[gateId]));
 }
 
-async function preferRecoveredDiskGates(input: {
+function releaseGateHasPhase9Evidence(
+  gate: GateCompletion | undefined,
+): boolean {
+  const evidence = gate?.approval_evidence ?? gate?.recovery_audit?.evidence;
+  if (typeof evidence !== "string") return false;
+  // Canonical Phase 9 evidence is built by `buildReleaseCompletionEvidence`
+  // and includes the finalization phrase plus at least one durable detail
+  // (defaultBranch, pushStatus, mergeCommitSha). Avoid matching prose that
+  // merely mentions "Phase 9" without carrying the structured proof.
+  return (
+    evidence.includes("Phase 9 finalization") &&
+    (evidence.includes("defaultBranch=") ||
+      evidence.includes("pushStatus=") ||
+      evidence.includes("mergeCommitSha="))
+  );
+}
+
+export async function reconcileRecoveredGates(input: {
   store: Store;
   changeId: string;
   current: Gates;
-}): Promise<Gates | null> {
+}): Promise<{ gates: Gates; recovered: boolean }> {
   const disk = await loadChange(input.store.paths.changes, input.changeId);
-  if (!disk.success || !disk.data?.gates) return null;
+  if (!disk.success || !disk.data?.gates) {
+    return { gates: input.current, recovered: false };
+  }
   const diskGates = disk.data.gates;
-  if (!hasCompatibilityRecoveryEvidence(diskGates)) return null;
-  return gateDoneCount(diskGates) > gateDoneCount(input.current)
-    ? diskGates
-    : null;
+  if (!hasCompatibilityRecoveryEvidence(diskGates)) {
+    return { gates: input.current, recovered: false };
+  }
+
+  const currentDone = gateDoneCount(input.current);
+  const diskDone = gateDoneCount(diskGates);
+  if (diskDone > currentDone) {
+    return { gates: diskGates, recovered: true };
+  }
+  if (diskDone < currentDone) {
+    return { gates: input.current, recovered: false };
+  }
+
+  // Equal done-count: evidence-aware release tiebreak. Prefer audited disk
+  // release when the current projection is not done, or when it is done but
+  // lacks recovery/Phase 9 evidence while disk carries audited recovery.
+  const diskRelease = diskGates.release;
+  if (diskRelease?.status === "done" && hasGateRecoveryAudit(diskRelease)) {
+    const currentRelease = input.current.release;
+    if (currentRelease?.status !== "done") {
+      return { gates: diskGates, recovered: true };
+    }
+    if (!releaseGateHasPhase9Evidence(currentRelease)) {
+      return { gates: diskGates, recovered: true };
+    }
+  }
+
+  return { gates: input.current, recovered: false };
 }
 
 async function waitForGateCompletionResult(
@@ -949,13 +992,13 @@ export const gateTools = {
                 );
                 if (queriedGates && typeof queriedGates === "object") {
                   gates = queriedGates;
-                  const recoveredDiskGates = await preferRecoveredDiskGates({
+                  const reconciliation = await reconcileRecoveredGates({
                     store: activeStore,
                     changeId,
                     current: gates,
                   });
-                  if (recoveredDiskGates) {
-                    gates = recoveredDiskGates;
+                  if (reconciliation.recovered) {
+                    gates = reconciliation.gates;
                     poisonedFallback = true;
                   }
                 }

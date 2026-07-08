@@ -96,6 +96,7 @@ import {
   validateChangeCloseRecoveryArgs,
   recoverCompletedWorkflowClose,
 } from "./change/recovery";
+import { reconcileRecoveredGates } from "./gate";
 const logger = createLogger("change");
 const STATUS_REPAIR_PHASE9_EVIDENCE_RE =
   /phase9_status\s*(?::|=|\.)\s*failed|phase9 status failed|phase9_status\.failed/i;
@@ -771,7 +772,15 @@ export const changeTools = {
               let gates: Awaited<ReturnType<typeof activeStore.gates.get>> =
                 null;
               try {
-                gates = await activeStore.gates.get(changeId);
+                const rawGates = await activeStore.gates.get(changeId);
+                if (rawGates) {
+                  const reconciliation = await reconcileRecoveredGates({
+                    store: activeStore,
+                    changeId,
+                    current: rawGates,
+                  });
+                  gates = reconciliation.gates;
+                }
               } catch {
                 // best-effort: missing gates → snapshot still useful
               }
