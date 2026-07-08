@@ -23,6 +23,7 @@ import type {
   EpicArchivedSignalPayload,
   EpicMergedSignalPayload,
   EpicScopeUpdatedSignalPayload,
+  EpicSearchAttributesRefreshedSignalPayload,
 } from "../types";
 import { EpicStatusSchema } from "../types";
 import type {
@@ -50,6 +51,7 @@ export interface EpicMutationFailure {
     | "entry_already_exists"
     | "epic_not_active"
     | "epic_archived"
+    | "epic_incomplete"
     | "retarget_source_mismatch"
     | "retarget_duplicate_target";
   message: string;
@@ -731,13 +733,81 @@ export function applyEpicMergedToState(
 export function applyEpicArchivedToState(
   state: EpicWorkflowState,
   payload: EpicArchivedSignalPayload,
-): EpicWorkflowState {
+): EpicMutationResult<{ version: number }> {
+  if (isClosedForMutation(state)) return closedForMutationFailure();
+
+  const incompleteEntries = state.epic.entries.filter(
+    (entry) =>
+      entry.kind === "shell" ||
+      (entry.kind === "change" && entry.terminal_summary?.status == null),
+  );
+
+  if (
+    state.epic.progress.status !== "completed" ||
+    incompleteEntries.length > 0
+  ) {
+    const blockerNames = incompleteEntries.map((entry) => {
+      const reason = entry.kind === "shell" ? "future" : "active";
+      return `${entry.kind}:${entry.entry_id}(${reason})`;
+    });
+    return {
+      ok: false,
+      code: "epic_incomplete",
+      message:
+        blockerNames.length > 0
+          ? `Epic has incomplete entries: ${blockerNames.join(", ")}`
+          : "Epic is not completed; all entries must be terminal before retirement",
+    };
+  }
+
+  // Replay compatibility: historical epicArchived signals only carried
+  // archivedAt/archivedBy. New retirement writes expectedVersion and
+  // idempotencyKey, but old histories must still replay to the same terminal
+  // state instead of being rejected by newly-required guard fields.
+  const legacyPayload = payload as Partial<EpicArchivedSignalPayload>;
+  if (legacyPayload.idempotencyKey) {
+    const idempotency = checkIdempotency(state, legacyPayload.idempotencyKey);
+    if (idempotency) return idempotency;
+  }
+
+  if (legacyPayload.expectedVersion !== undefined) {
+    const version = checkVersion(state, legacyPayload.expectedVersion);
+    if (version) return version;
+  }
+
   state.status = "archived";
   state.epic.progress.status = EpicStatusSchema.enum.archived;
   state.epic.updated_at = payload.archivedAt;
+  bumpVersion(state.epic);
+  if (legacyPayload.idempotencyKey) {
+    recordIdempotency(
+      state,
+      legacyPayload.idempotencyKey,
+      payload.archivedAt,
+      "applied",
+    );
+  }
   setLastSignalAt(state, payload.archivedAt);
   recomputeEpicProgress(state);
-  return state;
+
+  return { ok: true, value: { version: state.epic.version } };
+}
+
+export function applySearchAttributesRefreshedToState(
+  state: EpicWorkflowState,
+  payload: EpicSearchAttributesRefreshedSignalPayload,
+): EpicMutationResult<void> {
+  const idempotency = checkIdempotency(state, payload.idempotencyKey);
+  if (idempotency) return idempotency;
+
+  recordIdempotency(
+    state,
+    payload.idempotencyKey,
+    payload.refreshedAt,
+    "refreshed",
+  );
+  setLastSignalAt(state, payload.refreshedAt);
+  return { ok: true, value: undefined };
 }
 
 export function recordEpicSignalRejectionToState(

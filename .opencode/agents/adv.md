@@ -116,6 +116,7 @@ tools:
   adv_epic_move_change: true
   adv_epic_repair_membership: true
   adv_epic_reorder: true
+  adv_epic_retire: true
   # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_create: true
   adv_worktree_resume: true

@@ -1,7 +1,8 @@
 import type { Store } from "../store-types";
-import type { Epic } from "../../types";
+import type { Epic, RetiredEpicProjection } from "../../types";
 import { ensureEpicWorkflowStarted } from "../../temporal/workflow-start";
 import {
+  epicArchivedSignal,
   epicCreatedSignal,
   epicMergedSignal,
   epicScopeUpdatedSignal,
@@ -15,8 +16,13 @@ import {
   entriesReorderedSignal,
   entryTerminalSummarySignal,
   getEpicStateQuery,
+  searchAttributesRefreshedSignal,
 } from "../../temporal/messages";
 import { runTemporal, runTemporalQuery, type StoreDeps } from "./shared";
+import {
+  loadRetiredEpicProjection,
+  saveRetiredEpicProjection,
+} from "../epic-projection";
 
 interface EpicHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -43,12 +49,14 @@ export interface EpicMutationError {
     | "entry_already_exists"
     | "epic_not_active"
     | "epic_archived"
+    | "epic_incomplete"
     | "retarget_source_mismatch"
     | "retarget_duplicate_target"
     | "temporal_unavailable"
     | "signal_rejected";
   message: string;
   rejection?: { signalName: string; errorMessage: string };
+  blockers?: { entry_id: string; kind: string; reason: string }[];
 }
 
 function idempotencyKey(prefix: string, ...parts: string[]): string {
@@ -142,6 +150,8 @@ function codeFromRejectionMessage(message: string): EpicMutationError["code"] {
   )
     return "epic_not_active";
   if (/epic_archived|Epic is archived/i.test(message)) return "epic_archived";
+  if (/epic_incomplete|incomplete entries/i.test(message))
+    return "epic_incomplete";
   return "signal_rejected";
 }
 
@@ -168,6 +178,46 @@ async function fireEpicSignal(
   }
 }
 
+/**
+ * Fire the terminal `epicArchived` signal and detect any rejection recorded by
+ * the workflow. Unlike `fireEpicSignal`, this helper does not treat a "workflow
+ * not found" query failure as an error: a completed Epic workflow is no longer
+ * queryable, which is the expected outcome of a successful archive.
+ */
+async function fireEpicArchiveSignal(
+  handle: EpicHandleLike,
+  payload: {
+    archivedAt: string;
+    archivedBy: string;
+    expectedVersion: number;
+    idempotencyKey: string;
+  },
+): Promise<void> {
+  await runTemporal(() => handle.signal(epicArchivedSignal, payload));
+  try {
+    const state = await queryEpicState(handle);
+    const rejection = lastRejectionFor(
+      state,
+      "epicArchived",
+      payload.archivedAt,
+    );
+    if (rejection) {
+      const error: EpicMutationError = {
+        code: codeFromRejectionMessage(rejection.errorMessage),
+        message: rejection.errorMessage,
+        rejection: {
+          signalName: rejection.signalName,
+          errorMessage: rejection.errorMessage,
+        },
+      };
+      throw Object.assign(new Error(error.message), error);
+    }
+  } catch (error) {
+    if (isWorkflowNotFoundError(error)) return;
+    throw error;
+  }
+}
+
 export function createEpicOps(deps: StoreDeps): Store["epics"] {
   const { input, getTemporalWorkflowClient } = deps;
 
@@ -191,7 +241,6 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       title: epicId,
       narrative: "",
       initializedAt: new Date().toISOString(),
-      searchAttributesEnabled: false,
     });
     return asEpicHandle(handle);
   }
@@ -244,11 +293,48 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
     get: async (epicId) => {
       try {
         const epic = await queryEpic(epicId);
-        if (!epic) return { success: true, data: null };
-        return { success: true, data: epic };
+        if (epic) return { success: true, data: epic };
+
+        const retired = await loadRetiredEpicProjection(
+          deps.legacy?.paths?.retiredEpics,
+          epicId,
+        );
+        if (!retired.success) {
+          return {
+            success: false,
+            error: retired.error,
+            type: retired.type,
+          };
+        }
+        if (retired.data) {
+          return {
+            success: true,
+            data: retired.data.epic_snapshot,
+            source: "retired_projection",
+          };
+        }
+        return { success: true, data: null };
       } catch (err) {
         const typed = extractMutationRejection(err);
         if (typed.code === "epic_not_found") {
+          const retired = await loadRetiredEpicProjection(
+            deps.legacy?.paths?.retiredEpics,
+            epicId,
+          );
+          if (!retired.success) {
+            return {
+              success: false,
+              error: retired.error,
+              type: retired.type,
+            };
+          }
+          if (retired.data) {
+            return {
+              success: true,
+              data: retired.data.epic_snapshot,
+              source: "retired_projection",
+            };
+          }
           return { success: true, data: null };
         }
         return {
@@ -259,11 +345,105 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       }
     },
 
-    list: async () => {
+    getRetiredProjection: async (epicId) =>
+      loadRetiredEpicProjection(deps.legacy?.paths?.retiredEpics, epicId),
+
+    saveRetiredProjection: async (epicId, projection) => {
+      const retiredEpicsDir = deps.legacy?.paths?.retiredEpics;
+      if (!retiredEpicsDir) {
+        throw new Error(
+          `Cannot save retired projection for ${epicId}: retiredEpics path is not configured`,
+        );
+      }
+      await saveRetiredEpicProjection(retiredEpicsDir, epicId, projection);
+    },
+
+    retire: async (
+      epicId,
+      { expectedVersion, evidence, retiredBy, dryRun },
+    ) => {
+      const handle = getEpicHandle(epicId);
+      const state = await tryQueryEpicState(handle);
+      if (!state) {
+        throw Object.assign(new Error(`Epic not found: ${epicId}`), {
+          code: "epic_not_found" as const,
+        });
+      }
+
+      const blockers = state.epic.entries
+        .filter(
+          (entry) =>
+            entry.kind === "shell" ||
+            (entry.kind === "change" && entry.terminal_summary?.status == null),
+        )
+        .map((entry) => ({
+          entry_id: entry.entry_id,
+          kind: entry.kind,
+          reason: entry.kind === "shell" ? "future" : "active",
+        }));
+
+      if (state.epic.progress.status !== "completed" || blockers.length > 0) {
+        const error = new Error(
+          `Epic ${epicId} has incomplete entries and cannot be retired`,
+        );
+        throw Object.assign(error, {
+          code: "epic_incomplete" as const,
+          message: error.message,
+          blockers,
+        });
+      }
+
+      if (state.epic.version !== expectedVersion) {
+        throw Object.assign(
+          new Error(
+            `Expected Epic version ${expectedVersion}, found ${state.epic.version}`,
+          ),
+          {
+            code: "stale_version" as const,
+          },
+        );
+      }
+
+      const workflowId = buildEpicWorkflowId(input.projectId, epicId);
+      const retiredAt = new Date().toISOString();
+
+      const projection: RetiredEpicProjection = {
+        epic_snapshot: JSON.parse(JSON.stringify(state.epic)) as Epic,
+        retired_at: retiredAt,
+        retired_by: retiredBy,
+        evidence,
+        source_workflow_id: workflowId,
+        source_version: state.epic.version,
+        projection_status: dryRun ? "prepared" : "retired",
+      };
+
+      if (dryRun) {
+        return projection;
+      }
+
+      await deps.legacy.epics.saveRetiredProjection(epicId, projection);
+
+      await fireEpicArchiveSignal(handle, {
+        archivedAt: retiredAt,
+        archivedBy: retiredBy,
+        expectedVersion: state.epic.version,
+        idempotencyKey: idempotencyKey(
+          "epic-retire",
+          epicId,
+          String(state.epic.version),
+        ),
+      });
+
+      return projection;
+    },
+
+    list: async (filter?: { status?: "active" | "all" }) => {
       const client =
         getTemporalClient() as unknown as import("../../temporal/list-epic-workflows").ListEpicClient;
+      const status = filter?.status ?? "active";
       const ids = await listEpicWorkflowIds(client, {
         projectId: input.projectId,
+        status,
       });
       const epics: Epic[] = [];
       for (const id of ids) {
@@ -278,8 +458,12 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
           );
         }
       }
-      epics.sort((a, b) => b.created_at.localeCompare(a.created_at));
-      return epics;
+      const filtered =
+        status === "active"
+          ? epics.filter((epic) => epic.progress.status === "active")
+          : epics;
+      filtered.sort((a, b) => b.created_at.localeCompare(a.created_at));
+      return filtered;
     },
 
     update: async (epicId, { title, narrative, expectedVersion }) => {
@@ -678,6 +862,107 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         throw new Error(`Epic disappeared during reorder: ${epicId}`);
       }
       return updated;
+    },
+
+    repairIndex: async ({ evidence, dryRun }) => {
+      const client =
+        getTemporalClient() as unknown as import("../../temporal/list-epic-workflows").ListEpicClient;
+      const ids = await listEpicWorkflowIds(client, {
+        projectId: input.projectId,
+        status: "running",
+      });
+
+      const refreshedAt = new Date().toISOString();
+      const report: Awaited<
+        ReturnType<Store["epics"]["repairIndex"]>
+      >["epics"] = [];
+      let refreshed = 0;
+      let skipped = 0;
+      let unreachable = 0;
+
+      for (const epicId of ids) {
+        const handle = getEpicHandle(epicId);
+        let state: import("../../temporal/contracts").EpicWorkflowState | null;
+        try {
+          state = await tryQueryEpicState(handle);
+        } catch {
+          state = null;
+        }
+        if (!state) {
+          unreachable += 1;
+          report.push({
+            epic_id: epicId,
+            status: "unknown",
+            action: "unreachable",
+            error: "Workflow state unavailable",
+          });
+          continue;
+        }
+
+        const status = state.epic.progress.status;
+        if (state.status === "archived" || state.status === "merged") {
+          skipped += 1;
+          report.push({
+            epic_id: epicId,
+            status,
+            action: "skipped",
+          });
+          continue;
+        }
+
+        if (dryRun) {
+          report.push({
+            epic_id: epicId,
+            status,
+            action: "would_refresh",
+          });
+          continue;
+        }
+
+        const payload = {
+          evidence,
+          refreshedAt,
+          idempotencyKey: idempotencyKey(
+            "repair-index",
+            input.projectId,
+            epicId,
+            refreshedAt,
+          ),
+        };
+
+        try {
+          await fireEpicSignal(
+            handle,
+            "searchAttributesRefreshed",
+            refreshedAt,
+            searchAttributesRefreshedSignal,
+            payload,
+          );
+          refreshed += 1;
+          report.push({
+            epic_id: epicId,
+            status,
+            action: "refreshed",
+          });
+        } catch (err) {
+          const typed = extractMutationRejection(err);
+          skipped += 1;
+          report.push({
+            epic_id: epicId,
+            status,
+            action: "skipped",
+            error: typed.message,
+          });
+        }
+      }
+
+      return {
+        total: ids.length,
+        refreshed,
+        skipped,
+        unreachable,
+        epics: report,
+      };
     },
   };
 }

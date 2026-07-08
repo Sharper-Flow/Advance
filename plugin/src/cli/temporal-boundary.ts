@@ -4,6 +4,7 @@
  * This module is not a public package API. It is the only approved live
  * Temporal source boundary for root CLI code. Keep the export set narrow and
  * covered by `bin/lib/cli-source-boundary.test.ts`.
+ * rq-cliSourceBoundary01
  */
 
 export {

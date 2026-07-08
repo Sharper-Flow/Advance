@@ -100,6 +100,10 @@ export {
   type Epic,
   EpicMembershipSchema,
   type EpicMembership,
+  RetiredEpicProjectionStatusSchema,
+  type RetiredEpicProjectionStatus,
+  RetiredEpicProjectionSchema,
+  type RetiredEpicProjection,
 } from "./epics";
 
 // =============================================================================

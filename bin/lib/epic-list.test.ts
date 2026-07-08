@@ -4,11 +4,7 @@ import {
   buildLiveEpicListFailure,
   buildLiveEpicListPayload,
   listEpicIdsFromVisibility,
-  loadCurrentChildByEpicId,
 } from "./epic-list";
-import { mkdtemp, mkdir, writeFile } from "fs/promises";
-import { join } from "path";
-import { tmpdir } from "os";
 
 function fakeEpicClient(workflowIds: string[], listError?: Error) {
   const queries: string[] = [];
@@ -36,7 +32,6 @@ describe("epic list CLI helper", () => {
       {
         projectId: "pid-abc",
         now,
-        currentChildByEpicId: new Map([["cardIdentity", "codifyScopedPricingSpec"]]),
       },
     );
 
@@ -46,71 +41,8 @@ describe("epic list CLI helper", () => {
       stale: false,
       generated_at: "2026-06-26T03:00:00.000Z",
       project_id: "pid-abc",
-      epics: [
-        { id: "cardIdentity", currentChildChangeId: "codifyScopedPricingSpec" },
-        { id: "providerArchitecture" },
-      ],
+      epics: [{ id: "cardIdentity" }, { id: "providerArchitecture" }],
     });
-  });
-
-  test("loads first current child per Epic from persisted active membership", async () => {
-    const root = await mkdtemp(join(tmpdir(), "adv-epic-list-"));
-    const changesDir = join(root, "changes");
-    await mkdir(join(changesDir, "olderChild"), { recursive: true });
-    await mkdir(join(changesDir, "newerChild"), { recursive: true });
-    await mkdir(join(changesDir, "closedChild"), { recursive: true });
-    await mkdir(join(changesDir, "shellOnlyOtherEpic"), { recursive: true });
-
-    await writeFile(
-      join(changesDir, "olderChild", "change.json"),
-      JSON.stringify({
-        id: "olderChild",
-        title: "Older child",
-        status: "draft",
-        created_at: "2026-06-25T00:00:00.000Z",
-        lastSignalAt: "2026-06-26T00:00:00.000Z",
-        tasks: [],
-        epic_membership: { epic_id: "cardIdentity", title: "Older child" },
-      }),
-    );
-    await writeFile(
-      join(changesDir, "newerChild", "change.json"),
-      JSON.stringify({
-        id: "newerChild",
-        title: "Newer child",
-        status: "draft",
-        created_at: "2026-06-25T00:00:00.000Z",
-        lastSignalAt: "2026-06-27T00:00:00.000Z",
-        tasks: [],
-        epic_membership: { epic_id: "cardIdentity", title: "Newer child" },
-      }),
-    );
-    await writeFile(
-      join(changesDir, "closedChild", "change.json"),
-      JSON.stringify({
-        id: "closedChild",
-        title: "Closed child",
-        status: "closed",
-        created_at: "2026-06-28T00:00:00.000Z",
-        tasks: [],
-        epic_membership: { epic_id: "providerArchitecture", title: "Closed" },
-      }),
-    );
-    await writeFile(
-      join(changesDir, "shellOnlyOtherEpic", "change.json"),
-      JSON.stringify({
-        id: "shellOnlyOtherEpic",
-        title: "No epic membership",
-        status: "draft",
-        created_at: "2026-06-28T00:00:00.000Z",
-        tasks: [],
-      }),
-    );
-
-    const byEpic = await loadCurrentChildByEpicId(root);
-
-    expect(byEpic.get("cardIdentity")).toBe("newerChild");
-    expect(byEpic.has("providerArchitecture")).toBe(false);
   });
 
   test("builds fail-closed JSON metadata", () => {
@@ -144,6 +76,22 @@ describe("epic list CLI helper", () => {
     });
 
     expect(ids).toEqual(["cardIdentity", "addLauncherRows"]);
+    expect(client.queries).toEqual([
+      'WorkflowType = "epicWorkflow" AND AdvEpicStatus = "active" AND ExecutionStatus = "Running"',
+    ]);
+  });
+
+  test("can request all execution statuses without ExecutionStatus filter", async () => {
+    const client = fakeEpicClient([
+      "adv/epic/pid-abc/cardIdentity",
+    ]);
+
+    await listEpicIdsFromVisibility(client, {
+      projectId: "pid-abc",
+      timeoutMs: 1000,
+      status: "all",
+    });
+
     expect(client.queries).toEqual(['WorkflowType = "epicWorkflow"']);
   });
 

@@ -47,6 +47,9 @@ describe("Advance Epics spec documentation", () => {
       "rq-epicTemporalConstraints01",
       "rq-epicTerminalChildProjection01",
       "rq-epicBriefingContext01",
+      "rq-epicRetirement01",
+      "rq-epicRetiredListing01",
+      "rq-epicRetiredHistory01",
     ]) {
       expect(doc).toContain(reqId);
     }
@@ -116,6 +119,29 @@ describe("Advance Epics spec documentation", () => {
       "OWNER_ROUTING_AMBIGUOUS",
     );
     expect(JSON.stringify(ownerRoutingReq)).toContain("OWNER_ROUTING_REQUIRED");
+    const retirementReq = spec.requirements.find(
+      (r: { id: string }) => r.id === "rq-epicRetirement01",
+    );
+    expect(retirementReq).toBeDefined();
+    expect(JSON.stringify(retirementReq)).toContain("adv_epic_retire");
+    expect(JSON.stringify(retirementReq)).toContain("expected_version");
+    expect(JSON.stringify(retirementReq)).toContain("audit evidence");
+    expect(JSON.stringify(retirementReq)).toContain("blocking entries");
+    const retiredListingReq = spec.requirements.find(
+      (r: { id: string }) => r.id === "rq-epicRetiredListing01",
+    );
+    expect(retiredListingReq).toBeDefined();
+    expect(JSON.stringify(retiredListingReq)).toContain("AdvEpicStatus");
+    expect(JSON.stringify(retiredListingReq)).toContain("active");
+    expect(JSON.stringify(retiredListingReq)).toContain("ExecutionStatus");
+    expect(JSON.stringify(retiredListingReq)).toContain("Running");
+    expect(JSON.stringify(retiredListingReq)).toContain("dry-run");
+    const retiredHistoryReq = spec.requirements.find(
+      (r: { id: string }) => r.id === "rq-epicRetiredHistory01",
+    );
+    expect(retiredHistoryReq).toBeDefined();
+    expect(JSON.stringify(retiredHistoryReq)).toContain("adv_epic_show");
+    expect(JSON.stringify(retiredHistoryReq)).toContain("retirement metadata");
   });
 });
 

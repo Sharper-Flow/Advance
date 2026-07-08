@@ -44,6 +44,7 @@ export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {
   worktreePaths: "AdvWorktreePaths",
   backlogIssueNumber: "AdvBacklogIssueNumber",
   epicId: "AdvEpicId",
+  epicStatus: "AdvEpicStatus",
 } as const;
 
 export const CHANGE_WORKFLOW_QUERY_NAMES = {
@@ -139,6 +140,7 @@ export const EPIC_WORKFLOW_SIGNAL_NAMES = {
   entriesReordered: "adv.epic.entriesReordered",
   entryTerminalSummary: "adv.epic.entryTerminalSummary",
   epicArchived: "adv.epic.epicArchived",
+  searchAttributesRefreshed: "adv.epic.searchAttributesRefreshed",
 } as const;
 
 export function subagentReportKey(input: {

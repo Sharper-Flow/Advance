@@ -28,6 +28,7 @@ export const ADV_SEARCH_ATTRIBUTES = {
   AdvWorktreePaths: "KeywordList",
   AdvBacklogIssueNumber: "Keyword",
   AdvEpicId: "Keyword",
+  AdvEpicStatus: "Keyword",
 } as const;
 
 const SEARCH_ATTRIBUTE_TYPE_CODE = {

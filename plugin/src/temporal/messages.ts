@@ -355,3 +355,6 @@ export const entryTerminalSummarySignal = wf.defineSignal<
 export const epicArchivedSignal = wf.defineSignal<[EpicArchivedSignalPayload]>(
   EPIC_WORKFLOW_SIGNAL_NAMES.epicArchived,
 );
+export const searchAttributesRefreshedSignal = wf.defineSignal<
+  [import("../types").EpicSearchAttributesRefreshedSignalPayload]
+>(EPIC_WORKFLOW_SIGNAL_NAMES.searchAttributesRefreshed);

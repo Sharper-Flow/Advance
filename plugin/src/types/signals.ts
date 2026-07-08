@@ -744,11 +744,29 @@ export type EpicMergedSignalPayload = z.infer<
 
 /**
  * Archive the Epic. Terminal signal that sets status to "archived".
+ * Requires a completed Epic (all entries terminal) and matches expectedVersion.
  */
 export const EpicArchivedSignalPayloadSchema = z.object({
   archivedAt: IsoTimestampSchema,
   archivedBy: z.string().min(1),
+  expectedVersion: z.number().int().min(0),
+  idempotencyKey: z.string().min(1),
 });
 export type EpicArchivedSignalPayload = z.infer<
   typeof EpicArchivedSignalPayloadSchema
+>;
+
+/**
+ * Refresh Epic search-attribute indexing for legacy workflows that started
+ * before `AdvEpicStatus` was registered. Purely additive: records the
+ * idempotency key and timestamp, upserts the current `AdvEpicStatus`, and
+ * does not mutate the Epic record, version, or progress.
+ */
+export const EpicSearchAttributesRefreshedSignalPayloadSchema = z.object({
+  evidence: z.string().min(1),
+  refreshedAt: IsoTimestampSchema,
+  idempotencyKey: z.string().min(1),
+});
+export type EpicSearchAttributesRefreshedSignalPayload = z.infer<
+  typeof EpicSearchAttributesRefreshedSignalPayloadSchema
 >;

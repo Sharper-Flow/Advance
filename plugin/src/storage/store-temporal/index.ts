@@ -727,7 +727,7 @@ export function createTemporalStoreBackend(
     const candidateResolutions: Array<{
       id: string;
       terminal: boolean;
-      source?: "workflow" | "disk" | "archive";
+      source?: "workflow" | "disk" | "archive" | "retired_projection";
       omitted: boolean;
     }> = [];
 

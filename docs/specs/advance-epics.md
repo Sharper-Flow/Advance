@@ -1,7 +1,7 @@
 # Advance Epics
 
-> **Version:** 1.8.0
-> **Updated:** 2026-07-05
+> **Version:** 1.10.0
+> **Updated:** 2026-07-08
 
 ## Purpose
 
@@ -1015,6 +1015,146 @@ The `adv epic list --json` CLI command MUST return live Temporal-backed Epic IDs
 - Only the read-only `list` operation is accepted
 - Mutation verbs such as `create`, `update`, `delete`, and `archive` are not dispatched
 - The list path does not query per-Epic workflow state
+
+---
+
+### Completed Epics Retire Through an Audited Typed Lifecycle Path
+
+**ID:** `rq-epicRetirement01` | **Priority:** **[MUST]**
+
+Completed Epics MUST be retired through a typed `adv_epic_retire` lifecycle path. Retirement MUST require `expected_version`, non-blank audit evidence, and a retiring actor, and MUST support `dryRun` without mutation. The retirement preflight MUST prove the Epic progress status is completed and every entry is terminal before any durable mutation. If active or future work remains, retirement MUST fail before mutation and MUST identify the blocking entries.
+
+**Tags:** `epics`, `retirement`, `lifecycle`, `audit`
+
+#### Scenarios
+
+**Completed Epic retires with audit evidence and expected version** (`rq-epicRetirement01.1`)
+
+**Given:**
+- An Epic has completed progress
+- Every Epic entry is terminal
+
+**When:** A caller invokes adv_epic_retire with expected_version and audit evidence
+
+**Then:**
+- The version guard is checked before mutation
+- The audit evidence and retiring actor are preserved
+- The Epic is retired through the typed lifecycle path
+
+**Active or future entries block retirement before mutation** (`rq-epicRetirement01.2`)
+
+**Given:**
+- An Epic has one or more active or future entries
+
+**When:** A caller attempts to retire the Epic
+
+**Then:**
+- The operation fails before any durable mutation
+- The response names the blocking entries
+- No retirement projection or archive signal is written
+
+**Dry-run reports eligibility without mutation** (`rq-epicRetirement01.3`)
+
+**Given:**
+- A caller requests retirement with dryRun enabled
+
+**When:** The preflight completes
+
+**Then:**
+- The response reports current version, progress status, eligibility, blockers, and projected retired summary
+- The Epic workflow and retired projection remain unchanged
+
+---
+
+### Active Epic Lists Exclude Retired Epics Structurally
+
+**ID:** `rq-epicRetiredListing01` | **Priority:** **[MUST]**
+
+Default Epic listing surfaces MUST represent active Epics only and MUST exclude retired, merged, and completed-candidate Epics structurally, not by consumer-side inference. The `adv_epic_list` default and `adv epic list --json` MUST enumerate live `epicWorkflow` executions with `AdvEpicStatus = "active"`, `ExecutionStatus = "Running"`, and project-prefix filtering. Completed-but-unretired Epics MUST remain available through explicit operator candidate/dry-run surfaces, not default next-work lists. Existing completed Epics MUST have a manual dry-run candidate report that lists retirement candidates and blockers without mutating state. Legacy running Epic workflows that started without `AdvEpicStatus` indexed MUST have an explicit audited index repair/backfill path (`adv_epic_repair_membership mode=refresh_search_attributes`) that enumerates running `epicWorkflow` executions without the `AdvEpicStatus` filter, hydrates each state, and signals reachable Epics to upsert their current `AdvEpicStatus`; the default active-only listing MUST remain unchanged and MUST NOT perform automatic mutation.
+
+**Tags:** `epics`, `listing`, `cli`, `visibility`, `retirement`
+
+#### Scenarios
+
+**Default MCP list excludes retired Epics** (`rq-epicRetiredListing01.1`)
+
+**Given:**
+- Temporal Visibility contains running Epic workflows and retired completed Epic workflows
+
+**When:** adv_epic_list runs with default arguments
+
+**Then:**
+- Only active/running Epic workflows are listed
+- Retired Epic workflows are excluded without consumer-side filtering
+
+**CLI list remains live active-only JSON** (`rq-epicRetiredListing01.2`)
+
+**Given:**
+- A caller runs adv epic list --json
+
+**When:** The CLI builds its Temporal Visibility query
+
+**Then:**
+- The query includes WorkflowType = epicWorkflow
+- The query includes AdvEpicStatus = "active"
+- The query includes ExecutionStatus = "Running"
+- The payload remains live Temporal-backed and active-only by default
+
+**Existing completed Epics report as dry-run candidates** (`rq-epicRetiredListing01.3`)
+
+**Given:**
+- One or more completed-but-unretired Epics exist
+
+**When:** An operator requests the completed-Epic retirement dry-run report
+
+**Then:**
+- The report lists eligible candidates and blocked Epics with blocker details
+- The dry-run does not retire or archive any Epic
+
+---
+
+### Retired Epic History Remains Typed and Queryable By ID
+
+**ID:** `rq-epicRetiredHistory01` | **Priority:** **[MUST]**
+
+Retirement MUST preserve typed history access to retired Epics. The retirement path MUST persist a durable retired projection before the archive/completion signal is fired. `adv_epic_show` MUST first try the live workflow and then fall back to the retired projection when the workflow is completed or unavailable. The retained view MUST include title, narrative, entries, terminal summaries, source version, and retirement metadata, and MUST return deterministic typed errors when neither live state nor retired projection can be read.
+
+**Tags:** `epics`, `retirement`, `history`, `projection`
+
+#### Scenarios
+
+**Retirement writes projection before workflow completion** (`rq-epicRetiredHistory01.1`)
+
+**Given:**
+- A completed Epic is eligible for retirement
+
+**When:** The retirement operation executes
+
+**Then:**
+- A retired projection is persisted before the archive signal completes the workflow
+- The projection records the source workflow ID, source version, retired_at, retired_by, and evidence
+
+**Show reads retired Epic history by ID** (`rq-epicRetiredHistory01.2`)
+
+**Given:**
+- An Epic has been retired and its workflow is no longer queryable
+
+**When:** A caller invokes adv_epic_show for that Epic ID
+
+**Then:**
+- The response is loaded from the retired projection
+- The response includes title, narrative, entries, terminal summaries, and retirement metadata
+
+**Missing live and retired state fails deterministically** (`rq-epicRetiredHistory01.3`)
+
+**Given:**
+- No live Epic workflow or retired projection exists for an Epic ID
+
+**When:** A caller invokes adv_epic_show
+
+**Then:**
+- A typed not-found error is returned
+- No ADV state files are read directly by agents
 
 ---
 

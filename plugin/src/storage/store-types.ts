@@ -30,6 +30,7 @@ import type {
   EpicEntry,
   EpicChangeRef,
   EpicMembershipStatus,
+  RetiredEpicProjection,
 } from "../types";
 import type { ProjectPaths, LoadResult } from "./json";
 import type { ProductContext } from "./product-context";
@@ -344,7 +345,7 @@ export interface Store {
       options?: { epicScope?: Epic["epic_scope"] },
     ) => Promise<Epic>;
     get: (epicId: string) => Promise<LoadResult<Epic | null>>;
-    list: () => Promise<Epic[]>;
+    list: (filter?: { status?: "active" | "all" }) => Promise<Epic[]>;
     update: (
       epicId: string,
       input: { title?: string; narrative?: string; expectedVersion: number },
@@ -434,6 +435,55 @@ export interface Store {
       entryIds: string[],
       expectedVersion: number,
     ) => Promise<Epic>;
+    /**
+     * Load the durable retired projection for an Epic, if one exists.
+     * Returns null when no retired projection has been persisted.
+     */
+    getRetiredProjection: (
+      epicId: string,
+    ) => Promise<LoadResult<RetiredEpicProjection | null>>;
+    /**
+     * Persist a durable retired projection for an Epic. Used by the
+     * retirement lifecycle path before the live workflow is completed.
+     */
+    saveRetiredProjection: (
+      epicId: string,
+      projection: RetiredEpicProjection,
+    ) => Promise<void>;
+    /**
+     * Guarded Epic retirement: query live state, verify the Epic is completed
+     * with no active or future entries, persist a retired projection, then
+     * signal the Epic workflow to archive. Supports dry-run to preview the
+     * projection without persisting or signaling.
+     */
+    retire: (
+      epicId: string,
+      input: {
+        expectedVersion: number;
+        evidence: string;
+        retiredBy: string;
+        dryRun?: boolean;
+      },
+    ) => Promise<RetiredEpicProjection>;
+    /**
+     * Audited backfill/repair of the AdvEpicStatus search index for running
+     * Epic workflows. Enumerates running epicWorkflow executions without the
+     * AdvEpicStatus filter, hydrates each state, and signals reachable Epics
+     * to upsert their current status. Does not retire, archive, or mutate Epic
+     * records beyond the idempotency ledger and lastSignalAt.
+     */
+    repairIndex: (input: { evidence: string; dryRun?: boolean }) => Promise<{
+      total: number;
+      refreshed: number;
+      skipped: number;
+      unreachable: number;
+      epics: Array<{
+        epic_id: string;
+        status: string;
+        action: "would_refresh" | "refreshed" | "skipped" | "unreachable";
+        error?: string;
+      }>;
+    }>;
   };
 }
 

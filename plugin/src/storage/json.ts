@@ -31,7 +31,11 @@ const logger = createLogger("json");
  * Errors are returned as data, not logged to console, so AI agents can see them.
  */
 export type LoadResult<T> =
-  | { success: true; data: T; source?: "workflow" | "disk" | "archive" }
+  | {
+      success: true;
+      data: T;
+      source?: "workflow" | "disk" | "archive" | "retired_projection";
+    }
   | {
       success: false;
       error: string;
@@ -133,6 +137,7 @@ export interface ProjectPaths {
   // Mutable (external when externalRoot is provided, else in-repo fallback)
   changes: string;
   archive: string;
+  retiredEpics: string;
   wisdom: string;
   agenda: string;
   reflections: string;
@@ -168,6 +173,7 @@ export function getProjectPaths(
       config: configPath,
       changes: join(ext, changesDir),
       archive: join(ext, archiveDir),
+      retiredEpics: join(ext, "retired-epics"),
       wisdom: join(ext, "wisdom.jsonl"),
       agenda: join(ext, "agenda.jsonl"),
       reflections: join(ext, "reflections.jsonl"),
@@ -184,6 +190,7 @@ export function getProjectPaths(
     config: configPath,
     changes: join(root, config?.changes_dir ?? ".adv/changes"),
     archive: join(root, config?.archive_dir ?? ".adv/archive"),
+    retiredEpics: join(root, ".adv/retired-epics"),
     wisdom: join(root, ".adv/wisdom.jsonl"),
     agenda: join(root, ".adv/agenda.jsonl"),
     reflections: join(root, ".adv/reflections.jsonl"),

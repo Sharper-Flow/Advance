@@ -16,6 +16,7 @@ import type {
   EpicEntry,
   EpicMembershipStatus,
   EpicScope,
+  RetiredEpicProjection,
 } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { getBacklogItem } from "../utils/backlog-store";
@@ -54,7 +55,15 @@ function epicError(err: unknown) {
       ? ((err as { code?: string }).code ?? "EPIC_ERROR")
       : "EPIC_ERROR";
   const message = err instanceof Error ? err.message : String(err);
-  return formatToolOutput({ error: message, code });
+  const blockers =
+    err instanceof Error
+      ? ((err as { blockers?: unknown[] }).blockers ?? undefined)
+      : undefined;
+  return formatToolOutput({
+    error: message,
+    code,
+    ...(blockers && { blockers }),
+  });
 }
 
 function mapEpicEntry(entry: EpicEntry) {
@@ -237,10 +246,62 @@ function formatEpic(epic: import("../types").Epic) {
   };
 }
 
+function formatEpicWithRetired(
+  epic: import("../types").Epic,
+  retiredProjection: RetiredEpicProjection,
+) {
+  return {
+    ...formatEpic(epic),
+    retired: {
+      retired_at: retiredProjection.retired_at,
+      retired_by: retiredProjection.retired_by,
+      evidence: retiredProjection.evidence,
+      source_workflow_id: retiredProjection.source_workflow_id,
+      source_version: retiredProjection.source_version,
+      projection_status: retiredProjection.projection_status,
+    },
+  };
+}
+
+function formatEpicCompactWithRetired(
+  epic: import("../types").Epic,
+  retiredProjection: RetiredEpicProjection,
+) {
+  return {
+    ...formatEpicCompact(epic),
+    retired: {
+      retired_at: retiredProjection.retired_at,
+      retired_by: retiredProjection.retired_by,
+      evidence: retiredProjection.evidence,
+      source_workflow_id: retiredProjection.source_workflow_id,
+      source_version: retiredProjection.source_version,
+      projection_status: retiredProjection.projection_status,
+    },
+  };
+}
+
 async function loadEpic(store: Store, epicId: string) {
   const result = await store.epics.get(epicId);
   if (!result.success || !result.data) return null;
   return result.data;
+}
+
+async function loadEpicWithRetiredProjection(
+  store: Store,
+  epicId: string,
+): Promise<{
+  epic: import("../types").Epic;
+  retiredProjection?: RetiredEpicProjection;
+} | null> {
+  const result = await store.epics.get(epicId);
+  if (!result.success || !result.data) return null;
+  if (result.source === "retired_projection") {
+    const retired = await store.epics.getRetiredProjection(epicId);
+    if (retired.success && retired.data) {
+      return { epic: result.data, retiredProjection: retired.data };
+    }
+  }
+  return { epic: result.data };
 }
 
 async function loadChange(
@@ -709,6 +770,7 @@ const EpicRepairModeSchema = z.enum([
   "mark_target_unreachable",
   "remove_stale_entry",
   "retarget_stale_entry",
+  "refresh_search_attributes",
 ]);
 
 const EpicMergeResolutionSchema = z.object({
@@ -963,10 +1025,22 @@ export const epicTools = {
           epic_owner_target_confirmed,
           epic_owner_confirmationEvidence,
         });
-        const epic = await loadEpic(owner.store, epic_id);
-        if (!epic) return epicNotFound(epic_id);
+        const loaded = await loadEpicWithRetiredProjection(
+          owner.store,
+          epic_id,
+        );
+        if (!loaded) return epicNotFound(epic_id);
         const rendered =
-          view === "full" ? formatEpic(epic) : formatEpicCompact(epic);
+          view === "full"
+            ? loaded.retiredProjection
+              ? formatEpicWithRetired(loaded.epic, loaded.retiredProjection)
+              : formatEpic(loaded.epic)
+            : loaded.retiredProjection
+              ? formatEpicCompactWithRetired(
+                  loaded.epic,
+                  loaded.retiredProjection,
+                )
+              : formatEpicCompact(loaded.epic);
         const output = formatToolOutput({ success: true, epic: rendered });
         return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
@@ -976,8 +1050,15 @@ export const epicTools = {
   },
 
   adv_epic_list: {
-    description: "List all active Epics for the project.",
+    description:
+      "List active Epics by default, or enumerate retirement candidates/completed Epics without mutating state.",
     args: {
+      status: z
+        .enum(["active", "completed", "all"])
+        .optional()
+        .describe(
+          "List mode: active (default, running active Epics), all (running Epics of any progress status), or completed (dry-run retirement candidates with blockers).",
+        ),
       limit: z
         .number()
         .int()
@@ -990,12 +1071,14 @@ export const epicTools = {
     },
     execute: async (
       {
+        status,
         limit,
         offset,
         epic_owner_target_path,
         epic_owner_target_confirmed,
         epic_owner_confirmationEvidence,
       }: {
+        status?: "active" | "completed" | "all";
         limit?: number;
         offset?: number;
         epic_owner_target_path?: string;
@@ -1011,15 +1094,96 @@ export const epicTools = {
           epic_owner_target_confirmed,
           epic_owner_confirmationEvidence,
         });
-        const epics = await owner.store.epics.list();
-        const { items, pagination } = paginate(epics, {
+        const mode = status ?? "active";
+
+        if (mode === "active" || mode === "all") {
+          const epics = await owner.store.epics.list({
+            status: mode === "active" ? "active" : "all",
+          });
+          const { items, pagination } = paginate(epics, {
+            limit,
+            offset,
+            tool: "adv_epic_list",
+          });
+          const output = formatToolOutput({
+            success: true,
+            status_filter: mode,
+            epics: items.map(formatEpic),
+            pagination,
+          });
+          return formatEpicRoutingOutput(output, owner, owner);
+        }
+
+        // Completed-candidate dry-run report: use the existing store retirement
+        // dry-run path to verify eligibility without mutating state. Eligible
+        // Epics become candidates; ineligible Epics are reported as blocked.
+        const allRunning = await owner.store.epics.list({ status: "all" });
+        const candidates: Array<{
+          id: string;
+          title: string;
+          version: number;
+          status: string;
+          projection_status: string;
+        }> = [];
+        const blocked: Array<{
+          id: string;
+          title: string;
+          status: string;
+          code: string;
+          reason: string;
+          blockers?: Array<{ entry_id: string; kind: string; reason: string }>;
+        }> = [];
+
+        for (const epic of allRunning) {
+          try {
+            const projection = await owner.store.epics.retire(epic.id, {
+              expectedVersion: epic.version,
+              evidence: "completed-candidate dry-run report",
+              retiredBy: "agent",
+              dryRun: true,
+            });
+            candidates.push({
+              id: epic.id,
+              title: epic.title,
+              version: epic.version,
+              status: epic.progress.status,
+              projection_status: projection.projection_status,
+            });
+          } catch (err) {
+            const typed = err as {
+              code?: string;
+              message?: string;
+              blockers?: Array<{
+                entry_id: string;
+                kind: string;
+                reason: string;
+              }>;
+            };
+            blocked.push({
+              id: epic.id,
+              title: epic.title,
+              status: epic.progress.status,
+              code: typed.code ?? "unknown",
+              reason: typed.message ?? String(err),
+              blockers: typed.blockers,
+            });
+          }
+        }
+
+        const { items: pageItems, pagination } = paginate(candidates, {
           limit,
           offset,
           tool: "adv_epic_list",
         });
+
         const output = formatToolOutput({
           success: true,
-          epics: items.map(formatEpic),
+          status_filter: "completed",
+          report: {
+            candidates: pageItems,
+            total_candidates: candidates.length,
+            blocked,
+          },
           pagination,
         });
         return formatEpicRoutingOutput(output, owner, owner);
@@ -2488,9 +2652,9 @@ export const epicTools = {
 
   adv_epic_repair_membership: {
     description:
-      "Repair stale Epic membership projection state. Supports dry-run preview, target-path routing, and bounded member-status output.",
+      "Repair stale Epic membership projection state or refresh the AdvEpicStatus search-attribute index for legacy running Epics. Supports dry-run preview, target-path routing, and bounded member-status output.",
     args: {
-      epic_id: EPIC_ID_SCHEMA,
+      epic_id: EPIC_ID_SCHEMA.optional(),
       mode: EpicRepairModeSchema,
       entry_id: z.string().min(1).optional(),
       change_id: z.string().min(1).optional(),
@@ -2533,7 +2697,7 @@ export const epicTools = {
         epic_owner_confirmationEvidence,
         dryRun,
       }: {
-        epic_id: string;
+        epic_id?: string;
         mode: z.infer<typeof EpicRepairModeSchema>;
         entry_id?: string;
         change_id?: string;
@@ -2579,6 +2743,41 @@ export const epicTools = {
             ...shapeError,
             ownerContext: routing.owner.context,
             childContext: explicitChildStore.context,
+          });
+        }
+
+        if (mode === "refresh_search_attributes") {
+          if (epic_id) {
+            return formatToolOutput({
+              error:
+                "epic_id must be omitted for refresh_search_attributes; this mode scans all running Epics in the owner project.",
+              code: "REPAIR_SCOPE_CONFLICT",
+            });
+          }
+          const report = await ownerStore.epics.repairIndex({
+            evidence,
+            dryRun: dryRun ?? false,
+          });
+          return formatEpicRoutingOutput(
+            formatToolOutput({
+              success: true,
+              dryRun: dryRun ?? false,
+              action: "refresh_search_attributes",
+              total: report.total,
+              refreshed: report.refreshed,
+              skipped: report.skipped,
+              unreachable: report.unreachable,
+              epics: report.epics,
+            }),
+            routing.owner,
+            explicitChildStore,
+          );
+        }
+
+        if (!epic_id) {
+          return formatToolOutput({
+            error: "epic_id is required for this repair mode.",
+            code: "MISSING_EPIC_ID",
           });
         }
 
@@ -3094,6 +3293,92 @@ export const epicTools = {
         const output = formatToolOutput({
           success: true,
           epic: formatEpic(epic),
+        });
+        return formatEpicRoutingOutput(output, owner, owner);
+      } catch (err) {
+        return epicError(err);
+      }
+    },
+  },
+
+  adv_epic_retire: {
+    description:
+      "Retire a completed Epic. Fires the terminal archive signal, persists a retired projection, and returns the retirement summary. Requires evidence and expected_version. Use dryRun to preview eligibility without mutating state.",
+    args: {
+      epic_id: EPIC_ID_SCHEMA,
+      expected_version: z
+        .number()
+        .int()
+        .min(0)
+        .describe("Current Epic version from adv_epic_show."),
+      evidence: z
+        .string()
+        .trim()
+        .min(1)
+        .describe("Required non-blank audit evidence for the retirement."),
+      retired_by: z
+        .string()
+        .trim()
+        .min(1)
+        .optional()
+        .default("agent")
+        .describe("Identity retiring the Epic. Defaults to agent."),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe(
+          "Preview retirement eligibility and projection without firing the archive signal or persisting state.",
+        ),
+      ...epicOwnerTargetPathSchema,
+    },
+    execute: async (
+      {
+        epic_id,
+        expected_version,
+        evidence,
+        retired_by,
+        dryRun,
+        epic_owner_target_path,
+        epic_owner_target_confirmed,
+        epic_owner_confirmationEvidence,
+      }: {
+        epic_id: string;
+        expected_version: number;
+        evidence: string;
+        retired_by?: string;
+        dryRun?: boolean;
+        epic_owner_target_path?: string;
+        epic_owner_target_confirmed?: true;
+        epic_owner_confirmationEvidence?: string;
+      },
+      store: Store,
+    ) => {
+      try {
+        const owner = await resolveEpicOwnerStore({
+          store,
+          epic_owner_target_path,
+          epic_owner_target_confirmed,
+          epic_owner_confirmationEvidence,
+        });
+        const projection = await owner.store.epics.retire(epic_id, {
+          expectedVersion: expected_version,
+          evidence,
+          retiredBy: retired_by ?? "agent",
+          dryRun: dryRun ?? false,
+        });
+        const output = formatToolOutput({
+          success: true,
+          epic_id,
+          dryRun: dryRun ?? false,
+          epic: formatEpic(projection.epic_snapshot),
+          retired: {
+            retired_at: projection.retired_at,
+            retired_by: projection.retired_by,
+            evidence: projection.evidence,
+            source_workflow_id: projection.source_workflow_id,
+            source_version: projection.source_version,
+            projection_status: projection.projection_status,
+          },
         });
         return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {

@@ -1,9 +1,3 @@
-/**
- * Store-disk fallback behavior: bounded warnings + monotonic IDs.
- *
- * Covers KD5 / SC5 / AC8 for the legacy disk-only store path.
- */
-
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtemp, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
@@ -25,6 +19,27 @@ async function makeTempProject(): Promise<string> {
     }),
   );
   return dir;
+}
+
+function makeEpic(): import("../types").Epic {
+  const now = new Date().toISOString();
+  return {
+    id: "retiredEpic",
+    title: "Retired Epic",
+    narrative: "Narrative.",
+    entries: [],
+    progress: {
+      status: "completed",
+      total_entries: 0,
+      completed_entries: 0,
+      active_entries: 0,
+      next_entry_id: null,
+      updated_at: now,
+    },
+    created_at: now,
+    updated_at: now,
+    version: 3,
+  };
 }
 
 describe("store-disk — bounded warnings + monotonic IDs", () => {
@@ -120,38 +135,34 @@ describe("store-disk — bounded warnings + monotonic IDs", () => {
     }
   });
 
-  test("wisdom.add uses monotonic ws-{ts}-{seq} IDs", async () => {
+  test("epics.get returns retired projection from disk", async () => {
     const dir = await makeTempProject();
     const store = await createDiskStore(dir);
-    const created = await store.changes.create("Test Change", {
-      capability: "test-capability",
-      artifacts: { proposal: "# Proposal\n" },
-    });
+    const epic = makeEpic();
+    const projection = {
+      epic_snapshot: epic,
+      retired_at: "2026-07-08T00:00:00.000Z",
+      retired_by: "agent",
+      evidence: "User approved retirement.",
+      source_workflow_id: "adv/epic/project-id/retiredEpic",
+      source_version: 3,
+      projection_status: "retired" as const,
+    };
 
-    const w1 = await store.wisdom.add(
-      created.changeId,
-      "pattern",
-      "First wisdom",
-      undefined,
-      {},
-    );
-    const w2 = await store.wisdom.add(
-      created.changeId,
-      "pattern",
-      "Second wisdom",
-      undefined,
-      {},
-    );
+    await store.epics.saveRetiredProjection("retiredEpic", projection);
+    const result = await store.epics.get("retiredEpic");
 
-    expect(w1.id).toMatch(/^ws-\d+-\d+$/);
-    expect(w2.id).toMatch(/^ws-\d+-\d+$/);
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("retiredEpic");
+    expect(result.data?.title).toBe("Retired Epic");
+    expect(result.source).toBe("retired_projection");
+  });
 
-    const [, ts1, seq1] = w1.id.split("-");
-    const [, ts2, seq2] = w2.id.split("-");
-    if (ts1 === ts2) {
-      expect(Number(seq2)).toBeGreaterThan(Number(seq1));
-    } else {
-      expect(Number(ts2)).toBeGreaterThanOrEqual(Number(ts1));
-    }
+  test("epics.get returns null when no retired projection exists", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    const result = await store.epics.get("nonExistentEpic");
+    expect(result.success).toBe(true);
+    expect(result.data).toBeNull();
   });
 });

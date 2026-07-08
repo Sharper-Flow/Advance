@@ -9,7 +9,10 @@
 import { describe, expect, test, vi } from "vitest";
 import { createEpicOps } from "./epics";
 import type { StoreDeps } from "./shared";
+import { createDiskStore } from "../store-disk";
+import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import {
+  epicArchivedSignal,
   epicCreatedSignal,
   epicMergedSignal,
   epicScopeUpdatedSignal,
@@ -21,6 +24,7 @@ import {
   changeUnlinkedSignal,
   entriesReorderedSignal,
   getEpicStateQuery,
+  searchAttributesRefreshedSignal,
 } from "../../temporal/messages";
 import type { Epic, EpicWorkflowState } from "../../types";
 
@@ -81,6 +85,14 @@ function setup() {
   } as unknown as StoreDeps;
 
   return { deps, handle, signalMock, queryMock, startMock, getHandleMock };
+}
+
+async function setupWithRetiredEpicsDir() {
+  const tempDir = await createTempDir("epic-retired-");
+  const legacy = await createDiskStore(tempDir);
+  const base = setup();
+  base.deps.legacy = legacy;
+  return { ...base, tempDir, legacy };
 }
 
 describe("createEpicOps", () => {
@@ -547,6 +559,434 @@ describe("createEpicOps", () => {
       const epics = await ops.list();
       expect(epics).toHaveLength(1);
       expect(epics[0].id).toBe("presentEpic");
+    });
+  });
+
+  describe("retired projection fallback", () => {
+    test("get falls back to retired projection when workflow is not found", async () => {
+      const { deps, queryMock, tempDir } = await setupWithRetiredEpicsDir();
+      queryMock.mockImplementation(async () => {
+        throw new Error("Workflow not found: adv/epic/project-id/retiredEpic");
+      });
+
+      const projection = {
+        epic_snapshot: makeEpic({
+          id: "retiredEpic",
+          title: "Retired Epic",
+          progress: {
+            status: "completed",
+            total_entries: 0,
+            completed_entries: 0,
+            active_entries: 0,
+            next_entry_id: null,
+            updated_at: "2026-07-08T00:00:00.000Z",
+          },
+        }),
+        retired_at: "2026-07-08T00:00:00.000Z",
+        retired_by: "agent",
+        evidence: "User approved retirement.",
+        source_workflow_id: "adv/epic/project-id/retiredEpic",
+        source_version: 3,
+        projection_status: "retired" as const,
+      };
+
+      await deps.legacy.epics.saveRetiredProjection("retiredEpic", projection);
+
+      const ops = createEpicOps(deps);
+      const result = await ops.get("retiredEpic");
+
+      expect(result.success).toBe(true);
+      expect(result.data?.id).toBe("retiredEpic");
+      expect(result.data?.title).toBe("Retired Epic");
+      expect(result.source).toBe("retired_projection");
+
+      await cleanupTempDir(tempDir);
+    });
+
+    test("get returns null when neither workflow nor retired projection exists", async () => {
+      const { deps, queryMock, tempDir } = await setupWithRetiredEpicsDir();
+      queryMock.mockImplementation(async () => {
+        throw new Error("Workflow not found: adv/epic/project-id/missingEpic");
+      });
+
+      const ops = createEpicOps(deps);
+      const result = await ops.get("missingEpic");
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeNull();
+
+      await cleanupTempDir(tempDir);
+    });
+
+    test("saveRetiredProjection persists projection to disk", async () => {
+      const { deps, tempDir } = await setupWithRetiredEpicsDir();
+      const projection = {
+        epic_snapshot: makeEpic({ id: "persistedEpic" }),
+        retired_at: "2026-07-08T00:00:00.000Z",
+        retired_by: "agent",
+        evidence: "Evidence",
+        source_workflow_id: "adv/epic/project-id/persistedEpic",
+        source_version: 1,
+        projection_status: "retired" as const,
+      };
+
+      const ops = createEpicOps(deps);
+      await ops.saveRetiredProjection("persistedEpic", projection);
+
+      const loaded = await ops.getRetiredProjection("persistedEpic");
+      expect(loaded.success).toBe(true);
+      expect(loaded.data?.epic_snapshot.id).toBe("persistedEpic");
+      expect(loaded.data?.projection_status).toBe("retired");
+
+      await cleanupTempDir(tempDir);
+    });
+  });
+
+  describe("retire", () => {
+    function makeCompletedEpic(overrides?: Partial<Epic>): Epic {
+      const now = new Date().toISOString();
+      return makeEpic({
+        id: "addAuthEpic",
+        title: "Add Auth Epic",
+        entries: [
+          {
+            kind: "change",
+            entry_id: "entry-1",
+            order: 0,
+            change_id: "change-1",
+            title: "Done Change",
+            membership_status: "terminal",
+            linked_at: "2026-06-24T00:01:00.000Z",
+            linked_by: "agent",
+            terminal_summary: {
+              status: "archived",
+              completed_at: "2026-06-24T00:02:00.000Z",
+            },
+          },
+        ],
+        progress: {
+          status: "completed",
+          total_entries: 1,
+          completed_entries: 1,
+          active_entries: 0,
+          next_entry_id: null,
+          updated_at: now,
+        },
+        version: 1,
+        ...overrides,
+      });
+    }
+
+    test("retire persists projection, fires epicArchived, and returns retired projection", async () => {
+      const { deps, signalMock, queryMock, tempDir } =
+        await setupWithRetiredEpicsDir();
+      queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.retire("addAuthEpic", {
+        expectedVersion: 1,
+        evidence: "User approved retirement.",
+        retiredBy: "agent",
+      });
+
+      expect(result.projection_status).toBe("retired");
+      expect(result.epic_snapshot.id).toBe("addAuthEpic");
+      expect(result.source_version).toBe(1);
+      expect(result.evidence).toBe("User approved retirement.");
+      expect(result.retired_by).toBe("agent");
+      expect(result.source_workflow_id).toBe("adv/epic/project-id/addAuthEpic");
+
+      expect(signalMock).toHaveBeenCalledWith(
+        epicArchivedSignal,
+        expect.objectContaining({
+          expectedVersion: 1,
+          archivedBy: "agent",
+        }),
+      );
+
+      const loaded = await ops.getRetiredProjection("addAuthEpic");
+      expect(loaded.success).toBe(true);
+      expect(loaded.data?.projection_status).toBe("retired");
+
+      await cleanupTempDir(tempDir);
+    });
+
+    test("retire rejects incomplete Epic before mutation and names blockers", async () => {
+      const { deps, queryMock, signalMock } = setup();
+      queryMock.mockResolvedValue(
+        makeState(
+          makeEpic({
+            entries: [
+              {
+                kind: "shell",
+                entry_id: "shell-1",
+                order: 0,
+                title: "Future Shell",
+                success_hint: "hint",
+              },
+              {
+                kind: "change",
+                entry_id: "entry-1",
+                order: 1,
+                change_id: "change-1",
+                title: "Active Change",
+                membership_status: "linked",
+                linked_at: "2026-06-24T00:01:00.000Z",
+                linked_by: "agent",
+              },
+            ],
+            progress: {
+              status: "active",
+              total_entries: 2,
+              completed_entries: 0,
+              active_entries: 1,
+              next_entry_id: "shell-1",
+              updated_at: new Date().toISOString(),
+            },
+          }),
+        ),
+      );
+
+      const ops = createEpicOps(deps);
+      await expect(
+        ops.retire("addAuthEpic", {
+          expectedVersion: 0,
+          evidence: "Evidence",
+          retiredBy: "agent",
+        }),
+      ).rejects.toMatchObject({
+        code: "epic_incomplete",
+        blockers: [
+          { entry_id: "shell-1", kind: "shell", reason: "future" },
+          { entry_id: "entry-1", kind: "change", reason: "active" },
+        ],
+      });
+
+      expect(signalMock).not.toHaveBeenCalled();
+    });
+
+    test("retire dryRun returns prepared projection without writing or signaling", async () => {
+      const { deps, queryMock, signalMock, tempDir } =
+        await setupWithRetiredEpicsDir();
+      queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.retire("addAuthEpic", {
+        expectedVersion: 1,
+        evidence: "User approved retirement.",
+        retiredBy: "agent",
+        dryRun: true,
+      });
+
+      expect(result.projection_status).toBe("prepared");
+      expect(signalMock).not.toHaveBeenCalled();
+
+      const loaded = await ops.getRetiredProjection("addAuthEpic");
+      expect(loaded.success).toBe(true);
+      expect(loaded.data).toBeNull();
+
+      await cleanupTempDir(tempDir);
+    });
+
+    test("retire throws stale_version when expectedVersion does not match", async () => {
+      const { deps, queryMock } = setup();
+      queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
+
+      const ops = createEpicOps(deps);
+      await expect(
+        ops.retire("addAuthEpic", {
+          expectedVersion: 5,
+          evidence: "Evidence",
+          retiredBy: "agent",
+        }),
+      ).rejects.toMatchObject({ code: "stale_version" });
+    });
+  });
+
+  describe("list", () => {
+    function makeCompletedEpic(overrides?: Partial<Epic>): Epic {
+      const now = new Date().toISOString();
+      return makeEpic({
+        id: "completedEpic",
+        title: "Completed Epic",
+        entries: [
+          {
+            kind: "change",
+            entry_id: "entry-1",
+            order: 0,
+            change_id: "change-1",
+            title: "Done Change",
+            membership_status: "terminal",
+            linked_at: "2026-06-24T00:01:00.000Z",
+            linked_by: "agent",
+            terminal_summary: {
+              status: "archived",
+              completed_at: "2026-06-24T00:02:00.000Z",
+            },
+          },
+        ],
+        progress: {
+          status: "completed",
+          total_entries: 1,
+          completed_entries: 1,
+          active_entries: 0,
+          next_entry_id: null,
+          updated_at: now,
+        },
+        version: 1,
+        ...overrides,
+      });
+    }
+
+    test("active mode uses ExecutionStatus=Running and returns only active Epics", async () => {
+      const { deps, queryMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(
+        ({ query }: { query: string }) => {
+          expect(query).toBe(
+            `WorkflowType = "epicWorkflow" AND AdvEpicStatus = "active" AND ExecutionStatus = "Running"`,
+          );
+          return (async function* iter() {
+            yield { workflowId: "adv/epic/project-id/completedEpic" };
+          })();
+        },
+      );
+      queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.list({ status: "active" });
+
+      expect(result).toHaveLength(0);
+    });
+
+    test("all mode returns running Epics regardless of progress status", async () => {
+      const { deps, queryMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(
+        ({ query }: { query: string }) => {
+          expect(query).toBe(`WorkflowType = "epicWorkflow"`);
+          return (async function* iter() {
+            yield { workflowId: "adv/epic/project-id/completedEpic" };
+          })();
+        },
+      );
+      queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.list({ status: "all" });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("completedEpic");
+    });
+
+    test("active mode includes active Epics", async () => {
+      const { deps, queryMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(() => {
+        return (async function* iter() {
+          yield { workflowId: "adv/epic/project-id/activeEpic" };
+        })();
+      });
+      queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.list({ status: "active" });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("activeEpic");
+    });
+  });
+
+  describe("repairIndex", () => {
+    test("dry-run reports running Epics with current progress status and no mutations", async () => {
+      const { deps, queryMock, signalMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(() => {
+        return (async function* iter() {
+          yield { workflowId: "adv/epic/project-id/activeEpic" };
+          yield { workflowId: "adv/epic/project-id/otherEpic" };
+        })();
+      });
+      queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
+
+      const ops = createEpicOps(deps);
+      const report = await ops.repairIndex({
+        evidence: "Dry-run legacy index repair",
+        dryRun: true,
+      });
+
+      expect(report.total).toBe(2);
+      expect(report.refreshed).toBe(0);
+      expect(report.skipped).toBe(0);
+      expect(report.unreachable).toBe(0);
+      expect(report.epics).toEqual([
+        { epic_id: "activeEpic", status: "active", action: "would_refresh" },
+        { epic_id: "otherEpic", status: "active", action: "would_refresh" },
+      ]);
+      expect(signalMock).not.toHaveBeenCalled();
+    });
+
+    test("non-dry-run signals refresh and reports refreshed", async () => {
+      const { deps, queryMock, signalMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(() => {
+        return (async function* iter() {
+          yield { workflowId: "adv/epic/project-id/activeEpic" };
+        })();
+      });
+      queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
+
+      const ops = createEpicOps(deps);
+      const report = await ops.repairIndex({
+        evidence: "Legacy index repair",
+      });
+
+      expect(report.total).toBe(1);
+      expect(report.refreshed).toBe(1);
+      expect(report.skipped).toBe(0);
+      expect(report.unreachable).toBe(0);
+      expect(report.epics).toEqual([
+        { epic_id: "activeEpic", status: "active", action: "refreshed" },
+      ]);
+      expect(signalMock).toHaveBeenCalled();
+      const [signalDef, payload] = signalMock.mock.calls[0];
+      expect(signalDef).toBe(searchAttributesRefreshedSignal);
+      expect(payload).toMatchObject({
+        evidence: "Legacy index repair",
+      });
+    });
+
+    test("reports unreachable when workflow state cannot be queried", async () => {
+      const { deps, queryMock } = setup();
+      const temporal = deps.input.temporal as unknown as {
+        workflow: { list: ReturnType<typeof vi.fn> };
+      };
+      temporal.workflow.list.mockImplementation(() => {
+        return (async function* iter() {
+          yield { workflowId: "adv/epic/project-id/missingEpic" };
+        })();
+      });
+      queryMock.mockRejectedValue(new Error("Workflow not found"));
+
+      const ops = createEpicOps(deps);
+      const report = await ops.repairIndex({
+        evidence: "Legacy index repair",
+      });
+
+      expect(report.total).toBe(1);
+      expect(report.unreachable).toBe(1);
+      expect(report.epics[0].action).toBe("unreachable");
+      expect(report.epics[0].error).toContain("Workflow state unavailable");
     });
   });
 });

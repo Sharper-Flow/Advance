@@ -17,6 +17,7 @@ import {
   EpicScopeSchema,
   EpicSchema,
   EpicStatusSchema,
+  RetiredEpicProjectionSchema,
   deriveEpicScopeLabel,
   ShellPromotionProvenanceSchema,
 } from "../types";
@@ -553,6 +554,80 @@ describe("Epic schema foundation", () => {
           order: 0,
           title: "Add OAuth",
           linked_at: "2026-06-24T00:00:00.000Z",
+        }),
+      ).toThrow();
+    });
+  });
+
+  describe("RetiredEpicProjectionSchema", () => {
+    test("parses valid retired Epic projection", () => {
+      const projection = {
+        epic_snapshot: {
+          id: "addAuthEpic",
+          title: "Add authentication Epic",
+          narrative: "Enable user login and access control.",
+          entries: [],
+          progress: {
+            status: "completed",
+            total_entries: 0,
+            completed_entries: 0,
+            active_entries: 0,
+            next_entry_id: null,
+            updated_at: "2026-06-24T00:00:00.000Z",
+          },
+          created_at: "2026-06-24T00:00:00.000Z",
+          updated_at: "2026-06-24T00:00:00.000Z",
+          version: 3,
+        },
+        retired_at: "2026-07-08T00:00:00.000Z",
+        retired_by: "agent",
+        evidence: "User approved retirement after all children archived.",
+        source_workflow_id: "adv/epic/project-id/addAuthEpic",
+        source_version: 3,
+        projection_status: "retired",
+      };
+      expect(RetiredEpicProjectionSchema.parse(projection)).toEqual(projection);
+    });
+
+    test("rejects retired projection missing epic_snapshot", () => {
+      expect(() =>
+        RetiredEpicProjectionSchema.parse({
+          retired_at: "2026-07-08T00:00:00.000Z",
+          retired_by: "agent",
+          evidence: "evidence",
+          source_workflow_id: "workflow-id",
+          source_version: 1,
+          projection_status: "retired",
+        }),
+      ).toThrow();
+    });
+
+    test("rejects prepared projection with missing required metadata", () => {
+      expect(() =>
+        RetiredEpicProjectionSchema.parse({
+          epic_snapshot: {
+            id: "addAuthEpic",
+            title: "Add authentication Epic",
+            narrative: "Enable user login.",
+            entries: [],
+            progress: {
+              status: "completed",
+              total_entries: 0,
+              completed_entries: 0,
+              active_entries: 0,
+              next_entry_id: null,
+              updated_at: "2026-06-24T00:00:00.000Z",
+            },
+            created_at: "2026-06-24T00:00:00.000Z",
+            updated_at: "2026-06-24T00:00:00.000Z",
+            version: 1,
+          },
+          retired_at: "2026-07-08T00:00:00.000Z",
+          retired_by: "agent",
+          evidence: "evidence",
+          source_workflow_id: "workflow-id",
+          source_version: -1,
+          projection_status: "prepared",
         }),
       ).toThrow();
     });

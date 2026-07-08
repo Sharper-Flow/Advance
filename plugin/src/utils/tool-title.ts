@@ -118,6 +118,7 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_epic_repair_membership: (args) =>
     write(`Repair Epic membership${suffix(args, "epic_id")}`),
   adv_epic_reorder: (args) => write(`Reorder Epic${suffix(args, "epic_id")}`),
+  adv_epic_retire: (args) => write(`Retire Epic${suffix(args, "epic_id")}`),
   adv_followup_promote: (args) =>
     write(`Promote follow-up${suffix(args, "source_change_id")}`),
   adv_ops_evidence_add: (args) =>
