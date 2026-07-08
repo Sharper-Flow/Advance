@@ -30,7 +30,11 @@ const workspaceWarpMock = vi.hoisted(() => ({
 }));
 
 const targetProjectMock = vi.hoisted(() => ({
-  appendTargetProjectContextOutput: vi.fn((output: string) => output),
+  appendTargetProjectContextOutput: vi.fn((output: string, context: unknown) => {
+    const parsed = JSON.parse(output);
+    parsed._projectContext = context;
+    return JSON.stringify(parsed);
+  }),
   withTargetPathStore: vi.fn(),
 }));
 
@@ -532,6 +536,53 @@ describe("advWorktreeTools", () => {
       { base: undefined, force: undefined },
       expect.objectContaining({ projectRoot: "/repo", database, store }),
     );
+  });
+
+  it("adv_worktree_resume routes target_path materialization through target store", async () => {
+    const database = { projectDir: "/target", projectId: "target-project" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeResume.mockResolvedValue({
+      ok: true,
+      branch: "change/target-change",
+      path: "/target-wt/change/target-change",
+    });
+
+    const out = await advWorktreeTools.adv_worktree_resume.execute(
+      {
+        changeId: "target-change",
+        target_path: "/target",
+        target_confirmed: true,
+        confirmationEvidence: "User approved target worktree resume",
+      } as Parameters<typeof advWorktreeTools.adv_worktree_resume.execute>[0],
+      store,
+    );
+
+    expect(targetProjectMock.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentProjectPath: "/repo",
+        target_path: "/target",
+        target_confirmed: true,
+        confirmationEvidence: "User approved target worktree resume",
+        stateRequirement: "temporal-required",
+      }),
+      expect.any(Function),
+    );
+    expect(stateMock.initStateDb).toHaveBeenCalledWith("/target");
+    expect(worktreeMock.advWorktreeResume).toHaveBeenCalledWith(
+      { changeId: "target-change", branch: undefined },
+      { base: undefined, force: undefined },
+      expect.objectContaining({
+        projectRoot: "/target",
+        database,
+        store: targetStore,
+      }),
+    );
+    const parsed = JSON.parse(out);
+    expect(parsed.ok).toBe(true);
+    expect(parsed._projectContext).toMatchObject({
+      root: "/target",
+      projectId: "target-project",
+    });
   });
 
   it("adv_worktree_delete delegates to advWorktreeDelete", async () => {

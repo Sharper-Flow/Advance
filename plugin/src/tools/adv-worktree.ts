@@ -119,6 +119,13 @@ interface WorktreeDeleteArgs extends TargetWorktreeMutationArgs {
   dryRun?: boolean;
 }
 
+interface WorktreeResumeArgs extends TargetWorktreeMutationArgs {
+  changeId?: string;
+  branch?: string;
+  base?: string;
+  force?: boolean;
+}
+
 interface WorktreeCleanupArgs extends TargetWorktreeMutationArgs {
   reason: string;
   dryRun?: boolean;
@@ -165,6 +172,22 @@ function formatMaybeTargetOutput(
   context?: TargetProjectContext,
 ): string {
   return context ? appendTargetProjectContextOutput(output, context) : output;
+}
+
+async function executeWorktreeResume(
+  args: WorktreeResumeArgs,
+  activeStore: Store,
+  context?: TargetProjectContext,
+): Promise<string> {
+  const projectRoot = activeStore.paths.root;
+  const database = await initStateDb(projectRoot);
+  const log = createLogger();
+  const result = await advWorktreeResume(
+    { changeId: args.changeId ?? "", branch: args.branch },
+    { base: args.base, force: args.force },
+    { projectRoot, database, log, store: activeStore },
+  );
+  return formatMaybeTargetOutput(formatToolOutput(result), context);
 }
 
 async function executeWorktreeDelete(
@@ -576,25 +599,23 @@ export const advWorktreeTools = {
         .boolean()
         .optional()
         .describe("Force creation when materialization is needed"),
+      ...targetWorktreeMutationArgSchemas,
     },
-    execute: async (
-      args: {
-        changeId?: string;
-        branch?: string;
-        base?: string;
-        force?: boolean;
-      },
-      store: Store,
-    ) => {
-      const projectRoot = store.paths.root;
-      const database = await initWorktreeDb(projectRoot);
-      const log = createLogger();
-      const result = await advWorktreeResume(
-        { changeId: args.changeId ?? "", branch: args.branch },
-        { base: args.base, force: args.force },
-        { projectRoot, database, log, store },
-      );
-      return formatToolOutput(result);
+    execute: async (args: WorktreeResumeArgs, store: Store) => {
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+            stateRequirement: "temporal-required",
+          },
+          async ({ context, store: targetStore }) =>
+            executeWorktreeResume(args, targetStore, context),
+        );
+      }
+      return executeWorktreeResume(args, store);
     },
   },
 
