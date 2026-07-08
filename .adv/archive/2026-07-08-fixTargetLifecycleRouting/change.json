@@ -1,0 +1,1112 @@
+{
+  "id": "fixTargetLifecycleRouting",
+  "title": "Fix target lifecycle routing",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-07T23:44:35.198Z",
+  "tasks": [
+    {
+      "id": "tk-0caf7d61355d",
+      "title": "Implement target-aware adv_change_reenter with RED/GREEN tests",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-08T00:06:47.338Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT3",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T00:09:22.427Z",
+      "verification": "RED bin/oc-test targeted -- src/tools/change.test.ts failed 3 new target reentry tests (tr_mrbbnyic_e6aed7bd); GREEN same command passed 99 tests (tr_mrbbp2th_e3400a5d).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "5aa34227501eab1001a5215963c273d939e1fdb5",
+      "completedAt": "2026-07-08T00:11:55.770Z",
+      "completed_at": "2026-07-08T00:11:55.770Z"
+    },
+    {
+      "id": "tk-0b841e2e0149",
+      "title": "Implement target-aware adv_worktree_resume with RED/GREEN tests",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-08T00:06:57.301Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6",
+          "AC8"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T00:12:20.583Z",
+      "verification": "RED bin/oc-test targeted -- src/tools/adv-worktree.test.ts failed new target resume test (tr_mrbbqk2z_6f13f675); GREEN same command passed adv-worktree tests (tr_mrbbrc85_5c57cfcc).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "checkpointSha": "ce8d2556be316a7919a7d26f19fc0b611ba9342e",
+      "completedAt": "2026-07-08T00:13:41.213Z",
+      "completed_at": "2026-07-08T00:13:41.213Z"
+    },
+    {
+      "id": "tk-d721cb8f1189",
+      "title": "Run related-scan for target_path lifecycle mutation surfaces",
+      "type": "verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-08T00:07:07.877Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0caf7d61355d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0b841e2e0149"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T00:13:52.342Z",
+      "verification": "Related scan PASS. Retry explore scan checked target_path lifecycle surfaces: adv_change_reenter change.ts:4015; adv_worktree_resume adv-worktree.ts:606; delete :645; cleanup :689; gate complete gate.ts:1418; task update task.ts:907; task add :1185; task cancel :1449; task reclassify :1586; contract mint contract.ts:328 via withContractStore :52/:65; subagent report submit subagent-report.ts:888. No concerns.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "ce8d2556be316a7919a7d26f19fc0b611ba9342e",
+      "completedAt": "2026-07-08T00:16:27.878Z",
+      "completed_at": "2026-07-08T00:16:27.878Z"
+    },
+    {
+      "id": "tk-8f6a1b2b8c57",
+      "title": "Run final verification for target lifecycle routing",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-08T00:07:16.570Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0caf7d61355d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0b841e2e0149"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d721cb8f1189"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC10",
+          "AC11",
+          "AC7"
+        ],
+        "respects": [
+          "C8",
+          "DONT5",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T00:16:44.802Z",
+      "verification": "Final verification passed: targeted suite `bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts` passed (tr_mrbby6eg_b4adb0a1); `pnpm run check` passed from plugin/ (tr_mrbbym91_37696677); strict adv_change_validate passed with expected NO_DELTAS warning only.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "606bdcee3c2afd32ca15038210f49317ac0edf98",
+      "completedAt": "2026-07-08T00:19:30.499Z",
+      "completed_at": "2026-07-08T00:19:30.499Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetLifecycleRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for fixTargetLifecycleRouting (#192 follow-up): target-aware adv_change_reenter and adv_worktree_resume",
+      "sources": [
+        {
+          "label": "Current adv_change_reenter implementation",
+          "locator": "plugin/src/tools/change.ts:3854-3970",
+          "summary": "Confirms reenter has no target_path args, resolves projectId via getProjectId(store.paths.root), builds handle via getChangeHandle(bundle.client, projectId, changeId), fires gateReenteredSignal via fireSignalAndRefresh(handle, store, ...), and dryRun returns preview before any Temporal resolution. Matches design's stated current state exactly."
+        },
+        {
+          "label": "adv_change_status_repair target routing (KD1 mirror pattern)",
+          "locator": "plugin/src/tools/change.ts:4180-4215",
+          "summary": "Proven precedent: wraps runRepair with withTargetPathStore using stateRequirement: dryRun ? 'snapshot-ok' : 'temporal-required', target_confirmed, confirmationEvidence, and merges formatTargetProjectContext(context). Design KD1 replicates this shape precisely."
+        },
+        {
+          "label": "withTargetPathStore state-requirement branches",
+          "locator": "plugin/src/tools/target-project.ts:270-335",
+          "summary": "snapshot-ok uses createLegacyStore (disk snapshot, non-mutating, supports store.changes.get); temporal-required enforces queue readiness via ensureTargetMutationQueueReady and createStore with projectIdOverride. Confirms dryRun snapshot-ok path is read-only and valid for reenter's pre-signal change load + archived/closed rejection."
+        },
+        {
+          "label": "adv_worktree_delete / adv_worktree_cleanup target routing (KD2 pattern)",
+          "locator": "plugin/src/tools/adv-worktree.ts:601-683, 110-147",
+          "summary": "targetWorktreeMutationArgSchemas (target_path/target_confirmed/confirmationEvidence) already spread into delete/cleanup; both wrap executeWorktree* with withTargetPathStore(stateRequirement:'temporal-required', mutation:!dryRun) and pass targetStore. This is the exact schema family and wrapper KD2 reuses."
+        },
+        {
+          "label": "Current adv_worktree_resume implementation",
+          "locator": "plugin/src/tools/adv-worktree.ts:559-599",
+          "summary": "Confirms resume has no target args, derives projectRoot=store.paths.root, calls initWorktreeDb(projectRoot) and advWorktreeResume(..., { projectRoot, database, log, store }). This is precisely the source-namespace leak #192 AC5 targets."
+        },
+        {
+          "label": "advWorktreeResume internals (KD3 justification)",
+          "locator": "plugin/src/tools/worktree/index.ts:1278-1330",
+          "summary": "advWorktreeResume materializes via advWorktreeCreate(branch, opts, deps) using injected deps.projectRoot/database/store. Confirms widening resume routes target root through DI without needing to widen the lower-level adv_worktree_create command — KD3 is sound."
+        },
+        {
+          "label": "Related-scan verification of already-target-routed mutation surfaces (KD4)",
+          "locator": "plugin/src/tools/gate.ts:1417-1431, plugin/src/tools/contract.ts:64-76, plugin/src/tools/task.ts:907/1185/1449/1586, plugin/src/tools/subagent-report.test.ts:1184-1212",
+          "summary": "gate complete, contract mint/review, task add/update/cancel/reclassify, and subagent report submit all route through withTargetPathStore. Confirms design's claim that reenter + worktree_resume are the two genuine remaining gaps, so related-scan is verification not scope expansion."
+        },
+        {
+          "label": "status_repair target-routing test precedent",
+          "locator": "plugin/src/tools/change.status-repair.test.ts:278-325",
+          "summary": "Existing test asserts withTargetPathStore called with target_path + stateRequirement and _projectContext propagated. Directly reusable test shape for the AC1/AC2 reenter regression tests the design plans."
+        }
+      ],
+      "architecture_assessment": "The design is a faithful, minimal application of the established target-project routing primitives to the two confirmed #192 gaps. Every structural claim was verified against source: (1) reenter's current source-project identity path (getProjectId(store.paths.root) + fireSignalAndRefresh(handle, store, ...)) matches the design's stated current state; (2) the KD1 withTargetPathStore wrapper is a near-line-for-line mirror of the proven adv_change_status_repair target path, including the dryRun ? 'snapshot-ok' : 'temporal-required' state requirement that preserves read-only dry-run; (3) KD2 reuses the exact targetWorktreeMutationArgSchemas family and withTargetPathStore(mutation:!dryRun) wrapper already shipped for adv_worktree_delete/cleanup; (4) KD3 is justified because advWorktreeResume materializes via advWorktreeCreate through injected deps.projectRoot/store, so routing resume's deps to the target store is sufficient and widening the lower-level create command is unnecessary; (5) KD4's related-scan claim is accurate — gate/task/contract/report surfaces are already target-routed. The identity boundary (target store + getProjectId(target root) + fireSignalAndRefresh(target store)) is structural, satisfies rq-cacheRefresh01 (C4), and avoids any parallel routing mechanism (C2). No new Temporal primitive is introduced, keeping workflow determinism intact (C6). The 'No spec delta expected' conclusion is well-reasoned: existing cross-project coordination, target-trust, cache-refresh, and worktree-isolation laws already govern this behavior.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All structural claims verified against source at cited line ranges. Design correctly identifies the two genuine gaps, reuses proven patterns (status_repair for KD1, delete/cleanup for KD2), and does not introduce parallel routing or spec deltas. Non-blocking cautions to address during implementation: (a) AC7's hard-block-fallback path is written as a contingency but KD2 commits to full implementation — ensure only one of AC6/AC7 is exercised and tests assert the implemented branch, so the AC set is not internally ambiguous. (b) advWorktreeResume's deps.store is typed optional ('callers via adv-worktree.ts always provide store', index.ts:1376) — the target wrapper must continue to pass targetStore explicitly so the worktree-created signal/cache-refresh (AC6) binds to the target store, not undefined. (c) For dryRun reenter, confirm the snapshot-ok legacy store's changes.get returns status so the archived/closed rejection (pre-signal) still fires read-only; this is supported by target-project.ts:282-294 but should be covered by an explicit dryRun-target test (AC4). None of these are blockers; they are test-coverage precision notes."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Widening adv_worktree_resume (KD2 full implementation) rather than hard-blocking (AC7) adds a small amount of target-routing surface, but it is consistent with the already-shipped delete/cleanup target routing and avoids a permanent usability cliff where target-project changes cannot be resumed from a source session.",
+          "Refactoring reenter into runReenter(activeStore, projectContext?) adds one indirection layer, but it is the same helper-extraction shape used by status_repair (runRepair) and gate (runComplete), so it improves consistency rather than adding novel structure.",
+          "Reusing withTargetPathStore keeps a single routing mechanism (C2) but couples reenter/resume to the target-project trust + queue-readiness machinery; this coupling is desired because it is the structural identity boundary that prevents the #192 leak."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Hard-block adv_worktree_resume for target-project changes (AC7 path) instead of implementing target routing",
+            "disposition": "rejected",
+            "rationale": "The design correctly notes implementation is bounded and consistent with existing delete/cleanup target routing (advWorktreeResume materializes via advWorktreeCreate through injected deps). A hard-block leaves a real target-session workflow permanently broken; full routing is the more complete fix and reuses proven infrastructure."
+          },
+          {
+            "option": "Introduce a new Temporal workflow primitive / dedicated cross-project reentry signal",
+            "disposition": "rejected",
+            "rationale": "Unnecessary. getProjectId(target root) + getChangeHandle(bundle.client, targetProjectId, changeId) + fireSignalAndRefresh(handle, targetStore, ...) already produces correct target identity. Adding a primitive would violate the workflow-bundle boundary discipline and risk the defineUpdate replay-cliff class documented in AGENTS.md."
+          },
+          {
+            "option": "Also widen adv_worktree_create with target_path in this change",
+            "disposition": "deferred",
+            "rationale": "KD3 correctly scopes this out: resume is the ADV branch-aware entry point and internally calls advWorktreeCreate with target-routed deps, so the #192 misuse path is closed without broadening the low-level ad-hoc create command. Any direct-create misuse found in related-scan should be a follow-up, not silent scope creep (aligns with P23/P29)."
+          },
+          {
+            "option": "String/title heuristics to detect target-project intent",
+            "disposition": "rejected",
+            "rationale": "Explicitly avoided by C1 and the risk controls. Identity must derive from the owning target store/project ID, which the design does via getProjectId(activeStore.paths.root) inside the target scope. This is structural-before-heuristic (P33)."
+          }
+        ],
+        "recommendation": "Proceed with the design as written. It is a low-risk, high-confidence, boring-by-design reuse of two independently proven target-routing patterns. During implementation: (1) resolve the AC6-vs-AC7 ambiguity by committing to the KD2 full-implementation branch and dropping AC7 to a documented fallback that tests do not need to exercise; (2) add an explicit dryRun-target reenter test proving snapshot-ok read-only + no signal (AC4) and an explicit target-store binding assertion for the worktree-created signal (AC6); (3) keep fireSignalAndRefresh receiving the target store to satisfy rq-cacheRefresh01."
+      },
+      "recommendation": "PASS with implementation-precision notes. Design is architecturally sound and structurally verified against source. Recommend ADV proceed to planning. Two small test-coverage tightening items (AC4 dryRun-target signal-absence assertion; AC6 target-store binding assertion) and one AC-clarity item (commit to AC6 full implementation, demote AC7 to non-exercised fallback) should be captured as planning tasks, not blockers.",
+      "follow_ups": [
+        "Planning: add explicit dryRun + target_path reenter test asserting snapshot-ok store selection and zero gateReenteredSignal firings (AC4).",
+        "Planning: add worktree_resume target test asserting advWorktreeResume deps.store === targetStore and initWorktreeDb(target root) so worktree-created signal/cache-refresh binds to target (AC6).",
+        "Planning: resolve AC6/AC7 ambiguity — commit to full target-aware resume implementation and mark AC7 hard-block as a non-exercised documented fallback to avoid an internally ambiguous acceptance set.",
+        "Related-scan during execution: confirm no direct adv_worktree_create target misuse; if found, record as separate follow-up per KD3 rather than widening scope."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetLifecycleRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetLifecycleRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 3926,
+          "what": "adv_change_reenter now routes target_path through the target store and derives workflow handle from activeStore.paths.root.",
+          "why": "This satisfies AC1, AC2, C1, C2, and C4 by preventing source-project workflow identity/cache refresh leakage."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/adv-worktree.ts",
+          "line": 177,
+          "what": "adv_worktree_resume now uses the active target store root for worktree state initialization and advWorktreeResume deps.",
+          "why": "This satisfies AC5 and AC6 by avoiding source-namespace materialization for target-project changes."
+        },
+        {
+          "id": "review-praise-3",
+          "label": "praise",
+          "file": "plugin/src/tools/change.test.ts",
+          "line": 3520,
+          "what": "Regression tests cover target_path reentry handle routing, dryRun non-signaling behavior, and unconfirmed mutation rejection.",
+          "why": "These tests directly lock AC1-AC4 and AC8."
+        },
+        {
+          "id": "review-praise-4",
+          "label": "praise",
+          "file": "plugin/src/tools/adv-worktree.test.ts",
+          "line": 543,
+          "what": "Regression test proves target_path worktree resume initializes /target state and calls advWorktreeResume with targetStore.",
+          "why": "This locks AC5, AC6, and AC8 for the worktree namespace failure shape."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts",
+          "pnpm --dir plugin run check",
+          "rg \"fireSignal\\(handle\" plugin/src/tools --glob '!*.test.ts' --glob '!**/*.test.ts' || true"
+        ],
+        "results": "pass",
+        "evidence": "Contract reviewed against agreement AC1-AC11. Path preflight OK for all expected files. Targeted AC10 suite passed: 3 files, 145 tests. pnpm check passed: schemas:check, typecheck, test-isolation, lockfile policy, lint, format:check. rq-cacheRefresh01 scan returned no direct fireSignal(handle matches in tool code. Initial mis-scoped test filter using plugin/src paths produced no tests; corrected to src/tools paths under bin/oc-test."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live deployed OpenCode plugin runtime was not reloaded in this session; source-vs-dist end-to-end tool behavior still needs normal build/deploy/restart validation before relying on live MCP calls.",
+        "Review used source/tests and provided contract artifacts; no external PokeEdge placeholder cleanup or cross-repo live mutation was attempted, per OOS1/DONT6."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with acceptance if orchestrator accepts source-level verification evidence.",
+        "Before live use/release, rebuild and deploy plugin runtime, then restart OpenCode per source-vs-dist runtime boundary if end-to-end live ADV tool validation is required.",
+        "Carry forward release/archive note that target_path lifecycle routing was verified by source tests, not by mutating a real external project in this review."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTargetLifecycleRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTargetLifecycleRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 3988,
+          "what": "Reentry mutation now uses fireSignalAndRefresh with activeStore, preserving cache-refresh law for target_path routing.",
+          "why": "Release risk around stale same-process readback is structurally covered for both current-project and target-project stores."
+        },
+        {
+          "id": "harden-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/adv-worktree.ts",
+          "line": 606,
+          "what": "target_path worktree resume routes through withTargetPathStore and target store before materialization.",
+          "why": "Worktree namespace safety depends on using target project root/store rather than caller project root; focused regression test covers this path."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "test -e plugin/src/tools/change.ts && test -e plugin/src/tools/change.test.ts && test -e plugin/src/tools/adv-worktree.ts && test -e plugin/src/tools/adv-worktree.test.ts",
+          "git diff origin/trunk...HEAD -- plugin/src/tools/change.ts plugin/src/tools/change.test.ts plugin/src/tools/adv-worktree.ts plugin/src/tools/adv-worktree.test.ts",
+          "grep -rn \"fireSignal(handle\" plugin/src/tools/ | grep -v \".test.ts\" | grep -v rq-cacheRefresh01-exempt || true",
+          "bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all four scoped files. Diff review found only scoped target_path lifecycle/worktree changes plus regression tests. Cache-refresh law grep returned no direct non-test fireSignal(handle...) violations. Focused oc-test targeted suite passed: 3 files, 145 tests. Working tree clean after review. Prior evidence cited in packet: pnpm run check passed as run tr_mrbbym91_37696677; acceptance review READY."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live ADV tool behavior cannot be proven in this already-running OpenCode session until plugin source is built, deployed with scripts/deploy-local.sh --fix, and OpenCode/plugin host restarts; unit tests prove source behavior only.",
+        "adv_worktree_resume target_path path uses temporal-required target store by default; release depends on target project worker queue serviceability for cross-project materialization, which target-project helper enforces at runtime."
+      ],
+      "required_main_agent_actions": [
+        "Before archive sign-off for plugin source changes, ensure source-vs-deployed handoff is recorded: pnpm run build if not already done, scripts/deploy-local.sh --fix from main checkout during archive workflow, then fresh OpenCode session/restart for live-tool validation if needed.",
+        "Carry existing verification evidence into archive notes: targeted suite tr_mrbby6eg_b4adb0a1, pnpm run check tr_mrbbym91_37696677, and this harden rerun of bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-07T23:52:11.946Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved proposal via reply: approve. Proposal and problem statement identify #192 as active urgent issue; #92 verified completed/no new comments.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "fd14a6a37a640f9df1ee4e308a1815c1c516fa6bf5cd8818f68d979a8e366782",
+        "non_whitespace_chars": 2868,
+        "checked_at": "2026-07-07T23:44:35.236Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-08T00:02:05.767Z",
+      "completed_at": "2026-07-08T00:02:17.584Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved agreement via reply: approve. Typed contract minted with 30 items covering AC1-AC11, C1-C8, DONT1-DONT7, and OOS1-OOS4.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "non_whitespace_chars": 6258,
+        "checked_at": "2026-07-07T23:44:35.237Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-08T00:06:26.095Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted and independently validated by adv-researcher: PASS/high confidence/low risk. Validator confirmed reenter and worktree_resume are genuine remaining gaps and recommended proceeding to planning with precision tests for dry-run reenter and target resume deps.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "d2014febbfb4e68d7038acc4409e5dd058912b1039eeeca6123e7f9ef244c7ec",
+        "non_whitespace_chars": 6070,
+        "checked_at": "2026-07-07T23:44:35.238Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-08T00:08:50.647Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User approved task graph via reply: approve. Four tasks cover target-aware reenter, target-aware worktree resume, related target-path scan, and final verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-08T00:19:51.697Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done with checkpoints. Implemented target-aware adv_change_reenter and adv_worktree_resume. Related target_path mutation scan passed. Verification passed: targeted suite tr_mrbby6eg_b4adb0a1, pnpm run check tr_mrbbym91_37696677, strict adv_change_validate passed with expected NO_DELTAS warning only."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-08T00:27:38.166Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work via reply: approve. Acceptance reviewer verdict READY, contract matrix has 30 rows with 0 failing, targeted tests/check passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "b31ba82fc3cc3cf99f7583367e1ffd635dcbfca85db7a758282294ce99628634",
+        "non_whitespace_chars": 2913,
+        "checked_at": "2026-07-07T23:44:35.239Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 192
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+      "approvedAt": "2026-07-08T00:02:11.353Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "AC1 — Given `adv_change_reenter` is called with `target_path`, `target_confirmed:true`, and trusted confirmation evidence for an active target-project change, the workflow handle uses the target project ID and the target change gates are reset from the requested gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "AC2 — Given `adv_change_reenter target_path` completes, the signal/cache-refresh path uses the target store, and the tool response includes target `_projectContext`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "AC3 — Given untrusted `adv_change_reenter target_path` lacks `target_confirmed:true` plus non-blank `confirmationEvidence`, the tool fails before firing any workflow signal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "AC4 — Given `adv_change_reenter target_path` is run with `dryRun:true`, it validates target state read-only and fires no workflow signal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "AC5 — Given `adv_worktree_resume` is asked to resume/materialize a target-project change from a source-project session, it must not create or reuse a worktree under the source project namespace.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "AC6 — If target-aware `adv_worktree_resume` is implemented, it initializes worktree state from the target project root, materializes under the target project worktree namespace, and records any worktree-created signal/cache refresh against the target store.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "AC7 — If target-aware `adv_worktree_resume` is intentionally not implemented in this change, the tool hard-blocks the target-project misuse path with a deterministic error naming the missing target routing and instructing the operator to run from the target repo session.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "AC8 — Regression tests prove #192 source-project workflow IDs are not used for target `adv_change_reenter` or worktree resume/materialization paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "AC9 — Related-scan verifies the listed mutation tools that already advertise `target_path` still route through target stores, or records any newly found gap as an explicit follow-up/blocker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "AC10 — `bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts` passes, or any red test is diagnosed and fixed in scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "AC11 — `pnpm run check` passes from `plugin/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "C1 — Correctness must be structural: derive workflow handles, external roots, cache refresh, and worktree DB paths from the owning target store/project ID, not title/path heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "C2 — Use `withTargetPathStore` / target-project trust helpers for target mutations; do not create a parallel routing mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "C3 — Preserve required `target_confirmed` + `confirmationEvidence` guard for untrusted target mutations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "C4 — Preserve `rq-cacheRefresh01`: change-workflow signals must use `fireSignalAndRefresh` with the owning store.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "C5 — Do not read or edit external ADV state files directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "C6 — Keep Temporal workflow code deterministic; git/worktree and target-project I/O stays in tool/helper layers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "C7 — Tests must use isolated temp project fixtures, not real PokeEdge projects.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "C8 — Use repo-local test routing (`bin/oc-test`) for suites; source-vs-deployed runtime boundary remains in release notes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "DONT1 — Do not route target-path lifecycle mutations through the source project ID.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "DONT2 — Do not let `adv_worktree_resume` silently create a source-project worktree for a target-project change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "DONT3 — Do not weaken target-path confirmation or Temporal queue-readiness checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "DONT4 — Do not broaden into unrelated product UX redesign or automatic external placeholder cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "DONT5 — Do not fix #92; it is completed and unrelated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "DONT6 — Do not use direct ADV state file reads, disk projection, or manual worktree path shuffling as the normal fix.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "DONT7 — Do not change GitHub Project priority labels or ROADMAP scoring in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "OOS1 — Cleaning up existing PokeEdge placeholder changes or external repo worktrees.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "OOS2 — Reworking all cross-project UX or Epic membership semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "OOS3 — Adding new Temporal workflow primitives or coordinator workflows unless discovery during design proves existing target-store routing cannot satisfy the contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "OOS4 — Archive release-safety redesign beyond target identity routing for tools that already advertise `target_path`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-08T00:24:33.770Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test.ts target_path reentry test verifies getChangeHandle uses target-project-id and gates reset path; targeted suite tr_mrbby6eg_b4adb0a1 passed."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test.ts target_path reentry test verifies fireSignalAndRefresh receives targetStore and response has _projectContext; tr_mrbby6eg_b4adb0a1 passed."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test.ts unconfirmed target reentry test rejects before fireSignalAndRefresh; tr_mrbby6eg_b4adb0a1 passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test.ts dryRun target reentry test verifies snapshot-ok/mutation:false and no getChangeHandle/fireSignalAndRefresh; tr_mrbby6eg_b4adb0a1 passed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-worktree.test.ts target_path resume test verifies initStateDb('/target') and no source-root materialization deps; tr_mrbby6eg_b4adb0a1 passed."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-worktree.test.ts target_path resume test verifies advWorktreeResume receives projectRoot:'/target' and store:targetStore; tr_mrbby6eg_b4adb0a1 passed."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Design selected and implemented target-aware adv_worktree_resume, so the fallback hard-block path for intentionally not implementing target-aware resume is not applicable."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression tests in change.test.ts and adv-worktree.test.ts prove source project IDs/roots are not used for target reenter/resume paths; tr_mrbby6eg_b4adb0a1 passed."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Related scan PASS: reenter change.ts:4015; worktree resume adv-worktree.ts:606; delete :645; cleanup :689; gate complete gate.ts:1418; task update task.ts:907; task add :1185; cancel :1449; reclassify :1586; contract mint contract.ts:328 via withContractStore; subagent report submit subagent-report.ts:888."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts` passed in tr_mrbby6eg_b4adb0a1; reviewer rerun passed 145 tests."
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`pnpm run check` from plugin/ passed in tr_mrbbym91_37696677; reviewer rerun `pnpm --dir plugin run check` passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation derives project ID and worktree DB from active target store/root, not title/path heuristics."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Both new target paths use withTargetPathStore; no parallel routing mechanism introduced."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Unconfirmed target reentry regression passes; worktree resume routes through existing targetWorktreeMutationArgSchemas and withTargetPathStore trust helper."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_change_reenter uses fireSignalAndRefresh(handle, activeStore, ...) and reviewer rg found no direct fireSignal(handle) matches in non-test tool files."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No direct ADV state file reads/edits used; state interactions stay through store/tool helpers."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Changes remain in tool/helper layers and tests; Temporal workflow code untouched."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Tests use local mocks/fixtures in change.test.ts and adv-worktree.test.ts, not real PokeEdge projects."
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Verification used repo-local bin/oc-test for targeted suite; source-vs-deployed runtime boundary recorded in reviewer risk."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Target reentry tests assert target-project-id and targetStore; no source project ID routing for target mutation."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Target worktree resume test asserts target root/store deps; no source worktree namespace materialization."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Target confirmation guards remain exercised by tests and withTargetPathStore routing."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No product UX redesign or external placeholder cleanup performed."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No #92 code or issue work performed; #92 only used as triage evidence."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No disk projection/direct state reads/manual worktree path shuffling introduced."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No GitHub Project priority labels or roadmap scoring changed."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No existing PokeEdge placeholder changes or external repo worktrees cleaned up."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broad cross-project UX or Epic membership semantics rework performed."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new Temporal workflow primitive or coordinator workflow added."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No archive release-safety redesign performed beyond related-scan confirmation."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "AC1 — Given `adv_change_reenter` is called with `target_path`, `target_confirmed:true`, and trusted confirmation evidence for an active target-project change, the workflow handle uses the target project ID and the target change gates are reset from the requested gate.",
+    "AC2 — Given `adv_change_reenter target_path` completes, the signal/cache-refresh path uses the target store, and the tool response includes target `_projectContext`.",
+    "AC3 — Given untrusted `adv_change_reenter target_path` lacks `target_confirmed:true` plus non-blank `confirmationEvidence`, the tool fails before firing any workflow signal.",
+    "AC4 — Given `adv_change_reenter target_path` is run with `dryRun:true`, it validates target state read-only and fires no workflow signal.",
+    "AC5 — Given `adv_worktree_resume` is asked to resume/materialize a target-project change from a source-project session, it must not create or reuse a worktree under the source project namespace.",
+    "AC6 — If target-aware `adv_worktree_resume` is implemented, it initializes worktree state from the target project root, materializes under the target project worktree namespace, and records any worktree-created signal/cache refresh against the target store.",
+    "AC7 — If target-aware `adv_worktree_resume` is intentionally not implemented in this change, the tool hard-blocks the target-project misuse path with a deterministic error naming the missing target routing and instructing the operator to run from the target repo session.",
+    "AC8 — Regression tests prove #192 source-project workflow IDs are not used for target `adv_change_reenter` or worktree resume/materialization paths.",
+    "AC9 — Related-scan verifies the listed mutation tools that already advertise `target_path` still route through target stores, or records any newly found gap as an explicit follow-up/blocker.",
+    "AC10 — `bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts` passes, or any red test is diagnosed and fixed in scope.",
+    "AC11 — `pnpm run check` passes from `plugin/`."
+  ],
+  "documents": {
+    "proposal": "# Proposal\n\n## Problem\n\nGitHub issue #192 is still open after the earlier target-path artifact/close fix because newer repro comments show additional cross-project lifecycle routing failures. Source-repo sessions can still route `target_path` operations through the source project identity, create unusable target-looking changes, or materialize worktrees under the wrong project namespace.\n\n## Evidence\n\n- #92 has no new comments after completion on 2026-05-10; it is not the current urgent bug.\n- #192 is open, labeled `bug` and `priority:high`, and has new Jul 7 comments documenting failures in `adv_change_reenter target_path`, target-path create/signal identity, task/report mutation routing, close/archive/status_repair routing, and `adv_worktree_resume` lacking target routing.\n- `adv_backlog_state` shows #192 has no active ADV change; the earlier archived `fixTargetPathRouting` change covered older artifact readback/close scope only.\n\n## Scope\n\nLikely affected surfaces, to validate during discovery:\n\n- `plugin/src/tools/change.ts` lifecycle paths that advertise or should honor `target_path`, especially create/update/show/reenter/close/bulk-close and recovery helpers.\n- `plugin/src/tools/task.ts`, `plugin/src/tools/gate.ts`, and report/contract mutation paths if they construct source-project workflow handles after target create/read.\n- `plugin/src/tools/worktree*.ts` or worktree routing helpers, specifically `adv_worktree_resume` behavior for target-project changes.\n- Target-project store/trust helpers such as `plugin/src/tools/target-project.ts` and cache-refresh/serviceability adapters.\n- Regression tests near target-path coordination, change lifecycle, task/gate mutations, and worktree routing.\n\n## Proposed Direction\n\nCreate a follow-up fix for #192 focused on lifecycle routing consistency:\n\n1. Audit every `target_path`-advertising lifecycle/mutation tool involved in the new repro comments.\n2. Ensure workflow handles, store/cache refresh, queue readiness, recovery paths, and project IDs use the target project when `target_path` is confirmed.\n3. Address `adv_worktree_resume` behavior for target-project changes: either add target-aware routing or hard-block clearly when called from a source repo for a target-only change.\n4. Add regression coverage for the concrete failure shapes from #192 comments:\n   - `adv_change_reenter target_path` uses target project ID and resets target gates/tasks.\n   - target-path create/update/gate/task/report/close flows never use source project workflow IDs.\n   - worktree resume does not create source-project worktrees for target-project changes.\n   - archive/status_repair target-path identity behavior is covered or explicitly split if it needs separate release-safety design.\n\n## Out of Scope\n\n- Cleaning up external PokeEdge placeholder changes unless needed as verification evidence.\n- Reworking product-level cross-repo UX beyond tool routing and clear errors.\n- Changing GitHub Project/backlog priority labels; #192 already has `priority:high`.\n- Reopening #92, which is already completed.\n\n## Initial Risk\n\nThis touches cross-project workflow identity, worktree isolation, and recovery paths. Correctness must be structural: project identity derivation and target-store routing need tests, not string heuristics.",
+    "problemStatement": "GitHub issue #192 remains relevant and urgent because latest repro comments show source-project sessions can still misroute target-project lifecycle operations. The current system may create or mutate workflow handles under the source project ID instead of the target project ID, and `adv_worktree_resume` can materialize a source-project worktree for a target-only change. This blocks safe cross-project recovery and implementation flows and can leave split-brain ADV state. The completed #92 issue is unrelated; it has no new comments after its May 2026 completion.",
+    "agreement": "# Agreement\n\n## Problem Statement\n\nGitHub issue #192 remains open because latest Jul 7 repro comments show cross-project lifecycle routing still leaks source-project identity into target-project operations. The earlier archived `fixTargetPathRouting` change fixed target artifact readback and close/bulk-close scope, but newer evidence shows at least `adv_change_reenter` and `adv_worktree_resume` remain unsafe for source-session → target-project workflows.\n\n## Discovery Evidence\n\n- GitHub issue #92 is closed/completed with no newer comments after 2026-05-10; it is not the urgent active bug.\n- GitHub issue #192 is open, labeled `bug` and `priority:high`, with latest comments documenting target-path re-entry failure, target-path create/signal identity leakage, task/report mutation failures, wrong worktree namespace creation, and archive/status-repair/workaround fallout.\n- Existing active backlog state shows #192 has no active change before this one.\n- Source inspection confirms `adv_change_reenter` in `plugin/src/tools/change.ts` currently has no `target_path` args and builds workflow handles from `getProjectId(store.paths.root)`, then calls `fireSignalAndRefresh` with the current store.\n- Source inspection confirms `adv_worktree_resume` in `plugin/src/tools/adv-worktree.ts` currently has no `target_path` args and calls `initWorktreeDb(store.paths.root)` / `advWorktreeResume(..., { projectRoot: store.paths.root, store })`, so materialization uses the current project namespace.\n- Source inspection confirms `adv_worktree_delete` and `adv_worktree_cleanup` already use `withTargetPathStore`, providing an in-file pattern for target-aware worktree mutation routing.\n- Source inspection confirms `adv_change_status_repair` uses `withTargetPathStore` as a nearby pattern for target-aware change lifecycle mutation routing.\n- Explore reconnaissance found most other mutation surfaces already route through target stores: gate complete, task add/update/cancel/reclassify, contract mint, and subagent report submit.\n\n## Objectives\n\n1. Fix active cross-project lifecycle routing gaps that can target the source project when a target project is intended.\n2. Make `adv_change_reenter` target-aware using the same structural target store/project-id/cache-refresh pattern as other mutation tools.\n3. Make worktree resume safe for target-project changes: either add explicit target-aware routing or hard-block source-session misuse with a deterministic error that prevents wrong-namespace worktree creation.\n4. Preserve existing trusted-target confirmation, Temporal queue readiness, cache-refresh, worktree-isolation, and dry-run semantics.\n5. Add regression tests for the concrete #192 failure shapes before implementing fixes.\n\n## Acceptance Criteria\n\n- AC1 — Given `adv_change_reenter` is called with `target_path`, `target_confirmed:true`, and trusted confirmation evidence for an active target-project change, the workflow handle uses the target project ID and the target change gates are reset from the requested gate.\n- AC2 — Given `adv_change_reenter target_path` completes, the signal/cache-refresh path uses the target store, and the tool response includes target `_projectContext`.\n- AC3 — Given untrusted `adv_change_reenter target_path` lacks `target_confirmed:true` plus non-blank `confirmationEvidence`, the tool fails before firing any workflow signal.\n- AC4 — Given `adv_change_reenter target_path` is run with `dryRun:true`, it validates target state read-only and fires no workflow signal.\n- AC5 — Given `adv_worktree_resume` is asked to resume/materialize a target-project change from a source-project session, it must not create or reuse a worktree under the source project namespace.\n- AC6 — If target-aware `adv_worktree_resume` is implemented, it initializes worktree state from the target project root, materializes under the target project worktree namespace, and records any worktree-created signal/cache refresh against the target store.\n- AC7 — If target-aware `adv_worktree_resume` is intentionally not implemented in this change, the tool hard-blocks the target-project misuse path with a deterministic error naming the missing target routing and instructing the operator to run from the target repo session.\n- AC8 — Regression tests prove #192 source-project workflow IDs are not used for target `adv_change_reenter` or worktree resume/materialization paths.\n- AC9 — Related-scan verifies the listed mutation tools that already advertise `target_path` still route through target stores, or records any newly found gap as an explicit follow-up/blocker.\n- AC10 — `bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts` passes, or any red test is diagnosed and fixed in scope.\n- AC11 — `pnpm run check` passes from `plugin/`.\n\n## Constraints\n\n- C1 — Correctness must be structural: derive workflow handles, external roots, cache refresh, and worktree DB paths from the owning target store/project ID, not title/path heuristics.\n- C2 — Use `withTargetPathStore` / target-project trust helpers for target mutations; do not create a parallel routing mechanism.\n- C3 — Preserve required `target_confirmed` + `confirmationEvidence` guard for untrusted target mutations.\n- C4 — Preserve `rq-cacheRefresh01`: change-workflow signals must use `fireSignalAndRefresh` with the owning store.\n- C5 — Do not read or edit external ADV state files directly.\n- C6 — Keep Temporal workflow code deterministic; git/worktree and target-project I/O stays in tool/helper layers.\n- C7 — Tests must use isolated temp project fixtures, not real PokeEdge projects.\n- C8 — Use repo-local test routing (`bin/oc-test`) for suites; source-vs-deployed runtime boundary remains in release notes.\n\n## Avoidances\n\n- DONT1 — Do not route target-path lifecycle mutations through the source project ID.\n- DONT2 — Do not let `adv_worktree_resume` silently create a source-project worktree for a target-project change.\n- DONT3 — Do not weaken target-path confirmation or Temporal queue-readiness checks.\n- DONT4 — Do not broaden into unrelated product UX redesign or automatic external placeholder cleanup.\n- DONT5 — Do not fix #92; it is completed and unrelated.\n- DONT6 — Do not use direct ADV state file reads, disk projection, or manual worktree path shuffling as the normal fix.\n- DONT7 — Do not change GitHub Project priority labels or ROADMAP scoring in this change.\n\n## Out of Scope\n\n- OOS1 — Cleaning up existing PokeEdge placeholder changes or external repo worktrees.\n- OOS2 — Reworking all cross-project UX or Epic membership semantics.\n- OOS3 — Adding new Temporal workflow primitives or coordinator workflows unless discovery during design proves existing target-store routing cannot satisfy the contract.\n- OOS4 — Archive release-safety redesign beyond target identity routing for tools that already advertise `target_path`.\n\n## Open Design Decision\n\n`adv_worktree_resume` should either become target-aware or hard-block target-only misuse. Discovery recommends target-aware routing if bounded and consistent with `adv_worktree_delete` / `adv_worktree_cleanup`; otherwise a deterministic hard block is safer than current wrong-namespace materialization.",
+    "design": "# Design\n\n## Summary\n\nUse the existing target-project routing primitives to close the two confirmed #192 lifecycle gaps:\n\n1. `adv_change_reenter` becomes a normal target-aware mutation tool.\n2. `adv_worktree_resume` becomes target-aware for explicit `target_path` calls and never materializes a target change under the source project namespace.\n\nNo new Temporal workflow primitive is needed. The fix stays in tool/helper layers and reuses `withTargetPathStore`, `getProjectId(activeStore.paths.root)`, and `fireSignalAndRefresh(..., activeStore, ...)` as the structural identity boundary.\n\n## Key Decisions\n\n### KD1 — `adv_change_reenter` uses target Temporal store\n\nAdd `target_path`, `target_confirmed`, and `confirmationEvidence` args to `adv_change_reenter` with descriptions matching other target mutation tools.\n\nRefactor current implementation into a `runReenter(activeStore, projectContext?)` helper:\n\n1. Load change from `activeStore.changes.get(changeId)`.\n2. Reject archived/closed changes before signaling.\n3. For `dryRun:true`, validate via the selected store and return the same preview shape plus target `_projectContext` when present.\n4. For execution, resolve `projectId = await getProjectId(activeStore.paths.root)`.\n5. Build handle with `getChangeHandle(bundle.client, projectId, changeId)`.\n6. Fire `gateReenteredSignal` via `fireSignalAndRefresh(handle, activeStore, changeId, ...)`.\n7. Return `buildReentryResult(activeStore, changeId, fromGate)` merged with target `_projectContext` when present.\n\nWhen `target_path` is present, wrap with:\n\n```ts\nwithTargetPathStore(\n  {\n    currentProjectPath: store.paths.root,\n    target_path,\n    target_confirmed,\n    confirmationEvidence,\n    stateRequirement: dryRun ? \"snapshot-ok\" : \"temporal-required\",\n    mutation: dryRun ? false : undefined,\n  },\n  async ({ context, store: targetStore }) =>\n    runReenter(targetStore, formatTargetProjectContext(context)),\n)\n```\n\nThis mirrors `adv_change_status_repair` while preserving dry-run read-only behavior.\n\n### KD2 — `adv_worktree_resume` supports explicit target routing\n\nAdd target mutation args to `adv_worktree_resume` using the same target-worktree schema family already used by `adv_worktree_delete` and `adv_worktree_cleanup`.\n\nRefactor into `executeWorktreeResume(args, activeStore, projectContext?)`:\n\n1. `projectRoot = activeStore.paths.root`.\n2. `database = await initWorktreeDb(projectRoot)`.\n3. `advWorktreeResume(..., { projectRoot, database, log, store: activeStore })`.\n4. Return `formatToolOutput({ ...result, _projectContext })` when target-routed.\n\nWhen `target_path` is present, wrap with `withTargetPathStore` using `stateRequirement:\"temporal-required\"` and default mutation semantics. This intentionally makes resume target-aware rather than only hard-blocking because implementation is bounded and consistent with existing delete/cleanup target routing.\n\nAC6 is the intended path. AC7 is the fallback contract row only if implementation discovers target-aware resume is unsafe; under this design AC7 should be reviewed as not_applicable because target-aware resume is implemented.\n\nResult: worktree DB, worktree path namespace, worktree-created signal, and cache refresh all derive from the target store/project root.\n\n### KD3 — Do not widen direct `adv_worktree_create` in this change\n\n`adv_worktree_resume` is the ADV branch-aware entry point and internally materializes via `advWorktreeCreate` with supplied deps. Adding target routing to resume satisfies the #192 misuse path without expanding the lower-level ad-hoc create command. If related-scan finds direct create target misuse, record a follow-up rather than silently broadening scope.\n\n### KD4 — Related-scan is verification, not scope expansion\n\nGate/task/contract/report mutation surfaces already appear target-routed. Implementation must verify this with source/test inspection and add a report note. New confirmed gaps outside reenter/resume become follow-ups unless they block AC1-AC11.\n\n## Independent Validator Result\n\n`adv-researcher` validation passed with high confidence and low risk. The validator confirmed the current gaps and reference patterns from source:\n\n- `plugin/src/tools/change.ts` reenter currently lacks target args and uses current store/root.\n- `adv_change_status_repair` provides the right `withTargetPathStore` wrapper pattern.\n- `adv_worktree_delete` / `adv_worktree_cleanup` provide the right worktree target routing pattern.\n- `advWorktreeResume` materializes through injected deps, so routing target deps into resume is sufficient.\n- Gate/task/contract/report surfaces already appear target-routed.\n\nValidator recommendation: proceed to planning, with precision tests for target dry-run reenter and `advWorktreeResume` target deps.\n\n## Implementation Plan\n\n1. Add RED tests for `adv_change_reenter target_path`:\n   - target store is selected through `withTargetPathStore`.\n   - handle uses target project ID.\n   - `fireSignalAndRefresh` receives target store.\n   - response includes `_projectContext`.\n   - unconfirmed target mutation fails before signal.\n   - `dryRun:true` validates through target path and does not signal.\n2. Implement `adv_change_reenter` wrapper/refactor.\n3. Add RED tests for `adv_worktree_resume target_path`:\n   - wrapper receives current root, target path, confirmation evidence, and `stateRequirement:\"temporal-required\"`.\n   - `initWorktreeDb` receives target root.\n   - `advWorktreeResume` deps use target project root and target store.\n   - source root is not used for target materialization.\n4. Implement `adv_worktree_resume` wrapper/refactor.\n5. Run related-scan on target-path mutation surfaces listed in the agreement.\n6. Run targeted tests and `pnpm run check`.\n\n## Test Strategy\n\n- `plugin/src/tools/change.test.ts` — add target-path reentry tests beside existing `adv_change_reenter` tests.\n- `plugin/src/tools/adv-worktree.test.ts` — add target-path resume tests beside existing worktree resume/delete tests.\n- `plugin/src/tools/target-project.test.ts` — targeted run ensures trust/queue behavior remains green.\n- Verification commands:\n  - `bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts`\n  - `pnpm run check` from `plugin/`\n\n## Risk Controls\n\n- `withTargetPathStore` remains the only target mutation routing mechanism.\n- `fireSignalAndRefresh` receives the owning store to satisfy cache-refresh law.\n- Tests assert target store/project root structurally, not string-matching issue comments.\n- Real PokeEdge projects are not used as fixtures.\n- Current OpenCode session will still need build/deploy/restart before live tool behavior changes because deployed `dist` is cached.\n\n## Spec Delta\n\nNo spec delta expected. Existing cross-project coordination, target trust, cache-refresh, and worktree-isolation requirements already govern the behavior. If implementation discovers an uncovered law, stop and re-enter design before adding deltas.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nFixed the remaining cross-project lifecycle routing gaps for GitHub issue #192. `adv_change_reenter` and `adv_worktree_resume` now route explicit `target_path` operations through the target project store/root instead of the source project identity.\n\n## Why It Matters\n\nSource-repo sessions can safely re-enter target-project changes and resume target-project ADV worktrees without creating source-project workflow handles or wrong-namespace worktrees. This prevents split-brain ADV state during cross-project recovery and implementation flows.\n\n## Verdict\n\nREADY for archive sign-off\n\n## What Was Built\n\n1. Added `target_path`, `target_confirmed`, and `confirmationEvidence` support to `adv_change_reenter`.\n2. Routed target re-entry through `withTargetPathStore`, target project ID, target workflow handle, target cache refresh, and target `_projectContext` output.\n3. Preserved `adv_change_reenter dryRun:true` as read-only target validation with no workflow signal.\n4. Added target routing to `adv_worktree_resume` so worktree DB/root/store deps come from the target project.\n5. Left direct `adv_worktree_create` unchanged because branch-aware `adv_worktree_resume` materializes through injected target deps.\n6. Added regression tests covering target reentry identity, unconfirmed target rejection, dry-run no-signal behavior, and target worktree resume namespace.\n\n## What Was Verified\n\n- RED/GREEN reentry tests: RED failed new target reentry tests (`tr_mrbbnyic_e6aed7bd`); GREEN passed `change.test.ts` 99 tests (`tr_mrbbp2th_e3400a5d`).\n- RED/GREEN worktree tests: RED failed new target resume test (`tr_mrbbqk2z_6f13f675`); GREEN passed `adv-worktree.test.ts` (`tr_mrbbrc85_5c57cfcc`).\n- Final targeted suite passed: `bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts` (`tr_mrbby6eg_b4adb0a1`).\n- Check passed: `pnpm run check` from `plugin/` (`tr_mrbbym91_37696677`).\n- Strict ADV validation passed with expected non-blocking `NO_DELTAS` warning.\n- Acceptance reviewer verdict: READY, no blockers; reviewer reran targeted tests (145 tests), check, and cache-refresh grep.\n- Harden reviewer verdict: READY, no blockers; reviewer reran focused target suite (145 tests), cache-refresh grep, and confirmed working tree clean.\n- Contract matrix: 30/30 rows pass/respected/not_applicable; 0 failing rows.\n\n## Release Readiness Summary\n\nREADY for archive.\n\n- Tests: pass — RED/GREEN evidence captured, final targeted suite passed, `pnpm run check` passed, harden rerun passed 145 focused tests.\n- Review: pass — acceptance reviewer READY; harden reviewer READY; 0 blocking findings.\n- Ops: no migration, env var, external service, or runbook required.\n- Runtime note: live ADV MCP behavior requires normal source build, local deploy, and OpenCode/plugin host restart before the running tool host uses these source changes, because deployed `dist` is cached.\n- Risk: low; changed files are scoped to `plugin/src/tools/change.ts`, `plugin/src/tools/change.test.ts`, `plugin/src/tools/adv-worktree.ts`, and `plugin/src/tools/adv-worktree.test.ts`.\n\n## Remaining Concerns\n\n- Live OpenCode/ADV MCP behavior requires normal source build, local deploy, and OpenCode/plugin host restart before the running tool host uses these source changes, because deployed `dist` is cached.\n- No spec delta was added; validation reports expected `NO_DELTAS` only.\n\n## Consequence Context\n\n1. delivered value — pass: #192 target lifecycle routing gaps for reentry and worktree resume are fixed in source and tests.\n2. enabling-only/follow-up dependency — n/a: no blocking follow-up required for this change.\n3. ops readiness — pass: no migration, env var, external service, or runbook required.\n4. migration/data impact — n/a: no persisted-state migration; routing behavior only.\n5. frontend/preview impact — n/a: no visual/browser surface.\n6. collision/release risk — low: scoped tool/test changes, reviewers READY, targeted tests and check passed.\n7. open follow-ups — none blocking. Direct `adv_worktree_create` target routing intentionally not widened; branch-aware resume covers the issue path.\n8. next action — archive sign-off.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-08T00:24:33.770Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | AC1 — Given `adv_change_reenter` is called with `target_path`, `target_confirmed:true`, and trusted confirmation evidence for an active target-project change, the workflow handle uses the target project ID and the target change gates are reset from the requested gate. | pass | change.test.ts target_path reentry test verifies getChangeHandle uses target-project-id and gates reset path; targeted suite tr_mrbby6eg_b4adb0a1 passed. |\n| AC2 | acceptance_criterion | AC2 — Given `adv_change_reenter target_path` completes, the signal/cache-refresh path uses the target store, and the tool response includes target `_projectContext`. | pass | change.test.ts target_path reentry test verifies fireSignalAndRefresh receives targetStore and response has _projectContext; tr_mrbby6eg_b4adb0a1 passed. |\n| AC3 | acceptance_criterion | AC3 — Given untrusted `adv_change_reenter target_path` lacks `target_confirmed:true` plus non-blank `confirmationEvidence`, the tool fails before firing any workflow signal. | pass | change.test.ts unconfirmed target reentry test rejects before fireSignalAndRefresh; tr_mrbby6eg_b4adb0a1 passed. |\n| AC4 | acceptance_criterion | AC4 — Given `adv_change_reenter target_path` is run with `dryRun:true`, it validates target state read-only and fires no workflow signal. | pass | change.test.ts dryRun target reentry test verifies snapshot-ok/mutation:false and no getChangeHandle/fireSignalAndRefresh; tr_mrbby6eg_b4adb0a1 passed. |\n| AC5 | acceptance_criterion | AC5 — Given `adv_worktree_resume` is asked to resume/materialize a target-project change from a source-project session, it must not create or reuse a worktree under the source project namespace. | pass | adv-worktree.test.ts target_path resume test verifies initStateDb('/target') and no source-root materialization deps; tr_mrbby6eg_b4adb0a1 passed. |\n| AC6 | acceptance_criterion | AC6 — If target-aware `adv_worktree_resume` is implemented, it initializes worktree state from the target project root, materializes under the target project worktree namespace, and records any worktree-created signal/cache refresh against the target store. | pass | adv-worktree.test.ts target_path resume test verifies advWorktreeResume receives projectRoot:'/target' and store:targetStore; tr_mrbby6eg_b4adb0a1 passed. |\n| AC7 | acceptance_criterion | AC7 — If target-aware `adv_worktree_resume` is intentionally not implemented in this change, the tool hard-blocks the target-project misuse path with a deterministic error naming the missing target routing and instructing the operator to run from the target repo session. | not_applicable | Design selected and implemented target-aware adv_worktree_resume, so the fallback hard-block path for intentionally not implementing target-aware resume is not applicable. |\n| AC8 | acceptance_criterion | AC8 — Regression tests prove #192 source-project workflow IDs are not used for target `adv_change_reenter` or worktree resume/materialization paths. | pass | Regression tests in change.test.ts and adv-worktree.test.ts prove source project IDs/roots are not used for target reenter/resume paths; tr_mrbby6eg_b4adb0a1 passed. |\n| AC9 | acceptance_criterion | AC9 — Related-scan verifies the listed mutation tools that already advertise `target_path` still route through target stores, or records any newly found gap as an explicit follow-up/blocker. | pass | Related scan PASS: reenter change.ts:4015; worktree resume adv-worktree.ts:606; delete :645; cleanup :689; gate complete gate.ts:1418; task update task.ts:907; task add :1185; cancel :1449; reclassify :1586; contract mint contract.ts:328 via withContractStore; subagent report submit subagent-report.ts:888. |\n| AC10 | acceptance_criterion | AC10 — `bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts` passes, or any red test is diagnosed and fixed in scope. | pass | `bin/oc-test targeted -- src/tools/change.test.ts src/tools/adv-worktree.test.ts src/tools/target-project.test.ts` passed in tr_mrbby6eg_b4adb0a1; reviewer rerun passed 145 tests. |\n| AC11 | acceptance_criterion | AC11 — `pnpm run check` passes from `plugin/`. | pass | `pnpm run check` from plugin/ passed in tr_mrbbym91_37696677; reviewer rerun `pnpm --dir plugin run check` passed. |\n| C1 | constraint | C1 — Correctness must be structural: derive workflow handles, external roots, cache refresh, and worktree DB paths from the owning target store/project ID, not title/path heuristics. | respected | Implementation derives project ID and worktree DB from active target store/root, not title/path heuristics. |\n| C2 | constraint | C2 — Use `withTargetPathStore` / target-project trust helpers for target mutations; do not create a parallel routing mechanism. | respected | Both new target paths use withTargetPathStore; no parallel routing mechanism introduced. |\n| C3 | constraint | C3 — Preserve required `target_confirmed` + `confirmationEvidence` guard for untrusted target mutations. | respected | Unconfirmed target reentry regression passes; worktree resume routes through existing targetWorktreeMutationArgSchemas and withTargetPathStore trust helper. |\n| C4 | constraint | C4 — Preserve `rq-cacheRefresh01`: change-workflow signals must use `fireSignalAndRefresh` with the owning store. | respected | adv_change_reenter uses fireSignalAndRefresh(handle, activeStore, ...) and reviewer rg found no direct fireSignal(handle) matches in non-test tool files. |\n| C5 | constraint | C5 — Do not read or edit external ADV state files directly. | respected | No direct ADV state file reads/edits used; state interactions stay through store/tool helpers. |\n| C6 | constraint | C6 — Keep Temporal workflow code deterministic; git/worktree and target-project I/O stays in tool/helper layers. | respected | Changes remain in tool/helper layers and tests; Temporal workflow code untouched. |\n| C7 | constraint | C7 — Tests must use isolated temp project fixtures, not real PokeEdge projects. | respected | Tests use local mocks/fixtures in change.test.ts and adv-worktree.test.ts, not real PokeEdge projects. |\n| C8 | constraint | C8 — Use repo-local test routing (`bin/oc-test`) for suites; source-vs-deployed runtime boundary remains in release notes. | respected | Verification used repo-local bin/oc-test for targeted suite; source-vs-deployed runtime boundary recorded in reviewer risk. |\n| DONT1 | avoidance | DONT1 — Do not route target-path lifecycle mutations through the source project ID. | respected | Target reentry tests assert target-project-id and targetStore; no source project ID routing for target mutation. |\n| DONT2 | avoidance | DONT2 — Do not let `adv_worktree_resume` silently create a source-project worktree for a target-project change. | respected | Target worktree resume test asserts target root/store deps; no source worktree namespace materialization. |\n| DONT3 | avoidance | DONT3 — Do not weaken target-path confirmation or Temporal queue-readiness checks. | respected | Target confirmation guards remain exercised by tests and withTargetPathStore routing. |\n| DONT4 | avoidance | DONT4 — Do not broaden into unrelated product UX redesign or automatic external placeholder cleanup. | respected | No product UX redesign or external placeholder cleanup performed. |\n| DONT5 | avoidance | DONT5 — Do not fix #92; it is completed and unrelated. | respected | No #92 code or issue work performed; #92 only used as triage evidence. |\n| DONT6 | avoidance | DONT6 — Do not use direct ADV state file reads, disk projection, or manual worktree path shuffling as the normal fix. | respected | No disk projection/direct state reads/manual worktree path shuffling introduced. |\n| DONT7 | avoidance | DONT7 — Do not change GitHub Project priority labels or ROADMAP scoring in this change. | respected | No GitHub Project priority labels or roadmap scoring changed. |\n| OOS1 | out_of_scope | OOS1 — Cleaning up existing PokeEdge placeholder changes or external repo worktrees. | not_applicable | No existing PokeEdge placeholder changes or external repo worktrees cleaned up. |\n| OOS2 | out_of_scope | OOS2 — Reworking all cross-project UX or Epic membership semantics. | not_applicable | No broad cross-project UX or Epic membership semantics rework performed. |\n| OOS3 | out_of_scope | OOS3 — Adding new Temporal workflow primitives or coordinator workflows unless discovery during design proves existing target-store routing cannot satisfy the contract. | not_applicable | No new Temporal workflow primitive or coordinator workflow added. |\n| OOS4 | out_of_scope | OOS4 — Archive release-safety redesign beyond target identity routing for tools that already advertise `target_path`. | not_applicable | No archive release-safety redesign performed beyond related-scan confirmation. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-07T23:45:31.542Z",
+      "contentHash": "fd14a6a37a640f9df1ee4e308a1815c1c516fa6bf5cd8818f68d979a8e366782",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-07T23:44:35.285Z",
+      "contentHash": "191cf470fe7dcad9f95d034a20b8452839a794edbd87a8660a5a4f4476a4776c",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-07T23:58:09.022Z",
+      "contentHash": "ad29a4d2b290239bb0390a4b1c450ac8847132bfa8e0adb6c67dd62e51b1b720",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-08T00:06:11.769Z",
+      "contentHash": "d2014febbfb4e68d7038acc4409e5dd058912b1039eeeca6123e7f9ef244c7ec",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-08T00:31:46.541Z",
+      "contentHash": "8ab36497430839d91c67c429bb391b8e719b3c8ad785a3622c742ddda5639bfd",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-08T00:31:46.541Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
