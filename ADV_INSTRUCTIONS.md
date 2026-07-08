@@ -926,6 +926,15 @@ Pocock overlap skills remain excluded from ADV skill selection:
 | `triage`          | Superseded by `/adv-triage`; WSJF + ROADMAP mirror already gate-aware.           |
 | `tdd`             | Superseded by RSTC TDD Protocol; task metadata and verification own correctness. |
 
+### Adopted Skills (Open-Zone Resolutions)
+
+The following Pocock skills were not excluded but adopted as ADV vendored skills. They supplement ADV methodology without conflicting with the gate-bound model.
+
+| Skill                          | Adopted as                  | Rationale                                                                                                                                                              |
+| ------------------------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `codebase-design`              | `adv-codebase-design`       | Adopted 2026-07-08 for change `adoptCodebaseDesignImprove`. Vocabulary reference (deep-module terms + deletion test + dependency categories). License: MIT.             |
+| `improve-codebase-architecture`| `adv-improve-codebase-architecture` | Adopted 2026-07-08 for change `adoptCodebaseDesignImprove`. Procedural organic-exploration + HTML-report workflow (`disable-model-invocation: true` preserved). License: MIT. |
+
 ## Skill Creation Protocol
 
 Enabled in `/adv-discover` and `/adv-research`. Conservative — only triggers for the change's core problem domain.

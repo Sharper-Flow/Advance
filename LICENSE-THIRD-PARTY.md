@@ -7,8 +7,8 @@ This repository vendors content from external projects under their original lice
 **Source:** https://github.com/mattpocock/skills
 **Author:** Matt Pocock <https://github.com/mattpocock>
 **License:** MIT (see [LICENSE](#mit-license-mattpocockskills) below)
-**Imported SHA:** `9f2e0bd0ea776eb6372eb81fa8a4a47814a8404a`
-**Imported at:** 2026-05-11 (change `adoptMattpocockSkills`)
+**Imported SHA:** `d574778f94cf620fcc8ce741584093bc650a61d3`
+**Imported at:** 2026-05-11 (change `adoptMattpocockSkills`); 2026-07-08 (change `adoptCodebaseDesignImprove`)
 
 ### Vendored skills
 
@@ -21,6 +21,11 @@ This repository vendors content from external projects under their original lice
 | `skills/adv-prototype/LOGIC.md` | `skills/engineering/prototype/LOGIC.md` | (same name) |
 | `skills/adv-prototype/UI.md` | `skills/engineering/prototype/UI.md` | (same name) |
 | `skills/adv-skill-author/SKILL.md` | `skills/productivity/write-a-skill/SKILL.md` | `adv-skill-author` (renamed) |
+| `skills/adv-codebase-design/SKILL.md` | `skills/engineering/codebase-design/SKILL.md` | `adv-codebase-design` |
+| `skills/adv-codebase-design/DEEPENING.md` | `skills/engineering/codebase-design/DEEPENING.md` | (same name) |
+| `skills/adv-codebase-design/DESIGN-IT-TWICE.md` | `skills/engineering/codebase-design/DESIGN-IT-TWICE.md` | (same name) |
+| `skills/adv-improve-codebase-architecture/SKILL.md` | `skills/engineering/improve-codebase-architecture/SKILL.md` | `adv-improve-codebase-architecture` |
+| `skills/adv-improve-codebase-architecture/HTML-REPORT.md` | `skills/engineering/improve-codebase-architecture/HTML-REPORT.md` | (same name) |
 
 The `skills/adv-skill-author/SKILL.md` content was minimally adapted: description field updated for ADV context and an ADV-Specific Guidance section appended. Pocock's original content preserved verbatim.
 
