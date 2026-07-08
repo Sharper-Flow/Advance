@@ -1,7 +1,8 @@
 import type { Store } from "../store-types";
-import type { Epic } from "../../types";
+import type { Epic, RetiredEpicProjection } from "../../types";
 import { ensureEpicWorkflowStarted } from "../../temporal/workflow-start";
 import {
+  epicArchivedSignal,
   epicCreatedSignal,
   epicMergedSignal,
   epicScopeUpdatedSignal,
@@ -47,12 +48,14 @@ export interface EpicMutationError {
     | "entry_already_exists"
     | "epic_not_active"
     | "epic_archived"
+    | "epic_incomplete"
     | "retarget_source_mismatch"
     | "retarget_duplicate_target"
     | "temporal_unavailable"
     | "signal_rejected";
   message: string;
   rejection?: { signalName: string; errorMessage: string };
+  blockers?: { entry_id: string; kind: string; reason: string }[];
 }
 
 function idempotencyKey(prefix: string, ...parts: string[]): string {
@@ -146,6 +149,8 @@ function codeFromRejectionMessage(message: string): EpicMutationError["code"] {
   )
     return "epic_not_active";
   if (/epic_archived|Epic is archived/i.test(message)) return "epic_archived";
+  if (/epic_incomplete|incomplete entries/i.test(message))
+    return "epic_incomplete";
   return "signal_rejected";
 }
 
@@ -169,6 +174,46 @@ async function fireEpicSignal(
       },
     };
     throw Object.assign(new Error(error.message), error);
+  }
+}
+
+/**
+ * Fire the terminal `epicArchived` signal and detect any rejection recorded by
+ * the workflow. Unlike `fireEpicSignal`, this helper does not treat a "workflow
+ * not found" query failure as an error: a completed Epic workflow is no longer
+ * queryable, which is the expected outcome of a successful archive.
+ */
+async function fireEpicArchiveSignal(
+  handle: EpicHandleLike,
+  payload: {
+    archivedAt: string;
+    archivedBy: string;
+    expectedVersion: number;
+    idempotencyKey: string;
+  },
+): Promise<void> {
+  await runTemporal(() => handle.signal(epicArchivedSignal, payload));
+  try {
+    const state = await queryEpicState(handle);
+    const rejection = lastRejectionFor(
+      state,
+      "epicArchived",
+      payload.archivedAt,
+    );
+    if (rejection) {
+      const error: EpicMutationError = {
+        code: codeFromRejectionMessage(rejection.errorMessage),
+        message: rejection.errorMessage,
+        rejection: {
+          signalName: rejection.signalName,
+          errorMessage: rejection.errorMessage,
+        },
+      };
+      throw Object.assign(new Error(error.message), error);
+    }
+  } catch (error) {
+    if (isWorkflowNotFoundError(error)) return;
+    throw error;
   }
 }
 
@@ -311,6 +356,85 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         );
       }
       await saveRetiredEpicProjection(retiredEpicsDir, epicId, projection);
+    },
+
+    retire: async (
+      epicId,
+      { expectedVersion, evidence, retiredBy, dryRun },
+    ) => {
+      const handle = getEpicHandle(epicId);
+      const state = await tryQueryEpicState(handle);
+      if (!state) {
+        throw Object.assign(new Error(`Epic not found: ${epicId}`), {
+          code: "epic_not_found" as const,
+        });
+      }
+
+      const blockers = state.epic.entries
+        .filter(
+          (entry) =>
+            entry.kind === "shell" ||
+            (entry.kind === "change" && entry.terminal_summary?.status == null),
+        )
+        .map((entry) => ({
+          entry_id: entry.entry_id,
+          kind: entry.kind,
+          reason: entry.kind === "shell" ? "future" : "active",
+        }));
+
+      if (state.epic.progress.status !== "completed" || blockers.length > 0) {
+        const error = new Error(
+          `Epic ${epicId} has incomplete entries and cannot be retired`,
+        );
+        throw Object.assign(error, {
+          code: "epic_incomplete" as const,
+          message: error.message,
+          blockers,
+        });
+      }
+
+      if (state.epic.version !== expectedVersion) {
+        throw Object.assign(
+          new Error(
+            `Expected Epic version ${expectedVersion}, found ${state.epic.version}`,
+          ),
+          {
+            code: "stale_version" as const,
+          },
+        );
+      }
+
+      const workflowId = buildEpicWorkflowId(input.projectId, epicId);
+      const retiredAt = new Date().toISOString();
+
+      const projection: RetiredEpicProjection = {
+        epic_snapshot: JSON.parse(JSON.stringify(state.epic)) as Epic,
+        retired_at: retiredAt,
+        retired_by: retiredBy,
+        evidence,
+        source_workflow_id: workflowId,
+        source_version: state.epic.version,
+        projection_status: dryRun ? "prepared" : "retired",
+      };
+
+      if (dryRun) {
+        return projection;
+      }
+
+      await deps.legacy.epics.saveRetiredProjection(epicId, projection);
+
+      await fireEpicArchiveSignal(handle, {
+        archivedAt: retiredAt,
+        archivedBy: retiredBy,
+        expectedVersion: state.epic.version,
+        idempotencyKey: idempotencyKey(
+          "epic-retire",
+          epicId,
+          String(state.epic.version),
+        ),
+      });
+
+      return projection;
     },
 
     list: async () => {

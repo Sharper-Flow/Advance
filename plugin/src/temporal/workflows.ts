@@ -1924,9 +1924,10 @@ export async function epicWorkflow(input: EpicWorkflowInput): Promise<void> {
   );
   wf.setHandler(
     epicArchivedSignal,
-    signalMutation("epicArchived", (payload) =>
-      applyEpicArchivedToState(state, payload),
-    ),
+    signalAsync("epicArchived", (payload) => {
+      const result = applyEpicArchivedToState(state, payload);
+      handleMutationResult("epicArchived", result);
+    }),
   );
 
   const thresholds = resolveHistoryThresholds();

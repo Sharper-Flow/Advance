@@ -450,6 +450,21 @@ export interface Store {
       epicId: string,
       projection: RetiredEpicProjection,
     ) => Promise<void>;
+    /**
+     * Guarded Epic retirement: query live state, verify the Epic is completed
+     * with no active or future entries, persist a retired projection, then
+     * signal the Epic workflow to archive. Supports dry-run to preview the
+     * projection without persisting or signaling.
+     */
+    retire: (
+      epicId: string,
+      input: {
+        expectedVersion: number;
+        evidence: string;
+        retiredBy: string;
+        dryRun?: boolean;
+      },
+    ) => Promise<RetiredEpicProjection>;
   };
 }
 

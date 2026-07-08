@@ -320,7 +320,7 @@ describe("epicWorkflow", () => {
     );
   }, 60000);
 
-  it("archives the Epic and completes the workflow", async () => {
+  it("archives the completed Epic and completes the workflow", async () => {
     await withTestWorkflowEnvironment(
       () => TestWorkflowEnvironment.createTimeSkipping(),
       async (env) => {
@@ -357,9 +357,30 @@ describe("epicWorkflow", () => {
             version: 0,
           });
 
+          await handle.signal(changeLinkedSignal, {
+            entryId: "entry-1",
+            changeId: "change-1",
+            title: "Linked Change",
+            order: 0,
+            idempotencyKey: "link-change-1",
+            linkedAt: "2026-06-24T00:01:00.000Z",
+          });
+
+          await handle.signal(entryTerminalSummarySignal, {
+            entryId: "entry-1",
+            status: "archived",
+            completedAt: "2026-06-24T00:02:00.000Z",
+            idempotencyKey: "terminal-1",
+          });
+
+          const state = await queryState(handle);
+          expect(state.epic.progress.status).toBe("completed");
+
           await handle.signal(epicArchivedSignal, {
-            archivedAt: "2026-06-24T00:01:00.000Z",
+            archivedAt: "2026-06-24T00:03:00.000Z",
             archivedBy: "agent",
+            expectedVersion: state.epic.version,
+            idempotencyKey: "archive-1",
           });
 
           let description = await handle.describe();
@@ -372,6 +393,75 @@ describe("epicWorkflow", () => {
             description = await handle.describe();
           }
           expect(description.status.name).toBe("COMPLETED");
+        });
+      },
+    );
+  }, 60000);
+
+  it("records rejection when archive signal targets an incomplete Epic", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        const taskQueue = `epic-wf-${Date.now()}`;
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue,
+        });
+
+        await worker.runUntil(async () => {
+          const input = makeEpicInput();
+          const handle = await env.client.workflow.start("epicWorkflow", {
+            workflowId: `epic-${input.epicId}`,
+            taskQueue,
+            args: [input],
+          });
+
+          await handle.signal(epicCreatedSignal, {
+            id: input.epicId,
+            title: input.title,
+            narrative: input.narrative,
+            entries: [],
+            progress: {
+              status: "active" as const,
+              total_entries: 0,
+              completed_entries: 0,
+              active_entries: 0,
+              next_entry_id: null,
+              updated_at: input.initializedAt,
+            },
+            created_at: input.initializedAt,
+            updated_at: input.initializedAt,
+            version: 0,
+          });
+
+          await handle.signal(changeLinkedSignal, {
+            entryId: "entry-1",
+            changeId: "change-1",
+            title: "Active Change",
+            order: 0,
+            idempotencyKey: "link-change-1",
+            linkedAt: "2026-06-24T00:01:00.000Z",
+          });
+
+          await handle.signal(epicArchivedSignal, {
+            archivedAt: "2026-06-24T00:02:00.000Z",
+            archivedBy: "agent",
+            expectedVersion: 1,
+            idempotencyKey: "archive-1",
+          });
+
+          const state = await queryState(handle);
+          expect(state.rejections).toHaveLength(1);
+          expect(state.rejections![0].signalName).toBe("epicArchived");
+          expect(state.rejections![0].errorMessage).toContain(
+            "incomplete entries",
+          );
+          expect(state.rejections![0].errorMessage).toContain("entry-1");
+          expect(state.status).toBe("active");
+
+          const description = await handle.describe();
+          expect(description.status.name).toBe("RUNNING");
         });
       },
     );

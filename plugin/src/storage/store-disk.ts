@@ -1026,6 +1026,9 @@ export async function createDiskStore(
         loadRetiredEpicProjection(paths.retiredEpics, epicId),
       saveRetiredProjection: async (epicId, projection) =>
         saveRetiredEpicProjection(paths.retiredEpics, epicId, projection),
+      retire: async () => {
+        throw new Error("Epics require the Temporal store backend.");
+      },
     },
 
     // -------------------------------------------------------------------

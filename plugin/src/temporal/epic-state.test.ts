@@ -883,33 +883,140 @@ describe("epic-state", () => {
       expect(state.epic.progress.status).toBe("completed");
     });
 
-    it("keeps next_entry_id null for archived Epics", () => {
+    it("keeps next_entry_id null for archived completed Epics", () => {
       const state = makeState();
-      applyShellAddedToState(state, {
-        entryId: "shell-1",
-        title: "Future Shell",
-        successHint: "hint",
-        idempotencyKey: "add-shell-1",
-        addedAt: "2026-06-24T00:01:00.000Z",
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Archived Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
       });
-      applyEpicArchivedToState(state, {
-        archivedAt: "2026-06-24T00:02:00.000Z",
+      applyEntryTerminalSummaryToState(state, {
+        entryId: "entry-1",
+        status: "archived",
+        completedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "terminal-1",
+      });
+      const result = applyEpicArchivedToState(state, {
+        archivedAt: "2026-06-24T00:03:00.000Z",
         archivedBy: "agent",
+        expectedVersion: 2,
+        idempotencyKey: "archive-1",
       });
+      expect(result.ok).toBe(true);
       expect(state.epic.progress.status).toBe("archived");
       expect(state.epic.progress.next_entry_id).toBeNull();
     });
   });
 
   describe("applyEpicArchivedToState", () => {
-    it("sets status and progress to archived", () => {
+    it("sets status and progress to archived for completed Epic", () => {
       const state = makeState();
-      applyEpicArchivedToState(state, {
-        archivedAt: "2026-06-24T00:01:00.000Z",
-        archivedBy: "agent",
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Archived Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
       });
+      applyEntryTerminalSummaryToState(state, {
+        entryId: "entry-1",
+        status: "archived",
+        completedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "terminal-1",
+      });
+      const result = applyEpicArchivedToState(state, {
+        archivedAt: "2026-06-24T00:03:00.000Z",
+        archivedBy: "agent",
+        expectedVersion: 2,
+        idempotencyKey: "archive-1",
+      });
+      expect(result.ok).toBe(true);
       expect(state.status).toBe("archived");
       expect(state.epic.progress.status).toBe("archived");
+      expect(state.epic.version).toBe(3);
+    });
+
+    it("replays legacy archive payloads without version/idempotency fields", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Archived Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyEntryTerminalSummaryToState(state, {
+        entryId: "entry-1",
+        status: "archived",
+        completedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "terminal-1",
+      });
+
+      const result = applyEpicArchivedToState(state, {
+        archivedAt: "2026-06-24T00:03:00.000Z",
+        archivedBy: "agent",
+      } as any);
+
+      expect(result.ok).toBe(true);
+      expect(state.status).toBe("archived");
+      expect(state.epic.progress.status).toBe("archived");
+    });
+
+    it("rejects incomplete Epic with named active entries", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Active Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyShellAddedToState(state, {
+        entryId: "shell-1",
+        title: "Future Shell",
+        successHint: "hint",
+        idempotencyKey: "add-shell-1",
+        addedAt: "2026-06-24T00:02:00.000Z",
+      });
+      const result = applyEpicArchivedToState(state, {
+        archivedAt: "2026-06-24T00:03:00.000Z",
+        archivedBy: "agent",
+        expectedVersion: 0,
+        idempotencyKey: "archive-1",
+      });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.code).toBe("epic_incomplete");
+      expect(result.message).toContain("entry-1");
+      expect(result.message).toContain("shell-1");
+    });
+
+    it("rejects archived Epic with stale version", () => {
+      const state = makeState();
+      applyChangeLinkedToState(state, {
+        entryId: "entry-1",
+        changeId: "change-1",
+        title: "Archived Change",
+        idempotencyKey: "link-1",
+        linkedAt: "2026-06-24T00:01:00.000Z",
+      });
+      applyEntryTerminalSummaryToState(state, {
+        entryId: "entry-1",
+        status: "archived",
+        completedAt: "2026-06-24T00:02:00.000Z",
+        idempotencyKey: "terminal-1",
+      });
+      const result = applyEpicArchivedToState(state, {
+        archivedAt: "2026-06-24T00:03:00.000Z",
+        archivedBy: "agent",
+        expectedVersion: 5,
+        idempotencyKey: "archive-1",
+      });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.code).toBe("stale_version");
     });
   });
 

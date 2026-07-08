@@ -12,6 +12,7 @@ import type { StoreDeps } from "./shared";
 import { createDiskStore } from "../store-disk";
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import {
+  epicArchivedSignal,
   epicCreatedSignal,
   epicMergedSignal,
   epicScopeUpdatedSignal,
@@ -83,6 +84,14 @@ function setup() {
   } as unknown as StoreDeps;
 
   return { deps, handle, signalMock, queryMock, startMock, getHandleMock };
+}
+
+async function setupWithRetiredEpicsDir() {
+  const tempDir = await createTempDir("epic-retired-");
+  const legacy = await createDiskStore(tempDir);
+  const base = setup();
+  base.deps.legacy = legacy;
+  return { ...base, tempDir, legacy };
 }
 
 describe("createEpicOps", () => {
@@ -553,14 +562,6 @@ describe("createEpicOps", () => {
   });
 
   describe("retired projection fallback", () => {
-    async function setupWithRetiredEpicsDir() {
-      const tempDir = await createTempDir("epic-retired-");
-      const legacy = await createDiskStore(tempDir);
-      const base = setup();
-      base.deps.legacy = legacy;
-      return { ...base, tempDir, legacy };
-    }
-
     test("get falls back to retired projection when workflow is not found", async () => {
       const { deps, queryMock, tempDir } = await setupWithRetiredEpicsDir();
       queryMock.mockImplementation(async () => {
@@ -637,6 +638,167 @@ describe("createEpicOps", () => {
       expect(loaded.data?.projection_status).toBe("retired");
 
       await cleanupTempDir(tempDir);
+    });
+  });
+
+  describe("retire", () => {
+    function makeCompletedEpic(overrides?: Partial<Epic>): Epic {
+      const now = new Date().toISOString();
+      return makeEpic({
+        id: "addAuthEpic",
+        title: "Add Auth Epic",
+        entries: [
+          {
+            kind: "change",
+            entry_id: "entry-1",
+            order: 0,
+            change_id: "change-1",
+            title: "Done Change",
+            membership_status: "terminal",
+            linked_at: "2026-06-24T00:01:00.000Z",
+            linked_by: "agent",
+            terminal_summary: {
+              status: "archived",
+              completed_at: "2026-06-24T00:02:00.000Z",
+            },
+          },
+        ],
+        progress: {
+          status: "completed",
+          total_entries: 1,
+          completed_entries: 1,
+          active_entries: 0,
+          next_entry_id: null,
+          updated_at: now,
+        },
+        version: 1,
+        ...overrides,
+      });
+    }
+
+    test("retire persists projection, fires epicArchived, and returns retired projection", async () => {
+      const { deps, signalMock, queryMock, tempDir } =
+        await setupWithRetiredEpicsDir();
+      queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.retire("addAuthEpic", {
+        expectedVersion: 1,
+        evidence: "User approved retirement.",
+        retiredBy: "agent",
+      });
+
+      expect(result.projection_status).toBe("retired");
+      expect(result.epic_snapshot.id).toBe("addAuthEpic");
+      expect(result.source_version).toBe(1);
+      expect(result.evidence).toBe("User approved retirement.");
+      expect(result.retired_by).toBe("agent");
+      expect(result.source_workflow_id).toBe("adv/epic/project-id/addAuthEpic");
+
+      expect(signalMock).toHaveBeenCalledWith(
+        epicArchivedSignal,
+        expect.objectContaining({
+          expectedVersion: 1,
+          archivedBy: "agent",
+        }),
+      );
+
+      const loaded = await ops.getRetiredProjection("addAuthEpic");
+      expect(loaded.success).toBe(true);
+      expect(loaded.data?.projection_status).toBe("retired");
+
+      await cleanupTempDir(tempDir);
+    });
+
+    test("retire rejects incomplete Epic before mutation and names blockers", async () => {
+      const { deps, queryMock, signalMock } = setup();
+      queryMock.mockResolvedValue(
+        makeState(
+          makeEpic({
+            entries: [
+              {
+                kind: "shell",
+                entry_id: "shell-1",
+                order: 0,
+                title: "Future Shell",
+                success_hint: "hint",
+              },
+              {
+                kind: "change",
+                entry_id: "entry-1",
+                order: 1,
+                change_id: "change-1",
+                title: "Active Change",
+                membership_status: "linked",
+                linked_at: "2026-06-24T00:01:00.000Z",
+                linked_by: "agent",
+              },
+            ],
+            progress: {
+              status: "active",
+              total_entries: 2,
+              completed_entries: 0,
+              active_entries: 1,
+              next_entry_id: "shell-1",
+              updated_at: new Date().toISOString(),
+            },
+          }),
+        ),
+      );
+
+      const ops = createEpicOps(deps);
+      await expect(
+        ops.retire("addAuthEpic", {
+          expectedVersion: 0,
+          evidence: "Evidence",
+          retiredBy: "agent",
+        }),
+      ).rejects.toMatchObject({
+        code: "epic_incomplete",
+        blockers: [
+          { entry_id: "shell-1", kind: "shell", reason: "future" },
+          { entry_id: "entry-1", kind: "change", reason: "active" },
+        ],
+      });
+
+      expect(signalMock).not.toHaveBeenCalled();
+    });
+
+    test("retire dryRun returns prepared projection without writing or signaling", async () => {
+      const { deps, queryMock, signalMock, tempDir } =
+        await setupWithRetiredEpicsDir();
+      queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
+
+      const ops = createEpicOps(deps);
+      const result = await ops.retire("addAuthEpic", {
+        expectedVersion: 1,
+        evidence: "User approved retirement.",
+        retiredBy: "agent",
+        dryRun: true,
+      });
+
+      expect(result.projection_status).toBe("prepared");
+      expect(signalMock).not.toHaveBeenCalled();
+
+      const loaded = await ops.getRetiredProjection("addAuthEpic");
+      expect(loaded.success).toBe(true);
+      expect(loaded.data).toBeNull();
+
+      await cleanupTempDir(tempDir);
+    });
+
+    test("retire throws stale_version when expectedVersion does not match", async () => {
+      const { deps, queryMock } = setup();
+      queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
+
+      const ops = createEpicOps(deps);
+      await expect(
+        ops.retire("addAuthEpic", {
+          expectedVersion: 5,
+          evidence: "Evidence",
+          retiredBy: "agent",
+        }),
+      ).rejects.toMatchObject({ code: "stale_version" });
     });
   });
 });
