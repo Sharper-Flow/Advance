@@ -1,0 +1,893 @@
+{
+  "id": "bounceDeployedWorkers",
+  "title": "Bounce deployed workers",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-08T20:53:52.858Z",
+  "tasks": [
+    {
+      "id": "tk-8859433af976",
+      "title": "Add advance-meta spec law for deploy worker refresh",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-08T21:25:35.244Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T21:33:51.570Z",
+      "verification": "Static check passed: node parsed .adv/specs/advance-meta/spec.json and confirmed rq-deployWorkerBounce01/rq-deployWorkerBounce02 exist in spec JSON and docs/specs/advance-meta.md (adv_run_test tr_mrcljr2y_a4ee4bd6).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        "docs/specs/advance-meta.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        "docs/specs/advance-meta.md"
+      ],
+      "checkpointSha": "e2f3e00d5ed5416700c35fc42302252e8f9c1f33",
+      "completedAt": "2026-07-08T21:35:36.862Z",
+      "completed_at": "2026-07-08T21:35:36.862Z"
+    },
+    {
+      "id": "tk-9661a4bc8ea5",
+      "title": "Implement deploy-local worker bounce with tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-08T21:25:50.910Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T21:36:30.812Z",
+      "verification": "TDD evidence: RED adv_run_test tr_mrclouwv_ab764af3 failed as expected before implementation (missing refresh_deployed_temporal_workers); GREEN adv_run_test tr_mrclrnb1_d465049a passed after implementation. Additional verify runs passed: deploy worker refresh asset tests tr_mrclrtro_ecb1071e, read-only mode asset test tr_mrcls1hr_45f37242, bash syntax check tr_mrcls994_815245e2.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/deploy-local.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        "plugin/src/deploy-local.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "7155ba04841ebc2a60c64cb5e6ac37bd3f2230b2",
+      "completedAt": "2026-07-08T21:42:18.424Z",
+      "completed_at": "2026-07-08T21:42:18.424Z"
+    },
+    {
+      "id": "tk-2f777ace9318",
+      "title": "Verify deploy worker refresh contract",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-08T21:26:09.344Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8859433af976"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9661a4bc8ea5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "respects": [
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-08T21:42:32.036Z",
+      "verification": "Harden remediation verification passed: bash -n scripts/deploy-local.sh && bash -n .githooks/post-commit && bash -n .githooks/pre-push (tr_mrcn3klv_b9c9c71d); bin/oc-test targeted -- src/deploy-local.test.ts 72/72 passed (tr_mrcn3m7n_5bccd34c); pnpm run format:check passed (tr_mrcn3tgz_458eb781); pnpm run schemas:check passed (tr_mrcn442d_ca1904e7); strict ADV validation passed with expected NO_DELTAS warning.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".githooks/post-commit",
+        ".githooks/pre-push",
+        "SETUP.md",
+        "plugin/src/deploy-local.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        ".githooks/post-commit",
+        ".githooks/pre-push",
+        "SETUP.md",
+        "plugin/src/deploy-local.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "5fa76cd7a330abf099bbabb1cf4386183336e61d",
+      "completedAt": "2026-07-08T22:19:19.880Z",
+      "completed_at": "2026-07-08T22:19:19.880Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "bounceDeployedWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: bounce deployed Temporal workers at deploy-local boundary",
+      "sources": [
+        {
+          "label": "deploy-local.sh runtime sync boundary",
+          "locator": "/home/jon/dev/advance/scripts/deploy-local.sh:1130-1146",
+          "summary": "Runtime plugin sync via rsync -a --delete into $ADV_RUNTIME_PLUGIN_PATH; 'synced runtime plugin' echo at line 1145 is the exact insertion point the design cites. Confirms bounce-after-sync ordering is correct."
+        },
+        {
+          "label": "deploy-local.sh --check early exit",
+          "locator": "/home/jon/dev/advance/scripts/deploy-local.sh:1116-1123",
+          "summary": "--check runs check_config/check_adv_cli_install then exits BEFORE asset sync (line 1128+). Confirms design step 4: --check must be reporting-only and cannot rely on a fresh sync. Also confirms --dry-run guards at 1139-1140 skip real rsync."
+        },
+        {
+          "label": "resolveWorkerScriptPath",
+          "locator": "/home/jon/dev/advance/plugin/src/plugin-init.ts:140-156",
+          "summary": "Worker resolved as ../dist/temporal/worker.js relative to dist/index.js → resolves to $ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js at runtime. Matches the design's exact target path."
+        },
+        {
+          "label": "buildTemporalWorkerProcessSpec",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/runtime-manager.ts:298-316",
+          "summary": "Worker spawned as command=process.execPath (Node), args=[input.workerScript] where workerScript is the absolute worker.js path. The absolute path appears verbatim as argv → exact-path command-line matching (ps/pgrep -f) is structurally reliable, validating KD2/DDC1/AC2."
+        },
+        {
+          "label": "worker-multi spawn call",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/worker-multi.ts:300-326",
+          "summary": "spawn(nodePath, spec.args=[workerScript]) confirms the live OOP worker command line is '<node> <abs>/dist/temporal/worker.js'. Node child, not Bun — command line is Node execpath + absolute script."
+        },
+        {
+          "label": "worker shutdown SIGTERM semantics",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/worker-multi.ts:496-535",
+          "summary": "Graceful shutdown = child.kill('SIGTERM'), bounded grace window, escalate to SIGKILL. Confirms SIGTERM is the established graceful control signal (KD3/AC1), and that the worker treats SIGTERM as clean exit."
+        },
+        {
+          "label": "deploy-local test harness pattern",
+          "locator": "/home/jon/dev/advance/plugin/src/deploy-local.test.ts:1-34",
+          "summary": "Existing tests read scripts/deploy-local.sh contents and assert on script text + advance-meta spec. Confirms design's test strategy (asset/text tests around deploy-local.sh) matches the established test pattern."
+        },
+        {
+          "label": "respawn / supervisor behavior",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/worker-multi.ts:381-465 (tests)",
+          "summary": "Supervisor respawns on crash (non-zero exit) up to MAX_RESTARTS with backoff, but does NOT respawn on graceful exit code 0. SIGTERM graceful exit → child exits cleanly; whether a NEW worker starts depends on the owning OpenCode session still running. Confirms the design's Risk that SIGTERM may leave no worker if the session already exited, and that C2 (no unbounded polling) aligns with not waiting on respawn."
+        }
+      ],
+      "architecture_assessment": "The design localizes bounce behavior at the one correct control surface: deploy-local.sh is the sole local runtime plugin sync owner (verified 1130-1146), and inserting bounce handling right after the 'synced runtime plugin' echo makes the observable deploy result match the file-sync result. The load-bearing correctness claim — exact-path process matching — is structurally supported by source: the OOP worker is spawned as `process.execPath <abs>/dist/temporal/worker.js` (runtime-manager.ts:306-307, worker-multi.ts:322), so the absolute runtime worker path appears verbatim in argv and can be matched exactly against process command lines, satisfying AC2/DONT2/DDC1. SIGTERM-by-default is consistent with the established graceful shutdown signal (worker-multi.ts:511). Read-only mode safety is well-founded: --check exits before sync (1116-1123) and --dry-run guards rsync (1139-1140), so the design's insistence that --check be reporting-only and never require a fresh sync is correct and non-obvious — a real correctness catch. The test strategy matches the existing deploy-local.test.ts contents-assertion pattern. Two residual gaps are acknowledged in the design itself (SIGTERM may leave no respawned worker if the owning session exited; command-line truncation/inaccessibility on some systems) with loud-failure mitigations, consistent with KD4/AC3. No spec-law contradiction found; the design plans to add advance-meta requirements rather than violate existing ones.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. Design is correct, minimal, and spec-law compliant. Non-blocking implementation cautions for prep: (1) Match argv precisely — the running command line is '<node> <abs-path>'; use pgrep -f / ps against the absolute path token, exclude the deploy script's own PID and any ps/grep pipeline PID (design Risk 1 / DDC1). (2) Multi-worker reality: worker-multi is a single shared child per host, but multiple OpenCode sessions/checkouts can each run their own OOP worker against the SAME synced $ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js — expect and bounce N matching PIDs, not exactly one (worker-multi.ts:300-326 is per-host, not per-machine-singleton). (3) Respawn nuance: SIGTERM = graceful exit code 0 → supervisor does NOT respawn (worker-multi.ts graceful-exit tests); a fresh worker only comes back when a live OpenCode session re-inits the store. Design already reports bounced PIDs + restart guidance, which is the right handling given C2 forbids polling for respawn. (4) Bounded handling: DDC2/C2 forbid unbounded waits — a single bounded liveness re-check after SIGTERM (not a poll loop) is sufficient before declaring fail; do not escalate to SIGKILL from the deploy script (that is the supervisor's job) unless a future decision adds it."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Deploy-local owns process lifecycle side effects (SIGTERM) in addition to file sync — broader responsibility for one script, but it makes deploy result honest about runtime state.",
+          "Exact-path argv matching is robust but OS-dependent for command-line visibility; on systems where argv is truncated/inaccessible the design correctly degrades to loud [ADV:ACTION_REQUIRED] failure rather than false success.",
+          "SIGTERM without deploy-driven respawn can leave zero workers running when the owning session has exited; accepted because respawn is the session/supervisor's job and C2 forbids deploy-side polling. Reported PIDs + restart guidance keep it actionable."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Warning-only deploy (no signal)",
+            "disposition": "rejected",
+            "rationale": "Agreement mandates default SIGTERM (AC1); warning-only leaves stale code active after a successful-looking deploy — the exact defect being fixed."
+          },
+          {
+            "option": "Require operator to run adv_temporal_worker_restart",
+            "disposition": "rejected",
+            "rationale": "That tool is project/session-scoped recovery, not a deploy hook, and is easy to forget post-deploy; deploy should make stale worker state impossible to miss. Confirmed adv_temporal_worker_restart is recovery tooling, out of scope."
+          },
+          {
+            "option": "Hot-reload bundle in the worker supervisor",
+            "disposition": "rejected",
+            "rationale": "Out of scope and over-engineered for a local deploy lifecycle defect; would require redesigning Temporal worker architecture (OOS-adjacent). Bounce+respawn via existing OS semantics is the boring, proven path."
+          },
+          {
+            "option": "Basename-only / regex process-name matching",
+            "disposition": "rejected",
+            "rationale": "Would risk killing unrelated Node/Bun processes (violates DONT2). Absolute-path argv matching is both safer and structurally available per runtime-manager.ts:306-307."
+          }
+        ],
+        "recommendation": "Proceed to planning. Design PASSES validation with high confidence. During prep, encode as explicit criteria/tasks: (a) match the absolute worker path token in argv via pgrep -f/ps and exclude self+pipeline PIDs; (b) bounce ALL matching PIDs (multiple sessions/checkouts can each run a worker against the same synced path), not a presumed singleton; (c) a single bounded post-SIGTERM liveness re-check (no poll loop, per C2/DDC2), then non-zero + [ADV:ACTION_REQUIRED] with path/PID evidence if any target remains; (d) keep SIGKILL escalation out of the deploy script (leave it to the supervisor) unless a new decision adds it; (e) ensure --check stays reporting-only without requiring a fresh sync (it exits pre-sync), and --dry-run reports would-bounce with zero signals."
+      },
+      "recommendation": "Design is correct, minimal, and spec-law compliant — proceed to planning. Enforce exact absolute-path argv matching, multi-PID bounce, bounded (non-polling) verification, and reporting-only read modes as design-derived criteria/tasks.",
+      "follow_ups": [
+        "Prep: add task/criterion for multi-PID bounce (multiple OpenCode sessions/checkouts can each spawn a worker against the same synced dist/temporal/worker.js).",
+        "Prep: add task/criterion that post-SIGTERM verification is a single bounded liveness re-check, not a poll loop, to satisfy C2/DDC2.",
+        "Prep: confirm advance-meta spec requirement wording covers exact-path matching, read-only no-signal, and loud non-zero failure so the law matches DDC1-DDC4."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "bounceDeployedWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/bounceDeployedWorkers",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bash -n scripts/deploy-local.sh",
+          "bin/oc-test targeted -- src/deploy-local.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight OK for all focus files. Reviewed branch diff against merge-base e7b017a692d6626894e7af4cc5ec66ac564ba72d and inspected source lines for worker matching, SIGTERM bounce, read-only modes, ACTION_REQUIRED output, spec/doc additions, and deploy-local tests. `bash -n scripts/deploy-local.sh` passed. `bin/oc-test targeted -- src/deploy-local.test.ts` passed: 70/70 tests. Initial wrapper invocation with repo-prefixed test path found no tests; corrected to plugin-relative path and passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "bounceDeployedWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/bounceDeployedWorkers",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 4,
+      "dimensions": [
+        "test_coverage",
+        "ai_slop",
+        "documentation_hygiene",
+        "production_readiness",
+        "deployment_readiness",
+        "cleanup"
+      ],
+      "summary": "Harden scanners checked release/deploy readiness, production readiness, documentation hygiene, cleanup, test coverage, and residual slop. Initial high findings for hook output suppression and non-canonical worker path were remediated, checkpointed in 5fa76cd7, and targeted re-scan verified both resolved. No unresolved blockers/high findings remain. Targeted test suite, syntax checks, format check, schemas check, and strict ADV validation passed.",
+      "findings": [
+        {
+          "scanner": "release-deploy-readiness",
+          "severity": "info",
+          "summary": "DEP-1 resolved: git hooks now capture deploy-local failure output and print it to stderr instead of suppressing [ADV:ACTION_REQUIRED].",
+          "evidence": [
+            {
+              "label": "source",
+              "locator": ".githooks/post-commit, .githooks/pre-push",
+              "summary": "Both hooks use deploy_output=\"$($DEPLOY_SCRIPT --fix 2>&1)\" and printf captured output to stderr on failure; suppression pattern removed."
+            },
+            {
+              "label": "verification",
+              "locator": "tr_mrcn3m7n_5bccd34c",
+              "summary": "deploy-local tests 72/72 passed, including hook-output regression assertions."
+            }
+          ]
+        },
+        {
+          "scanner": "release-deploy-readiness",
+          "severity": "info",
+          "summary": "DEP-2 resolved: deployed worker script path is canonicalized before exact argv matching.",
+          "evidence": [
+            {
+              "label": "source",
+              "locator": "scripts/deploy-local.sh refresh_deployed_temporal_workers",
+              "summary": "Uses cd \"$ADV_RUNTIME_PLUGIN_PATH\" && pwd -P when possible to derive worker_script; falls back only if runtime path cannot be entered."
+            },
+            {
+              "label": "verification",
+              "locator": "tr_mrcn3m7n_5bccd34c",
+              "summary": "deploy-local tests 72/72 passed, including canonical-path assertion."
+            }
+          ]
+        },
+        {
+          "scanner": "test-coverage",
+          "severity": "info",
+          "summary": "Affected deploy-local behavior, spec requirements, hook-output regression, and docs mention are covered by tests.",
+          "evidence": [
+            {
+              "label": "verification",
+              "locator": "tr_mrcn3m7n_5bccd34c",
+              "summary": "bin/oc-test targeted -- src/deploy-local.test.ts passed 72/72."
+            }
+          ]
+        },
+        {
+          "scanner": "cleanup-readiness",
+          "severity": "info",
+          "summary": "No cleanup candidates found; tree clean after harden checkpoint.",
+          "evidence": [
+            {
+              "label": "verification",
+              "locator": "5fa76cd7",
+              "summary": "Harden remediation files committed by adv_task_checkpoint; no temp/debug candidates reported by scanner."
+            }
+          ]
+        }
+      ],
+      "follow_ups": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-08T20:57:33.692Z",
+      "completed_by": "agent",
+      "approval_evidence": "User invoked /adv-discover after proposal approval prompt; treating as Tier A continuation approval for proposal handoff.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "0befee5b9c87a66a19762d4ea1d37ad8e0106887fbc71328a20f938224289662",
+        "non_whitespace_chars": 5236,
+        "checked_at": "2026-07-08T20:53:52.898Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-08T21:19:58.960Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings recorded in proposal. User approved criteria via reply `approve`. Agreement persisted and contract minted with 20 items: SC1-SC3, AC1-AC5, C1-C4, DONT1-DONT5, OOS1-OOS3.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "non_whitespace_chars": 3942,
+        "checked_at": "2026-07-08T20:53:52.899Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-08T21:24:45.332Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded with clean-pass independent adv-researcher validation. No user-value tradeoff, no conflict, no contract-compromise risk. Validator prep cautions encoded as design-derived criteria.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "b7535b2046d737b114969dbdb7cc3dd18ab64055f096ffff489ec20c8e21f967",
+        "non_whitespace_chars": 7657,
+        "checked_at": "2026-07-08T20:53:52.900Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-08T21:33:14.274Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision via reply `approve`. Task graph has 3 tasks covering contract items with dependencies and TDD intent assigned."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-08T21:44:47.779Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks completed with checkpoint commits. Verification passed: deploy-local tests 70/70, format:check, schemas:check, bash syntax check, strict change validation with only expected NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-08T22:09:07.693Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance via reply `approve` after acceptance summary. Review verdict READY with 0 findings; contract matrix 20/20 pass/respected/not_applicable; executive summary persisted with content hash evidence.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "3adad59d2b9e868adffe36aa735a0331ae70f8e3400fc4d6eeb3a0ddef7e4d87",
+        "non_whitespace_chars": 3355,
+        "checked_at": "2026-07-08T20:53:52.901Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+      "approvedAt": "2026-07-08T21:19:47.672Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Local deploy no longer silently leaves known running `dist/temporal/worker.js` processes on old worker/workflow code after bundle sync.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Deploy output makes worker refresh state observable: bounced workers, no matching workers, or `[ADV:ACTION_REQUIRED]` restart needed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Read-only deploy modes never signal processes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "After successful runtime plugin sync, exact-path matching running `dist/temporal/worker.js` processes receive `SIGTERM` by default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Matching worker detection is scoped to the synced runtime plugin path and excludes unrelated Node/Bun processes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "If any exact-path matching worker cannot be signaled or remains running after bounded handling, deploy exits non-zero and prints a multi-line `[ADV:ACTION_REQUIRED]` block with path/PID evidence and restart instructions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`--check` and `--dry-run` do not signal processes; they report the would-bounce or restart-required action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Spec/test coverage prevents reverting to copy-only silent success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve source-vs-deployed-runtime boundary: OpenCode host-loaded tool code still requires session restart when relevant.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve bounded worker/supervisor behavior; do not introduce unbounded polling, restart loops, or background watchers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Runtime worker matching must be path-scoped to the deployment target and must handle quoted/path-with-space cases safely.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "`--check` remains read-only/no-write/no-signal; `--dry-run` remains no-write/no-signal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not silently claim deploy success when known matching worker processes may still execute old code.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not kill unrelated Node/Bun processes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not require manual file shuffling in deployed runtime paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not redesign Temporal worker architecture as part of this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not change workflow/task semantics unrelated to runtime bundle reload behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Host-loaded `dist/index.js` tool-code hot reload; existing restart guidance remains authoritative.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Remote CI release mechanics unless local deploy packaging directly depends on them.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Replacing `adv_temporal_worker_restart`; it remains an operator recovery tool, not deployment automation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-08T21:48:48.792Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Execution gate evidence: runtime deploy sync now refreshes exact-path matching dist/temporal/worker.js processes instead of silent copy-only success; reviewer verdict READY with no findings; final validation passed."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Execution/test evidence covers observable deploy outcomes: bounced workers, no matching workers, and multi-line [ADV:ACTION_REQUIRED] restart block; reviewer verdict READY."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Read-only deploy modes verified: --check and --dry-run do not signal processes and report would-bounce/restart-required action; reviewer verdict READY."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_run_test tr_mrclrtro_ecb1071e and full deploy-local suite tr_mrcluunl_47cd562a passed; tests verify exact-path matching worker receives SIGTERM after successful runtime plugin sync."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_run_test tr_mrclrtro_ecb1071e and full deploy-local suite tr_mrcluunl_47cd562a passed; tests verify matching scoped to synced runtime plugin path and unrelated Node/Bun processes excluded."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_run_test tr_mrclrtro_ecb1071e and full deploy-local suite tr_mrcluunl_47cd562a passed; tests verify non-zero deploy failure plus multi-line [ADV:ACTION_REQUIRED] path/PID evidence and restart instructions when matching worker cannot be cleared."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_run_test tr_mrcls1hr_45f37242 and full deploy-local suite tr_mrcluunl_47cd562a passed; --check and --dry-run remain no-signal and report intended action."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Static spec verification tr_mrcljr2y_a4ee4bd6 confirmed rq-deployWorkerBounce01/rq-deployWorkerBounce02 in spec JSON and docs; full deploy-local suite tr_mrcluunl_47cd562a passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Scope remains deploy-local worker/workflow bundle refresh; existing source-vs-deployed-runtime session restart boundary for host-loaded tool code remains documented and unchanged."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation uses bounded SIGTERM/grace handling for matching workers; no background watcher, restart loop, or unbounded polling introduced."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Tests and implementation cover path-scoped matching to deployment target, including quoted/path-with-space safe handling."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Read-only mode tests passed for --check and --dry-run; no write/signal behavior added to those modes."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Deploy now reports bounced/no-match/action-required states and fails non-zero when matching workers may remain stale; no silent stale-worker success path remains in covered behavior."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Worker detection is exact deployed runtime path scoped; unrelated Node/Bun processes excluded by tests."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Deploy-local owns refresh action after sync; no manual deployed-runtime file shuffling required."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Temporal workflow or worker architecture redesign; change limited to deploy-local refresh handling and spec/tests/docs."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No workflow/task semantic changes outside runtime bundle reload behavior; validation passed with only expected NO_DELTAS warning."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Host-loaded dist/index.js hot reload remains out of scope; restart guidance remains authoritative."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Remote CI release mechanics not changed; local deploy packaging behavior only."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "adv_temporal_worker_restart not replaced; it remains operator recovery tooling."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "After successful runtime plugin sync, exact-path matching running `dist/temporal/worker.js` processes receive `SIGTERM` by default.",
+    "Matching worker detection is scoped to the synced runtime plugin path and excludes unrelated Node/Bun processes.",
+    "If any exact-path matching worker cannot be signaled or remains running after bounded handling, deploy exits non-zero and prints a multi-line `[ADV:ACTION_REQUIRED]` block with path/PID evidence and restart instructions.",
+    "`--check` and `--dry-run` do not signal processes; they report the would-bounce or restart-required action.",
+    "Spec/test coverage prevents reverting to copy-only silent success."
+  ],
+  "documents": {
+    "proposal": "## Why\nDeploy currently copies new `worker.js` / `workflows.js`, but already-running `dist/temporal/worker.js` processes keep old code. Result: worker/workflow fixes appear deployed but silently no-op until sessions/workers restart.\n\nDesired outcome: deploy makes this state impossible to miss. Preferred outcome: running `dist/temporal/worker.js` processes are bounced after new worker/workflow bundles are copied so supervisors respawn on new code. Minimum acceptable outcome: deploy prints a loud warning that running workers must be bounced or sessions restarted. The change must preserve existing bounded supervisor respawn semantics and avoid silently masking stale worker code.\n\n## What Changes\nThe local deployment flow must account for live ADV Temporal worker processes after runtime worker/workflow bundles are refreshed. It should either actively trigger a safe bounce of running worker processes or emit an unmistakable operator warning when a bounce cannot be performed safely.\n\nIf worker bounce is attempted but cannot be completed safely, deploy output must make the remaining stale-worker risk explicit instead of implying the new worker/workflow code is fully active.\n\n## User Outcomes\n- Operators who deploy worker/workflow fixes receive behavior that prevents stale `dist/temporal/worker.js` processes from silently continuing to serve old code.\n- Deploy output clearly distinguishes copied files from actually refreshed worker runtime behavior.\n- Existing session-supervisor recovery expectations remain intact: bounced workers are expected to respawn through the established bounded supervisor path.\n\n## Scope\n### In Scope\n- Local ADV deploy flow that rebuilds and syncs the runtime plugin bundle.\n- Handling or warning for running `dist/temporal/worker.js` processes after worker/workflow bundle copy.\n- Failure reporting for cases where running workers cannot be identified or bounced safely.\n- Documentation or operator-facing deploy output needed to make stale worker/runtime-code state visible.\n- Tests or deterministic checks covering deploy-local behavior.\n\n### Out of Scope\n- Redesigning Temporal worker architecture.\n- Changing workflow/task semantics unrelated to runtime bundle reload behavior.\n- Adding unbounded restart loops or background polling.\n- Changing remote CI release mechanics unless discovery proves local deploy packaging depends on it.\n\n### Must Not\n- Must not silently claim deploy success while known running worker processes may still execute old code.\n- Must not bypass existing bounded supervisor respawn semantics.\n- Must not require manual file shuffling in deployed runtime paths.\n- Must not kill unrelated Node/Bun processes.\n\n## Affected Code\n- `scripts/deploy-local.sh` — current runtime sync path runs `rsync -a --delete \"$ADV_SOURCE_PLUGIN_PATH/\" \"$ADV_RUNTIME_PLUGIN_PATH/\"` after ensuring dist freshness.\n- `plugin/src/plugin-init.ts` — worker runtime resolves `dist/temporal/worker.js` and uses that bundle for the out-of-process worker path.\n- `docs/temporal-recovery.md` — existing operator guidance says worker/workflow code changes require `pnpm run build:worker` then worker restart; also documents bounded child restart behavior.\n- `plugin/src/deploy-local.test.ts` and temporal worker tests — likely local test surfaces for deploy script behavior and worker lifecycle expectations.\n\n## Related Repositories\n- Current repo only (`advance`). No product-linked multi-repo scope detected from `project.json`.\n\n## Constraints\n- Preserve source-vs-deployed-runtime boundary: OpenCode loads the deployed plugin copy, and live host-loaded tool code still requires session restart when relevant.\n- Preserve bounded worker respawn expectations documented for the out-of-process Temporal worker path.\n- Keep deploy output loud enough that stale worker state cannot be mistaken for a fully effective deploy.\n- Avoid broad process-kill behavior until discovery verifies safe process identification, ownership, and dry-run semantics.\n- Failed exact-match worker bounce attempts must exit non-zero with actionable output.\n\n## Impact\n- Reduces false confidence after worker/workflow-code fixes are deployed locally.\n- Improves operator safety by turning stale live worker processes into explicit refresh behavior or explicit warning.\n- May affect deploy-local output and tests that assert deployment script contents.\n\n## Context\nQuick checks performed during proposal:\n- `scripts/deploy-local.sh` currently ensures plugin dist freshness, then syncs `plugin/` to the stable runtime plugin path.\n- `plugin/src/plugin-init.ts` resolves worker script path from `dist/temporal/worker.js`.\n- `docs/temporal-recovery.md` documents worker/workflow code reload as build worker bundle plus worker restart, and documents bounded restart behavior.\n- Affected capability likely falls under `advance-meta` because local deploy/install and runtime lifecycle concerns live there; discovery should verify whether a new spec requirement is needed.\n\n## Discovery Agenda\n- Codebase unknowns: identify all deployed worker bundle paths and active process shapes that should count as `dist/temporal/worker.js` workers.\n- Codebase unknowns: verify current worker supervisor restart behavior after SIGTERM and whether deploy-local can safely trigger it outside the plugin host.\n- Integration unknowns: determine safe process ownership filters so deploy never kills unrelated Node/Bun processes or stale paths from other checkouts.\n- Integration unknowns: decide whether dry-run/check modes should warn only, never signal, or preview would-be bounces.\n- Failure-handling unknowns: define deploy behavior when worker discovery or bounce partially fails, including warning text and exit-code expectations.\n- Spec unknowns: determine whether `advance-meta` needs a new deploy/runtime-refresh requirement or an update to an existing lifecycle requirement.\n- Completion-signal unknowns: define discovery-stage acceptance criteria for the minimum warning path and preferred bounce path.\n\n## Discovery Findings\n### Discovery Checklist\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | `customize-opencode` matched plugin/config reload surface; no pending-review skill frontmatter found. |\n| Prior Research Extension | PASS | `docs/*-prep.md` searched; no relevant deploy-worker-bounce research pack found. New finding: local runtime stale-worker hazard is documented in AGENTS source-vs-dist reload guidance but not automated by deploy. |\n| Conflict & Related-Work Scan | PASS | Active overlap: none beyond this change. `diagnoseArchivedListingTimeout` is unrelated. `adv_change_validate` passed; no-task/no-delta warnings expected pre-prep. Agenda has many unrelated follow-ups; no deploy worker bounce item found in visible relevant subset. |\n| Edge Case Investigation | PASS | Edge cases listed below. |\n| Design Question Depth | PASS | Open questions carry trust model, blast radius, alternatives. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-deployWorkerBounce01` shape proposed. |\n| Related Pattern Scan | PASS | Similar patterns recorded; no additional deploy script bounce surface found. |\n| LBP Check | PASS | Internal runtime safety change; external-solution check skipped. |\n| Completeness Verification | PASS | Deploy-local runtime sync is the single identified local plugin deploy chokepoint; secondary surfaces classified. |\n\n### Skills Considered\n- `customize-opencode`: loaded. Relevant because OpenCode plugin/config-time assets are loaded once and running sessions keep already-loaded code until restart.\n- ADV skills list reviewed from available skills. No core-domain skill for safe local process bounce exists; no skill was created because this is repo-internal shell/runtime lifecycle work, not a reusable external domain.\n\n### Extends\n- No relevant `temp/*.md` artifacts found.\n- `docs/adv-run-test-prep.md`, `docs/repo-improve-prep.md`, `docs/adv-slop-scan-prep.md`, and `docs/non-coding-task-rigor-prep.md` exist but do not directly cover deploy-local worker bundle bounce. New finding: `AGENTS.md:91-98` documents the stale deployed-runtime boundary but current deploy flow does not enforce worker refresh.\n\n### Conflict Scan\n- Active changes: `bounceDeployedWorkers` only relevant; `diagnoseArchivedListingTimeout` unrelated.\n- Relevant archived context: recent runtime/install changes such as CLI source-boundary and status performance work are adjacent but not conflicting; none owns deploy-time worker process bounce.\n- Validation: passed; `NO_TASKS` and `NO_DELTAS` are expected before prep.\n- Agenda: no visible deploy-local worker bounce agenda item; unrelated pending follow-ups remain outside this scope.\n\n### Current State\n- `scripts/deploy-local.sh:1138-1145` ensures plugin dist freshness, then runs `rsync -a --delete \"$ADV_SOURCE_PLUGIN_PATH/\" \"$ADV_RUNTIME_PLUGIN_PATH/\"` and prints `synced runtime plugin`.\n- `plugin/src/plugin-init.ts:140-155` resolves the worker script from `dist/temporal/worker.js`.\n- `plugin/src/temporal/worker-multi.ts:300-326` spawns Node with the worker script; line 325 sets `detached: false`.\n- `plugin/src/temporal/worker-multi.ts:509-533` existing shutdown sends `SIGTERM`, waits `MULTI_SHUTDOWN_GRACE_MS`, then escalates to `SIGKILL`.\n- `plugin/src/temporal/worker-multi.ts:408-431` restarts child process after non-zero exits with bounded backoff `1s → 3s → 10s` and max 3 attempts.\n- Current live process check found multiple `/home/jon/.local/share/Advance/plugin/dist/temporal/worker.js` Node processes, proving deploy may have live worker processes after files are copied.\n- `plugin/src/deploy-local.test.ts:216-229` currently asserts only stable runtime path + rsync behavior for plugin deployment, so tests need expansion.\n- `docs/specs/advance-meta.md:145-181` already governs deploy-local install ownership for CLI; `docs/specs/advance-meta.md:605-625` and `:1346-1360` cover shutdown/worker termination. New deploy-runtime refresh requirement likely belongs in `advance-meta`.\n\n### Edge Cases\nGap: finding running workers safely.\n- Edge case 1: process command line includes `dist/temporal/worker.js` because of the scanner command itself; detection must exclude the detector process.\n- Edge case 2: multiple Advance checkouts or custom `ADV_LOCAL_DEPLOY_ROOT` paths may have different worker.js paths; detection must scope to the deployed runtime plugin path being synced.\n- Edge case 3: command path can contain spaces or symlinks; matching must be path-safe and quoted.\n\nGap: bounce outcome.\n- Edge case 1: child exits cleanly on SIGTERM and supervisor respawns with new bundle; deploy should report bounced PIDs.\n- Edge case 2: child ignores SIGTERM; behavior must not hang deploy indefinitely and must print actionable restart/session warning.\n- Edge case 3: parent/session supervisor is gone; SIGTERM may stop worker with no respawn, so output must tell operator how to verify or restart sessions.\n\nGap: deploy modes.\n- Edge case 1: `--dry-run` must not signal processes; it should preview or warn.\n- Edge case 2: `--check` should remain no-write/no-signal; it may report stale-worker risk but must not bounce.\n\n### Open Design Questions\n- Should deploy actively SIGTERM matching running workers by default? User decision: yes, SIGTERM by default for exact-path matching workers after successful sync; warning fallback only when unsafe/impossible.\n- What should happen if one or more target workers cannot be bounced or verified? User decision: fail deploy with non-zero exit and loud actionable warning.\n- How loud must the fallback warning be? User decision: multi-line `[ADV:ACTION_REQUIRED]` warning block, including matching worker path/PIDs when known and restart instruction.\n\n### Draft Spec Deltas\n- `rq-deployWorkerBounce01` — Deploy-local worker bundle refresh must not silently leave old worker code running.\n  - Given `scripts/deploy-local.sh --fix` syncs a new runtime plugin containing `dist/temporal/worker.js` or `dist/temporal/workflows.js`\n  - When matching running worker processes for the synced runtime path exist\n  - Then deploy either safely bounces them and reports affected PIDs, or emits a loud actionable warning that workers/sessions must be restarted before worker/workflow fixes are active.\n- `rq-deployWorkerBounce02` — Read-only deploy modes do not signal processes.\n  - Given deploy runs in `--check` or `--dry-run`\n  - When matching running worker processes exist\n  - Then no process receives a signal and output describes the required/previewed bounce action.\n\n### Related Pattern Scan\n- Similar stale-code pattern: `AGENTS.md:91-98` says host-loaded plugin tool code requires OpenCode restart after deploy; this is adjacent but out of scope because worker/workflow bundle reload has a dedicated child-worker process surface.\n- Similar lifecycle pattern: `plugin/src/plugin-init.ts:601-645` exposes `restartCurrentProjectTemporalWorker`, but it is scoped to current project and live plugin state, not deploy-local post-copy runtime syncing.\n- Similar shutdown pattern: worker shutdown already has SIGTERM/SIGKILL behavior in `worker-multi.ts`; deploy can reuse the same outcome semantics conceptually, but implementation must not reach into live plugin internals.\n\n### Completeness Verification\n- Problem-completeness: high confidence. The issue is not only stale file copy output; live process evidence showed running `dist/temporal/worker.js` processes after deploy can exist, and docs confirm worker/workflow code reload currently requires restart.\n- Solution-scope: medium-high confidence. `scripts/deploy-local.sh` is the sole local plugin deploy sync surface identified. Secondary surfaces: `install.sh` delegates to `deploy-local.sh` and remains in scope indirectly; host-loaded `dist/index.js` tool code restart remains out of scope with existing AGENTS guidance; `adv_temporal_worker_restart` remains out of scope as an operator recovery tool, not deployment automation.\n- Sole-entry claim: verified enough for local deploy surface via search for `ADV_RUNTIME_PLUGIN_PATH`, `rsync`, and install delegation. No blocking ambiguity.\n\n### LBP Check\n- Likely best direction: safe active SIGTERM for exact runtime worker-script matches after successful sync, with loud fallback warning and no signaling in check/dry-run modes.\n- Why: aligns with existing worker lifecycle semantics (`SIGTERM` graceful shutdown, bounded grace/escalation, bounded respawn), avoids stale-code silent success, and stays within local deploy ownership.\n- External-solution check skipped: no external tool/library/service alternative is viable for this repo-internal deploy/runtime lifecycle issue.\n\n### Discovery Opportunity Scout\nScout: skipped — narrow internal deploy/runtime lifecycle change with one identified control surface and no external-option/product-strategy opportunity surface.\n\n### Recommended Objectives\n1. Make local deploy output and behavior prevent silent stale worker/workflow runtime after bundle sync.\n2. Scope worker detection to the deployed runtime worker path being updated.\n3. Preserve read-only behavior for `--check` and `--dry-run`.\n4. Preserve bounded supervisor respawn behavior; do not introduce unbounded polling/restart loops.\n5. Add spec/test coverage so deploy-local cannot regress to copy-only silent success.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings. Coverage: B:C F:C S:C M:C\nResolved in discovery question round: SIGTERM-by-default, fail deploy on bounce failure, and `[ADV:ACTION_REQUIRED]` warning block.\n",
+    "problemStatement": "Deploy currently copies new `worker.js` / `workflows.js`, but already-running `dist/temporal/worker.js` processes keep old code. Result: worker/workflow fixes appear deployed but silently no-op until sessions/workers restart.\n\nDesired outcome: deploy makes this state impossible to miss. Preferred outcome: running `dist/temporal/worker.js` processes are bounced after new worker/workflow bundles are copied so supervisors respawn on new code. Minimum acceptable outcome: deploy prints a loud warning that running workers must be bounced or sessions restarted. The change must preserve existing bounded supervisor respawn semantics and avoid silently masking stale worker code.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Prevent local deploy from silently leaving known running `dist/temporal/worker.js` processes on old worker/workflow code after runtime bundle sync.\n2. Make worker refresh state observable in deploy output: bounced workers, no matching workers, or restart/session action required.\n3. Scope worker detection to the synced runtime plugin path so unrelated Node/Bun processes are not affected.\n4. Preserve read-only behavior for `--check` and `--dry-run`.\n5. Preserve bounded worker/supervisor semantics and avoid unbounded polling or restart loops.\n\n## Success Criteria\n\n- SC1: Local deploy no longer silently leaves known running `dist/temporal/worker.js` processes on old worker/workflow code after bundle sync.\n- SC2: Deploy output makes worker refresh state observable: bounced workers, no matching workers, or `[ADV:ACTION_REQUIRED]` restart needed.\n- SC3: Read-only deploy modes never signal processes.\n\n## Acceptance Criteria\n\n- AC1: After successful runtime plugin sync, exact-path matching running `dist/temporal/worker.js` processes receive `SIGTERM` by default.\n- AC2: Matching worker detection is scoped to the synced runtime plugin path and excludes unrelated Node/Bun processes.\n- AC3: If any exact-path matching worker cannot be signaled or remains running after bounded handling, deploy exits non-zero and prints a multi-line `[ADV:ACTION_REQUIRED]` block with path/PID evidence and restart instructions.\n- AC4: `--check` and `--dry-run` do not signal processes; they report the would-bounce or restart-required action.\n- AC5: Spec/test coverage prevents reverting to copy-only silent success.\n\n## Constraints\n\n- C1: Preserve source-vs-deployed-runtime boundary: OpenCode host-loaded tool code still requires session restart when relevant.\n- C2: Preserve bounded worker/supervisor behavior; do not introduce unbounded polling, restart loops, or background watchers.\n- C3: Runtime worker matching must be path-scoped to the deployment target and must handle quoted/path-with-space cases safely.\n- C4: `--check` remains read-only/no-write/no-signal; `--dry-run` remains no-write/no-signal.\n\n## Avoidances\n\n- DONT1: Do not silently claim deploy success when known matching worker processes may still execute old code.\n- DONT2: Do not kill unrelated Node/Bun processes.\n- DONT3: Do not require manual file shuffling in deployed runtime paths.\n- DONT4: Do not redesign Temporal worker architecture as part of this change.\n- DONT5: Do not change workflow/task semantics unrelated to runtime bundle reload behavior.\n\n## Out of Scope\n\n- OOS1: Host-loaded `dist/index.js` tool-code hot reload; existing restart guidance remains authoritative.\n- OOS2: Remote CI release mechanics unless local deploy packaging directly depends on them.\n- OOS3: Replacing `adv_temporal_worker_restart`; it remains an operator recovery tool, not deployment automation.\n\n## Preview Applicability\n\nvisual_surface: false\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: Change affects local shell deploy behavior, process signaling, docs/specs, and tests; no browser-visible or visual UI output is expected.\n\n## Decisions\n\n### User Decisions\n\n1. Question: When deploy syncs worker/workflow bundles and finds exact-path matching running workers, what should happen?\n   - User choice: SIGTERM by default.\n   - Why it matters: Prevents silent stale worker/workflow code after deploy while staying scoped to exact runtime worker path.\n\n2. Question: If a bounce attempt cannot signal or clear a matching worker, what should happen?\n   - User choice: Fail deploy.\n   - Why it matters: Non-zero exit prevents stale worker state from being mistaken for successful deploy.\n\n3. Question: What warning shape is loud enough?\n   - User choice: Action marker block.\n   - Why it matters: `[ADV:ACTION_REQUIRED]` gives a machine-readable/operator-visible marker with path/PID evidence and restart instructions.\n\n### Agent Decisions (LBP)\n\n1. Likely best direction is deploy-local-level process handling after successful runtime sync rather than modifying Temporal workflow semantics.\n2. Existing worker lifecycle already uses SIGTERM, bounded grace, and SIGKILL escalation during shutdown; implementation should align with that behavior without reaching into live plugin internals.\n3. New spec coverage should land in `advance-meta` because deploy-local install/runtime lifecycle concerns already live there.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved by user reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nAdd deploy-local worker-refresh handling at the local deployment boundary, immediately after the runtime plugin sync step has copied the fresh `plugin/dist/temporal/worker.js` and `plugin/dist/temporal/workflows.js` bundle into the stable runtime plugin path.\n\nThe design keeps correctness at the deployment boundary:\n\n1. `scripts/deploy-local.sh` remains the owner of local runtime plugin synchronization.\n2. After successful runtime sync, the script detects running worker processes whose command line contains the exact synced runtime worker script path: `$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js`.\n3. In mutating deploy modes, exact-path matches receive `SIGTERM` by default.\n4. In read-only modes (`--check`, `--dry-run`), the script never sends signals and instead reports the would-bounce / restart-required action.\n5. If a bounce attempt cannot signal a target process or a target remains running after bounded handling, deploy exits non-zero and prints a multi-line `[ADV:ACTION_REQUIRED]` block with path/PID evidence and restart instructions.\n\nThis avoids modifying Temporal workflow semantics or live plugin internals. The deployment script handles only the external Node child processes tied to the runtime worker bundle path it just updated.\n\n## Key Decisions\n\n### KD1 — Bounce at deploy-local boundary, not inside Temporal tools\n\n`deploy-local.sh` is the only local install/sync surface that copies the runtime plugin bundle. Handling stale workers there makes the observable deploy result match the file sync result.\n\nRationale:\n- `scripts/deploy-local.sh:1138-1145` owns fresh dist check + runtime plugin sync.\n- `plugin/src/plugin-init.ts:140-155` resolves the worker from `dist/temporal/worker.js` under the deployed plugin path.\n- `adv_temporal_worker_restart` is project/session recovery tooling, not a global deploy hook, and remains out of scope.\n\n### KD2 — Match only the exact synced runtime worker path\n\nWorker discovery must filter by the exact absolute path of `$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js`.\n\nRationale:\n- Prevents killing unrelated Node/Bun processes.\n- Handles multiple Advance checkouts and custom `ADV_LOCAL_DEPLOY_ROOT` values.\n- Satisfies AC2 and DONT2 structurally.\n\nDesign implication:\n- Avoid broad process-name matching such as `worker.js` alone.\n- Exclude the detector process itself and any non-worker command that merely includes the pattern as shell text.\n\n### KD3 — Mutating deploy modes SIGTERM by default; read-only modes never signal\n\nAfter successful sync in normal/fix modes, matching workers receive `SIGTERM`. In `--check` and `--dry-run`, the script reports what would happen without signaling.\n\nRationale:\n- User selected SIGTERM by default.\n- Existing worker shutdown path already treats SIGTERM as the graceful control signal (`worker-multi.ts:509-533`).\n- Read-only/no-write modes must remain no-signal to preserve operator trust.\n\n### KD4 — Failure is loud and non-zero\n\nIf any exact-path target cannot be signaled or remains running after bounded handling, deploy exits non-zero and prints `[ADV:ACTION_REQUIRED]` with path/PID evidence and restart instructions.\n\nRationale:\n- User selected fail-deploy behavior.\n- Prevents copy-only success from masking stale live code.\n- Keeps fallback actionable when supervisor behavior cannot be verified from the shell script.\n\n## ADR Drafts\n\nNo ADR draft. The decision is important but not hard-to-reverse or surprising enough to require an ADR: it localizes behavior in an existing deploy script and follows existing worker SIGTERM semantics.\n\n## Implementation Strategy\n\n1. Add small shell helpers near the runtime plugin deployment section:\n   - compute `runtime_worker_script=\"$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js\"`\n   - list exact matching PIDs and command lines\n   - render `[ADV:ACTION_REQUIRED]` warning blocks\n   - bounce matching PIDs in mutating modes only\n2. Insert helper call after line 1145 (`synced runtime plugin`) so new bundle files exist before workers are bounced.\n3. Ensure `--dry-run` reports the would-bounce state and sends no signal.\n4. Ensure `--check` stays read-only. Because `--check` exits before asset sync, any worker check there should be reporting-only and must not require a fresh sync.\n5. Add tests around `scripts/deploy-local.sh` contents and/or executable behavior for:\n   - runtime sync is followed by worker refresh handling\n   - exact path matching is used\n   - read-only modes do not signal\n   - warning includes `[ADV:ACTION_REQUIRED]`\n   - copy-only silent success is impossible when matching workers remain\n6. Add/update `advance-meta` spec requirement(s), then regenerate docs/schema if required by the repo workflow.\n\n## LBP Analysis\n\nThis is the preferred long-term approach because it makes the deploy command responsible for the runtime state it changes. It avoids hidden coupling to live ADV tool state, avoids redesigning Temporal worker architecture, and uses existing OS process semantics already present in worker shutdown code.\n\nAlternative considered: warning-only deploy. Rejected because the approved agreement requires default SIGTERM and because warning-only can still leave stale code active after a successful-looking deploy.\n\nAlternative considered: require the operator to run `adv_temporal_worker_restart`. Rejected as normal path because it is project-scoped recovery tooling and can be missed after local deploy; deploy should make stale worker state impossible to miss.\n\nAlternative considered: modify worker supervisor to hot-reload bundles. Rejected as out of scope and unnecessary for this local deploy lifecycle defect.\n\n## Affected Components\n\n- `scripts/deploy-local.sh`: primary implementation surface; add exact-path detection, SIGTERM bounce, read-only reporting, and action-required warning.\n- `plugin/src/deploy-local.test.ts`: add or update script asset tests/executable tests.\n- `docs/specs/advance-meta.md` and `.adv/specs/advance-meta/spec.json`: add deploy-local worker refresh requirement(s).\n- `docs/temporal-recovery.md` / `AGENTS.md`: update only if implementation changes operator guidance; existing source-vs-dist restart caveat for host-loaded tool code remains valid.\n\n## Design-Derived Criteria\n\n- DDC1: Worker process matching must use the absolute synced runtime worker script path, not a basename-only or regex-only process name.\n- DDC2: Signal attempts must be bounded; deploy must not poll indefinitely waiting for process exit or respawn.\n- DDC3: Read-only modes (`--check`, `--dry-run`) must have zero signal side effects.\n- DDC4: Warning text must include `[ADV:ACTION_REQUIRED]`, target path, PID evidence when known, and a restart/session instruction.\n- DDC5: Multi-PID handling is required; multiple live sessions can run workers against the same synced path.\n- DDC6: Deploy script should not perform SIGKILL escalation; escalation remains owned by worker/supervisor shutdown handling.\n\n## Risks / Mitigations\n\n- Risk: Shell process detection can match the detector command itself.\n  - Mitigation: Exclude the current shell PID and use exact path-token matching against command arguments where feasible.\n\n- Risk: Process command lines can be truncated or inaccessible on some systems.\n  - Mitigation: If detection cannot be trusted, print `[ADV:ACTION_REQUIRED]` and fail/warn according to mode rather than claiming success.\n\n- Risk: SIGTERM may kill a worker whose supervisor does not respawn because the owning session exited.\n  - Mitigation: Deploy output reports bounced PIDs and includes verification/restart guidance; failure path remains non-zero when targets remain.\n\n- Risk: Overly broad matching kills unrelated processes.\n  - Mitigation: exact runtime worker-script path matching; no basename-only matching.\n\n## Design Leverage Scout\n\nScout: skipped — narrow internal deploy/runtime lifecycle change with one identified control surface, explicit user decisions, and no strategic/external-option leverage surface. Potential leverage points are already included as DDCs and tests.\n\n## Validator Result\n\nValidator: clean pass ✓\n\nIndependent adv-researcher validation status: `pass` with high confidence and low risk.\n\nEvidence confirmed:\n- deploy-local runtime sync owner and bounce-after-sync insertion point are correct.\n- worker process argv includes the absolute `dist/temporal/worker.js` path, supporting exact-path matching.\n- `resolveWorkerScriptPath` maps to the deployed runtime worker path.\n- `SIGTERM` is established graceful worker shutdown signal.\n- `--check` exits before sync and `--dry-run` guards sync, supporting no-signal read-only semantics.\n\nPrep cautions to encode:\n1. Bounce all matching PIDs, not a singleton.\n2. Use bounded single liveness re-check, not polling loop.\n3. Do not assume SIGTERM respawns if owning session is gone; output must include restart/session guidance.\n4. Do not add SIGKILL to deploy script.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThis change updates local deployment so known running deployed Temporal worker processes are refreshed after worker/workflow bundle sync. The release decision is whether the deploy script behavior, hook visibility, tests, docs, and spec coverage are ready to archive.\n\n## Why It Matters\n\nBefore this change, a local deploy could copy updated worker/workflow bundles while an already-running deployed `dist/temporal/worker.js` kept executing stale code. The final version makes that state visible, bounces exact-path matching workers, fails with operator action evidence when refresh cannot be proven, and preserves that evidence when git hooks invoke deploy-local.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added advance-meta spec law for deploy worker refresh, including deploy-time worker bounce and no-silent-stale-worker requirements.\n2. Implemented `scripts/deploy-local.sh` worker refresh behavior: canonical deployed worker path resolution, exact argv matching, default `SIGTERM`, read-only reporting for `--check`/`--dry-run`, and `[ADV:ACTION_REQUIRED]` failure output with PID/path evidence when bounce cannot clear a worker or process enumeration cannot prove refresh.\n3. Hardened tracked git hooks so deploy-local failure output, including `[ADV:ACTION_REQUIRED]`, is printed to stderr instead of being swallowed.\n4. Updated setup/docs and tests covering worker refresh behavior, read-only modes, hook failure-output visibility, spec requirement presence, formatting, schema drift, and shell syntax.\n\n## What Was Verified\n\n- Acceptance review: reviewer READY with 0 findings; no reviewer changes made.\n- Harden scanners: release/deploy readiness, production readiness, documentation hygiene, cleanup, test coverage, and residual slop checked. Initial high findings for hook-output suppression and non-canonical worker path were remediated and targeted re-scan verified resolved.\n- Tests: passed — `bash -n scripts/deploy-local.sh && bash -n .githooks/post-commit && bash -n .githooks/pre-push`; `bin/oc-test targeted -- src/deploy-local.test.ts` 72/72; `pnpm run format:check`; `pnpm run schemas:check`; strict ADV validation passed with only expected `NO_DELTAS` warning.\n- Preview URL: not_applicable — approved agreement has `visual_surface: false`; change affects local shell deploy behavior, process signaling, docs/specs, hooks, and tests, with no browser-visible or visual UI output.\n- Contract matrix: 20/20 rows passed/respected/not_applicable; no failing rows.\n\n## Remaining Concerns\n\nNone blocking. Non-blocking harden notes: SIGTERM grace remains bounded at 2 seconds by design; non-Linux hosts without `/proc` now receive action-required evidence because refresh cannot be proven; richer symlinked-path fixture tests could be a future improvement but current release checks pass.\n\n## Supporting Evidence\n\n- Tasks: `tk-8859433af976`, `tk-9661a4bc8ea5`, `tk-2f777ace9318` all done with checkpoint commits `e2f3e00d`, `7155ba04`, `4142bca7`; harden remediation checkpoint `5fa76cd7`.\n- Verification evidence: `tr_mrcljr2y_a4ee4bd6`, `tr_mrclouwv_ab764af3` RED, `tr_mrclrnb1_d465049a`, `tr_mrclrtro_ecb1071e`, `tr_mrcls1hr_45f37242`, `tr_mrcls994_815245e2`, `tr_mrcluunl_47cd562a`, `tr_mrclui06_e3aa5aad`, `tr_mrcluo18_f4f82d45`, `tr_mrcn3klv_b9c9c71d`, `tr_mrcn3m7n_5bccd34c`, `tr_mrcn3tgz_458eb781`, `tr_mrcn442d_ca1904e7`.\n- Review evidence: acceptance reviewer report verdict READY, 0 findings; harden scanner bundle report `bounceDeployedWorkers|change:scanner-bundle:harden|adv-scanner-bundle|1`.\n- Contract evidence: review matrix set with all success criteria, acceptance criteria, constraints, avoidances, and out-of-scope items resolved.\n- Merge evidence: `git merge --no-commit --no-ff origin/trunk` reported `Already up to date` after harden checkpoint.\n\n## Consequence Context\n\n1. delivered value — pass: local deploy no longer silently leaves known exact-path deployed Temporal workers on stale worker/workflow bundles after sync; supported by task evidence, contract rows SC1/AC1, and harden remediation checkpoint `5fa76cd7`.\n2. enabling-only/follow-up dependency — n/a: this is a direct deploy-script behavior change, not only an enabling follow-up; no ops follow-up links or required follow-ups recorded.\n3. ops readiness — pass: harden checked release/deploy/production/docs/cleanup readiness; unresolved blocker/high count is 0 after remediation; syntax/test/schema/format checks passed.\n4. migration/data impact — n/a: no data migration, database change, persistent user data path, env var, external service, or infrastructure change; scope is shell deploy behavior, hooks, specs, docs, and tests.\n5. frontend/preview impact — n/a: agreement records `visual_surface: false`; no browser-visible UI or visual output changed.\n6. collision/release risk — pass: merge compatibility check against `origin/trunk` reported already up to date; acceptance reviewer READY; harden high findings resolved; validation clean except expected `NO_DELTAS` warning.\n7. open follow-ups — n/a: no required follow-ups, ops obligations, unresolved findings, or blocking caveats recorded.\n8. next action — pending: archive sign-off can proceed for `bounceDeployedWorkers`; archive will record release evidence and retire the change.\n\n## Release Readiness Summary\n\nRelease readiness is READY. Harden found two release-safety issues before archive — git hooks could hide `[ADV:ACTION_REQUIRED]` output, and deployed worker path matching needed canonical path resolution for symlink-safe exact matching. Both were fixed, checkpointed in `5fa76cd7`, and targeted re-scan verified resolved.\n\n### Release Verification\n\n- Syntax: `bash -n scripts/deploy-local.sh && bash -n .githooks/post-commit && bash -n .githooks/pre-push` passed (`tr_mrcn3klv_b9c9c71d`).\n- Tests: `bin/oc-test targeted -- src/deploy-local.test.ts` passed 72/72 (`tr_mrcn3m7n_5bccd34c`).\n- Formatting: `pnpm run format:check` passed (`tr_mrcn3tgz_458eb781`).\n- Schemas: `pnpm run schemas:check` passed (`tr_mrcn442d_ca1904e7`).\n- ADV validation: strict validation passed with expected `NO_DELTAS` warning.\n- Merge compatibility: branch already up to date with `origin/trunk` after harden checkpoint.\n\n### Approval Consequence Context\n\n1. delivered value — pass: deploy-local now bounces exact-path deployed Temporal workers after sync and preserves operator action evidence through git hooks.\n2. enabling-only/follow-up dependency — n/a: no follow-up dependency required for this behavior to work locally.\n3. ops readiness — pass: deploy failure modes are observable, no new env/config/service dependency, cleanup scan clean, and release-owned harden checks passed.\n4. migration/data impact — n/a: no migration or data mutation surface.\n5. frontend/preview impact — n/a: no visual surface.\n6. collision/release risk — pass: merge check clean/up to date; no unresolved harden blocker/high findings.\n7. open follow-ups — n/a: no required follow-ups or unresolved obligations.\n8. next action — pending: archive sign-off, then `adv_change_archive phase9:\"run\"`.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-08T21:48:48.792Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Local deploy no longer silently leaves known running `dist/temporal/worker.js` processes on old worker/workflow code after bundle sync. | pass | Execution gate evidence: runtime deploy sync now refreshes exact-path matching dist/temporal/worker.js processes instead of silent copy-only success; reviewer verdict READY with no findings; final validation passed. |\n| SC2 | success_criterion | Deploy output makes worker refresh state observable: bounced workers, no matching workers, or `[ADV:ACTION_REQUIRED]` restart needed. | pass | Execution/test evidence covers observable deploy outcomes: bounced workers, no matching workers, and multi-line [ADV:ACTION_REQUIRED] restart block; reviewer verdict READY. |\n| SC3 | success_criterion | Read-only deploy modes never signal processes. | pass | Read-only deploy modes verified: --check and --dry-run do not signal processes and report would-bounce/restart-required action; reviewer verdict READY. |\n| AC1 | acceptance_criterion | After successful runtime plugin sync, exact-path matching running `dist/temporal/worker.js` processes receive `SIGTERM` by default. | pass | adv_run_test tr_mrclrtro_ecb1071e and full deploy-local suite tr_mrcluunl_47cd562a passed; tests verify exact-path matching worker receives SIGTERM after successful runtime plugin sync. |\n| AC2 | acceptance_criterion | Matching worker detection is scoped to the synced runtime plugin path and excludes unrelated Node/Bun processes. | pass | adv_run_test tr_mrclrtro_ecb1071e and full deploy-local suite tr_mrcluunl_47cd562a passed; tests verify matching scoped to synced runtime plugin path and unrelated Node/Bun processes excluded. |\n| AC3 | acceptance_criterion | If any exact-path matching worker cannot be signaled or remains running after bounded handling, deploy exits non-zero and prints a multi-line `[ADV:ACTION_REQUIRED]` block with path/PID evidence and restart instructions. | pass | adv_run_test tr_mrclrtro_ecb1071e and full deploy-local suite tr_mrcluunl_47cd562a passed; tests verify non-zero deploy failure plus multi-line [ADV:ACTION_REQUIRED] path/PID evidence and restart instructions when matching worker cannot be cleared. |\n| AC4 | acceptance_criterion | `--check` and `--dry-run` do not signal processes; they report the would-bounce or restart-required action. | pass | adv_run_test tr_mrcls1hr_45f37242 and full deploy-local suite tr_mrcluunl_47cd562a passed; --check and --dry-run remain no-signal and report intended action. |\n| AC5 | acceptance_criterion | Spec/test coverage prevents reverting to copy-only silent success. | pass | Static spec verification tr_mrcljr2y_a4ee4bd6 confirmed rq-deployWorkerBounce01/rq-deployWorkerBounce02 in spec JSON and docs; full deploy-local suite tr_mrcluunl_47cd562a passed. |\n| C1 | constraint | Preserve source-vs-deployed-runtime boundary: OpenCode host-loaded tool code still requires session restart when relevant. | respected | Scope remains deploy-local worker/workflow bundle refresh; existing source-vs-deployed-runtime session restart boundary for host-loaded tool code remains documented and unchanged. |\n| C2 | constraint | Preserve bounded worker/supervisor behavior; do not introduce unbounded polling, restart loops, or background watchers. | respected | Implementation uses bounded SIGTERM/grace handling for matching workers; no background watcher, restart loop, or unbounded polling introduced. |\n| C3 | constraint | Runtime worker matching must be path-scoped to the deployment target and must handle quoted/path-with-space cases safely. | respected | Tests and implementation cover path-scoped matching to deployment target, including quoted/path-with-space safe handling. |\n| C4 | constraint | `--check` remains read-only/no-write/no-signal; `--dry-run` remains no-write/no-signal. | respected | Read-only mode tests passed for --check and --dry-run; no write/signal behavior added to those modes. |\n| DONT1 | avoidance | Do not silently claim deploy success when known matching worker processes may still execute old code. | respected | Deploy now reports bounced/no-match/action-required states and fails non-zero when matching workers may remain stale; no silent stale-worker success path remains in covered behavior. |\n| DONT2 | avoidance | Do not kill unrelated Node/Bun processes. | respected | Worker detection is exact deployed runtime path scoped; unrelated Node/Bun processes excluded by tests. |\n| DONT3 | avoidance | Do not require manual file shuffling in deployed runtime paths. | respected | Deploy-local owns refresh action after sync; no manual deployed-runtime file shuffling required. |\n| DONT4 | avoidance | Do not redesign Temporal worker architecture as part of this change. | respected | No Temporal workflow or worker architecture redesign; change limited to deploy-local refresh handling and spec/tests/docs. |\n| DONT5 | avoidance | Do not change workflow/task semantics unrelated to runtime bundle reload behavior. | respected | No workflow/task semantic changes outside runtime bundle reload behavior; validation passed with only expected NO_DELTAS warning. |\n| OOS1 | out_of_scope | Host-loaded `dist/index.js` tool-code hot reload; existing restart guidance remains authoritative. | not_applicable | Host-loaded dist/index.js hot reload remains out of scope; restart guidance remains authoritative. |\n| OOS2 | out_of_scope | Remote CI release mechanics unless local deploy packaging directly depends on them. | not_applicable | Remote CI release mechanics not changed; local deploy packaging behavior only. |\n| OOS3 | out_of_scope | Replacing `adv_temporal_worker_restart`; it remains an operator recovery tool, not deployment automation. | not_applicable | adv_temporal_worker_restart not replaced; it remains operator recovery tooling. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-08T21:04:51.109Z",
+      "contentHash": "bf66959d3356aebf2ba18bfda8efa1e322c20a8c26913ec3dd35fa7b3a5ba40e",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-08T20:53:52.995Z",
+      "contentHash": "cacf804c129029dd4eab5c1335caa2a9bc0bc7c42349ecbf9d966e929f165e6c",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-08T21:19:39.692Z",
+      "contentHash": "f40473a37f28e5c2628b636d2aed61bbea8937ad739c145773ea0fe83d7ae9d1",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-08T21:24:39.429Z",
+      "contentHash": "b7535b2046d737b114969dbdb7cc3dd18ab64055f096ffff489ec20c8e21f967",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-08T22:22:53.014Z",
+      "contentHash": "a629c42459106c166ca8f7cf91fe01ddb1d5732e900500b7f05b865e95fb8255",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-08T22:22:53.014Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-08T20:54:16.825Z",
+      "resolved": true,
+      "resolved_at": "2026-07-08T20:54:50.523Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
