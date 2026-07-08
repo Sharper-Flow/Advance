@@ -228,6 +228,38 @@ describe("deploy-local.sh", () => {
       );
     });
 
+    test("refreshes deployed Temporal workers after runtime sync", () => {
+      expect(content).toContain("refresh_deployed_temporal_workers");
+      expect(content).toContain(
+        'local worker_script="$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js"',
+      );
+      expect(content).toContain('kill -TERM "$pid"');
+      expect(content).toContain("[ADV:ACTION_REQUIRED]");
+      expect(content).toContain("list_deployed_temporal_worker_matches");
+
+      const syncIndex = content.indexOf(
+        'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
+      );
+      const refreshIndex = content.indexOf(
+        'refresh_deployed_temporal_workers "after-sync"',
+      );
+      expect(syncIndex).toBeGreaterThan(-1);
+      expect(refreshIndex).toBeGreaterThan(syncIndex);
+    });
+
+    test("deploy worker refresh is exact-path scoped and excludes self", () => {
+      expect(content).toContain('if [ "$arg" = "$worker_script" ]; then');
+      expect(content).toContain('[ "$pid" = "$$" ] && continue');
+      expect(content).toContain('[ "$pid" = "${BASHPID:-$$}" ] && continue');
+      expect(content).not.toContain("pgrep -f dist/temporal/worker.js");
+    });
+
+    test("read-only deploy modes report worker refresh without signaling", () => {
+      expect(content).toContain('refresh_deployed_temporal_workers "check"');
+      expect(content).toContain('refresh_deployed_temporal_workers "dry-run"');
+      expect(content).toContain('No worker processes were signaled.');
+    });
+
     test("removes legacy non-ADV commands", () => {
       expect(content).toContain("for stale in openprompt.md; do");
     });

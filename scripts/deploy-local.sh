@@ -1110,12 +1110,117 @@ fix_config() {
 	return 0
 }
 
+# ---------------------------------------------------------------------------
+# Runtime worker refresh helpers
+# ---------------------------------------------------------------------------
+list_deployed_temporal_worker_matches() {
+	local worker_script="$1"
+	local proc pid arg cmd found
+
+	[ -d /proc ] || return 0
+	for proc in /proc/[0-9]*; do
+		[ -d "$proc" ] || continue
+		pid="${proc##*/}"
+		[ "$pid" = "$$" ] && continue
+		[ "$pid" = "${BASHPID:-$$}" ] && continue
+		[ -r "$proc/cmdline" ] || continue
+
+		cmd=""
+		found=false
+		while IFS= read -r -d '' arg; do
+			if [ "$arg" = "$worker_script" ]; then
+				found=true
+			fi
+			if [ -z "$cmd" ]; then
+				cmd="$arg"
+			else
+				cmd="$cmd $arg"
+			fi
+		done <"$proc/cmdline" || true
+
+		if [ "$found" = true ]; then
+			printf '%s\t%s\n' "$pid" "$cmd"
+		fi
+	done
+}
+
+print_worker_action_required() {
+	local worker_script="$1"
+	local reason="$2"
+	local matches="${3:-}"
+
+	echo ""
+	echo "    [ADV:ACTION_REQUIRED] Deployed Temporal workers must be bounced / sessions restarted"
+	echo "      Reason: $reason"
+	echo "      Worker script: $worker_script"
+	if [ -n "$matches" ]; then
+		echo "      Matching worker processes:"
+		while IFS=$'\t' read -r pid cmd; do
+			[ -n "$pid" ] || continue
+			echo "        PID $pid — $cmd"
+		done <<<"$matches"
+	else
+		echo "      Matching worker processes: unknown"
+	fi
+	echo "      Restart OpenCode sessions or rerun deploy after workers exit."
+}
+
+refresh_deployed_temporal_workers() {
+	local mode="$1"
+	local worker_script="$ADV_RUNTIME_PLUGIN_PATH/dist/temporal/worker.js"
+	local matches failures remaining pid cmd
+	local bounce_grace_seconds=2
+
+	matches="$(list_deployed_temporal_worker_matches "$worker_script")"
+	if [ -z "$matches" ]; then
+		echo "    no running deployed Temporal workers found for: $worker_script"
+		return 0
+	fi
+
+	case "$mode" in
+	check | dry-run)
+		print_worker_action_required "$worker_script" "running workers match the deployed worker bundle; $mode mode is read-only" "$matches"
+		echo "      No worker processes were signaled."
+		return 0
+		;;
+	esac
+
+	echo "    bouncing deployed Temporal worker(s) for: $worker_script"
+	failures=""
+	while IFS=$'\t' read -r pid cmd; do
+		[ -n "$pid" ] || continue
+		if kill -TERM "$pid" 2>/dev/null; then
+			echo "      SIGTERM sent to PID $pid"
+		else
+			failures+="$pid"$'\t'"$cmd"$'\n'
+		fi
+	done <<<"$matches"
+
+	sleep "$bounce_grace_seconds"
+	remaining=""
+	while IFS=$'\t' read -r pid cmd; do
+		[ -n "$pid" ] || continue
+		if kill -0 "$pid" 2>/dev/null; then
+			remaining+="$pid"$'\t'"$cmd"$'\n'
+		fi
+	done <<<"$matches"
+
+	if [ -n "$failures" ] || [ -n "$remaining" ]; then
+		print_worker_action_required "$worker_script" "one or more matching workers could not be bounced" "${failures}${remaining}"
+		return 1
+	fi
+
+	echo "    deployed Temporal worker bounce complete"
+	return 0
+}
+
 # ===========================================================================
 # Check-only mode: just validate config and exit
 # ===========================================================================
 if [ "$MODE" = "check" ]; then
 	check_config
 	check_adv_cli_install
+	refresh_deployed_temporal_workers "check"
 	if [ "$config_issues" -gt 0 ] || [ "$cli_issues" -gt 0 ]; then
 		exit 1
 	fi
@@ -1138,11 +1243,13 @@ fi
 ensure_plugin_dist_fresh
 if [ "$DRY_RUN" = true ]; then
 	echo "    dry-run sync: $ADV_SOURCE_PLUGIN_PATH/ -> $ADV_RUNTIME_PLUGIN_PATH/"
+	refresh_deployed_temporal_workers "dry-run"
 else
 	check_rsync || exit 1
 	mkdir -p "$ADV_RUNTIME_PLUGIN_PATH"
 	rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    synced runtime plugin: $ADV_RUNTIME_PLUGIN_PATH"
+	refresh_deployed_temporal_workers "after-sync"
 fi
 
 # ---------------------------------------------------------------------------
