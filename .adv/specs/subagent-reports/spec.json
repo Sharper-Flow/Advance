@@ -3,7 +3,7 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "updated_at": "2026-07-02T18:00:00.000Z",
   "conformance_required": false,
   "requirements": [
@@ -800,6 +800,50 @@
           "given": ["A briefing packet is requested for the archive lane"],
           "when": "The lane is classified",
           "then": ["The archive lane does not map to a persisted sub-agent report agent", "Archive digest anchors are deterministic and terminal-state focused"]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports22",
+      "title": "Post-archive report persistence via disk-projection fallback",
+      "body": "When the owning change workflow is terminal (archived or closed), adv_subagent_report_submit MUST persist the report via a disk-projection fallback rather than failing with SUBMIT_SIGNAL_FAILED. Archived changes write to the archive bundle change.json subagent_reports[] (or task.subagent_reports[] for task-scoped reports); closed changes write to the active changes dir change.json. The persisted report carries a recovery_audit marker distinguishing it from signal-persisted reports. Persistence is idempotent by report key (change_id, scope, agent, attempt). The read path needs no change — terminal projection dominance already routes archived/closed reads through the disk projection. Report consumers (follow_ups, required_follow_ups, design concerns) run after disk persistence because they are file-based (agenda.jsonl) and work post-archive. The active-workflow signal path (rq-subagentReports02), readback normalization (rq-subagentReports09, rq-subagentReports10), and Temporal replay safety (rq-subagentReports09) are unchanged.",
+      "priority": "must",
+      "tags": ["temporal", "terminal", "disk-projection", "post-archive", "persistence"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports22.1",
+          "title": "Terminal change report persists via disk projection",
+          "given": ["A change workflow is terminal (archived or closed)"],
+          "when": "adv_subagent_report_submit is called with a valid report",
+          "then": ["The report persists to the terminal disk projection subagent_reports[] (archive bundle change.json for archived; active changes dir for closed)", "The report carries a recovery_audit marker with persisted_via indicating the projection type", "The tool returns success (not SUBMIT_SIGNAL_FAILED)", "The signal path is not invoked"]
+        },
+        {
+          "id": "rq-subagentReports22.2",
+          "title": "Post-archive report is queryable without a live workflow",
+          "given": ["A report was persisted via the disk-projection fallback"],
+          "when": "adv_change_show include.subagentReports reads the change",
+          "then": ["The report appears in _subagentReports", "The read succeeds without a live/running workflow for the change", "The report is loaded from the terminal disk projection"]
+        },
+        {
+          "id": "rq-subagentReports22.3",
+          "title": "Post-archive re-submit is idempotent",
+          "given": ["A report was already persisted via the disk-projection fallback"],
+          "when": "The same report key is re-submitted",
+          "then": ["The tool returns duplicate true", "No duplicate entry is appended"]
+        },
+        {
+          "id": "rq-subagentReports22.4",
+          "title": "Consumers run after post-archive persistence",
+          "given": ["A report with follow_ups is submitted for a terminal change"],
+          "when": "The disk-projection persistence succeeds",
+          "then": ["follow_ups create agenda items (category subagent-followup)", "required_follow_ups create required-obligation agenda items", "The early-return that previously blocked consumers is replaced by the disk-projection path"]
+        },
+        {
+          "id": "rq-subagentReports22.5",
+          "title": "Active workflow signal path unchanged",
+          "given": ["A change workflow is active (draft, pending, or active)"],
+          "when": "adv_subagent_report_submit is called",
+          "then": ["The signal path (subagentReportSubmittedSignal) is used as before", "No disk-projection fallback is triggered", "A defensive catch routes completed-workflow race errors to the fallback"]
         }
       ]
     }
