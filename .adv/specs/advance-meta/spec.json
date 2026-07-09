@@ -3,7 +3,7 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.21.0",
+  "version": "1.22.0",
   "updated_at": "2026-07-08",
   "requirements": [
     {
@@ -1757,6 +1757,86 @@
             "adv_temporal_reconnect is reserved for STSL or client connection issues, not for worker-registration or queue-serviceability failures",
             "The recommended next action for worker-registration failure routes through verified worker restart or owner-restart, not reconnect",
             "Documentation surfaces (docs/temporal-recovery.md) reflect the same STSL-only boundary for adv_temporal_reconnect"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-targetWorkerLifecycle01",
+      "title": "Target-Aware Temporal Worker Lifecycle",
+      "body": "ADV must provide a target-aware path for ensuring or restarting a Temporal worker in another ADV-enabled project. When invoked with a target_path, the operation MUST derive the target project ID, external state root, and expected Temporal task queue from the target project, not from the source project. The tool MUST require explicit target trust confirmation (target_confirmed: true and non-blank confirmationEvidence) when the target is untrusted. It MUST preserve existing worker-lock approval semantics: suspect live v1 locks and suspect fresh-v2 unserviceable locks still require explicit approval evidence before reclaim, and dead-PID/stale-heartbeat reclaim remains automatic. The operation MUST verify the target queue serviceability within a bounded budget, and MUST return a structured envelope containing expected queue, registered queues, worker lock, queue serviceability snapshot, diagnostics, and recommended next action on both success and failure. If the operation triggers a full target worker restart, the source project's driving queue/worker MUST remain intact, or the call MUST fail closed rather than silently degrade the source worker.",
+      "priority": "must",
+      "tags": [
+        "temporal",
+        "worker",
+        "cross-project",
+        "target-path",
+        "lifecycle",
+        "serviceability"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-targetWorkerLifecycle01.1",
+          "title": "Target project queue and state root derive from target_path",
+          "given": [
+            "A source project ADV session invokes a target-aware worker restart/ensure with target_path"
+          ],
+          "when": "The tool resolves the target project",
+          "then": [
+            "The target project ID is derived from the target_path git root",
+            "The target external state root is derived from the target project ID, not the source project shard",
+            "The expected Temporal task queue is derived from the target project ID"
+          ]
+        },
+        {
+          "id": "rq-targetWorkerLifecycle01.2",
+          "title": "Untrusted target worker lifecycle requires explicit confirmation",
+          "given": [
+            "A target-aware worker restart/ensure targets a project that is not configured as trusted"
+          ],
+          "when": "The mutation is evaluated",
+          "then": [
+            "The tool requires target_confirmed: true and non-blank confirmationEvidence",
+            "Without confirmation, the tool fails before any target worker state change"
+          ]
+        },
+        {
+          "id": "rq-targetWorkerLifecycle01.3",
+          "title": "Worker lock approval semantics are preserved",
+          "given": [
+            "A target worker lifecycle operation encounters a suspect live v1 lock or suspect fresh-v2 unserviceable lock"
+          ],
+          "when": "The lock evaluation runs",
+          "then": [
+            "No suspect live lock is reclaimed automatically",
+            "Reclaim still requires explicit user approval evidence or owner-session restart",
+            "Dead-PID and stale-heartbeat reclaim continue to follow existing automatic rules"
+          ]
+        },
+        {
+          "id": "rq-targetWorkerLifecycle01.4",
+          "title": "Bounded verification returns structured queue evidence",
+          "given": [
+            "A target-aware worker restart/ensure is invoked"
+          ],
+          "when": "The operation completes",
+          "then": [
+            "The tool waits up to a bounded budget for the target queue to become serviceable",
+            "Success includes local worker readiness and/or fresh server-side poller evidence",
+            "The response includes expected queue, registered queues, worker lock, serviceability snapshot, diagnostics, and recommended next action"
+          ]
+        },
+        {
+          "id": "rq-targetWorkerLifecycle01.5",
+          "title": "Source driving queue is preserved or operation fails closed",
+          "given": [
+            "A target-aware worker restart/ensure triggers a full target worker restart"
+          ],
+          "when": "The target worker is restarted",
+          "then": [
+            "The source project's driving worker and queue remain intact",
+            "If the operation cannot preserve the source worker, the call fails closed with a structured error",
+            "The failure includes the target queue and a source-queue-preservation blocker"
           ]
         }
       ]

@@ -1610,6 +1610,77 @@ When a Temporal worker run loop rejects, exits unexpectedly, or exhausts restart
 
 ---
 
+### Target-Aware Temporal Worker Lifecycle
+
+**ID:** `rq-targetWorkerLifecycle01` | **Priority:** **[MUST]**
+
+ADV must provide a target-aware path for ensuring or restarting a Temporal worker in another ADV-enabled project. When invoked with a target_path, the operation MUST derive the target project ID, external state root, and expected Temporal task queue from the target project, not from the source project. The tool MUST require explicit target trust confirmation (target_confirmed: true and non-blank confirmationEvidence) when the target is untrusted. It MUST preserve existing worker-lock approval semantics: suspect live v1 locks and suspect fresh-v2 unserviceable locks still require explicit approval evidence before reclaim, and dead-PID/stale-heartbeat reclaim remains automatic. The operation MUST verify the target queue serviceability within a bounded budget, and MUST return a structured envelope containing expected queue, registered queues, worker lock, queue serviceability snapshot, diagnostics, and recommended next action on both success and failure. If the operation triggers a full target worker restart, the source project's driving queue/worker MUST remain intact, or the call MUST fail closed rather than silently degrade the source worker.
+
+**Tags:** `temporal`, `worker`, `cross-project`, `target-path`, `lifecycle`, `serviceability`
+
+#### Scenarios
+
+**Target project queue and state root derive from target_path** (`rq-targetWorkerLifecycle01.1`)
+
+**Given:**
+- A source project ADV session invokes a target-aware worker restart/ensure with target_path
+
+**When:** The tool resolves the target project
+
+**Then:**
+- The target project ID is derived from the target_path git root
+- The target external state root is derived from the target project ID, not the source project shard
+- The expected Temporal task queue is derived from the target project ID
+
+**Untrusted target worker lifecycle requires explicit confirmation** (`rq-targetWorkerLifecycle01.2`)
+
+**Given:**
+- A target-aware worker restart/ensure targets a project that is not configured as trusted
+
+**When:** The mutation is evaluated
+
+**Then:**
+- The tool requires target_confirmed: true and non-blank confirmationEvidence
+- Without confirmation, the tool fails before any target worker state change
+
+**Worker lock approval semantics are preserved** (`rq-targetWorkerLifecycle01.3`)
+
+**Given:**
+- A target worker lifecycle operation encounters a suspect live v1 lock or suspect fresh-v2 unserviceable lock
+
+**When:** The lock evaluation runs
+
+**Then:**
+- No suspect live lock is reclaimed automatically
+- Reclaim still requires explicit user approval evidence or owner-session restart
+- Dead-PID and stale-heartbeat reclaim continue to follow existing automatic rules
+
+**Bounded verification returns structured queue evidence** (`rq-targetWorkerLifecycle01.4`)
+
+**Given:**
+- A target-aware worker restart/ensure is invoked
+
+**When:** The operation completes
+
+**Then:**
+- The tool waits up to a bounded budget for the target queue to become serviceable
+- Success includes local worker readiness and/or fresh server-side poller evidence
+- The response includes expected queue, registered queues, worker lock, serviceability snapshot, diagnostics, and recommended next action
+
+**Source driving queue is preserved or operation fails closed** (`rq-targetWorkerLifecycle01.5`)
+
+**Given:**
+- A target-aware worker restart/ensure triggers a full target worker restart
+
+**When:** The target worker is restarted
+
+**Then:**
+- The source project's driving worker and queue remain intact
+- If the operation cannot preserve the source worker, the call fails closed with a structured error
+- The failure includes the target queue and a source-queue-preservation blocker
+
+---
+
 ### Multi-Session-Safe ADV State Writes via Temporal Workflow Signals
 
 **ID:** `rq-multiSessionCoordination01` | **Priority:** **[MUST]**

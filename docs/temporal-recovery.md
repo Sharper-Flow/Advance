@@ -143,6 +143,16 @@ assets. After changing `.opencode/agents/*`, `ADV_INSTRUCTIONS.md`,
 `plugin/src/tools/*`, or deploy-synced prompt surfaces, run the deploy flow and
 Restart OpenCode before expecting live sessions to see the new behavior.
 
+For cross-project work, `adv_temporal_worker_restart` may be invoked with
+`target_path` to ensure or restart the target project's worker. It derives the
+target project ID, external state root, and expected queue from the target
+repository, requires explicit trust confirmation for untrusted targets,
+preserves approval-gated worker-lock reclaim semantics, verifies target queue
+serviceability within a bounded budget, and returns structured evidence.
+Snapshot-ok target reads (for example `adv_change_show` with `target_path`) must
+not start, restart, register, reclaim, or signal target workers; authoritative
+target mutations must route through temporal-required `target_path` tools.
+
 ## Worker model
 
 ### Decision (current — hybrid)

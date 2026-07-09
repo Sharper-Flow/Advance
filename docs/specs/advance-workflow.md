@@ -2133,6 +2133,53 @@ ADV tools that support cross-project coordination must use explicit `target_path
 
 ---
 
+### Target Disk-Snapshot Reads Are Non-Authoritative
+
+**ID:** `rq-targetReadAuthority01` | **Priority:** **[MUST]**
+
+ADV tools that read another project via target_path in snapshot-ok mode must treat the returned disk-snapshot data as non-authoritative and degraded. Snapshot-ok reads must not start, restart, register, reclaim, or signal target project workers, and must not write target project state. They may present target project context only. Any downstream mutation requiring authoritative target workflow state must route through a temporal-required target_path tool.
+
+**Tags:** `workflow`, `cross-project`, `target-path`, `state-authority`, `snapshot-ok`
+
+#### Scenarios
+
+**Snapshot-ok reads mark target context as non-authoritative** (`rq-targetReadAuthority01.1`)
+
+**Given:**
+- A snapshot-ok tool such as adv_change_show, adv_change_list, adv_status, adv_task_show, adv_task_list, or adv_task_ready is called with target_path
+
+**When:** The tool returns data from the target project
+
+**Then:**
+- The response marks the target context as non-authoritative/degraded
+- The caller does not treat the snapshot as authoritative workflow state
+
+**Snapshot-ok reads do not mutate target worker lifecycle** (`rq-targetReadAuthority01.2`)
+
+**Given:**
+- A snapshot-ok target_path read is executed
+
+**When:** The tool runs
+
+**Then:**
+- The tool does not start, restart, register, or reclaim a target project worker
+- The tool does not signal target project workflows
+- The tool does not write target project ADV state
+
+**Authoritative target mutation requires temporal-required path** (`rq-targetReadAuthority01.3`)
+
+**Given:**
+- A caller has read a target project via a snapshot-ok tool and now wants to mutate target workflow state
+
+**When:** The mutation is evaluated
+
+**Then:**
+- The mutation must use a temporal-required target_path tool
+- The mutation runs through the target project's Temporal-backed store
+- The snapshot-ok read result is not used as the authoritative state for the mutation
+
+---
+
 ### Task Mutations Route Through Target Project Store
 
 **ID:** `rq-crossProjectTaskMutation01` | **Priority:** **[MUST]**

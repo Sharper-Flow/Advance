@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.26.0",
-  "updated_at": "2026-07-07T04:50:00.000Z",
+  "version": "1.27.0",
+  "updated_at": "2026-07-08T22:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -2228,6 +2228,59 @@
           "then": [
             "Default output summarizes linked projects and dependency health concisely",
             "Detailed dependency graph and target diagnostics are available only through drilldown or coordinate output"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-targetReadAuthority01",
+      "title": "Target Disk-Snapshot Reads Are Non-Authoritative",
+      "body": "ADV tools that read another project via target_path in snapshot-ok mode must treat the returned disk-snapshot data as non-authoritative and degraded. Snapshot-ok reads must not start, restart, register, reclaim, or signal target project workers, and must not write target project state. They may present target project context only. Any downstream mutation requiring authoritative target workflow state must route through a temporal-required target_path tool.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "cross-project",
+        "target-path",
+        "state-authority",
+        "snapshot-ok"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-targetReadAuthority01.1",
+          "title": "Snapshot-ok reads mark target context as non-authoritative",
+          "given": [
+            "A snapshot-ok tool such as adv_change_show, adv_change_list, adv_status, adv_task_show, adv_task_list, or adv_task_ready is called with target_path"
+          ],
+          "when": "The tool returns data from the target project",
+          "then": [
+            "The response marks the target context as non-authoritative/degraded",
+            "The caller does not treat the snapshot as authoritative workflow state"
+          ]
+        },
+        {
+          "id": "rq-targetReadAuthority01.2",
+          "title": "Snapshot-ok reads do not mutate target worker lifecycle",
+          "given": [
+            "A snapshot-ok target_path read is executed"
+          ],
+          "when": "The tool runs",
+          "then": [
+            "The tool does not start, restart, register, or reclaim a target project worker",
+            "The tool does not signal target project workflows",
+            "The tool does not write target project ADV state"
+          ]
+        },
+        {
+          "id": "rq-targetReadAuthority01.3",
+          "title": "Authoritative target mutation requires temporal-required path",
+          "given": [
+            "A caller has read a target project via a snapshot-ok tool and now wants to mutate target workflow state"
+          ],
+          "when": "The mutation is evaluated",
+          "then": [
+            "The mutation must use a temporal-required target_path tool",
+            "The mutation runs through the target project's Temporal-backed store",
+            "The snapshot-ok read result is not used as the authoritative state for the mutation"
           ]
         }
       ]
