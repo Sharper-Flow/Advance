@@ -26,6 +26,7 @@ import {
 import { getProjectId } from "../utils/project-id";
 import {
   formatTargetProjectContext,
+  targetPathSchema,
   type TargetProjectOutputContext,
   withTargetPathStore,
 } from "./target-project";
@@ -555,7 +556,7 @@ export const temporalOpsTools = {
 
   adv_temporal_worker_restart: {
     description:
-      "Restart the project's Temporal worker process (out-of-process Node child on Bun hosts; in-process on Node hosts). Use when the worker is wedged or the respawn loop is exhausted. Does NOT reload plugin tool code in `plugin/src/tools/*.ts`; restart OpenCode itself to reload those host-loaded modules. If workflow or activity code in `plugin/src/temporal/` changed, run `pnpm run build:worker` before this tool because the worker loads from `dist/temporal/`. Waits up to 10s for the expected queue to become serviceable and returns structured diagnostics on timeout/failure.",
+      "Restart the project's Temporal worker process (out-of-process Node child on Bun hosts; in-process on Node hosts). Use when the worker is wedged or the respawn loop is exhausted. Does NOT reload plugin tool code in `plugin/src/tools/*.ts`; restart OpenCode itself to reload those host-loaded modules. If workflow or activity code in `plugin/src/temporal/` changed, run `pnpm run build:worker` before this tool because the worker loads from `dist/temporal/`. Optionally accepts `target_path` to restart a target project's worker from the driving session; when `target_path` is provided, `target_confirmed` and `confirmationEvidence` are required for untrusted target mutations. Waits up to 10s for the expected queue to become serviceable and returns structured diagnostics on timeout/failure.",
     args: {
       approvedLockReclaim: z
         .literal(true)
@@ -569,11 +570,30 @@ export const temporalOpsTools = {
         .describe(
           "Required with approvedLockReclaim:true. Cite the user's explicit approval evidence.",
         ),
+      ...targetPathSchema.shape,
     },
     execute: async (
-      args: { approvedLockReclaim?: true; approvalEvidence?: string },
+      args: {
+        approvedLockReclaim?: true;
+        approvalEvidence?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+      },
       store: Store,
     ) => {
+      // Target worker restart/ensure execution for target_path is implemented in
+      // a later task. Guard here so callers do not accidentally act on the
+      // current project.
+      if (args.target_path) {
+        return formatToolOutput({
+          success: false,
+          errorClass: "NotImplemented",
+          error:
+            "Target worker restart/ensure via target_path is not yet implemented. Use adv_temporal_worker_restart without target_path for the current project, or retry after the implementation task completes.",
+        });
+      }
+
       const approvedLockReclaim = args.approvedLockReclaim === true;
       const approvalEvidence = args.approvalEvidence?.trim();
       if (approvedLockReclaim && !approvalEvidence) {

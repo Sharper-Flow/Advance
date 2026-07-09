@@ -272,6 +272,9 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_temporal_worker_restart: {
     approvalEvidence: { blank: "reject" }, // audit
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" }, // handler validates when target_path present
   },
   adv_snapshot_health: {
     repair_actions: { emptyArray: "reject" },

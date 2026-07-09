@@ -188,4 +188,12 @@ describe("getToolSurface (live surface)", () => {
     expect(args?.has("epic_owner_target_confirmed")).toBe(true);
     expect(args?.has("epic_owner_confirmationEvidence")).toBe(true);
   });
+
+  test("exposes target worker lifecycle args on adv_temporal_worker_restart", () => {
+    const args = surface.get("adv_temporal_worker_restart");
+    expect(args).toBeDefined();
+    expect(args?.has("target_path")).toBe(true);
+    expect(args?.has("target_confirmed")).toBe(true);
+    expect(args?.has("confirmationEvidence")).toBe(true);
+  });
 });

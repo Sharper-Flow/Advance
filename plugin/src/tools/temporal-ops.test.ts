@@ -256,4 +256,52 @@ describe("temporal ops probe cache", () => {
     expect(result.recommendedNextAction).not.toContain("adv_temporal_restart");
     expect(result.recommendedNextAction).toContain("peer workers");
   });
+
+  test("description mentions target_path and cross-project worker lifecycle", () => {
+    expect(temporalOpsTools.adv_temporal_worker_restart.description).toMatch(
+      /target_path|target project/i,
+    );
+  });
+
+  test("restart with target_path returns not implemented and does not touch current project worker", async () => {
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_worker_restart.execute(
+        {
+          target_path: "/repo/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target restart",
+        },
+        store,
+      ),
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      errorClass: "NotImplemented",
+    });
+    expect(mockRestartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+    expect(mockGetTemporalHealth).not.toHaveBeenCalled();
+  });
+
+  test("restart without target_path still reaches current project worker", async () => {
+    mockRestartCurrentProjectTemporalWorker.mockRejectedValue(
+      new Error("current worker restart wedged"),
+    );
+
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_worker_restart.execute(
+        { approvedLockReclaim: true, approvalEvidence: "user approved" },
+        store,
+      ),
+    );
+
+    expect(mockRestartCurrentProjectTemporalWorker).toHaveBeenCalledWith(
+      store.paths.root,
+      expect.objectContaining({
+        approvedLockReclaim: true,
+        approvalEvidence: "user approved",
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
 });

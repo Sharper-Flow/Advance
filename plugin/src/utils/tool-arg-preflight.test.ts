@@ -994,6 +994,12 @@ describe("tool arg preflight", () => {
       "target_path",
     ],
     ["adv_temporal_reconnect", { target_path: " " }, "target_path"],
+    ["adv_temporal_worker_restart", { target_path: " " }, "target_path"],
+    [
+      "adv_temporal_worker_restart",
+      { confirmationEvidence: " " },
+      "confirmationEvidence",
+    ],
     ["adv_status", { target_path: " " }, "target_path"],
     ["adv_agenda_add", { title: "real", description: " " }, "description"],
     ["adv_agenda_add", { title: "real", category: " " }, "category"],
@@ -1497,6 +1503,23 @@ describe("tool arg preflight", () => {
         changeId: "fixPcIdentityScope",
         gateId: "execution",
         userApproved: false,
+        target_confirmed: true,
+      });
+    });
+
+    test("full strict-mode adv_temporal_worker_restart payload normalizes blanks and preserves target_confirmed", () => {
+      const result = preflightToolArgs(
+        "adv_temporal_worker_restart",
+        {},
+        {
+          target_path: "",
+          target_confirmed: true,
+          confirmationEvidence: "",
+        },
+      );
+      expect(result.ok).toBe(true);
+      expect(result.invalid).toEqual([]);
+      expect(result.normalizedArgs).toEqual({
         target_confirmed: true,
       });
     });
