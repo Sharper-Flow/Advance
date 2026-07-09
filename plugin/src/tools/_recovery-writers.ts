@@ -365,14 +365,12 @@ function recoveryReportKey(
     | string
     | undefined;
   return subagentReportKey({
-    changeId:
-      (report.change_id as string | undefined) ?? fallbackChangeId,
+    changeId: (report.change_id as string | undefined) ?? fallbackChangeId,
     taskId:
       typeof scope !== "string" && scope?.kind === "task"
         ? scope.task_id
         : (report.task_id as string | undefined),
-    scope:
-      typeof scope === "string" ? undefined : (scope as never),
+    scope: typeof scope === "string" ? undefined : (scope as never),
     agent: report.agent as never,
     attempt: (report.attempt as number | undefined) ?? 1,
   });

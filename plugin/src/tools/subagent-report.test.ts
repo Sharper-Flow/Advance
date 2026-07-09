@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SubagentConsumerWarningSchema } from "../types";
@@ -1454,6 +1454,7 @@ describe("adv_subagent_report_submit — terminal-workflow disk-projection fallb
         store,
       ),
     );
+    expect(first.success).toBe(true);
     // Refresh the store fixture so the second call sees the persisted report
     const persisted = JSON.parse(
       await readFile(join(bundleDir, "change.json"), "utf-8"),

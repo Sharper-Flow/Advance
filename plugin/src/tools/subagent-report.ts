@@ -782,7 +782,8 @@ async function executeSubmit(
   const report = withConsumerWarnings(parsedReport.report, initialWarnings);
 
   if (!args.dryRun) {
-    const isTerminal = change.status === "archived" || change.status === "closed";
+    const isTerminal =
+      change.status === "archived" || change.status === "closed";
     if (isTerminal) {
       // rq-subagentReports12: terminal workflows cannot accept
       // subagentReportSubmittedSignal. Route to the disk-projection fallback
@@ -817,10 +818,7 @@ async function executeSubmit(
         );
       }
     } else {
-      const handle = await getChangeHandleForChangeId(
-        store,
-        report.change_id,
-      );
+      const handle = await getChangeHandleForChangeId(store, report.change_id);
       try {
         await fireSignalAndRefresh(
           handle,
@@ -828,9 +826,7 @@ async function executeSubmit(
           report.change_id,
           subagentReportSubmittedSignal,
           {
-            ...(reportTaskId(report)
-              ? { taskId: reportTaskId(report) }
-              : {}),
+            ...(reportTaskId(report) ? { taskId: reportTaskId(report) } : {}),
             report,
             submittedAt: new Date().toISOString(),
           },
