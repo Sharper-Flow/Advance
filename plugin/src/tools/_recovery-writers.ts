@@ -292,6 +292,18 @@ export async function saveRecoveredSubagentReport(input: {
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
 
+  // Determine the ACTUAL terminal write target by checking the filesystem
+  // (bundle existence), NOT the possibly-stale in-memory change.status.
+  // An active→archived race can leave change.status stale ("active") while
+  // the archive bundle already exists on disk. The read path
+  // (loadArchiveBundleDominantProjection) reads the bundle regardless of the
+  // in-memory status, so the write target MUST match the real filesystem
+  // state (P33: structural correctness over heuristic inference).
+  const bundleDir = input.store.paths.archive
+    ? await findArchiveBundle(input.store.paths.archive, input.change.id)
+    : null;
+  const persistedVia = bundleDir ? "archive-sidecar" : "active-projection";
+
   const taskId = recoveryReportTaskId(input.report);
   const key = subagentReportKey({
     changeId: input.report.change_id,
@@ -305,10 +317,7 @@ export async function saveRecoveredSubagentReport(input: {
   const auditedReport = {
     ...input.report,
     recovery_audit: {
-      persisted_via:
-        input.change.status === "archived"
-          ? "archive-sidecar"
-          : "active-projection",
+      persisted_via: persistedVia,
       reason: input.authorization.reason,
       evidence: input.authorization.evidence,
       recovered_at: new Date().toISOString(),
@@ -335,7 +344,7 @@ export async function saveRecoveredSubagentReport(input: {
       subagent_reports: [...existing, auditedReport] as never,
     };
     const updated = { ...input.change, tasks: updatedTasks } as Change;
-    await persistTerminalProjection(input, updated);
+    await persistTerminalProjection(input, updated, bundleDir);
     return updated;
   }
 
@@ -351,7 +360,7 @@ export async function saveRecoveredSubagentReport(input: {
     ...input.change,
     subagent_reports: [...existingSidecar, auditedReport] as never,
   } as Change;
-  await persistTerminalProjection(input, updated);
+  await persistTerminalProjection(input, updated, bundleDir);
   return updated;
 }
 
@@ -378,22 +387,16 @@ function recoveryReportKey(
 
 /**
  * Write the updated change to the correct terminal disk projection.
- * Archived → archive bundle change.json; closed → active changes dir.
+ * Uses the pre-resolved bundleDir (filesystem truth) rather than the
+ * possibly-stale change.status to select the write target. Archived changes
+ * (bundle exists) → bundle change.json; closed (no bundle) → active changes dir.
  */
 async function persistTerminalProjection(
   input: { store: Store; change: Change },
   updated: Change,
+  bundleDir: string | null,
 ): Promise<void> {
-  if (updated.status === "archived" && input.store.paths.archive) {
-    const bundleDir = await findArchiveBundle(
-      input.store.paths.archive,
-      updated.id,
-    );
-    if (!bundleDir) {
-      throw new Error(
-        `Cannot persist post-archive report: no archive bundle found for change ${updated.id}`,
-      );
-    }
+  if (bundleDir) {
     const { join } = await import("node:path");
     await atomicWriteFile(
       join(bundleDir, "change.json"),
@@ -401,6 +404,6 @@ async function persistTerminalProjection(
     );
     return;
   }
-  // closed (or archived without an archive path) → active changes dir
+  // No archive bundle → closed or terminal-without-bundle → active changes dir
   await saveChange(input.store.paths.changes, updated);
 }

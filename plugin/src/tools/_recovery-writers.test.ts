@@ -622,4 +622,56 @@ describe("saveRecoveredSubagentReport", () => {
       } as any),
     ).rejects.toThrow(/recovery authorization/);
   });
+
+  it("writes to the ARCHIVE BUNDLE even when change.status is stale (active→archived race)", async () => {
+    // Race scenario: loadChange returned status:"active", but the change was
+    // archived between load and the signal. The bundle exists on disk. The
+    // writer MUST write to the bundle (read path reads bundle first), NOT the
+    // active dir — even though change.status is stale "active".
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-race-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    // Stale status: "active" — but bundle exists on disk
+    const change: Change = {
+      ...baseChange(),
+      id: "test-change",
+      status: "active",
+      subagent_reports: [],
+    } as Change;
+    await writeFile(
+      join(bundleDir, "change.json"),
+      JSON.stringify({ ...change, status: "archived" }, null, 2),
+    );
+
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    const report = changeScopedReport("test-change");
+    await saveRecoveredSubagentReport({
+      store,
+      change,
+      report,
+      authorization: {
+        reason: "post_archive_report_persist_race_fallback",
+        evidence: "workflow execution already completed",
+      },
+    });
+
+    // Persisted to the ARCHIVE BUNDLE despite stale status:"active"
+    const persisted = JSON.parse(
+      await readFile(join(bundleDir, "change.json"), "utf-8"),
+    );
+    expect(persisted.subagent_reports).toHaveLength(1);
+    expect(persisted.subagent_reports[0].recovery_audit.persisted_via).toBe(
+      "archive-sidecar",
+    );
+    // Did NOT write to active dir
+    expect(mockedSaveChange).not.toHaveBeenCalled();
+
+    await rm(root, { recursive: true, force: true });
+  });
 });
