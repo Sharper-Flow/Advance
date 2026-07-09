@@ -915,13 +915,13 @@
     {
       "id": "rq-epicCliList01",
       "title": "Epic List CLI Is Read-Only, Worker-Free, and Fail-Closed",
-      "body": "The `adv epic list --json` CLI command MUST return live Temporal-backed Epic IDs for the current project as stable JSON. The command MUST use Temporal Visibility enumeration of `epicWorkflow` executions and project-scoped workflow ID prefix filtering, MUST NOT read ADV external state files, MUST NOT query or hydrate each Epic workflow, MUST NOT require a worker polling the project task queue, and MUST fail closed with structured JSON error metadata instead of silently returning stale disk data. The Epic CLI namespace MUST remain read-only and MUST NOT expose mutation subcommands.",
+      "body": "The `adv epic list --json` CLI command MUST return live Temporal-backed Epic entries for the current project as stable JSON. Each Epic entry MUST include `id` and a present `startTime` field populated from the Temporal Visibility workflow row's `startTime` as an ISO-8601 UTC string when valid; if a row unexpectedly lacks a valid timestamp, the entry MUST remain present with `startTime: null`. The command MUST use Temporal Visibility enumeration of `epicWorkflow` executions and project-scoped workflow ID prefix filtering, MUST NOT read ADV external state files, MUST NOT query or hydrate each Epic workflow, MUST NOT require a worker polling the project task queue, and MUST fail closed with structured JSON error metadata instead of silently returning stale disk data. The Epic CLI namespace MUST remain read-only and MUST NOT expose mutation subcommands. The `startTime` field represents the Temporal workflow start timestamp and MUST NOT be labeled as child-change activity or mutable recency.",
       "priority": "must",
       "tags": ["epics", "cli", "visibility", "read-only"],
       "scenarios": [
         {
           "id": "rq-epicCliList01.1",
-          "title": "Epic list returns live JSON IDs",
+          "title": "Epic list returns live JSON entries with timestamps",
           "given": [
             "A git-backed project has Epic workflows visible to Temporal"
           ],
@@ -929,7 +929,9 @@
           "then": [
             "The command exits 0",
             "The JSON payload includes `source: \"temporal\"`, `live: true`, `stale: false`, `generated_at`, `project_id`, and `epics`",
-            "Each Epic entry is an object containing at least `id`"
+            "Each Epic entry is an object containing `id` and a present `startTime` field",
+            "A valid Temporal Visibility row timestamp is emitted as an ISO-8601 UTC string",
+            "An unexpectedly invalid or missing row timestamp is emitted as `startTime: null` without dropping the Epic row"
           ]
         },
         {

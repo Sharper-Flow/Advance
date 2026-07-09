@@ -2,11 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   buildEpicVisibilityQuery,
+  listEpicWorkflows,
   listEpicWorkflowIds,
 } from "./list-epic-workflows";
 import { EPIC_WORKFLOW_NAME } from "./contracts";
 
-function makeClient(results: Array<{ workflowId: string }>): {
+function makeClient(
+  results: Array<{ workflowId: string; startTime?: Date | null }>,
+): {
   workflow: {
     list: ReturnType<typeof vi.fn>;
   };
@@ -20,12 +23,14 @@ function makeClient(results: Array<{ workflowId: string }>): {
 }
 
 describe("listEpicWorkflowIds", () => {
+  const startTime = new Date("2026-06-25T10:00:00.000Z");
+
   it("defaults to active/running mode and filters project scope by workflow ID prefix", async () => {
     const client = makeClient([
-      { workflowId: "adv/epic/pid-abc/cardIdentity" },
-      { workflowId: "adv/epic/other-pid/providerArchitecture" },
-      { workflowId: "adv/change/pid-abc/notAnEpic" },
-      { workflowId: "adv/epic/pid-abc/simplifiedChineseCardData" },
+      { workflowId: "adv/epic/pid-abc/cardIdentity", startTime },
+      { workflowId: "adv/epic/other-pid/providerArchitecture", startTime },
+      { workflowId: "adv/change/pid-abc/notAnEpic", startTime },
+      { workflowId: "adv/epic/pid-abc/simplifiedChineseCardData", startTime },
     ]);
 
     const ids = await listEpicWorkflowIds(client, { projectId: "pid-abc" });
@@ -44,7 +49,7 @@ describe("listEpicWorkflowIds", () => {
 
   it("supports all-executions mode with no ExecutionStatus filter", async () => {
     const client = makeClient([
-      { workflowId: "adv/epic/pid-abc/cardIdentity" },
+      { workflowId: "adv/epic/pid-abc/cardIdentity", startTime },
     ]);
 
     await listEpicWorkflowIds(client, {
@@ -77,8 +82,8 @@ describe("listEpicWorkflowIds", () => {
 
   it("lists running Epic workflows without AdvEpicStatus filter", async () => {
     const client = makeClient([
-      { workflowId: "adv/epic/pid-abc/cardIdentity" },
-      { workflowId: "adv/epic/pid-abc/addLauncherRows" },
+      { workflowId: "adv/epic/pid-abc/cardIdentity", startTime },
+      { workflowId: "adv/epic/pid-abc/addLauncherRows", startTime },
     ]);
 
     const ids = await listEpicWorkflowIds(client, {
@@ -90,5 +95,40 @@ describe("listEpicWorkflowIds", () => {
     expect(client.workflow.list).toHaveBeenCalledWith({
       query: `WorkflowType = "${EPIC_WORKFLOW_NAME}" AND ExecutionStatus = "Running"`,
     });
+  });
+
+  it("lists Epic workflow entries with Visibility startTime", async () => {
+    const secondStart = new Date("2026-06-25T11:00:00.000Z");
+    const client = makeClient([
+      { workflowId: "adv/epic/pid-abc/cardIdentity", startTime },
+      {
+        workflowId: "adv/epic/pid-abc/addLauncherRows",
+        startTime: secondStart,
+      },
+    ]);
+
+    const epics = await listEpicWorkflows(client, { projectId: "pid-abc" });
+
+    expect(epics).toEqual([
+      { id: "cardIdentity", startTime },
+      { id: "addLauncherRows", startTime: secondStart },
+    ]);
+  });
+
+  it("keeps an Epic entry with null startTime when Visibility row lacks a valid Date", async () => {
+    const client = makeClient([
+      { workflowId: "adv/epic/pid-abc/missingStart" },
+      {
+        workflowId: "adv/epic/pid-abc/invalidStart",
+        startTime: new Date("invalid"),
+      },
+    ]);
+
+    const epics = await listEpicWorkflows(client, { projectId: "pid-abc" });
+
+    expect(epics).toEqual([
+      { id: "missingStart", startTime: null },
+      { id: "invalidStart", startTime: null },
+    ]);
   });
 });

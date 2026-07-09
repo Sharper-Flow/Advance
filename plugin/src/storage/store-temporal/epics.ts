@@ -165,6 +165,8 @@ async function verifyEpicStatusSearchAttribute(
   handle: EpicHandleLike,
   status: string,
 ): Promise<{ verified: true } | { verified: false; error: string }> {
+  // rq-epicSearchAttributeRepair01: repair reports distinguish confirmed
+  // search-attribute proof from skipped, unreachable, or unverified delivery.
   if (!handle.describe) {
     return {
       verified: false,

@@ -16,5 +16,7 @@ export { escapeVisibilityValue } from "../temporal/lifecycle-visibility";
 export { listChangeWorkflowIds } from "../temporal/list-change-workflows";
 export {
   listEpicWorkflowIds,
+  listEpicWorkflows,
+  type EpicWorkflowListEntry,
   type ListEpicClient,
 } from "../temporal/list-epic-workflows";

@@ -3,10 +3,13 @@ import { describe, expect, test } from "bun:test";
 import {
   buildLiveEpicListFailure,
   buildLiveEpicListPayload,
-  listEpicIdsFromVisibility,
+  listEpicsFromVisibility,
 } from "./epic-list";
 
-function fakeEpicClient(workflowIds: string[], listError?: Error) {
+function fakeEpicClient(
+  workflowRows: Array<{ workflowId: string; startTime?: Date | null }>,
+  listError?: Error,
+) {
   const queries: string[] = [];
   return {
     queries,
@@ -15,7 +18,7 @@ function fakeEpicClient(workflowIds: string[], listError?: Error) {
         if (listError) throw listError;
         queries.push(opts.query);
         async function* iter() {
-          for (const workflowId of workflowIds) yield { workflowId };
+          for (const row of workflowRows) yield row;
         }
         return iter();
       },
@@ -28,7 +31,16 @@ describe("epic list CLI helper", () => {
 
   test("builds a live payload with stable Epic entry objects", () => {
     const payload = buildLiveEpicListPayload(
-      ["cardIdentity", "providerArchitecture"],
+      [
+        {
+          id: "cardIdentity",
+          startTime: new Date("2026-06-25T10:00:00.000Z"),
+        },
+        {
+          id: "providerArchitecture",
+          startTime: new Date("2026-06-25T11:00:00.000Z"),
+        },
+      ],
       {
         projectId: "pid-abc",
         now,
@@ -41,8 +53,26 @@ describe("epic list CLI helper", () => {
       stale: false,
       generated_at: "2026-06-26T03:00:00.000Z",
       project_id: "pid-abc",
-      epics: [{ id: "cardIdentity" }, { id: "providerArchitecture" }],
+      epics: [
+        { id: "cardIdentity", startTime: "2026-06-25T10:00:00.000Z" },
+        {
+          id: "providerArchitecture",
+          startTime: "2026-06-25T11:00:00.000Z",
+        },
+      ],
     });
+  });
+
+  test("keeps an Epic row with null startTime when Visibility lacks a valid timestamp", () => {
+    const payload = buildLiveEpicListPayload(
+      [{ id: "cardIdentity", startTime: null }],
+      {
+        projectId: "pid-abc",
+        now,
+      },
+    );
+
+    expect(payload.epics).toEqual([{ id: "cardIdentity", startTime: null }]);
   });
 
   test("builds fail-closed JSON metadata", () => {
@@ -63,19 +93,40 @@ describe("epic list CLI helper", () => {
 
   test("lists only Epic IDs in the current project prefix", async () => {
     const client = fakeEpicClient([
-      "adv/epic/pid-abc/cardIdentity",
-      "adv/epic/other-pid/providerArchitecture",
-      "adv/change/pid-abc/notEpic",
-      "adv/epic/pid-abc/",
-      "adv/epic/pid-abc/addLauncherRows",
+      {
+        workflowId: "adv/epic/pid-abc/cardIdentity",
+        startTime: new Date("2026-06-25T10:00:00.000Z"),
+      },
+      {
+        workflowId: "adv/epic/other-pid/providerArchitecture",
+        startTime: new Date("2026-06-25T10:01:00.000Z"),
+      },
+      {
+        workflowId: "adv/change/pid-abc/notEpic",
+        startTime: new Date("2026-06-25T10:02:00.000Z"),
+      },
+      {
+        workflowId: "adv/epic/pid-abc/",
+        startTime: new Date("2026-06-25T10:03:00.000Z"),
+      },
+      {
+        workflowId: "adv/epic/pid-abc/addLauncherRows",
+        startTime: null,
+      },
     ]);
 
-    const ids = await listEpicIdsFromVisibility(client, {
+    const epics = await listEpicsFromVisibility(client, {
       projectId: "pid-abc",
       timeoutMs: 1000,
     });
 
-    expect(ids).toEqual(["cardIdentity", "addLauncherRows"]);
+    expect(epics).toEqual([
+      {
+        id: "cardIdentity",
+        startTime: new Date("2026-06-25T10:00:00.000Z"),
+      },
+      { id: "addLauncherRows", startTime: null },
+    ]);
     expect(client.queries).toEqual([
       'WorkflowType = "epicWorkflow" AND AdvEpicStatus = "active" AND ExecutionStatus = "Running"',
     ]);
@@ -83,10 +134,13 @@ describe("epic list CLI helper", () => {
 
   test("can request all execution statuses without ExecutionStatus filter", async () => {
     const client = fakeEpicClient([
-      "adv/epic/pid-abc/cardIdentity",
+      {
+        workflowId: "adv/epic/pid-abc/cardIdentity",
+        startTime: new Date("2026-06-25T10:00:00.000Z"),
+      },
     ]);
 
-    await listEpicIdsFromVisibility(client, {
+    await listEpicsFromVisibility(client, {
       projectId: "pid-abc",
       timeoutMs: 1000,
       status: "all",
@@ -99,7 +153,7 @@ describe("epic list CLI helper", () => {
     const client = fakeEpicClient([], new Error("visibility unavailable"));
 
     await expect(
-      listEpicIdsFromVisibility(client, { projectId: "pid-abc", timeoutMs: 1000 }),
+      listEpicsFromVisibility(client, { projectId: "pid-abc", timeoutMs: 1000 }),
     ).rejects.toThrow("visibility unavailable");
   });
 });

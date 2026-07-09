@@ -7,13 +7,15 @@
 
 import {
   createTemporalClientBundle,
-  listEpicWorkflowIds,
+  listEpicWorkflows,
+  type EpicWorkflowListEntry as TemporalEpicWorkflowListEntry,
   type ListEpicClient,
 } from "../../plugin/src/cli/temporal-boundary";
 import { QUERY_TIMEOUT_MS } from "./live-status";
 
 export interface EpicListEntry {
   id: string;
+  startTime: string | null;
 }
 
 export interface EpicListPayload {
@@ -45,7 +47,7 @@ function withTimeout<T>(
 }
 
 export function buildLiveEpicListPayload(
-  ids: string[],
+  epics: TemporalEpicWorkflowListEntry[],
   options: {
     projectId: string;
     now: Date;
@@ -57,7 +59,10 @@ export function buildLiveEpicListPayload(
     stale: false,
     generated_at: options.now.toISOString(),
     project_id: options.projectId,
-    epics: ids.map((id) => ({ id })),
+    epics: epics.map((epic) => ({
+      id: epic.id,
+      startTime: epic.startTime ? epic.startTime.toISOString() : null,
+    })),
   };
 }
 
@@ -80,13 +85,13 @@ export function buildLiveEpicListFailure(
   };
 }
 
-export async function listEpicIdsFromVisibility(
+export async function listEpicsFromVisibility(
   client: ListEpicClient,
   options: { projectId: string; timeoutMs?: number; status?: "active" | "all" },
-): Promise<string[]> {
+): Promise<TemporalEpicWorkflowListEntry[]> {
   const timeoutMs = options.timeoutMs ?? QUERY_TIMEOUT_MS;
   return await withTimeout(
-    listEpicWorkflowIds(client, {
+    listEpicWorkflows(client, {
       projectId: options.projectId,
       status: options.status ?? "active",
     }),
@@ -95,17 +100,17 @@ export async function listEpicIdsFromVisibility(
   );
 }
 
-export async function loadLiveEpicIds(
+export async function loadLiveEpics(
   projectId: string,
   timeoutMs = QUERY_TIMEOUT_MS,
-): Promise<string[]> {
+): Promise<TemporalEpicWorkflowListEntry[]> {
   const bundle = await withTimeout(
     createTemporalClientBundle(),
     timeoutMs,
     "Temporal connection",
   );
   try {
-    return await listEpicIdsFromVisibility(
+    return await listEpicsFromVisibility(
       bundle.client as unknown as ListEpicClient,
       { projectId, timeoutMs, status: "active" },
     );

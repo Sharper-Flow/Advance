@@ -24,6 +24,17 @@ export interface ListEpicWorkflowIdsOptions {
   limit?: number;
 }
 
+export interface EpicWorkflowListEntry {
+  id: string;
+  startTime: Date | null;
+}
+
+function normalizeVisibilityStartTime(value: unknown): Date | null {
+  if (!(value instanceof Date)) return null;
+  if (Number.isNaN(value.getTime())) return null;
+  return value;
+}
+
 /**
  * Minimal `Client` shape used by listEpicWorkflowIds.
  */
@@ -31,6 +42,7 @@ export interface ListEpicClient {
   workflow: {
     list: (opts: { query: string }) => AsyncIterable<{
       workflowId: string;
+      startTime?: Date | null;
     }>;
   };
 }
@@ -57,6 +69,36 @@ export function buildEpicVisibilityQuery(
 }
 
 /**
+ * Return the Epic entries for epic-workflows belonging to a project,
+ * via Temporal Visibility API pagination.
+ *
+ * Default `status` is "active", which enumerates running workflows only.
+ */
+export async function listEpicWorkflows(
+  client: ListEpicClient,
+  options: ListEpicWorkflowIdsOptions,
+): Promise<EpicWorkflowListEntry[]> {
+  const query = buildEpicVisibilityQuery(options.projectId, options.status);
+  const projectPrefix = `${EPIC_WORKFLOW_PREFIX}${options.projectId}/`;
+  const limit = options.limit;
+  const epics: EpicWorkflowListEntry[] = [];
+
+  for await (const wf of client.workflow.list({ query })) {
+    const wfid = wf.workflowId;
+    if (!wfid.startsWith(projectPrefix)) continue;
+    const epicId = wfid.slice(projectPrefix.length);
+    if (epicId.length === 0) continue;
+    epics.push({
+      id: epicId,
+      startTime: normalizeVisibilityStartTime(wf.startTime),
+    });
+    if (limit !== undefined && epics.length >= limit) break;
+  }
+
+  return epics;
+}
+
+/**
  * Return the Epic IDs for epic-workflows belonging to a project,
  * via Temporal Visibility API pagination.
  *
@@ -66,19 +108,6 @@ export async function listEpicWorkflowIds(
   client: ListEpicClient,
   options: ListEpicWorkflowIdsOptions,
 ): Promise<string[]> {
-  const query = buildEpicVisibilityQuery(options.projectId, options.status);
-  const projectPrefix = `${EPIC_WORKFLOW_PREFIX}${options.projectId}/`;
-  const limit = options.limit;
-  const ids: string[] = [];
-
-  for await (const wf of client.workflow.list({ query })) {
-    const wfid = wf.workflowId;
-    if (!wfid.startsWith(projectPrefix)) continue;
-    const epicId = wfid.slice(projectPrefix.length);
-    if (epicId.length === 0) continue;
-    ids.push(epicId);
-    if (limit !== undefined && ids.length >= limit) break;
-  }
-
-  return ids;
+  const epics = await listEpicWorkflows(client, options);
+  return epics.map((epic) => epic.id);
 }

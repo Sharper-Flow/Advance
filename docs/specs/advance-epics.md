@@ -962,13 +962,13 @@ Existing child-only `target_path` behavior MUST remain valid when the Epic owner
 
 **ID:** `rq-epicCliList01` | **Priority:** **[MUST]**
 
-The `adv epic list --json` CLI command MUST return live Temporal-backed Epic IDs for the current project as stable JSON. The command MUST use Temporal Visibility enumeration of `epicWorkflow` executions and project-scoped workflow ID prefix filtering, MUST NOT read ADV external state files, MUST NOT query or hydrate each Epic workflow, MUST NOT require a worker polling the project task queue, and MUST fail closed with structured JSON error metadata instead of silently returning stale disk data. The Epic CLI namespace MUST remain read-only and MUST NOT expose mutation subcommands.
+The `adv epic list --json` CLI command MUST return live Temporal-backed Epic entries for the current project as stable JSON. Each Epic entry MUST include `id` and a present `startTime` field populated from the Temporal Visibility workflow row's `startTime` as an ISO-8601 UTC string when valid; if a row unexpectedly lacks a valid timestamp, the entry MUST remain present with `startTime: null`. The command MUST use Temporal Visibility enumeration of `epicWorkflow` executions and project-scoped workflow ID prefix filtering, MUST NOT read ADV external state files, MUST NOT query or hydrate each Epic workflow, MUST NOT require a worker polling the project task queue, and MUST fail closed with structured JSON error metadata instead of silently returning stale disk data. The Epic CLI namespace MUST remain read-only and MUST NOT expose mutation subcommands. The `startTime` field represents the Temporal workflow start timestamp and MUST NOT be labeled as child-change activity or mutable recency.
 
 **Tags:** `epics`, `cli`, `visibility`, `read-only`
 
 #### Scenarios
 
-**Epic list returns live JSON IDs** (`rq-epicCliList01.1`)
+**Epic list returns live JSON entries with timestamps** (`rq-epicCliList01.1`)
 
 **Given:**
 - A git-backed project has Epic workflows visible to Temporal
@@ -978,7 +978,9 @@ The `adv epic list --json` CLI command MUST return live Temporal-backed Epic IDs
 **Then:**
 - The command exits 0
 - The JSON payload includes `source: "temporal"`, `live: true`, `stale: false`, `generated_at`, `project_id`, and `epics`
-- Each Epic entry is an object containing at least `id`
+- Each Epic entry is an object containing `id` and a present `startTime` field
+- A valid Temporal Visibility row timestamp is emitted as an ISO-8601 UTC string
+- An unexpectedly invalid or missing row timestamp is emitted as `startTime: null` without dropping the Epic row
 
 **Epic list filters by current project prefix** (`rq-epicCliList01.2`)
 

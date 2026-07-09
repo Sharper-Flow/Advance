@@ -273,7 +273,7 @@ describe("NO-CLI-MUTATION GUARD (AC9/DONT3)", () => {
     );
     expect(nestedDispatch, "epic namespace must remain read-only").toEqual([]);
 
-    expect(epicList).toContain("listEpicWorkflowIds");
+    expect(epicList).toContain("listEpicWorkflows");
     expect(epicList).not.toContain("getHandle(");
     expect(epicList).not.toContain("readFile");
   });
