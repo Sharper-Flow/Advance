@@ -1,0 +1,1760 @@
+{
+  "id": "ensureTargetWorkers",
+  "title": "Ensure target workers",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-09T00:52:23.753Z",
+  "tasks": [
+    {
+      "id": "tk-f2e442d10c5e",
+      "title": "Add target-worker lifecycle and target-read authority spec/docs law",
+      "type": "docs",
+      "section": "Spec and tool contract",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-09T02:26:21.128Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9"
+        ],
+        "verifies": [
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-09T02:31:22.858Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "ensureTargetWorkers",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+          "task_id": "tk-f2e442d10c5e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f2e442d10c5e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-meta/spec.json",
+            ".adv/specs/advance-workflow/spec.json",
+            "docs/specs/advance-meta.md",
+            "docs/specs/advance-workflow.md",
+            "ADV_INSTRUCTIONS.md",
+            "docs/temporal-recovery.md"
+          ],
+          "verification": [
+            {
+              "command": "node -e \"const fs=require('fs'); const m=JSON.parse(fs.readFileSync('.adv/specs/advance-meta/spec.json')); const w=JSON.parse(fs.readFileSync('.adv/specs/advance-workflow/spec.json')); const ids=[...m.requirements.map(r=>r.id),...w.requirements.map(r=>r.id)]; ['rq-targetWorkerLifecycle01','rq-targetReadAuthority01'].forEach(id=>{if(!ids.includes(id)) throw new Error('missing '+id)}); console.log('OK spec IDs');\" && node -e \"const fs=require('fs'),path=require('path'); const dir='.adv/specs'; let ok=0; fs.readdirSync(dir).forEach(cap=>{ const f=path.join(dir,cap,'spec.json'); if(fs.existsSync(f)){ JSON.parse(fs.readFileSync(f)); ok++; }}); console.log('parsed',ok,'spec files');\" && grep -q 'rq-targetWorkerLifecycle01' docs/specs/advance-meta.md && grep -q 'rq-targetReadAuthority01' docs/specs/advance-workflow.md && echo 'OK docs mirrors'",
+              "exit_code": 0,
+              "summary": "All 21 spec JSON files parse; both rq-targetWorkerLifecycle01 and rq-targetReadAuthority01 exist in spec JSON and their docs/specs mirrors."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Placed rq-targetWorkerLifecycle01 in advance-meta spec",
+              "why": "The requirement governs cross-project Temporal worker lifecycle, lock semantics, and serviceability verification, which are meta/worker infrastructure concerns."
+            },
+            {
+              "what": "Placed rq-targetReadAuthority01 in advance-workflow spec",
+              "why": "The requirement governs the authority boundary of snapshot-ok cross-project reads versus temporal-required mutations, which is part of the workflow cross-project coordination surface."
+            },
+            {
+              "what": "Reclassified adv_temporal_worker_restart as temporal-required in the target_path matrix",
+              "why": "A target-aware worker restart/ensure is a mutating operation that must route through the target project's Temporal queue, matching the temporal-required category."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added spec-law requirements rq-targetWorkerLifecycle01 (advance-meta) and rq-targetReadAuthority01 (advance-workflow) with mirrored docs sections. Updated ADV_INSTRUCTIONS.md target_path matrix to move adv_temporal_worker_restart from current-project only to temporal-required. Updated docs/temporal-recovery.md restart boundary with target-aware lifecycle and read-authority notes. All spec JSON files parse and both requirement IDs are present in JSON and docs mirrors.",
+            "suggested_next_action": "Run full spec/CI checks or proceed to implementation of the target-worker lifecycle tool behavior."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: node -e \"const fs=require('fs'); const m=JSON.parse(fs.readFileSync('.adv/specs/advance-meta/spec.json')); const w=JSON.parse(fs.readFileSync('.adv/specs/advance-workflow/spec.json')); const ids=[...m.requirements.map(r=>r.id),...w.requirements.map(r=>r.id)]; ['rq-targetWorkerLifecycle01','rq-targetReadAuthority01'].forEach(id=>{if(!ids.includes(id)) throw new Error('missing '+id)}); console.log('OK spec IDs');\" && node -e \"const fs=require('fs'),path=require('path'); const dir='.adv/specs'; let ok=0; fs.readdirSync(dir).forEach(cap=>{ const f=path.join(dir,cap,'spec.json'); if(fs.existsSync(f)){ JSON.parse(fs.readFileSync(f)); ok++; }}); console.log('parsed',ok,'spec files');\" && grep -q 'rq-targetWorkerLifecycle01' docs/specs/advance-meta.md && grep -q 'rq-targetReadAuthority01' docs/specs/advance-workflow.md && echo 'OK docs mirrors'"
+            }
+          ]
+        }
+      ],
+      "verification": "Static spec/docs verification passed via adv_run_test tr_mrcwfwki_d0234feb: parsed all .adv/specs/*/spec.json and confirmed rq-targetWorkerLifecycle01/rq-targetReadAuthority01 exist in JSON and docs mirrors. Checkpoint commit already present: 84b097cc chore(adv): checkpoint tk-f2e442d10c5e.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "84b097ccee57208ae15ae97cdb547c7dcaf77cc8",
+      "completedAt": "2026-07-09T02:43:43.066Z",
+      "completed_at": "2026-07-09T02:43:43.066Z"
+    },
+    {
+      "id": "tk-8c167525833f",
+      "title": "Add target_path tool contract and preflight for adv_temporal_worker_restart",
+      "type": "code",
+      "section": "Worker lifecycle",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-09T02:26:34.315Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f2e442d10c5e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC7",
+          "AC8",
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC7",
+          "AC8",
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-09T02:44:03.689Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "ensureTargetWorkers",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+          "task_id": "tk-8c167525833f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8c167525833f"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/temporal-ops.ts",
+            "plugin/src/utils/tool-arg-preflight.ts",
+            "plugin/src/tools/temporal-ops.test.ts",
+            "plugin/src/utils/tool-arg-preflight.test.ts",
+            "plugin/src/tool-registry.surface.test.ts",
+            "docs/specs/advance-meta.md"
+          ],
+          "verification": [
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all pass"
+            },
+            {
+              "command": "pnpm vitest run src/utils/tool-arg-preflight.test.ts src/tool-registry.surface.test.ts src/tools/temporal-ops.test.ts src/deploy-local.test.ts src/tool-registry.test.ts src/adv-instructions-assets.test.ts src/adv-temporal-repair-assets.test.ts src/cli-bridge-contract.test.ts",
+              "exit_code": 0,
+              "summary": "284 targeted tests pass across tool surface, preflight, temporal ops, and related asset tests"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Spread targetPathSchema.shape into adv_temporal_worker_restart args",
+              "why": "Reuses the canonical target_path/target_confirmed/confirmationEvidence schema and descriptions already used by other cross-project tools."
+            },
+            {
+              "what": "Return NotImplemented when target_path is present",
+              "why": "The current task owns only the tool contract/preflight; target execution is the next task. The guard prevents accidental current-project restart and preserves current-project compatibility when target_path is absent."
+            },
+            {
+              "what": "Add target_path, target_confirmed, and confirmationEvidence blank:omit policies for adv_temporal_worker_restart while keeping approvalEvidence blank:reject",
+              "why": "Matches the existing target-mutation preflight pattern and keeps lock-reclaim approval evidence as a required-when-present audit field."
+            },
+            {
+              "what": "Bump docs/specs/advance-meta.md version header from 1.21.0 to 1.22.0",
+              "why": "deploy-local.test.ts failed because the advance-meta spec.json was already at 1.22.0 while the markdown mirror header was stale; a focused campsite fix keeps the repository test suite green."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Next task (tk-1fa6281f46f2) should remove the NotImplemented guard and implement target project trust resolution + bounded serviceability verification for adv_temporal_worker_restart target_path."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified target_path matrix, tool surface, temporal repair assets, and instruction assets all stay green; fixed advance-meta.md version header drift surfaced by deploy-local.test.ts.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_temporal_worker_restart now exposes target_path, target_confirmed, and confirmationEvidence in its schema, description, and tool surface. Preflight policies normalize blank target_path/confirmationEvidence and preserve target_confirmed. A NotImplemented guard rejects target_path execution to preserve current-project behavior; runtime target restart/ensure is intentionally left for the next task. A one-line advance-meta.md version header fix was needed to green the deploy-local mirror-sync test.",
+            "suggested_next_action": "Proceed to tk-1fa6281f46f2 (Implement target-aware worker restart/ensure execution), which should replace the NotImplemented guard and wire resolveTargetProject({ mutation:true }) plus bounded serviceability verification."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/utils/tool-arg-preflight.test.ts src/tool-registry.surface.test.ts src/tools/temporal-ops.test.ts src/deploy-local.test.ts src/tool-registry.test.ts src/adv-instructions-assets.test.ts src/adv-temporal-repair-assets.test.ts src/cli-bridge-contract.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "adv_run_test tr_mrcxj7xq_f514fe72: pnpm run check passed. adv_run_test tr_mrcxi9po_735a8b5b: 8 targeted Vitest files passed, 284 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/specs/advance-meta.md",
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "docs/specs/advance-meta.md",
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "4b9fe28566f70e6424ee82c94a94676fb5aa4a12",
+      "completedAt": "2026-07-09T03:10:59.970Z",
+      "completed_at": "2026-07-09T03:10:59.970Z"
+    },
+    {
+      "id": "tk-1fa6281f46f2",
+      "title": "Implement target-aware worker restart/ensure execution",
+      "type": "code",
+      "section": "Worker lifecycle",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-09T02:26:47.442Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8c167525833f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC7",
+          "AC8",
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC7",
+          "AC8",
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-09T03:11:16.662Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "ensureTargetWorkers",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+          "task_id": "tk-1fa6281f46f2",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-1fa6281f46f2"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/temporal-ops.ts",
+            "plugin/src/tools/temporal-ops.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "cd plugin && pnpm test src/tools/temporal-ops.test.ts",
+              "exit_code": 0,
+              "summary": "19 targeted tests pass (target root, trust, cheap ensure, full restart fallback, serviceability failure envelope, lock approval, source preservation, current-project compatibility)."
+            },
+            {
+              "command": "cd plugin && pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, and format:check all green."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Resolved target trust/context directly with resolveTargetProject({ mutation:true, ... }) rather than withTargetPathStore.",
+              "why": "Task contract explicitly forbids calling withTargetPathStore(... temporal-required) before repair and requires deriving target project ID/root/external root from the target."
+            },
+            {
+              "what": "Used cheap ensureProjectTemporalQueue when STSL is initialized and local worker is alive; otherwise fall back to full restartCurrentProjectTemporalWorker(targetContext.root, ...).",
+              "why": "Matches the requested lifecycle seams and avoids unnecessary worker drain when the local process can already poll the target queue."
+            },
+            {
+              "what": "After a full target restart drains local queues, re-register the source project queue with ensureProjectTemporalQueue and verify both target and source serviceability before success.",
+              "why": "Satisfies source-queue preservation requirement (KD6/DDC7) and fails closed if the source queue cannot be restored or verified."
+            },
+            {
+              "what": "Used localOwnership: 'owned' for source queue verification after local restoration.",
+              "why": "The queue was explicitly restored onto the local worker, so local-owned serviceability is the appropriate signal."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Disk-snapshot read authority metadata (AC5/AC6/DONT2/DONT3) is intentionally out of scope for this task and remains for the following task before acceptance gate can complete."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Target-aware worker restart/ensure execution for adv_temporal_worker_restart target_path is implemented. It resolves target trust via resolveTargetProject directly (no withTargetPathStore), uses cheap ensureProjectTemporalQueue when safe, falls back to restartCurrentProjectTemporalWorker on the target root, and preserves/verifies the source project queue after a full restart. All 19 targeted tests pass and pnpm run check is green.",
+            "suggested_next_action": "Continue with the disk-snapshot authority metadata task (AC5/AC6/DONT2/DONT3) before advancing acceptance gate; targeted tests and check are green."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm test src/tools/temporal-ops.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "adv_run_test tr_mrcyncx1_dfe73344: pnpm test src/tools/temporal-ops.test.ts passed (19 tests). adv_run_test tr_mrcyo1ba_2230681d: pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts"
+      ],
+      "checkpointSha": "c1dc4acc93be2f31a0a08f5023a6334e9a47b88f",
+      "completedAt": "2026-07-09T03:42:42.570Z",
+      "completed_at": "2026-07-09T03:42:42.570Z"
+    },
+    {
+      "id": "tk-c9f5748f51e1",
+      "title": "Add non-authoritative metadata for target disk-snapshot reads",
+      "type": "code",
+      "section": "Read authority",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-09T02:27:00.104Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f2e442d10c5e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6",
+          "SC3"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6",
+          "SC3"
+        ],
+        "respects": [
+          "C5",
+          "C6",
+          "DONT2",
+          "DONT3",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-09T03:43:11.333Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "ensureTargetWorkers",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+          "task_id": "tk-c9f5748f51e1",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-c9f5748f51e1"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/target-project.ts",
+            "plugin/src/tools/target-project.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/target-project.test.ts",
+              "exit_code": 0,
+              "summary": "22 target-project tests passed, including new disk-snapshot authority/warning tests and lifecycle assertions."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added authority field only for stateMode='disk-snapshot'",
+              "why": "Preserves backward compatibility for current/temporal/scaffold output contexts and makes the non-authoritative signal explicit exactly where the snapshot-ok path produces it."
+            },
+            {
+              "what": "Merged the non-authoritative warning with the existing untrusted warning for disk-snapshot untrusted reads",
+              "why": "Keeps the existing untrusted confirmation requirement while surfacing the degraded authority, satisfying both AC5/AC6 semantics and the existing warning contract."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes were required; the formatting and lifecycle assertions are localized to the target-project module.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Snapshot-ok target reads now emit _projectContext with authority: 'disk_snapshot_non_authoritative' and a warning that Temporal-backed state was not consulted. Trusted and untrusted disk-snapshot reads get the marker; untrusted warnings are merged. Spec citation invariant for rq-targetReadAuthority01 is now satisfied by comments in target-project.ts. pnpm run check passes.",
+            "suggested_next_action": "Run bin/oc-test full only if needed; the targeted and check gates are green."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/target-project.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "adv_run_test tr_mrczcpyw_02e3132a: bin/oc-test targeted -- src/tools/target-project.test.ts passed (22 tests). adv_run_test tr_mrczddps_6e92f443: pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "checkpointSha": "fc8562c3ec6e7033fffb09c89c7cd848e93c3205",
+      "completedAt": "2026-07-09T04:02:26.091Z",
+      "completed_at": "2026-07-09T04:02:26.091Z"
+    },
+    {
+      "id": "tk-19fb26d78e5a",
+      "title": "Run final target worker/read-authority verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-09T02:27:13.103Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1fa6281f46f2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c9f5748f51e1"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "respects": [
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-09T04:02:55.453Z",
+      "verification": "Final verification passed: adv_run_test tr_mrczefv2_026bf20e (9 targeted files, 312 tests), tr_mrczf9sq_2b4f1434 (pnpm run check), tr_mrczfrni_686f2467 (pnpm run build). Git worktree clean before checkpoint.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "fc8562c3ec6e7033fffb09c89c7cd848e93c3205",
+      "completedAt": "2026-07-09T04:04:21.835Z",
+      "completed_at": "2026-07-09T04:04:21.835Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "ensureTargetWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — target-aware Temporal worker restart/ensure",
+      "sources": [
+        {
+          "label": "plugin/src/plugin-init.ts:462-476 ensureProjectTemporalQueue",
+          "locator": "plugin/src/plugin-init.ts:462",
+          "summary": "Existing helper registers a target project's task queue onto the already-running in-process worker via worker.registerQueue(queue) (IPC), instead of spawning a new worker process. Direct leverage for 'ensure target worker' without a full restart."
+        },
+        {
+          "label": "plugin/src/temporal/out-of-process-worker.ts:61-62 + worker-multi.ts:461 registerQueue",
+          "locator": "plugin/src/temporal/out-of-process-worker.ts:61",
+          "summary": "registerQueue sends an IPC register message to the existing worker child rather than spawning a new child; tests (out-of-process-worker.test.ts:193) confirm 'sends IPC message instead of spawning new child'."
+        },
+        {
+          "label": "plugin/src/tools/temporal-ops.ts:498-553 adv_temporal_reconnect target_path pattern",
+          "locator": "plugin/src/tools/temporal-ops.ts:538",
+          "summary": "Reference implementation of target_path/target_confirmed/confirmationEvidence on a temporal-ops tool: wraps runReconnect in withTargetPathStore(stateRequirement:'temporal-required') and appends formatTargetProjectContext(context) as _projectContext."
+        },
+        {
+          "label": "plugin/src/tools/target-project.ts:218-268 ensureTargetMutationQueueReady",
+          "locator": "plugin/src/tools/target-project.ts:264",
+          "summary": "temporal-required store path throws TargetProjectError when the target queue is NOT serviceable. This directly conflicts with restart semantics, whose precondition is an unserviceable/wedged queue."
+        },
+        {
+          "label": "plugin/src/tools/target-project.ts:337-353 formatTargetProjectContext",
+          "locator": "plugin/src/tools/target-project.ts:337",
+          "summary": "Currently emits a warning only for untrusted targets. Draft AC requires disk_snapshot_non_authoritative authority metadata for ALL snapshot-ok reads including trusted ones."
+        },
+        {
+          "label": "plugin/src/tools/temporal-ops.ts:589-651 restart handler derives projectId from store.paths.root",
+          "locator": "plugin/src/tools/temporal-ops.ts:589",
+          "summary": "restartCurrentProjectTemporalWorker(projectDir) derives projectId+queue from the passed dir; target-awareness = pass context.root instead of store.paths.root. Minimal seam."
+        },
+        {
+          "label": "advance-meta spec rq-statusCliWorkerFree01 / rq-dashboardWorkerFree01",
+          "locator": "spec:advance-meta rq-statusCliWorkerFree01.2",
+          "summary": "Canonical ADV pattern: live-Temporal reads fail closed; disk projections MUST NOT substitute for live active state. Establishes the precedent for disk_snapshot_non_authoritative authority metadata."
+        }
+      ],
+      "architecture_assessment": "Design is sound and low-blast-radius: extend the existing adv_temporal_worker_restart tool (do not add a new tool), mirroring the already-shipped adv_temporal_reconnect target_path seam. Two contract-tied leverage points strengthen it. (1) ensureProjectTemporalQueue()/registerQueue() already exists and registers a target queue onto the driving session's live worker via IPC — 'ensure target worker' can be an IPC queue-registration on the existing worker rather than always spawning/restarting a separate target worker process; this is the boring, proven, lower-risk path and directly serves the SC 'unblock cross-project Temporal ops from driving session'. (2) A real design tension: the reconnect reference uses stateRequirement:'temporal-required', which routes through ensureTargetMutationQueueReady and THROWS when the target queue is not serviceable (target-project.ts:264). Restart's whole precondition is an unserviceable queue, so restart MUST NOT reuse the temporal-required store gate for its own precondition check — it should resolve trust via resolveTargetProject (mutation:true) directly, then ensure/register/restart, then verify serviceability post-hoc (as the current-project path already does via waitForRestartServiceability). formatTargetProjectContext must gain unconditional disk_snapshot_non_authoritative authority metadata for snapshot-ok reads, consistent with the worker-free/fail-closed spec precedent.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No contract compromise, security, or release blocker found. One design tension requiring the orchestrator to NOT copy reconnect's temporal-required gate verbatim for restart's precondition — captured as design_around, not a blocker. Auto-adopt only the contract-tied low-risk candidates (queue-registration reuse, resolveTargetProject-direct trust, unconditional authority metadata). Surface the 'ensure vs full restart' scope question to the user."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Reusing withTargetPathStore(temporal-required) gives free trust+queue plumbing but its serviceability precondition is inverted for restart — reuse resolveTargetProject directly instead of the full temporal-required store gate.",
+          "IPC queue-registration on the existing worker (ensureProjectTemporalQueue) is lighter and lower-risk than spawning a target worker, but only works when the driving session's worker is itself alive; a genuinely wedged worker still needs restartCurrentProjectTemporalWorker.",
+          "Unconditional disk_snapshot_non_authoritative metadata slightly increases output verbosity on trusted snapshot reads but removes the 'snapshot mistaken for live state' failure class the AC targets."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Add a new adv_temporal_ensure_target_worker tool",
+            "disposition": "rejected",
+            "rationale": "Draft design and reconnect precedent already extend the existing tool with target_path; a new tool duplicates approval/lock/verification surface and violates simplicity/boring-tech bias."
+          },
+          {
+            "option": "Reuse withTargetPathStore stateRequirement:'temporal-required' for restart precondition (verbatim reconnect copy)",
+            "disposition": "rejected",
+            "rationale": "ensureTargetMutationQueueReady throws when the target queue is unserviceable (target-project.ts:264); restart's precondition IS unserviceable, so this gate would reject exactly the case restart must handle."
+          },
+          {
+            "option": "Prefer IPC queue-registration (ensureProjectTemporalQueue) over always restarting the target worker",
+            "disposition": "preferred",
+            "rationale": "Existing, tested, boring path; registers target queue on live worker without new process; serves the driving-session unblock SC. Fall back to full restart only when the local worker is itself dead."
+          },
+          {
+            "option": "Emit disk_snapshot_non_authoritative only for untrusted targets (status quo of formatTargetProjectContext)",
+            "disposition": "rejected",
+            "rationale": "AC explicitly requires authority metadata for snapshot-ok reads including trusted targets; matches rq-statusCliWorkerFree01 fail-closed / no-disk-substitute precedent."
+          }
+        ],
+        "recommendation": "Adopt: (a) extend existing tool (already in design), (b) resolve target trust via resolveTargetProject(mutation:true) directly for restart rather than the temporal-required store gate, (c) prefer ensureProjectTemporalQueue IPC registration for 'ensure', full restart only when local worker dead, (d) add unconditional disk_snapshot_non_authoritative authority metadata in formatTargetProjectContext. Surface to user: whether scope is restart-only or restart+ensure(register). Add FIELD_POLICIES omit entries for target_path/target_confirmed/confirmationEvidence on adv_temporal_worker_restart (currently only approvalEvidence:reject)."
+      },
+      "recommendation": "Proceed with the draft design plus two contract-tied low-risk adjustments (resolveTargetProject-direct trust for restart precondition; unconditional disk_snapshot_non_authoritative metadata) and one preferred leverage (ensureProjectTemporalQueue IPC registration for the 'ensure' path). Surface the restart-only-vs-ensure scope question to the user before finalizing AC.",
+      "follow_ups": [
+        "Confirm with user whether ensureTargetWorkers scope includes lightweight IPC queue-registration ('ensure') or only full target worker restart.",
+        "FIELD_POLICIES: add adv_temporal_worker_restart target_path/target_confirmed/confirmationEvidence blank:omit entries (preflight test at tool-arg-preflight.test.ts:1577 must extend)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "ensureTargetWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — target-aware Temporal worker restart/ensure + disk-snapshot read authority (#205)",
+      "sources": [
+        {
+          "label": "plugin/src/plugin-init.ts:601-651 restartCurrentProjectTemporalWorker",
+          "locator": "plugin/src/plugin-init.ts:601",
+          "summary": "Derives projectId from the passed projectDir and creates a worker with queues:[buildProjectTaskQueue(projectId)]. Passing context.root (target root) therefore produces a worker polling advance-<targetProjectId>. Confirms KD2/KD4 identity seam is valid. BUT drainInProcessTemporalWorkers() (line 619) drains ALL in-process workers and the new worker registers ONLY [targetQueue] — the driving session's own queue is dropped on full restart."
+        },
+        {
+          "label": "plugin/src/plugin-init.ts:462-476 ensureProjectTemporalQueue",
+          "locator": "plugin/src/plugin-init.ts:462",
+          "summary": "Registers a target queue onto the already-running in-process worker via worker.registerQueue(queue); throws if no worker registered. Confirms KD4 cheap ensure path exists and is additive (does not drop existing queues). registerQueue is idempotent (out-of-process-worker.test.ts:218)."
+        },
+        {
+          "label": "plugin/src/tools/target-project.ts:218-335 ensureTargetMutationQueueReady / withTargetPathStore",
+          "locator": "plugin/src/tools/target-project.ts:264",
+          "summary": "temporal-required store path throws TargetProjectError when the target queue is NOT serviceable (line 265). Restart's precondition IS unserviceable, so KD2 (resolveTargetProject direct, not withTargetPathStore temporal-required) is correct — reusing the temporal-required gate would reject exactly the case restart must repair."
+        },
+        {
+          "label": "plugin/src/tools/temporal-ops.ts:556-703 adv_temporal_worker_restart current implementation",
+          "locator": "plugin/src/tools/temporal-ops.ts:589",
+          "summary": "Current args are approvedLockReclaim/approvalEvidence only; projectId derived from store.paths.external||store.paths.root; success requires waitForRestartServiceability + isRestartServiceabilityVerified fresh proof. Failure path already returns structured serviceability/_freshness/worker_lock/stsl/expectedQueue. Confirms KD5 shape is already the established pattern; target extension is additive."
+        },
+        {
+          "label": "plugin/src/tools/temporal-ops.ts:498-553 adv_temporal_reconnect target_path precedent",
+          "locator": "plugin/src/tools/temporal-ops.ts:538",
+          "summary": "Shipped reference for target_path/target_confirmed/confirmationEvidence on a temporal-ops tool, appending formatTargetProjectContext(context) as _projectContext. Confirms KD1/KD3 trust-contract reuse is the boring, proven path."
+        },
+        {
+          "label": "plugin/src/utils/tool-arg-preflight.ts:268-273 FIELD_POLICIES precedent",
+          "locator": "plugin/src/utils/tool-arg-preflight.ts:268",
+          "summary": "adv_temporal_reconnect already declares target_path+confirmationEvidence blank:omit; adv_temporal_worker_restart entry (line 273) exists but lacks target fields. Confirms design implementation step 2 (FIELD_POLICIES omit handling) is real and its preflight test at line 1577 already references the tool."
+        },
+        {
+          "label": ".adv/specs/advance-workflow rq (temporal-required mutation freshness)",
+          "locator": "spec:advance-workflow spec.json:2170-2206",
+          "summary": "Law: 'Cached status or health evidence is not the sole authority for mutation readiness'; temporal-required target mutation must re-probe with a fresh mutation-boundary probe. Design KD5/DDC2 (fresh target queue evidence only, cached stale not accepted) complies."
+        },
+        {
+          "label": ".adv/specs/advance-workflow rq (target external-root derivation)",
+          "locator": "spec:advance-workflow spec.json:2293-2338",
+          "summary": "Law: target ADV state root derives from target project id, not caller shard. Design DDC6 + reuse of store.paths.external/getProjectId(context.root) complies; no source identity used for target queue."
+        },
+        {
+          "label": ".adv/specs/advance-workflow rq-acWarrant01 (capability warrant)",
+          "locator": "spec:advance-workflow spec.json:1479-1518",
+          "summary": "Law: only DECLARED [warrant:] tags are verified at mint; undeclared warrant does not fail mint (proportionality, rq-acWarrant01.1/.3). Agreement AC1/AC2 presume adv_temporal_worker_restart#target_path — the arg this change builds — with no declared warrant tag; contract minted (27 items). Compliant: the AC describes the end-state being built, not a pre-existing surface."
+        },
+        {
+          "label": ".adv/specs/advance-meta rq-statusCliWorkerFree01 / rq-dashboardWorkerFree01",
+          "locator": "spec:advance-meta spec.json:381-477",
+          "summary": "Canonical fail-closed precedent: live-Temporal reads fail closed; disk projections must not substitute for live active state. Supports KD6 disk_snapshot_non_authoritative authority metadata for ALL snapshot-ok reads (trusted and untrusted), satisfying AC5/DONT2."
+        }
+      ],
+      "architecture_assessment": "Design is correct, boring, and spec-law compliant. All four dimensions verified against source and specs. CORRECTNESS: the identity seam is sound — restartCurrentProjectTemporalWorker(context.root) derives target projectId and creates a worker polling advance-<targetProjectId> (plugin-init.ts:605,611,633); ensureProjectTemporalQueue registers the target queue on the live worker via idempotent registerQueue; success gated on fresh waitForRestartServiceability proof (KD5/DDC2). KD2 correctly avoids withTargetPathStore(temporal-required) whose ensureTargetMutationQueueReady throws on the exact unserviceable precondition restart must repair (target-project.ts:265). SIMPLICITY: extends one existing tool that already owns lock/approval/bounded-verification (KD1), mirrors the shipped adv_temporal_reconnect target seam, and prefers cheap IPC queue-registration before full restart (KD4). No new tool, no new lifecycle surface. SPEC-LAW: complies with freshness-not-cached law (2170-2206), target-external-root law (2293-2338), warrant proportionality (1479-1518, no undeclared-warrant failure), and worker-free/disk-non-authoritative precedent (meta 381-477). One genuine correctness caution, not a blocker: the full-restart fallback drains ALL in-process workers (plugin-init.ts:619) and recreates a single worker with queues:[targetQueue] only — the driving session's OWN queue is dropped and not re-registered by the design. Because ensure-first (KD4) is preferred and the source queue can re-register on next use via ensureProjectTemporalQueue, blast radius is bounded, but this is a latent regression to the driving session's worker that the design should explicitly handle (re-register source queue after target restart, or document/verify auto-recovery). Recommend adding an AC/test asserting the source (driving) project queue remains serviceable after a target full-restart.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contract compromise, security, or release blocker. One correctness caution: full-restart fallback (restartCurrentProjectTemporalWorker(context.root)) drains all in-process workers and re-registers only the target queue (plugin-init.ts:619,633), dropping the driving session's own queue; design does not re-register it. Bounded by ensure-first preference and idempotent registerQueue re-registration on next use, so not a blocker, but should be handled explicitly with an added AC/test. Minor advisory: agreement AC1/AC2 presume the target_path arg this change itself creates without a declared [warrant:] tag — compliant under warrant proportionality (rq-acWarrant01), noted only for traceability."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Full-restart fallback (vs IPC queue-registration) recreates a single worker with queues:[targetQueue] only, dropping the driving session's own queue until re-registered; ensure-first preference limits how often this path runs but does not eliminate the source-queue-drop window.",
+          "Extending one tool (KD1) centralizes lock/approval/verification but grows adv_temporal_worker_restart's surface and branches current-project vs target paths; mitigated by factoring a shared serviceability helper (design step 3).",
+          "Unconditional disk_snapshot_non_authoritative metadata (KD6) slightly increases trusted snapshot output verbosity but removes the 'snapshot mistaken for live Temporal state' failure class (AC5/DONT2) and matches worker-free fail-closed precedent.",
+          "resolveTargetProject-direct trust (KD2) forgoes free withTargetPathStore plumbing but is mandatory because the temporal-required gate throws on restart's own unserviceable precondition."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Add a new adv_temporal_worker_ensure / _restart_target tool",
+            "disposition": "rejected",
+            "rationale": "Duplicates approval/lock/bounded-verification surface; adv_temporal_reconnect precedent already extends the existing tool with target_path. Violates simplicity/boring bias. Design KD1 correctly rejects."
+          },
+          {
+            "option": "Reuse withTargetPathStore(stateRequirement:'temporal-required') for the restart precondition",
+            "disposition": "rejected",
+            "rationale": "ensureTargetMutationQueueReady throws TargetProjectError when the target queue is unserviceable (target-project.ts:265) — that is exactly restart's precondition, so the gate would reject the case restart must repair. KD2 correctly resolves trust via resolveTargetProject(mutation:true) directly then verifies post-hoc."
+          },
+          {
+            "option": "Always full-restart the target worker (skip ensure/registration)",
+            "disposition": "rejected",
+            "rationale": "Unnecessarily drains the live worker and worsens the source-queue-drop window on every call; ensureProjectTemporalQueue IPC registration is lighter, tested, and additive. KD4 ensure-first is preferred."
+          },
+          {
+            "option": "After target full-restart, re-register the source (driving) project queue via ensureProjectTemporalQueue(sourceProjectId)",
+            "disposition": "deferred",
+            "rationale": "Not in the current design; recommended as the concrete fix for the source-queue-drop caution. Alternatively verify+document auto-recovery on next source use. Add an AC/test asserting driving-session queue stays serviceable after a target full-restart."
+          },
+          {
+            "option": "Emit disk_snapshot_non_authoritative only for untrusted snapshot reads (status quo of formatTargetProjectContext:346-352)",
+            "disposition": "rejected",
+            "rationale": "AC5 requires authority metadata for trusted snapshots too; matches meta worker-free/no-disk-substitute precedent. KD6 correctly makes it unconditional."
+          }
+        ],
+        "recommendation": "Proceed to planning with the design as written, plus one contract-tied hardening: handle the driving-session queue after a target FULL restart. Either re-register the source project queue via ensureProjectTemporalQueue(sourceProjectId) after restartCurrentProjectTemporalWorker(context.root), or verify+document auto-recovery on next source use — and add an AC/test asserting the source (driving) queue remains serviceable post target full-restart. Keep KD1-KD7 unchanged; all four are source-verified and spec-compliant."
+      },
+      "recommendation": "Design validates as correct, simple, and spec-law compliant (caution, not fail). Adopt as-is with one hardening: cover the source-queue-drop window from the full-restart fallback (re-register driving-session queue or prove auto-recovery) and add a regression test/AC for driving-session queue serviceability after a target full restart. No blockers; safe to complete the design gate once the source-queue-drop handling is captured as a task or added AC.",
+      "follow_ups": [
+        "Add planning task + AC/test: after adv_temporal_worker_restart target full-restart, the driving (source) project queue remains serviceable (re-register via ensureProjectTemporalQueue(sourceProjectId) or prove auto-recovery). Ties to plugin-init.ts:619,633.",
+        "Confirm FIELD_POLICIES.adv_temporal_worker_restart adds target_path/target_confirmed/confirmationEvidence blank:omit and extends preflight test at tool-arg-preflight.ts:1577 (design step 2 already scopes this).",
+        "Traceability note: AC1/AC2 presume adv_temporal_worker_restart#target_path (built by this change) with no declared [warrant:] tag — compliant under rq-acWarrant01 proportionality; no action needed."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "ensureTargetWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+      "task_id": "tk-f2e442d10c5e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f2e442d10c5e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-workflow.md",
+        "ADV_INSTRUCTIONS.md",
+        "docs/temporal-recovery.md"
+      ],
+      "verification": [
+        {
+          "command": "node -e \"const fs=require('fs'); const m=JSON.parse(fs.readFileSync('.adv/specs/advance-meta/spec.json')); const w=JSON.parse(fs.readFileSync('.adv/specs/advance-workflow/spec.json')); const ids=[...m.requirements.map(r=>r.id),...w.requirements.map(r=>r.id)]; ['rq-targetWorkerLifecycle01','rq-targetReadAuthority01'].forEach(id=>{if(!ids.includes(id)) throw new Error('missing '+id)}); console.log('OK spec IDs');\" && node -e \"const fs=require('fs'),path=require('path'); const dir='.adv/specs'; let ok=0; fs.readdirSync(dir).forEach(cap=>{ const f=path.join(dir,cap,'spec.json'); if(fs.existsSync(f)){ JSON.parse(fs.readFileSync(f)); ok++; }}); console.log('parsed',ok,'spec files');\" && grep -q 'rq-targetWorkerLifecycle01' docs/specs/advance-meta.md && grep -q 'rq-targetReadAuthority01' docs/specs/advance-workflow.md && echo 'OK docs mirrors'",
+          "exit_code": 0,
+          "summary": "All 21 spec JSON files parse; both rq-targetWorkerLifecycle01 and rq-targetReadAuthority01 exist in spec JSON and their docs/specs mirrors."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Placed rq-targetWorkerLifecycle01 in advance-meta spec",
+          "why": "The requirement governs cross-project Temporal worker lifecycle, lock semantics, and serviceability verification, which are meta/worker infrastructure concerns."
+        },
+        {
+          "what": "Placed rq-targetReadAuthority01 in advance-workflow spec",
+          "why": "The requirement governs the authority boundary of snapshot-ok cross-project reads versus temporal-required mutations, which is part of the workflow cross-project coordination surface."
+        },
+        {
+          "what": "Reclassified adv_temporal_worker_restart as temporal-required in the target_path matrix",
+          "why": "A target-aware worker restart/ensure is a mutating operation that must route through the target project's Temporal queue, matching the temporal-required category."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added spec-law requirements rq-targetWorkerLifecycle01 (advance-meta) and rq-targetReadAuthority01 (advance-workflow) with mirrored docs sections. Updated ADV_INSTRUCTIONS.md target_path matrix to move adv_temporal_worker_restart from current-project only to temporal-required. Updated docs/temporal-recovery.md restart boundary with target-aware lifecycle and read-authority notes. All spec JSON files parse and both requirement IDs are present in JSON and docs mirrors.",
+        "suggested_next_action": "Run full spec/CI checks or proceed to implementation of the target-worker lifecycle tool behavior."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: node -e \"const fs=require('fs'); const m=JSON.parse(fs.readFileSync('.adv/specs/advance-meta/spec.json')); const w=JSON.parse(fs.readFileSync('.adv/specs/advance-workflow/spec.json')); const ids=[...m.requirements.map(r=>r.id),...w.requirements.map(r=>r.id)]; ['rq-targetWorkerLifecycle01','rq-targetReadAuthority01'].forEach(id=>{if(!ids.includes(id)) throw new Error('missing '+id)}); console.log('OK spec IDs');\" && node -e \"const fs=require('fs'),path=require('path'); const dir='.adv/specs'; let ok=0; fs.readdirSync(dir).forEach(cap=>{ const f=path.join(dir,cap,'spec.json'); if(fs.existsSync(f)){ JSON.parse(fs.readFileSync(f)); ok++; }}); console.log('parsed',ok,'spec files');\" && grep -q 'rq-targetWorkerLifecycle01' docs/specs/advance-meta.md && grep -q 'rq-targetReadAuthority01' docs/specs/advance-workflow.md && echo 'OK docs mirrors'"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "ensureTargetWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+      "task_id": "tk-8c167525833f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8c167525833f"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/temporal-ops.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/tool-registry.surface.test.ts",
+        "docs/specs/advance-meta.md"
+      ],
+      "verification": [
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all pass"
+        },
+        {
+          "command": "pnpm vitest run src/utils/tool-arg-preflight.test.ts src/tool-registry.surface.test.ts src/tools/temporal-ops.test.ts src/deploy-local.test.ts src/tool-registry.test.ts src/adv-instructions-assets.test.ts src/adv-temporal-repair-assets.test.ts src/cli-bridge-contract.test.ts",
+          "exit_code": 0,
+          "summary": "284 targeted tests pass across tool surface, preflight, temporal ops, and related asset tests"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Spread targetPathSchema.shape into adv_temporal_worker_restart args",
+          "why": "Reuses the canonical target_path/target_confirmed/confirmationEvidence schema and descriptions already used by other cross-project tools."
+        },
+        {
+          "what": "Return NotImplemented when target_path is present",
+          "why": "The current task owns only the tool contract/preflight; target execution is the next task. The guard prevents accidental current-project restart and preserves current-project compatibility when target_path is absent."
+        },
+        {
+          "what": "Add target_path, target_confirmed, and confirmationEvidence blank:omit policies for adv_temporal_worker_restart while keeping approvalEvidence blank:reject",
+          "why": "Matches the existing target-mutation preflight pattern and keeps lock-reclaim approval evidence as a required-when-present audit field."
+        },
+        {
+          "what": "Bump docs/specs/advance-meta.md version header from 1.21.0 to 1.22.0",
+          "why": "deploy-local.test.ts failed because the advance-meta spec.json was already at 1.22.0 while the markdown mirror header was stale; a focused campsite fix keeps the repository test suite green."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Next task (tk-1fa6281f46f2) should remove the NotImplemented guard and implement target project trust resolution + bounded serviceability verification for adv_temporal_worker_restart target_path."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified target_path matrix, tool surface, temporal repair assets, and instruction assets all stay green; fixed advance-meta.md version header drift surfaced by deploy-local.test.ts.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_temporal_worker_restart now exposes target_path, target_confirmed, and confirmationEvidence in its schema, description, and tool surface. Preflight policies normalize blank target_path/confirmationEvidence and preserve target_confirmed. A NotImplemented guard rejects target_path execution to preserve current-project behavior; runtime target restart/ensure is intentionally left for the next task. A one-line advance-meta.md version header fix was needed to green the deploy-local mirror-sync test.",
+        "suggested_next_action": "Proceed to tk-1fa6281f46f2 (Implement target-aware worker restart/ensure execution), which should replace the NotImplemented guard and wire resolveTargetProject({ mutation:true }) plus bounded serviceability verification."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/utils/tool-arg-preflight.test.ts src/tool-registry.surface.test.ts src/tools/temporal-ops.test.ts src/deploy-local.test.ts src/tool-registry.test.ts src/adv-instructions-assets.test.ts src/adv-temporal-repair-assets.test.ts src/cli-bridge-contract.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "ensureTargetWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+      "task_id": "tk-1fa6281f46f2",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-1fa6281f46f2"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/temporal-ops.ts",
+        "plugin/src/tools/temporal-ops.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "cd plugin && pnpm test src/tools/temporal-ops.test.ts",
+          "exit_code": 0,
+          "summary": "19 targeted tests pass (target root, trust, cheap ensure, full restart fallback, serviceability failure envelope, lock approval, source preservation, current-project compatibility)."
+        },
+        {
+          "command": "cd plugin && pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, and format:check all green."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Resolved target trust/context directly with resolveTargetProject({ mutation:true, ... }) rather than withTargetPathStore.",
+          "why": "Task contract explicitly forbids calling withTargetPathStore(... temporal-required) before repair and requires deriving target project ID/root/external root from the target."
+        },
+        {
+          "what": "Used cheap ensureProjectTemporalQueue when STSL is initialized and local worker is alive; otherwise fall back to full restartCurrentProjectTemporalWorker(targetContext.root, ...).",
+          "why": "Matches the requested lifecycle seams and avoids unnecessary worker drain when the local process can already poll the target queue."
+        },
+        {
+          "what": "After a full target restart drains local queues, re-register the source project queue with ensureProjectTemporalQueue and verify both target and source serviceability before success.",
+          "why": "Satisfies source-queue preservation requirement (KD6/DDC7) and fails closed if the source queue cannot be restored or verified."
+        },
+        {
+          "what": "Used localOwnership: 'owned' for source queue verification after local restoration.",
+          "why": "The queue was explicitly restored onto the local worker, so local-owned serviceability is the appropriate signal."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Disk-snapshot read authority metadata (AC5/AC6/DONT2/DONT3) is intentionally out of scope for this task and remains for the following task before acceptance gate can complete."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Target-aware worker restart/ensure execution for adv_temporal_worker_restart target_path is implemented. It resolves target trust via resolveTargetProject directly (no withTargetPathStore), uses cheap ensureProjectTemporalQueue when safe, falls back to restartCurrentProjectTemporalWorker on the target root, and preserves/verifies the source project queue after a full restart. All 19 targeted tests pass and pnpm run check is green.",
+        "suggested_next_action": "Continue with the disk-snapshot authority metadata task (AC5/AC6/DONT2/DONT3) before advancing acceptance gate; targeted tests and check are green."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm test src/tools/temporal-ops.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "ensureTargetWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+      "task_id": "tk-c9f5748f51e1",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-c9f5748f51e1"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/target-project.ts",
+        "plugin/src/tools/target-project.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/target-project.test.ts",
+          "exit_code": 0,
+          "summary": "22 target-project tests passed, including new disk-snapshot authority/warning tests and lifecycle assertions."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, lint, and format:check all passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added authority field only for stateMode='disk-snapshot'",
+          "why": "Preserves backward compatibility for current/temporal/scaffold output contexts and makes the non-authoritative signal explicit exactly where the snapshot-ok path produces it."
+        },
+        {
+          "what": "Merged the non-authoritative warning with the existing untrusted warning for disk-snapshot untrusted reads",
+          "why": "Keeps the existing untrusted confirmation requirement while surfacing the degraded authority, satisfying both AC5/AC6 semantics and the existing warning contract."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes were required; the formatting and lifecycle assertions are localized to the target-project module.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Snapshot-ok target reads now emit _projectContext with authority: 'disk_snapshot_non_authoritative' and a warning that Temporal-backed state was not consulted. Trusted and untrusted disk-snapshot reads get the marker; untrusted warnings are merged. Spec citation invariant for rq-targetReadAuthority01 is now satisfied by comments in target-project.ts. pnpm run check passes.",
+        "suggested_next_action": "Run bin/oc-test full only if needed; the targeted and check gates are green."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/target-project.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "ensureTargetWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "review-live-tool-reload-1",
+          "label": "blocker",
+          "what": "Acceptance preflight cannot prove the new adv_temporal_worker_restart target_path MCP surface is callable in the current OpenCode session.",
+          "why": "This change modifies plugin/src/tools/*.ts and the live OpenCode plugin host caches tool registrations at session startup. Source tests/build prove the implementation, but the current live session still exposes the pre-change tool surface until deploy/restart. adv-review contract requires required new MCP tools to be callable in the current session before acceptance prompt.",
+          "fix": "Deploy/reload the plugin runtime and restart OpenCode, then resume ensureTargetWorkers and rerun acceptance preflight/review."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Acceptance for Advance plugin changes that add MCP tool args must account for OpenCode's startup-time tool registration cache; source tests/build are not enough to prove live tool callability in the current session."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "adv_run_test tr_mrczefv2_026bf20e: bin/oc-test targeted -- temporal-ops/target-project/preflight/surface/assets suite (312 tests) passed",
+          "adv_run_test tr_mrczf9sq_2b4f1434: pnpm run check passed",
+          "adv_run_test tr_mrczfrni_686f2467: pnpm run build passed",
+          "Inline source review of plugin/src/tools/temporal-ops.ts, plugin/src/tools/target-project.ts, plugin/src/utils/tool-arg-preflight.ts and focused tests"
+        ],
+        "results": "pass",
+        "evidence": "Implementation evidence passes, but acceptance is blocked by live-session tool registration cache for the newly added MCP args."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live validation of adv_temporal_worker_restart target_path requires deployed runtime copy plus fresh OpenCode session; current source build does not reload host-loaded tool code."
+      ],
+      "required_main_agent_actions": [
+        "Stop before acceptance prompt. Ask user to deploy/restart OpenCode or open a fresh session after deploy, then resume ensureTargetWorkers for acceptance."
+      ],
+      "required_follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "ensureTargetWorkers",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 1,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance"
+      ],
+      "summary": "Inline review: all 12 dimensions pass. No blockers, issues, or suggestions. Implementation extends adv_temporal_worker_restart with target_path trust resolution, cheap ensure before full restart, source-queue preservation after drain, bounded serviceability verification, and non-authoritative disk-snapshot metadata. 312 targeted tests + check + build green. Live tool surface confirmed callable.",
+      "findings": [],
+      "follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "ensureTargetWorkers",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/ensureTargetWorkers",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 1,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability"
+      ],
+      "summary": "Inline harden assessment: all dimensions pass. Test coverage: all changed source files have co-located tests (19+22+99 tests). AI-slop: none detected. Doc hygiene: specs/docs/tool descriptions updated, no stale references. Cleanup: no temp files, debug code, or dead imports. Production readiness: trust gate enforced, lock approval preserved, bounded verification, source queue preservation. Deployment readiness: N/A — no env vars, migrations, external services, CI/CD, or infrastructure changes. Merge compatibility: clean.",
+      "findings": [],
+      "follow_ups": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-09T00:53:25.526Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved problem framing in chat: `approve`. Proposal artifact includes user outcomes, scope, out-of-scope, must-not, and discovery agenda; ambiguity scan found no critical boundary/functional/completion-signal issue.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "f9ba56d7eba08dbf631ab978b09da5ec6dd4a0855490769a584e22765ec996b7",
+        "non_whitespace_chars": 3703,
+        "checked_at": "2026-07-09T00:53:03.913Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-09T02:16:16.660Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved proposed agreement via reply `approve`. Agreement persisted with objectives, SC1-SC3, AC1-AC9, constraints, avoidances, OOS, and discovery evidence; contract minted with 27 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "non_whitespace_chars": 4276,
+        "checked_at": "2026-07-09T00:53:03.914Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-09T02:25:58.022Z",
+      "completed_by": "adv",
+      "approval_evidence": "Design persisted. Mandatory leverage scout completed and auto-adopted low-risk contract-tied improvements. Independent adv-researcher validator returned caution/high confidence/low risk; caution addressed in design by KD6/DDC7 source-queue preservation after target full restart. No contract compromise, unresolved conflict, or user-value tradeoff.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "33d48e85bccda3cfd2764e66bef8921e005995473e6179d239878fed763b90e0",
+        "non_whitespace_chars": 10699,
+        "checked_at": "2026-07-09T00:53:03.915Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-09T02:31:00.141Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved prep/task graph via reply `approve`. Task graph has five tasks covering spec/docs law, worker restart schema/preflight, target restart/ensure execution, disk-snapshot authority metadata, and final verification. All tasks have TDD intent, evidence policies, dependencies, and contract refs."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-09T04:04:46.236Z",
+      "completed_by": "adv",
+      "approval_evidence": "All five planned tasks completed with checkpoint evidence. Final verification passed: targeted target-worker/read-authority suite (312 tests), pnpm run check, and pnpm run build."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-09T04:37:54.530Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved via reply `approve`. All pre-acceptance preflight passed: contract matrix 27/27 rows 0 failing, executive summary persisted with content-hash evidence, live tool surface confirmed callable, preview not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "6b2d3754ab3a93bc482be32bdee71ce723caab8ed69d22c61b8490424669ab32",
+        "non_whitespace_chars": 3567,
+        "checked_at": "2026-07-09T00:53:03.916Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 205
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+      "approvedAt": "2026-07-09T02:16:07.759Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Cross-project Temporal-backed operations can be unblocked from the driving session when the target project is trusted or explicitly confirmed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Operators receive machine-readable target queue serviceability evidence for success and failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Disk-snapshot target reads cannot be mistaken for live Temporal state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_temporal_worker_restart` is called with a trusted `target_path`, when the target worker can be started or registered, the response returns `success:true`, the target `projectId`, expected queue `advance-<targetProjectId>`, fresh serviceability evidence, and `_projectContext` for the target project.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_temporal_worker_restart target_path` is called for an untrusted target without `target_confirmed:true` and non-blank `confirmationEvidence`, the tool fails before restarting/registering/signaling any target worker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given target worker serviceability cannot be proven within the bounded verification budget, the response returns `success:false` with `expectedQueue`, `status`, `confidence`, `poller`, `blockers`, and a next action; it must not claim target Temporal readiness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given a temporal-required `target_path` operation runs after successful target worker restart/ensure, it opens the target Temporal store with `stateMode:\"temporal\"` and does not fail solely because no manual target OpenCode session is open.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a target read intentionally uses disk-snapshot mode, the response includes machine-readable non-authoritative/degraded metadata (at minimum `_projectContext.stateMode:\"disk-snapshot\"` plus a warning/authority marker) for both trusted and untrusted targets.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given a read-only snapshot-ok target operation runs, it does not start, restart, register, reclaim, or signal a target worker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given target worker restart/ensure encounters suspect live worker-lock state, existing approval-required lock-reclaim behavior remains enforced and no lock is reclaimed without explicit approval evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Regression tests prove target worker lifecycle uses the target project ID/root/external root, not the source project identity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Specs/docs/tool descriptions describe supported target-path worker lifecycle and degraded-read authority semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Untrusted target mutations require explicit target confirmation evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Existing worker lock-reclaim approval requirements remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Verification must be bounded; no unbounded polling loops.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Current-project `adv_temporal_worker_restart` behavior remains backward-compatible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Read-only target operations must not perform target lifecycle mutations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Additive response metadata must preserve existing callers where practical.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not require manual foreign OpenCode sessions for supported cross-project operations when target serviceability can be established from the driving session.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not report disk-snapshot target reads as authoritative Temporal state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not silently start/restart target workers from read-only snapshot paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not bypass trust gates, worker lock safety, or approval evidence requirements.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not redesign Epic membership or cross-project routing semantics unless implementation proves a direct blocker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Replacing Temporal or ADV storage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Product-wide orchestration beyond existing target_path surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "GitHub issue/Project automation changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Frontend/browser UI changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-09T04:35:41.858Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "executeTargetWorkerRestart resolves target trust via resolveTargetProject({mutation:true}) and establishes serviceability from driving session; temporal-ops.test.ts cheap ensure + full restart tests prove trusted and confirmed-untrusted paths."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Success and failure responses include serviceability, _freshness, workerDiagnostics, worker_lock, stsl, expectedQueue, recommendedNextAction; temporal-ops.test.ts serviceability failure test verifies bounded envelope."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "formatTargetProjectContext emits authority:'disk_snapshot_non_authoritative' and warning for disk-snapshot stateMode; target-project.test.ts trusted and untrusted disk-snapshot tests."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "temporal-ops.test.ts: target_path cheap ensure test returns success:true, projectId='target456', expectedQueue='advance-target456', _projectContext present."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "temporal-ops.test.ts: untrusted target_path without confirmation fails with TargetProjectError before restartCurrentProjectTemporalWorker or ensureProjectTemporalQueue calls."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "temporal-ops.test.ts: serviceability failure returns success:false, errorClass='WorkerRestartVerificationTimeout', expectedQueue, serviceability, _freshness, _projectContext, stsl, recommendedNextAction with adv_temporal_diagnose."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "withTargetPathStore temporal-required branch opens createStore with temporalBundle and stateMode:'temporal'; unchanged by this change, and target restart/ensure makes precondition achievable."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "target-project.test.ts: disk-snapshot trusted output has authority='disk_snapshot_non_authoritative' and warning; untrusted output merges non-authoritative + untrusted warnings."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "withTargetPathStore snapshot-ok branch calls createLegacyStore only, no getService/ensureProjectTemporalQueue/restartCurrentProjectTemporalWorker; rq-targetReadAuthority01.2 comment citation."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "temporal-ops.test.ts: approvedLockReclaim:true without approvalEvidence fails with ApprovalRequired before restart; lock approval evidence passed to restartCurrentProjectTemporalWorker."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "temporal-ops.test.ts: target tests assert projectId='target456', expectedQueue='advance-target456', _projectContext.projectId='target456'; resolveTargetProject derives from target_path git root."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rq-targetWorkerLifecycle01 in advance-meta spec.json + docs mirror; rq-targetReadAuthority01 in advance-workflow spec.json + docs mirror; ADV_INSTRUCTIONS.md target_path matrix updated; docs/temporal-recovery.md updated; tool description includes target_path."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "resolveTargetProject mutation:true throws TargetProjectError for untrusted without hasConfirmation; FIELD_POLICIES blank:omit for confirmationEvidence, handler validates contextually."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "approvedLockReclaim + approvalEvidence validation preserved in executeTargetWorkerRestart; classifySuspectWorkerLock and restartFailureNextAction unchanged."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "waitForRestartServiceability called with readWorkerRestartVerifyTimeoutMs(); no unbounded loops in executeTargetWorkerRestart."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "target_path absent → existing current-project restart path unchanged; temporal-ops.test.ts current-project restart test passes."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "withTargetPathStore snapshot-ok branch and withOptionalTargetPathStore do not call worker lifecycle functions; rq-targetReadAuthority01.2 citation."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "TargetProjectOutputContext.authority is optional; existing stateMode/trusted/trustSource/root/projectId fields preserved; target-project.test.ts backward-compatibility tests for temporal/scaffold/current modes."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "executeTargetWorkerRestart establishes target serviceability from driving session via ensureProjectTemporalQueue or restartCurrentProjectTemporalWorker; no manual foreign session required."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "formatTargetProjectContext marks disk-snapshot with authority='disk_snapshot_non_authoritative' and warning text."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "snapshot-ok path in withTargetPathStore does not call getService, ensureProjectTemporalQueue, restartCurrentProjectTemporalWorker, or worker-lock paths."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Trust gate via resolveTargetProject mutation:true; lock approval via approvedLockReclaim+approvalEvidence; no bypass paths introduced."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to epic membership tools or cross-project routing semantics; only adv_temporal_worker_restart and target-project formatting affected."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No Temporal or ADV storage replacement; existing storage layers unchanged."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No product-wide orchestration changes; only existing target_path surfaces extended."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No GitHub issue/Project automation changes."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No frontend/browser UI changes."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given `adv_temporal_worker_restart` is called with a trusted `target_path`, when the target worker can be started or registered, the response returns `success:true`, the target `projectId`, expected queue `advance-<targetProjectId>`, fresh serviceability evidence, and `_projectContext` for the target project.",
+    "Given `adv_temporal_worker_restart target_path` is called for an untrusted target without `target_confirmed:true` and non-blank `confirmationEvidence`, the tool fails before restarting/registering/signaling any target worker.",
+    "Given target worker serviceability cannot be proven within the bounded verification budget, the response returns `success:false` with `expectedQueue`, `status`, `confidence`, `poller`, `blockers`, and a next action; it must not claim target Temporal readiness.",
+    "Given a temporal-required `target_path` operation runs after successful target worker restart/ensure, it opens the target Temporal store with `stateMode:\"temporal\"` and does not fail solely because no manual target OpenCode session is open.",
+    "Given a target read intentionally uses disk-snapshot mode, the response includes machine-readable non-authoritative/degraded metadata (at minimum `_projectContext.stateMode:\"disk-snapshot\"` plus a warning/authority marker) for both trusted and untrusted targets.",
+    "Given a read-only snapshot-ok target operation runs, it does not start, restart, register, reclaim, or signal a target worker.",
+    "Given target worker restart/ensure encounters suspect live worker-lock state, existing approval-required lock-reclaim behavior remains enforced and no lock is reclaimed without explicit approval evidence.",
+    "Regression tests prove target worker lifecycle uses the target project ID/root/external root, not the source project identity.",
+    "Specs/docs/tool descriptions describe supported target-path worker lifecycle and degraded-read authority semantics."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Ensure target workers\n\n## Why\n\nCross-project `target_path` operations fail when the target project's ADV Temporal worker is not live or becomes stale. The driving session cannot ensure or restart the target worker, so supported cross-project workflows require manual foreign OpenCode sessions and can silently degrade to stale disk-snapshot reads.\n\n## What Changes\n\nAdd a reliable cross-project serviceability path so callers can determine and, where safe, establish target-project worker serviceability for Temporal-backed `target_path` operations. Make degraded target reads explicit so stale disk projections are not trusted as authoritative Temporal state.\n\n## User Outcomes\n\n- Operators can run supported cross-project ADV workflows from the driving project without manually opening and maintaining a separate OpenCode session in the target project.\n- When target Temporal serviceability cannot be established, the failure is precise and actionable.\n- Read responses that fall back to disk snapshots clearly communicate degraded/stale-authority status.\n- Existing current-project worker recovery remains safe and auditable.\n\n## Affected Code\n\n- Temporal ops tooling around worker diagnostics/restart/ensure flows.\n- Target-project routing helpers and serviceability preflight paths.\n- Target-path read responses that currently expose disk-snapshot behavior.\n- Specs/tests for cross-project workflow lifecycle and degraded authority.\n\n## Related Repositories\n\nCurrent repo scoped. Behavior concerns cross-project operations between ADV-enabled projects, but implementation surface is the Advance plugin.\n\n## Constraints\n\n- Preserve explicit trust confirmation for untrusted `target_path` mutations.\n- Do not silently mutate target projects during read-only operations.\n- Do not mask missing worker serviceability as successful Temporal state.\n- Keep Temporal worker lifecycle operations bounded, verified, and auditable.\n- Avoid broad cross-project routing redesign unless discovery finds it required.\n\n## Impact\n\nThis should reduce cross-project workflow stalls, prevent stale state confusion, and improve operator confidence in `target_path` tools.\n\n## Context\n\nOrigin: GitHub issue #205. Related issues noted by the report: #192, #198, #202, #106. #202 and #210 were validated fixed/closed before starting this change; #205 remains open.\n\n## Scope\n\n### In Scope\n\n- Target-project worker serviceability diagnostics/preflight for `target_path` operations.\n- A safe way for the driving session to establish or restart target-project worker serviceability, if technically feasible within the current worker model.\n- Explicit degraded/staleness metadata for target-path reads that use disk-snapshot fallback.\n- Tests proving no false-authoritative target Temporal state when the target queue is not serviceable.\n\n### Out of Scope\n\n- Rewriting Epic membership routing semantics.\n- Replacing Temporal-backed ADV storage.\n- Changing GitHub issue/project workflow behavior.\n- Implementing product-wide orchestration beyond existing `target_path` surfaces unless needed for the worker-serviceability fix.\n\n### Must Not\n\n- Must not require operators to manually keep a second OpenCode session alive for supported cross-project operations.\n- Must not report disk-snapshot target reads as authoritative Temporal state.\n- Must not reclaim or restart suspect live workers without existing approval/lock safety semantics.\n- Must not auto-mutate untrusted target projects from read-only calls.\n\n## Discovery Findings\n\n### Skills Considered\n\n- `adv-agent-tool-contracts`: loaded. This change likely modifies agent-callable tool arguments and must keep tool schema, preflight, tests, docs, and specs aligned.\n- Other available skills were not core matches; no new skill required.\n\n### Extends\n\n- Prior archived `fixTargetPathRouting` fixed target artifact readback/close/bulk-close routing when the target workflow is reachable.\n- Prior archived `fixTargetLifecycleRouting` fixed `adv_change_reenter` and `adv_worktree_resume target_path` identity/routing.\n- Prior archived `fixRemoteEpicRouting` fixed separate Epic owner/child routing.\n- Prior archived `bounceDeployedWorkers` hardened deployed worker refresh after local deploy.\n- New finding: these did not provide a driving-session way to establish target queue serviceability; issue #205 remains a distinct lifecycle gap.\n\n### Current-State Evidence\n\n- `adv_temporal_worker_restart` currently exposes only approval fields and derives project ID from `store.paths.root`, so the live tool is current-project only.\n- `restartCurrentProjectTemporalWorker(projectDir, ...)` already accepts a project directory internally and derives the queue from that directory's project ID, making target-path parameterization plausible.\n- `withTargetPathStore(... stateRequirement:\"temporal-required\")` calls `ensureTargetMutationQueueReady`; if local registration and server poller evidence fail, it throws `Target project Temporal queue is not serviceable... action=open or restart the target project ADV worker`.\n- `ensureProjectTemporalQueue(projectId)` can register an additional project queue on existing worker objects when supported by the runtime, but the error path still assumes manual worker startup if no local/peer poller evidence is available.\n- `withOptionalTargetPathStore` uses `stateRequirement:\"snapshot-ok\"` and returns disk-snapshot target state. `_projectContext.stateMode` says `disk-snapshot`, but trusted target snapshots do not currently get a stale-authority warning.\n- Temporal TypeScript docs show workers are created with an explicit `taskQueue` and expose `WorkerStatus`/poller state, supporting a design that treats task queue serviceability as explicit worker lifecycle evidence.\n\n### Conflict Scan\n\n- Active change `diagnoseArchivedListingTimeout` is unrelated.\n- `adv_change_validate strict:true` passed for this change with expected pre-planning warnings: `NO_TASKS`, `NO_DELTAS`.\n- Agenda contains pending target_path follow-ups from #192 that align with this change, especially active target read fail-closed/degraded semantics. They inform scope but do not conflict.\n\n### Edge Cases\n\n1. Trusted target project, no local registered queue, no server poller: target restart/ensure must establish serviceability or fail with exact queue/blockers.\n2. Untrusted target project: worker restart/ensure is a mutation-capable target operation and must require explicit confirmation evidence.\n3. Suspect live target worker lock: existing approval-required lock reclaim semantics must still apply; no silent reclaim.\n4. Read-only snapshot target read: must remain read-only and must not restart or register workers.\n5. Target queue appears fresh via peer poller: operations may proceed without starting another worker; response should preserve serviceability evidence.\n6. Target worker becomes stale after ensure: subsequent temporal-required calls must re-check serviceability and fail loud rather than trust old state.\n\n### Open Design Questions\n\n- Should the user-facing surface extend `adv_temporal_worker_restart target_path` or add a separate `adv_temporal_worker_ensure`? Trust model: both are privileged worker lifecycle operations; blast radius is target queue/process lifecycle; alternatives are extension versus new tool.\n- Should degraded read metadata be a warning string only or a structured authority/staleness object? Trust model: readers must be able to machine-detect non-authoritative state; blast radius is response compatibility; alternatives are additive `_projectContext.warning`, `_projectContext.authority`, or top-level warnings.\n- Should temporal-required target operations auto-ensure the target queue before failing, or require an explicit operator tool call? Trust model: mutations should not surprise-start target workers unless already within a mutation-authorized target operation; alternatives are explicit preflight, opportunistic ensure, or both.\n\n### Draft Spec Delta Shapes\n\n- `rq-targetWorkerLifecycle01` in `advance-meta`: ADV must provide an audited target-path worker restart/ensure path that derives target project ID/queue from target root, verifies serviceability, enforces trust/lock approval, and returns structured queue evidence.\n- `rq-targetReadAuthority01` in `advance-workflow` or `advance-delivery`: target-path disk-snapshot reads must be explicitly marked as non-authoritative/degraded and must not be confused with Temporal-backed target state.\n\n### Related Pattern Scan\n\n- Related target routing surfaces already fixed: `adv_change_show`, `adv_change_close`, `adv_change_bulk_close`, `adv_change_reenter`, `adv_worktree_resume`, Epic owner/child routing.\n- Similar serviceability code lives in `target-project.ts`, `temporal-ops.ts`, `plugin-init.ts`, and `queue-serviceability.ts`.\n- No evidence that Epic routing itself needs redesign; problem is target worker lifecycle/read authority.\n\n### LBP Check\n\nLikely long-term best practice: explicit target worker serviceability as a first-class, audited lifecycle operation plus additive read-authority metadata. This is preferable to manual foreign sessions, stale disk fallback, or silent background mutation.\n\n### Completeness Verification\n\n- Problem completeness: high confidence. The observed symptom (target_path failure) stems from two surfaces: missing target worker lifecycle control and under-signaled disk-snapshot authority. Both are captured.\n- Solution scope: high confidence. Scope does not rely on a sole entrypoint; it covers the shared target-project helper/read authority path and the worker lifecycle tool path. Secondary routing semantics are explicitly out of scope unless design finds a dependency.\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n| --- | --- | --- |\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`; no skill gap. |\n| Prior Research Extension | PASS | Prior archived cross-project changes reviewed; new lifecycle gap identified. |\n| Conflict & Related-Work Scan | PASS | No active conflict; agenda items aligned. |\n| Edge Case Investigation | PASS | Six target-worker/read-authority edge cases identified. |\n| Design Question Depth | PASS | Three design questions with trust/blast-radius alternatives. |\n| Draft Spec Delta Shapes | PASS | Two candidate rq-* deltas identified. |\n| Related Pattern Scan | PASS | Similar routing and serviceability surfaces mapped. |\n| LBP Check | PASS | Explicit audited serviceability + read-authority metadata selected as likely LBP. |\n| Completeness Verification | PASS | Worker lifecycle and stale read authority both in scope. |\n\n## Proposed Agreement\n\n### Objectives\n\n- Provide a driving-session path to establish or restart a target project's ADV Temporal worker serviceability for supported `target_path` operations.\n- Preserve strict trust and lock-safety semantics for target lifecycle mutations.\n- Make disk-snapshot target reads explicitly non-authoritative/degraded.\n- Keep existing current-project worker restart behavior compatible.\n\n### Success Criteria\n\n- SC1: Cross-project Temporal-backed operations can be unblocked from the driving session when the target project is trusted or explicitly confirmed.\n- SC2: Operators receive machine-readable target queue serviceability evidence for success and failure.\n- SC3: Disk-snapshot target reads cannot be mistaken for live Temporal state.\n\n### Acceptance Criteria\n\n- AC1: Given `adv_temporal_worker_restart` is called with a trusted `target_path`, when the target worker can be started or registered, the response returns `success:true`, the target `projectId`, expected queue `advance-<targetProjectId>`, fresh serviceability evidence, and `_projectContext` for the target project.\n- AC2: Given `adv_temporal_worker_restart target_path` is called for an untrusted target without `target_confirmed:true` and non-blank `confirmationEvidence`, the tool fails before restarting/registering/signaling any target worker.\n- AC3: Given target worker serviceability cannot be proven within the bounded verification budget, the response returns `success:false` with `expectedQueue`, `status`, `confidence`, `poller`, `blockers`, and a next action; it must not claim target Temporal readiness.\n- AC4: Given a temporal-required `target_path` operation runs after successful target worker restart/ensure, it opens the target Temporal store with `stateMode:\"temporal\"` and does not fail solely because no manual target OpenCode session is open.\n- AC5: Given a target read intentionally uses disk-snapshot mode, the response includes machine-readable non-authoritative/degraded metadata (at minimum `_projectContext.stateMode:\"disk-snapshot\"` plus a warning/authority marker) for both trusted and untrusted targets.\n- AC6: Given a read-only snapshot-ok target operation runs, it does not start, restart, register, reclaim, or signal a target worker.\n- AC7: Given target worker restart/ensure encounters suspect live worker-lock state, existing approval-required lock-reclaim behavior remains enforced and no lock is reclaimed without explicit approval evidence.\n- AC8: Regression tests prove target worker lifecycle uses the target project ID/root/external root, not the source project identity.\n- AC9: Specs/docs/tool descriptions describe supported target-path worker lifecycle and degraded-read authority semantics.\n\n### Constraints\n\n- C1: Untrusted target mutations require explicit target confirmation evidence.\n- C2: Existing worker lock-reclaim approval requirements remain unchanged.\n- C3: Verification must be bounded; no unbounded polling loops.\n- C4: Current-project `adv_temporal_worker_restart` behavior remains backward-compatible.\n- C5: Read-only target operations must not perform target lifecycle mutations.\n- C6: Additive response metadata must preserve existing callers where practical.\n\n### Must Not\n\n- DONT1: Do not require manual foreign OpenCode sessions for supported cross-project operations when target serviceability can be established from the driving session.\n- DONT2: Do not report disk-snapshot target reads as authoritative Temporal state.\n- DONT3: Do not silently start/restart target workers from read-only snapshot paths.\n- DONT4: Do not bypass trust gates, worker lock safety, or approval evidence requirements.\n- DONT5: Do not redesign Epic membership or cross-project routing semantics unless implementation proves a direct blocker.\n\n### Out of Scope\n\n- OOS1: Replacing Temporal or ADV storage.\n- OOS2: Product-wide orchestration beyond existing target_path surfaces.\n- OOS3: GitHub issue/Project automation changes.\n- OOS4: Frontend/browser UI changes.",
+    "problemStatement": "## Why\n\nCross-project `target_path` operations fail when the target project's ADV Temporal worker is not live or becomes stale. The driving session cannot ensure or restart the target worker, so supported cross-project workflows require manual foreign OpenCode sessions and can silently degrade to stale disk-snapshot reads.\n\n## Desired Outcome\n\nA driving ADV session can either establish reliable target-project Temporal serviceability for supported `target_path` operations or fail loudly with degraded-read/serviceability evidence, without requiring a human to open and keep alive another project session.\n\n## Expected Scope\n\nAddress target-worker/serviceability lifecycle for cross-project ADV operations, target-path diagnostics/preflight, and degraded-read signaling. Avoid broad redesign of cross-project routing or Epic membership semantics unless discovery proves a structural dependency.",
+    "agreement": "# Agreement: Ensure target workers\n\n## Objectives\n\n- Provide a driving-session path to establish or restart a target project's ADV Temporal worker serviceability for supported `target_path` operations.\n- Preserve strict trust and lock-safety semantics for target lifecycle mutations.\n- Make disk-snapshot target reads explicitly non-authoritative/degraded.\n- Keep existing current-project worker restart behavior compatible.\n\n## Success Criteria\n\n- SC1: Cross-project Temporal-backed operations can be unblocked from the driving session when the target project is trusted or explicitly confirmed.\n- SC2: Operators receive machine-readable target queue serviceability evidence for success and failure.\n- SC3: Disk-snapshot target reads cannot be mistaken for live Temporal state.\n\n## Acceptance Criteria\n\n- AC1: Given `adv_temporal_worker_restart` is called with a trusted `target_path`, when the target worker can be started or registered, the response returns `success:true`, the target `projectId`, expected queue `advance-<targetProjectId>`, fresh serviceability evidence, and `_projectContext` for the target project.\n- AC2: Given `adv_temporal_worker_restart target_path` is called for an untrusted target without `target_confirmed:true` and non-blank `confirmationEvidence`, the tool fails before restarting/registering/signaling any target worker.\n- AC3: Given target worker serviceability cannot be proven within the bounded verification budget, the response returns `success:false` with `expectedQueue`, `status`, `confidence`, `poller`, `blockers`, and a next action; it must not claim target Temporal readiness.\n- AC4: Given a temporal-required `target_path` operation runs after successful target worker restart/ensure, it opens the target Temporal store with `stateMode:\"temporal\"` and does not fail solely because no manual target OpenCode session is open.\n- AC5: Given a target read intentionally uses disk-snapshot mode, the response includes machine-readable non-authoritative/degraded metadata (at minimum `_projectContext.stateMode:\"disk-snapshot\"` plus a warning/authority marker) for both trusted and untrusted targets.\n- AC6: Given a read-only snapshot-ok target operation runs, it does not start, restart, register, reclaim, or signal a target worker.\n- AC7: Given target worker restart/ensure encounters suspect live worker-lock state, existing approval-required lock-reclaim behavior remains enforced and no lock is reclaimed without explicit approval evidence.\n- AC8: Regression tests prove target worker lifecycle uses the target project ID/root/external root, not the source project identity.\n- AC9: Specs/docs/tool descriptions describe supported target-path worker lifecycle and degraded-read authority semantics.\n\n## Constraints\n\n- C1: Untrusted target mutations require explicit target confirmation evidence.\n- C2: Existing worker lock-reclaim approval requirements remain unchanged.\n- C3: Verification must be bounded; no unbounded polling loops.\n- C4: Current-project `adv_temporal_worker_restart` behavior remains backward-compatible.\n- C5: Read-only target operations must not perform target lifecycle mutations.\n- C6: Additive response metadata must preserve existing callers where practical.\n\n## Avoidances\n\n- DONT1: Do not require manual foreign OpenCode sessions for supported cross-project operations when target serviceability can be established from the driving session.\n- DONT2: Do not report disk-snapshot target reads as authoritative Temporal state.\n- DONT3: Do not silently start/restart target workers from read-only snapshot paths.\n- DONT4: Do not bypass trust gates, worker lock safety, or approval evidence requirements.\n- DONT5: Do not redesign Epic membership or cross-project routing semantics unless implementation proves a direct blocker.\n\n## Out of Scope\n\n- OOS1: Replacing Temporal or ADV storage.\n- OOS2: Product-wide orchestration beyond existing target_path surfaces.\n- OOS3: GitHub issue/Project automation changes.\n- OOS4: Frontend/browser UI changes.\n\n## Discovery Evidence\n\n- Prior target-path routing fixes addressed reachable-target identity and store routing, not target worker lifecycle.\n- `adv_temporal_worker_restart` currently derives project identity from current `store.paths.root`; internal `restartCurrentProjectTemporalWorker(projectDir, ...)` already accepts a directory and derives queue identity from it.\n- `withTargetPathStore(... temporal-required)` fails closed when local registration and server poller evidence are absent, currently instructing operators to open/restart target project worker manually.\n- `withOptionalTargetPathStore` intentionally returns disk-snapshot target state and needs stronger authority metadata for both trusted and untrusted target reads.\n- Temporal TypeScript worker docs show worker creation binds to an explicit `taskQueue`; queue serviceability must remain explicit evidence, not assumed.",
+    "design": "# Design\n\n## Architecture Overview\n\nImplement #205 as two additive cross-project infrastructure changes:\n\n1. Extend `adv_temporal_worker_restart` to accept `target_path` using the same target-project trust contract as other target mutations. The tool will resolve the target root/project ID, then establish serviceability for the target queue by first trying the existing queue-registration/ensure path when a local worker is alive, and by falling back to `restartCurrentProjectTemporalWorker(context.root, ...)` when a restart is required. Success is accepted only after fresh serviceability proof for `advance-<targetProjectId>`.\n2. Strengthen target-path snapshot read authority metadata so every `snapshot-ok` target read is machine-identifiable as non-authoritative disk state. Snapshot reads stay read-only and never start/register/restart target workers.\n\nThis preserves existing Temporal-backed target mutations: they continue to use `withTargetPathStore(... stateRequirement:\"temporal-required\")` and `ensureTargetMutationQueueReady`. The new restart/ensure path gives operators a first-class way to make that precondition true from the driving session.\n\n## Key Decisions\n\n### KD1 — Extend `adv_temporal_worker_restart` instead of adding a new tool\n\n`adv_temporal_worker_restart` already owns worker lifecycle, lock reclaim approval, bounded verification, and user-facing recovery guidance. Adding `target_path`, `target_confirmed`, and `confirmationEvidence` keeps worker lifecycle in one tool rather than creating a second partially overlapping ensure tool.\n\nWhy not a new `adv_temporal_worker_ensure` now: the agreement already allows started-or-registered target serviceability. The existing restart tool can implement both cheap ensure/registration and fallback restart under one verified lifecycle envelope.\n\n### KD2 — Resolve target trust directly; do not use `withTargetPathStore(... temporal-required)` before restart\n\nA restart/ensure tool must work precisely when the target queue is not serviceable. Routing through `withTargetPathStore` with `stateRequirement:\"temporal-required\"` would call `ensureTargetMutationQueueReady` and throw before restart could repair the queue. The restart path should call `resolveTargetProject({ mutation:true, ... })` directly, then perform ensure/restart, then verify serviceability post-hoc.\n\n### KD3 — Target restart/ensure is a target mutation for trust purposes\n\nRestarting, registering, or ensuring a target worker changes target runtime serviceability and can affect target workflow processing. Therefore untrusted targets require explicit confirmation evidence. Trusted `related_repos` targets may proceed without extra confirmation.\n\n### KD4 — Prefer cheap queue registration before full restart when safe\n\nIf the driving session has a live local worker that can register additional queues (`ensureProjectTemporalQueue(context.projectId)`), use that first. This matches the \"started or registered\" acceptance criterion and avoids draining/restarting worker processes unnecessarily. If local registration is unavailable or fails and serviceability is still absent, fall back to `restartCurrentProjectTemporalWorker(context.root, ...)`.\n\n### KD5 — Serviceability success requires fresh target queue evidence\n\nWhether serviceability comes from local registration, peer poller, or restart, success requires fresh proof for `advance-<targetProjectId>`. Cached stale evidence is not accepted. Failure returns structured `serviceability`, `_freshness`, diagnostics, worker-lock, STSL stats, expected queue, and target `_projectContext`.\n\n### KD6 — Preserve driving-session queue after target full restart\n\nValidator found that the existing full-restart primitive drains all in-process workers and recreates a worker for the target queue only. Target restart must not leave the source/driving queue unserviceable. After a target full restart, re-register or restart/verify the source project queue (`store.paths.root` project ID) before reporting success, or return a clear failure if source queue serviceability cannot be restored. This is a design-derived technical criterion, not a new user-facing acceptance criterion.\n\n### KD7 — Disk snapshot authority is explicit and additive\n\n`formatTargetProjectContext` should include a stable authority marker for `stateMode:\"disk-snapshot\"`, such as:\n\n```ts\nauthority: \"disk_snapshot_non_authoritative\"\nwarning: \"Target project read used disk snapshot; Temporal-backed target state was not consulted.\"\n```\n\nUntrusted snapshot warnings can be preserved or combined, but trusted snapshots must also get non-authoritative read metadata. This is additive response metadata and keeps existing `_projectContext.stateMode` compatibility.\n\n### KD8 — No auto-start from snapshot reads\n\n`withOptionalTargetPathStore` and `stateRequirement:\"snapshot-ok\"` remain disk-only. They do not call `getService`, `ensureProjectTemporalQueue`, `restartCurrentProjectTemporalWorker`, or any worker lock path. This protects read-only calls from surprising target runtime mutation.\n\n## ADR Drafts\n\nNone. The decision is important but not hard to reverse: a later dedicated `adv_temporal_worker_ensure` could wrap the same target ensure/restart primitive if needed.\n\n## Implementation Strategy\n\n1. **Spec law and docs**\n   - Add `rq-targetWorkerLifecycle01` to `advance-meta` for target-aware worker restart/ensure/serviceability evidence, including source-queue preservation after target full restart.\n   - Add `rq-targetReadAuthority01` to `advance-workflow` or `advance-delivery` for non-authoritative disk-snapshot target read metadata.\n   - Update docs mirrors and tool/agent guidance where target worker restart is described as current-project only.\n\n2. **Tool schema + preflight**\n   - Add target routing fields to `adv_temporal_worker_restart.args`: `target_path`, `target_confirmed`, `confirmationEvidence`.\n   - Update `FIELD_POLICIES.adv_temporal_worker_restart` so strict-mode blanks for optional target fields are omitted, while `approvalEvidence` remains reject when lock reclaim is requested.\n   - Update tool registry surface/schema tests as needed.\n\n3. **Target-aware restart/ensure execution**\n   - Factor worker serviceability execution into a helper accepting `{ projectRoot, projectId, projectContext? }`.\n   - For current-project calls, preserve existing behavior and response shape.\n   - For target calls, resolve trust with `resolveTargetProject({ mutation:true })` directly, not `withTargetPathStore(... temporal-required)`.\n   - Try `ensureProjectTemporalQueue(context.projectId)` when a local worker is available; verify fresh target queue serviceability.\n   - If ensure does not prove serviceability, call `restartCurrentProjectTemporalWorker(context.root, { approvedLockReclaim, approvalEvidence })`.\n   - After target full restart, re-register or verify the source/driving project queue before returning success.\n   - Verify serviceability with target project ID/expected queue. Return `success:false` when verification times out, including `expectedQueue`, `serviceability`, `_freshness`, diagnostics, worker lock, STSL stats, and target `_projectContext`.\n\n4. **Snapshot authority metadata**\n   - Extend `TargetProjectOutputContext` and `formatTargetProjectContext` with additive authority metadata for disk-snapshot mode.\n   - Preserve untrusted warning semantics while adding trusted snapshot warnings/authority.\n   - Keep temporal/scaffold/current contexts unchanged except for optional explicit authority if tests prefer a uniform field.\n\n5. **Tests**\n   - RED tests for target restart success using target root/project ID.\n   - RED tests for target ensure/registration success without full restart when local worker registration proves serviceability.\n   - RED tests that target full restart restores/verifies the source/driving queue before success.\n   - RED tests for untrusted target restart rejection before ensure/restart calls.\n   - RED tests for verification timeout using target queue evidence.\n   - RED tests for suspect lock approval evidence preservation.\n   - RED tests that snapshot-ok paths never call worker restart/queue registration and include non-authoritative metadata.\n   - Regression tests for current-project restart compatibility.\n\n## LBP Analysis\n\nThe long-term best practice is explicit runtime-serviceability control with bounded, inspectable evidence. Target worker lifecycle should not be inferred from disk state or hidden behind stale snapshot fallback. Extending the existing worker restart tool centralizes lock safety and verification policy, while the read-authority marker makes stale/disk fallback safe for automated consumers.\n\n## Affected Components\n\n- `plugin/src/tools/temporal-ops.ts`: `adv_temporal_worker_restart` schema/execution and shared restart/ensure helper.\n- `plugin/src/tools/target-project.ts`: target context formatting and snapshot authority metadata.\n- `plugin/src/plugin-init.ts`: existing `ensureProjectTemporalQueue(projectId)` and `restartCurrentProjectTemporalWorker(projectDir)` provide seams; may need a helper for source-queue restoration after target full restart.\n- `plugin/src/utils/tool-arg-preflight.ts`: optional target field blank handling.\n- `plugin/src/tool-registry.ts` and tool surface tests: schema/timeout contract remains aligned.\n- `.adv/specs/advance-meta/spec.json`, `.adv/specs/advance-workflow/spec.json` or `.adv/specs/advance-delivery/spec.json`, docs mirrors.\n- Tests: `temporal-ops.test.ts`, `target-project.test.ts`, possibly tool-registry/preflight tests.\n\n## Design-Derived Criteria\n\n- DDC1: Restart/ensure verification remains bounded by the existing worker restart verification budget and outer 15s tool timeout.\n- DDC2: Target restart/ensure success requires fresh serviceability evidence for `advance-<targetProjectId>`; cached stale success is not accepted.\n- DDC3: Snapshot-ok target reads must be side-effect-free with respect to worker lifecycle calls.\n- DDC4: Target restart output must include target `_projectContext` whenever `target_path` is used, including failure responses after target context resolution.\n- DDC5: Current-project restart response shape remains backward compatible except for additive fields.\n- DDC6: Target restart/ensure must not use source project ID/root/external root for worker queue identity or output context.\n- DDC7: After target full restart, source/driving queue serviceability must be restored or failure must be explicit.\n\n## Risks / Mitigations\n\n- Risk: Restarting target worker drains an existing current in-process worker and changes queue ownership. Mitigation: first try queue registration; use restart only when ensure cannot prove serviceability; verify target queue afterward; restore/verify source queue before success.\n- Risk: Tool schema change breaks strict-mode providers with blank optional fields. Mitigation: update `FIELD_POLICIES` and preflight tests for target routing fields.\n- Risk: Disk snapshot warnings break consumers expecting only fixed `_projectContext` keys. Mitigation: additive fields only; keep `stateMode` unchanged.\n- Risk: OOP worker cannot register multiple queues dynamically in all runtimes. Mitigation: target restart starts worker with target expected queue; source queue restoration is verified before success.\n\n## Design Leverage Scout\n\nScout completed. Auto-adopted contract-tied, low-risk findings:\n\n- Resolve trust directly via `resolveTargetProject(mutation:true)` instead of `withTargetPathStore(... temporal-required)` because restart must repair unserviceable queues.\n- Add non-authoritative disk-snapshot metadata for trusted and untrusted targets.\n- Use `context.root` as the minimal identity seam for target restart.\n- Add `FIELD_POLICIES` omit handling and preflight tests for new target fields.\n- Use existing `ensureProjectTemporalQueue` queue registration as the cheap ensure path before full restart.\n\nNo user-value tradeoff, contract compromise, or validator-blocking conflict found.\n\n## Validator Notes\n\nValidator: caution/high confidence/low risk. Design is correct and spec-compliant if implementation preserves source queue serviceability after target full restart. Updated KD6/DDC7 and test plan address this caution. No blocker, no contract compromise.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nThis change adds cross-project Temporal worker lifecycle support to `adv_temporal_worker_restart` and makes disk-snapshot target reads explicitly non-authoritative. The approver is deciding whether to release the delivered and hardened implementation.\n\n## Why It Matters\nOperators can now establish or restart a target project's ADV Temporal worker from the driving session, unblocking cross-project Temporal-backed operations without requiring a manual foreign OpenCode session. Disk-snapshot target reads are now machine-identifiable as non-authoritative, preventing automated consumers from mistaking stale disk state for live Temporal workflow state.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. **Spec/docs law** (tk-f2e442d10c5e): Added `rq-targetWorkerLifecycle01` (advance-meta) and `rq-targetReadAuthority01` (advance-workflow) with mirrored docs sections, updated ADV_INSTRUCTIONS.md target_path matrix, and updated docs/temporal-recovery.md.\n2. **Tool schema + preflight** (tk-8c167525833f): Added `target_path`, `target_confirmed`, `confirmationEvidence` to `adv_temporal_worker_restart` args/schema/description; added strict-mode preflight policies for blank handling.\n3. **Target-aware restart/ensure execution** (tk-1fa6281f46f2): Implemented `executeTargetWorkerRestart` — resolves target trust directly, tries cheap queue registration before full restart, preserves/restores source driving queue after target full restart, returns bounded serviceability evidence on success and failure.\n4. **Non-authoritative disk-snapshot metadata** (tk-c9f5748f51e1): Extended `formatTargetProjectContext` with `authority: \"disk_snapshot_non_authoritative\"` and warning text for disk-snapshot reads (trusted and untrusted).\n5. **Final verification** (tk-19fb26d78e5a): 312 targeted tests passed, `pnpm run check` passed, `pnpm run build` passed.\n\n## What Was Verified\n- Verdict: APPROVED with 0 findings (0 blockers, 0 issues, 0 suggestions, 0 nits)\n- Tests: 312 targeted tests passed across 9 files; `pnpm run check` passed; `pnpm run build` passed\n- Preview URL: not_applicable — no frontend/browser/visual-output work; change is backend Temporal infrastructure only\n- Contract matrix: 27/27 required rows passed/respected/not_applicable, 0 failing\n- Harden: all release-readiness dimensions pass (test coverage, AI-slop, doc hygiene, cleanup, production readiness, deployment readiness N/A); merge compatibility clean\n\n## Remaining Concerns\nNone. Live tool surface confirmed callable in current session.\n\n## Supporting Evidence\n- Task IDs: tk-f2e442d10c5e, tk-8c167525833f, tk-1fa6281f46f2, tk-c9f5748f51e1, tk-19fb26d78e5a\n- Review reports: scanner-bundle:review (attempt 2), review:acceptance (attempt 1, previous blocker cleared)\n- Harden reports: scanner-bundle:harden (attempt 1, 0 findings)\n- Test runs: tr_mrczefv2_026bf20e (312 tests), tr_mrczf9sq_2b4f1434 (check), tr_mrczfrni_686f2467 (build)\n- Contract matrix: 27 rows, 0 failing\n- Checkpoint commits: 84b097cc, 4b9fe285, c1dc4acc, fc8562c3\n\n## Consequence Context\n1. **Delivered value**: Cross-project Temporal worker lifecycle support; non-authoritative disk-snapshot read metadata. Source: task implementation summaries + contract matrix.\n2. **Enabling-only/follow-up dependency**: n/a — no enabling-only dependencies; change is self-contained.\n3. **Ops readiness**: ready — harden verified release/deploy/production/docs/cleanup readiness; no env vars, migrations, or external service changes.\n4. **Migration/data impact**: n/a — no data migration; additive tool args and response metadata only.\n5. **Frontend/preview impact**: not_applicable — no frontend/browser/visual-output work.\n6. **Collision/release risk**: low — additive changes to existing tool; backward-compatible; merge compatibility clean; no branch/scope collision evidence.\n7. **Open follow-ups**: n/a — no required follow-ups or ops obligations.\n8. **Next action**: release approval proceeds to /adv-archive ensureTargetWorkers.\n\n## Release Readiness Summary\n- Test coverage: all changed source files have co-located tests (19+22+99 tests); TDD evidence via adv_run_test\n- AI-slop: none detected; no placeholders, type erosion, or copy-paste patterns\n- Documentation hygiene: specs/docs/tool descriptions updated; no stale references or conflicts\n- Cleanup: no temp files, debug code, dead imports, or orphaned tests\n- Production readiness: trust gate enforced, lock approval preserved, bounded verification, source queue preservation, no secrets\n- Deployment readiness: N/A — no env vars, migrations, external services, CI/CD, or infrastructure changes\n- Merge compatibility: clean (dry-run merge of change/ensureTargetWorkers into origin/trunk)",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-09T04:35:41.858Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Cross-project Temporal-backed operations can be unblocked from the driving session when the target project is trusted or explicitly confirmed. | pass | executeTargetWorkerRestart resolves target trust via resolveTargetProject({mutation:true}) and establishes serviceability from driving session; temporal-ops.test.ts cheap ensure + full restart tests prove trusted and confirmed-untrusted paths. |\n| SC2 | success_criterion | Operators receive machine-readable target queue serviceability evidence for success and failure. | pass | Success and failure responses include serviceability, _freshness, workerDiagnostics, worker_lock, stsl, expectedQueue, recommendedNextAction; temporal-ops.test.ts serviceability failure test verifies bounded envelope. |\n| SC3 | success_criterion | Disk-snapshot target reads cannot be mistaken for live Temporal state. | pass | formatTargetProjectContext emits authority:'disk_snapshot_non_authoritative' and warning for disk-snapshot stateMode; target-project.test.ts trusted and untrusted disk-snapshot tests. |\n| AC1 | acceptance_criterion | Given `adv_temporal_worker_restart` is called with a trusted `target_path`, when the target worker can be started or registered, the response returns `success:true`, the target `projectId`, expected queue `advance-<targetProjectId>`, fresh serviceability evidence, and `_projectContext` for the target project. | pass | temporal-ops.test.ts: target_path cheap ensure test returns success:true, projectId='target456', expectedQueue='advance-target456', _projectContext present. |\n| AC2 | acceptance_criterion | Given `adv_temporal_worker_restart target_path` is called for an untrusted target without `target_confirmed:true` and non-blank `confirmationEvidence`, the tool fails before restarting/registering/signaling any target worker. | pass | temporal-ops.test.ts: untrusted target_path without confirmation fails with TargetProjectError before restartCurrentProjectTemporalWorker or ensureProjectTemporalQueue calls. |\n| AC3 | acceptance_criterion | Given target worker serviceability cannot be proven within the bounded verification budget, the response returns `success:false` with `expectedQueue`, `status`, `confidence`, `poller`, `blockers`, and a next action; it must not claim target Temporal readiness. | pass | temporal-ops.test.ts: serviceability failure returns success:false, errorClass='WorkerRestartVerificationTimeout', expectedQueue, serviceability, _freshness, _projectContext, stsl, recommendedNextAction with adv_temporal_diagnose. |\n| AC4 | acceptance_criterion | Given a temporal-required `target_path` operation runs after successful target worker restart/ensure, it opens the target Temporal store with `stateMode:\"temporal\"` and does not fail solely because no manual target OpenCode session is open. | pass | withTargetPathStore temporal-required branch opens createStore with temporalBundle and stateMode:'temporal'; unchanged by this change, and target restart/ensure makes precondition achievable. |\n| AC5 | acceptance_criterion | Given a target read intentionally uses disk-snapshot mode, the response includes machine-readable non-authoritative/degraded metadata (at minimum `_projectContext.stateMode:\"disk-snapshot\"` plus a warning/authority marker) for both trusted and untrusted targets. | pass | target-project.test.ts: disk-snapshot trusted output has authority='disk_snapshot_non_authoritative' and warning; untrusted output merges non-authoritative + untrusted warnings. |\n| AC6 | acceptance_criterion | Given a read-only snapshot-ok target operation runs, it does not start, restart, register, reclaim, or signal a target worker. | pass | withTargetPathStore snapshot-ok branch calls createLegacyStore only, no getService/ensureProjectTemporalQueue/restartCurrentProjectTemporalWorker; rq-targetReadAuthority01.2 comment citation. |\n| AC7 | acceptance_criterion | Given target worker restart/ensure encounters suspect live worker-lock state, existing approval-required lock-reclaim behavior remains enforced and no lock is reclaimed without explicit approval evidence. | pass | temporal-ops.test.ts: approvedLockReclaim:true without approvalEvidence fails with ApprovalRequired before restart; lock approval evidence passed to restartCurrentProjectTemporalWorker. |\n| AC8 | acceptance_criterion | Regression tests prove target worker lifecycle uses the target project ID/root/external root, not the source project identity. | pass | temporal-ops.test.ts: target tests assert projectId='target456', expectedQueue='advance-target456', _projectContext.projectId='target456'; resolveTargetProject derives from target_path git root. |\n| AC9 | acceptance_criterion | Specs/docs/tool descriptions describe supported target-path worker lifecycle and degraded-read authority semantics. | pass | rq-targetWorkerLifecycle01 in advance-meta spec.json + docs mirror; rq-targetReadAuthority01 in advance-workflow spec.json + docs mirror; ADV_INSTRUCTIONS.md target_path matrix updated; docs/temporal-recovery.md updated; tool description includes target_path. |\n| C1 | constraint | Untrusted target mutations require explicit target confirmation evidence. | respected | resolveTargetProject mutation:true throws TargetProjectError for untrusted without hasConfirmation; FIELD_POLICIES blank:omit for confirmationEvidence, handler validates contextually. |\n| C2 | constraint | Existing worker lock-reclaim approval requirements remain unchanged. | respected | approvedLockReclaim + approvalEvidence validation preserved in executeTargetWorkerRestart; classifySuspectWorkerLock and restartFailureNextAction unchanged. |\n| C3 | constraint | Verification must be bounded; no unbounded polling loops. | respected | waitForRestartServiceability called with readWorkerRestartVerifyTimeoutMs(); no unbounded loops in executeTargetWorkerRestart. |\n| C4 | constraint | Current-project `adv_temporal_worker_restart` behavior remains backward-compatible. | respected | target_path absent → existing current-project restart path unchanged; temporal-ops.test.ts current-project restart test passes. |\n| C5 | constraint | Read-only target operations must not perform target lifecycle mutations. | respected | withTargetPathStore snapshot-ok branch and withOptionalTargetPathStore do not call worker lifecycle functions; rq-targetReadAuthority01.2 citation. |\n| C6 | constraint | Additive response metadata must preserve existing callers where practical. | respected | TargetProjectOutputContext.authority is optional; existing stateMode/trusted/trustSource/root/projectId fields preserved; target-project.test.ts backward-compatibility tests for temporal/scaffold/current modes. |\n| DONT1 | avoidance | Do not require manual foreign OpenCode sessions for supported cross-project operations when target serviceability can be established from the driving session. | respected | executeTargetWorkerRestart establishes target serviceability from driving session via ensureProjectTemporalQueue or restartCurrentProjectTemporalWorker; no manual foreign session required. |\n| DONT2 | avoidance | Do not report disk-snapshot target reads as authoritative Temporal state. | respected | formatTargetProjectContext marks disk-snapshot with authority='disk_snapshot_non_authoritative' and warning text. |\n| DONT3 | avoidance | Do not silently start/restart target workers from read-only snapshot paths. | respected | snapshot-ok path in withTargetPathStore does not call getService, ensureProjectTemporalQueue, restartCurrentProjectTemporalWorker, or worker-lock paths. |\n| DONT4 | avoidance | Do not bypass trust gates, worker lock safety, or approval evidence requirements. | respected | Trust gate via resolveTargetProject mutation:true; lock approval via approvedLockReclaim+approvalEvidence; no bypass paths introduced. |\n| DONT5 | avoidance | Do not redesign Epic membership or cross-project routing semantics unless implementation proves a direct blocker. | respected | No changes to epic membership tools or cross-project routing semantics; only adv_temporal_worker_restart and target-project formatting affected. |\n| OOS1 | out_of_scope | Replacing Temporal or ADV storage. | not_applicable | No Temporal or ADV storage replacement; existing storage layers unchanged. |\n| OOS2 | out_of_scope | Product-wide orchestration beyond existing target_path surfaces. | not_applicable | No product-wide orchestration changes; only existing target_path surfaces extended. |\n| OOS3 | out_of_scope | GitHub issue/Project automation changes. | not_applicable | No GitHub issue/Project automation changes. |\n| OOS4 | out_of_scope | Frontend/browser UI changes. | not_applicable | No frontend/browser UI changes. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-09T00:57:22.540Z",
+      "contentHash": "ebcf898eab0d3ca34ee141a05578d9883ee507ae6c0844c4f70aa68bd3ee1da7",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-09T00:52:23.804Z",
+      "contentHash": "cc391ffa249015f5adbe0c84502c16f5ece762595be31ddb4c82b84e5a8ef296",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-09T02:16:01.344Z",
+      "contentHash": "7593263078a0453a9d216d4645fd297c25ea3080a4e9080e9be37a3973acb319",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-09T02:25:43.835Z",
+      "contentHash": "33d48e85bccda3cfd2764e66bef8921e005995473e6179d239878fed763b90e0",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-09T04:39:41.253Z",
+      "contentHash": "a0ff53bc3f4b3319ae33f65b22bd60aa82ca09dcf4bceb74311cb3127b735d01",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-09T04:39:41.253Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
