@@ -2,6 +2,8 @@ import { basename } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import {
+  ensureProjectTemporalQueue,
+  getRegisteredTemporalWorkerQueues,
   getTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics,
   restartCurrentProjectTemporalWorker,
@@ -26,7 +28,9 @@ import {
 import { getProjectId } from "../utils/project-id";
 import {
   formatTargetProjectContext,
+  resolveTargetProject,
   targetPathSchema,
+  type TargetProjectContext,
   type TargetProjectOutputContext,
   withTargetPathStore,
 } from "./target-project";
@@ -326,6 +330,255 @@ function restartFailureNextAction(reason: RestartFailureReason): string {
   return "run adv_temporal_diagnose and follow recommendedNextAction";
 }
 
+// rq-targetWorkerLifecycle01
+async function resolveSourceProjectId(store: Store): Promise<string | null> {
+  if (store.paths.external) return basename(store.paths.external);
+  return getProjectId(store.paths.root);
+}
+
+async function executeTargetWorkerRestart(
+  args: {
+    approvedLockReclaim?: true;
+    approvalEvidence?: string;
+    target_path?: string;
+    target_confirmed?: true;
+    confirmationEvidence?: string;
+  },
+  store: Store,
+): Promise<string> {
+  if (!args.target_path) {
+    return formatToolOutput({
+      success: false,
+      errorClass: "TargetProjectError",
+      error: "target_path is required for target worker restart.",
+      recommendedNextAction:
+        "Provide a target_path or run adv_temporal_worker_restart without target_path for the current project.",
+    });
+  }
+  let targetContext: TargetProjectContext;
+  try {
+    targetContext = await resolveTargetProject({
+      currentProjectPath: store.paths.root,
+      target_path: args.target_path,
+      mutation: true,
+      target_confirmed: args.target_confirmed,
+      confirmationEvidence: args.confirmationEvidence,
+    });
+  } catch (error) {
+    return formatToolOutput({
+      success: false,
+      errorClass: "TargetProjectError",
+      error: error instanceof Error ? error.message : String(error),
+      recommendedNextAction:
+        "Confirm the target project with target_confirmed:true and confirmationEvidence, or verify the target_path is a valid git repo.",
+    });
+  }
+
+  const approvedLockReclaim = args.approvedLockReclaim === true;
+  const approvalEvidence = args.approvalEvidence?.trim();
+  if (approvedLockReclaim && !approvalEvidence) {
+    return formatToolOutput({
+      success: false,
+      errorClass: "ApprovalRequired",
+      error: "approvalEvidence is required when approvedLockReclaim:true.",
+      recommendedNextAction:
+        "Ask the user for explicit approval evidence before reclaiming a suspect live v1/v2 worker.lock.",
+      _projectContext: formatTargetProjectContext(targetContext),
+    });
+  }
+
+  const sourceProjectId = await resolveSourceProjectId(store);
+  const expectedQueue = buildProjectTaskQueue(targetContext.projectId);
+  const stats = getStslStats();
+
+  const stslBlock = {
+    initialized: getService() !== null,
+    reconnectCount: stats.reconnectCount,
+    reconnectFailureCount: stats.reconnectFailureCount,
+  };
+
+  const buildFailureResponse = (base: Record<string, unknown>): string =>
+    formatToolOutput({
+      success: false,
+      projectId: targetContext.projectId,
+      expectedQueue,
+      stsl: stslBlock,
+      ...base,
+      _projectContext: formatTargetProjectContext(targetContext),
+    });
+
+  // Cheap ensure/registration when the local worker is alive and STSL is up.
+  const bundle = getService();
+  if (bundle && getTemporalWorkerAliveness()) {
+    try {
+      await ensureProjectTemporalQueue(targetContext.projectId);
+      const verification = await waitForRestartServiceability({
+        projectId: targetContext.projectId,
+        expectedQueue,
+        timeoutMs: readWorkerRestartVerifyTimeoutMs(),
+      });
+      if (isRestartServiceabilityVerified(verification)) {
+        return formatToolOutput({
+          success: true,
+          projectId: targetContext.projectId,
+          expectedQueue,
+          queues: getRegisteredTemporalWorkerQueues(),
+          serviceability: verification.serviceability,
+          _freshness: { restart_serviceability: verification.freshness },
+          workerDiagnostics: verification.workerDiagnostics,
+          elapsedMs: verification.elapsedMs,
+          message:
+            "Target Temporal worker queue registered and verified: expected queue is serviceable.",
+          recommendedNextAction: "retry the blocked target_path ADV command",
+          stsl: stslBlock,
+          _projectContext: formatTargetProjectContext(targetContext),
+        });
+      }
+      // Not serviceable after cheap registration; fall through to full restart.
+    } catch {
+      // Cheap registration failed; fall through to full restart.
+    }
+  }
+
+  // Full restart of the target project's worker.
+  let restartResult: Awaited<
+    ReturnType<typeof restartCurrentProjectTemporalWorker>
+  >;
+  try {
+    restartResult = await restartCurrentProjectTemporalWorker(
+      targetContext.root,
+      {
+        approvedLockReclaim,
+        approvalEvidence,
+      },
+    );
+  } catch (error) {
+    const snapshotProbe = await fetchRestartServiceabilitySnapshot(
+      {
+        projectId: targetContext.projectId,
+        expectedQueue,
+        localOwnership: "peer",
+      },
+      { forceRefresh: true },
+    );
+    const snapshot = snapshotProbe.value;
+    const reason = classifyRestartFailure({ error, snapshot });
+    return buildFailureResponse({
+      errorClass:
+        reason === "worker_restart_failed"
+          ? "WorkerRestartFailed"
+          : "ApprovalRequired",
+      reason,
+      approvalRequired: reason !== "worker_restart_failed",
+      error: error instanceof Error ? error.message : String(error),
+      serviceability: snapshot.serviceability,
+      _freshness: { restart_serviceability: snapshotProbe.freshness },
+      temporalHealth: snapshot.health,
+      workerDiagnostics: snapshot.workerDiagnostics,
+      worker_lock: snapshot.health.worker_lock,
+      recommendedNextAction: restartFailureNextAction(reason),
+    });
+  }
+
+  // Preserve the source/driving queue after a full restart drains all queues.
+  const sourceExpectedQueue = sourceProjectId
+    ? buildProjectTaskQueue(sourceProjectId)
+    : undefined;
+  if (sourceProjectId && sourceProjectId !== targetContext.projectId) {
+    try {
+      await ensureProjectTemporalQueue(sourceProjectId);
+    } catch (error) {
+      return buildFailureResponse({
+        errorClass: "SourceQueuePreservationFailed",
+        message:
+          "Target Temporal worker restarted, but the source/driving project queue could not be preserved or restored.",
+        sourceProjectId,
+        sourceExpectedQueue,
+        sourceQueueError:
+          error instanceof Error ? error.message : String(error),
+        recommendedNextAction:
+          "run adv_temporal_worker_restart for the source project, then retry the target_path command",
+      });
+    }
+  }
+
+  // Verify the target queue is serviceable.
+  const targetVerification = await waitForRestartServiceability({
+    projectId: restartResult.projectId,
+    expectedQueue: restartResult.expectedQueue ?? expectedQueue,
+    timeoutMs: readWorkerRestartVerifyTimeoutMs(),
+  });
+
+  if (!isRestartServiceabilityVerified(targetVerification)) {
+    return buildFailureResponse({
+      errorClass: "WorkerRestartVerificationTimeout",
+      message:
+        "Target Temporal worker restart completed, but expected queue serviceability was not proven within the verification budget.",
+      queues: restartResult.queues,
+      serviceability: targetVerification.serviceability,
+      _freshness: { restart_serviceability: targetVerification.freshness },
+      temporalHealth: targetVerification.health,
+      workerDiagnostics: targetVerification.workerDiagnostics,
+      worker_lock: targetVerification.health.worker_lock,
+      elapsedMs: targetVerification.elapsedMs,
+      recommendedNextAction:
+        "run adv_temporal_diagnose and follow recommendedNextAction; do not assume target restart succeeded",
+    });
+  }
+
+  // Verify the source/driving queue is still serviceable after preservation.
+  if (sourceProjectId && sourceProjectId !== targetContext.projectId) {
+    const sourceProbe = await fetchRestartServiceabilitySnapshot(
+      {
+        projectId: sourceProjectId,
+        expectedQueue: sourceExpectedQueue!,
+        localOwnership: "owned",
+      },
+      { forceRefresh: true },
+    );
+    const sourceSnapshot = sourceProbe.value;
+    if (
+      !isRestartServiceabilityVerified({
+        serviceability: sourceSnapshot.serviceability,
+        freshness: sourceProbe.freshness,
+      })
+    ) {
+      return buildFailureResponse({
+        errorClass: "SourceQueuePreservationFailed",
+        message:
+          "Target Temporal worker restart verified, but the source/driving project queue is not serviceable after preservation.",
+        sourceProjectId,
+        sourceExpectedQueue,
+        serviceability: sourceSnapshot.serviceability,
+        _freshness: {
+          restart_serviceability: sourceProbe.freshness,
+        },
+        temporalHealth: sourceSnapshot.health,
+        workerDiagnostics: sourceSnapshot.workerDiagnostics,
+        worker_lock: sourceSnapshot.health.worker_lock,
+        recommendedNextAction:
+          "run adv_temporal_diagnose for the source project; if needed, run adv_temporal_worker_restart for the source project",
+      });
+    }
+  }
+
+  return formatToolOutput({
+    success: true,
+    projectId: restartResult.projectId,
+    expectedQueue: restartResult.expectedQueue ?? expectedQueue,
+    queues: restartResult.queues,
+    serviceability: targetVerification.serviceability,
+    _freshness: { restart_serviceability: targetVerification.freshness },
+    workerDiagnostics: targetVerification.workerDiagnostics,
+    elapsedMs: targetVerification.elapsedMs,
+    message:
+      "Target Temporal worker restart verified: expected queue is serviceable.",
+    recommendedNextAction: "retry the blocked target_path ADV command",
+    stsl: stslBlock,
+    _projectContext: formatTargetProjectContext(targetContext),
+  });
+}
+
 export const temporalOpsTools = {
   adv_temporal_diagnose: {
     description:
@@ -582,16 +835,9 @@ export const temporalOpsTools = {
       },
       store: Store,
     ) => {
-      // Target worker restart/ensure execution for target_path is implemented in
-      // a later task. Guard here so callers do not accidentally act on the
-      // current project.
+      // rq-targetWorkerLifecycle01
       if (args.target_path) {
-        return formatToolOutput({
-          success: false,
-          errorClass: "NotImplemented",
-          error:
-            "Target worker restart/ensure via target_path is not yet implemented. Use adv_temporal_worker_restart without target_path for the current project, or retry after the implementation task completes.",
-        });
+        return executeTargetWorkerRestart(args, store);
       }
 
       const approvedLockReclaim = args.approvedLockReclaim === true;

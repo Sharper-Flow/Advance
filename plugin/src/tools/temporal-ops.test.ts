@@ -15,6 +15,9 @@ const {
   mockGetTemporalWorkerDiagnostics,
   mockRestartCurrentProjectTemporalWorker,
   mockProbeTaskQueuePollers,
+  mockEnsureProjectTemporalQueue,
+  mockGetRegisteredTemporalWorkerQueues,
+  mockResolveTargetProject,
 } = vi.hoisted(() => ({
   mockGetTemporalHealth: vi.fn(),
   mockGetService: vi.fn(),
@@ -22,6 +25,9 @@ const {
   mockGetTemporalWorkerDiagnostics: vi.fn(),
   mockRestartCurrentProjectTemporalWorker: vi.fn(),
   mockProbeTaskQueuePollers: vi.fn(),
+  mockEnsureProjectTemporalQueue: vi.fn(),
+  mockGetRegisteredTemporalWorkerQueues: vi.fn(() => []),
+  mockResolveTargetProject: vi.fn(),
 }));
 
 vi.mock("../temporal/health-probe", () => ({
@@ -41,6 +47,8 @@ vi.mock("../plugin-init", () => ({
   getTemporalWorkerAliveness: mockGetTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics: mockGetTemporalWorkerDiagnostics,
   restartCurrentProjectTemporalWorker: mockRestartCurrentProjectTemporalWorker,
+  ensureProjectTemporalQueue: mockEnsureProjectTemporalQueue,
+  getRegisteredTemporalWorkerQueues: mockGetRegisteredTemporalWorkerQueues,
 }));
 
 vi.mock("../temporal/queue-serviceability", () => ({
@@ -57,6 +65,15 @@ vi.mock("../temporal/queue-serviceability", () => ({
     blockers: [],
   })),
 }));
+
+vi.mock("../tools/target-project", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("../tools/target-project")>();
+  return {
+    ...original,
+    resolveTargetProject: mockResolveTargetProject,
+  };
+});
 
 const notServiceable = { status: "not_serviceable" } as const;
 
@@ -82,8 +99,18 @@ const store = {
   },
 } as any;
 
+const targetContext = {
+  root: "/repo/target",
+  projectId: "target456",
+  externalRoot: "/tmp/adv-state/target456",
+  trusted: false,
+  trustSource: "explicit" as const,
+  stateMode: "disk-snapshot" as const,
+};
+
 beforeEach(() => {
   _temporalOpsProbeCaches.clear();
+  process.env.ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS = "100";
   mockGetTemporalHealth.mockReset();
   mockGetTemporalHealth.mockResolvedValue({ ...temporalHealth });
   mockGetService.mockReset();
@@ -93,6 +120,12 @@ beforeEach(() => {
   mockGetTemporalWorkerDiagnostics.mockReset();
   mockGetTemporalWorkerDiagnostics.mockReturnValue([]);
   mockRestartCurrentProjectTemporalWorker.mockReset();
+  mockEnsureProjectTemporalQueue.mockReset();
+  mockEnsureProjectTemporalQueue.mockResolvedValue(undefined);
+  mockGetRegisteredTemporalWorkerQueues.mockReset();
+  mockGetRegisteredTemporalWorkerQueues.mockReturnValue([]);
+  mockResolveTargetProject.mockReset();
+  mockResolveTargetProject.mockResolvedValue({ ...targetContext });
   mockProbeTaskQueuePollers.mockReset();
   mockProbeTaskQueuePollers.mockResolvedValue({
     status: "unavailable",
@@ -263,7 +296,21 @@ describe("temporal ops probe cache", () => {
     );
   });
 
-  test("restart with target_path returns not implemented and does not touch current project worker", async () => {
+  test("target_path cheap ensure registers target queue and verifies serviceability", async () => {
+    mockGetService.mockReturnValue({
+      client: {},
+      connection: { workflowService: { describeTaskQueue: vi.fn() } },
+      namespace: "default",
+    });
+    mockGetTemporalWorkerAliveness.mockReturnValue(true);
+    mockProbeTaskQueuePollers.mockResolvedValue({
+      status: "fresh",
+      lastAccessMs: 1000,
+    });
+    mockGetRegisteredTemporalWorkerQueues.mockReturnValue([
+      "advance-target456",
+    ]);
+
     const result = parseToolOutput(
       await temporalOpsTools.adv_temporal_worker_restart.execute(
         {
@@ -275,12 +322,199 @@ describe("temporal ops probe cache", () => {
       ),
     );
 
-    expect(result).toMatchObject({
-      success: false,
-      errorClass: "NotImplemented",
+    expect(result.success).toBe(true);
+    expect(result.projectId).toBe("target456");
+    expect(result.expectedQueue).toBe("advance-target456");
+    expect(result._projectContext).toMatchObject({
+      projectId: "target456",
+      trusted: false,
     });
+    expect(mockEnsureProjectTemporalQueue).toHaveBeenCalledWith("target456");
     expect(mockRestartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
-    expect(mockGetTemporalHealth).not.toHaveBeenCalled();
+  });
+
+  test("target_path full restart falls back to target worker restart and preserves source queue", async () => {
+    mockGetService.mockReturnValue({
+      client: {},
+      connection: { workflowService: { describeTaskQueue: vi.fn() } },
+      namespace: "default",
+    });
+    mockRestartCurrentProjectTemporalWorker.mockResolvedValue({
+      projectId: "target456",
+      queues: ["advance-target456"],
+      expectedQueue: "advance-target456",
+    });
+    mockProbeTaskQueuePollers.mockResolvedValue({
+      status: "fresh",
+      lastAccessMs: 1000,
+    });
+
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_worker_restart.execute(
+        {
+          target_path: "/repo/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target restart",
+        },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.projectId).toBe("target456");
+    expect(result.expectedQueue).toBe("advance-target456");
+    expect(mockRestartCurrentProjectTemporalWorker).toHaveBeenCalledWith(
+      "/repo/target",
+      { approvedLockReclaim: false, approvalEvidence: undefined },
+    );
+    expect(mockEnsureProjectTemporalQueue).toHaveBeenCalledWith("proj123");
+  });
+
+  test("target_path serviceability failure returns bounded failure envelope", async () => {
+    mockGetService.mockReturnValue({
+      client: {},
+      connection: { workflowService: { describeTaskQueue: vi.fn() } },
+      namespace: "default",
+    });
+    mockRestartCurrentProjectTemporalWorker.mockResolvedValue({
+      projectId: "target456",
+      queues: ["advance-target456"],
+      expectedQueue: "advance-target456",
+    });
+    // probeTaskQueuePollers defaults to unavailable in beforeEach.
+
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_worker_restart.execute(
+        {
+          target_path: "/repo/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved",
+        },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorClass).toBe("WorkerRestartVerificationTimeout");
+    expect(result.projectId).toBe("target456");
+    expect(result.expectedQueue).toBe("advance-target456");
+    expect(result.serviceability).toBeDefined();
+    expect(result._freshness).toBeDefined();
+    expect(result._projectContext).toBeDefined();
+    expect(result.stsl).toBeDefined();
+    expect(result.recommendedNextAction).toContain("adv_temporal_diagnose");
+  });
+
+  test("target_path requires approval evidence before lock reclaim", async () => {
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_worker_restart.execute(
+        {
+          target_path: "/repo/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved",
+          approvedLockReclaim: true,
+        },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorClass).toBe("ApprovalRequired");
+    expect(mockRestartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+    expect(mockEnsureProjectTemporalQueue).not.toHaveBeenCalled();
+  });
+
+  test("target_path passes lock approval evidence to restart", async () => {
+    mockGetService.mockReturnValue({
+      client: {},
+      connection: { workflowService: { describeTaskQueue: vi.fn() } },
+      namespace: "default",
+    });
+    mockRestartCurrentProjectTemporalWorker.mockResolvedValue({
+      projectId: "target456",
+      queues: ["advance-target456"],
+      expectedQueue: "advance-target456",
+    });
+    mockProbeTaskQueuePollers.mockResolvedValue({
+      status: "fresh",
+      lastAccessMs: 1000,
+    });
+
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_worker_restart.execute(
+        {
+          target_path: "/repo/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved",
+          approvedLockReclaim: true,
+          approvalEvidence: "user approved lock reclaim",
+        },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockRestartCurrentProjectTemporalWorker).toHaveBeenCalledWith(
+      "/repo/target",
+      {
+        approvedLockReclaim: true,
+        approvalEvidence: "user approved lock reclaim",
+      },
+    );
+  });
+
+  test("target_path source queue preservation failure blocks success", async () => {
+    mockRestartCurrentProjectTemporalWorker.mockResolvedValue({
+      projectId: "target456",
+      queues: ["advance-target456"],
+      expectedQueue: "advance-target456",
+    });
+    mockEnsureProjectTemporalQueue.mockImplementation((projectId) => {
+      if (projectId === "proj123") {
+        throw new Error("source queue registration failed");
+      }
+      return undefined;
+    });
+
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_worker_restart.execute(
+        {
+          target_path: "/repo/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved",
+        },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorClass).toBe("SourceQueuePreservationFailed");
+    expect(result.sourceProjectId).toBe("proj123");
+    expect(result.sourceExpectedQueue).toBe("advance-proj123");
+    expect(result.sourceQueueError).toContain(
+      "source queue registration failed",
+    );
+    expect(result._projectContext).toBeDefined();
+  });
+
+  test("untrusted target_path without confirmation fails before restart", async () => {
+    mockResolveTargetProject.mockRejectedValue(
+      new Error(
+        "Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence",
+      ),
+    );
+
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_worker_restart.execute(
+        { target_path: "/repo/target" },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorClass).toBe("TargetProjectError");
+    expect(mockRestartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+    expect(mockEnsureProjectTemporalQueue).not.toHaveBeenCalled();
   });
 
   test("restart without target_path still reaches current project worker", async () => {
