@@ -1,0 +1,1044 @@
+{
+  "id": "addEpicTimestamps",
+  "title": "Add Epic Timestamps",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-08T23:49:36.937Z",
+  "tasks": [
+    {
+      "id": "tk-69ad44262fa2",
+      "title": "Add Epic timestamp spec law and regression expectations",
+      "type": "docs",
+      "section": "Spec and RED tests",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-09T00:10:45.190Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "RED `bun test bin/lib/epic-list.test.ts` failed before implementation (`tr_mrcr9lk7_4edb67df`) on missing rich export after tests/spec expected timestamps. GREEN `bun test bin/lib/epic-list.test.ts` passed (`tr_mrcraqmw_2571e23e`). Spec citation/bridge verification later passed (`tr_mrcrhjnd_0aece7ba`).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `rq-epicCliList01` and docs mirror to require Epic CLI JSON entries with present `startTime` field, ISO UTC when Visibility startTime is valid and `null` when invalid/missing. Added/updated regression expectations across Epic list tests. During same checkpoint, implementation files were updated to satisfy the new tests and a missing citation for existing `rq-epicSearchAttributeRepair01` was repaired.",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        "bin/adv",
+        "bin/lib/epic-list.test.ts",
+        "bin/lib/epic-list.ts",
+        "docs/specs/advance-epics.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/cli/temporal-boundary.ts",
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/temporal/list-epic-workflows.test.ts",
+        "plugin/src/temporal/list-epic-workflows.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        "bin/adv",
+        "bin/lib/epic-list.test.ts",
+        "bin/lib/epic-list.ts",
+        "docs/specs/advance-epics.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/cli/temporal-boundary.ts",
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/temporal/list-epic-workflows.test.ts",
+        "plugin/src/temporal/list-epic-workflows.ts"
+      ],
+      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
+      "completedAt": "2026-07-09T00:21:57.788Z",
+      "completed_at": "2026-07-09T00:21:57.788Z",
+      "notes": "Checkpoint 13302e3c7895d733aa85ad971eb64970e1a2a57a. RED `tr_mrcr9lk7_4edb67df`; GREEN `tr_mrcraqmw_2571e23e`; targeted spec/bridge verification `tr_mrcrhjnd_0aece7ba`.",
+      "updatedAt": "2026-07-09T00:22:08.157Z"
+    },
+    {
+      "id": "tk-13c3905cafde",
+      "title": "Implement rich Epic Visibility list helper",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-09T00:11:02.592Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-69ad44262fa2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "GREEN `pnpm --dir plugin exec vitest run src/temporal/list-epic-workflows.test.ts` passed 9 tests (`tr_mrcren5f_f08ba786`).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Implemented rich Epic Visibility listing via `listEpicWorkflows()` with `{ id, startTime }` entries, structural Date validation, null fallback, and existing query/prefix/limit behavior. Preserved `listEpicWorkflowIds()` as a compatibility wrapper for existing string-ID callers. Exported rich helper through the approved CLI Temporal boundary.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
+      "completedAt": "2026-07-09T00:22:23.905Z",
+      "completed_at": "2026-07-09T00:22:23.905Z",
+      "notes": "Checkpoint clean at 13302e3c7895d733aa85ad971eb64970e1a2a57a. GREEN `tr_mrcren5f_f08ba786` passed 9 targeted list-epic-workflows tests.",
+      "updatedAt": "2026-07-09T00:22:32.127Z"
+    },
+    {
+      "id": "tk-615fc52d9a57",
+      "title": "Emit Epic startTime in CLI JSON payload",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-09T00:11:17.693Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-13c3905cafde"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "SC1",
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "GREEN `bun test bin/lib/epic-list.test.ts bin/adv.test.ts` passed 22 tests (`tr_mrcrevv9_b76cac3c`). Live `bin/adv epic list --json` emitted `startTime` for optimizeAdvPerformanceStructure (`tr_mrcrgp00_df64ddd3`).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated CLI Epic list payload path to load rich Epic entries and emit `startTime` as ISO UTC string or `null`. Updated `bin/adv` to pass rich entries into the payload builder. Preserved fail-closed metadata for connection/list errors and root CLI source boundary through `plugin/src/cli/temporal-boundary.ts`.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
+      "completedAt": "2026-07-09T00:22:42.134Z",
+      "completed_at": "2026-07-09T00:22:42.134Z",
+      "notes": "Checkpoint clean at 13302e3c7895d733aa85ad971eb64970e1a2a57a. GREEN `tr_mrcrevv9_b76cac3c` passed 22 Bun CLI tests; live command evidence `tr_mrcrgp00_df64ddd3` emitted startTime.",
+      "updatedAt": "2026-07-09T00:22:54.502Z"
+    },
+    {
+      "id": "tk-72771587042b",
+      "title": "Run Epic timestamp compatibility verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-09T00:11:34.195Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-615fc52d9a57"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "Verification passed: `bin/oc-test targeted -- src/temporal/list-epic-workflows.test.ts src/cli-bridge-contract.test.ts src/__tests__/spec-citation-invariant.test.ts` (`tr_mrcrhjnd_0aece7ba`), `pnpm --dir plugin run schemas:check` (`tr_mrcrfa5a_cc0545ec`), `pnpm --dir plugin run format:check` (`tr_mrcrg5b2_c13d6dc4` after formatting), `pnpm --dir plugin run typecheck` (`tr_mrcrgie3_f7ded6cc`), `git diff --check` (`tr_mrcrhp6m_96accb23`), live CLI `bin/adv epic list --json` (`tr_mrcrgp00_df64ddd3`).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final compatibility verification across CLI payload tests, Epic Visibility helper tests, CLI source-boundary guard, spec citation invariant, schema check, format check, typecheck, git whitespace check, and live CLI output. Initial format check failed on `list-epic-workflows.test.ts`; ran Prettier and reran format check green.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
+      "completedAt": "2026-07-09T00:23:11.788Z",
+      "completed_at": "2026-07-09T00:23:11.788Z",
+      "notes": "Checkpoint clean at 13302e3c7895d733aa85ad971eb64970e1a2a57a. Verification passed: targeted `tr_mrcrhjnd_0aece7ba`, schemas `tr_mrcrfa5a_cc0545ec`, format `tr_mrcrg5b2_c13d6dc4`, typecheck `tr_mrcrgie3_f7ded6cc`, diff check `tr_mrcrhp6m_96accb23`, live CLI `tr_mrcrgp00_df64ddd3`. Initial format failure `tr_mrcrfndo_675cd18a` fixed by formatting.",
+      "updatedAt": "2026-07-09T00:23:23.695Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicTimestamps",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-current-state"
+      },
+      "agent": "adv-researcher",
+      "topic": "Exposing startTime in `adv epic list --json` without hydration",
+      "sources": [
+        {
+          "label": "Temporal TS SDK type — WorkflowExecutionInfo",
+          "locator": "plugin/node_modules/.pnpm/@temporalio+client@1.17.2/node_modules/@temporalio/client/lib/types.d.ts:17-44",
+          "summary": "WorkflowExecutionInfo has non-optional `startTime: Date` (line 33) and optional `executionTime?: Date` (line 34), `closeTime?: Date` (line 35). These are part of each list row already; no describe/query needed."
+        },
+        {
+          "label": "Temporal TS SDK — WorkflowClient.list() yields full info rows",
+          "locator": "plugin/node_modules/.pnpm/@temporalio+client@1.17.2/node_modules/@temporalio/client/lib/workflow-client.d.ts:235,525",
+          "summary": "`AsyncWorkflowListIterable extends AsyncIterable<WorkflowExecutionInfo>` and `_list(): AsyncIterable<WorkflowExecutionInfo>`. Iterating list() gives each row's startTime with zero extra RPCs — Visibility returns it in the ListWorkflowExecutions response."
+        },
+        {
+          "label": "Current CLI payload builder — only emits { id }",
+          "locator": "bin/lib/epic-list.ts:15-17,54-61",
+          "summary": "EpicListEntry = { id } and buildLiveEpicListPayload maps ids to `{ id }`. listEpicIdsFromVisibility returns string[] — startTime is discarded upstream."
+        },
+        {
+          "label": "Visibility enumerator drops all fields except workflowId",
+          "locator": "plugin/src/temporal/list-epic-workflows.ts:30-36,65-84",
+          "summary": "ListEpicClient.workflow.list iterator is typed `AsyncIterable<{ workflowId: string }>` and listEpicWorkflowIds returns string[]. The lossy narrowing to string[] here is the structural reason startTime never reaches the CLI — must return {id, startTime} tuples instead."
+        },
+        {
+          "label": "Spec rq-epicCliList01 — read-only/worker-free/no-hydration boundary",
+          "locator": ".adv/specs/advance-epics/spec.json:916-970",
+          "summary": "MUST use Visibility enumeration; MUST NOT read ADV state files; MUST NOT query or hydrate each Epic workflow; MUST NOT require a worker; scenario .1 requires each entry `object containing at least id` (additive-safe); scenario .4: `list path does not query per-Epic workflow state`."
+        }
+      ],
+      "architecture_assessment": "Adding `{ id, startTime }` fully preserves the read-only/worker-free/no-hydration boundary. `startTime` is a native field on every Visibility list row (WorkflowExecutionInfo.startTime: Date), populated by the ListWorkflowExecutions RPC that already backs the iterator — NOT by describe/query/hydration. The spec's forbidden operation is per-Epic workflow query/hydration (a separate DescribeWorkflowExecution or query RPC per Epic); reading a field off the list row you already iterate is not that. The change is a lossy-narrowing fix: today listEpicWorkflowIds() collapses each row to string, and buildLiveEpicListPayload maps string->{id}. To expose startTime, three surfaces must stop discarding it: (1) list-epic-workflows.ts iterator type + return type widen from string[] to {id, startTime}[]; (2) ListEpicClient.workflow.list iterator shape adds startTime: Date; (3) epic-list.ts EpicListEntry/payload builder carries startTime. ISO UTC via Date.prototype.toISOString(). Spec scenario .1 'at least id' is additive-safe — no spec text change strictly required, though a scenario clarifying startTime presence is advisable. Precedent exists: bin/lib/live-status.ts already surfaces created_at from change rows, so timestamp-in-CLI is an established pattern.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Exposing { id, startTime } preserves every rq-epicCliList01 MUST/MUST-NOT clause. startTime comes from the Visibility list row, not per-Epic hydration. No worker, no ADV state file read, no mutation verb added. Fail-closed path unaffected (epics: [] on error)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Widening the ListEpicClient/list iterator type from { workflowId } to include startTime is a real but boring type change; existing test mocks (list-epic-workflows.test.ts, epic-list.test.ts) yield plain { workflowId } objects and must be updated to yield startTime, else the mapped startTime is undefined and toISOString() throws.",
+          "startTime is workflow START time, not Epic creation/last-activity semantics; if a user reads it as 'when Epic was created' that is approximately true for Epic workflows (started once) but not a hydrated business timestamp. Document the field meaning.",
+          "executionTime is optional and can be absent on some server versions; do NOT depend on it for the required field. startTime is non-optional and safe."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Hydrate each Epic workflow (describe/query) to read a business createdAt",
+            "disposition": "rejected",
+            "rationale": "Directly violates rq-epicCliList01 'MUST NOT query or hydrate each Epic workflow' and scenario .4 'list path does not query per-Epic workflow state', and would require a running worker for queries. Unnecessary — startTime is already on the list row."
+          },
+          {
+            "option": "Use executionTime instead of startTime",
+            "disposition": "rejected",
+            "rationale": "executionTime is optional (types.d.ts:34, `executionTime?: Date`) and only available on newer servers; using it as the required field risks undefined. startTime is non-optional."
+          },
+          {
+            "option": "Read a disk-projected timestamp from ADV state files",
+            "disposition": "rejected",
+            "rationale": "Violates 'MUST NOT read ADV external state files' and reintroduces the stale-disk fallback the spec fails-closed against."
+          },
+          {
+            "option": "Expose { id, startTime } from the Visibility list row (chosen)",
+            "disposition": "preferred",
+            "rationale": "Boring, zero extra RPC, honors every MUST/MUST-NOT, matches existing live-status.ts created_at precedent, additive to scenario .1's 'at least id'."
+          }
+        ],
+        "recommendation": "Implement `{ id, startTime }` by threading the Visibility row's startTime through three surfaces (list-epic-workflows.ts return type + ListEpicClient iterator shape, then epic-list.ts EpicListEntry/payload). Emit startTime as ISO UTC via toISOString(). Update the two test mocks to yield startTime. No hydration, no worker, no state-file read."
+      },
+      "recommendation": "PROCEED. Adding startTime from the Visibility list row is a low-risk, boring, structurally-additive change that preserves the full read-only/worker-free/no-hydration boundary. Required implementation surfaces: (1) plugin/src/temporal/list-epic-workflows.ts — widen ListEpicClient.workflow.list iterator to include `startTime: Date` and change listEpicWorkflowIds return from string[] to Array<{ id: string; startTime: Date }>; (2) bin/lib/epic-list.ts — EpicListEntry gains startTime, buildLiveEpicListPayload/listEpicIdsFromVisibility carry it, emit ISO UTC via toISOString(); (3) update mocks in list-epic-workflows.test.ts and epic-list.test.ts to yield startTime. Optional: add a spec scenario asserting startTime presence (scenario .1 'at least id' already permits the addition).",
+      "follow_ups": [
+        "Consider adding an explicit spec scenario under rq-epicCliList01 asserting each Epic entry includes an ISO UTC startTime, to make the acceptance criterion machine-checkable rather than relying on 'at least id'.",
+        "Confirm desired field semantics in acceptance: startTime = Temporal workflow start (Epic workflow creation), documented as such, not a mutable last-activity timestamp."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicTimestamps",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — thread Temporal Visibility startTime through adv epic list --json",
+      "sources": [
+        {
+          "label": "Temporal TS SDK type — WorkflowExecutionInfo.startTime non-optional",
+          "locator": "plugin/node_modules/.pnpm/@temporalio+client@1.17.2/node_modules/@temporalio/client/lib/types.d.ts:33-35",
+          "summary": "startTime: Date (non-optional, line 33); executionTime?: Date and closeTime?: Date optional (lines 34-35). Confirms design Key Decision #1 and Avoidance DONT2 (do not depend on optional executionTime)."
+        },
+        {
+          "label": "Temporal TS SDK runtime deserializer treats startTime as required",
+          "locator": "plugin/node_modules/.pnpm/@temporalio+client@1.17.2/node_modules/@temporalio/client/lib/helpers.js:57-59",
+          "summary": "startTime is parsed via requiredTsToDate('startTime') (throws if missing), while executionTime/closeTime use optionalTsToDate. startTime is structurally guaranteed on every parsed Visibility list row — no describe/query RPC needed."
+        },
+        {
+          "label": "Spec rq-epicCliList01 — read-only/worker-free/no-hydration boundary",
+          "locator": ".adv/specs/advance-epics/spec.json:916-972",
+          "summary": "MUST use Visibility enumeration + project-prefix filter; MUST NOT read ADV state files; MUST NOT query or hydrate each Epic workflow; MUST NOT require a worker; MUST fail closed. Scenario .1: each entry is 'an object containing at least id' (additive-safe). Scenario .4: 'list path does not query per-Epic workflow state'."
+        },
+        {
+          "label": "Spec rq-epicRetiredListing01 — active-only structural filter",
+          "locator": ".adv/specs/advance-epics/spec.json:1019-1021",
+          "summary": "adv epic list --json MUST enumerate live epicWorkflow with AdvEpicStatus = 'active', ExecutionStatus = 'Running', and project-prefix filtering. Design AC3 preserves this exact query — no filter change."
+        },
+        {
+          "label": "Source — current lossy narrowing at Visibility enumerator",
+          "locator": "plugin/src/temporal/list-epic-workflows.ts:30-36,65-84",
+          "summary": "ListEpicClient.workflow.list iterator typed AsyncIterable<{ workflowId: string }> and listEpicWorkflowIds returns string[]. Row startTime is discarded here — the structural reason it never reaches the CLI. Design widens iterator + adds rich helper listEpicWorkflows() returning {id,startTime}, keeping listEpicWorkflowIds() as string[] wrapper."
+        },
+        {
+          "label": "Source — current CLI payload builder emits only { id }",
+          "locator": "bin/lib/epic-list.ts:15-17,47-62",
+          "summary": "EpicListEntry = { id }; buildLiveEpicListPayload maps ids.map(id => ({id})). Design changes EpicListEntry to { id; startTime: string | null } and maps Date -> toISOString(), null preserved. Fail-closed path (buildLiveEpicListFailure, epics:[]) unaffected."
+        }
+      ],
+      "architecture_assessment": "The design is a boring, structurally-additive lossy-narrowing fix, independently verified against SDK types, SDK runtime, spec law, and current source. CORRECTNESS: solves all objectives — startTime is a native field on every Visibility list row populated by the ListWorkflowExecutions RPC that already backs the CLI iterator, so exposing it needs zero extra RPC and no hydration. The 3-surface thread (list-epic-workflows.ts iterator+return type, rich helper, epic-list.ts payload) matches the actual source. SIMPLICITY: no materially simpler path exists that still emits a per-Epic timestamp; the rich-helper-plus-ID-wrapper split is minimal and preserves store/repair callers (epics.ts) unchanged. SPEC-LAW COMPLIANCE: rq-epicCliList01.1 'at least id' is additive-safe; rq-epicCliList01.4 'no per-Epic workflow state query' is honored because reading a field off an already-iterated list row is not a DescribeWorkflowExecution/query RPC; rq-epicRetiredListing01 active-only filter is preserved verbatim. KEY ALTERNATIVES: hydrate-per-Epic (rejected — violates .4 + needs worker), executionTime (rejected — optional per SDK), disk-projected timestamp (rejected — violates no-state-file-read + fail-closed). One nuance: SDK runtime helpers.js:57 parses startTime via requiredTsToDate, so for successfully-parsed rows startTime is effectively always present — making AC2/DDC2 startTime:null a defensive-only branch. This is harmless, matches user preference (DONT3: do not drop rows for invalid timestamp), and DDC3's structural Date guard (not heuristic parsing) is the correct implementation. Design correctly avoids DONT1 (labels startTime as workflow-start/list-timestamp, not child last-activity) and DONT4 (no new last-activity index).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design honors every rq-epicCliList01 MUST/MUST-NOT and preserves rq-epicRetiredListing01 filtering. startTime sourced from the Visibility list row (SDK non-optional Date, runtime-required), not per-Epic hydration; no worker, no ADV state file read, no mutation verb. All five agreement AC and constraints C1-C5 map to concrete design decisions/DDC. Fail-closed path unchanged. Only advisory note: AC2 null-fallback is defensive since the SDK deserializer requires startTime — keep the structural Date guard and a test for the invalid-row branch to satisfy AC2/DDC3 machine-checkably, but do not expect it to trigger on normal SDK rows."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Widening ListEpicClient.workflow.list iterator + return type from string[] to {id,startTime} is a real (but boring) type change; existing test mocks in list-epic-workflows.test.ts and epic-list.test.ts yield plain {workflowId} and MUST be updated to yield startTime, or the mapped Date is undefined and toISOString() throws.",
+          "startTime is Temporal workflow START time, not Epic business creation or child last-activity; approximately equal to Epic-workflow creation (started once) but must be documented as such to avoid consumer misread (DONT1).",
+          "AC2/DDC2 startTime:null is defensive-only: SDK helpers.js parses startTime via requiredTsToDate, so normal parsed rows always have it. The null branch guards only against a widened/defensive row type and won't exercise on real SDK output — worth an explicit unit test rather than relying on live data."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Hydrate/describe each Epic workflow to read a business createdAt",
+            "disposition": "rejected",
+            "rationale": "Violates rq-epicCliList01 'MUST NOT query or hydrate each Epic workflow' and scenario .4 'list path does not query per-Epic workflow state', and would require a running worker. Unnecessary — startTime is already on the list row."
+          },
+          {
+            "option": "Use executionTime instead of startTime",
+            "disposition": "rejected",
+            "rationale": "executionTime is optional in SDK types (types.d.ts:34) and parsed via optionalTsToDate (helpers.js:58); using it as the required field risks undefined on some server versions. Design DONT2 correctly rejects this."
+          },
+          {
+            "option": "Read a disk-projected timestamp from ADV state files",
+            "disposition": "rejected",
+            "rationale": "Violates 'MUST NOT read ADV external state files' and reintroduces the stale-disk fallback the spec fails-closed against (rq-epicCliList01.3)."
+          },
+          {
+            "option": "Widen listEpicWorkflowIds() in place for all callers",
+            "disposition": "rejected",
+            "rationale": "storage/store-temporal/epics.ts and repair paths consume string[]; widening in place forces unnecessary churn. Design's rich-helper + string[] wrapper is the minimal-blast-radius choice."
+          },
+          {
+            "option": "Thread {id,startTime} from the Visibility list row via rich helper + ID wrapper (chosen)",
+            "disposition": "preferred",
+            "rationale": "Zero extra RPC, honors every MUST/MUST-NOT, preserves store/repair callers, additive to scenario .1 'at least id', matches existing bin/lib/live-status.ts created_at CLI-timestamp precedent."
+          }
+        ],
+        "recommendation": "PROCEED to planning. Design is correct, minimal, and spec-compliant. During execution: (1) update the two test mocks (list-epic-workflows.test.ts, epic-list.test.ts) to yield startTime so mapped Date is defined; (2) add an explicit unit test for the invalid/missing startTime row -> startTime:null branch to make AC2/DDC3 machine-checkable, noting it is defensive vs normal SDK rows; (3) document startTime field semantics as Temporal workflow start / Epic list timestamp source (DONT1); (4) keep the active-only Visibility query (AdvEpicStatus=active AND ExecutionStatus=Running + prefix) unchanged (AC3)."
+      },
+      "recommendation": "PROCEED — design validation passes. Threading Visibility row startTime through the 3 CLI surfaces is a low-risk, boring, structurally-additive change that preserves the full read-only/worker-free/no-hydration boundary (rq-epicCliList01) and the active-only filter (rq-epicRetiredListing01). SDK type + runtime independently confirm startTime is non-optional and required on parsed rows. AC2 null-fallback is defensive-only; cover it with a unit test and the structural Date guard rather than relying on live SDK output.",
+      "follow_ups": [
+        "Add an explicit spec scenario under rq-epicCliList01 asserting each Epic entry includes an ISO-8601 UTC startTime (or null), to make AC1/AC2 machine-checkable rather than relying on scenario .1 'at least id'.",
+        "Document startTime semantics in the payload/spec as Temporal workflow start time (Epic list timestamp source), not child-change last activity, to prevent consumer misread (agreement DONT1)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicTimestamps",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addEpicTimestamps",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/list-epic-workflows.ts",
+          "line": 32,
+          "what": "Timestamp normalization is isolated at the Temporal Visibility boundary.",
+          "why": "Invalid or missing Visibility timestamps become null before CLI JSON rendering, preserving Epic rows and keeping timestamp semantics structural."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For root CLI JSON backed by Temporal Visibility, keep row enrichment in the narrow temporal-boundary export and normalize untrusted Visibility fields before root CLI serialization; source-boundary tests should assert no per-workflow hydration or external state reads."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/temporal/list-epic-workflows.test.ts plugin/src/cli-bridge-contract.test.ts (invocation path mismatch; no tests found)",
+          "bun test bin/lib/epic-list.test.ts",
+          "bin/oc-test targeted -- src/temporal/list-epic-workflows.test.ts src/cli-bridge-contract.test.ts",
+          "pnpm run schemas:check",
+          "pnpm run typecheck",
+          "git diff --check trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Reviewed diff from trunk...HEAD at 13302e3c7895d733aa85ad971eb64970e1a2a57a. Corrected targeted Vitest invocation passed 2 files / 28 tests; Bun CLI helper tests passed 6 tests / 13 assertions; schemas:check and typecheck exited 0; git diff --check produced no output. Initial oc-test invocation used plugin-prefixed paths while wrapper runs in plugin/ and failed with no tests found; rerun with src/ paths passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addEpicTimestamps",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addEpicTimestamps",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-praise-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/list-epic-workflows.ts",
+          "line": 32,
+          "what": "Timestamp normalization is fail-closed and preserves Epic rows with null startTime for invalid/missing Visibility timestamps.",
+          "why": "Release behavior matches spec while avoiding row loss or stale fallback data."
+        },
+        {
+          "id": "harden-praise-2",
+          "label": "praise",
+          "file": "bin/lib/epic-list.ts",
+          "line": 49,
+          "what": "CLI payload keeps read-only Temporal Visibility boundary and emits stable JSON entries with id plus startTime.",
+          "why": "Maintains existing fail-closed CLI design while extending output shape with explicit timestamp semantics."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git status --short && git branch --show-current && git rev-parse --show-toplevel && git merge-base HEAD origin/main && git diff --stat origin/main...HEAD && git diff --name-only origin/main...HEAD",
+          "git branch -r && git status --short && git diff --stat trunk...HEAD && git diff --name-only trunk...HEAD",
+          "git diff --check trunk...HEAD && git diff --find-renames --find-copies trunk...HEAD -- . ':!plugin/pnpm-lock.yaml'",
+          "bin/oc-test targeted -- plugin/src/temporal/list-epic-workflows.test.ts plugin/src/cli-bridge-contract.test.ts",
+          "bin/oc-test targeted -- src/temporal/list-epic-workflows.test.ts src/cli-bridge-contract.test.ts",
+          "bun test bin/lib/epic-list.test.ts",
+          "git status --short && git diff --check trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Initial origin/main probe failed because repository default is trunk. Initial oc-test targeted command used root-prefixed plugin paths and found no tests; rerun with plugin-relative paths passed: 2 files, 28 Vitest tests. Bun CLI helper tests passed: 6 tests, 13 assertions. git diff --check passed and final git status was clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live Temporal CLI output and broader typecheck/format/schema evidence were provided in context; this harden pass reran targeted source/CLI tests and reviewed changed surfaces without re-running the full release gate."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with release/archive if orchestrator-held release gate evidence remains current and CI/release policy is satisfied."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-M9MNBf",
+      "type": "pattern",
+      "content": "For CLI visibility-list enrichments, prefer adding a rich list helper plus preserving the existing ID-only wrapper. This avoids broad caller churn while letting CLI JSON carry native Temporal Visibility row fields such as startTime without hydration.",
+      "source_task": "tk-72771587042b",
+      "recorded_at": "2026-07-09T00:28:21.444Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-08T23:55:52.453Z",
+      "completed_by": "adv",
+      "approval_evidence": "User approved proposal/problem framing in chat: `approve` after issue #211 validity was confirmed.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "f753a73e5e4080867d289383f5b19d814585fa2a4780f5b2f5fabfc0c94fad24",
+        "non_whitespace_chars": 2302,
+        "checked_at": "2026-07-08T23:49:36.974Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-09T00:06:17.220Z",
+      "completed_by": "adv",
+      "approval_evidence": "Agreement persisted and contract minted after user approved criteria with `approve`. User also granted full yolo autopilot for this session.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "non_whitespace_chars": 3835,
+        "checked_at": "2026-07-08T23:49:36.975Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-09T00:10:06.364Z",
+      "completed_by": "adv",
+      "approval_evidence": "Design persisted. Independent adv-researcher validator passed with high confidence/low risk; no conflict, contract-compromise risk, or user-value tradeoff requiring pause.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "d5e304f150ac2dfe17643973d9b32abd66d8675c0d0e35bb1d1585f2f5146d85",
+        "non_whitespace_chars": 6917,
+        "checked_at": "2026-07-08T23:49:36.976Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-09T00:11:49.516Z",
+      "completed_by": "adv",
+      "approval_evidence": "Task graph created with four tasks covering spec/tests, rich visibility helper, CLI payload, and verification. User granted prep/autonomous execution authority earlier: `I approve full yolo autopilot for this session, fix as many bugs as you can`; criteria also approved with `approve`."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-09T00:23:44.510Z",
+      "completed_by": "adv",
+      "approval_evidence": "All four planned tasks completed. Checkpoint 13302e3c7895d733aa85ad971eb64970e1a2a57a. Verification: bin tests, targeted plugin tests, schema check, format check, typecheck, git diff check, live CLI output. adv_change_validate strict passed with only NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-09T00:28:48.198Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "Accepted under user's session-level approval: `I approve full yolo autopilot for this session, fix as many bugs as you can`. Acceptance evidence: reviewer READY with no blockers/issues; contract matrix 21/21 pass/respected/not_applicable; tests and live CLI evidence passed; executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "5fc334536fd983adf8d3ac77eff6e7e7bc5c3eb9d4bbc8d02997155702ecb040",
+        "non_whitespace_chars": 2139,
+        "checked_at": "2026-07-08T23:49:36.977Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 211
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+      "approvedAt": "2026-07-09T00:06:12.714Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Childless running Epics have a display/sort timestamp source in `adv epic list --json`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "CLI Epic list remains live Temporal Visibility-only: no Epic hydration, no ADV state file reads, no worker dependency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Existing active-Epic filtering and project-prefix isolation stay unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given Temporal Visibility returns a running Epic workflow row with valid `startTime`, `adv epic list --json` emits that Epic as `{ id, startTime }` where `startTime` is ISO-8601 UTC.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicCliList01"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a running Epic workflow row unexpectedly lacks valid `startTime`, the emitted row still includes that Epic with `startTime: null`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicCliList01"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given active Epic listing runs, the query still filters with `AdvEpicStatus = \"active\"` and `ExecutionStatus = \"Running\"` and still filters by project workflow-ID prefix.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicRetiredListing01"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given implementation completes, tests prove no per-Epic workflow query/hydration and no ADV external state file read is added for the CLI timestamp.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicCliList01"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given spec/docs scope, `advance-epics` spec law and regression tests describe/prove additive timestamp output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicCliList01"
+        ]
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve root CLI source-boundary policy: root `bin/adv` code imports plugin source only through approved CLI-safe boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve live Temporal fail-closed behavior for Temporal connection/list failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not add a CLI mutation verb.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not hydrate/query each Epic workflow or read ADV external state files for the timestamp.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep timestamp correctness structural: use typed Temporal Visibility row data; do not infer or synthesize timestamps heuristically.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not label `startTime` as true child-change last activity or mutable recency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not use `executionTime` as the required timestamp source because Temporal SDK marks it optional.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not drop an Epic row solely because its timestamp is invalid/missing; emit `startTime: null` for that row.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not broaden this issue into a new last-activity index/search-attribute system.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "True last changed child/Epic activity timestamp.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Per-Epic workflow query/hydration from the CLI list path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "ADV MCP `adv_epic_list` output changes unless required by shared implementation/tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Dashboard/zellij launcher changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-09T00:28:14.804Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Live CLI evidence `tr_mrcrgp00_df64ddd3`: `bin/adv epic list --json` emitted `startTime` for running Epic `optimizeAdvPerformanceStructure`; reviewer verdict READY."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Implementation uses Temporal Visibility `listEpicWorkflows()` and CLI boundary only; no getHandle/readFile in epic-list path. Source-boundary/spec tests passed `tr_mrcrhjnd_0aece7ba`; reviewer READY."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Existing active filter and project-prefix tests passed in `list-epic-workflows.test.ts` (`tr_mrcren5f_f08ba786`, `tr_mrcrhjnd_0aece7ba`); reviewer READY."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/lib/epic-list.test.ts` validates Date startTime maps to ISO UTC; passed in `tr_mrcraqmw_2571e23e` and `tr_mrcrevv9_b76cac3c`. Live CLI emitted ISO UTC `startTime` in `tr_mrcrgp00_df64ddd3`."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/lib/epic-list.test.ts` and `plugin/src/temporal/list-epic-workflows.test.ts` cover null fallback for missing/invalid startTime; passed in `tr_mrcraqmw_2571e23e`, `tr_mrcren5f_f08ba786`, and `tr_mrcrhjnd_0aece7ba`."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Active query and project-prefix tests passed: `tr_mrcren5f_f08ba786` and `tr_mrcrhjnd_0aece7ba`; query remains `WorkflowType = \"epicWorkflow\" AND AdvEpicStatus = \"active\" AND ExecutionStatus = \"Running\"`."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "CLI source-boundary test passed `tr_mrcrhjnd_0aece7ba`; reviewer confirmed no per-Epic workflow query/hydration or ADV state-file read added. `git diff --check` clean `tr_mrcrhp6m_96accb23`."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`rq-epicCliList01` spec/docs updated; spec citation/source-boundary targeted tests passed `tr_mrcrhjnd_0aece7ba`; schema check passed `tr_mrcrfa5a_cc0545ec`."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Root CLI continues through `plugin/src/cli/temporal-boundary.ts`; cli-bridge/source-boundary test passed `tr_mrcrhjnd_0aece7ba`."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Fail-closed metadata test remains green in `bin/lib/epic-list.test.ts` and `bin/adv.test.ts`; Bun tests passed `tr_mrcrevv9_b76cac3c`."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No CLI mutation verb added; cli-bridge contract test passed `tr_mrcrhjnd_0aece7ba`."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`bin/lib/epic-list.ts` reads only rich Visibility helper results; reviewer READY and cli-bridge checks passed `tr_mrcrhjnd_0aece7ba`."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`normalizeVisibilityStartTime()` uses `instanceof Date` and `getTime()` validity check; no arbitrary timestamp parsing. Typecheck passed `tr_mrcrgie3_f7ded6cc`."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Field is named `startTime` and spec says it represents Temporal workflow start timestamp, not child activity; reviewer READY."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation uses Visibility row `startTime` only; `executionTime` not used. Typecheck/source review passed."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Null fallback tests keep Epic rows with `startTime:null`; passed `tr_mrcraqmw_2571e23e` and `tr_mrcren5f_f08ba786`."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new last-activity index/search attribute added; changes limited to CLI/spec/tests plus citation comment; reviewer READY."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "True last changed child/Epic activity timestamp intentionally out of scope; no lastActivityAt field added."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Per-Epic workflow query/hydration intentionally out of scope; no getHandle/query/describe added in CLI list path."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "ADV MCP `adv_epic_list` output not changed."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Dashboard/zellij launcher not changed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given Temporal Visibility returns a running Epic workflow row with valid `startTime`, `adv epic list --json` emits that Epic as `{ id, startTime }` where `startTime` is ISO-8601 UTC.",
+    "Given a running Epic workflow row unexpectedly lacks valid `startTime`, the emitted row still includes that Epic with `startTime: null`.",
+    "Given active Epic listing runs, the query still filters with `AdvEpicStatus = \"active\"` and `ExecutionStatus = \"Running\"` and still filters by project workflow-ID prefix.",
+    "Given implementation completes, tests prove no per-Epic workflow query/hydration and no ADV external state file read is added for the CLI timestamp.",
+    "Given spec/docs scope, `advance-epics` spec law and regression tests describe/prove additive timestamp output."
+  ],
+  "documents": {
+    "proposal": "# Add Epic Timestamps\n\n## Problem\n\n`adv epic list --json` currently emits Epic identity only (`{ id }`). Consumers that render or sort Epics cannot use an Epic-owned timestamp, so childless Epics or Epics omitted from change-status payloads show no time and cannot be placed chronologically.\n\n## Validation evidence\n\n- GitHub issue #211 is open and updated 2026-07-08.\n- Live command output from `bin/adv epic list --json` in this repo returned:\n\n```json\n{\"epics\":[{\"id\":\"optimizeAdvPerformanceStructure\"}]}\n```\n\n- Source/spec evidence points to the current contract as ID-only: `.adv/specs/advance-epics/spec.json` says `adv epic list --json` returns live Epic IDs from Temporal Visibility; issue evidence points at `bin/lib/epic-list.ts` mapping IDs to `{ id }`.\n\n## Scope\n\nLikely affected surfaces:\n\n- `plugin/src/temporal/list-epic-workflows.ts` or adjacent Temporal Visibility list helper types/output.\n- `bin/lib/epic-list.ts` JSON payload mapping.\n- CLI tests under `bin/` and relevant Temporal helper tests.\n- Public docs/spec wording for `adv epic list --json` if the existing ID-only contract is expanded.\n\nOut of scope:\n\n- Hydrating each Epic workflow.\n- Reading ADV external state files.\n- Adding CLI mutation verbs.\n- Building a new Epic last-activity indexing system unless a cheap existing Visibility field already supports it.\n\n## Error handling / failure boundary\n\nThe command should preserve current fail-closed behavior for Temporal connection/list failure. For an individual row whose timestamp is unexpectedly invalid/missing, user preference is to keep the Epic row and emit `startTime: null` rather than hide the Epic or fail the whole command.\n\n## Proposed direction\n\nExpose a per-Epic timestamp from Temporal Visibility in the JSON payload while preserving the current CLI boundary: read-only, worker-free, no per-Epic hydration, fail-closed on unavailable live state.\n\nMinimum deliverable: each Epic row includes `{ id, startTime }`, where `startTime` is an ISO-8601 UTC string when Temporal Visibility provides a valid `Date`, else `null` defensively. True child-change last-activity is not available from the current visibility row without hydrating Epic/change state or adding a new search attribute; record it as out of scope/future unless design discovers an existing non-hydrating structural source.\n\n## Acceptance sketch\n\n- `adv epic list --json` returns `epics: [{ id, startTime }]` with `startTime` present for every running Epic.\n- For normal Temporal Visibility rows, `startTime` is a non-null ISO UTC string.\n- If a row unexpectedly lacks a valid `startTime`, the row remains present with `startTime: null`.\n- Command remains Temporal Visibility-only and does not query/hydrate Epic workflows or read ADV state files.\n- Tests cover Temporal Visibility rows that include `startTime`, timestamp normalization, null fallback, and existing ID extraction behavior.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Considered available ADV skills; no dedicated skill needed. Project wisdom from `stabilizeCliSourceBoundary` applies: keep root CLI live Temporal imports behind `plugin/src/cli/temporal-boundary.ts`. |\n| Prior Research Extension | PASS | Extended archived `stabilizeCliSourceBoundary`: `bin/adv epic list --json` must stay live Temporal-backed and use the named CLI-safe Temporal boundary. Extended `fixEpicRepair`: active Epic listing is structurally filtered by `AdvEpicStatus = \"active\"` and `ExecutionStatus = \"Running\"`. |\n| Conflict Scan | PASS | Current active related change is this one. `adv_change_validate` passed with expected pre-planning warnings `NO_TASKS` and `NO_DELTAS`. Agenda contains unrelated follow-ups plus no blocker for this narrow CLI timestamp change. |\n| Edge Case Investigation | PASS | Edge cases recorded below. |\n| Design Question Depth | PASS | Open questions classified below; technical questions resolved from code/docs. |\n| Draft Spec Delta Shapes | PASS | Update `rq-epicCliList01` or adjacent `advance-epics` requirement to require additive per-row timestamp field without hydration. |\n| Related Pattern Scan | PASS | Similar visibility-list helpers found: change listing carries richer row data; Epic helper currently narrows rows to ID only. |\n| LBP Check | PASS | Best path is additive field from Temporal Visibility row `startTime`; avoids hydration, disk reads, or new index. |\n| Completeness Verification | PASS | Problem is complete for the CLI Epic list surface; true last-child-change recency is a separate capability requiring new indexing/hydration and is out of scope for this issue. |\n\n### Current State\n\n- `plugin/src/temporal/list-epic-workflows.ts` defines `ListEpicClient.workflow.list` rows as `{ workflowId: string }` and `listEpicWorkflowIds()` returns `Promise<string[]>`, discarding all other Temporal Visibility fields.\n- `bin/lib/epic-list.ts` maps `ids.map((id) => ({ id }))`, so JSON cannot contain timestamps.\n- `bin/lib/epic-list.test.ts` and `plugin/src/temporal/list-epic-workflows.test.ts` mock visibility rows as ID-only.\n- `plugin/src/storage/store-temporal/epics.ts` also consumes `listEpicWorkflowIds()` as `string[]`; safest implementation may add a richer helper while keeping the ID helper compatibility wrapper.\n- Official Temporal TypeScript SDK evidence: `WorkflowExecutionInfo` includes non-optional `startTime: Date`; `executionTime` and `closeTime` are optional. `WorkflowClient.list()` yields `AsyncIterable<WorkflowExecutionInfo>`, so `startTime` is available from the same Visibility enumeration with no extra workflow query/describe.\n\n### Edge Cases\n\n1. Visibility row has valid `startTime` Date: emit ISO UTC via `toISOString()`.\n2. Visibility row lacks a valid Date due to mock/SDK boundary drift: keep row and emit `startTime: null` per user preference.\n3. Epic workflow ID does not match current project prefix: skip as today; timestamp must not bypass project isolation.\n4. Empty Epic ID after prefix: skip as today.\n5. Temporal connection/list failure or timeout: preserve current fail-closed JSON metadata with empty `epics` and remediation.\n6. Consumer asks for true child-change last-activity: current Visibility rows do not carry child activity; do not fake it from `startTime`.\n\n### Open Design Questions\n\n- Rich helper shape: add `listEpicWorkflows()` returning `{ id, startTime }[]` while keeping `listEpicWorkflowIds()` as a compatibility wrapper, or widen existing helper and update all callers. Trust model: agent. Blast radius: store hydration/repair loops consume string IDs. Recommendation: add rich helper + wrapper to reduce blast radius.\n- Timestamp type: `startTime: string | null` in CLI payload vs always string. Trust model: joint; user chose null fallback. Blast radius: consumers must handle null but already asked for timestamp presence. Recommendation: field always present, value string or null.\n- Last activity: derive from child activity vs creation timestamp. Trust model: joint. Blast radius: true child recency requires hydration or new search attribute, violating #211's visibility-only boundary. Recommendation: ship `startTime` now; track true `lastActivityAt` as future if needed.\n\n### Draft Spec Delta Shapes\n\n- `rq-epicCliList01`: Given running active Epic workflows are listed through Temporal Visibility, when `adv epic list --json` emits entries, then each entry includes `id` and a present `startTime` field populated from Visibility `startTime` as ISO UTC when valid or `null` when unavailable.\n- `rq-epicCliList01`: Given the CLI emits per-Epic timestamps, when it builds the list, then it MUST NOT hydrate/query each Epic workflow or read ADV state files to compute the timestamp.\n- `rq-epicCliList01`: Given consumers need true last-activity semantics, when only Visibility `startTime` is available, then the CLI MUST NOT label `startTime` as child activity or recency.\n\n### Related Pattern Scan\n\n- `bin/lib/live-status.ts` is the richer live Temporal CLI precedent; it carries timestamps for change rows.\n- `plugin/src/temporal/list-change-workflows.ts` is a related visibility-list surface; do not accidentally alter change listing semantics while adding Epic row timestamps.\n- `plugin/src/cli/temporal-boundary.ts` is the approved source boundary for root CLI live Temporal imports.\n\n### Completeness Verification\n\n- Problem completeness: high confidence. The observed symptom (`{ id }` only) is the complete problem for #211's childless-Epic display/sort gap.\n- Solution scope: high confidence for `startTime`; low confidence for true child last-activity without larger design. Secondary surface disposition: `adv_epic_list` MCP output is not the requested CLI surface and may remain unchanged unless design finds shared types/tests require additive alignment.\n\n### LBP Check\n\nUse Temporal Visibility `WorkflowExecutionInfo.startTime` from the same list rows. This is the least-biggest-problem solution: structural, typed, non-hydrating, additive, and consistent with current CLI source boundary. Reject disk reads, per-Epic workflow queries, and heuristic child-activity derivation for this issue.\n\n### AMBIGUITY ANALYSIS — no blocking ambiguity findings. Coverage: B:C F:C S:C M:C\n\nSingle advisory: true child-change recency is desired but not available from current Visibility rows. Treat it as future/out-of-scope unless design identifies a no-hydration structural source.\n",
+    "problemStatement": "`adv epic list --json` is still affected by GitHub issue #211: it returns only `{ id }` per Epic, confirmed by live command output in this repo. This leaves consumers without a per-Epic timestamp for display or chronological sorting, especially for childless running Epics. The fix should surface a structural timestamp from Temporal Visibility without weakening the CLI's read-only, worker-free, no-hydration boundary.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add an Epic-owned timestamp field to `adv epic list --json` entries so consumers can display/sort running Epics even when an Epic has no active child-change timestamp.\n2. Preserve the current CLI boundary: live Temporal Visibility-only, read-only, worker-free, no per-Epic workflow hydration/query, and no ADV external state file reads.\n3. Preserve existing active-Epic filtering and project workflow-ID prefix isolation.\n4. Keep true child-change last-activity out of scope for this issue unless a no-hydration structural source already exists; do not fake child activity from workflow start time.\n\n## Success Criteria\n\n- SC1: Childless running Epics have a display/sort timestamp source in `adv epic list --json`.\n- SC2: CLI Epic list remains live Temporal Visibility-only: no Epic hydration, no ADV state file reads, no worker dependency.\n- SC3: Existing active-Epic filtering and project-prefix isolation stay unchanged.\n\n## Acceptance Criteria\n\n- AC1: Given Temporal Visibility returns a running Epic workflow row with valid `startTime`, `adv epic list --json` emits that Epic as `{ id, startTime }` where `startTime` is ISO-8601 UTC. [warrant: spec:rq-epicCliList01]\n- AC2: Given a running Epic workflow row unexpectedly lacks valid `startTime`, the emitted row still includes that Epic with `startTime: null`. [warrant: spec:rq-epicCliList01]\n- AC3: Given active Epic listing runs, the query still filters with `AdvEpicStatus = \"active\"` and `ExecutionStatus = \"Running\"` and still filters by project workflow-ID prefix. [warrant: spec:rq-epicRetiredListing01]\n- AC4: Given implementation completes, tests prove no per-Epic workflow query/hydration and no ADV external state file read is added for the CLI timestamp. [warrant: spec:rq-epicCliList01]\n- AC5: Given spec/docs scope, `advance-epics` spec law and regression tests describe/prove additive timestamp output. [warrant: spec:rq-epicCliList01]\n\n## Constraints\n\n- C1: Preserve root CLI source-boundary policy: root `bin/adv` code imports plugin source only through approved CLI-safe boundaries.\n- C2: Preserve live Temporal fail-closed behavior for Temporal connection/list failures.\n- C3: Do not add a CLI mutation verb.\n- C4: Do not hydrate/query each Epic workflow or read ADV external state files for the timestamp.\n- C5: Keep timestamp correctness structural: use typed Temporal Visibility row data; do not infer or synthesize timestamps heuristically.\n\n## Avoidances\n\n- DONT1: Do not label `startTime` as true child-change last activity or mutable recency.\n- DONT2: Do not use `executionTime` as the required timestamp source because Temporal SDK marks it optional.\n- DONT3: Do not drop an Epic row solely because its timestamp is invalid/missing; emit `startTime: null` for that row.\n- DONT4: Do not broaden this issue into a new last-activity index/search-attribute system.\n\n## Out of Scope\n\n- OOS1: True last changed child/Epic activity timestamp.\n- OOS2: Per-Epic workflow query/hydration from the CLI list path.\n- OOS3: ADV MCP `adv_epic_list` output changes unless required by shared implementation/tests.\n- OOS4: Dashboard/zellij launcher changes.\n\n## Preview Applicability\n\nvisual_surface: false\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: CLI JSON payload and specs/tests only; no browser-visible surface.\n\n## Decisions\n\n### User Decisions\n\n- User asked whether true child-change activity could be used. Discovery found no no-hydration source; agreement records true child last-activity as out of scope for this issue.\n- User chose `startTime: null` for rows with invalid/missing timestamp rather than failing the whole command or dropping rows.\n- User chose spec + tests scope.\n\n### Agent Decisions (LBP)\n\n- Use Temporal TypeScript SDK `WorkflowExecutionInfo.startTime` from existing Visibility list rows. It is non-optional `Date` in SDK types and requires no extra RPC.\n- Add a richer Epic Visibility row helper while preserving the existing ID helper for current store/repair callers where practical.\n- Keep `startTime` semantics explicit: Temporal workflow start time / Epic list timestamp source, not child activity.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved by user reply `approve` on 2026-07-09 after discovery criteria checkpoint. Prior session approval also included `I approve full yolo autopilot for this session, fix as many bugs as you can`.",
+    "design": "# Design\n\n## Architecture Overview\n\nThread Temporal Visibility row timestamps through the existing Epic CLI list path without changing its source-of-truth boundary.\n\nCurrent path:\n\n1. `bin/adv epic list --json` calls `bin/lib/epic-list.ts`.\n2. `bin/lib/epic-list.ts` imports the approved CLI-safe Temporal boundary from `plugin/src/cli/temporal-boundary.ts`.\n3. `plugin/src/temporal/list-epic-workflows.ts` enumerates `epicWorkflow` Visibility rows and narrows each row to an Epic ID string.\n4. `buildLiveEpicListPayload()` maps each string to `{ id }`.\n\nTarget path:\n\n1. Add a typed `EpicWorkflowListEntry` (or equivalent) in `plugin/src/temporal/list-epic-workflows.ts` with `{ id: string; startTime: Date | null }`.\n2. Add a rich helper, e.g. `listEpicWorkflows()`, that iterates the same Visibility rows, keeps project-prefix filtering and limit behavior, and carries row `startTime` when it is a valid `Date`.\n3. Keep `listEpicWorkflowIds()` as a compatibility wrapper returning `string[]` for existing store and repair callers.\n4. Update `bin/lib/epic-list.ts` to call the rich helper and emit `startTime` as an ISO string or `null`.\n5. Update CLI/spec tests to make the timestamp contract structural.\n\nNo workflow query, workflow describe, workflow hydration, worker polling, mutation, or ADV state file read is added.\n\n## Key Decisions\n\n### 1. Use Visibility `startTime` as the shipped timestamp\n\nThe Temporal TypeScript SDK `WorkflowExecutionInfo` list row includes `startTime: Date`, while `executionTime` and `closeTime` are optional. Because `startTime` arrives on the same list row already used by the CLI, it is the only timestamp source that satisfies all constraints.\n\nTradeoff: `startTime` is workflow start/Epic list timestamp source, not true child-change last activity. True child activity requires either hydrated Epic/change state or a new indexed last-activity search attribute, so it stays out of scope.\n\n### 2. Preserve compatibility through a rich helper plus ID wrapper\n\nDo not widen `listEpicWorkflowIds()` in place for all callers. `plugin/src/storage/store-temporal/epics.ts` currently uses string IDs for hydrated MCP list/repair flows. A rich helper plus wrapper keeps those flows unchanged and limits CLI changes to the surfaces that need timestamps.\n\n### 3. Emit `startTime: null` only for invalid/missing row timestamps\n\nNormal SDK rows should have `Date` values. Still, tests and structural guards should cover an invalid/missing timestamp row and ensure the row is retained with `startTime: null`, matching user preference.\n\n### 4. Do not surface `lastActivityAt` in this change\n\nAdding a `lastActivityAt` field with `startTime` semantics would mislead consumers. Adding a true last-activity field requires a distinct design: e.g. maintaining `AdvEpicUpdatedAt` as a custom search attribute or hydrating entries. That is out of scope for #211.\n\n## ADR Drafts\n\nNone. The design is additive, low-risk, and reversible. Existing spec and tests are sufficient durable record.\n\n## Implementation Strategy\n\n1. **Spec/test RED**\n   - Update `advance-epics` spec law for `rq-epicCliList01` so CLI entries include present `startTime` from Visibility, with `null` fallback for invalid/missing row timestamps.\n   - Add/update tests in `plugin/src/temporal/list-epic-workflows.test.ts` and `bin/lib/epic-list.test.ts` expecting rich rows and ISO/null payload fields.\n   - Keep existing query/prefix-filter assertions.\n\n2. **Visibility helper implementation**\n   - Define `EpicWorkflowListEntry` with `id` and `startTime: Date | null`.\n   - Widen `ListEpicClient.workflow.list()` row type to include optional/unknown `startTime?: Date | null` for defensive tests while remaining structurally compatible with the SDK.\n   - Implement `normalizeVisibilityStartTime()` or local guard that returns `Date` only for valid Date instances; otherwise `null`.\n   - Implement `listEpicWorkflows()` using existing query, prefix filtering, empty-ID skip, and limit cap.\n   - Reimplement `listEpicWorkflowIds()` as `return (await listEpicWorkflows(...)).map((entry) => entry.id)`.\n\n3. **CLI payload implementation**\n   - Rename/adjust internal functions as needed, e.g. `listEpicsFromVisibility()` and `loadLiveEpics()`.\n   - `EpicListEntry` becomes `{ id: string; startTime: string | null }`.\n   - `buildLiveEpicListPayload()` maps Date to `toISOString()` and preserves `null`.\n   - Keep fail-closed JSON metadata for connection/list errors.\n\n4. **Regression/compatibility verification**\n   - Run Bun CLI tests around `bin/lib/epic-list.test.ts` and `bin/adv.test.ts`.\n   - Run targeted plugin tests for `plugin/src/temporal/list-epic-workflows.test.ts` and source-boundary tests if imports changed.\n   - Run `pnpm run schemas:check` if spec/schema tooling requires it; otherwise run relevant spec JSON parse/schema check.\n\n## LBP Analysis\n\nThis is the least-biggest-problem path because it fixes the lossy narrowing at the source boundary. It uses typed data already returned by Temporal Visibility and avoids extra runtime dependencies. It also preserves the recently established CLI boundary from `stabilizeCliSourceBoundary`: root CLI code continues to import through `plugin/src/cli/temporal-boundary.ts` rather than broad plugin internals.\n\nRejected alternatives:\n\n- Hydrate/query each Epic workflow: violates `rq-epicCliList01` and needs worker availability.\n- Read ADV state files: violates CLI fail-closed/live-boundary contract and risks stale disk data.\n- Use `executionTime`: optional SDK field, not guaranteed.\n- Add real last-child activity now: larger indexed-state feature, not a #211 bugfix.\n\n## Affected Components\n\n- `plugin/src/temporal/list-epic-workflows.ts`\n- `plugin/src/temporal/list-epic-workflows.test.ts`\n- `bin/lib/epic-list.ts`\n- `bin/lib/epic-list.test.ts`\n- Possibly `bin/adv.test.ts` assertions if payload shape should be checked end-to-end\n- `.adv/specs/advance-epics/spec.json` and generated docs mirror if applicable\n\n## Design-Derived Criteria\n\n- DDC1: `listEpicWorkflowIds()` remains available and returns `string[]` for existing MCP/store repair callers.\n- DDC2: `adv epic list --json` payload entries always include a `startTime` key; value is ISO UTC string or `null`.\n- DDC3: Timestamp logic must be a structural Date guard, not string parsing of arbitrary untrusted text.\n- DDC4: Root CLI imports still pass CLI source-boundary tests.\n\n## Risks / Mitigations\n\n- Risk: Consumers misinterpret `startTime` as true activity recency. Mitigation: spec/design/tests call it `startTime`, not `lastActivityAt`; agreement keeps last activity out of scope.\n- Risk: Existing callers break if helper return type changes. Mitigation: add rich helper and preserve ID wrapper.\n- Risk: Mock rows without timestamps fail unexpectedly. Mitigation: defensive null fallback and explicit null-fallback test.\n- Risk: Spec/doc drift. Mitigation: update `advance-epics` spec law and run schema/spec verification.\n\n## Design Leverage Scout\n\nScout: skipped — narrow, localized additive CLI JSON field; discovery already ran independent researcher evidence and found no higher-leverage in-scope alternative. The only surfaced leverage candidate was true last-activity indexing, which is explicitly out of scope due no-hydration boundary and user-approved scope.\n\n## Validator Result\n\nValidator: clean pass.\n\nEvidence:\n\n- Temporal SDK `WorkflowExecutionInfo.startTime` is non-optional and parsed through `requiredTsToDate`; `executionTime` and `closeTime` are optional.\n- `rq-epicCliList01.1` allows additive fields because entries are objects containing at least `id`.\n- `rq-epicCliList01.4` forbids per-Epic workflow state queries; reading a field from the already-iterated list row is not a describe/query RPC.\n- `rq-epicRetiredListing01` active-only filtering is preserved by design.\n\nArchitecture judgement: pass, high confidence, low risk. Required execution notes: update mocks to yield `startTime`, test invalid-row `null`, document `startTime` semantics, and keep active-only query unchanged.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`adv epic list --json` now returns each running Epic with a `startTime` field, giving consumers a stable timestamp for childless Epics while preserving the live Temporal Visibility-only CLI boundary.\n\n## Why It Matters\n\nLauncher/dashboard-style consumers no longer need to show `-` or mis-order childless Epics. The timestamp comes from Temporal Visibility rows already being enumerated, so the CLI still does not hydrate Epic workflows, read ADV state files, or depend on a worker.\n\n## What Was Built\n\n1. Added `startTime` to Epic CLI JSON entries as ISO UTC string when valid, or `null` when missing/invalid.\n2. Added `listEpicWorkflows()` rich Visibility helper while preserving `listEpicWorkflowIds()` compatibility wrapper.\n3. Updated `bin/adv` and `bin/lib/epic-list.ts` to emit rich Epic entries.\n4. Updated `rq-epicCliList01` spec/docs and tests to define/prove timestamp behavior.\n5. Repaired an existing missing citation for `rq-epicSearchAttributeRepair01` uncovered by spec citation invariant.\n\n## What Was Verified\n\n- Acceptance reviewer verdict: READY, 0 blockers/issues, no fixes applied, no scope drift.\n- RED evidence: `bun test bin/lib/epic-list.test.ts` failed before implementation (`tr_mrcr9lk7_4edb67df`).\n- GREEN/verification: Bun CLI tests passed (`tr_mrcrevv9_b76cac3c`, 22 tests); targeted plugin/source-boundary/spec-citation tests passed (`tr_mrcrhjnd_0aece7ba`, 30 tests); schema check passed (`tr_mrcrfa5a_cc0545ec`); format check passed (`tr_mrcrg5b2_c13d6dc4`); typecheck passed (`tr_mrcrgie3_f7ded6cc`); git diff whitespace check passed (`tr_mrcrhp6m_96accb23`).\n- Live source command: `bin/adv epic list --json` emitted `startTime` for `optimizeAdvPerformanceStructure` (`tr_mrcrgp00_df64ddd3`).\n- Contract matrix: 21 rows passed/respected/not_applicable; 0 failing rows.\n\n## Remaining Concerns\n\nNone blocking. `startTime` is explicitly Temporal workflow start time, not true child-change last activity. True last-activity would require a future indexed-state design and was kept out of scope.\n\n## Release Readiness Summary\n\nHarden verdict: READY. Release reviewer found no blockers, no changes required, no scope drift, and worktree clean. Harden verification reran targeted plugin tests (`list-epic-workflows`, `cli-bridge-contract`) with 28 passed, `bun test bin/lib/epic-list.test.ts` with 6 passed, and `git diff --check trunk...HEAD` passed. No frontend preview, migration, deployment config, operational runbook, or external service impact. Normal source-vs-deployed-runtime caveat applies: live OpenCode plugin behavior requires rebuild/deploy/restart after source changes.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-09T00:28:14.804Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Childless running Epics have a display/sort timestamp source in `adv epic list --json`. | pass | Live CLI evidence `tr_mrcrgp00_df64ddd3`: `bin/adv epic list --json` emitted `startTime` for running Epic `optimizeAdvPerformanceStructure`; reviewer verdict READY. |\n| SC2 | success_criterion | CLI Epic list remains live Temporal Visibility-only: no Epic hydration, no ADV state file reads, no worker dependency. | pass | Implementation uses Temporal Visibility `listEpicWorkflows()` and CLI boundary only; no getHandle/readFile in epic-list path. Source-boundary/spec tests passed `tr_mrcrhjnd_0aece7ba`; reviewer READY. |\n| SC3 | success_criterion | Existing active-Epic filtering and project-prefix isolation stay unchanged. | pass | Existing active filter and project-prefix tests passed in `list-epic-workflows.test.ts` (`tr_mrcren5f_f08ba786`, `tr_mrcrhjnd_0aece7ba`); reviewer READY. |\n| AC1 | acceptance_criterion | Given Temporal Visibility returns a running Epic workflow row with valid `startTime`, `adv epic list --json` emits that Epic as `{ id, startTime }` where `startTime` is ISO-8601 UTC. | pass | `bin/lib/epic-list.test.ts` validates Date startTime maps to ISO UTC; passed in `tr_mrcraqmw_2571e23e` and `tr_mrcrevv9_b76cac3c`. Live CLI emitted ISO UTC `startTime` in `tr_mrcrgp00_df64ddd3`. |\n| AC2 | acceptance_criterion | Given a running Epic workflow row unexpectedly lacks valid `startTime`, the emitted row still includes that Epic with `startTime: null`. | pass | `bin/lib/epic-list.test.ts` and `plugin/src/temporal/list-epic-workflows.test.ts` cover null fallback for missing/invalid startTime; passed in `tr_mrcraqmw_2571e23e`, `tr_mrcren5f_f08ba786`, and `tr_mrcrhjnd_0aece7ba`. |\n| AC3 | acceptance_criterion | Given active Epic listing runs, the query still filters with `AdvEpicStatus = \"active\"` and `ExecutionStatus = \"Running\"` and still filters by project workflow-ID prefix. | pass | Active query and project-prefix tests passed: `tr_mrcren5f_f08ba786` and `tr_mrcrhjnd_0aece7ba`; query remains `WorkflowType = \"epicWorkflow\" AND AdvEpicStatus = \"active\" AND ExecutionStatus = \"Running\"`. |\n| AC4 | acceptance_criterion | Given implementation completes, tests prove no per-Epic workflow query/hydration and no ADV external state file read is added for the CLI timestamp. | pass | CLI source-boundary test passed `tr_mrcrhjnd_0aece7ba`; reviewer confirmed no per-Epic workflow query/hydration or ADV state-file read added. `git diff --check` clean `tr_mrcrhp6m_96accb23`. |\n| AC5 | acceptance_criterion | Given spec/docs scope, `advance-epics` spec law and regression tests describe/prove additive timestamp output. | pass | `rq-epicCliList01` spec/docs updated; spec citation/source-boundary targeted tests passed `tr_mrcrhjnd_0aece7ba`; schema check passed `tr_mrcrfa5a_cc0545ec`. |\n| C1 | constraint | Preserve root CLI source-boundary policy: root `bin/adv` code imports plugin source only through approved CLI-safe boundaries. | respected | Root CLI continues through `plugin/src/cli/temporal-boundary.ts`; cli-bridge/source-boundary test passed `tr_mrcrhjnd_0aece7ba`. |\n| C2 | constraint | Preserve live Temporal fail-closed behavior for Temporal connection/list failures. | respected | Fail-closed metadata test remains green in `bin/lib/epic-list.test.ts` and `bin/adv.test.ts`; Bun tests passed `tr_mrcrevv9_b76cac3c`. |\n| C3 | constraint | Do not add a CLI mutation verb. | respected | No CLI mutation verb added; cli-bridge contract test passed `tr_mrcrhjnd_0aece7ba`. |\n| C4 | constraint | Do not hydrate/query each Epic workflow or read ADV external state files for the timestamp. | respected | `bin/lib/epic-list.ts` reads only rich Visibility helper results; reviewer READY and cli-bridge checks passed `tr_mrcrhjnd_0aece7ba`. |\n| C5 | constraint | Keep timestamp correctness structural: use typed Temporal Visibility row data; do not infer or synthesize timestamps heuristically. | respected | `normalizeVisibilityStartTime()` uses `instanceof Date` and `getTime()` validity check; no arbitrary timestamp parsing. Typecheck passed `tr_mrcrgie3_f7ded6cc`. |\n| DONT1 | avoidance | Do not label `startTime` as true child-change last activity or mutable recency. | respected | Field is named `startTime` and spec says it represents Temporal workflow start timestamp, not child activity; reviewer READY. |\n| DONT2 | avoidance | Do not use `executionTime` as the required timestamp source because Temporal SDK marks it optional. | respected | Implementation uses Visibility row `startTime` only; `executionTime` not used. Typecheck/source review passed. |\n| DONT3 | avoidance | Do not drop an Epic row solely because its timestamp is invalid/missing; emit `startTime: null` for that row. | respected | Null fallback tests keep Epic rows with `startTime:null`; passed `tr_mrcraqmw_2571e23e` and `tr_mrcren5f_f08ba786`. |\n| DONT4 | avoidance | Do not broaden this issue into a new last-activity index/search-attribute system. | respected | No new last-activity index/search attribute added; changes limited to CLI/spec/tests plus citation comment; reviewer READY. |\n| OOS1 | out_of_scope | True last changed child/Epic activity timestamp. | not_applicable | True last changed child/Epic activity timestamp intentionally out of scope; no lastActivityAt field added. |\n| OOS2 | out_of_scope | Per-Epic workflow query/hydration from the CLI list path. | not_applicable | Per-Epic workflow query/hydration intentionally out of scope; no getHandle/query/describe added in CLI list path. |\n| OOS3 | out_of_scope | ADV MCP `adv_epic_list` output changes unless required by shared implementation/tests. | not_applicable | ADV MCP `adv_epic_list` output not changed. |\n| OOS4 | out_of_scope | Dashboard/zellij launcher changes. | not_applicable | Dashboard/zellij launcher not changed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-09T00:02:43.905Z",
+      "contentHash": "c951f3807dad59e619020bf23b29e89e7116b9e2ca43fcca1955a7df48bcf148",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-08T23:50:01.198Z",
+      "contentHash": "1e5304e3215d26e83472c5c78e57b1726502a2b2ed64b52ec8c3de77c8b4d234",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-09T00:06:08.390Z",
+      "contentHash": "3bdf7b79a1ad25372dbea166176275370ceb78cc0bb1eb1dc91fe530c665a50c",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-09T00:09:59.682Z",
+      "contentHash": "d5e304f150ac2dfe17643973d9b32abd66d8675c0d0e35bb1d1585f2f5146d85",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-09T00:32:01.369Z",
+      "contentHash": "aad3b0d7b97b06c86a8aa82d9f1e09330c358956f9fe2a186f1929e8f95b2b14",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-09T00:32:01.369Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

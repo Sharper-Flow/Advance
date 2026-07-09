@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-M9MNBf",
+      "type": "pattern",
+      "content": "For CLI visibility-list enrichments, prefer adding a rich list helper plus preserving the existing ID-only wrapper. This avoids broad caller churn while letting CLI JSON carry native Temporal Visibility row fields such as startTime without hydration.",
+      "source_task": "tk-72771587042b",
+      "recorded_at": "2026-07-09T00:28:21.444Z"
+    }
+  ],
+  "count": 1
+}
