@@ -40,6 +40,7 @@ const mocks = vi.hoisted(() => {
       lastAccessMs: null,
       error: "mock unavailable",
     })),
+    restartCurrentProjectTemporalWorker: vi.fn(async () => {}),
   };
 });
 
@@ -68,6 +69,8 @@ vi.mock("../plugin-init", () => ({
   getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics: mocks.getTemporalWorkerDiagnostics,
   getTemporalWorkerRole: mocks.getTemporalWorkerRole,
+  restartCurrentProjectTemporalWorker:
+    mocks.restartCurrentProjectTemporalWorker,
 }));
 
 vi.mock("../temporal/service", () => ({
@@ -85,6 +88,7 @@ vi.mock("../temporal/queue-serviceability", async () => {
 });
 
 import {
+  formatTargetProjectContext,
   resolveTargetProject,
   targetPathSchema,
   withTargetPathStore,
@@ -258,6 +262,8 @@ describe("withTargetPathStore", () => {
     });
     expect(mocks.createStore).not.toHaveBeenCalled();
     expect(mocks.ensureProjectTemporalQueue).not.toHaveBeenCalled();
+    expect(mocks.getService).not.toHaveBeenCalled();
+    expect(mocks.restartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
     expect(mocks.diskStore.init).not.toHaveBeenCalled();
     expect(mocks.diskStore.close).toHaveBeenCalled();
   });
@@ -448,6 +454,117 @@ describe("targetPathSchema", () => {
       target_path: "/repo/target",
       target_confirmed: true,
       confirmationEvidence: "user approved target mutation",
+    });
+  });
+});
+
+function makeTargetContext(
+  overrides: Partial<
+    Omit<
+      import("./target-project").TargetProjectContext,
+      "root" | "projectId" | "externalRoot"
+    >
+  >,
+): import("./target-project").TargetProjectContext {
+  return {
+    root: "/repo/target",
+    projectId: TARGET_PROJECT_ID,
+    externalRoot: "/repo/target/.advance",
+    trusted: true,
+    trustSource: "current_project",
+    stateMode: "current",
+    ...overrides,
+  };
+}
+
+describe("formatTargetProjectContext", () => {
+  test("disk-snapshot trusted output carries non-authoritative metadata", () => {
+    const context = makeTargetContext({
+      trusted: true,
+      trustSource: "related_repos",
+      stateMode: "disk-snapshot",
+    });
+
+    expect(formatTargetProjectContext(context)).toEqual({
+      root: context.root,
+      projectId: context.projectId,
+      trusted: true,
+      trustSource: "related_repos",
+      stateMode: "disk-snapshot",
+      authority: "disk_snapshot_non_authoritative",
+      warning:
+        "Non-authoritative disk snapshot: Temporal-backed target state was not consulted.",
+    });
+  });
+
+  test("disk-snapshot untrusted output merges non-authoritative and untrusted warnings", () => {
+    const context = makeTargetContext({
+      trusted: false,
+      trustSource: "explicit",
+      stateMode: "disk-snapshot",
+    });
+
+    const formatted = formatTargetProjectContext(context);
+
+    expect(formatted.authority).toBe("disk_snapshot_non_authoritative");
+    expect(formatted.warning).toContain(
+      "Non-authoritative disk snapshot: Temporal-backed target state was not consulted.",
+    );
+    expect(formatted.warning).toContain(
+      "Read-only untrusted target_path snapshot. Mutations require explicit target confirmation.",
+    );
+  });
+
+  test("current project output omits authority and warning", () => {
+    const context = makeTargetContext({
+      trusted: true,
+      trustSource: "current_project",
+      stateMode: "current",
+    });
+
+    expect(formatTargetProjectContext(context)).toEqual({
+      root: context.root,
+      projectId: context.projectId,
+      trusted: true,
+      trustSource: "current_project",
+      stateMode: "current",
+    });
+  });
+
+  test.each(["temporal", "scaffold"] as const)(
+    "%s state mode remains backward-compatible without authority or warning when trusted",
+    (stateMode) => {
+      const context = makeTargetContext({
+        trusted: true,
+        trustSource: "related_repos",
+        stateMode,
+      });
+
+      expect(formatTargetProjectContext(context)).toEqual({
+        root: context.root,
+        projectId: context.projectId,
+        trusted: true,
+        trustSource: "related_repos",
+        stateMode,
+      });
+    },
+  );
+
+  test("non-disk-snapshot untrusted output keeps the original warning only", () => {
+    const context = makeTargetContext({
+      trusted: false,
+      trustSource: "explicit",
+      stateMode: "temporal",
+    });
+
+    expect(formatTargetProjectContext(context)).toEqual({
+      root: context.root,
+      projectId: context.projectId,
+      trusted: false,
+      trustSource: "explicit",
+      stateMode: "temporal",
+      warning:
+        "Read-only untrusted target_path snapshot. Mutations require explicit target confirmation.",
     });
   });
 });

@@ -99,6 +99,8 @@ export interface TargetProjectOutputContext {
   trusted: boolean;
   trustSource: TargetProjectContext["trustSource"];
   stateMode: TargetProjectContext["stateMode"];
+  // rq-targetReadAuthority01.1: disk-snapshot context carries an explicit authority marker
+  authority?: "disk_snapshot_non_authoritative";
   warning?: string;
 }
 
@@ -280,6 +282,7 @@ export async function withTargetPathStore<T>(
   });
 
   if (input.stateRequirement === "snapshot-ok") {
+    // rq-targetReadAuthority01.2: snapshot-ok reads must not mutate target worker lifecycle or state.
     const store = await createLegacyStore(context.root, {
       externalRoot: context.externalRoot,
     });
@@ -308,6 +311,7 @@ export async function withTargetPathStore<T>(
     }
   }
 
+  // rq-targetReadAuthority01.3: authoritative target mutation requires the temporal-required path.
   const temporalBundle = getService();
   if (!temporalBundle) {
     throw new TargetProjectError(
@@ -337,19 +341,39 @@ export async function withTargetPathStore<T>(
 export function formatTargetProjectContext(
   context: TargetProjectContext,
 ): TargetProjectOutputContext {
-  return {
+  // rq-targetReadAuthority01: snapshot-ok target reads mark context as non-authoritative.
+  const base: TargetProjectOutputContext = {
     root: context.root,
     projectId: context.projectId,
     trusted: context.trusted,
     trustSource: context.trustSource,
     stateMode: context.stateMode,
-    ...(context.trusted
-      ? {}
-      : {
-          warning:
-            "Read-only untrusted target_path snapshot. Mutations require explicit target confirmation.",
-        }),
   };
+
+  if (context.stateMode === "disk-snapshot") {
+    const nonAuthoritativeWarning =
+      "Non-authoritative disk snapshot: Temporal-backed target state was not consulted.";
+    const untrustedWarning = context.trusted
+      ? undefined
+      : "Read-only untrusted target_path snapshot. Mutations require explicit target confirmation.";
+    return {
+      ...base,
+      authority: "disk_snapshot_non_authoritative",
+      warning: untrustedWarning
+        ? `${nonAuthoritativeWarning} ${untrustedWarning}`
+        : nonAuthoritativeWarning,
+    };
+  }
+
+  if (!context.trusted) {
+    return {
+      ...base,
+      warning:
+        "Read-only untrusted target_path snapshot. Mutations require explicit target confirmation.",
+    };
+  }
+
+  return base;
 }
 
 export function appendTargetProjectContextOutput(
