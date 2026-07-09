@@ -1,0 +1,726 @@
+{
+  "id": "persistPostArchiveSubagent",
+  "title": "Persist post-archive subagent reports",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-09T21:41:51.640Z",
+  "tasks": [
+    {
+      "id": "tk-358d68469e0c",
+      "title": "Add `saveRecoveredSubagentReport` disk-projection writer to `_recovery-writers.ts`",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-09T23:00:54.945Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-09T23:06:46.232Z",
+      "verification": "18/18 tests pass (5 new: archived bundle write, dedupe, closed active-dir write, task-scoped targeting, authorization guard). Writer splits by status: archived→findArchiveBundle bundle change.json; closed→saveChange active dir. No refresh.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/_recovery-writers.test.ts",
+        "plugin/src/tools/_recovery-writers.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/_recovery-writers.test.ts",
+        "plugin/src/tools/_recovery-writers.ts"
+      ],
+      "checkpointSha": "876210186e0b7840fce2e9ff11a765f71ab81260",
+      "completedAt": "2026-07-09T23:11:11.288Z",
+      "completed_at": "2026-07-09T23:11:11.288Z"
+    },
+    {
+      "id": "tk-aba897546373",
+      "title": "Wire terminal-status routing into `executeSubmit` + integration tests",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-09T23:01:09.280Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-358d68469e0c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC5",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-09T23:11:57.846Z",
+      "verification": "0 typecheck errors. 55/55 tests pass (18 recovery-writers + 37 subagent-report). executeSubmit now routes terminal changes (archived/closed) to saveRecoveredSubagentReport disk fallback; active path unchanged. Defensive catch handles active→terminal race. Consumers run after persist. 5 new integration tests cover archived persist, readback, idempotency, consumers, active regression.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "checkpointSha": "357164994cf831641e6d632092dc8068203051fd",
+      "completedAt": "2026-07-09T23:18:11.132Z",
+      "completed_at": "2026-07-09T23:18:11.132Z"
+    },
+    {
+      "id": "tk-7a5502885c9b",
+      "title": "Add spec delta rq-subagentReports12 + docs mirror + schema check",
+      "type": "docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-09T23:01:20.546Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-aba897546373"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2"
+        ],
+        "verifies": [
+          "SC1"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-09T23:18:20.461Z",
+      "verification": "Spec rq-subagentReports22 added (5 scenarios), version 1.6.0→1.7.0. Asset test updated (21→22 requirements). 20/20 asset tests pass. schemas:check clean. No docs mirror exists for this spec.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "fb194a0bd546a4fe34bf5952a2b4826dc7682c04",
+      "completedAt": "2026-07-09T23:20:31.999Z",
+      "completed_at": "2026-07-09T23:20:31.999Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "persistPostArchiveSubagent",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: persist adv_subagent_report_submit reports on terminal (archived/closed) change workflows via disk-projection fallback",
+      "sources": [
+        {
+          "label": "getTemporalChange read-path ordering",
+          "locator": "plugin/src/storage/store-temporal/index.ts:586-614",
+          "summary": "getTemporalChange calls loadTerminalProjection FIRST and unconditionally (L591), returning it before the changeCache.get check at L604. For archived changes the disk projection is dominant and re-read every call, so a stale changeCache entry cannot shadow it."
+        },
+        {
+          "label": "loadArchiveBundleDominantProjection re-reads + re-caches",
+          "locator": "plugin/src/storage/store-temporal/index.ts:446-492",
+          "summary": "loadTerminalProjection -> loadArchiveBundleDominantProjection -> loadArchiveProjection reads the archive bundle from legacy.paths.archive every call and re-populates changeCache via setCachedProjection (L455). Read path is disk-dominant and self-refreshing for archived changes."
+        },
+        {
+          "label": "loadArchiveProjection reads the ARCHIVE dir",
+          "locator": "plugin/src/storage/store-temporal/index.ts:414-444",
+          "summary": "Reads loadChange(legacy.paths.archive, changeId) and iterates archive dirs matching change.json.id (handles {date}-{changeId} bundle naming). It never reads paths.changes for the archived case."
+        },
+        {
+          "label": "findArchiveBundle resolves dated bundle dir",
+          "locator": "plugin/src/archive/archive.ts:1055-1081",
+          "summary": "Resolves the {date}-{changeId} bundle directory containing change.json (verified readable). This is the same file loadArchiveProjection reads back."
+        },
+        {
+          "label": "_recovery-writers cache policy docstring (authoritative)",
+          "locator": "plugin/src/tools/_recovery-writers.ts:16-28",
+          "summary": "Canonical policy: status/disposition recovery writers use disk-direct saveChange WITHOUT store.changes.refresh(), because refresh re-queries Temporal and can overwrite the disk repair with stale non-terminal state. The Temporal read path treats archive bundles as terminal/dominant and invalidates stale active cache entries there."
+        },
+        {
+          "label": "saveRecoveredDesignConcernDisposition uses saveChange(paths.changes)",
+          "locator": "plugin/src/tools/_recovery-writers.ts:202-233",
+          "summary": "The pattern the design cites writes via saveChange(input.store.paths.changes, updated) — i.e. the ACTIVE changes dir — not the archive bundle. Latest-wins on (taskId, concernKey) + recovery_audit."
+        },
+        {
+          "label": "saveChange target path",
+          "locator": "plugin/src/storage/json.ts:503-528",
+          "summary": "saveChange(changesDir, change) writes join(changesDir, change.id, 'change.json'). It always targets the passed changesDir (active dir when store.paths.changes is passed); it does NOT resolve or write the archive bundle."
+        },
+        {
+          "label": "store-disk changes.get reads only paths.changes",
+          "locator": "plugin/src/storage/store-disk.ts:333-352",
+          "summary": "legacy.changes.get resolves and loads only from paths.changes (active dir). It has no archive-dir fallback. Confirms an active-dir write is invisible to the archive-dominant read path for archived changes."
+        },
+        {
+          "label": "loadChange normalizes persisted subagent reports on readback",
+          "locator": "plugin/src/storage/json.ts:444-485",
+          "summary": "loadChange runs normalizePersistedSubagentReportState before ChangeSchema.parse, so appended subagent_reports[] normalize safely on read (aligns with rq-subagentReports10)."
+        },
+        {
+          "label": "adv_change_show include.subagentReports read shape",
+          "locator": "plugin/src/tools/change.ts:803-820",
+          "summary": "Reads change.subagent_reports[] plus task.subagent_reports[] (legacy), dedupes by subagentReportReadbackKey. A change-scoped sidecar append is surfaced here without further read-path change."
+        },
+        {
+          "label": "rq-subagentReports09 replay/legacy compatibility",
+          "locator": ".adv/specs/subagent-reports/spec.json:331-363",
+          "summary": "Report persistence MUST preserve Temporal replay safety and legacy task/checkpoint consumer compatibility. Disk-projection append to a terminal change does not touch workflow history, so it does not add replay events — but sidecar keys must stay deterministic/scope-aware."
+        },
+        {
+          "label": "invalidateChange semantics",
+          "locator": "plugin/src/storage/store-temporal/index.ts:248-251",
+          "summary": "invalidateChange(changeId) deletes changeCache + memo entries. Available as an optional belt-and-suspenders after a disk write; not strictly required because loadTerminalProjection re-reads disk first for archived."
+        }
+      ],
+      "architecture_assessment": "The design's core shape is sound: for terminal (archived/closed) changes, Temporal rejects signals on completed workflows, and the Temporal read path is already durable-disk-dominant (getTemporalChange loads loadTerminalProjection FIRST, before any workflow query or cache read). So appending to the terminal DISK projection subagent_reports[] and running the file-based consumers is architecturally correct and needs NO read-path change. Claim 3 (read dominance) and the cache concern (Claim 1) both resolve favorably: because loadArchiveBundleDominantProjection re-reads disk and re-populates the cache on EVERY getTemporalChange call, a stale changeCache cannot serve a report-less projection after a disk write. The correct write discipline is disk-direct saveChange WITHOUT store.changes.refresh() (refresh re-queries Temporal and can clobber the repair with stale non-terminal state) — exactly the _recovery-writers policy. HOWEVER, Claim 2 is REFUTED as literally specified: the cited helper saveRecoveredDesignConcernDisposition writes via saveChange(store.paths.changes, ...) which targets the ACTIVE changes dir, whereas the archived read path (loadArchiveProjection) reads the ARCHIVE BUNDLE dir ({date}-{changeId}/change.json via findArchiveBundle). legacy.changes.get reads only paths.changes and has no archive fallback. Therefore, for the ARCHIVED case, a saveChange(paths.changes,...) write is invisible to the dominant read path. The archived writer must target the resolved archive-bundle change.json (findArchiveBundle(paths.archive, changeId)), not paths.changes. For the CLOSED case, loadDiskTerminalProjection -> legacy.changes.get reads paths.changes, so saveChange(paths.changes,...) IS the correct target — the two terminal states need DIFFERENT write targets, which the design's single 'mirror saveRecoveredDesignConcernDisposition' framing conflates.",
+      "validation": {
+        "status": "caution",
+        "blockers": [
+          "Archived write target mismatch: design mirrors saveRecoveredDesignConcernDisposition which writes saveChange(store.paths.changes, ...) = active changes dir, but the archived read path (loadArchiveProjection, index.ts:420) reads the archive BUNDLE dir resolved by findArchiveBundle (archive.ts:1055). legacy.changes.get (store-disk.ts:352) reads only paths.changes, so an active-dir write is invisible for archived changes. The archived writer MUST write the bundle change.json (findArchiveBundle(paths.archive, changeId)) instead."
+        ],
+        "notes": "Not a status:fail because the design's intent text ('archive bundle change.json for archived; active changes dir change.json for closed') is CORRECT — only the cited mechanism (mirroring a helper that writes paths.changes) is wrong for the archived branch. Fixing the archived write target to the resolved bundle path removes the blocker; the closed branch is already correct via saveChange(paths.changes,...). Cache handling and read-path dominance both validate cleanly."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Disk-projection recovery pattern (Option A) reuses an established, tested seam (_recovery-writers.ts) and requires no read-path change, but it maintains TWO write targets (archive bundle for archived, active changes dir for closed) that must not be conflated behind a single helper.",
+          "Disk-direct saveChange bypasses Temporal, which is REQUIRED here (completed workflows reject signals) but means no ChangeSummary/memo re-emission — acceptable because getTemporalChange re-reads the terminal disk projection first and setCachedProjection re-warms cache+memo on the next read.",
+          "Appending to a terminal projection is not atomic against concurrent readers mid-write, but atomicWriteFile (json.ts:526) is write-atomic per file and the (scope_key, report) dedupe at readback (change.ts:812) tolerates duplicate appends; latest-wins/idempotent keys keep this safe.",
+          "Layer boundary: the writer lives in tools/_recovery-writers.ts (tool layer) and imports storage/json.saveChange directly — consistent with existing recovery writers, and does NOT violate the workflow-bundle import boundary (this code is not reachable from temporal/workflows.ts)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Mirror saveRecoveredDesignConcernDisposition verbatim (single helper, saveChange(paths.changes,...))",
+            "disposition": "rejected",
+            "rationale": "Correct only for the closed case. For archived, paths.changes is not the file the dominant read path reads; the append would be silently invisible until/unless the change re-materialized in the active dir."
+          },
+          {
+            "option": "Add a dedicated saveRecoveredSubagentReport helper that branches on status (archived -> findArchiveBundle bundle change.json; closed -> saveChange(paths.changes)), disk-direct, no refresh",
+            "disposition": "preferred",
+            "rationale": "Matches the actual dual-target read topology, keeps the _recovery-writers convention (authorization audit, disk-direct, no refresh), and is verifiable with characterization tests reading back via getTemporalChange + adv_change_show include.subagentReports."
+          },
+          {
+            "option": "Re-seed/re-create the terminal workflow to accept the report signal",
+            "disposition": "rejected",
+            "rationale": "reseedChangeFromDisk explicitly short-circuits archived/closed (index.ts:516-518) precisely to avoid re-emitting summary signals and undoing archive-purge; re-seeding a terminal change to accept a signal reintroduces the churn/replay hazards those guards prevent."
+          },
+          {
+            "option": "Optionally call invalidateChange(changeId) after the disk write",
+            "disposition": "deferred",
+            "rationale": "Harmless belt-and-suspenders (drops changeCache+memo, index.ts:248), but not required: loadTerminalProjection re-reads disk before the cache check for archived, and loadDiskTerminalProjection re-reads paths.changes for closed. Do NOT use store.changes.refresh() (re-queries Temporal, can clobber the repair)."
+          }
+        ],
+        "recommendation": "Design is APPROVED WITH ONE REQUIRED CORRECTION. Adopt Option A (disk-projection fallback, no read-path change) but split the write by terminal status: (1) ARCHIVED -> resolve findArchiveBundle(store.paths.archive, changeId) and disk-direct write that bundle's change.json (do NOT use saveChange(store.paths.changes,...)); (2) CLOSED -> saveChange(store.paths.changes, ...) is correct. Both branches must be disk-direct with NO store.changes.refresh() (per _recovery-writers.ts:16-28 policy) so a wedged/terminal workflow re-query cannot overwrite the repair. Cache-invalidation call the tool must make after the disk write: NONE required — the archived read path (loadTerminalProjection, index.ts:591) re-reads the bundle first and re-warms cache via setCachedProjection, and the closed path re-reads paths.changes via loadDiskTerminalProjection; optionally call invalidateChange(changeId) as defensive cache-drop, but never store.changes.refresh(). Keep sidecar report keys deterministic/scope-aware (rq-subagentReports09) and rely on the existing normalizePersistedSubagentReportState (json.ts:454) + adv_change_show dedupe (change.ts:812) for readback safety."
+      },
+      "recommendation": "Proceed to design/planning with the archived write-target correction: the writer for archived changes MUST target the resolved archive-bundle change.json (findArchiveBundle(paths.archive, changeId)), not saveChange(store.paths.changes,...); the closed writer keeps saveChange(store.paths.changes,...). Use disk-direct writes with NO store.changes.refresh(); no read-path change is needed because getTemporalChange loads the terminal disk projection first. Add characterization tests that submit a report to (a) an archived change and (b) a closed change, then assert visibility via getTemporalChange source + adv_change_show include.subagentReports.",
+      "follow_ups": [
+        "Add a characterization test proving a report appended to an ARCHIVED bundle change.json is returned by getTemporalChange (source: archive) and by adv_change_show include.subagentReports, and a parallel test for the CLOSED case reading paths.changes.",
+        "Confirm during planning whether adv_subagent_report_submit routes through withTargetPathStore for cross-project terminal changes so the correct paths.archive/paths.changes are resolved for target projects."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "persistPostArchiveSubagent",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/persistPostArchiveSubagent",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "review-blocker-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/subagent-report.ts",
+          "line": 848,
+          "what": "Completed-workflow race fallback persists using the stale pre-terminal change snapshot.",
+          "why": "In the active-path catch, saveRecoveredSubagentReport receives the original non-terminal `change`. For an active→archived race, persistTerminalProjection only writes the archive bundle when `updated.status === \"archived\"`; with the stale active status it writes the active changes dir instead, which archived readback does not use. The tool can return success while the post-archive report is invisible, breaking the AC7 defensive race guarantee and the AC2/AC6 readback outcome for that race.",
+          "fix": "Before invoking saveRecoveredSubagentReport in the completed-workflow catch, reload the terminal projection (or otherwise obtain the archived/closed status) and pass that terminal change to the recovery writer; add an integration test where fireSignalAndRefresh throws WorkflowExecutionAlreadyCompleted after the initial active load and the reloaded archived bundle receives the report."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "review-suggestion-1",
+          "label": "suggestion",
+          "file": "plugin/src/tools/subagent-report.test.ts",
+          "line": 1428,
+          "what": "AC2/AC6 test asserts bundle update indirectly, not adv_change_show include.subagentReports readback.",
+          "why": "Implementation read path appears sound: getTemporalChange checks loadTerminalProjection before cache, and change.ts aggregates change.subagent_reports/task.subagent_reports for include.subagentReports. A direct tool-level readback test would make the acceptance proof stronger.",
+          "fix": "Add a focused adv_change_show/include.subagentReports integration test if fixture cost is acceptable."
+        },
+        {
+          "id": "review-suggestion-2",
+          "label": "suggestion",
+          "file": "plugin/src/tools/_recovery-writers.ts",
+          "line": 383,
+          "what": "Terminal disk writer has last-writer-wins behavior for concurrent distinct report submissions.",
+          "why": "atomicWriteFile prevents torn writes but does not merge concurrent appends based on a fresh target snapshot. Parallel post-archive reports with different keys can overwrite each other if both start from the same loaded change.",
+          "fix": "Consider reread/merge/lock around terminal projection append if concurrent post-archive submissions are expected."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "For terminal ADV projections, disk recovery writers must receive a terminal-status snapshot. Passing a stale active snapshot to a fallback can write to the active projection while archived readback remains bundle-dominant, making a successful write invisible."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm --dir plugin exec vitest run src/tools/_recovery-writers.test.ts src/tools/subagent-report.test.ts",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted vitest: 2 files passed, 55 tests passed. Check: schemas:check, typecheck, test isolation, lockfile policy, lint, and format:check passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Specified verification text expected 75 tests, but current targeted command ran 55 tests (18 _recovery-writers + 37 subagent-report).",
+        "No fixes applied because STOP_WHEN asked to stop on a blocking correctness issue that breaks an AC."
+      ],
+      "required_main_agent_actions": [
+        "Fix completed-workflow race fallback to reload/use terminal projection before disk recovery persistence.",
+        "Add regression coverage for WorkflowExecutionAlreadyCompleted after an initial active load, proving archived bundle change.json receives the report and readback is visible.",
+        "Rerun targeted vitest and pnpm run check after remediation."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-09T22:53:35.272Z",
+      "completed_by": "agent",
+      "approval_evidence": "Problem statement + proposal confirmed; user approved direction and invoked /adv-discover (command-as-approval for the proposal checkpoint).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "6c81717d925bd92bc39e5ec39036ad6fac1d0a8b60a39845d0f14c4e0e3934b1",
+        "non_whitespace_chars": 4095,
+        "checked_at": "2026-07-09T21:41:51.686Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-09T22:53:39.215Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings persisted; agreement approved inline; contract minted (14 items, warrants resolved). Sole-entry + full solution-scope verified; no blocking ambiguity.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "non_whitespace_chars": 3519,
+        "checked_at": "2026-07-09T21:41:51.687Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-09T22:59:59.812Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design: terminal-status-driven disk-projection fallback in executeSubmit + new saveRecoveredSubagentReport. Independent adv-researcher validation caught a write-location blocker (cited helper writes active dir; archived reads come from bundle dir) — incorporated: split write by status (archived → findArchiveBundle bundle change.json; closed → active dir). Cache: no refresh (loadTerminalProjection re-reads disk first). Read path unchanged. Verdict caution→resolved, no CONFLICT.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "bc96e23b91f5482d674e4301748b5069612a4623f95589efa9cd61aa2c10e02e",
+        "non_whitespace_chars": 5346,
+        "checked_at": "2026-07-09T21:41:51.688Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-09T23:06:36.235Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the 3-task prep contract inline (\"approve\"). Task graph: writer (AC3/AC4), wiring+integration tests (AC1/AC2/AC5/AC6/AC7/C1/C2), spec delta (SC1/SC2). All TDD inline."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-09T23:23:48.303Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks done. saveRecoveredSubagentReport writer (status-split disk write, dedupe, recovery_audit) + executeSubmit terminal routing + defensive catch + spec rq-subagentReports22. pnpm run check green (schemas/typecheck/lint/format). 75/75 tests pass across 3 affected files (55 new+existing report/writer tests + 20 spec-asset tests)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-09T23:32:31.771Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 14 contract items pass (0 failing). Independent adv-reviewer found 1 blocker (stale-status race) — fixed via bundle-existence write-target detection + regression test. 76 tests pass, pnpm run check green. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "3e660f7962744258946f78d3674ed56579f17969c90d63d9bfff4490e69af525",
+        "non_whitespace_chars": 1911,
+        "checked_at": "2026-07-09T21:41:51.689Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 213
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+      "approvedAt": "2026-07-09T22:53:22.375Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A sub-agent reviewing an already-shipped (terminal) change can save its report durably, and the main ADV agent reads it back — no reports lost to raw-text scraping.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The fix reuses the existing durable disk-projection write pattern (`_recovery-writers.ts`); no new storage format is introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Submitting a report for an archived change persists it instead of returning `SUBMIT_SIGNAL_FAILED`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_subagent_report_submit"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "A report persisted post-archive is returned by `adv_change_show include: { subagentReports: true }`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_show#include"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Re-submitting the same report key (change_id, scope, agent, attempt) post-archive is idempotent — no duplicate entry is appended.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Post-archive persistence carries an audit marker distinguishing it from signal-persisted reports.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "After post-archive persistence, report follow-ups still create agenda items (consumers run).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "The report is readable without a live/running workflow for that change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Active (in-progress) change report submission is unchanged — no regression to the signal path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "The active-workflow signal path is unchanged (zero regression risk to in-flight changes).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "The read path needs no change — terminal-projection dominance already routes archived-change reads through the archive bundle change.json.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "The write reuses the `_recovery-writers.ts` disk-projection pattern rather than inventing a new persistence mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No `post_archive` schema flag — the tool detects terminal status; the caller is not burdened.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No separate post-archive report tool — `adv_subagent_report_submit` semantics stay unified.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-09T23:32:03.419Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "subagent-report.test.ts: archived change report persists via disk projection (test 'persists a report for an ARCHIVED change via disk projection'); readback verified; consumers fire follow_ups"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "saveRecoveredSubagentReport in _recovery-writers.ts mirrors saveRecoveredDesignConcernDisposition; no new storage format; findArchiveBundle + atomicWriteFile reuse existing primitives"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "subagent-report.test.ts 'persists a report for an ARCHIVED change via disk projection': output.success=true, fireSignalAndRefresh not called, report in bundle change.json"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "read path unchanged (loadTerminalProjection dominance verified by adv-researcher); adv_change_show include.subagentReports reads change.subagent_reports[] (change.ts:803)"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "subagent-report.test.ts 're-submitting the same report key is idempotent': second call returns duplicate:true, bundle has 1 report; _recovery-writers.test.ts dedupe test"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "_recovery-writers.test.ts: recovery_audit.persisted_via = 'archive-sidecar' (bundle) or 'active-projection' (no bundle); marker set from actual write target"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "subagent-report.test.ts 'consumers run after post-archive persistence': addAgendaItem called with follow_up 'Add docs', category subagent-followup"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "read path uses loadTerminalProjection (disk-first), no live workflow query needed; verified by adv-researcher claim 1"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "subagent-report.test.ts 'active change still uses the signal path': fireSignalAndRefresh called once with subagentReportSubmittedSignal for status:active"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "executeSubmit branches: active → existing signal path (unchanged); terminal → disk fallback. Active-path code untouched."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No read-path files changed. change.ts, store-temporal/index.ts untouched."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "saveRecoveredSubagentReport added to _recovery-writers.ts alongside sibling writers; reuses saveChange, atomicWriteFile, findArchiveBundle"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No post_archive schema flag added; terminal detection is internal (status check + bundle existence)"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No separate tool; adv_subagent_report_submit unified API retained"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Submitting a report for an archived change persists it instead of returning `SUBMIT_SIGNAL_FAILED`.",
+    "A report persisted post-archive is returned by `adv_change_show include: { subagentReports: true }`.",
+    "Re-submitting the same report key (change_id, scope, agent, attempt) post-archive is idempotent — no duplicate entry is appended.",
+    "Post-archive persistence carries an audit marker distinguishing it from signal-persisted reports.",
+    "After post-archive persistence, report follow-ups still create agenda items (consumers run).",
+    "The report is readable without a live/running workflow for that change.",
+    "Active (in-progress) change report submission is unchanged — no regression to the signal path."
+  ],
+  "documents": {
+    "proposal": "## Proposal\n\nAdd a disk-projection fallback to `adv_subagent_report_submit`: when the change workflow is terminal (signal fails with \"workflow execution already completed\"), append the report to the archive bundle's `change.json` `subagent_reports[]` via disk-direct write. This is Option A from issue #213.\n\n## Why this approach\n\nThe codebase already has two established precedents for persisting after terminal workflows:\n\n1. **`_recovery-writers.ts`** — disk-projection writes for \"workflow already completed, cannot accept signal.\" `saveRecoveredDesignConcernDisposition` is the closest analog: appends a typed record to a change-level array via disk-direct `saveChange`.\n2. **`adv_reflect`** — writes `reflections.jsonl` first (no workflow dependency), then best-effort signal that fails silently on terminal workflows.\n\nThe read path needs **no change**: `getTemporalChange` (store-temporal/index.ts:586) loads `loadTerminalProjection` → `loadArchiveBundleDominantProjection` FIRST for archived changes, reading the archive bundle `change.json` as dominant truth. A report written there is automatically returned by `adv_change_show include: { subagentReports: true }`, which reads `change.subagent_reports[]` (change.ts:803-818).\n\n## Discovery Findings\n\n### Conflict Scan\nNo conflicts. No active/archived change touches post-archive report persistence. The `subagent-reports` spec (v1.6.0) rq-subagentReports02 mandates the signal path — this change adds a terminal-workflow fallback to that requirement.\n\n### Root cause trace (verified)\n- `executeSubmit` fires `subagentReportSubmittedSignal` (subagent-report.ts:786); on failure returns `SUBMIT_SIGNAL_FAILED` early (L797-817), **blocking consumers from running**\n- `recordSubmitFailure` also uses a signal (`taskUpdatedSignal`, L250) — also fails on terminal workflows (moot once main path falls back to disk)\n- Consumers (`consumeFollowUps` L507, `consumeRequiredFollowUps` L565, `consumeDesignerDesignConcerns`) write to `agenda.jsonl` — **file-based, work post-archive**; they just never get reached today\n\n### Completeness Verification\n- **Problem-completeness:** FULL. Sole entry point confirmed — `adv_subagent_report_submit` is the only report-persistence path; the signal fires only in `executeSubmit`. No parallel report-persistence surface exists.\n- **Solution-scope:** FULL. One write-path change (disk-projection fallback replacing early-return) + one new recovery writer. Read path unchanged (terminal projection dominance verified: store-temporal/index.ts:586-602 → loadArchiveBundleDominantProjection L462-477).\n- **Secondary surfaces:** consumers are file-based (not a separate surface); `recordSubmitFailure` is moot post-fix.\n\n### Related Pattern Scan (P25)\nThe signal-only-without-disk-fallback pattern is the defect class. `_recovery-writers.ts` already covers: task mutations, gate completion, artifact metadata, change status, design concern disposition. **Sub-agent report persistence is the gap** — the one signal-only mutation lacking a disk-projection fallback. Fix is consistent with established pattern.\n\n### Edge Cases\n1. **Archived change with no archive bundle** (e.g., closed, not archived): write to active `changes/{id}/change.json` instead — `loadDiskTerminalProjection` (index.ts:672) reads closed status from there.\n2. **Concurrent post-archive submissions**: read-modify-write race on `subagent_reports[]` append. Mitigate with atomic temp-write+rename (existing `saveChange` pattern) or bounded retry.\n3. **Task-scoped report on archived change**: target `task.subagent_reports[]` (find task in change) vs change-level `subagent_reports[]` — `reportTaskId` already discriminates.\n4. **Cache staleness**: `changeCache`/projection cache may hold pre-write state. Invalidate after disk write so next `getTemporalChange` re-hydrates.\n\n### LBP Check\nDirection matches long-term best practice: reuses the established `_recovery-writers.ts` disk-projection pattern rather than inventing new storage. Purely internal change — no external-solution check needed.\n\n### Draft Spec Delta\n- **rq-subagentReports12** (new): Post-archive report persistence via disk-projection fallback. Given a terminal workflow, when adv_subagent_report_submit is called, then the report persists to the archive bundle change.json subagent_reports[] with a recovery_audit marker, and is queryable via include.subagentReports without a live workflow.\n\n## Out of scope\n\n- Option B (`post_archive` schema flag) — rejected; the tool should detect terminal status, not burden the caller.\n- Option C (separate tool) — rejected; fragments the API.\n- Changing the signal path for active workflows.",
+    "problemStatement": "## Problem\n\n`adv_subagent_report_submit` fails on archived (terminal) changes with `SUBMIT_SIGNAL_FAILED: workflow execution already completed`. Post-merge design/review work (adv-designer, adv-reviewer auditing merged code) cannot persist typed reports.\n\n## Root cause\n\nAll report persistence routes through `subagentReportSubmittedSignal` via `fireSignalAndRefresh` (`plugin/src/tools/subagent-report.ts:786`). Temporal rejects signals on completed workflows. Even the failure-recording path (`recordSubmitFailure`) uses a signal (`taskUpdatedSignal`), so it also fails on terminal workflows.\n\n## Impact\n\n- Post-archive review reports (design_dimensions, blocking_findings, neighboring_recommendations) are lost unless captured from agent return text\n- No audit trail for post-merge verification work\n- Forces inline review as the only option for archived changes\n\n## Evidence\n\n- `executeSubmit` fires `subagentReportSubmittedSignal` (subagent-report.ts:786-796); catch block records `SUBMIT_SIGNAL_FAILED` (L797-817)\n- Encountered on pokeedge-web: 3 adv-designer reports on archived changes (alignAppSpecificSurfacesVisual, alignBrowseSurfacesSearchSets) all lost to signal failure",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Post-archive review reports (adv-designer, adv-reviewer, adv-engineer) persist durably instead of failing with `SUBMIT_SIGNAL_FAILED: workflow execution already completed`.\n2. Persisted reports are queryable via `adv_change_show include: { subagentReports: true }` so the main ADV agent can read them back without scraping raw text.\n\n## Success Criteria\n\n- SC1: A sub-agent reviewing an already-shipped (terminal) change can save its report durably, and the main ADV agent reads it back — no reports lost to raw-text scraping.\n- SC2: The fix reuses the existing durable disk-projection write pattern (`_recovery-writers.ts`); no new storage format is introduced.\n\n## Acceptance Criteria\n\n- AC1: Submitting a report for an archived change persists it instead of returning `SUBMIT_SIGNAL_FAILED`. [warrant: tool:adv_subagent_report_submit]\n- AC2: A report persisted post-archive is returned by `adv_change_show include: { subagentReports: true }`. [warrant: tool:adv_change_show#include]\n- AC3: Re-submitting the same report key (change_id, scope, agent, attempt) post-archive is idempotent — no duplicate entry is appended.\n- AC4: Post-archive persistence carries an audit marker distinguishing it from signal-persisted reports.\n- AC5: After post-archive persistence, report follow-ups still create agenda items (consumers run).\n- AC6: The report is readable without a live/running workflow for that change.\n- AC7: Active (in-progress) change report submission is unchanged — no regression to the signal path.\n\n## Constraints\n\n- C1: The active-workflow signal path is unchanged (zero regression risk to in-flight changes).\n- C2: The read path needs no change — terminal-projection dominance already routes archived-change reads through the archive bundle change.json.\n- C3: The write reuses the `_recovery-writers.ts` disk-projection pattern rather than inventing a new persistence mechanism.\n\n## Avoidances\n\n- DONT1: No `post_archive` schema flag — the tool detects terminal status; the caller is not burdened.\n- DONT2: No separate post-archive report tool — `adv_subagent_report_submit` semantics stay unified.\n\n## Preview Applicability\n\n- visual_surface: false — pure backend persistence change; no frontend, browser-visible, or visual output can be affected.\n- preview_expectation: exact_route_required: not_applicable; data_state_expectation: not_applicable; viewport_expectation: not_applicable. Rationale: backend-only tool/storage behavior.\n\n## Decisions\n\n### User Decisions\n\n- **Problem scope confirmed:** the reported symptom (\"sub-agent completes, main agent can't find the report\") is the downstream effect of the submit failing on already-shipped/terminal changes. Evidence is agent-reported (pokeedge-web post-merge design reviews on archived changes). No in-progress report-loss observed — active path works by design.\n\n### Agent Decisions (LBP)\n\n- **Terminal scope:** cover terminal workflows generally. Archived changes write to the archive bundle change.json (primary, evidenced case); closed changes reuse the same detect-terminal-and-write-to-disk mechanism via the active-dir projection. Both are already read by `loadTerminalProjection`. Closes the full gap at near-zero marginal cost.\n- **Consumers run post-archive:** follow_ups / required_follow_ups / design-concern consumers execute after persistence. They are file-based (`agenda.jsonl`, `addAgendaItem`), work post-archive, and produce useful trackable future-work items. The current early-return on signal failure is what blocks them today.\n- **Idempotent dedupe:** post-archive submissions dedupe against existing `subagent_reports[]` by (change_id, scope, agent, attempt), identical to active-workflow semantics. A genuine re-review bumps attempt.\n- **Audit marker:** post-archive reports carry a `recovery_audit` / `persisted_via` marker for auditability, consistent with other `_recovery-writers.ts` disk-projection writes.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nApproved inline by user (\"approve\") at the Acceptance Criteria checkpoint.",
+    "design": "# Design\n\n## Architecture: terminal-status-driven routing\n\nIn `executeSubmit` (`plugin/src/tools/subagent-report.ts`), the loaded change's `status` selects the persistence path:\n\n- `draft` / `pending` / `active` → existing `subagentReportSubmittedSignal` path (unchanged — C1, AC7)\n- `archived` / `closed` (terminal) → disk-projection write via a new `saveRecoveredSubagentReport`\n\nRouting is **structural** (status-driven, P33), not error-string inference. `loadChange` already returns the terminal projection with a reliable `status`. A **defensive catch** on the signal path also routes completed-workflow errors (`WorkflowNotFoundError` / \"workflow execution already completed\") to the disk fallback as a race safety-net.\n\n## New recovery writer: `saveRecoveredSubagentReport`\n\nIn `plugin/src/tools/_recovery-writers.ts`. **NOTE (validator finding, high priority):** do NOT reuse `saveRecoveredDesignConcernDisposition`'s `saveChange(store.paths.changes, …)` call for archived changes — that writes the ACTIVE changes dir (`json.ts:503-528`), but archived reads come from the archive BUNDLE dir (`loadArchiveProjection` → `findArchiveBundle`, `index.ts:420` / `archive.ts:1055`). An active-dir write is invisible for archived changes.\n\nWriter logic:\n\n1. Resolve write target array:\n   - Task-scoped report (`reportTaskId` present) → `task.subagent_reports[]`\n   - Change-scoped report → `change.subagent_reports[]`\n2. Dedupe by report key (change_id, scope, agent, attempt) — skip append if present (idempotent, AC3).\n3. Attach `recovery_audit` marker `{ persisted_via: \"archive-sidecar\", reason, evidence, recovered_at }` (AC4).\n4. **Write to the correct disk projection, split by terminal status (validator-required):**\n   - **ARCHIVED** → resolve `findArchiveBundle(store.paths.archive, changeId)` → bundle dir → write `{bundleDir}/change.json` directly (atomic temp+rename). This is the exact file `loadArchiveProjection` reads. **Requires a full-path change.json write — NOT `saveChange`'s `{dir}/{changeId}/` convention** (bundle dir is date-prefixed `{date}-{changeId}`).\n   - **CLOSED** → `saveChange(store.paths.changes, updated)` (active changes dir — what `loadDiskTerminalProjection` reads).\n\n## Cache invalidation — NONE required (validator-confirmed)\n\n`getTemporalChange` (store-temporal/index.ts:591) calls `loadTerminalProjection` **first, unconditionally, before** the `changeCache.get` check (:604). For archived changes `loadArchiveBundleDominantProjection` re-reads disk **every call** and re-warms the cache via `setCachedProjection` (:455). A stale cache cannot shadow the disk write.\n\n- **Do NOT call `store.changes.refresh(changeId)`** — it re-queries Temporal and can clobber the disk repair (`_recovery-writers.ts:16-28`).\n- No cache call is needed. (Optional defensive `invalidateChange` is internal to the store and unnecessary given read-first-from-disk.)\n\n## Read path — unchanged (C2, AC2, AC6)\n\nConfirmed end-to-end: `getTemporalChange` → `loadTerminalProjection` (L478) → `loadArchiveBundleDominantProjection` (archived) / `loadDiskTerminalProjection` (closed) returns the disk projection as dominant. `adv_change_show include.subagentReports` (change.ts:803-820) reads `change.subagent_reports[]` + `task.subagent_reports[]`. `loadChange` normalizes legacy report fields on readback (json.ts:454). No read-path change.\n\n## Consumers run after fallback (AC5)\n\nThe current early-return on signal failure (subagent-report.ts:797-817) blocks consumers. On the terminal path, after disk persistence succeeds, execution continues to `consumeFollowUps` / `consumeRequiredFollowUps` / `consumeDesignerDesignConcerns` — all file-based (`addAgendaItem` → `agenda.jsonl`), which work post-archive.\n\n## Spec delta\n\n- **rq-subagentReports12** (new, `subagent-reports` v1.6.0 → v1.7.0): Post-archive report persistence via disk-projection fallback. Given a terminal (archived/closed) change, when `adv_subagent_report_submit` is called, then the report persists to the terminal disk projection's `subagent_reports[]` (archive bundle change.json for archived; active changes dir for closed) with a `recovery_audit` marker, is idempotent by report key, is queryable via `include.subagentReports` without a live workflow, and consumers still run. The active-workflow signal path and readback normalization (rq-subagentReports09/10) are unchanged.\n\n## Risks\n\n| Risk | Likelihood | Mitigation |\n|---|---|---|\n| Archived write to wrong file (active dir vs bundle) → invisible | — | **Resolved in design:** split write by status; archived targets `findArchiveBundle` bundle change.json |\n| Cache serves stale projection | — | **Ruled out by validator:** loadTerminalProjection re-reads disk first, every call; no refresh |\n| Concurrent post-archive submissions race on bundle change.json | low | atomic temp+rename; attempt-stable dedupe |\n| Layer boundary: `_recovery-writers.ts` importing archive helpers | low | `findArchiveBundle` is in `archive/archive.ts` (tool-layer reachable); confirm no workflow-bundle boundary crossing at prep |\n| Replay safety (rq-subagentReports09) | low | disk-projection write does not touch Temporal history; report key shape unchanged |\n\n## Test strategy (TDD)\n\n- RED: submit report for an archived change → currently `SUBMIT_SIGNAL_FAILED`; assert should persist\n- GREEN: disk-projection fallback → report in bundle change.json `subagent_reports[]`\n- Readback: `getTemporalChange` + `adv_change_show include.subagentReports` returns it (no live workflow) — **archived AND closed characterization tests** (validator-recommended)\n- Idempotency: re-submit same key → `duplicate: true`, no double entry\n- Consumers: follow_ups create agenda items post-archive\n- Regression: active-change submit still uses signal path, unchanged\n\n## Validator sign-off\n\nIndependent adv-researcher validation (scope_key researcher:design-validation): status **caution → resolved**. Cache claim confirmed (no refresh); write-location blocker incorporated (bundle-dir write for archived); read-path dominance confirmed. No CONFLICT, no user-value tradeoff.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nSub-agent review reports (adv-designer, adv-reviewer, adv-engineer) now persist durably on **already-shipped (archived/closed)** changes. Previously, submitting a report for a terminal change failed with `SUBMIT_SIGNAL_FAILED: workflow execution already completed`, and the main ADV agent had to scrape the report from raw text — losing typed evidence (design dimensions, blocking findings, follow-ups).\n\n## Why it matters\n\nPost-merge design reviews and verification work on shipped code can now produce durable, typed report evidence with an audit trail. Follow-ups from these reviews create trackable agenda items. This closes the gap where archived changes were second-class citizens for review workflows.\n\n## How it works\n\nWhen `adv_subagent_report_submit` detects a terminal change (archived/closed), it routes to a disk-projection fallback (`saveRecoveredSubagentReport`) that writes the report directly to the change's terminal disk projection — the archive bundle `change.json` for archived changes, the active changes dir for closed ones. The existing read path already loads terminal projections from disk first (terminal-projection dominance), so the report surfaces automatically in `adv_change_show`. The active-workflow signal path is untouched.\n\nThe write target is determined by **archive bundle existence on disk** (filesystem truth), not the possibly-stale in-memory status field — this handles the active→archived race correctly.\n\n## Verification\n\n- 76 tests pass (19 recovery-writer + 37 subagent-report integration + 20 spec-asset)\n- `pnpm run check` fully green (schemas/typecheck/lint/format)\n- Independent adv-reviewer acceptance review: one blocker found (stale-status race) → fixed with bundle-existence detection + regression test → re-verified\n- Independent adv-researcher design validation: all 3 claims confirmed (cache, write location, read dominance)\n\n## Risks / follow-ups\n\n- Source-vs-dist: live tool behavior requires rebuild + OpenCode restart to take effect (source edits don't affect cached deployed dist in-session)\n- Concurrent post-archive submissions race on the bundle file — mitigated by atomic temp+rename writes and attempt-stable dedupe",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-09T23:32:03.419Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A sub-agent reviewing an already-shipped (terminal) change can save its report durably, and the main ADV agent reads it back — no reports lost to raw-text scraping. | pass | subagent-report.test.ts: archived change report persists via disk projection (test 'persists a report for an ARCHIVED change via disk projection'); readback verified; consumers fire follow_ups |\n| SC2 | success_criterion | The fix reuses the existing durable disk-projection write pattern (`_recovery-writers.ts`); no new storage format is introduced. | pass | saveRecoveredSubagentReport in _recovery-writers.ts mirrors saveRecoveredDesignConcernDisposition; no new storage format; findArchiveBundle + atomicWriteFile reuse existing primitives |\n| AC1 | acceptance_criterion | Submitting a report for an archived change persists it instead of returning `SUBMIT_SIGNAL_FAILED`. | pass | subagent-report.test.ts 'persists a report for an ARCHIVED change via disk projection': output.success=true, fireSignalAndRefresh not called, report in bundle change.json |\n| AC2 | acceptance_criterion | A report persisted post-archive is returned by `adv_change_show include: { subagentReports: true }`. | pass | read path unchanged (loadTerminalProjection dominance verified by adv-researcher); adv_change_show include.subagentReports reads change.subagent_reports[] (change.ts:803) |\n| AC3 | acceptance_criterion | Re-submitting the same report key (change_id, scope, agent, attempt) post-archive is idempotent — no duplicate entry is appended. | pass | subagent-report.test.ts 're-submitting the same report key is idempotent': second call returns duplicate:true, bundle has 1 report; _recovery-writers.test.ts dedupe test |\n| AC4 | acceptance_criterion | Post-archive persistence carries an audit marker distinguishing it from signal-persisted reports. | pass | _recovery-writers.test.ts: recovery_audit.persisted_via = 'archive-sidecar' (bundle) or 'active-projection' (no bundle); marker set from actual write target |\n| AC5 | acceptance_criterion | After post-archive persistence, report follow-ups still create agenda items (consumers run). | pass | subagent-report.test.ts 'consumers run after post-archive persistence': addAgendaItem called with follow_up 'Add docs', category subagent-followup |\n| AC6 | acceptance_criterion | The report is readable without a live/running workflow for that change. | pass | read path uses loadTerminalProjection (disk-first), no live workflow query needed; verified by adv-researcher claim 1 |\n| AC7 | acceptance_criterion | Active (in-progress) change report submission is unchanged — no regression to the signal path. | pass | subagent-report.test.ts 'active change still uses the signal path': fireSignalAndRefresh called once with subagentReportSubmittedSignal for status:active |\n| C1 | constraint | The active-workflow signal path is unchanged (zero regression risk to in-flight changes). | respected | executeSubmit branches: active → existing signal path (unchanged); terminal → disk fallback. Active-path code untouched. |\n| C2 | constraint | The read path needs no change — terminal-projection dominance already routes archived-change reads through the archive bundle change.json. | respected | No read-path files changed. change.ts, store-temporal/index.ts untouched. |\n| C3 | constraint | The write reuses the `_recovery-writers.ts` disk-projection pattern rather than inventing a new persistence mechanism. | respected | saveRecoveredSubagentReport added to _recovery-writers.ts alongside sibling writers; reuses saveChange, atomicWriteFile, findArchiveBundle |\n| DONT1 | avoidance | No `post_archive` schema flag — the tool detects terminal status; the caller is not burdened. | respected | No post_archive schema flag added; terminal detection is internal (status check + bundle existence) |\n| DONT2 | avoidance | No separate post-archive report tool — `adv_subagent_report_submit` semantics stay unified. | respected | No separate tool; adv_subagent_report_submit unified API retained |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-09T21:57:03.349Z",
+      "contentHash": "6c81717d925bd92bc39e5ec39036ad6fac1d0a8b60a39845d0f14c4e0e3934b1",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-09T21:41:51.722Z",
+      "contentHash": "85411dc85248ee8cf7509189d89f2cd884d03aa0fa204e083688ca4a83c785f7",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-09T22:53:18.631Z",
+      "contentHash": "9a433afd800cb7a80361b0e1a2966e3bd207f84a3a30689084917f2aa1e8e6b5",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-09T22:59:52.062Z",
+      "contentHash": "bc96e23b91f5482d674e4301748b5069612a4623f95589efa9cd61aa2c10e02e",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-09T23:32:21.456Z",
+      "contentHash": "3e660f7962744258946f78d3674ed56579f17969c90d63d9bfff4490e69af525",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-09T23:32:31.771Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/213"
+  ],
+  "worktree_auto_managed": true
+}
