@@ -1,9 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   saveRecoveredArtifactMetadata,
   saveRecoveredChangeStatus,
   saveRecoveredDesignConcernDisposition,
   saveRecoveredGateCompletion,
+  saveRecoveredSubagentReport,
   saveRecoveredTaskAdd,
   saveRecoveredTaskMutation,
 } from "./_recovery-writers";
@@ -387,6 +391,234 @@ describe("saveRecoveredDesignConcernDisposition", () => {
           evidence: "fixed",
           dispositionedAt: "2026-05-22T00:00:00Z",
         },
+      } as any),
+    ).rejects.toThrow(/recovery authorization/);
+  });
+});
+
+function changeScopedReport(changeId: string, attempt = 1): any {
+  return {
+    schema_version: "1.0",
+    change_id: changeId,
+    attempt,
+    workdir_used: "/tmp/work",
+    scope: { kind: "change", scope_key: "review:acceptance" },
+    agent: "adv-reviewer",
+    phase: "review",
+    verdict: "READY",
+    blocking_findings: [],
+    nonblocking_findings: [],
+    changes_made: [],
+    wisdom_candidates: [],
+    verification: { tests_run: [], results: "n/a", evidence: "none" },
+    scope_drift: null,
+    risks: [],
+    required_main_agent_actions: [],
+  };
+}
+
+describe("saveRecoveredSubagentReport", () => {
+  it("appends a report to the ARCHIVE BUNDLE change.json for an archived change", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-arch-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    const change: Change = {
+      ...baseChange(),
+      id: "test-change",
+      status: "archived",
+      subagent_reports: [],
+    } as Change;
+    await writeFile(
+      join(bundleDir, "change.json"),
+      JSON.stringify(change, null, 2),
+    );
+
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    const report = changeScopedReport("test-change");
+    const updated = await saveRecoveredSubagentReport({
+      store,
+      change,
+      report,
+      authorization: {
+        reason: "post_archive_report_persist",
+        evidence: "workflow execution already completed",
+      },
+    });
+
+    // Report appended in-memory
+    expect(updated.subagent_reports).toHaveLength(1);
+    expect(updated.subagent_reports?.[0]).toMatchObject({
+      agent: "adv-reviewer",
+      recovery_audit: expect.objectContaining({
+        persisted_via: "archive-sidecar",
+        reason: "post_archive_report_persist",
+      }),
+    });
+
+    // Persisted to the ARCHIVE BUNDLE change.json (not active dir)
+    const persisted = JSON.parse(
+      await readFile(join(bundleDir, "change.json"), "utf-8"),
+    );
+    expect(persisted.subagent_reports).toHaveLength(1);
+    expect(persisted.subagent_reports[0].agent).toBe("adv-reviewer");
+    expect(persisted.subagent_reports[0].recovery_audit.persisted_via).toBe(
+      "archive-sidecar",
+    );
+
+    // Did NOT route through the mocked saveChange (active dir)
+    expect(mockedSaveChange).not.toHaveBeenCalled();
+    // No refresh (clobbers repair)
+    expect(store.changes.refresh).not.toHaveBeenCalled();
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("dedupes by report key on repeat submission", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-dedup-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    const change: Change = {
+      ...baseChange(),
+      id: "test-change",
+      status: "archived",
+      subagent_reports: [],
+    } as Change;
+    await writeFile(
+      join(bundleDir, "change.json"),
+      JSON.stringify(change, null, 2),
+    );
+
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+
+    const report = changeScopedReport("test-change");
+    const first = await saveRecoveredSubagentReport({
+      store,
+      change,
+      report,
+      authorization: {
+        reason: "post_archive_report_persist",
+        evidence: "workflow execution already completed",
+      },
+    });
+    const second = await saveRecoveredSubagentReport({
+      store,
+      change: first,
+      report,
+      authorization: {
+        reason: "post_archive_report_persist",
+        evidence: "workflow execution already completed",
+      },
+    });
+
+    expect(second.subagent_reports).toHaveLength(1);
+    expect(second).toBe(first);
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("writes to the ACTIVE changes dir for a CLOSED change", async () => {
+    const { store } = createMockStore();
+    const change: Change = {
+      ...baseChange(),
+      id: "test-change",
+      status: "closed",
+      subagent_reports: [],
+    } as Change;
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    const report = changeScopedReport("test-change");
+    const updated = await saveRecoveredSubagentReport({
+      store,
+      change,
+      report,
+      authorization: {
+        reason: "post_close_report_persist",
+        evidence: "workflow execution already completed",
+      },
+    });
+
+    expect(updated.subagent_reports).toHaveLength(1);
+    expect(mockedSaveChange).toHaveBeenCalledWith(
+      "/tmp/test/.adv/changes",
+      expect.objectContaining({
+        status: "closed",
+        subagent_reports: [
+          expect.objectContaining({
+            agent: "adv-reviewer",
+            recovery_audit: expect.objectContaining({
+              persisted_via: "active-projection",
+            }),
+          }),
+        ],
+      }),
+    );
+    expect(store.changes.refresh).not.toHaveBeenCalled();
+  });
+
+  it("targets task.subagent_reports[] for a task-scoped report", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-task-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    const change: Change = {
+      ...baseChange(),
+      id: "test-change",
+      status: "archived",
+    } as Change;
+    await writeFile(
+      join(bundleDir, "change.json"),
+      JSON.stringify(change, null, 2),
+    );
+
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+
+    const report = {
+      ...changeScopedReport("test-change"),
+      scope: { kind: "task", task_id: "tk-1" },
+      task_id: "tk-1",
+    };
+    const updated = await saveRecoveredSubagentReport({
+      store,
+      change,
+      report,
+      authorization: {
+        reason: "post_archive_report_persist",
+        evidence: "workflow execution already completed",
+      },
+    });
+
+    // Task-scoped → task.subagent_reports[], NOT change-level
+    expect(updated.tasks[0].subagent_reports).toHaveLength(1);
+    expect(updated.subagent_reports ?? []).toHaveLength(0);
+
+    const persisted = JSON.parse(
+      await readFile(join(bundleDir, "change.json"), "utf-8"),
+    );
+    expect(persisted.tasks[0].subagent_reports).toHaveLength(1);
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("requires recovery authorization", async () => {
+    const { store } = createMockStore();
+    await expect(
+      saveRecoveredSubagentReport({
+        store,
+        change: { ...baseChange(), status: "archived" },
+        report: changeScopedReport("test-change"),
       } as any),
     ).rejects.toThrow(/recovery authorization/);
   });

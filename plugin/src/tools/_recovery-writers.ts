@@ -31,6 +31,9 @@ import type { Store } from "../storage/store-types";
 import type { Change, DesignConcernDisposition, Gates } from "../types";
 import { saveChange } from "../storage/json";
 import type { ArtifactMetadata } from "../temporal/contracts";
+import { subagentReportKey } from "../temporal/contracts";
+import { findArchiveBundle } from "../archive/archive";
+import { atomicWriteFile } from "../utils/fs";
 
 interface RecoveryWriteAuthorization {
   reason: string;
@@ -230,4 +233,173 @@ export async function saveRecoveredDesignConcernDisposition(input: {
   } as Change;
   await saveChange(input.store.paths.changes, updated);
   return updated;
+}
+
+/**
+ * Structural shape of a sub-agent report sufficient for key computation and
+ * persistence. Accepts the full ScopedSubagentReport without tight coupling.
+ */
+interface RecoverySubagentReport {
+  change_id: string;
+  attempt: number;
+  agent: string;
+  scope?:
+    | { kind: "task"; task_id: string }
+    | { kind: "change"; scope_key: string }
+    | string;
+  task_id?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Report task ID for key computation: task-scoped reports carry a task_id
+ * (either in scope or legacy top-level); change-scoped reports do not.
+ */
+function recoveryReportTaskId(
+  report: RecoverySubagentReport,
+): string | undefined {
+  if (typeof report.scope !== "string" && report.scope?.kind === "task") {
+    return report.scope.task_id;
+  }
+  return report.task_id;
+}
+
+/**
+ * Persist a sub-agent report to a TERMINAL (archived/closed) change's disk
+ * projection when the workflow can no longer accept `subagentReportSubmittedSignal`.
+ *
+ * Split write by terminal status (validator-confirmed):
+ * - ARCHIVED → write the archive BUNDLE change.json (resolved via
+ *   `findArchiveBundle`). The active-changes-dir write used by sibling writers
+ *   is INVISIBLE for archived changes because the read path
+ *   (`loadArchiveBundleDominantProjection`) reads the bundle, not the active dir.
+ * - CLOSED → `saveChange(paths.changes, …)` (what `loadDiskTerminalProjection`
+ *   reads).
+ *
+ * No `store.changes.refresh()` — `getTemporalChange` calls
+ * `loadTerminalProjection` FIRST (re-reads disk every call), so a stale cache
+ * cannot shadow the disk write; refresh re-queries Temporal and can clobber
+ * the repair (rq-fix-archive-recovery-disk-write discipline).
+ *
+ * Dedupe by report key (change_id, scope/task, agent, attempt) — idempotent,
+ * matching active-workflow semantics.
+ */
+export async function saveRecoveredSubagentReport(input: {
+  store: Store;
+  change: Change;
+  report: RecoverySubagentReport;
+  authorization: RecoveryWriteAuthorization;
+}): Promise<Change> {
+  assertRecoveryAuthorization(input.authorization);
+
+  const taskId = recoveryReportTaskId(input.report);
+  const key = subagentReportKey({
+    changeId: input.report.change_id,
+    taskId,
+    scope:
+      typeof input.report.scope === "string" ? undefined : input.report.scope,
+    agent: input.report.agent as never,
+    attempt: input.report.attempt,
+  });
+
+  const auditedReport = {
+    ...input.report,
+    recovery_audit: {
+      persisted_via:
+        input.change.status === "archived"
+          ? "archive-sidecar"
+          : "active-projection",
+      reason: input.authorization.reason,
+      evidence: input.authorization.evidence,
+      recovered_at: new Date().toISOString(),
+    },
+  };
+
+  // Resolve target array + dedupe
+  if (taskId) {
+    const idx = input.change.tasks.findIndex((t) => t.id === taskId);
+    if (idx < 0) {
+      throw new Error(
+        `Cannot persist task-scoped report: task ${taskId} not in change ${input.change.id}`,
+      );
+    }
+    const existing = input.change.tasks[idx].subagent_reports ?? [];
+    if (
+      existing.some((r) => recoveryReportKey(r, input.report.change_id) === key)
+    ) {
+      return input.change;
+    }
+    const updatedTasks = [...input.change.tasks];
+    updatedTasks[idx] = {
+      ...updatedTasks[idx],
+      subagent_reports: [...existing, auditedReport],
+    };
+    const updated = { ...input.change, tasks: updatedTasks } as Change;
+    await persistTerminalProjection(input, updated);
+    return updated;
+  }
+
+  const existingSidecar = input.change.subagent_reports ?? [];
+  if (
+    existingSidecar.some(
+      (r) => recoveryReportKey(r, input.report.change_id) === key,
+    )
+  ) {
+    return input.change;
+  }
+  const updated = {
+    ...input.change,
+    subagent_reports: [...existingSidecar, auditedReport],
+  } as Change;
+  await persistTerminalProjection(input, updated);
+  return updated;
+}
+
+/** Compute the report key for an existing persisted report. */
+function recoveryReportKey(
+  report: { [key: string]: unknown },
+  fallbackChangeId: string,
+): string {
+  return subagentReportKey({
+    changeId:
+      (report.change_id as string | undefined) ?? fallbackChangeId,
+    taskId:
+      typeof report.scope !== "string" &&
+      report.scope?.kind === "task"
+        ? (report.scope as { task_id: string }).task_id
+        : (report.task_id as string | undefined),
+    scope:
+      typeof report.scope === "string" ? undefined : (report.scope as never),
+    agent: report.agent as never,
+    attempt: (report.attempt as number | undefined) ?? 1,
+  });
+}
+
+/**
+ * Write the updated change to the correct terminal disk projection.
+ * Archived → archive bundle change.json; closed → active changes dir.
+ */
+async function persistTerminalProjection(
+  input: { store: Store; change: Change },
+  updated: Change,
+): Promise<void> {
+  if (updated.status === "archived" && input.store.paths.archive) {
+    const bundleDir = await findArchiveBundle(
+      input.store.paths.archive,
+      updated.id,
+    );
+    if (!bundleDir) {
+      throw new Error(
+        `Cannot persist post-archive report: no archive bundle found for change ${updated.id}`,
+      );
+    }
+    const { join } = await import("node:path");
+    await atomicWriteFile(
+      join(bundleDir, "change.json"),
+      JSON.stringify(updated, null, 2),
+    );
+    return;
+  }
+  // closed (or archived without an archive path) → active changes dir
+  await saveChange(input.store.paths.changes, updated);
 }
