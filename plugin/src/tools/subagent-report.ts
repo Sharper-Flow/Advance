@@ -21,6 +21,7 @@ import {
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import { saveRecoveredSubagentReport } from "./_recovery-writers";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -781,39 +782,114 @@ async function executeSubmit(
   const report = withConsumerWarnings(parsedReport.report, initialWarnings);
 
   if (!args.dryRun) {
-    const handle = await getChangeHandleForChangeId(store, report.change_id);
-    try {
-      await fireSignalAndRefresh(
-        handle,
+    const isTerminal = change.status === "archived" || change.status === "closed";
+    if (isTerminal) {
+      // rq-subagentReports12: terminal workflows cannot accept
+      // subagentReportSubmittedSignal. Route to the disk-projection fallback
+      // so post-archive/post-close review reports persist durably. No early
+      // return — consumers run after (they are file-based, work post-archive).
+      try {
+        await saveRecoveredSubagentReport({
+          store,
+          change,
+          report,
+          authorization: {
+            reason:
+              change.status === "archived"
+                ? "post_archive_report_persist"
+                : "post_close_report_persist",
+            evidence: `change status is ${change.status} (terminal workflow)`,
+          },
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to persist sub-agent report via disk projection";
+        return appendProjectContext(
+          formatToolOutput({
+            error: message,
+            code: "SUBMIT_SIGNAL_FAILED",
+            reportId: id,
+            persisted_via: "terminal-disk-projection",
+          }),
+          projectContext,
+        );
+      }
+    } else {
+      const handle = await getChangeHandleForChangeId(
         store,
         report.change_id,
-        subagentReportSubmittedSignal,
-        {
-          ...(reportTaskId(report) ? { taskId: reportTaskId(report) } : {}),
-          report,
-          submittedAt: new Date().toISOString(),
-        },
       );
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to persist sub-agent report";
-      const failureRecord = await recordSubmitFailure({
-        store,
-        rawReport: report,
-        code: "SUBMIT_SIGNAL_FAILED",
-        message,
-      });
-      return appendProjectContext(
-        formatToolOutput({
-          error: message,
-          code: "SUBMIT_SIGNAL_FAILED",
-          reportId: id,
-          failureRecord,
-        }),
-        projectContext,
-      );
+      try {
+        await fireSignalAndRefresh(
+          handle,
+          store,
+          report.change_id,
+          subagentReportSubmittedSignal,
+          {
+            ...(reportTaskId(report)
+              ? { taskId: reportTaskId(report) }
+              : {}),
+            report,
+            submittedAt: new Date().toISOString(),
+          },
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to persist sub-agent report";
+        // Defensive: an active→terminal race between loadChange and signal
+        // surfaces as a completed-workflow error. Fall back to the disk
+        // projection instead of returning SUBMIT_SIGNAL_FAILED.
+        const isCompletedWorkflow =
+          /already completed|WorkflowExecutionAlreadyCompleted|WorkflowNotFound/i.test(
+            message,
+          );
+        if (isCompletedWorkflow) {
+          try {
+            await saveRecoveredSubagentReport({
+              store,
+              change,
+              report,
+              authorization: {
+                reason: "post_archive_report_persist_race_fallback",
+                evidence: message,
+              },
+            });
+          } catch (fallbackError) {
+            const fbMessage =
+              fallbackError instanceof Error
+                ? fallbackError.message
+                : "Disk-projection fallback also failed";
+            return appendProjectContext(
+              formatToolOutput({
+                error: fbMessage,
+                code: "SUBMIT_SIGNAL_FAILED",
+                reportId: id,
+              }),
+              projectContext,
+            );
+          }
+        } else {
+          const failureRecord = await recordSubmitFailure({
+            store,
+            rawReport: report,
+            code: "SUBMIT_SIGNAL_FAILED",
+            message,
+          });
+          return appendProjectContext(
+            formatToolOutput({
+              error: message,
+              code: "SUBMIT_SIGNAL_FAILED",
+              reportId: id,
+              failureRecord,
+            }),
+            projectContext,
+          );
+        }
+      }
     }
   }
 

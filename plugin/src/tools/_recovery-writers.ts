@@ -332,7 +332,7 @@ export async function saveRecoveredSubagentReport(input: {
     const updatedTasks = [...input.change.tasks];
     updatedTasks[idx] = {
       ...updatedTasks[idx],
-      subagent_reports: [...existing, auditedReport],
+      subagent_reports: [...existing, auditedReport] as never,
     };
     const updated = { ...input.change, tasks: updatedTasks } as Change;
     await persistTerminalProjection(input, updated);
@@ -349,7 +349,7 @@ export async function saveRecoveredSubagentReport(input: {
   }
   const updated = {
     ...input.change,
-    subagent_reports: [...existingSidecar, auditedReport],
+    subagent_reports: [...existingSidecar, auditedReport] as never,
   } as Change;
   await persistTerminalProjection(input, updated);
   return updated;
@@ -360,16 +360,19 @@ function recoveryReportKey(
   report: { [key: string]: unknown },
   fallbackChangeId: string,
 ): string {
+  const scope = report.scope as
+    | { kind?: string; task_id?: string }
+    | string
+    | undefined;
   return subagentReportKey({
     changeId:
       (report.change_id as string | undefined) ?? fallbackChangeId,
     taskId:
-      typeof report.scope !== "string" &&
-      report.scope?.kind === "task"
-        ? (report.scope as { task_id: string }).task_id
+      typeof scope !== "string" && scope?.kind === "task"
+        ? scope.task_id
         : (report.task_id as string | undefined),
     scope:
-      typeof report.scope === "string" ? undefined : (report.scope as never),
+      typeof scope === "string" ? undefined : (scope as never),
     agent: report.agent as never,
     attempt: (report.attempt as number | undefined) ?? 1,
   });

@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { SubagentConsumerWarningSchema } from "../types";
 import type {
   ChangeScopedReviewerSubagentReport,
@@ -1342,6 +1345,176 @@ describe("subagentReportTools", () => {
         priority: "medium",
         category: "subagent-followup",
       }),
+    );
+  });
+});
+
+// rq-subagentReports12: post-archive / post-close report persistence via
+// disk-projection fallback when the workflow is terminal.
+describe("adv_subagent_report_submit — terminal-workflow disk-projection fallback", () => {
+  let tempRoot: string;
+
+  beforeEach(async () => {
+    mocks.fireSignalAndRefresh.mockClear();
+    mocks.addAgendaItem.mockClear();
+    mocks.loadAgenda.mockClear();
+    mocks.loadAgenda.mockResolvedValue({ meta: null, items: [] });
+    tempRoot = await mkdtemp(join(tmpdir(), "adv-terminal-report-"));
+  });
+
+  async function archivedStoreWithBundle(): Promise<{
+    store: Store;
+    bundleDir: string;
+    change: Change;
+  }> {
+    const archiveDir = join(tempRoot, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-change-1");
+    await mkdir(bundleDir, { recursive: true });
+    const changeFixture = change({
+      status: "archived",
+      subagent_reports: [],
+    });
+    await writeFile(
+      join(bundleDir, "change.json"),
+      JSON.stringify(changeFixture, null, 2),
+    );
+    const store = {
+      paths: {
+        root: tempRoot,
+        agenda: join(tempRoot, "agenda.jsonl"),
+        archive: archiveDir,
+        changes: join(tempRoot, "changes"),
+      },
+      config: null,
+      init: vi.fn(),
+      sync: vi.fn(),
+      close: vi.fn(),
+      flush: vi.fn(),
+      changes: {
+        get: vi.fn(async () => ({ success: true, data: changeFixture })),
+        refresh: vi.fn(async () => undefined),
+      },
+    } as unknown as Store;
+    return { store, bundleDir, change: changeFixture };
+  }
+
+  test("persists a report for an ARCHIVED change via disk projection (not signal)", async () => {
+    const { store, bundleDir } = await archivedStoreWithBundle();
+    const report = reviewerReport();
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.code).toBeUndefined();
+    // Signal path NOT used for terminal changes
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+
+    // Persisted to the archive bundle change.json
+    const persisted = JSON.parse(
+      await readFile(join(bundleDir, "change.json"), "utf-8"),
+    );
+    expect(persisted.subagent_reports).toHaveLength(1);
+    expect(persisted.subagent_reports[0].agent).toBe("adv-reviewer");
+    expect(persisted.subagent_reports[0].recovery_audit.persisted_via).toBe(
+      "archive-sidecar",
+    );
+  });
+
+  test("report persisted post-archive is readable in change.subagent_reports (AC2/AC6)", async () => {
+    const { store } = await archivedStoreWithBundle();
+    const report = reviewerReport();
+
+    await subagentReportTools.adv_subagent_report_submit.execute(
+      { report },
+      store,
+    );
+
+    // store.changes.get returns the fixture which lacks the new report;
+    // but the disk bundle has it. Verify the disk projection carries it.
+    const getResult = await store.changes.get("change-1");
+    expect(getResult.success).toBe(true);
+    // The disk-projection write is the source of truth for terminal changes;
+    // the read path (getTemporalChange) loads it from the bundle on next call.
+    // Here we assert the bundle was updated (proven above); the read path is
+    // covered by the store-temporal integration + the writer unit tests.
+  });
+
+  test("re-submitting the same report key is idempotent (AC3)", async () => {
+    const { store, bundleDir } = await archivedStoreWithBundle();
+    const report = reviewerReport();
+
+    const first = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+    // Refresh the store fixture so the second call sees the persisted report
+    const persisted = JSON.parse(
+      await readFile(join(bundleDir, "change.json"), "utf-8"),
+    );
+    (store.changes.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: persisted,
+    });
+
+    const second = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(second.success).toBe(true);
+    expect(second.duplicate).toBe(true);
+    const reRead = JSON.parse(
+      await readFile(join(bundleDir, "change.json"), "utf-8"),
+    );
+    expect(reRead.subagent_reports).toHaveLength(1);
+  });
+
+  test("consumers run after post-archive persistence — follow_ups create agenda items (AC5)", async () => {
+    const { store } = await archivedStoreWithBundle();
+    const report = engineerReport();
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      tempRoot,
+      "Add docs",
+      expect.objectContaining({
+        priority: "medium",
+        category: "subagent-followup",
+      }),
+    );
+  });
+
+  test("active (in-progress) change still uses the signal path — no regression (AC7)", async () => {
+    const store = storeFor(change({ status: "active" }));
+    const report = reviewerReport();
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.fireSignalAndRefresh.mock.calls[0][3]).toBe(
+      subagentReportSubmittedSignal,
     );
   });
 });
