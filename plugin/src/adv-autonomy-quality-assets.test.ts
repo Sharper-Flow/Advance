@@ -251,8 +251,28 @@ describe("Archive and spec assets", () => {
       /Local deploy: \{ran \| not available \| not needed \| failed: <reason>; nonblocking\}/,
     );
     expect(content).toMatch(
-      /GIT FINALIZATION COMPLETE[\s\S]*local deploy status/i,
+      /GIT FINALIZATION COMPLETE[\s\S]*local deploy status/,
     );
+  });
+
+  test("adv-archive.md Local Deploy Gate includes local runtime activation callout", () => {
+    // Post-archive deploy syncs assets but does NOT reload already-running
+    // OpenCode sessions / Temporal workers. The gate must visibly direct the
+    // operator to build the bundle, sync it, and restart the host, and must
+    // state that deploy completion is not reload proof.
+    const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
+    // Build the plugin bundle from plugin/
+    expect(content).toMatch(/pnpm run build/);
+    expect(content).toMatch(/from `plugin\/`/);
+    // Sync/deploy from the repo root
+    expect(content).toMatch(/\.\/scripts\/deploy-local\.sh --fix/);
+    expect(content).toMatch(/from the repo root/);
+    // Restart the session / plugin host so active workers load the bundle
+    expect(content).toMatch(/[Rr]estart/);
+    expect(content).toMatch(/OpenCode session|plugin host/i);
+    expect(content).toMatch(/active workers load/);
+    // Deploy completion is not reload proof
+    expect(content).toMatch(/[Dd]eploy completion is not reload proof/);
   });
 
   test("advance-workflow spec encodes archive push-after-merge semantics", () => {

@@ -393,6 +393,14 @@ If `$MAIN/scripts/deploy-local.sh` exists and is executable:
 
 If the script is absent → record `deploy_action: not available`. If the project explicitly documents that no local deploy is needed → record `deploy_action: not needed` with the source of that evidence.
 
+> **Local runtime activation callout.** `deploy_action: ran` means assets synced to the runtime path — it does NOT reload already-running OpenCode sessions or Temporal workers, which keep the cached bundle in process memory. To activate local runtime changes after archive:
+>
+> 1. Build the plugin bundle: `pnpm run build` from `plugin/`.
+> 2. Sync to the runtime path: `./scripts/deploy-local.sh --fix` from the repo root.
+> 3. Restart the relevant OpenCode session / plugin host so active workers load the rebuilt bundle.
+>
+> Deploy completion is not reload proof. Do not claim live behavior changed until a fresh session has loaded the rebuilt bundle; surface activation status in the Phase 8 report and re-invoke the affected tool only after restart.
+
 After local merge succeeds, archive finalization attempts a safe remote push of the default branch from `$MAIN` when `origin` exists:
 
 - `git -C "$MAIN" fetch origin` (if fetch fails or auth is unclear → stop and ask user before proceeding)
