@@ -1,0 +1,1004 @@
+{
+  "id": "fixEpicTerminalProjection",
+  "title": "Fix epic terminal projection",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-10T02:09:45.002Z",
+  "tasks": [
+    {
+      "id": "tk-178aae63de4b",
+      "title": "Normalize terminal summary reducer state",
+      "type": "code",
+      "section": "Reducer normalization",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-10T06:09:12.390Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1",
+          "C5"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "RED tr_mrejq0sq_fcc0601e failed on new membership_status terminal assertions (plus unrelated pre-existing suite failures from broader command). GREEN tr_mrejqlqm_0a902d97 passed `pnpm exec vitest run src/temporal/epic-state.test.ts` (47 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "`applyEntryTerminalSummaryToState` now sets `entry.membership_status = \"terminal\"` in the same state mutation that records `terminal_summary`. Reducer tests now assert archived and closed terminal summaries normalize membership status to terminal.",
+      "filesTouched": [
+        "plugin/src/temporal/epic-state.test.ts",
+        "plugin/src/temporal/epic-state.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/epic-state.test.ts",
+        "plugin/src/temporal/epic-state.ts"
+      ],
+      "checkpointSha": "e373e2a20b16caaeefaabc5c9336fe862f9631dd",
+      "completedAt": "2026-07-10T06:20:30.837Z",
+      "completed_at": "2026-07-10T06:20:30.837Z",
+      "notes": "Implemented reducer-level terminal membership normalization. RED run `tr_mrejq0sq_fcc0601e` failed on new membership_status expectations (also exposed unrelated existing broad-suite asset failures because `pnpm test --` ran more than target). GREEN run `tr_mrejqlqm_0a902d97` passed targeted `pnpm exec vitest run src/temporal/epic-state.test.ts` (47 tests). Checkpoint e373e2a20b16caaeefaabc5c9336fe862f9631dd recorded.",
+      "updatedAt": "2026-07-10T06:20:40.037Z"
+    },
+    {
+      "id": "tk-d0ae968b2919",
+      "title": "Cover terminal projection caller paths",
+      "type": "code",
+      "section": "Caller-path coverage",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-10T06:09:30.404Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-178aae63de4b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT4",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "RED tr_mrejtf9x_3fa66270 failed on new sync_child_projection stale-membership warning expectation. GREEN tr_mrejulix_a87728ff passed `pnpm exec vitest run src/tools/epic.test.ts` (90 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `terminalProjectionConsistencyFields` so terminal projection outputs report `repaired: true` only when typed membership status is OK/terminal. If a terminal summary returns stale membership, output keeps success but sets `repaired: false`, returns member status, and emits an explicit warning. Updated repair tests to assert sync_child_projection returns terminal membership/OK for normal terminal repair and warning/stale status when typed state remains inconsistent.",
+      "filesTouched": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "1d81a9daa517bf66fa072dbfab708f50cbd14d38",
+      "completedAt": "2026-07-10T06:23:48.264Z",
+      "completed_at": "2026-07-10T06:23:48.264Z",
+      "notes": "Covered sync_child_projection terminal projection behavior and stale-membership warning behavior. RED run `tr_mrejtf9x_3fa66270` failed on new stale-membership warning expectation. GREEN run `tr_mrejulix_a87728ff` passed targeted `pnpm exec vitest run src/tools/epic.test.ts` (90 tests). Checkpoint 1d81a9daa517bf66fa072dbfab708f50cbd14d38 recorded.",
+      "updatedAt": "2026-07-10T06:24:00.791Z"
+    },
+    {
+      "id": "tk-82868dcc7394",
+      "title": "Run terminal projection verification sweep",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-10T06:09:53.412Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-178aae63de4b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d0ae968b2919"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T06:26:42.788Z",
+      "verification": "Acceptance review remediation verified: bin/oc-test targeted -- src/temporal/epic-state.test.ts src/tools/epic.test.ts passed 138 tests; pnpm run format:check passed; pnpm run typecheck passed. Reviewer verdict READY with 0 blockers after adding linked-membership regression.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Verified terminal projection behavior across reducer, repair caller paths, and acceptance review remediation. Final evidence: bin/oc-test targeted -- src/temporal/epic-state.test.ts src/tools/epic.test.ts passed 138 tests; pnpm run format:check passed; pnpm run typecheck passed; adv_change_validate strict:true passed earlier with only NO_DELTAS warning. Reviewer found and fixed one in-scope issue: `memberStatusForEntry` can report `linked` as display OK, so repaired success now requires typed terminal membership directly.",
+      "filesTouched": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/epic.test.ts",
+        "plugin/src/tools/epic.ts"
+      ],
+      "checkpointSha": "9244baeaf7709c9d8e02e5d08d3c841bb095ad1e",
+      "completedAt": "2026-07-10T06:32:46.765Z",
+      "completed_at": "2026-07-10T06:32:46.765Z",
+      "notes": "Acceptance review remediation included: `repaired:true` now requires typed `membership_status === \"terminal\"` and regression covers terminal summary with still-linked membership. Post-remediation verification passed; checkpoint 9244baeaf7709c9d8e02e5d08d3c841bb095ad1e recorded.",
+      "updatedAt": "2026-07-10T06:32:58.858Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicTerminalProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: Epic terminal projection reducer normalization",
+      "sources": [
+        {
+          "label": "advance-epics spec rq-epicTerminalChildProjection01",
+          "locator": ".adv/specs/advance-epics/spec.json:1142-1178",
+          "summary": "Requires terminal child projection to move terminal_summary {status, completed_at} AND membership_status=terminal together, with no projection_missing/projection_stale/repair-needed markers. Scoped in prose to adv_epic_link_change; design generalizes the same invariant to the reducer as a superset."
+        },
+        {
+          "label": "epic-state.ts reducer applyEntryTerminalSummaryToState",
+          "locator": "plugin/src/temporal/epic-state.ts:687-690",
+          "summary": "Reducer currently writes only entry.terminal_summary and leaves membership_status untouched. Confirms the typed-state seam the design fixes."
+        },
+        {
+          "label": "epic.ts memberStatusForEntry renderer",
+          "locator": "plugin/src/tools/epic.ts:112-141",
+          "summary": "Renderer treats membership_status linked|terminal as ok; other values fall to stale/target_unreachable/projection_missing. Renderer already uses membership_status as source of truth; no display override needed (KD1/DDC2)."
+        },
+        {
+          "label": "epic.ts direct terminal link path",
+          "locator": "plugin/src/tools/epic.ts:391-402",
+          "summary": "Direct archived/closed link calls setEntryTerminalSummary then setEntryMembershipStatus(terminal). Confirms KD3 redundancy claim after reducer normalization."
+        },
+        {
+          "label": "epic-state.ts membership reducer default",
+          "locator": "plugin/src/temporal/epic-state.ts:546-564",
+          "summary": "Membership reducer sets membership_status directly (547) and retarget default projection_pending (563-564). Confirms projection_pending is a real non-terminal starting state for DDC3 test coverage."
+        },
+        {
+          "label": "archive-gate.ts archive fan-out",
+          "locator": "plugin/src/tools/change/archive-gate.ts:516-529",
+          "summary": "Archive fan-out calls only setEntryTerminalSummary and preserves an explicit warning path on failure. Confirms both the summary-only seam and that KD2 explicit-failure behavior already exists and must be preserved."
+        }
+      ],
+      "architecture_assessment": "Design makes correctness structural at the Temporal reducer boundary (applyEntryTerminalSummaryToState), the canonical fix for an invariant that must hold across many callers. Source evidence confirms the split the design describes: reducer writes only terminal_summary (epic-state.ts:687-690) while the direct-link tool path additionally sets membership_status=terminal (epic.ts:391-402), and summary-only callers (archive-gate.ts:516-520, plus epic.ts:2997/3193) leave membership stale. Spec rq-epicTerminalChildProjection01 (spec.json:1142-1178) requires the two fields to move together; reducer enforcement means every present and future caller inherits the invariant, aligning with P33 (structural before heuristic) and repo convention that per-change/entry workflow state is source of truth. The renderer already keys on membership_status (epic.ts:112-141), so no display-only override is introduced, satisfying the agreement avoidance against masking drift. Explicit failure/warning paths (KD2) already exist at the tool/archive layer and are preserved. Spec-scope nuance: the prose invariant is written against adv_epic_link_change specifically; the design correctly generalizes it as a reducer-level superset rather than narrowing or contradicting it — no spec law is violated. One implementation note: the current reducer records idempotency AFTER the write (epic-state.ts:693), so adding membership_status=terminal in the same mutation block is replay-safe (DDC4).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is spec-law compliant and source-evidence-backed. rq-epicTerminalChildProjection01 (spec.json:1142-1178) requires terminal_summary + membership_status=terminal together; reducer-level enforcement is a compliant superset that satisfies the link-scoped requirement and closes the seam for summary-only callers (archive-gate.ts:516-520). No contradiction with one-Epic-per-change, optional membership, advisory order, or Temporal signal/query architecture. KD2 explicit-failure preservation matches existing archive-gate.ts:526 warning path. KD3 redundant setEntryMembershipStatus call at epic.ts:397 is genuinely redundant post-normalization and correctly gated behind RED/GREEN regression proof. Implementation note (not a blocker): place the membership_status=terminal write in the same mutation block before the idempotency record (epic-state.ts:687-693) so idempotent replay (DDC4) stays safe."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Reducer-level normalization changes behavior for ALL entryTerminalSummary callers, not just the buggy ones — intended and desirable, but widens blast radius so requires reducer/workflow coverage plus at least one previously summary-only caller-path assertion (design provides both).",
+          "Leaving the redundant setEntryMembershipStatus call (epic.ts:397) minimizes churn but keeps a now-dead write; removing it is cleaner but needs regression proof of response shape and error behavior. Design correctly defers this to test-gated cleanup rather than forcing it."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Tool-level fix: add setEntryMembershipStatus(terminal) after every setEntryTerminalSummary caller",
+            "disposition": "rejected",
+            "rationale": "Recreates the current inconsistency risk at every future call site; not structural. Source shows 3+ summary-only callers (archive-gate.ts:516, epic.ts:2997, epic.ts:3193) that would each need duplicate calls."
+          },
+          {
+            "option": "Renderer-only fix: treat terminal_summary != null as ok in memberStatusForEntry",
+            "disposition": "rejected",
+            "rationale": "Masks inconsistent typed state instead of correcting it; violates agreement avoidance (no display heuristic OK when typed state inconsistent) and DDC2. Renderer at epic.ts:112-141 correctly keys on membership_status as source of truth."
+          }
+        ],
+        "recommendation": "Proceed with the design as written."
+      },
+      "recommendation": "Proceed with the design as written. The reducer-level normalization in applyEntryTerminalSummaryToState is the correct structural fix, directly implied by spec rq-epicTerminalChildProjection01; all six source-evidence claims in the packet are verified. Two planning notes: (1) place the membership_status=terminal write in the same mutation block before the existing idempotency record (epic-state.ts:687-693) so idempotent replay (DDC4) stays safe; (2) honor the packet guidance that RED coverage starts from a non-terminal membership state — projection_pending is a real default (epic-state.ts:563-564) and the right DDC3 fixture. Treat KD3 redundant-call removal and KD4 signal-name parity guard as optional, test-gated cleanup only; neither is contract-critical.",
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicTerminalProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicTerminalProjection",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/epic-state.ts",
+          "line": 687,
+          "what": "Reducer now makes terminal_summary and membership_status terminal a single typed state transition.",
+          "why": "Satisfies archive/closed terminal projection criteria structurally instead of relying on display heuristics."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/epic.ts",
+          "summary": "Tightened terminal projection consistency output so repaired:true requires typed membership_status === \"terminal\"; linked/other display-OK states now return repaired:false with warning.",
+          "verification": "bin/oc-test targeted -- src/temporal/epic-state.test.ts src/tools/epic.test.ts passed 138 tests; pnpm run format:check passed; pnpm run typecheck passed."
+        },
+        {
+          "file": "plugin/src/tools/epic.test.ts",
+          "summary": "Added regression coverage for a terminal-summary repair response that still returns membership_status:\"linked\", proving display OK is not enough for repaired:true.",
+          "verification": "bin/oc-test targeted -- src/temporal/epic-state.test.ts src/tools/epic.test.ts passed 138 tests."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For Epic terminal projections, report-level repair success should check the typed membership_status value directly; derived display helpers may intentionally collapse multiple states into OK and can mask terminal-state inconsistencies."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/epic-state.test.ts src/tools/epic.test.ts",
+          "pnpm run format:check",
+          "pnpm run typecheck"
+        ],
+        "results": "pass",
+        "evidence": "Targeted tests passed: 2 files, 138 tests. Prettier format check passed. TypeScript typecheck completed with exit code 0."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Requested scope_key acceptance-review was rejected by report schema; report persisted under valid schema key review:acceptance.",
+        "Live ADV MCP behavior was not re-invoked after source edit because OpenCode plugin runtime uses deployed dist until rebuild/deploy/restart; source-level unit/type verification passed."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixEpicTerminalProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixEpicTerminalProjection",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "test_coverage",
+        "production_readiness_ai_slop",
+        "cleanup_docs_deploy",
+        "merge_compatibility",
+        "agenda_audit"
+      ],
+      "summary": "Harden release-readiness scan passed. Test coverage: 2/2 changed source files have co-located tests, TDD audit pass, final targeted suite 138 tests passed. Production/slop: security/reliability/performance/maintainability pass, 0 AI-slop issues, no complexity hotspots. Cleanup/docs/deploy: 0 cleanup candidates, no doc conflicts or updates needed, deployment readiness n/a for env/migration/external service/CI/infrastructure because touched scope is internal code/tests only. Merge compatibility: `git fetch origin trunk && git merge --no-commit --no-ff origin/trunk` reported already up to date; working tree clean. Agenda audit: persisted reports for this change contain no required follow-ups.",
+      "findings": [],
+      "follow_ups": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-u3YtZG",
+      "type": "gotcha",
+      "content": "In this repo, `pnpm test -- src/temporal/epic-state.test.ts` can still run broader Vitest surfaces and surface unrelated asset failures. For tight task RED/GREEN loops, use `pnpm exec vitest run <file>` through `adv_run_test` for the targeted file, or `bin/oc-test targeted -- <file>` for broader repo-throttled verification.",
+      "source_task": "tk-178aae63de4b",
+      "recorded_at": "2026-07-10T06:20:56.299Z"
+    },
+    {
+      "id": "ws-JTXsGI",
+      "type": "pattern",
+      "content": "For terminal projection/repair tool outputs, keep display health derived from typed `membership_status` and add an explicit warning when a terminal summary returns stale membership. This preserves structural correctness: reducers normalize the happy path, while tools refuse to label inconsistent typed state as repaired/OK by heuristic.",
+      "source_task": "tk-d0ae968b2919",
+      "recorded_at": "2026-07-10T06:24:18.913Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-10T02:25:33.552Z",
+      "completed_by": "user:command-as-approval",
+      "approval_evidence": "User invoked /adv-discover after proposal handoff; target resolved to fixEpicTerminalProjection. Treating continuation command as Tier A proposal approval.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "153878894ec76768645524a57930174312a0d9ab6744cf857bcae0ee92ee77d9",
+        "non_whitespace_chars": 6378,
+        "checked_at": "2026-07-10T02:09:45.044Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-10T06:03:38.639Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "Discovery findings recorded. User approved criteria with `approve`; agreement persisted and ChangeContract minted with 28 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "non_whitespace_chars": 4937,
+        "checked_at": "2026-07-10T02:09:45.045Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-10T06:08:32.054Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design persisted. Design leverage scout skipped as narrow low-opportunity bugfix. Independent adv-researcher validator returned pass/high confidence/low risk with no blockers or contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "9bb1c527106298990ce875f4075d85a8d06b846ee9a6b54a2b57802857f9e2e1",
+        "non_whitespace_chars": 6468,
+        "checked_at": "2026-07-10T02:09:45.046Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-10T06:16:31.911Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep vision/task graph by reply: approve. Task graph contains 3 tasks with dependencies, TDD intent, evidence policies, and contract refs."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-10T06:27:20.966Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All 3 execution tasks completed. Verification evidence: bin/oc-test targeted -- src/temporal/epic-state.test.ts src/tools/epic.test.ts passed 137 tests; pnpm run format:check passed; pnpm run typecheck passed; adv_change_validate strict:true passed with only NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-10T06:35:25.529Z",
+      "completed_by": "user:approve",
+      "approval_evidence": "User accepted delivered work by reply: approve. Acceptance proof persisted before prompt: contract matrix 28/28 pass/respected, executive summary workflow-visible, reviewer verdict READY, tests/typecheck/format passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "c17e2ef37f9b35059bbf850334e4f91e0fb871ce05b29568f8b77baaa3b0466f",
+        "non_whitespace_chars": 3240,
+        "checked_at": "2026-07-10T02:09:45.047Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+      "approvedAt": "2026-07-10T06:03:30.983Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Terminal Epic entries no longer appear repair-needed after terminal projection succeeds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Existing stale terminal entries can be normalized through explicit `sync_child_projection` repair.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Projection failures remain explicit; display does not hide inconsistent typed state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given `entryTerminalSummary` records `terminal_summary` for a change entry, the Epic entry also records `membership_status: \"terminal\"`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicTerminalChildProjection01"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given archive fan-out projects terminal state for an Epic-linked change, later Epic display does not show `projection_missing`, `projection_stale`, or repair-needed markers for that terminal entry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-epicTerminalChildProjection01"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_epic_repair_membership mode:\"sync_child_projection\"` runs for an already-terminal child, it normalizes the Epic entry to terminal membership or surfaces an explicit warning/failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_epic_repair_membership",
+          "spec:rq-epicTerminalChildProjection01"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given a terminal projection update cannot make typed Epic state consistent, the result does not report the entry as repaired/OK by display heuristic alone.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given direct link of already archived/closed children already works, regression tests preserve that behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given implementation completes, targeted tests cover reducer/workflow behavior and at least one previously summary-only tool/archive/repair path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve `advance-epics` spec law, especially `rq-epicTerminalChildProjection01` and `rq-epicArchiveSync01`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve typed Temporal signal/query architecture; do not introduce update-based mutation surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve one-Epic-per-change and optional Epic membership invariants.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve explicit typed failure/warning behavior for projection/update failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep correctness structural in typed Epic state, not display heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Keep scope current-repo only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not redesign Epic architecture, entry kinds, ordering, product scope, or cross-project owner routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not make Epic membership mandatory or multi-valued.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not add `AdvEpicScope`, dashboard indexing, or cross-project shell promotion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not hide real projection/update failures or convert them into silent success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not add direct ADV state-file reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not merge this focused fix into unrelated performance/adapter refactor work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not include the Epic signal-name parity guard unless implementation naturally touches that area and it stays local/cheap.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Full Epic architecture redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Cross-project shell promotion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "New dashboard/search-attribute surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Broad adapter-surface refactoring.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "New Epic planning primitives or Jira-like workflow concepts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Bulk migration outside explicit `sync_child_projection` repair behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-10T06:34:20.141Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reducer now sets `membership_status:\"terminal\"` with terminal summary; targeted tests passed 138 tests (`tr_mrek6cze_4fc8a87e`)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`sync_child_projection` terminal repair tests cover existing stale terminal entries; targeted tests passed 138 tests."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review found display-OK heuristic risk and remediated it: `repaired:true` now requires typed terminal membership; reviewer verdict READY."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`entryTerminalSummary` reducer test asserts archived/closed terminal summary sets `membership_status:\"terminal\"`; targeted tests passed."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "design_proof",
+          "evidence": "Archive fan-out uses entryTerminalSummary; reducer-level normalization applies to all terminal-summary callers. Targeted reducer tests passed."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`sync_child_projection` repair tests assert normal terminal repair and explicit stale warning/failure path; targeted tests passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Acceptance-review regression covers terminal summary with `membership_status:\"linked\"`; output returns `repaired:false` with warning despite display member status OK."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing direct archived/closed child link behavior remains covered by `src/tools/epic.test.ts`; targeted suite passed."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted verification covered reducer/workflow and repair caller path: `bin/oc-test targeted -- src/temporal/epic-state.test.ts src/tools/epic.test.ts` passed 138 tests."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No spec-law conflict found; `adv_change_validate strict:true` passed with only NO_DELTAS warning."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation stays on existing signal/query reducer/tool surfaces; no update-based mutation surface added. Typecheck passed."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Change only normalizes terminal membership for existing one-Epic-per-change optional membership entries; no membership model expansion."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Explicit warning path preserved and strengthened; stale typed membership returns warning and `repaired:false`. Targeted tests passed."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Correctness lives in typed Epic state (`membership_status:\"terminal\"`) and tool output requires typed terminal; targeted tests passed."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Touched files are current repo only: `plugin/src/temporal/epic-state.ts`, `plugin/src/temporal/epic-state.test.ts`, `plugin/src/tools/epic.ts`, `plugin/src/tools/epic.test.ts`."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Epic architecture, entry kind, ordering, product scope, or cross-project owner routing redesign performed."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Epic membership remains optional and single-valued; no mandatory or multi-valued membership added."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No `AdvEpicScope`, dashboard indexing, or cross-project shell promotion added."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Projection/update failures remain explicit; stale membership cannot be reported as repaired/OK. Regression test passed."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No direct ADV state-file reads introduced."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No unrelated performance or adapter refactor included; diff limited to Epic reducer/tool tests and helper behavior."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Epic signal-name parity guard not added because implementation did not naturally touch signal registration."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No full Epic architecture redesign performed."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No cross-project shell promotion added."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new dashboard/search-attribute surface added."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broad adapter-surface refactoring performed."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new Epic planning primitives or Jira-like workflow concepts added."
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No bulk migration added outside explicit `sync_child_projection` repair behavior."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given `entryTerminalSummary` records `terminal_summary` for a change entry, the Epic entry also records `membership_status: \"terminal\"`.",
+    "Given archive fan-out projects terminal state for an Epic-linked change, later Epic display does not show `projection_missing`, `projection_stale`, or repair-needed markers for that terminal entry.",
+    "Given `adv_epic_repair_membership mode:\"sync_child_projection\"` runs for an already-terminal child, it normalizes the Epic entry to terminal membership or surfaces an explicit warning/failure.",
+    "Given a terminal projection update cannot make typed Epic state consistent, the result does not report the entry as repaired/OK by display heuristic alone.",
+    "Given direct link of already archived/closed children already works, regression tests preserve that behavior.",
+    "Given implementation completes, targeted tests cover reducer/workflow behavior and at least one previously summary-only tool/archive/repair path."
+  ],
+  "documents": {
+    "proposal": "# Fix epic terminal projection\n\n## Why\n\nWhen an Epic-linked change is archived or terminal state is synchronized, ADV records a `terminal_summary` on the Epic entry but may leave `membership_status` as `projection_pending`, `projection_stale`, or `target_unreachable`. That can make terminal Epic history appear to need repair even though terminal projection exists.\n\nDesired outcome: terminal child projection should be internally consistent and spec-aligned: Epic entries with terminal summaries should also reflect terminal membership status, with tests guarding the archive/sync path.\n\n## What Changes\n\nThis change proposes a focused correction to Epic terminal child projection:\n\n- Align the terminal summary projection path with the Epic membership-status contract.\n- Ensure archived/closed child projection cannot leave terminal Epic history in a repair-needed or projection-missing-looking state.\n- Preserve typed error behavior if projection fails; failures should remain visible instead of being hidden by display heuristics.\n- Add focused tests around the real reducer/tool path so mocks do not mask the mismatch.\n- Preserve the current Epic architecture: typed Epic containers, shell/change entries, compact child `epic_membership`, advisory ordering, and explicit cross-project routing.\n\n## User Outcomes\n\n- ADV users see terminal Epic history as complete and consistent, not as needing repair after archive/sync.\n- Maintainers can trust Epic repair/status output when deciding whether a terminal child entry still needs action.\n- Projection failures remain explicit and actionable rather than being hidden by formatting.\n- Future Epic work has a structural test guard for terminal projection consistency.\n\n## Affected Code\n\nLikely areas for discovery validation:\n\n- `plugin/src/temporal/epic-state.ts` — `applyEntryTerminalSummaryToState` currently records `terminal_summary`.\n- `plugin/src/tools/epic.ts` — link/repair paths that project terminal state and render member status.\n- `plugin/src/tools/change/archive-gate.ts` — archive-time Epic terminal-summary fan-out.\n- `plugin/src/types/epics.ts` — `EpicMembershipStatusSchema` includes `terminal`.\n- Tests near `plugin/src/temporal/epic-state.test.ts`, `plugin/src/tools/epic.test.ts`, and `plugin/src/tools/change.archive-phase9.test.ts`.\n\n## Related Repositories\n\n- Current repo only: `/home/jon/dev/advance`.\n- No product-linked cross-repo scope identified.\n\n## Constraints\n\n- Specs are law: preserve `advance-epics` requirements, especially `rq-epicTerminalChildProjection01` and `rq-epicArchiveSync01`.\n- Preserve current Epic architecture; do not redesign Epic membership, entry kinds, ordering, or cross-project ownership.\n- Preserve one-Epic-per-change v1 invariant.\n- Preserve advisory Epic ordering and optional Epic membership.\n- Preserve typed Temporal signal/query architecture; do not introduce update-based mutation surfaces.\n- Preserve explicit failure behavior for projection/update failures; do not convert real projection failures into silent success or display-only fixes.\n- Keep change focused; do not fold in broad adapter cleanup or dashboard/indexing work.\n\n## Impact\n\nExpected impact is correctness and operator trust in Epic terminal history/status. User-visible change should be limited to terminal Epic entries no longer surfacing misleading projection/repair status after terminal projection. Real projection failures should remain visible through existing typed error/reporting paths.\n\n## Context\n\nEvidence gathered during idea shaping and proposal:\n\n- `advance-epics` requires terminal child projection to set terminal summary and terminal membership status, and later Epic show must not flag the repaired terminal entry.\n- `plugin/src/temporal/epic-state.ts:687-690` records `terminal_summary` but does not set `membership_status`.\n- `plugin/src/tools/epic.ts` renders `membership_status: \"terminal\"` as OK, showing the status value is expected by presentation code.\n- Existing tests include mocks with `membership_status: \"terminal\"`, which may mask whether the real reducer/tool path writes it.\n- Active adjacent change `optimizeAdapterSurfaces` targets broader adapter coupling and should remain separate from this focused spec-alignment fix.\n\n## Scope\n\n### In Scope\n\n- Correcting terminal child projection consistency for Epic entries.\n- Tests proving terminal summary projection also produces terminal membership status where required.\n- Archive/sync/link-path verification where discovery confirms the mismatch exists.\n- Error-path verification where the chosen fix could alter projection failure behavior.\n- Minimal documentation or wisdom updates if discovery/design identifies a durable convention.\n\n### Out of Scope\n\n- Full Epic architecture redesign.\n- Cross-project shell promotion.\n- New `AdvEpicScope` or dashboard search attributes.\n- Broad adapter-surface refactoring.\n- New Epic planning primitives, mandatory Epic membership, or Jira-like workflow concepts.\n- Changes to Epic ordering, promotion, retirement, or product-scope semantics unless directly required by terminal projection consistency.\n\n### Must Not\n\n- Must not weaken `rq-epicTerminalChildProjection01` or `rq-epicArchiveSync01`.\n- Must not treat terminal entries as repaired by display heuristics alone if underlying typed state remains inconsistent.\n- Must not bypass typed Epic tools, reducers, or Temporal signal/query contracts.\n- Must not add direct ADV state-file reads.\n- Must not make Epic membership mandatory or multi-valued.\n- Must not hide real projection/update failures or convert them into silent success.\n- Must not merge this focused fix into unrelated performance/adapter refactor work.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n|---|---:|---|\n| Skill Discovery | PASS | Scanned trusted skills; loaded `adv-audit` and `adv-arch-detection`. No pending review skills found. |\n| Prior Research Extension | PASS | Cited archived Epic changes and docs prep packs; added new reducer/tool-path finding. |\n| Conflict & Related-Work Scan | PASS | `adv_change_list`, `adv_change_validate`, and `adv_agenda_list` executed. |\n| Edge Case Investigation | PASS | Edge cases recorded for terminal projection consistency. |\n| Design Question Depth | PASS | Open design questions annotated with trust model, blast radius, alternatives. |\n| Draft Spec Delta Shapes | PASS | No new spec delta required; existing `rq-epicTerminalChildProjection01` covers behavior. |\n| P25 Related-Pattern Scan | PASS | All `setEntryTerminalSummary` call sites scanned. |\n| LBP Check | PASS | Structural state-level consistency is likely LBP; external-solution check skipped as internal bugfix. |\n| Completeness Verification | PASS | Target-operation surface scan covered terminal-summary writes and secondary surfaces. |\n\n### Skills Considered\n\n- `adv-audit`: loaded. Match: spec/implementation drift against `advance-epics` MUST requirements.\n- `adv-arch-detection`: loaded. Match: structural correctness boundary in Temporal reducer/tool-state transition.\n- `adv-codebase-design`: considered, not loaded; design-phase seam placement may use it later.\n- `adv-opportunity-scout`: considered, not run; change is narrow low-opportunity bugfix.\n- External/web skills: not applicable; no ecosystem unknowns or external alternatives.\n- Pending-review scan: no global skill with active `metadata.review_status: \"pending\"` found; only template prose in `adv-skill-author` mentions pending.\n\n### Extends\n\n- No `temp/*.md` prior notes found.\n- `docs/repo-improve-prep.md`: relevant only as broad ADV tool performance context. New finding here: this change is not a performance/indexing issue; it is a typed state consistency issue in Epic terminal projection.\n- `docs/non-coding-task-rigor-prep.md`: not directly relevant; confirms large non-code rigor, not this internal bugfix.\n- Archived `fixEpicRepair`: relevant pattern — repair reporting must be honest and structural, not inferred from signal delivery. New finding: terminal projection has a similar honesty seam where display can report repair-needed after a terminal summary exists.\n- Archived `addEpicRetirement`: relevant pattern — terminal history/read surfaces must remain typed and queryable after workflow completion. New finding: terminal history completeness also depends on `membership_status` consistency.\n- Archived `fixRemoteEpicRouting`: relevant pattern — cross-project owner/child routing must remain explicit; terminal projection behavior is part of preserved same-project/cross-project membership semantics. New finding: retarget/sync paths can call terminal summary without terminal membership.\n- Archived `addEpicTimestamps`: relevant only for Epic list/read surface discipline; confirms no need to add dashboard/indexing work here.\n\n### Conflict Scan\n\n- Active related work: `optimizeAdapterSurfaces` is adjacent but broader adapter-coupling work; keep this fix focused and separate.\n- Active stale draft: `diagnoseArchivedListingTimeout`; no direct terminal-projection overlap found.\n- Validation: `adv_change_validate strict:true` passed. Warnings `NO_TASKS` and `NO_DELTAS` expected before planning/spec deltas.\n- Agenda: large agenda list returned; visible items were unrelated subagent follow-ups and target_path/archive/status work. No direct terminal-projection agenda item surfaced in the returned slice.\n\n### Current State\n\n- Spec law: `.adv/specs/advance-epics/spec.json:1140-1178` says a terminal child link must set `terminal_summary`, set `membership_status` to `terminal`, and later `adv_epic_show` must not show projection-missing/stale/repair-needed markers.\n- Type support exists: `plugin/src/types/epics.ts:202-209` includes `terminal` in `EpicMembershipStatusSchema`.\n- Presentation expects it: `plugin/src/tools/epic.ts:112-141` maps `linked` or `terminal` to `member_status.status: \"ok\"`; pending falls through to `projection_missing`.\n- Reducer mismatch: `plugin/src/temporal/epic-state.ts:687-690` writes only `entry.terminal_summary`; it does not set `entry.membership_status`.\n- Direct link path is correct: `plugin/src/tools/epic.ts:391-401` calls `setEntryTerminalSummary` and then `setEntryMembershipStatus(... \"terminal\")`.\n- Retarget/sync/archive paths are suspect: `plugin/src/tools/epic.ts:2997-3001`, `plugin/src/tools/epic.ts:3193-3198`, and `plugin/src/tools/change/archive-gate.ts:516-520` call only `setEntryTerminalSummary`.\n- Store surface returns the queried entry after terminal summary signal: `plugin/src/storage/store-temporal/epics.ts:882-915`, so if reducer does not set membership status, callers see the old status.\n- Tests currently prove terminal summary/progress but not terminal membership in reducer/workflow: `plugin/src/temporal/epic-state.test.ts:611-660`, `plugin/src/temporal/workflows.epic.test.ts:298-317`.\n- Some tool tests mock terminal membership, masking the underlying reducer issue: `plugin/src/tools/change.archive-phase9.test.ts:257-271`.\n\n### Edge Cases\n\nGap: terminal summary projection can leave stale membership state.\n\n1. Existing entry has `membership_status: \"projection_pending\"`; archive sync records `terminal_summary`; `memberStatusForEntry` returns `projection_missing` even though entry is terminal.\n2. Existing entry has `membership_status: \"target_unreachable\"`; later terminal sync succeeds on owner workflow; display may keep target-unreachable status despite terminal history.\n3. Shell entry receives terminal-summary signal by mistake; existing reducer correctly returns `entry_not_found` and must keep doing so.\n4. Duplicate/idempotent terminal-summary signal should not regress idempotency or progress recomputation.\n5. Direct link of already archived/closed child already sets terminal status; fix must not double-write or break that path.\n6. Partial failure in any tool-level multi-call path must remain explicit; no display-only masking of real state failure.\n\n### Open Design Questions\n\n1. Where should terminal membership consistency be enforced?\n   - Trust model: agent-owned technical decision.\n   - Blast radius: reducer-level change affects every terminal-summary signal; tool-level change risks missing future call sites.\n   - Alternatives: reducer sets `membership_status: \"terminal\"`; each tool adds `setEntryMembershipStatus`; display treats `terminal_summary` as OK. Recommendation: reducer-level structural consistency, because terminal summary semantically makes the entry terminal.\n2. Should direct link keep its explicit status update if reducer enforces terminal?\n   - Trust model: agent-owned technical decision.\n   - Blast radius: duplicate signal/call could be harmless but unnecessary; removing may alter response shape if tests expect call ordering.\n   - Alternatives: leave for compatibility, remove if redundant after tests, or centralize helper. Recommendation: design decides with RED tests; preserve behavior unless cleanup is clearly local.\n3. Should the low-risk Epic signal-name parity guard be included?\n   - Trust model: joint scope/priority if it consumes more than local test work.\n   - Blast radius: low; adds structural guard, but not required for terminal projection fix.\n   - Alternatives: include as nearby test if cheap; record as follow-up; exclude. Recommendation: keep out of acceptance unless implementation discovers a direct test seam.\n\n### Draft Spec Deltas\n\nNo new spec delta required. Existing `rq-epicTerminalChildProjection01` already states the required behavior.\n\nExisting G/W/T to satisfy:\n\n- Given an archived child is linked or terminal-projected, when Epic entry is updated, then it has `terminal_summary.status: \"archived\"` and `membership_status: \"terminal\"`.\n- Given a closed child is linked or terminal-projected, when Epic entry is updated, then it has `terminal_summary.status: \"closed\"` and `membership_status: \"terminal\"`.\n- Given later Epic show renders the entry, then compact terminal history does not show `projection_missing`, `projection_stale`, or repair-needed markers.\n\n### Related Pattern Scan\n\nSearched exact patterns: `setEntryTerminalSummary`, `entryTerminalSummary`, `setEntryMembershipStatus`, `membershipStatus: \"terminal\"`.\n\nSurfaces found:\n\n- `plugin/src/tools/epic.ts:391-401` — direct terminal link; summary + terminal membership; OK.\n- `plugin/src/tools/epic.ts:2997-3001` — retarget terminal child; summary only; in scope.\n- `plugin/src/tools/epic.ts:3193-3198` — repair `sync_child_projection` terminal child; summary only; in scope.\n- `plugin/src/tools/change/archive-gate.ts:516-520` — archive fan-out; summary only; in scope.\n- `plugin/src/storage/store-temporal/epics.ts:882-915` — store adapter for terminal summary signal; in scope if reducer-level fix chosen.\n- `plugin/src/temporal/workflows.epic.test.ts:298-317` and `plugin/src/temporal/workflows.search-attrs.test.ts:159-164` — workflow tests for terminal signal; add/adjust expectations.\n- No other non-test writer of `membershipStatus: \"terminal\"` found besides the direct link helper.\n\n### Completeness Verification\n\nProblem-completeness check: PASS, high confidence. The bug class is not just a display symptom; all terminal-summary write surfaces were scanned. The root is that terminal summary and terminal membership can diverge.\n\nSolution-scope check: PASS, high confidence. Intended scope is all terminal-summary projection paths, not just archive Phase 9. Secondary surfaces classified:\n\n- Direct link archived/closed child: in scope for regression preservation; already likely correct.\n- Repair `sync_child_projection`: in scope; currently summary-only.\n- Retarget terminal child: in scope; currently summary-only.\n- Archive fan-out after archive: in scope; currently summary-only.\n- Pure renderer fallback: out of scope with rationale — would hide inconsistent state instead of making correctness structural.\n- Search attributes, CLI timestamps, retirement, cross-project shell promotion: out of scope with rationale — adjacent Epic surfaces, not terminal projection consistency.\n\nSole-entry claim status: verified. `lgrep_search_text` found all `setEntryTerminalSummary` and `entryTerminalSummary` surfaces in source/tests; no unscanned writer surface remains.\n\nReproduction classification: `broken_capability`. Spec requires terminal projection consistency; source evidence shows some paths may not satisfy it. This may seed acceptance criteria.\n\n### LBP Check\n\nLikely LBP: make terminal state consistency structural at the state-transition boundary, then verify through reducer/workflow/tool tests. This matches P33: state machine owns correctness, not display heuristics.\n\nExternal-solution check: skipped. This is internal ADV Temporal/state-machine behavior; no external library/service alternative is viable.\n\n### Discovery Opportunity Scout\n\nScout: skipped — narrow low-opportunity bugfix with existing spec law, localized source evidence, and no user-value tradeoff beyond scope questions below.\n\n### Recommended Objectives\n\n1. Ensure every terminal-summary projection path leaves the Epic change entry with `membership_status: \"terminal\"`.\n2. Preserve explicit typed failure behavior; do not hide state inconsistency in render-only logic.\n3. Add regression coverage for reducer/workflow behavior and at least one tool/archive or repair path that previously could mask stale membership status.\n4. Preserve existing direct terminal link behavior and Epic architecture invariants.\n\n### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C\n\nRequired categories scanned:\n\n- B: Clear. Proposal has In Scope, Out of Scope, and Must Not sections.\n- F: Clear. Functional scope is terminal projection consistency, not broad Epic redesign.\n- S: Clear for discovery stage. Completion signals will become tests/criteria in agreement.\n- M: Clear. Remaining questions are scope/priority preferences and design-owned technical choices, not blocking missing facts.\n\n## Discovery Agenda\n\nResolved during discovery:\n\n- Best-fix boundary: likely reducer/state-transition consistency; design will validate exact implementation seam.\n- Archive/sync/link paths: direct link sets terminal membership; retarget/sync/archive only call terminal summary.\n- Mocking concern: archive phase test fixture hardcodes terminal membership.\n- Repair command coverage: `sync_child_projection` is in scope.\n\nOpen for agreement/user resolution:\n\n- Whether to include existing terminal entries cleanup via repair path in explicit acceptance criteria.\n- Whether partial projection failure should block status success or surface warning while retaining repair-needed state.\n- Whether the low-risk signal parity guard should remain a follow-up instead of part of this focused fix.\n\n",
+    "problemStatement": "# Problem Statement\n\nWhen an Epic-linked change is archived or terminal state is synchronized, ADV records a `terminal_summary` on the Epic entry but may leave `membership_status` as `projection_pending`, `projection_stale`, or `target_unreachable`. That can make terminal Epic history appear to need repair even though terminal projection exists.\n\nDesired outcome: terminal child projection should be internally consistent and spec-aligned: Epic entries with terminal summaries should also reflect terminal membership status, with tests guarding the archive/sync path.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make Epic terminal child projection internally consistent: any successful terminal-summary projection leaves the Epic change entry with `membership_status: \"terminal\"`.\n2. Cover future terminal writes and explicit `sync_child_projection` repair normalization for existing stale terminal entries.\n3. Preserve explicit failure/warning behavior when terminal projection cannot make typed Epic state consistent.\n4. Preserve existing direct link behavior for already archived/closed children and current Epic architecture invariants.\n5. Keep this change focused on terminal projection consistency, not broad Epic architecture, dashboard indexing, or adapter refactoring.\n\n## Success Criteria\n\n1. Terminal Epic entries no longer appear repair-needed after terminal projection succeeds.\n2. Existing stale terminal entries can be normalized through explicit `sync_child_projection` repair.\n3. Projection failures remain explicit; display does not hide inconsistent typed state.\n\n## Acceptance Criteria\n\n1. Given `entryTerminalSummary` records `terminal_summary` for a change entry, the Epic entry also records `membership_status: \"terminal\"`. [warrant: spec:rq-epicTerminalChildProjection01]\n2. Given archive fan-out projects terminal state for an Epic-linked change, later Epic display does not show `projection_missing`, `projection_stale`, or repair-needed markers for that terminal entry. [warrant: spec:rq-epicTerminalChildProjection01]\n3. Given `adv_epic_repair_membership mode:\"sync_child_projection\"` runs for an already-terminal child, it normalizes the Epic entry to terminal membership or surfaces an explicit warning/failure. [warrant: tool:adv_epic_repair_membership, spec:rq-epicTerminalChildProjection01]\n4. Given a terminal projection update cannot make typed Epic state consistent, the result does not report the entry as repaired/OK by display heuristic alone.\n5. Given direct link of already archived/closed children already works, regression tests preserve that behavior.\n6. Given implementation completes, targeted tests cover reducer/workflow behavior and at least one previously summary-only tool/archive/repair path.\n\n## Constraints\n\n1. Preserve `advance-epics` spec law, especially `rq-epicTerminalChildProjection01` and `rq-epicArchiveSync01`.\n2. Preserve typed Temporal signal/query architecture; do not introduce update-based mutation surfaces.\n3. Preserve one-Epic-per-change and optional Epic membership invariants.\n4. Preserve explicit typed failure/warning behavior for projection/update failures.\n5. Keep correctness structural in typed Epic state, not display heuristics.\n6. Keep scope current-repo only.\n\n## Avoidances\n\n1. Do not redesign Epic architecture, entry kinds, ordering, product scope, or cross-project owner routing.\n2. Do not make Epic membership mandatory or multi-valued.\n3. Do not add `AdvEpicScope`, dashboard indexing, or cross-project shell promotion.\n4. Do not hide real projection/update failures or convert them into silent success.\n5. Do not add direct ADV state-file reads.\n6. Do not merge this focused fix into unrelated performance/adapter refactor work.\n7. Do not include the Epic signal-name parity guard unless implementation naturally touches that area and it stays local/cheap.\n\n## Out of Scope\n\n1. Full Epic architecture redesign.\n2. Cross-project shell promotion.\n3. New dashboard/search-attribute surfaces.\n4. Broad adapter-surface refactoring.\n5. New Epic planning primitives or Jira-like workflow concepts.\n6. Bulk migration outside explicit `sync_child_projection` repair behavior.\n\n## Preview Applicability\n\nvisual_surface: false\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: This change affects ADV internal Temporal/Epic state, MCP tool behavior, and tests; it has no browser-visible or frontend surface.\n\n## Decisions\n\n### User Decisions\n\n1. Existing entries coverage\n   - Question: Should this cover existing terminal Epic entries through `sync_child_projection` repair, or only future writes?\n   - User choice: Future + repair.\n   - Why it matters: Existing stale terminal entries can be normalized by explicit repair instead of staying misleading.\n2. Failure behavior\n   - Question: What should users see if terminal summary can be recorded but terminal membership cannot be confirmed?\n   - User choice: Explicit warning.\n   - Why it matters: Repair/status trust depends on not displaying inconsistent typed state as repaired.\n3. Extra guard\n   - Question: Include low-risk Epic signal-name parity test?\n   - User choice: Out unless touched.\n   - Why it matters: Keeps this change focused while allowing local opportunistic guard if implementation naturally touches signal wiring.\n4. Criteria approval\n   - Question: Approve discovery criteria?\n   - User choice: `approve`.\n   - Why it matters: Authorizes agreement persistence and discovery gate completion.\n\n### Agent Decisions (LBP)\n\n1. Prefer structural state-transition consistency over renderer fallback. Display-only fixes would hide typed-state drift.\n2. Treat `entryTerminalSummary` as the likely normalization boundary because all terminal-summary callers route through that signal/reducer path.\n3. Keep direct archived/closed link behavior as regression-preserved compatibility unless design proves simplification is safe.\n4. Skip external-solution research; this is an internal ADV state-machine/spec-law bugfix.\n5. Keep Epic signal-name parity guard outside acceptance unless implementation naturally touches the signal surface.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nAcceptance and success criteria approved by user reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nMake `entryTerminalSummary` the structural state-transition boundary for Epic terminal projection consistency.\n\nToday, terminal projection is split: some tool paths call `setEntryTerminalSummary` and then separately set `membership_status: \"terminal\"`, while other paths call only `setEntryTerminalSummary`. The reducer behind `entryTerminalSummary` records `terminal_summary` but leaves the existing `membership_status` untouched. That creates a typed-state seam where an entry can be terminal for progress/history but still look projection-missing/stale/unreachable for membership health.\n\nTarget architecture:\n\n1. `applyEntryTerminalSummaryToState` sets both:\n   - `entry.terminal_summary = { status, completed_at }`\n   - `entry.membership_status = \"terminal\"`\n2. All terminal-summary signal callers inherit consistent state through one Temporal reducer path.\n3. Renderers continue using `membership_status` as source of truth for membership health; no display-only override is added.\n4. Tool-level paths preserve explicit warnings/errors for failed signals or unreachable owner workflows.\n5. Tests verify reducer/workflow state and at least one previously summary-only caller path.\n\n## Key Decisions\n\n### KD1 — Enforce terminal membership in the reducer\n\n`applyEntryTerminalSummaryToState` is the single structural authority for terminal summary projection. When it succeeds for a change entry, it also normalizes `membership_status` to `terminal`.\n\nRationale:\n\n- `setEntryTerminalSummary` is the common store API used by archive fan-out, repair sync, retarget, direct link, and workflow tests.\n- `rq-epicTerminalChildProjection01` requires terminal summary and terminal membership to move together.\n- A renderer fallback would hide inconsistent typed state and violate the agreement avoidance.\n- Tool-level fixes would be easy to miss in future call sites.\n\n### KD2 — Preserve explicit failure behavior\n\nThe operation is considered consistent only when the terminal-summary signal succeeds and queried state reflects terminal membership. If the signal fails, the existing tool/archive warning/failure path remains visible. No caller should claim repaired/OK solely by checking `terminal_summary` in presentation code.\n\n### KD3 — Keep direct terminal link compatible, but allow redundant cleanup if tests prove safe\n\nThe direct archived/closed link path already calls `setEntryTerminalSummary` and `setEntryMembershipStatus(\"terminal\")`. After reducer normalization, the second call is redundant. Implementation may either:\n\n- leave the second call intact for minimal behavior churn; or\n- remove/adjust it if focused RED/GREEN tests prove response shape and error behavior remain correct.\n\nEither way, direct link behavior must still return terminal summary projected and `member_status.status: \"ok\"`.\n\n### KD4 — Scope signal-name parity guard out unless touched naturally\n\nEpic signal-name parity test is useful but not contract-critical for this fix. It may be added only if implementation naturally touches the signal surface and the test is local/cheap.\n\n## ADR Drafts\n\nNone. Decisions are localized, reversible, and directly implied by existing spec law; no ADR needed.\n\n## Implementation Strategy\n\n1. Add RED coverage around reducer/workflow behavior:\n   - `applyEntryTerminalSummaryToState` changes a `projection_pending` change entry to `membership_status: \"terminal\"`.\n   - archived and closed terminal summaries both normalize membership.\n   - shell/missing-entry/idempotency behavior remains unchanged.\n2. Add targeted coverage for a previously summary-only caller:\n   - preferred: archive fan-out or `sync_child_projection` repair path returns/renders terminal member status after summary projection;\n   - acceptable: workflow integration test proves `entryTerminalSummarySignal` alone normalizes membership.\n3. Update `applyEntryTerminalSummaryToState` to set `entry.membership_status = \"terminal\"` in the same mutation that writes `terminal_summary`.\n4. Review direct link tests. Preserve or simplify the redundant explicit `setEntryMembershipStatus(\"terminal\")` call only with regression proof.\n5. Verify targeted suites covering Epic reducer/workflow/tool/archive path.\n\n## LBP Analysis\n\nReducer-level normalization is the preferred long-term approach because it makes correctness structural in the state machine. Every caller of `setEntryTerminalSummary` gets the same invariant, including future callers. Tool-level duplicated calls would recreate the current inconsistency risk, and renderer-only fixes would mask drift instead of correcting state.\n\n## Affected Components\n\n- `plugin/src/temporal/epic-state.ts` — terminal summary reducer normalization.\n- `plugin/src/temporal/epic-state.test.ts` — reducer regression coverage.\n- `plugin/src/temporal/workflows.epic.test.ts` or related workflow tests — signal-level coverage.\n- `plugin/src/tools/epic.ts` — direct link / repair / retarget behavior review; possible test adjustments only.\n- `plugin/src/tools/change/archive-gate.ts` and `plugin/src/tools/change.archive-phase9.test.ts` — archive fan-out coverage if chosen as the caller-path regression.\n- `plugin/src/storage/store-temporal/epics.ts` — no design change expected; returns queried entry after signal.\n\n## Design-Derived Criteria\n\n- DDC1: The invariant `terminal_summary != null` for a change entry implies `membership_status === \"terminal\"` after any successful `entryTerminalSummary` reducer application.\n- DDC2: No renderer may treat stale membership as OK solely because `terminal_summary` exists.\n- DDC3: Tests must include a starting membership state other than `terminal` (for example `projection_pending` or `target_unreachable`) before terminal projection.\n- DDC4: Idempotent replay of the same terminal-summary signal must not regress terminal membership or progress.\n\n## Risks / Mitigations\n\n- Risk: reducer-level change affects all terminal-summary callers.\n  - Mitigation: this is intended; add workflow/reducer tests and preserve existing shell/missing-entry errors.\n- Risk: direct link path may perform redundant terminal status signal.\n  - Mitigation: keep for compatibility unless local tests prove safe simplification.\n- Risk: archive test mocks can still mask real state behavior.\n  - Mitigation: add at least one real reducer/workflow assertion that starts from non-terminal membership.\n- Risk: partial failure semantics could change if multiple tool calls are removed.\n  - Mitigation: preserve explicit failure/warning behavior and avoid display-only success.\n\n## Design Leverage Scout\n\nScout: skipped — focused state-machine bugfix with existing spec law, known reducer seam, and no user-value tradeoff or broad opportunity surface.\n\n## Validator Result\n\nValidator: clean pass ✓\n\n- `validation.status: pass`, confidence high, risk low.\n- Finding: reducer normalization is correct and spec-implied.\n- Source evidence: `.adv/specs/advance-epics/spec.json:1142-1178`, `plugin/src/temporal/epic-state.ts:687-690`, `plugin/src/tools/epic.ts:112-141,391-402`, `plugin/src/tools/change/archive-gate.ts:516-529`.\n- Alternatives considered and rejected: tool-level fixes are non-structural across 3+ call sites; renderer-only fix masks drift and violates the agreement avoidance.\n- Planning notes: write `membership_status = \"terminal\"` in the same reducer mutation block before idempotency record; RED tests must start from non-terminal membership state.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThis change makes Epic terminal child projection trustworthy: when a linked change becomes archived or closed, the Epic entry records both the terminal summary and typed `membership_status: \"terminal\"`. Acceptance decision: approve a focused internal state-consistency fix with review-complete evidence.\n\n## Why It Matters\n\nPreviously, a terminal Epic child could carry a terminal summary while still looking stale or repair-needed because typed membership status did not move with it. The fix makes the state transition structural and keeps warnings explicit when typed state is still inconsistent.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Terminal summary reducer normalization: `entryTerminalSummary` now records `membership_status: \"terminal\"` in the same reducer path that writes `terminal_summary`.\n2. Repair/output trust guard: terminal projection repair output reports `repaired: true` only when typed membership is actually terminal.\n3. Explicit stale warning coverage: if terminal summary exists but typed membership remains non-terminal, repair output returns `repaired: false` with warning instead of hiding inconsistency behind display status.\n4. Regression coverage for reducer and repair paths, including archived/closed terminal summaries and linked-membership stale output.\n\n## What Was Verified\n\n- Verdict: READY from acceptance review; 0 remaining blockers/issues after 1 in-scope remediation.\n- Tests: `bin/oc-test targeted -- src/temporal/epic-state.test.ts src/tools/epic.test.ts` passed 138 tests; `pnpm run format:check` passed; `pnpm run typecheck` passed; `pnpm run lint` passed.\n- Preview URL: not_applicable — agreement declared `visual_surface: false`, touched files are internal ADV Temporal/tool/test code, and no browser-visible surface changed.\n- Contract matrix: 28 required rows persisted; 0 failing/violated/unknown rows.\n\n## Remaining Concerns\n\nNone blocking. `adv_change_validate strict:true` reports only `NO_DELTAS` warning; this change intentionally updates implementation/tests without spec deltas.\n\n## Supporting Evidence\n\nTask evidence: `tk-178aae63de4b`, `tk-d0ae968b2919`, `tk-82868dcc7394`. Final checkpoints: `e373e2a20b16caaeefaabc5c9336fe862f9631dd`, `1d81a9daa517bf66fa072dbfab708f50cbd14d38`, `153f60381ba2cd3d7a393ad08050d26914904a0f`, `9244baeaf7709c9d8e02e5d08d3c841bb095ad1e`. Review report: `fixEpicTerminalProjection|change:review:acceptance|adv-reviewer|1`. Harden scanner bundle: `fixEpicTerminalProjection|change:scanner-bundle:harden|adv-scanner-bundle|1`. Contract matrix: 28 rows, all pass/respected. Test evidence: `tr_mrek6cze_4fc8a87e`, `tr_mrek6kt8_a0ef47c3`, `tr_mrek6ikh_535d3c5e`, `tr_mrekirva_e42de068`.\n\n## Consequence Context\n\n1. delivered value — pass: terminal Epic child projection now records terminal typed state with terminal summary; supported by reducer tests and contract rows SC1/AC1.\n2. enabling-only/follow-up dependency — n/a: this is the direct internal consistency fix; no blocking follow-up dependency recorded.\n3. ops readiness — pass: harden found no ops runbook, migration, external service, deployment, or cleanup obligation for this internal code/test-only change.\n4. migration/data impact — n/a: no schema/data migration added; existing stale terminal entries can be normalized only through explicit `sync_child_projection` repair.\n5. frontend/preview impact — n/a: `visual_surface: false`; no browser-visible files changed; Preview URL not applicable.\n6. collision/release risk — low: review READY with 0 blockers; harden scanner bundle found 0 blockers/high issues; branch merge compatibility check reported already up to date with `origin/trunk`; working tree clean.\n7. open follow-ups — n/a: no required follow-ups or ops obligations recorded.\n8. next action — pass: archive sign-off can proceed for `fixEpicTerminalProjection`.\n\n## Release Readiness Summary\n\nStatus: READY for archive sign-off.\n\nRelease-owned checks passed: test coverage 2/2 changed source files with co-located tests; AI-slop 0 blocker/high findings; documentation hygiene no conflicts or needed updates; production readiness pass for security, reliability, performance, and maintainability; deployment readiness n/a for env vars, migrations, external services, CI/CD, infrastructure, and feature flags; cleanup candidates 0.\n\nMerge/collision evidence: `git fetch origin trunk && git merge --no-commit --no-ff origin/trunk` reported `Already up to date`; no merge state remained and `git status --short` was clean.\n\nNo blocking follow-ups, ops obligations, migrations, frontend preview requirements, or cleanup actions remain. Archive is the next action.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-10T06:34:20.141Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Terminal Epic entries no longer appear repair-needed after terminal projection succeeds. | pass | Reducer now sets `membership_status:\"terminal\"` with terminal summary; targeted tests passed 138 tests (`tr_mrek6cze_4fc8a87e`). |\n| SC2 | success_criterion | Existing stale terminal entries can be normalized through explicit `sync_child_projection` repair. | pass | `sync_child_projection` terminal repair tests cover existing stale terminal entries; targeted tests passed 138 tests. |\n| SC3 | success_criterion | Projection failures remain explicit; display does not hide inconsistent typed state. | pass | Review found display-OK heuristic risk and remediated it: `repaired:true` now requires typed terminal membership; reviewer verdict READY. |\n| AC1 | acceptance_criterion | Given `entryTerminalSummary` records `terminal_summary` for a change entry, the Epic entry also records `membership_status: \"terminal\"`. | pass | `entryTerminalSummary` reducer test asserts archived/closed terminal summary sets `membership_status:\"terminal\"`; targeted tests passed. |\n| AC2 | acceptance_criterion | Given archive fan-out projects terminal state for an Epic-linked change, later Epic display does not show `projection_missing`, `projection_stale`, or repair-needed markers for that terminal entry. | pass | Archive fan-out uses entryTerminalSummary; reducer-level normalization applies to all terminal-summary callers. Targeted reducer tests passed. |\n| AC3 | acceptance_criterion | Given `adv_epic_repair_membership mode:\"sync_child_projection\"` runs for an already-terminal child, it normalizes the Epic entry to terminal membership or surfaces an explicit warning/failure. | pass | `sync_child_projection` repair tests assert normal terminal repair and explicit stale warning/failure path; targeted tests passed. |\n| AC4 | acceptance_criterion | Given a terminal projection update cannot make typed Epic state consistent, the result does not report the entry as repaired/OK by display heuristic alone. | pass | Acceptance-review regression covers terminal summary with `membership_status:\"linked\"`; output returns `repaired:false` with warning despite display member status OK. |\n| AC5 | acceptance_criterion | Given direct link of already archived/closed children already works, regression tests preserve that behavior. | pass | Existing direct archived/closed child link behavior remains covered by `src/tools/epic.test.ts`; targeted suite passed. |\n| AC6 | acceptance_criterion | Given implementation completes, targeted tests cover reducer/workflow behavior and at least one previously summary-only tool/archive/repair path. | pass | Targeted verification covered reducer/workflow and repair caller path: `bin/oc-test targeted -- src/temporal/epic-state.test.ts src/tools/epic.test.ts` passed 138 tests. |\n| C1 | constraint | Preserve `advance-epics` spec law, especially `rq-epicTerminalChildProjection01` and `rq-epicArchiveSync01`. | respected | No spec-law conflict found; `adv_change_validate strict:true` passed with only NO_DELTAS warning. |\n| C2 | constraint | Preserve typed Temporal signal/query architecture; do not introduce update-based mutation surfaces. | respected | Implementation stays on existing signal/query reducer/tool surfaces; no update-based mutation surface added. Typecheck passed. |\n| C3 | constraint | Preserve one-Epic-per-change and optional Epic membership invariants. | respected | Change only normalizes terminal membership for existing one-Epic-per-change optional membership entries; no membership model expansion. |\n| C4 | constraint | Preserve explicit typed failure/warning behavior for projection/update failures. | respected | Explicit warning path preserved and strengthened; stale typed membership returns warning and `repaired:false`. Targeted tests passed. |\n| C5 | constraint | Keep correctness structural in typed Epic state, not display heuristics. | respected | Correctness lives in typed Epic state (`membership_status:\"terminal\"`) and tool output requires typed terminal; targeted tests passed. |\n| C6 | constraint | Keep scope current-repo only. | respected | Touched files are current repo only: `plugin/src/temporal/epic-state.ts`, `plugin/src/temporal/epic-state.test.ts`, `plugin/src/tools/epic.ts`, `plugin/src/tools/epic.test.ts`. |\n| DONT1 | avoidance | Do not redesign Epic architecture, entry kinds, ordering, product scope, or cross-project owner routing. | respected | No Epic architecture, entry kind, ordering, product scope, or cross-project owner routing redesign performed. |\n| DONT2 | avoidance | Do not make Epic membership mandatory or multi-valued. | respected | Epic membership remains optional and single-valued; no mandatory or multi-valued membership added. |\n| DONT3 | avoidance | Do not add `AdvEpicScope`, dashboard indexing, or cross-project shell promotion. | respected | No `AdvEpicScope`, dashboard indexing, or cross-project shell promotion added. |\n| DONT4 | avoidance | Do not hide real projection/update failures or convert them into silent success. | respected | Projection/update failures remain explicit; stale membership cannot be reported as repaired/OK. Regression test passed. |\n| DONT5 | avoidance | Do not add direct ADV state-file reads. | respected | No direct ADV state-file reads introduced. |\n| DONT6 | avoidance | Do not merge this focused fix into unrelated performance/adapter refactor work. | respected | No unrelated performance or adapter refactor included; diff limited to Epic reducer/tool tests and helper behavior. |\n| DONT7 | avoidance | Do not include the Epic signal-name parity guard unless implementation naturally touches that area and it stays local/cheap. | respected | Epic signal-name parity guard not added because implementation did not naturally touch signal registration. |\n| OOS1 | out_of_scope | Full Epic architecture redesign. | respected | No full Epic architecture redesign performed. |\n| OOS2 | out_of_scope | Cross-project shell promotion. | respected | No cross-project shell promotion added. |\n| OOS3 | out_of_scope | New dashboard/search-attribute surfaces. | respected | No new dashboard/search-attribute surface added. |\n| OOS4 | out_of_scope | Broad adapter-surface refactoring. | respected | No broad adapter-surface refactoring performed. |\n| OOS5 | out_of_scope | New Epic planning primitives or Jira-like workflow concepts. | respected | No new Epic planning primitives or Jira-like workflow concepts added. |\n| OOS6 | out_of_scope | Bulk migration outside explicit `sync_child_projection` repair behavior. | respected | No bulk migration added outside explicit `sync_child_projection` repair behavior. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-10T02:28:51.265Z",
+      "contentHash": "480a6ba4199f47bf45d3b9057eab2314898fc77467202f2909c278a58603f25e",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-10T02:09:45.123Z",
+      "contentHash": "95ec74f4ea11b011b45da87716e26606c436fcee26a38f18dae8c7d3e8682b26",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-10T06:03:21.896Z",
+      "contentHash": "12d946838451b67a0f26e4eebdeed29ac01a9e0bbe01c0ca069dc0c3716ba028",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-10T06:08:26.625Z",
+      "contentHash": "9bb1c527106298990ce875f4075d85a8d06b846ee9a6b54a2b57802857f9e2e1",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-10T06:42:38.265Z",
+      "contentHash": "00622f6bab985ceadb652e262b29880d8f26f30e6eb033071ac0550d8d9dc9ad",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-10T06:42:38.265Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
