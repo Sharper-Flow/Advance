@@ -1,0 +1,6 @@
+# ast-grep project configuration for the deterministic slop-scan runner.
+# ruleDirs are relative to this file (repo root). The TypeScript rule directory
+# is intentionally bounded: a small set of structural slop rules that the
+# `bin/adv slop-scan` runner executes through `pnpm exec ast-grep scan`.
+ruleDirs:
+  - slop-rules

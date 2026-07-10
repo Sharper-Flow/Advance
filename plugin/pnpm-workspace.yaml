@@ -1,4 +1,5 @@
 allowBuilds:
+  '@ast-grep/cli': false
   '@swc/core': true
   esbuild: true
   msgpackr-extract: true

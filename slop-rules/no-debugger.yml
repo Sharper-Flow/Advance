@@ -1,0 +1,6 @@
+id: no-debugger-statement
+language: TypeScript
+severity: warning
+message: Leftover debugger statement; remove debug instrumentation before shipping.
+rule:
+  pattern: debugger

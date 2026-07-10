@@ -56,5 +56,16 @@ export function normalizeJscpdJson(raw: string): SlopScanFinding[] {
 }
 
 export function buildJscpdCommand(targetPath: string, outputDir: string): string[] {
-  return ["jscpd", "--reporters", "json", "--output", outputDir, targetPath];
+  // Resolve the plugin-local binary via pnpm at the package root cwd so
+  // .jscpd.json is discovered and the absolute report target is preserved.
+  return [
+    "pnpm",
+    "exec",
+    "jscpd",
+    "--reporters",
+    "json",
+    "--output",
+    outputDir,
+    targetPath,
+  ];
 }

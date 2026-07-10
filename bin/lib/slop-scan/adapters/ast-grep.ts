@@ -50,5 +50,7 @@ export function normalizeAstGrepJson(raw: string, repoRoot: string): SlopScanFin
 }
 
 export function buildAstGrepCommand(targetPath: string): string[] {
-  return ["ast-grep", "scan", "--json=compact", targetPath];
+  // Resolve the plugin-local binary via pnpm at the package root cwd; a
+  // repo-root cwd cannot find plugin/node_modules/.bin/ast-grep.
+  return ["pnpm", "exec", "ast-grep", "scan", "--json=compact", targetPath];
 }

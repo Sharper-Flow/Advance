@@ -33,6 +33,7 @@ import {
   createToolRunner,
   normalizeCoverageFromExecution,
   type ToolRunResult,
+  type ToolRunner,
 } from "./runner";
 import {
   attachSlopScanFailure,
@@ -66,6 +67,7 @@ const SKIP_DIRS = new Set([
 export interface SlopScanOptions {
   repoRoot: string;
   requestedPath: string;
+  runner?: ToolRunner;
 }
 
 async function collectLanguages(
@@ -210,7 +212,7 @@ export async function runSlopScan(
   });
   const configResult = await readSlopScanConfig(options.repoRoot);
   const config = configResult.config;
-  const runner = createToolRunner();
+  const runner = options.runner ?? createToolRunner();
   const findings: SlopScanFinding[] = [];
   const coverage: DetectorCoverage[] = [];
   const detectors = selectApplicableDetectors(
@@ -335,7 +337,7 @@ export async function runSlopScan(
         const result = await runner.run({
           detectorId: detector.id,
           command: buildAstGrepCommand(absoluteTarget),
-          cwd: options.repoRoot,
+          cwd: packageRoot,
           timeoutMs: config.ast_timeout_ms,
           findingsExitCodes: [1],
         });
@@ -354,7 +356,7 @@ export async function runSlopScan(
         const result = await runner.run({
           detectorId: detector.id,
           command: buildJscpdCommand(absoluteTarget, outputDir),
-          cwd: options.repoRoot,
+          cwd: packageRoot,
           timeoutMs: config.ast_timeout_ms,
           findingsExitCodes: [1],
         });
