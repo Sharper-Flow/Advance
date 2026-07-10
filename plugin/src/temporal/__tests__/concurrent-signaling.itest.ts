@@ -130,12 +130,30 @@ function buildAgentTaskAdds(
   return signals;
 }
 
+type OrderedGateId = "proposal" | "discovery" | "design";
+
+function buildAgentGateCompletion(
+  handle: ChangeWorkflowHandle,
+  agentIdx: number,
+  gateId: OrderedGateId,
+  gateIdx: number,
+): Promise<void> {
+  const prefix = `agent-${agentIdx}`;
+  return handle.signal(gateCompletedSignal, {
+    gateId,
+    approvalEvidence: `${prefix} approved`,
+    completedBy: prefix,
+    completedAt: `2026-05-05T00:03:${String(gateIdx).padStart(2, "0")}.000Z`,
+    compatibilityReason: "concurrent signaling fixture has no artifact store",
+  });
+}
+
 /**
- * Build the remaining 40 signals for one agent.
+ * Build the remaining 37 unordered signals for one agent.
  *
  * Mix: task updates/blocks/assigns, gate transitions, wisdom adds,
- * document updates.  All agents fire gateCompleted for "proposal",
- * so the edge case (duplicate gate completion) is exercised.
+ * document updates. Dependent gate completions are ordered separately by the
+ * test body so this stress test does not race the sequential gate model.
  */
 function buildAgentRemainingSignals(
   handle: ChangeWorkflowHandle,
@@ -163,22 +181,6 @@ function buildAgentRemainingSignals(
         gateId: inProgressGates[i],
         triggeredBy: prefix,
         triggeredAt: `2026-05-05T00:02:${String(i).padStart(2, "0")}.000Z`,
-      }),
-    );
-  }
-
-  // 3 gateCompleted — all agents complete proposal, so it is fired 3×.
-  // proposal is the duplicate-gate edge case; discovery/design are unique.
-  const completedGates = ["proposal", "discovery", "design"] as const;
-  for (let i = 0; i < completedGates.length; i++) {
-    signals.push(
-      handle.signal(gateCompletedSignal, {
-        gateId: completedGates[i],
-        approvalEvidence: `${prefix} approved`,
-        completedBy: prefix,
-        completedAt: `2026-05-05T00:03:${String(i).padStart(2, "0")}.000Z`,
-        compatibilityReason:
-          "concurrent signaling fixture has no artifact store",
       }),
     );
   }
@@ -298,14 +300,48 @@ describe("concurrent signaling integration", () => {
           // Barrier: confirm all 30 tasks exist before the concurrent burst.
           await pollForState(handle, (s) => s.tasks.length >= 30, 30000);
 
-          // Phase 2 — fire the remaining 120 signals concurrently (3 agents × 40).
+          // Phase 2 — complete dependent gates in order. The workflow's gate
+          // model is intentionally order-sensitive; this stress test exercises
+          // concurrency without making proposal/discovery/design race each other.
+          const orderedGateSignals: Promise<void>[] = [];
+          const orderedGates = ["proposal", "discovery", "design"] as const;
+          for (let gateIdx = 0; gateIdx < orderedGates.length; gateIdx++) {
+            const gateId = orderedGates[gateIdx];
+            const gateSignals: Promise<void>[] = [];
+            for (let agentIdx = 0; agentIdx < 3; agentIdx++) {
+              const signal = buildAgentGateCompletion(
+                handle,
+                agentIdx,
+                gateId,
+                gateIdx,
+              );
+              gateSignals.push(signal);
+              orderedGateSignals.push(signal);
+            }
+
+            const gateResults = await Promise.allSettled(gateSignals);
+            expect(
+              gateResults.filter((r) => r.status === "rejected"),
+            ).toHaveLength(0);
+            await pollForState(
+              handle,
+              (s) => s.gates[gateId]?.status === "done",
+              30000,
+            );
+          }
+
+          // Phase 3 — fire the remaining 111 independent signals concurrently.
           const burstSignals: Promise<void>[] = [];
           for (let agentIdx = 0; agentIdx < 3; agentIdx++) {
             burstSignals.push(...buildAgentRemainingSignals(handle, agentIdx));
           }
+          expect(burstSignals).toHaveLength(111);
 
-          // SC9: total signal count sanity check (30 adds + 120 burst = 150)
-          const totalSignals = addSignals.length + burstSignals.length;
+          // SC9: total signal count sanity check (30 adds + 9 ordered gates +
+          // 111 burst = 150)
+          expect(orderedGateSignals).toHaveLength(9);
+          const totalSignals =
+            addSignals.length + orderedGateSignals.length + burstSignals.length;
           expect(totalSignals).toBe(150);
           expect(totalSignals).toBeLessThanOrEqual(300);
 
