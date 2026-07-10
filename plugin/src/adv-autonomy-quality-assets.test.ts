@@ -251,7 +251,7 @@ describe("Archive and spec assets", () => {
       /Local deploy: \{ran \| not available \| not needed \| failed: <reason>; nonblocking\}/,
     );
     expect(content).toMatch(
-      /GIT FINALIZATION COMPLETE[\s\S]*local deploy status/,
+      /GIT FINALIZATION COMPLETE[\s\S]*local deploy status/i,
     );
   });
 
@@ -267,12 +267,17 @@ describe("Archive and spec assets", () => {
     // Sync/deploy from the repo root
     expect(content).toMatch(/\.\/scripts\/deploy-local\.sh --fix/);
     expect(content).toMatch(/from the repo root/);
-    // Restart the session / plugin host so active workers load the bundle
+    // Restart the session / plugin host and standalone Temporal worker process
+    // so active workers load the bundle.
     expect(content).toMatch(/[Rr]estart/);
     expect(content).toMatch(/OpenCode session|plugin host/i);
+    expect(content).toMatch(/standalone Temporal worker process/i);
     expect(content).toMatch(/active workers load/);
     // Deploy completion is not reload proof
     expect(content).toMatch(/[Dd]eploy completion is not reload proof/);
+    expect(content).toMatch(
+      /append an activation advisory line to the existing Phase 8 report/i,
+    );
   });
 
   test("advance-workflow spec encodes archive push-after-merge semantics", () => {

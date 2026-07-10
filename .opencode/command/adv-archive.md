@@ -397,9 +397,9 @@ If the script is absent → record `deploy_action: not available`. If the projec
 >
 > 1. Build the plugin bundle: `pnpm run build` from `plugin/`.
 > 2. Sync to the runtime path: `./scripts/deploy-local.sh --fix` from the repo root.
-> 3. Restart the relevant OpenCode session / plugin host so active workers load the rebuilt bundle.
+> 3. Restart the relevant OpenCode session / plugin host and the standalone Temporal worker process so active workers load the rebuilt bundle.
 >
-> Deploy completion is not reload proof. Do not claim live behavior changed until a fresh session has loaded the rebuilt bundle; surface activation status in the Phase 8 report and re-invoke the affected tool only after restart.
+> Deploy completion is not reload proof. Do not claim live behavior changed until a fresh session has loaded the rebuilt bundle; append an activation advisory line to the existing Phase 8 report and re-invoke the affected tool only after restart.
 
 After local merge succeeds, archive finalization attempts a safe remote push of the default branch from `$MAIN` when `origin` exists:
 
