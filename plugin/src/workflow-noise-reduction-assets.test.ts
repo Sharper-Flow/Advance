@@ -222,7 +222,7 @@ describe("archive and reflection visibility policy", () => {
     }
 
     expect(archive).toMatch(
-      /Local deploy: \{ran \| not available \| not needed \| failed: <reason>; nonblocking\}/,
+      /Local deploy: \{ran \| ran; OpenCode activation pending restart \| not available \| not needed \| failed: <reason>; nonblocking\}/,
     );
     expect(voice).toMatch(
       /Reflection: \{completed \| failed: <reason>; nonblocking\}/,
