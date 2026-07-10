@@ -676,8 +676,12 @@ describe("contract archive traceability", () => {
         },
       });
       expect(result.success).toBe(true);
-      await expectSingleTrailingNewline(join(result.archivePath, "change.json"));
-      await expectSingleTrailingNewline(join(result.archivePath, "wisdom.json"));
+      await expectSingleTrailingNewline(
+        join(result.archivePath, "change.json"),
+      );
+      await expectSingleTrailingNewline(
+        join(result.archivePath, "wisdom.json"),
+      );
     });
 
     test("createArchive (via archiveChange) writes newline-terminated multi-repo-archive.json", async () => {
