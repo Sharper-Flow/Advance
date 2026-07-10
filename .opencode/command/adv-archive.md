@@ -225,7 +225,7 @@ What shipped, merged locally, waits on PR auto-merge, or blocked release complet
 - Push: {SHA range pushed | n/a: no origin | branch pushed for PR | blocked: <reason>}
 - Release proof: {origin/{default-branch} reachable | PR {number} state MERGED | no_remote local proof | pending PR {number} | missing: <reason>}
 - PR: {n/a | <url> auto-merge armed | <url> manual merge required | unavailable: <reason>}
-- Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
+- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}
 - Epic: {n/a | {epic_id}/{entry_id} terminal state verified | terminal projection recorded | membership repaired via adv_epic_repair_membership mode=<mode> | warning: <reason>}
 - Reflection: {completed: <id/path/summary> | failed: <reason>; nonblocking}
 - Pre-push hooks: {hooksPath | githooks | husky | lefthook | standard | none}
@@ -393,13 +393,13 @@ If `$MAIN/scripts/deploy-local.sh` exists and is executable:
 
 If the script is absent → record `deploy_action: not available`. If the project explicitly documents that no local deploy is needed → record `deploy_action: not needed` with the source of that evidence.
 
-> **Local runtime activation callout.** `deploy_action: ran` means assets synced to the runtime path — it does NOT reload already-running OpenCode sessions or Temporal workers, which keep the cached bundle in process memory. To activate local runtime changes after archive:
+> **Local runtime activation callout.** `deploy_action: ran` means assets synced to the runtime path — it does NOT reload already-running OpenCode sessions, which keep the cached bundle in process memory. To activate local runtime changes after archive:
 >
-> 1. Build the plugin bundle: `pnpm run build` from `plugin/`.
-> 2. Sync to the runtime path: `./scripts/deploy-local.sh --fix` from the repo root.
-> 3. Restart the relevant OpenCode session / plugin host and the standalone Temporal worker process so active workers load the rebuilt bundle.
+> 1. Run `./scripts/deploy-local.sh --fix` from the repo root as the primary deploy. It rebuilds a stale plugin distribution before syncing to the runtime path, so no separate manual build step is required.
+> 2. The same command attempts to bounce matching deployed Temporal worker processes automatically (SIGTERM); do not manually terminate workers. If the bounce fails, route recovery through `adv_temporal_worker_restart` rather than retrying manual termination.
+> 3. Restart the relevant OpenCode session / plugin host so host-loaded tool code reloads, then re-invoke the affected tool. OpenCode does not auto-restart or live-reload the host from deploy; activation requires the restart.
 >
-> Deploy completion is not reload proof. Do not claim live behavior changed until a fresh session has loaded the rebuilt bundle; append an activation advisory line to the existing Phase 8 report and re-invoke the affected tool only after restart.
+> Deploy completion is not reload proof. Do not claim live behavior changed until a fresh session has loaded the rebuilt bundle, and re-invoke the affected tool only after restart. Record activation status through the existing Phase 8 `Local deploy` row: when `deploy_action: ran` is recorded but the rebuilt bundle is not yet loaded by a restarted host, set the existing `Local deploy` field to `ran; OpenCode activation pending restart`; do not append a separate activation line to the report.
 
 After local merge succeeds, archive finalization attempts a safe remote push of the default branch from `$MAIN` when `origin` exists:
 
