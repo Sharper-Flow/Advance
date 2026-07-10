@@ -1,0 +1,1462 @@
+{
+  "id": "updateEpicOpsGuidance",
+  "title": "Update Epic ops guidance",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-10T20:04:43.004Z",
+  "tasks": [
+    {
+      "id": "tk-cf9893829c1c",
+      "title": "Add Epic operational-work planning law",
+      "type": "docs",
+      "section": "Specification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-10T20:19:54.502Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC3",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "verifies": [
+          "AC3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T20:25:56.343Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateEpicOpsGuidance",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicOpsGuidance",
+          "task_id": "tk-cf9893829c1c",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-cf9893829c1c"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-epics/spec.json",
+            "docs/specs/advance-epics.md"
+          ],
+          "verification": [
+            {
+              "command": "node -e \"require('./.adv/specs/advance-epics/spec.json')\" + schema-shape check on rq-epicOpsPlanning01",
+              "exit_code": 0,
+              "summary": "PASS — spec.json parses; rq-epicOpsPlanning01 present, priority must, 4 scenarios each with id/title/given(array)/when(string)/then(array); references rq-opsFollowTrace01/rq-opsFollowRelease01/rq-opsRunReleaseReadiness01; includes all six operational examples."
+            },
+            {
+              "command": "../bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+              "exit_code": 0,
+              "summary": "PASS — 55/55 tests; spec.json valid JSON, name advance-epics, mirror docs/specs/advance-epics.md still contains all listed reqIds."
+            },
+            {
+              "command": "../bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts",
+              "exit_code": 1,
+              "summary": "EXPECTED (cross-task) — fails on exactly one requirement: rq-epicOpsPlanning01 has no external citation yet. No other requirement regressed; 'requirement count does not shrink' passed. Citation is owned by sibling task tk-4dafc1d36282 (ADV_INSTRUCTIONS.md/command files); invariant goes green once that lands."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Referenced rq-opsFollowTrace01, rq-opsFollowRelease01, and rq-opsRunReleaseReadiness01 inline in the new requirement body instead of restating their semantics.",
+              "why": "DDC2 requires reference-not-duplication; keeps one source of truth for provenance, blocking/handoff, and verified child-state release authority."
+            },
+            {
+              "what": "Bumped spec.json version 1.11.0 -> 1.12.0 and updated_at to 2026-07-10, and brought the mirror header from 1.10.0/2026-07-08 to 1.12.0/2026-07-10.",
+              "why": "New requirement warrants a minor bump; the mirror was already one version behind the spec, so this also restores spec/mirror version alignment."
+            },
+            {
+              "what": "Did NOT add an external citation (ADV_INSTRUCTIONS.md / command files) for rq-epicOpsPlanning01.",
+              "why": "That guidance is sibling task tk-4dafc1d36282 (AC1/AC2/SC1); editing it here would duplicate work and expand beyond this task's spec+mirror scope. Surfaced as a required_main_agent_action instead."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "tk-4dafc1d36282 must add an external citation of rq-epicOpsPlanning01 (ADV_INSTRUCTIONS.md Epic Context and/or .opencode/command/adv-epic.md + adv-coordinate.md) to satisfy the spec-citation-invariant.",
+            "tk-0e9072cfdc74 should add rq-epicOpsPlanning01 to the advance-epics-assets mirror-sync reqId list and add focused blocking-vs-handoff assertions (AC4/DDC)."
+          ],
+          "required_main_agent_actions": [
+            "Ensure sibling task tk-4dafc1d36282 lands an external citation for rq-epicOpsPlanning01 before running spec-citation-invariant as a CI gate (currently flags only this reqId by design)."
+          ],
+          "related_scan": "Confirmed the existing rq-ops* laws (rq-opsFollowTrace01, rq-opsFollowRelease01, rq-opsRunReleaseReadiness01) already cover provenance, blocking/handoff, and verified child-state authority, so the new law cites them rather than duplicating. No other same-pattern Epic requirement needed changes.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC3 spec law delivered: added rq-epicOpsPlanning01 (MUST) + 4 scenarios to .adv/specs/advance-epics/spec.json and mirrored to docs/specs/advance-epics.md. It names first deployment, migration/backfill, deployment configuration, monitoring, cleanup, teardown; directs required work to a typed linked ops follow-up via adv_followup_promote/ops_followup_links tied to the delivery change; uses blocks for release safety and a non-blocking release-first relationship only with existing handoff semantics; references (not duplicates) rq-opsFollowTrace01, rq-opsFollowRelease01, rq-opsRunReleaseReadiness01; preserves contextual no-ops-needed, advisory order, no deployment execution, and no model/validator/gate changes. Bumped spec+mirror to v1.12.0 / 2026-07-10. spec-citation-invariant now flags ONLY rq-epicOpsPlanning01 as uncited — this is expected and owned by sibling task tk-4dafc1d36282; do not run the citation invariant as a gate until that lands.",
+            "suggested_next_action": "Land sibling task tk-4dafc1d36282 (ADV_INSTRUCTIONS.md Epic Context + .opencode/command/adv-epic.md Phase 1 + adv-coordinate alignment-audit) so rq-epicOpsPlanning01 gains an external citation and spec-citation-invariant goes green; then run verification task tk-0e9072cfdc74 to add rq-epicOpsPlanning01 to the advance-epics-assets mirror-sync reqId list and the focused AC4/DDC blocking-vs-handoff assertions."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: node -e \"require('./.adv/specs/advance-epics/spec.json')\" + schema-shape check on rq-epicOpsPlanning01"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Existing checkpoint a6eadb8fffe1a182949e8ccc19ff6c0320e3e546 contains the intended spec/mirror and guidance updates; retrying only Temporal completion recording after worker restart.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "a6eadb8fffe1a182949e8ccc19ff6c0320e3e546",
+      "completedAt": "2026-07-10T20:41:33.526Z",
+      "completed_at": "2026-07-10T20:41:33.526Z"
+    },
+    {
+      "id": "tk-4dafc1d36282",
+      "title": "Clarify Epic operational-work guidance",
+      "type": "docs",
+      "section": "Guidance",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-10T20:20:05.537Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "review",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T20:26:07.262Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateEpicOpsGuidance",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicOpsGuidance",
+          "task_id": "tk-4dafc1d36282",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4dafc1d36282"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "ADV_INSTRUCTIONS.md",
+            ".opencode/command/adv-epic.md",
+            ".opencode/command/adv-coordinate.md"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/advance-epics-assets.test.ts",
+              "exit_code": 0,
+              "summary": "55/55 Epic asset contract tests pass; additive doc edits preserved all asserted tokens in adv-epic.md, adv-coordinate.md, and ADV_INSTRUCTIONS.md."
+            },
+            {
+              "command": "pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts",
+              "exit_code": 0,
+              "summary": "2/2 pass; rq-epicOpsPlanning01 now cited in canonical instruction surfaces, clearing the single uncited-requirement failure."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Cited rq-epicOpsPlanning01 in ADV_INSTRUCTIONS.md and adv-epic.md via HTML comments",
+              "why": "spec-citation-invariant failed because rq-epicOpsPlanning01 (new law from sibling spec task) had no external citation; the invariant's remediation directs an rq citation comment in the relevant command/instruction file. These guidance files are the canonical instruction surfaces for that law, so the citation is in-scope and locality-correct, and is not the AC4 asset-test anchor owned by the verification task."
+            },
+            {
+              "what": "Kept edits additive and prose-only; no schema, validator, gate, or spec changes",
+              "why": "Contract C1 forbids new data model/validator/gate; AC3 (spec) and AC4 (drift-anchor test) are owned by sibling tasks. Preserving existing asset-test tokens kept advance-epics-assets.test.ts at 55/55."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed same ops vocabulary already used across adv-apply/adv-review/adv-harden/adv-archive/adv-prep (ops_followup_links; child/source-of-truth vs stale parent status); new guidance matches that lexicon. No other Epic instruction surface needed the same addition.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-4dafc1d36282 (docs/guidance) complete. Added Epic operational-work guidance to three canonical instruction surfaces: ADV_INSTRUCTIONS.md Epic Context (ops paragraph + 3 avoidance bullets), .opencode/command/adv-epic.md Phase 1 step 4 (explicit elicitation naming 7 examples) + extended MUST NOT, and .opencode/command/adv-coordinate.md Phase 4 (Operational-work grounding row + alignment note). Guidance directs required ops to the typed adv_followup_promote/ops_followup_links path from the relevant delivery change, distinguishes blocks (hard release blocker) from release-first follows_release/monitors/cleanup_after (non-blocking unless required_handoff), and preserves contextual-need (no universal ops requirement), advisory Epic order, and no deployment execution from Epic planning. Resolved one red repo gate found during verification: rq-epicOpsPlanning01 was uncited, failing spec-citation-invariant; added canonical rq-epicOpsPlanning01 citation comments to the two instruction surfaces implementing the law (per the invariant's documented remediation). This is normal instruction-law linkage, not the AC4 asset-test anchor (still tk-0e9072cfdc74). A concurrent-signaling integration test flaked on timing in one broad sweep; it does not read the edited markdown and is unrelated.",
+            "suggested_next_action": "Proceed to sibling verification task tk-0e9072cfdc74 (AC4 drift-anchor asset test), now unblocked. Spec law tk-cf9893829c1c (rq-epicOpsPlanning01 text) is already present in the worktree."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Checkpoint a6eadb8fffe1a182949e8ccc19ff6c0320e3e546 includes the intended canonical guidance updates. Focused Epic asset and spec-citation invariant tests passed per submitted engineer report.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "a6eadb8fffe1a182949e8ccc19ff6c0320e3e546",
+      "completedAt": "2026-07-10T20:42:11.176Z",
+      "completed_at": "2026-07-10T20:42:11.176Z"
+    },
+    {
+      "id": "tk-0e9072cfdc74",
+      "title": "Anchor Epic ops guidance against drift",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-10T20:20:28.076Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cf9893829c1c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4dafc1d36282"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T20:42:24.162Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateEpicOpsGuidance",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicOpsGuidance",
+          "task_id": "tk-0e9072cfdc74",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-0e9072cfdc74"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/advance-epics-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+              "exit_code": 0,
+              "summary": "BASELINE (pre-edit): 55/55 pass. Companion grep showed zero references to rq-epicOpsPlanning01 / ops_followup_links / adv_followup_promote / follows_release — ops guidance was unanchored (drift gap = RED-equivalent risk)."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+              "exit_code": 1,
+              "summary": "RED / negative control: with one assertion flipped to expect the spec NOT to contain adv_followup_promote, exactly 1 test failed — 'spec.json rq-epicOpsPlanning01 ... blocks vs release-first handoff' AssertionError: expected '{...rq-epicOpsPlanning01...}' not to contain 'adv_followup_promote'. Proves the typed-route anchor is non-vacuous (a real removal fails). Reverted immediately; no source surface mutated."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN (post-edit, post-revert): 60/60 pass — 55 baseline + 5 new AC1-AC4 ops-anchor tests, with rq-epicOpsPlanning01 added to the mirror-sync reqId list."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts",
+              "exit_code": 0,
+              "summary": "2/2 pass; rq-epicOpsPlanning01 external citation (ADV_INSTRUCTIONS.md + adv-epic.md) intact and requirement count did not shrink."
+            },
+            {
+              "command": "pnpm --dir plugin exec eslint src/advance-epics-assets.test.ts",
+              "exit_code": 0,
+              "summary": "ESLint clean (RC=0, no output)."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Anchored canonical wording as static asset tests rather than exercising adv_followup_promote / ops_followup runtime.",
+              "why": "The task forbids duplicating advance-workflow behavior or falsely claiming coverage. Provenance, release blocking, surviving-obligation handoff, and child-state release authority stay owned by rq-opsFollowTrace01/rq-opsFollowRelease01/rq-opsRunReleaseReadiness01 and their tests; the Epic requirement is asserted to CITE those ids (reference-not-duplication, DDC2) and to forbid any new model/validator/enum/gate (DDC3)."
+            },
+            {
+              "what": "Added rq-epicOpsPlanning01 to the pre-existing mirror-sync reqId list instead of a standalone sync check.",
+              "why": "Keeps one source of truth for spec↔doc requirement parity and matches the file's established convention; this was the exact follow-up the spec task (tk-cf9893829c1c) handed off."
+            },
+            {
+              "what": "Used a reversible in-test negative control (flip one typed-route assertion to not.toContain, run, revert) for RED evidence rather than fabricating a failure.",
+              "why": "Sibling tasks tk-cf9893829c1c and tk-4dafc1d36282 already landed the underlying spec/guidance, so a natural RED did not exist; the negative control proves the anchors are non-vacuous (a real removal of adv_followup_promote from the spec fails the suite) without mutating any source surface, and the final state is GREEN."
+            },
+            {
+              "what": "Did not run pnpm run schemas:check.",
+              "why": "Repository evidence shows it is not relevant: git status reports only plugin/src/advance-epics-assets.test.ts changed; no Zod schema, plugin/src/schema-registry.ts, or plugin/schemas/*.schema.json surface was touched."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed the four canonical surfaces already carry the ops guidance (landed by sibling tasks) and that no other Epic asset test references ops terms, so this file is the single anchor home (no duplicate coverage). Verified the Epic spec cites (does not redefine) rq-opsFollowTrace01/rq-opsFollowRelease01/rq-opsRunReleaseReadiness01 and that no same-pattern re-derivation of advance-workflow ops mechanics was introduced.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC4 drift anchors delivered in plugin/src/advance-epics-assets.test.ts only (191+/2-). (1) Added rq-epicOpsPlanning01 to the existing spec↔doc mirror-sync reqId list. (2) New describe 'Epic operational-work planning drift anchors (AC1-AC4)' with 5 focused tests anchoring: spec.json rq-epicOpsPlanning01 MUST + reference-not-duplication of rq-opsFollowTrace01/rq-opsFollowRelease01/rq-opsRunReleaseReadiness01 + `blocks` vs non-blocking release-first handoff + MUST-NOT-new-model/validator/enum/gate + advisory order + no deployment exec + 4 scenarios (AC3/AC4, DDC1-DDC3); docs/specs/advance-epics.md mirror of the same; /adv-epic Phase 1 explicit elicitation naming all seven ops examples (first deployment/migration/backfill/deployment configuration/monitoring/cleanup/teardown) + typed adv_followup_promote/ops_followup_links[] direction + shell/agenda/prose-not-authoritative prohibition + contextual-not-universal (AC1); ADV_INSTRUCTIONS.md Epic Context typed linked direction + free-text/shell prohibition in narrative AND Avoidances + cited laws + non-goals (AC2); /adv-coordinate operational-work grounding row + free-text-only→judgment_call→adv_followup_promote repair for existing Epics (AC3). Anchors are static wording and deliberately do NOT re-test advance-workflow ops-followup runtime. Verification: baseline 55/55 (file had zero ops refs = drift gap), reversible negative-control RED (exactly 1 failure on the typed-route anchor), final 60/60 GREEN, eslint RC=0, spec-citation-invariant 2/2. No commit; no ADV state mutated.",
+            "suggested_next_action": "All three tasks for updateEpicOpsGuidance now have green verification. Proceed to execution/acceptance: run a reviewer pass or full suite (bin/oc-test full) for the change, then drive acceptance/release gates. schemas:check was intentionally not run (test-only change)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec eslint src/advance-epics-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Engineer evidence: baseline 55/55, reversible negative-control RED yielded one focused failure, GREEN 60/60 through bin/oc-test targeted; spec-citation invariant 2/2 and ESLint passed. Reviewed focused asset anchors and diff check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "checkpointSha": "0d173416cafe3f360297d145dd485e8365f79fea",
+      "completedAt": "2026-07-10T20:56:30.754Z",
+      "completed_at": "2026-07-10T20:56:30.754Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicOpsGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:epic-ops-guidance"
+      },
+      "agent": "adv-researcher",
+      "topic": "Epic ops-followup guidance gap: canonical surfaces, typed lifecycle anchors, and minimal structural delta",
+      "sources": [
+        {
+          "label": "Epic spec (advance-epics.md) — no ops coverage",
+          "locator": "docs/specs/advance-epics.md (grep ops|deploy|migration|monitor|teardown → only worktree-cleanup/backfill hits at L584,L699,L730; zero ops-followup/deploy/monitoring requirements)",
+          "summary": "The canonical Epic capability spec contains ZERO requirements about operational delivery work. Ops-followup laws live only in advance-workflow.md and are change-scoped, not Epic-scoped. This is the primary spec gap."
+        },
+        {
+          "label": "Typed ops-followup laws (advance-workflow.md)",
+          "locator": "docs/specs/advance-workflow.md L3945-3993 (rq-opsFollowTrace01), L3995-4038 (rq-opsFollowEvidence01), L4042-4091 (rq-opsFollowRelease01 blocking/handoff), L4093-4142 (runbook state), L4237-4247 (source-of-truth reconciliation, unreachable=warning/blocker never N/A)",
+          "summary": "Five MUST requirements fully define typed provenance, evidence, blocking/release-first handoff, runbook state, and stale-link reconciliation. All proposal constraints are already satisfied structurally at change scope; the missing piece is Epic-planning-level instruction to USE them."
+        },
+        {
+          "label": "Release-gate blocking enforcement (executable anchor)",
+          "locator": "plugin/src/temporal/gate-readiness.ts L681-720 checkOpsFollowupReleaseBlockers + L748-769 getOpenOpsFollowupObligations; tests plugin/src/temporal/gate-readiness.test.ts L807-994, plugin/src/tools/gate.release-enforcement.test.ts L348-444",
+          "summary": "blocks relationships hard-block release (OPS_FOLLOWUP_BLOCKS_INCOMPLETE); required_handoff on non-blocking links also blocks until complete/handed off. Backs the proposal's unreachable/incomplete visibility constraint with real code+tests."
+        },
+        {
+          "label": "Typed model: kind + relationship enums match proposal operation list",
+          "locator": "plugin/src/types/changes.ts L357-363 OpsRelationshipSchema (blocks|follows_release|monitors|cleanup_after); OpsFollowupKind enum (migration|backfill|deploy_config|monitoring|cleanup|teardown|other) per adv_followup_promote schema",
+          "summary": "The proposal's six operation classes (first deploy, migration/backfill, deploy config, monitoring, cleanup/teardown) map 1:1 onto the existing OpsFollowupKind enum. No new vocabulary needed."
+        },
+        {
+          "label": "In-tool relationship semantics already documented",
+          "locator": "plugin/src/tools/followup.ts L604",
+          "summary": "adv_followup_promote already documents blocks=hard-blocking release-safety; follows_release/monitors/cleanup_after=release-first sequencing. Relationship guidance exists at tool layer; Epic-planning layer does not reference it."
+        },
+        {
+          "label": "Canonical Epic instruction surface (ADV_INSTRUCTIONS.md § Epic Context)",
+          "locator": "ADV_INSTRUCTIONS.md L540-562 (Epic Context: 6 numbered rules + anti-patterns) — no ops-followup mention",
+          "summary": "Authoritative agent-facing Epic instruction block enumerates 6 Epic behaviors, none about required operational work. Highest-leverage instruction insertion point."
+        },
+        {
+          "label": "Epic command surface (adv-epic.md)",
+          "locator": ".opencode/command/adv-epic.md L1-123 (Phases 1-5); explicit MUST NOT list L21",
+          "summary": "The /adv-epic command frames goal/scope/overlap but never prompts for operational delivery work. A Phase-1 elicitation line is the minimal command-surface delta."
+        },
+        {
+          "label": "Deployment-outside-gate-lifecycle boundary (must reconcile)",
+          "locator": "ADV_INSTRUCTIONS.md L184 + L739 'Deployment is outside ADV gate lifecycle — ADV stops at push. Post-release deploy is a separate, user-initiated step.'",
+          "summary": "Existing law says ADV stops at push and does not deploy. New Epic ops guidance must TRACK required ops work as linked typed follow-ups, NOT make ADV execute deploys or add a deploy gate."
+        },
+        {
+          "label": "Instruction/spec drift anchor discipline",
+          "locator": "docs/adv-runtime-protocol-coverage.md; AGENTS.md § Overlay sync model; skill adv-instructions-audit",
+          "summary": "Advance requires instruction prose to have executable anchors. Any new Epic ops instruction should reference existing rq-opsFollow* requirements + gate-readiness tests to avoid prose-only drift."
+        }
+      ],
+      "architecture_assessment": "The typed ops-followup subsystem is complete and correct at CHANGE scope: schema (changes.ts L357-626), state machine (temporal/change-state.ts L274-390), release-blocking enforcement (gate-readiness.ts L681-720 with tests), five MUST spec requirements (advance-workflow.md L3945-4247), and in-tool relationship/kind vocabulary covering all six operation classes in the proposal. The gap is purely at the EPIC PLANNING instruction layer: advance-epics.md has zero ops requirements, ADV_INSTRUCTIONS.md Epic Context (L540-562) lists six Epic behaviors none about required operational work, and adv-epic.md never elicits it. Nothing in data model, validators, or the release gate needs to change to satisfy the proposal constraints — blocking/handoff/unreachable-visibility invariants are already enforced structurally. The minimal delta is instruction + spec wording making required Epic operational work an explicit linked typed ops-followup obligation, reusing adv_followup_promote and existing relationship semantics, without contradicting the ADV-stops-at-push boundary (L184/L739). A NEW validator/test-backed rule is NOT required, because required-ness is context-dependent (only when operational need exists) and cannot be machine-detected without false-mandate risk the proposal forbids. One optional low-risk reinforcement: a drift/coverage test asserting the new Epic ops instruction block references the existing rq-opsFollow* anchors.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Proposal is architecturally sound and satisfiable as an instruction+spec-alignment change reusing the existing typed model. All four constraints already backed by code/tests (reuse ops_followup — changes.ts; advisory Epic order — advance-epics.md L699 + ADV_INSTRUCTIONS L548; unreachable=warning/blocker never N/A — advance-workflow.md L4237 + gate-readiness.ts L681-720). No competing free-text path introduced. Instruction-only wording is sufficient for correctness; a validator auto-mandating ops work would violate the no-mandate-without-need constraint and is not recommended."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Instruction-only guidance relies on agent adherence rather than a hard machine gate; a hard gate is infeasible because operational-need-exists is context-dependent and cannot be structurally detected without false-mandate risk the proposal forbids.",
+          "Reusing the change-scoped ops_followup model at Epic scope keeps one source of truth but means Epic-level ops visibility is derived from member changes' links, not a distinct Epic-level field (correct: avoids a competing tracking path).",
+          "An optional drift/coverage test for the new instruction block adds small test-maintenance surface but prevents prose-only drift, consistent with Advance instruction-anchor discipline."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "New Epic-level ops-followup field/validator auto-flagging Epics lacking ops work",
+            "disposition": "rejected",
+            "rationale": "Cannot detect operational-need-exists structurally; produces false mandates, violating 'do not require operational work for Epics without an operational need' and adding a competing tracking surface."
+          },
+          {
+            "option": "New release/archive gate rule beyond checkOpsFollowupReleaseBlockers",
+            "disposition": "rejected",
+            "rationale": "Release-blocking for blocks + required_handoff already enforced (gate-readiness.ts L681-720, gate.release-enforcement.test.ts L348-444). Duplicating adds no coverage and risks divergence."
+          },
+          {
+            "option": "Instruction + spec wording only, reusing adv_followup_promote and existing relationship/kind vocabulary",
+            "disposition": "preferred",
+            "rationale": "Closes the exact gap at lowest blast radius, reuses the complete typed model, stays within the ADV-stops-at-push boundary."
+          },
+          {
+            "option": "Preferred approach PLUS one optional instruction-anchor drift test",
+            "disposition": "deferred",
+            "rationale": "Low-risk reinforcement keeping the new instruction from becoming prose-only; let design decide if the marginal test surface is worth it."
+          }
+        ],
+        "recommendation": "Scope as instruction+spec-alignment: (1) add Epic Context rule in ADV_INSTRUCTIONS.md L540-562 requiring required operational work (first deploy, migration/backfill, deploy_config, monitoring, cleanup/teardown) be tracked as explicit linked typed ops-followups via adv_followup_promote, blocks for release-safety-critical and follows_release/monitors/cleanup_after+required_handoff for release-first; (2) add matching requirement in docs/specs/advance-epics.md referencing rq-opsFollowTrace01/rq-opsFollowRelease01; (3) add Phase-1 elicitation line in adv-epic.md; (4) reaffirm ADV-stops-at-push boundary so guidance TRACKS not EXECUTES; (5) treat anchor drift test as optional. No data-model, validator, or gate code change required."
+      },
+      "recommendation": "PASS, high confidence. Minimal structural delta = instruction + spec + command wording reusing the existing typed ops_followup model; NO new validator/gate/data-model change. Insertion points: ADV_INSTRUCTIONS.md Epic Context (L540-562), docs/specs/advance-epics.md (add ops requirement referencing advance-workflow.md L3945-4247), adv-epic.md Phase 1 (L32-42). Reconcile against Deployment-outside-gate (L184/L739): guidance tracks linked typed follow-ups, adds no deploy gate. Instruction-only wording sufficient; anchor drift test is the only optional reinforcement.",
+      "follow_ups": [
+        "Design: decide whether to add an optional instruction-anchor drift/coverage test asserting the new Epic ops block references rq-opsFollow* anchors.",
+        "Design: confirm phrasing distinguishing required-release-blocking (relationship=blocks) from required-release-first-with-handoff (follows_release/monitors/cleanup_after + required_handoff:true) using followup.ts L604 vocabulary.",
+        "Resolve clarify finding CLARIFY_MISSING_ERROR_HANDLING by noting unreachable/incomplete linked ops work is already surfaced as warning/blocker via gate-readiness.ts L681-720 (no new error-handling design needed)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicOpsGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation - Update Epic ops guidance",
+      "sources": [
+        {
+          "label": "advance-workflow spec: rq-opsFollowRelease01 (MUST)",
+          "locator": "/home/jon/dev/advance/docs/specs/advance-workflow.md:4044-4086",
+          "summary": "Blocking relationships (blocks) MUST prevent release; non-blocking release-first (follows_release, monitors, cleanup_after) MUST NOT block once explicit surviving-obligation handoff recorded; archive lists open ops follow-ups + handoff. Design's blocking/release-first distinction matches this law verbatim."
+        },
+        {
+          "label": "adv_followup_promote relationship enum (schema truth)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/followup.ts:604",
+          "summary": "Enum: 'blocks' = hard-blocking release-safety path; 'follows_release','monitors','cleanup_after' = release-first sequencing. Confirms the typed route the design directs required ops work into. followup.test.ts exercises all four."
+        },
+        {
+          "label": "advance-workflow spec: rq-opsRunbook01 + rq-opsRunReleaseReadiness01",
+          "locator": "/home/jon/dev/advance/docs/specs/advance-workflow.md:4089-4133",
+          "summary": "Durable runbook state governs production execution authority; release readiness fails closed on stale/unreachable child state. Confirms C4/DDC3: production execution + gate-readiness stay unchanged and authoritative outside this change."
+        },
+        {
+          "label": "advance-epics spec (target for new rq-epicOpsPlanning01)",
+          "locator": "advance-epics v1.11.0, 29 reqs (rq-epicCreateCommand01, rq-epicCoordinateCommand01, rq-epicOrderAdvisory01)",
+          "summary": "Epic order advisory (rq-epicOrderAdvisory01); creation/coordination commands goal-first/read-first/approval-gated. New requirement fits as additive MUST without contradicting advisory-order or optional-membership invariants."
+        },
+        {
+          "label": "Target instruction/command surfaces (existence verified)",
+          "locator": "adv-epic.md:32 Phase 1 'Frame Epic Intent'; ADV_INSTRUCTIONS.md:540 'Epic Context' + Avoidances 555-563; advance-epics-assets.test.ts",
+          "summary": "AC1 elicitation slots into Phase 1 'Elicit and confirm' bullet list; AC2 fits Epic Context body + Avoidances forbid-list; AC4 anchors extend existing Epic asset test. All four named surfaces exist as claimed."
+        }
+      ],
+      "architecture_assessment": "Instruction/spec alignment over an existing typed ops-followup subsystem. Design reuses adv_followup_promote / ops_followup_links rather than inventing an Epic-native operations model, preserving one release authority (rq-opsFollowRelease01) and one source of truth. Cited requirements (rq-opsFollowRelease01, rq-opsRunbook01, rq-opsRunReleaseReadiness01, rq-opsFollowTrace01) all exist and back the release-safety and provenance claims. Relationship semantics (blocks vs follows_release/monitors/cleanup_after) match both the spec law and the followup.ts enum exactly. All named affected surfaces (advance-epics spec.json, docs mirror, ADV_INSTRUCTIONS Epic Context, adv-epic Phase 1, adv-coordinate audit, advance-epics-assets.test.ts) are real, structurally correct insertion points. C2 (no heuristic mandate) and C3 (advisory order) honored: operational need stays contextual, not inferred from Epic metadata - consistent with P33 since ops need cannot be structurally inferred without false mandates. DDC3/OOS1 (no schema/validator/gate/execution change) respected. Minor structural-anchor caution: ops relationship laws + enforcing test live in advance-workflow / ops-follow-up-assets.test.ts, while the new requirement + anchors live in advance-epics / advance-epics-assets.test.ts. AC4's negative-anchor guarantee must assert against the NEW advance-epics requirement text, not re-assert advance-workflow ops laws, to avoid false coverage / cross-spec drift. Implementation-precision note for planning, not a design defect.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is correct, minimal, spec-law compliant. All cited requirements verified to exist; relationship semantics match spec + schema enum exactly; all named surfaces exist. No contract compromise, security, or release blocker. Non-blocking caution: AC4 anchors in advance-epics-assets.test.ts must assert the new rq-epicOpsPlanning01 text (typed-follow-up route + blocks-vs-handoff distinction) rather than duplicating advance-workflow ops-law assertions, so the drift guard fails on removal of the Epic-side guidance specifically."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Instruction/spec-only alignment relies on prose + asset-test anchors rather than a runtime validator; design mitigates prose fragility with an advance-epics-assets.test.ts drift anchor - the correct proportional structural guard for guidance-not-mechanism work.",
+          "Operational need stays a contextual human/agent assessment (no structural mandate), trading automatic enforcement for avoidance of false mandates - correct because ops need is not reliably inferable from Epic metadata.",
+          "New requirement cross-references (not duplicates) advance-workflow ops laws, keeping one source of truth but creating a soft cross-spec coupling that AC4 anchoring must respect."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Epic-native ops model / Epic shell surrogate for required ops work",
+            "disposition": "rejected",
+            "rationale": "Would duplicate release authority (rq-opsFollowRelease01) and drift against the typed ops_followup source of truth; violates C1/DONT1. Design explicitly rejects via LBP analysis."
+          },
+          {
+            "option": "Structural validator/gate mandating an ops follow-up from Epic metadata",
+            "disposition": "rejected",
+            "rationale": "Ops need cannot be inferred without false mandates (C2/OOS2); a heuristic mandate would violate P33 by making a heuristic the sole correctness authority. Contextual assessment + drift-anchored guidance is the boring correct choice."
+          },
+          {
+            "option": "Creation-only prompt (skip /adv-coordinate audit)",
+            "disposition": "deferred",
+            "rationale": "Agreement Q2 preferred creation + coordination reminder if low duplication; design includes both so existing Epics lacking ops assessment are also surfaced. Low added surface, higher coverage - acceptable."
+          }
+        ],
+        "recommendation": "Proceed to planning. Design passes independent validation. Planning must (1) place the new rq-epicOpsPlanning01 MUST + blocking/non-blocking scenario in .adv/specs/advance-epics/spec.json with the docs mirror regenerated, and (2) ensure advance-epics-assets.test.ts negative anchors assert the NEW Epic-side requirement text and the typed-follow-up/blocks-vs-handoff distinction directly, not by re-testing advance-workflow ops laws."
+      },
+      "recommendation": "VALIDATION: pass. Approve design, advance to planning. No contract, security, or release blocker. One planning-precision note: anchor AC4 tests against the new advance-epics requirement (not advance-workflow ops laws) so the drift guard fails when Epic-side ops guidance or the blocking/non-blocking distinction is removed.",
+      "follow_ups": [
+        "Planning: confirm docs/specs/advance-epics.md mirror is regenerated from spec.json (not hand-edited) to satisfy AC3 + schemas discipline.",
+        "Planning: AC4 anchor must assert the typed adv_followup_promote/ops_followup_links route AND the blocks vs release-first handoff distinction in advance-epics-assets.test.ts specifically."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicOpsGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicOpsGuidance",
+      "task_id": "tk-cf9893829c1c",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-cf9893829c1c"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-epics/spec.json",
+        "docs/specs/advance-epics.md"
+      ],
+      "verification": [
+        {
+          "command": "node -e \"require('./.adv/specs/advance-epics/spec.json')\" + schema-shape check on rq-epicOpsPlanning01",
+          "exit_code": 0,
+          "summary": "PASS — spec.json parses; rq-epicOpsPlanning01 present, priority must, 4 scenarios each with id/title/given(array)/when(string)/then(array); references rq-opsFollowTrace01/rq-opsFollowRelease01/rq-opsRunReleaseReadiness01; includes all six operational examples."
+        },
+        {
+          "command": "../bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+          "exit_code": 0,
+          "summary": "PASS — 55/55 tests; spec.json valid JSON, name advance-epics, mirror docs/specs/advance-epics.md still contains all listed reqIds."
+        },
+        {
+          "command": "../bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts",
+          "exit_code": 1,
+          "summary": "EXPECTED (cross-task) — fails on exactly one requirement: rq-epicOpsPlanning01 has no external citation yet. No other requirement regressed; 'requirement count does not shrink' passed. Citation is owned by sibling task tk-4dafc1d36282 (ADV_INSTRUCTIONS.md/command files); invariant goes green once that lands."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Referenced rq-opsFollowTrace01, rq-opsFollowRelease01, and rq-opsRunReleaseReadiness01 inline in the new requirement body instead of restating their semantics.",
+          "why": "DDC2 requires reference-not-duplication; keeps one source of truth for provenance, blocking/handoff, and verified child-state release authority."
+        },
+        {
+          "what": "Bumped spec.json version 1.11.0 -> 1.12.0 and updated_at to 2026-07-10, and brought the mirror header from 1.10.0/2026-07-08 to 1.12.0/2026-07-10.",
+          "why": "New requirement warrants a minor bump; the mirror was already one version behind the spec, so this also restores spec/mirror version alignment."
+        },
+        {
+          "what": "Did NOT add an external citation (ADV_INSTRUCTIONS.md / command files) for rq-epicOpsPlanning01.",
+          "why": "That guidance is sibling task tk-4dafc1d36282 (AC1/AC2/SC1); editing it here would duplicate work and expand beyond this task's spec+mirror scope. Surfaced as a required_main_agent_action instead."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "tk-4dafc1d36282 must add an external citation of rq-epicOpsPlanning01 (ADV_INSTRUCTIONS.md Epic Context and/or .opencode/command/adv-epic.md + adv-coordinate.md) to satisfy the spec-citation-invariant.",
+        "tk-0e9072cfdc74 should add rq-epicOpsPlanning01 to the advance-epics-assets mirror-sync reqId list and add focused blocking-vs-handoff assertions (AC4/DDC)."
+      ],
+      "required_main_agent_actions": [
+        "Ensure sibling task tk-4dafc1d36282 lands an external citation for rq-epicOpsPlanning01 before running spec-citation-invariant as a CI gate (currently flags only this reqId by design)."
+      ],
+      "related_scan": "Confirmed the existing rq-ops* laws (rq-opsFollowTrace01, rq-opsFollowRelease01, rq-opsRunReleaseReadiness01) already cover provenance, blocking/handoff, and verified child-state authority, so the new law cites them rather than duplicating. No other same-pattern Epic requirement needed changes.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC3 spec law delivered: added rq-epicOpsPlanning01 (MUST) + 4 scenarios to .adv/specs/advance-epics/spec.json and mirrored to docs/specs/advance-epics.md. It names first deployment, migration/backfill, deployment configuration, monitoring, cleanup, teardown; directs required work to a typed linked ops follow-up via adv_followup_promote/ops_followup_links tied to the delivery change; uses blocks for release safety and a non-blocking release-first relationship only with existing handoff semantics; references (not duplicates) rq-opsFollowTrace01, rq-opsFollowRelease01, rq-opsRunReleaseReadiness01; preserves contextual no-ops-needed, advisory order, no deployment execution, and no model/validator/gate changes. Bumped spec+mirror to v1.12.0 / 2026-07-10. spec-citation-invariant now flags ONLY rq-epicOpsPlanning01 as uncited — this is expected and owned by sibling task tk-4dafc1d36282; do not run the citation invariant as a gate until that lands.",
+        "suggested_next_action": "Land sibling task tk-4dafc1d36282 (ADV_INSTRUCTIONS.md Epic Context + .opencode/command/adv-epic.md Phase 1 + adv-coordinate alignment-audit) so rq-epicOpsPlanning01 gains an external citation and spec-citation-invariant goes green; then run verification task tk-0e9072cfdc74 to add rq-epicOpsPlanning01 to the advance-epics-assets mirror-sync reqId list and the focused AC4/DDC blocking-vs-handoff assertions."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: node -e \"require('./.adv/specs/advance-epics/spec.json')\" + schema-shape check on rq-epicOpsPlanning01"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ../bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicOpsGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicOpsGuidance",
+      "task_id": "tk-4dafc1d36282",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4dafc1d36282"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "ADV_INSTRUCTIONS.md",
+        ".opencode/command/adv-epic.md",
+        ".opencode/command/adv-coordinate.md"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/advance-epics-assets.test.ts",
+          "exit_code": 0,
+          "summary": "55/55 Epic asset contract tests pass; additive doc edits preserved all asserted tokens in adv-epic.md, adv-coordinate.md, and ADV_INSTRUCTIONS.md."
+        },
+        {
+          "command": "pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts",
+          "exit_code": 0,
+          "summary": "2/2 pass; rq-epicOpsPlanning01 now cited in canonical instruction surfaces, clearing the single uncited-requirement failure."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Cited rq-epicOpsPlanning01 in ADV_INSTRUCTIONS.md and adv-epic.md via HTML comments",
+          "why": "spec-citation-invariant failed because rq-epicOpsPlanning01 (new law from sibling spec task) had no external citation; the invariant's remediation directs an rq citation comment in the relevant command/instruction file. These guidance files are the canonical instruction surfaces for that law, so the citation is in-scope and locality-correct, and is not the AC4 asset-test anchor owned by the verification task."
+        },
+        {
+          "what": "Kept edits additive and prose-only; no schema, validator, gate, or spec changes",
+          "why": "Contract C1 forbids new data model/validator/gate; AC3 (spec) and AC4 (drift-anchor test) are owned by sibling tasks. Preserving existing asset-test tokens kept advance-epics-assets.test.ts at 55/55."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed same ops vocabulary already used across adv-apply/adv-review/adv-harden/adv-archive/adv-prep (ops_followup_links; child/source-of-truth vs stale parent status); new guidance matches that lexicon. No other Epic instruction surface needed the same addition.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-4dafc1d36282 (docs/guidance) complete. Added Epic operational-work guidance to three canonical instruction surfaces: ADV_INSTRUCTIONS.md Epic Context (ops paragraph + 3 avoidance bullets), .opencode/command/adv-epic.md Phase 1 step 4 (explicit elicitation naming 7 examples) + extended MUST NOT, and .opencode/command/adv-coordinate.md Phase 4 (Operational-work grounding row + alignment note). Guidance directs required ops to the typed adv_followup_promote/ops_followup_links path from the relevant delivery change, distinguishes blocks (hard release blocker) from release-first follows_release/monitors/cleanup_after (non-blocking unless required_handoff), and preserves contextual-need (no universal ops requirement), advisory Epic order, and no deployment execution from Epic planning. Resolved one red repo gate found during verification: rq-epicOpsPlanning01 was uncited, failing spec-citation-invariant; added canonical rq-epicOpsPlanning01 citation comments to the two instruction surfaces implementing the law (per the invariant's documented remediation). This is normal instruction-law linkage, not the AC4 asset-test anchor (still tk-0e9072cfdc74). A concurrent-signaling integration test flaked on timing in one broad sweep; it does not read the edited markdown and is unrelated.",
+        "suggested_next_action": "Proceed to sibling verification task tk-0e9072cfdc74 (AC4 drift-anchor asset test), now unblocked. Spec law tk-cf9893829c1c (rq-epicOpsPlanning01 text) is already present in the worktree."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicOpsGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicOpsGuidance",
+      "task_id": "tk-0e9072cfdc74",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-0e9072cfdc74"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+          "exit_code": 0,
+          "summary": "BASELINE (pre-edit): 55/55 pass. Companion grep showed zero references to rq-epicOpsPlanning01 / ops_followup_links / adv_followup_promote / follows_release — ops guidance was unanchored (drift gap = RED-equivalent risk)."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+          "exit_code": 1,
+          "summary": "RED / negative control: with one assertion flipped to expect the spec NOT to contain adv_followup_promote, exactly 1 test failed — 'spec.json rq-epicOpsPlanning01 ... blocks vs release-first handoff' AssertionError: expected '{...rq-epicOpsPlanning01...}' not to contain 'adv_followup_promote'. Proves the typed-route anchor is non-vacuous (a real removal fails). Reverted immediately; no source surface mutated."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN (post-edit, post-revert): 60/60 pass — 55 baseline + 5 new AC1-AC4 ops-anchor tests, with rq-epicOpsPlanning01 added to the mirror-sync reqId list."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts",
+          "exit_code": 0,
+          "summary": "2/2 pass; rq-epicOpsPlanning01 external citation (ADV_INSTRUCTIONS.md + adv-epic.md) intact and requirement count did not shrink."
+        },
+        {
+          "command": "pnpm --dir plugin exec eslint src/advance-epics-assets.test.ts",
+          "exit_code": 0,
+          "summary": "ESLint clean (RC=0, no output)."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Anchored canonical wording as static asset tests rather than exercising adv_followup_promote / ops_followup runtime.",
+          "why": "The task forbids duplicating advance-workflow behavior or falsely claiming coverage. Provenance, release blocking, surviving-obligation handoff, and child-state release authority stay owned by rq-opsFollowTrace01/rq-opsFollowRelease01/rq-opsRunReleaseReadiness01 and their tests; the Epic requirement is asserted to CITE those ids (reference-not-duplication, DDC2) and to forbid any new model/validator/enum/gate (DDC3)."
+        },
+        {
+          "what": "Added rq-epicOpsPlanning01 to the pre-existing mirror-sync reqId list instead of a standalone sync check.",
+          "why": "Keeps one source of truth for spec↔doc requirement parity and matches the file's established convention; this was the exact follow-up the spec task (tk-cf9893829c1c) handed off."
+        },
+        {
+          "what": "Used a reversible in-test negative control (flip one typed-route assertion to not.toContain, run, revert) for RED evidence rather than fabricating a failure.",
+          "why": "Sibling tasks tk-cf9893829c1c and tk-4dafc1d36282 already landed the underlying spec/guidance, so a natural RED did not exist; the negative control proves the anchors are non-vacuous (a real removal of adv_followup_promote from the spec fails the suite) without mutating any source surface, and the final state is GREEN."
+        },
+        {
+          "what": "Did not run pnpm run schemas:check.",
+          "why": "Repository evidence shows it is not relevant: git status reports only plugin/src/advance-epics-assets.test.ts changed; no Zod schema, plugin/src/schema-registry.ts, or plugin/schemas/*.schema.json surface was touched."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed the four canonical surfaces already carry the ops guidance (landed by sibling tasks) and that no other Epic asset test references ops terms, so this file is the single anchor home (no duplicate coverage). Verified the Epic spec cites (does not redefine) rq-opsFollowTrace01/rq-opsFollowRelease01/rq-opsRunReleaseReadiness01 and that no same-pattern re-derivation of advance-workflow ops mechanics was introduced.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC4 drift anchors delivered in plugin/src/advance-epics-assets.test.ts only (191+/2-). (1) Added rq-epicOpsPlanning01 to the existing spec↔doc mirror-sync reqId list. (2) New describe 'Epic operational-work planning drift anchors (AC1-AC4)' with 5 focused tests anchoring: spec.json rq-epicOpsPlanning01 MUST + reference-not-duplication of rq-opsFollowTrace01/rq-opsFollowRelease01/rq-opsRunReleaseReadiness01 + `blocks` vs non-blocking release-first handoff + MUST-NOT-new-model/validator/enum/gate + advisory order + no deployment exec + 4 scenarios (AC3/AC4, DDC1-DDC3); docs/specs/advance-epics.md mirror of the same; /adv-epic Phase 1 explicit elicitation naming all seven ops examples (first deployment/migration/backfill/deployment configuration/monitoring/cleanup/teardown) + typed adv_followup_promote/ops_followup_links[] direction + shell/agenda/prose-not-authoritative prohibition + contextual-not-universal (AC1); ADV_INSTRUCTIONS.md Epic Context typed linked direction + free-text/shell prohibition in narrative AND Avoidances + cited laws + non-goals (AC2); /adv-coordinate operational-work grounding row + free-text-only→judgment_call→adv_followup_promote repair for existing Epics (AC3). Anchors are static wording and deliberately do NOT re-test advance-workflow ops-followup runtime. Verification: baseline 55/55 (file had zero ops refs = drift gap), reversible negative-control RED (exactly 1 failure on the typed-route anchor), final 60/60 GREEN, eslint RC=0, spec-citation-invariant 2/2. No commit; no ADV state mutated.",
+        "suggested_next_action": "All three tasks for updateEpicOpsGuidance now have green verification. Proceed to execution/acceptance: run a reviewer pass or full suite (bin/oc-test full) for the change, then drive acceptance/release gates. schemas:check was intentionally not run (test-only change)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec eslint src/advance-epics-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicOpsGuidance",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicOpsGuidance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:execution-final-verification"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "duration_ms": 92290
+        },
+        {
+          "kind": "command",
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "duration_ms": 0
+        },
+        {
+          "kind": "command",
+          "command": "pnpm --dir plugin run build",
+          "exit_code": 0,
+          "duration_ms": 13188
+        }
+      ],
+      "status": "pass",
+      "error_class": "UNKNOWN",
+      "confidence": "high",
+      "evidence_basis": "Full suite: 329 test files and 4832 tests passed. Check passed schemas, typecheck, isolation, lockfile, lint, and format. Build produced plugin and Temporal worker bundles.",
+      "findings": [],
+      "recommended_next_action": "continue",
+      "scope_risk": false,
+      "required_main_agent_actions": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicOpsGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicOpsGuidance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "For planning-only cross-cutting guidance, bind the new law to existing typed runtime laws and test canonical instruction/spec surfaces rather than duplicating a second operational mechanism."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git diff --check HEAD~2..HEAD",
+          "bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Read-only review of both commits (6 files, docs/spec/command/test only). git diff --check passed. Focused asset suite passed: 1 file, 60 tests. Execution evidence supplied by packet also reports bin/oc-test full (329 files/4832 tests), pnpm check, and pnpm build passing."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Guidance intentionally depends on existing ops-followup runtime semantics; no new model, validator, gate, relationship enum, or deployment execution was introduced. Future changes to those cited laws should preserve their established blocks/release-first handoff meaning."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicOpsGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicOpsGuidance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 1,
+      "dimensions": [
+        "contract-traceability",
+        "scope-conformance",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence"
+      ],
+      "summary": "One contract/scope scanner found 100% traceability across the six intended files, no scope drift, runtime/model/gate changes, or blockers. Static anchor thinness is intentional: advance-workflow owns runtime ops-followup behavior.",
+      "findings": [
+        {
+          "scanner": "contract-scope",
+          "severity": "info",
+          "summary": "All approved criteria trace to canonical spec, instruction, commands, and focused drift anchors; no untraced criteria or out-of-scope implementation changes.",
+          "evidence": [
+            {
+              "label": "contract scan",
+              "locator": "changed files and commits a6eadb8f/0d173416",
+              "summary": "100% traced; no new validators, relationship enums, data models, gate rules, or deployment execution."
+            },
+            {
+              "label": "test anchors",
+              "locator": "plugin/src/advance-epics-assets.test.ts:565-748",
+              "summary": "Five static AC1-AC4 tests cover wording removal while intentionally deferring runtime behavior to existing advance-workflow laws/tests."
+            }
+          ]
+        }
+      ],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateEpicOpsGuidance",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateEpicOpsGuidance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 2,
+      "dimensions": [
+        "documentation_hygiene",
+        "cleanup",
+        "production_readiness",
+        "deployment_readiness",
+        "test_coverage",
+        "ai_slop"
+      ],
+      "summary": "Documentation, cleanup, production, deployment, and test-coverage scans passed with no blockers/high findings. Merge compatibility passed. Slop scan is degraded: knip parse failure and unavailable ast-grep/jscpd; ESLint and manual review found no actionable slop, with two low regex-brittleness observations.",
+      "findings": [
+        {
+          "scanner": "test-slop",
+          "severity": "info",
+          "summary": "Slop detector coverage degraded: knip failed parsing and ast-grep/jscpd are unavailable. Do not interpret zero detector findings as a complete slop sweep.",
+          "evidence": [
+            {
+              "label": "slop scan",
+              "locator": "bin/adv slop-scan plugin/src/advance-epics-assets.test.ts --json",
+              "summary": "ESLint clean; important detector coverage incomplete due environment/tool availability."
+            }
+          ]
+        },
+        {
+          "scanner": "test-slop",
+          "severity": "info",
+          "summary": "Two low maintainability observations: pre-existing bounded-wildcard asset-test regexes can yield opaque failures; no release-impacting defect found.",
+          "evidence": [
+            {
+              "label": "manual review",
+              "locator": "plugin/src/advance-epics-assets.test.ts:359,418,420",
+              "summary": "Existing regexes are outside this change's added block; no change required for this scope."
+            }
+          ]
+        }
+      ],
+      "follow_ups": []
+    }
+  ],
+  "test_runs": {
+    "tk-4dafc1d36282": [
+      {
+        "runId": "tr_mrfe9h6x_f8f448ad",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/advance-epics-assets.test.ts",
+        "durationMs": 91103.81450500013,
+        "recordedAt": "2026-07-10T20:34:42.682Z"
+      },
+      {
+        "runId": "tr_mrfea54z_cec7b52e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/advance-epics-assets.test.ts --reporter=default 2>&1 | tail -n 40",
+        "durationMs": 4013.8729320000857,
+        "recordedAt": "2026-07-10T20:35:13.708Z"
+      },
+      {
+        "runId": "tr_mrfeco8r_d44cf5ea",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts --reporter=default 2>&1 | tail -n 30",
+        "durationMs": 1666.7255589999259,
+        "recordedAt": "2026-07-10T20:37:11.860Z"
+      },
+      {
+        "runId": "tr_mrfedi6x_314c7a61",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/__tests__/spec-citation-invariant.test.ts",
+        "durationMs": 1437.1921880003065,
+        "recordedAt": "2026-07-10T20:37:50.621Z"
+      },
+      {
+        "runId": "tr_mrfedo0g_7f54cf29",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/advance-epics-assets.test.ts",
+        "durationMs": 6079.54017499974,
+        "recordedAt": "2026-07-10T20:37:58.151Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-10T20:06:02.352Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal framing and scope: required Epic operational work must be explicit linked ops-follow-up work; no mandate where no operational need exists.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "4871d48d86414b939450a67f1f8811706c56ef8f0e2d221353259e64956e9bd4",
+        "non_whitespace_chars": 2279,
+        "checked_at": "2026-07-10T20:04:43.040Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-10T20:13:31.510Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved objectives and acceptance criteria. Contract minted from approved agreement: 18 items; instruction/spec alignment reuses existing typed ops-followup and release-readiness semantics.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "non_whitespace_chars": 5770,
+        "checked_at": "2026-07-10T20:04:43.041Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-10T20:18:57.112Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design reuses typed linked ops-followup state, retains contextual ops assessment and advisory Epic order, and covers creation plus coordination. Independent validator passed with high confidence; no contract compromise or spec conflict.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "db509db438f30d30412ffa67b364625fd944385596a7bba7507dc09654f67538",
+        "non_whitespace_chars": 4321,
+        "checked_at": "2026-07-10T20:04:43.042Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-10T20:25:40.644Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved 3-task graph: Epic spec/mirror, canonical create/coordinate guidance, and cross-cutting drift anchors. Two documentation tasks are ready; verification is correctly blocked on both."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-10T21:00:58.650Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks checkpointed and done. Full verification passed: bin/oc-test full (329 files, 4832 tests), pnpm check, and pnpm build. Worktree clean; strict validation passed with only non-blocking NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-10T21:36:07.529Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work. Reviewer READY with no findings; contract matrix has 18 non-failing rows; executive summary persisted and verified; preview not applicable for docs/spec/static-test-only scope.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "dba2091e8682a533698265bbbecc1cd4559a087d02ba74c28cb6ace0b0d2416e",
+        "non_whitespace_chars": 3038,
+        "checked_at": "2026-07-10T20:04:43.043Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+      "approvedAt": "2026-07-10T20:12:00.000Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** Canonical Epic guidance names first deployment, migration/backfill, deployment configuration, monitoring, cleanup, and teardown as examples of operational work that must be assessed during Epic planning.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** When required operational work is identified, guidance directs it to a linked typed ops follow-up with relationship semantics that distinguish release-blocking work from release-first work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** Operators can determine that the existing release gate remains the authority for blocking linked operations, while ADV records and governs operational state rather than performing deployment execution as an Epic gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** `/adv-epic` Phase 1 contains an explicit operational-work elicitation step naming at least six operational-work examples: first deployment, migration, backfill, deployment configuration, monitoring, cleanup, or teardown.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** `ADV_INSTRUCTIONS.md` Epic Context states that required operational work is represented through the existing typed `adv_followup_promote` / `ops_followup_links` path linked to the relevant delivery change; it forbids using free-text-only tracking as the authoritative record.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** The Epic capability specification has a MUST requirement and scenario proving that an Epic with required operational work directs a typed linked ops follow-up, using `blocks` when release safety requires completion and a non-blocking release-first relationship only with the existing handoff semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Focused automated tests or asset anchors fail if the required operational-work prompt, typed-follow-up direction, or blocking/non-blocking distinction is removed from canonical instruction/spec surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** Reuse existing typed `ops_followup`, `ops_followup_links`, relationship, runbook, evidence, and release-readiness semantics; no new data model, validator, or gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** Operational need remains a contextual human/agent assessment. Do not create a heuristic that mandates operations merely from Epic metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** Epic order remains advisory and cannot independently block a gate, task, promotion, or release.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** Production operational execution remains governed by existing runbook and approval requirements; this change only improves planning/traceability guidance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1:** Do not add generic Epic shell entries as a substitute for typed linked ops follow-ups.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2:** Do not make every Epic, every change, or every deployment require an ops follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3:** Do not make Epic order a release gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4:** Do not add a competing free-text, state-less operations tracking path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1:** Changing ops-follow-up schemas, relationship enums, gate-readiness implementation, or production execution authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2:** Automatically detecting operational need from inferred infrastructure changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3:** Executing deployments from Epic creation/planning.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-10T21:04:50.509Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Acceptance reviewer READY; `/adv-epic`, `ADV_INSTRUCTIONS.md`, Epic spec/mirror, and drift anchors name all required operational-work examples."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Acceptance reviewer and contract scanner confirm typed `adv_followup_promote`/`ops_followup_links` direction and `blocks` versus release-first handoff wording across canonical surfaces."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Spec/scanner evidence confirms existing release gate remains authority; guidance prohibits Epic-gate deployment execution and preserves advisory order."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`advance-epics-assets.test.ts` GREEN 60/60 anchors `/adv-epic` Phase 1 named operational-work elicitation."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`advance-epics-assets.test.ts` GREEN 60/60 anchors `ADV_INSTRUCTIONS.md` typed follow-up route and free-text prohibition."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`advance-epics-assets.test.ts` GREEN 60/60 anchors MUST `rq-epicOpsPlanning01`, scenarios, and blocking/non-blocking semantics in spec and mirror."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reversible negative-control RED produced one anchor failure; final `advance-epics-assets.test.ts` GREEN 60/60 confirms non-vacuous drift coverage."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Contract scanner found no new data model, validator, relationship enum, or gate-readiness implementation; requirement references existing ops laws."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec and guidance explicitly make operational need contextual, prohibit metadata inference, and include a no-follow-up scenario."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec scenarios and guidance retain Epic order as advisory and prohibit independent release/task/promotion blocking."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Guidance keeps production execution under existing child ops runbook/approval rules; scanner found no execution-path changes."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Canonical guidance and tests forbid treating generic Epic shells as authoritative ops records."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Canonical guidance and no-ops-needed scenario prohibit universal ops follow-up requirements."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Guidance and scenarios explicitly keep Epic ordering advisory."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Typed linked ops follow-up route is required; free-text/agenda/prose are discovery aids only."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out of scope by approved agreement; contract scanner confirmed no ops schema, relationship enum, gate-readiness, or execution-authority change."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out of scope by approved agreement; design explicitly rejects heuristic metadata inference."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out of scope by approved agreement; canonical guidance explicitly states Epic planning does not execute deployments."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** `/adv-epic` Phase 1 contains an explicit operational-work elicitation step naming at least six operational-work examples: first deployment, migration, backfill, deployment configuration, monitoring, cleanup, or teardown.",
+    "**AC2:** `ADV_INSTRUCTIONS.md` Epic Context states that required operational work is represented through the existing typed `adv_followup_promote` / `ops_followup_links` path linked to the relevant delivery change; it forbids using free-text-only tracking as the authoritative record.",
+    "**AC3:** The Epic capability specification has a MUST requirement and scenario proving that an Epic with required operational work directs a typed linked ops follow-up, using `blocks` when release safety requires completion and a non-blocking release-first relationship only with the existing handoff semantics.",
+    "**AC4:** Focused automated tests or asset anchors fail if the required operational-work prompt, typed-follow-up direction, or blocking/non-blocking distinction is removed from canonical instruction/spec surfaces."
+  ],
+  "documents": {
+    "proposal": "# Update Epic Ops Guidance\n\n## Why\n\nEpic planning must make required operational delivery work visible and durable. Without explicit guidance, an Epic can appear complete while first-time infrastructure deployment, migration/backfill, deploy configuration, monitoring, cleanup, or teardown remains untracked.\n\n## What Changes\n\nClarify Epic lifecycle guidance so required operational work is represented as explicit linked ops-follow-up work associated with the relevant delivery change(s), including whether it blocks release.\n\n## User Outcomes\n\n- Initiative owners can see when an Epic needs operational delivery work.\n- Required operational work is tracked rather than implied in chat or prose.\n- Release decisions distinguish blocking operational obligations from non-blocking follow-up work.\n\n## Affected Code\n\n- Epic workflow and instruction surfaces.\n- Existing typed ops-followup/release-obligation behavior and its tests, if coverage needs alignment.\n\n## Related Repositories\n\n- Current Advance repository only.\n\n## Constraints\n\n- Reuse the existing typed `ops_followup` and `ops_followup_links` model; do not create a competing free-text tracking path.\n- Do not require operational work for Epics without an operational need.\n- Preserve Epic ordering as advisory, not a release gate by itself.\n- Unreachable or incomplete linked ops work must remain visible as a warning or blocker; it must not be treated as not applicable.\n\n## Impact\n\nImproves planning and release safety for infrastructure- and operations-bearing Epic work without changing unrelated Epic behavior.\n\n## Context\n\nExisting workflow laws already define typed linked ops follow-ups, blocking relationships, runbook-shaped production operations state, and source-of-truth release reconciliation. The instruction gap is making their required use clear in Epic planning.\n\n## Discovery Agenda\n\n- Identify canonical Epic instruction/command surfaces and their drift-test anchors.\n- Confirm the appropriate relationship semantics for first deployment, migration/backfill, deploy config, monitoring, cleanup, and teardown.\n- Determine whether current validators or tests need a structural rule beyond clarified instructions.\n\n## Scope\n\n### In Scope\n\n- Clear Epic planning guidance for required operational work.\n- Explicit linked ops-follow-up representation and release-blocking expectations.\n- Focused specification/test alignment where necessary.\n\n### Out of Scope\n\n- Replacing the existing ops-followup data model.\n- Mandating ops work for every Epic.\n- Making advisory Epic order a release gate.\n\n### Must Not\n\n- Track required ops work only as free-text agenda items or undocumented assumptions.",
+    "problemStatement": "## Problem\n\nEpic planning guidance does not clearly require durable operational work when an initiative introduces or changes production-facing infrastructure. As a result, first-time deployments, migrations/backfills, deployment configuration, monitoring, cleanup, or teardown can be left implicit while application changes appear complete.\n\n## Desired outcome\n\nOperators planning Epic work can identify required operational delivery work early, track it as an explicit linked ops follow-up, and understand when that work blocks release.\n\n## Scope\n\nClarify the Epic and workflow instruction surfaces; align them with existing typed ops-followup and release-blocking behavior. Do not require ops work for Epics that have none.",
+    "agreement": "# Agreement: Update Epic Ops Guidance\n\n## Discovery Findings\n\n- `ADV_INSTRUCTIONS.md` Epic Context and `/adv-epic` goal-framing currently omit required operational work.\n- Existing typed `ops_followup` lifecycle already covers `migration`, `backfill`, `deploy_config`, `monitoring`, `cleanup`, `teardown`, and `other`.\n- Existing workflow requirements already preserve typed provenance (`rq-opsFollowTrace01`), block release for `blocks` links (`rq-opsFollowRelease01`), require durable production runbooks (`rq-opsRunbook01`), and fail closed on stale/unreachable child state (`rq-opsRunReleaseReadiness01`).\n- No active change overlaps this instruction/spec gap. Existing active changes concern archive, ledger, adapter, and archived-listing behavior.\n\n## Objectives\n\n1. Make Epic creation and planning explicitly identify operational delivery work when it is required.\n2. Direct required work to existing typed, linked ops-follow-up changes associated with the relevant delivery change, rather than shell entries, agenda text, or undocumented assumptions.\n3. Make relationship and release consequences explicit without turning Epic ordering or universal Epic membership into a gate.\n\n## Success Criteria\n\n- **SC1:** Canonical Epic guidance names first deployment, migration/backfill, deployment configuration, monitoring, cleanup, and teardown as examples of operational work that must be assessed during Epic planning.\n- **SC2:** When required operational work is identified, guidance directs it to a linked typed ops follow-up with relationship semantics that distinguish release-blocking work from release-first work.\n- **SC3:** Operators can determine that the existing release gate remains the authority for blocking linked operations, while ADV records and governs operational state rather than performing deployment execution as an Epic gate.\n\n## Acceptance Criteria\n\n- **AC1:** `/adv-epic` Phase 1 contains an explicit operational-work elicitation step naming at least six operational-work examples: first deployment, migration, backfill, deployment configuration, monitoring, cleanup, or teardown.\n- **AC2:** `ADV_INSTRUCTIONS.md` Epic Context states that required operational work is represented through the existing typed `adv_followup_promote` / `ops_followup_links` path linked to the relevant delivery change; it forbids using free-text-only tracking as the authoritative record.\n- **AC3:** The Epic capability specification has a MUST requirement and scenario proving that an Epic with required operational work directs a typed linked ops follow-up, using `blocks` when release safety requires completion and a non-blocking release-first relationship only with the existing handoff semantics.\n- **AC4:** Focused automated tests or asset anchors fail if the required operational-work prompt, typed-follow-up direction, or blocking/non-blocking distinction is removed from canonical instruction/spec surfaces.\n\n## Constraints\n\n- **C1:** Reuse existing typed `ops_followup`, `ops_followup_links`, relationship, runbook, evidence, and release-readiness semantics; no new data model, validator, or gate.\n- **C2:** Operational need remains a contextual human/agent assessment. Do not create a heuristic that mandates operations merely from Epic metadata.\n- **C3:** Epic order remains advisory and cannot independently block a gate, task, promotion, or release.\n- **C4:** Production operational execution remains governed by existing runbook and approval requirements; this change only improves planning/traceability guidance.\n\n## Avoidances\n\n- **DONT1:** Do not add generic Epic shell entries as a substitute for typed linked ops follow-ups.\n- **DONT2:** Do not make every Epic, every change, or every deployment require an ops follow-up.\n- **DONT3:** Do not make Epic order a release gate.\n- **DONT4:** Do not add a competing free-text, state-less operations tracking path.\n\n## Out of Scope\n\n- **OOS1:** Changing ops-follow-up schemas, relationship enums, gate-readiness implementation, or production execution authority.\n- **OOS2:** Automatically detecting operational need from inferred infrastructure changes.\n- **OOS3:** Executing deployments from Epic creation/planning.\n\n## Draft Spec Delta\n\n- **rq-epicOpsPlanning01 (new, MUST):** Epic creation/planning must assess operational delivery work. When required, planning must create or direct creation of a typed linked ops-follow-up associated with the relevant delivery change, citing existing `rq-opsFollowTrace01`, `rq-opsFollowRelease01`, and `rq-opsRunReleaseReadiness01`. Scenario: an Epic introducing first-time infrastructure deployment records a linked `deploy_config` or `other` follow-up as `blocks` when release safety requires it; a post-release monitoring/cleanup follow-up remains visible through the existing non-blocking handoff path.\n\n## Open Design Questions\n\n- **Q1 — Canonical test anchor:** Which existing Epic instruction asset test should own the static guidance/spec anchors? Trust model: repository-maintainer code; blast radius: docs/test only; alternatives: extend Epic assets test (preferred) or create a narrow dedicated asset test.\n- **Q2 — Entry-point coverage:** Should the explicit ops prompt appear only in `/adv-epic` creation or also in `/adv-coordinate` for existing initiatives? Trust model: operator workflow; blast radius: instruction scope; alternatives: creation-only (minimum) or creation plus coordination reminder (preferred if low duplication).\n\n## Discovery Checklist\n\n- Skills considered: `adv-instructions-audit` — applicable; instruction claims need executable anchors.\n- Extends: adv-researcher discovery report, attempt 1; no prior research artifact found.\n- Conflict scan: no overlapping active change; pending agenda contains no matching required work.\n- Edge cases: no operational need (no follow-up); blocking first deployment (must complete before release); non-blocking monitoring/cleanup (must retain explicit handoff); unreachable child state (warning/blocker, never N/A).\n- Opportunity scout: skipped — narrow instruction/spec alignment reuses an established typed subsystem; no independent product opportunity.\n- Design question depth: Q1/Q2 include trust model, blast radius, and alternatives.\n- Draft spec delta: `rq-epicOpsPlanning01` with blocking and non-blocking scenarios.\n- Existing legal/architecture evidence: `rq-opsFollowTrace01`, `rq-opsFollowRelease01`, `rq-opsRunbook01`, and `rq-opsRunReleaseReadiness01` remain authoritative.\n- Decision: instruction/spec alignment; no new validator or gate because operational need cannot be structurally inferred without false mandates.",
+    "design": "# Design: Update Epic Ops Guidance\n\n## Architecture Overview\n\nThis is an instruction/spec alignment change over an existing structural subsystem. Epic planning becomes the discovery point for required operational delivery work; the relevant delivery change remains the parent of a typed `ops_followup` child. Existing workflow state, release readiness, runbook approval, and evidence paths remain authoritative.\n\n## Key Decisions\n\n1. **Reuse linked ops follow-ups, not Epic shells.** Required operational work is attached to the delivery change with `adv_followup_promote`; typed provenance and child/source state remain queryable.\n2. **Make operational need explicit, not inferred.** `/adv-epic` and `/adv-coordinate` prompt/check for operations, but do not infer a mandatory follow-up from Epic metadata. This preserves C2 and prevents false mandates.\n3. **Use existing relationship semantics.** Release-safety-critical first deployment/configuration/migration work uses `blocks`; release-first monitoring or cleanup uses an existing non-blocking relationship with required handoff semantics.\n4. **Keep deployment execution out of Epic planning.** Guidance points to existing runbook/approval state; it does not add deployment execution to Epic gates.\n5. **Anchor wording structurally.** Extend the existing Epic asset test instead of relying on prose-only instruction compliance.\n\n## ADR Drafts\n\nNone. The approach reuses an existing typed model and does not introduce a hard-to-reverse architecture choice.\n\n## Implementation Strategy\n\n1. Add `rq-epicOpsPlanning01` to `.adv/specs/advance-epics/spec.json` with blocking and non-blocking operational-work scenarios; update the checked-in documentation mirror.\n2. Extend `ADV_INSTRUCTIONS.md` Epic Context with required-ops assessment, typed follow-up creation/linking, relationship/release consequences, and explicit non-goals.\n3. Extend `/adv-epic` Phase 1 to elicit operational work. Extend `/adv-coordinate` alignment audit to surface missing required ops follow-up work for existing Epics.\n4. Extend `plugin/src/advance-epics-assets.test.ts` with focused assertions for all canonical surfaces and negative constraints.\n5. Run targeted tests, then validation/check surfaces required by affected assets.\n\n## LBP Analysis\n\nThe existing ops-followup system already supplies typed provenance, runbook state, evidence, release blocking, and child-state reconciliation. Adding a second Epic-native operations model would duplicate release authority and create drift. A narrowly scoped planning prompt plus a spec requirement and drift-test anchors makes the desired behavior explicit while preserving one source of truth.\n\n## Affected Components\n\n- `.adv/specs/advance-epics/spec.json` — canonical Epic law.\n- `docs/specs/advance-epics.md` — checked-in Epic spec mirror.\n- `ADV_INSTRUCTIONS.md` — canonical agent Epic Context guidance.\n- `.opencode/command/adv-epic.md` — new Epic creation framing.\n- `.opencode/command/adv-coordinate.md` — existing Epic alignment audit.\n- `plugin/src/advance-epics-assets.test.ts` — structural drift anchors.\n\n## Design-Derived Criteria\n\n- **DDC1:** Canonical guidance and its asset test must name the typed follow-up route and distinguish `blocks` from non-blocking handoff relationships.\n- **DDC2:** The new Epic requirement must reference, rather than duplicate or contradict, `rq-opsFollowTrace01`, `rq-opsFollowRelease01`, and `rq-opsRunReleaseReadiness01`.\n- **DDC3:** No production execution command, schema, validator, or gate-readiness logic changes in this change.\n\n## Risks / Mitigations\n\n- **Risk:** Guidance mandates operations for work with no operations need. **Mitigation:** explicitly require assessment only and retain the no-follow-up path.\n- **Risk:** Operators track operations as an Epic shell or free text. **Mitigation:** wording and asset anchors require typed linked follow-up state for required work.\n- **Risk:** Non-blocking operations are silently lost. **Mitigation:** reference existing required-handoff/source-of-truth release semantics.\n- **Risk:** Current Epic owners miss the rule. **Mitigation:** include `/adv-coordinate` alignment-audit coverage as approved.\n\n## Design Leverage Scout\n\nScout: skipped — trivially scoped instruction/spec/test alignment reuses an established typed subsystem; no independent leverage candidate can change the chosen architecture without violating C1 or C2.\n\n## Validator\n\nIndependent validator: clean pass. Existing `rq-opsFollowRelease01` semantics match the blocking/non-blocking design; `rq-opsRunbook01` and `rq-opsRunReleaseReadiness01` preserve production execution and release authority outside this change. No contract compromise, spec conflict, or overlooked simpler architecture.\n\nPlanning note: asset anchors must assert the new `rq-epicOpsPlanning01` requirement and its typed-follow-up / blocking-vs-handoff language, rather than duplicating advance-workflow law coverage.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nEpic planning now makes required operational delivery work explicit. When an initiative needs first deployment, migration/backfill, deployment configuration, monitoring, cleanup, or teardown, guidance directs operators to a typed linked ops follow-up tied to the relevant delivery change instead of an implied shell, agenda item, or prose note.\n\nThe acceptance decision is complete. Release sign-off now decides whether to archive this verified guidance/spec/test change.\n\n## Why It Matters\n\nRequired operational work can now be identified before an Epic appears complete, with the existing release gate retaining authority over release-blocking work. This reduces the risk that infrastructure or post-release obligations are left implicit.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Added `rq-epicOpsPlanning01` and four scenarios to the Epic capability law, with a checked-in documentation mirror.\n2. Added explicit operational-work assessment and typed-follow-up guidance to Epic creation, coordination, and canonical ADV instructions.\n3. Added five focused drift anchors so removing required wording fails the Epic asset test.\n\n## What Was Verified\n\n- Acceptance review: READY with 0 blockers, 0 issues, 0 suggestions, and 0 nits.\n- Tests: `bin/oc-test full` passed 329 files and 4,832 tests; focused Epic assets passed 60/60; spec-citation invariant passed 2/2.\n- Checks: `pnpm --dir plugin run check` and `pnpm --dir plugin run build` passed.\n- Merge compatibility: clean dry-run merge with `origin/trunk`, then aborted without a commit.\n- Preview URL: not_applicable — documentation, specification, command-contract, and static asset-test change; no browser-visible output was changed.\n- Contract matrix: 18/18 rows passed, respected, or correctly marked out of scope.\n\n## Remaining Concerns\n\nSlop detector coverage was degraded: knip failed parsing and ast-grep/jscpd were unavailable. ESLint and manual review found no actionable slop; two low pre-existing regex-brittleness observations remain outside this change's scope.\n\n## Supporting Evidence\n\n- Tasks `tk-cf9893829c1c`, `tk-4dafc1d36282`, and `tk-0e9072cfdc74` completed with checkpoints.\n- Acceptance reviewer report: READY; contract/scope scanner: 100% traceability, no scope drift.\n- Release hardening scanner bundle: documentation, cleanup, production, deployment, and test coverage passed; slop coverage caveat recorded.\n\n## Consequence Context\n\n1. **Delivered value — pass:** Epic operators now receive explicit operational-work planning guidance and drift-protected canonical instructions. Source: approved agreement, completed tasks, contract matrix.\n2. **Enabling-only/follow-up dependency — n/a:** No linked ops follow-up is created by this documentation/spec change. Source: change `ops_followup_links` is empty; scope is guidance only.\n3. **Ops readiness — pass:** This change adds planning guidance only; production execution remains governed by existing child runbook and approval rules. Source: C4, harden deployment-readiness scan.\n4. **Migration/data impact — n/a:** No runtime data model, migration, backfill execution, or persistence change. Source: OOS1/OOS2 and harden deployment-readiness scan.\n5. **Frontend/preview impact — not_applicable:** No browser-visible output changed. Source: completed documentation/spec/test tasks and contract matrix.\n6. **Collision/release risk — warning:** Merge compatibility passed and no review findings remain; slop detector coverage is incomplete because three detector paths were unavailable or failed. Source: harden scanner bundle.\n7. **Open follow-ups — n/a:** No required follow-ups or linked ops obligations remain. Source: sub-agent reports and `ops_followup_links` state.\n8. **Next action — release sign-off:** Archive proceeds only after explicit user approval. Source: release workflow.\n\n## Release Readiness Summary\n\n- **Status:** READY with a documented detector-coverage warning.\n- **Documentation hygiene:** pass — spec, mirror, command, and instruction wording align with existing typed ops laws.\n- **Cleanup:** pass — no change-created temp, debug, placeholder, or disabled-test artifacts.\n- **Production/deployment readiness:** pass — no runtime, schema, environment, migration, service, CI, or infrastructure behavior changed.\n- **Test coverage:** pass — static anchors are non-vacuous and deliberately reference, rather than duplicate, runtime ops behavior.\n- **Merge compatibility:** pass — clean dry-run against `origin/trunk`.\n- **Report-created agenda audit:** 0 current actionable items; no required follow-up from review/harden reports.\n- **Slop coverage warning:** knip parse failure and unavailable ast-grep/jscpd prevent a complete detector sweep; no actionable finding from available checks/manual review.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-10T21:04:50.509Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** Canonical Epic guidance names first deployment, migration/backfill, deployment configuration, monitoring, cleanup, and teardown as examples of operational work that must be assessed during Epic planning. | pass | Acceptance reviewer READY; `/adv-epic`, `ADV_INSTRUCTIONS.md`, Epic spec/mirror, and drift anchors name all required operational-work examples. |\n| SC2 | success_criterion | **SC2:** When required operational work is identified, guidance directs it to a linked typed ops follow-up with relationship semantics that distinguish release-blocking work from release-first work. | pass | Acceptance reviewer and contract scanner confirm typed `adv_followup_promote`/`ops_followup_links` direction and `blocks` versus release-first handoff wording across canonical surfaces. |\n| SC3 | success_criterion | **SC3:** Operators can determine that the existing release gate remains the authority for blocking linked operations, while ADV records and governs operational state rather than performing deployment execution as an Epic gate. | pass | Spec/scanner evidence confirms existing release gate remains authority; guidance prohibits Epic-gate deployment execution and preserves advisory order. |\n| AC1 | acceptance_criterion | **AC1:** `/adv-epic` Phase 1 contains an explicit operational-work elicitation step naming at least six operational-work examples: first deployment, migration, backfill, deployment configuration, monitoring, cleanup, or teardown. | pass | `advance-epics-assets.test.ts` GREEN 60/60 anchors `/adv-epic` Phase 1 named operational-work elicitation. |\n| AC2 | acceptance_criterion | **AC2:** `ADV_INSTRUCTIONS.md` Epic Context states that required operational work is represented through the existing typed `adv_followup_promote` / `ops_followup_links` path linked to the relevant delivery change; it forbids using free-text-only tracking as the authoritative record. | pass | `advance-epics-assets.test.ts` GREEN 60/60 anchors `ADV_INSTRUCTIONS.md` typed follow-up route and free-text prohibition. |\n| AC3 | acceptance_criterion | **AC3:** The Epic capability specification has a MUST requirement and scenario proving that an Epic with required operational work directs a typed linked ops follow-up, using `blocks` when release safety requires completion and a non-blocking release-first relationship only with the existing handoff semantics. | pass | `advance-epics-assets.test.ts` GREEN 60/60 anchors MUST `rq-epicOpsPlanning01`, scenarios, and blocking/non-blocking semantics in spec and mirror. |\n| AC4 | acceptance_criterion | **AC4:** Focused automated tests or asset anchors fail if the required operational-work prompt, typed-follow-up direction, or blocking/non-blocking distinction is removed from canonical instruction/spec surfaces. | pass | Reversible negative-control RED produced one anchor failure; final `advance-epics-assets.test.ts` GREEN 60/60 confirms non-vacuous drift coverage. |\n| C1 | constraint | **C1:** Reuse existing typed `ops_followup`, `ops_followup_links`, relationship, runbook, evidence, and release-readiness semantics; no new data model, validator, or gate. | respected | Contract scanner found no new data model, validator, relationship enum, or gate-readiness implementation; requirement references existing ops laws. |\n| C2 | constraint | **C2:** Operational need remains a contextual human/agent assessment. Do not create a heuristic that mandates operations merely from Epic metadata. | respected | Spec and guidance explicitly make operational need contextual, prohibit metadata inference, and include a no-follow-up scenario. |\n| C3 | constraint | **C3:** Epic order remains advisory and cannot independently block a gate, task, promotion, or release. | respected | Spec scenarios and guidance retain Epic order as advisory and prohibit independent release/task/promotion blocking. |\n| C4 | constraint | **C4:** Production operational execution remains governed by existing runbook and approval requirements; this change only improves planning/traceability guidance. | respected | Guidance keeps production execution under existing child ops runbook/approval rules; scanner found no execution-path changes. |\n| DONT1 | avoidance | **DONT1:** Do not add generic Epic shell entries as a substitute for typed linked ops follow-ups. | respected | Canonical guidance and tests forbid treating generic Epic shells as authoritative ops records. |\n| DONT2 | avoidance | **DONT2:** Do not make every Epic, every change, or every deployment require an ops follow-up. | respected | Canonical guidance and no-ops-needed scenario prohibit universal ops follow-up requirements. |\n| DONT3 | avoidance | **DONT3:** Do not make Epic order a release gate. | respected | Guidance and scenarios explicitly keep Epic ordering advisory. |\n| DONT4 | avoidance | **DONT4:** Do not add a competing free-text, state-less operations tracking path. | respected | Typed linked ops follow-up route is required; free-text/agenda/prose are discovery aids only. |\n| OOS1 | out_of_scope | **OOS1:** Changing ops-follow-up schemas, relationship enums, gate-readiness implementation, or production execution authority. | not_applicable | Out of scope by approved agreement; contract scanner confirmed no ops schema, relationship enum, gate-readiness, or execution-authority change. |\n| OOS2 | out_of_scope | **OOS2:** Automatically detecting operational need from inferred infrastructure changes. | not_applicable | Out of scope by approved agreement; design explicitly rejects heuristic metadata inference. |\n| OOS3 | out_of_scope | **OOS3:** Executing deployments from Epic creation/planning. | not_applicable | Out of scope by approved agreement; canonical guidance explicitly states Epic planning does not execute deployments. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-10T20:05:03.574Z",
+      "contentHash": "4871d48d86414b939450a67f1f8811706c56ef8f0e2d221353259e64956e9bd4",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-10T20:04:43.082Z",
+      "contentHash": "e9e595175ed890cae001e2250ba728c6668a5955dc9042860a8cf3ad9f684810",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-10T20:11:11.564Z",
+      "contentHash": "c745fd90c6c6606cd9dd6e77c80560e51a501335251f11b60bf60b08ed835c13",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-10T20:17:28.496Z",
+      "contentHash": "db509db438f30d30412ffa67b364625fd944385596a7bba7507dc09654f67538",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-10T21:42:23.052Z",
+      "contentHash": "b7d7b412a597e324cad737788ad1a26e5e5319fd733603103bd714a5551373e3",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-10T21:42:23.052Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-10T20:05:52.447Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
