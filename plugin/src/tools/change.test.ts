@@ -37,6 +37,7 @@ const mocks = vi.hoisted(() => {
       save: vi.fn(),
       refresh: vi.fn(async () => undefined),
       list: vi.fn(async () => ({ changes: [] })),
+      updateArtifacts: vi.fn(),
     },
     tasks: { ready: vi.fn(async () => ({ ready: [], blocked: [] })) },
     gates: {
@@ -1563,6 +1564,193 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(store.changes.list).not.toHaveBeenCalled();
       expect(parsed.warnings).toBeUndefined();
       expect(parsed.hydrationStats).toBeUndefined();
+    });
+  });
+
+  describe("target_path artifact readback/update authority (AC1/AC2)", () => {
+    test("target artifact readback returns every requested kind from target Temporal documents (AC1)", async () => {
+      const store = createMockStore();
+      const sourceChange = (await store.changes.get("test-change"))
+        .data as Change;
+      const getDefault = mocks.targetStore.changes.get.getMockImplementation();
+      vi.mocked(mocks.targetStore.changes.get).mockResolvedValue({
+        success: true,
+        data: {
+          ...sourceChange,
+          documents: {
+            proposal: "target-proposal-multi",
+            design: "target-design-multi",
+            agreement: "target-agreement-multi",
+          },
+        },
+      });
+      mocks.withTargetPathStore.mockClear();
+
+      try {
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            target_path: "/tmp/target",
+            include: {
+              proposal: true,
+              design: true,
+              agreement: true,
+              artifactOnly: true,
+            },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._proposal).toBe("target-proposal-multi");
+        expect(parsed._design).toBe("target-design-multi");
+        expect(parsed._agreement).toBe("target-agreement-multi");
+        expect(parsed._projectContext).toMatchObject({ stateMode: "temporal" });
+        expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: "/tmp/target",
+            stateRequirement: "temporal-required",
+            mutation: false,
+          }),
+          expect.any(Function),
+        );
+      } finally {
+        mocks.targetStore.changes.get.mockReset();
+        if (getDefault) {
+          mocks.targetStore.changes.get.mockImplementation(getDefault);
+        }
+      }
+    });
+
+    test("target artifact update routes through Temporal-backed target store and writes the target, not local (AC2)", async () => {
+      const store = createMockStore();
+      const sourceChange = (await store.changes.get("test-change"))
+        .data as Change;
+      const getDefault = mocks.targetStore.changes.get.getMockImplementation();
+      const updateDefault =
+        mocks.targetStore.changes.updateArtifacts.getMockImplementation();
+      vi.mocked(mocks.targetStore.changes.get).mockResolvedValue({
+        success: true,
+        data: sourceChange,
+      });
+      vi.mocked(mocks.targetStore.changes.updateArtifacts).mockResolvedValue({
+        success: true,
+        designPath: "/tmp/target/.adv/changes/test-change/design.md",
+      });
+      mocks.withTargetPathStore.mockClear();
+
+      try {
+        const result = await changeTools.adv_change_update.execute(
+          {
+            changeId: "test-change",
+            target_path: "/tmp/target",
+            design: "updated-design-content",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target artifact update",
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.error).toBeUndefined();
+        expect(parsed.designPath).toContain("design.md");
+        expect(parsed._projectContext).toMatchObject({ stateMode: "temporal" });
+        expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target_path: "/tmp/target",
+            stateRequirement: "temporal-required",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target artifact update",
+          }),
+          expect.any(Function),
+        );
+        expect(mocks.targetStore.changes.updateArtifacts).toHaveBeenCalledWith(
+          "test-change",
+          { design: "updated-design-content" },
+        );
+        // Local store must NOT receive the artifact write.
+        expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
+      } finally {
+        mocks.targetStore.changes.get.mockReset();
+        mocks.targetStore.changes.updateArtifacts.mockReset();
+        if (getDefault) {
+          mocks.targetStore.changes.get.mockImplementation(getDefault);
+        }
+        if (updateDefault) {
+          mocks.targetStore.changes.updateArtifacts.mockImplementation(
+            updateDefault,
+          );
+        }
+      }
+    });
+
+    test("target artifact update is readable back from the same target store, not local disk (AC2)", async () => {
+      const store = createMockStore();
+      const sourceChange = (await store.changes.get("test-change"))
+        .data as Change;
+      const targetDocuments: Record<string, string> = {
+        design: "original-target-design",
+      };
+      const getDefault = mocks.targetStore.changes.get.getMockImplementation();
+      const updateDefault =
+        mocks.targetStore.changes.updateArtifacts.getMockImplementation();
+      vi.mocked(mocks.targetStore.changes.get).mockImplementation(async () => ({
+        success: true,
+        data: { ...sourceChange, documents: { ...targetDocuments } },
+      }));
+      vi.mocked(mocks.targetStore.changes.updateArtifacts).mockImplementation(
+        async (_id: unknown, arts: Record<string, string>) => {
+          Object.assign(targetDocuments, arts);
+          return {
+            success: true,
+            designPath: "/tmp/target/.adv/changes/test-change/design.md",
+          };
+        },
+      );
+      mocks.withTargetPathStore.mockClear();
+
+      try {
+        await changeTools.adv_change_update.execute(
+          {
+            changeId: "test-change",
+            target_path: "/tmp/target",
+            design: "updated-via-target",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target artifact update",
+          },
+          store,
+        );
+
+        const showResult = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            target_path: "/tmp/target",
+            include: { design: true, artifactOnly: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(showResult);
+        // Same-target readback reflects the update, proving target Temporal
+        // documents are the authority (not local disk scaffold).
+        expect(parsed._design).toBe("updated-via-target");
+        expect(parsed._projectContext).toMatchObject({ stateMode: "temporal" });
+        // Local store is only touched for the sourceChange seed above — never
+        // as the content authority for target update or readback.
+        expect(store.changes.get).toHaveBeenCalledTimes(1);
+        expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
+      } finally {
+        mocks.targetStore.changes.get.mockReset();
+        mocks.targetStore.changes.updateArtifacts.mockReset();
+        if (getDefault) {
+          mocks.targetStore.changes.get.mockImplementation(getDefault);
+        }
+        if (updateDefault) {
+          mocks.targetStore.changes.updateArtifacts.mockImplementation(
+            updateDefault,
+          );
+        }
+      }
     });
   });
 
