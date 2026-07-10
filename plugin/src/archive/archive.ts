@@ -31,6 +31,19 @@ import type {
   MultiRepoArchiveRepoMetadata,
 } from "./types";
 
+/**
+ * Serialize an archive-bundle JSON artifact with exactly one trailing newline.
+ *
+ * Bundle JSON artifacts (`change.json`, `wisdom.json`, `multi-repo-archive.json`)
+ * MUST end with a single `\n` so archive EOF is whitespace-clean (SC2/AC3).
+ * The newline is owned HERE at the serialization boundary — never by
+ * `atomicWriteFile`, which writes content verbatim (C2). `JSON.stringify`
+ * never emits a trailing newline, so appending one always yields exactly one.
+ */
+export function bundleJsonStringify(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
 function archiveBundlePath(archiveDir: string, changeId: string): string {
   return join(
     archiveDir,
@@ -816,7 +829,7 @@ async function createArchive(
     };
     await atomicWriteFile(
       join(archivePath, "change.json"),
-      JSON.stringify(archivedChange, null, 2),
+      bundleJsonStringify(archivedChange),
     );
 
     // Write archive summary
@@ -839,18 +852,17 @@ async function createArchive(
     if (change.wisdom && change.wisdom.length > 0) {
       await atomicWriteFile(
         join(archivePath, "wisdom.json"),
-        JSON.stringify(
-          { entries: change.wisdom, count: change.wisdom.length },
-          null,
-          2,
-        ),
+        bundleJsonStringify({
+          entries: change.wisdom,
+          count: change.wisdom.length,
+        }),
       );
     }
 
     if (multiRepo) {
       await atomicWriteFile(
         join(archivePath, "multi-repo-archive.json"),
-        JSON.stringify(multiRepo, null, 2),
+        bundleJsonStringify(multiRepo),
       );
     }
 
@@ -956,7 +968,7 @@ export async function createInRepoArchive(
   };
   await atomicWriteFile(
     join(archivePath, "change.json"),
-    JSON.stringify(archivedChange, null, 2),
+    bundleJsonStringify(archivedChange),
   );
 
   // Write archive summary
@@ -979,18 +991,17 @@ export async function createInRepoArchive(
   if (change.wisdom && change.wisdom.length > 0) {
     await atomicWriteFile(
       join(archivePath, "wisdom.json"),
-      JSON.stringify(
-        { entries: change.wisdom, count: change.wisdom.length },
-        null,
-        2,
-      ),
+      bundleJsonStringify({
+        entries: change.wisdom,
+        count: change.wisdom.length,
+      }),
     );
   }
 
   if (multiRepo) {
     await atomicWriteFile(
       join(archivePath, "multi-repo-archive.json"),
-      JSON.stringify(multiRepo, null, 2),
+      bundleJsonStringify(multiRepo),
     );
   }
 

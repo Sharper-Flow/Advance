@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import type { Change } from "../types";
 import {
   archiveChange,
+  bundleJsonStringify,
   createInRepoArchive,
   generateContractTraceability,
   getArchiveContractProofErrors,
@@ -633,6 +634,99 @@ describe("contract archive traceability", () => {
         name.endsWith("-digest-cross-day"),
       );
       expect(matchingBundles).toEqual(["2026-01-01-digest-cross-day"]);
+    });
+  });
+
+  describe("archive bundle JSON artifacts end with exactly one trailing newline (AC3/SC2)", () => {
+    async function expectSingleTrailingNewline(path: string): Promise<void> {
+      const raw = await readFile(path, "utf8");
+      expect(raw.endsWith("\n")).toBe(true);
+      expect(raw.endsWith("\n\n")).toBe(false);
+      expect(() => JSON.parse(raw)).not.toThrow();
+    }
+
+    test("bundleJsonStringify emits exactly one trailing newline for objects, arrays, and strings", () => {
+      expect(bundleJsonStringify({ a: 1 }).endsWith("\n")).toBe(true);
+      expect(bundleJsonStringify({ a: 1 }).endsWith("\n\n")).toBe(false);
+      expect(bundleJsonStringify([1, 2, 3]).endsWith("\n")).toBe(true);
+      expect(bundleJsonStringify("tail\n").endsWith("\n")).toBe(true);
+      expect(bundleJsonStringify("tail\n").endsWith("\n\n")).toBe(false);
+      expect(JSON.parse(bundleJsonStringify({ a: 1 }))).toEqual({ a: 1 });
+    });
+
+    test("createArchive (via archiveChange) writes newline-terminated change.json and wisdom.json", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "newline-external",
+        wisdom: [
+          {
+            type: "convention",
+            content: "newline matters",
+            source_task: "tk-1",
+          },
+        ],
+      });
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths: {
+          specs: join(root, "specs"),
+          docs: join(root, "docs"),
+          archive: join(root, "archive"),
+        },
+      });
+      expect(result.success).toBe(true);
+      await expectSingleTrailingNewline(join(result.archivePath, "change.json"));
+      await expectSingleTrailingNewline(join(result.archivePath, "wisdom.json"));
+    });
+
+    test("createArchive (via archiveChange) writes newline-terminated multi-repo-archive.json", async () => {
+      const root = await tempProject();
+      const backend = await gitRepo("nl-backend");
+      const change = changeWithContract({
+        id: "newline-multi",
+        contract: undefined,
+        scope_repos: [
+          {
+            repo_id: "backend",
+            path: backend,
+            repo_project_id: "b".repeat(40),
+            required: true,
+            merge_order: 0,
+          },
+        ],
+      });
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths: {
+          specs: join(root, "specs"),
+          docs: join(root, "docs"),
+          archive: join(root, "archive"),
+        },
+      });
+      expect(result.success).toBe(true);
+      await expectSingleTrailingNewline(
+        join(result.archivePath, "multi-repo-archive.json"),
+      );
+    });
+
+    test("createInRepoArchive writes newline-terminated change.json and wisdom.json", async () => {
+      const root = await tempProject();
+      const archiveDir = join(root, "archive");
+      const change = changeWithContract({
+        id: "newline-inrepo",
+        wisdom: [
+          {
+            type: "convention",
+            content: "newline matters",
+            source_task: "tk-1",
+          },
+        ],
+      });
+      const archivePath = await createInRepoArchive(change, archiveDir);
+      await expectSingleTrailingNewline(join(archivePath, "change.json"));
+      await expectSingleTrailingNewline(join(archivePath, "wisdom.json"));
     });
   });
 });
