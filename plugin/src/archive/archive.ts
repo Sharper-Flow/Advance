@@ -41,7 +41,11 @@ import type {
  * never emits a trailing newline, so appending one always yields exactly one.
  */
 export function bundleJsonStringify(value: unknown): string {
-  return `${JSON.stringify(value, null, 2)}\n`;
+  const serialized = JSON.stringify(value, null, 2);
+  if (serialized === undefined) {
+    throw new TypeError("Archive bundle JSON value must be JSON-serializable");
+  }
+  return `${serialized}\n`;
 }
 
 function archiveBundlePath(archiveDir: string, changeId: string): string {

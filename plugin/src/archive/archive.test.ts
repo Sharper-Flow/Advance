@@ -654,6 +654,12 @@ describe("contract archive traceability", () => {
       expect(JSON.parse(bundleJsonStringify({ a: 1 }))).toEqual({ a: 1 });
     });
 
+    test("bundleJsonStringify rejects values JSON.stringify cannot serialize", () => {
+      expect(() => bundleJsonStringify(undefined)).toThrow(
+        "Archive bundle JSON value must be JSON-serializable",
+      );
+    });
+
     test("createArchive (via archiveChange) writes newline-terminated change.json and wisdom.json", async () => {
       const root = await tempProject();
       const change = changeWithContract({
