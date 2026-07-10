@@ -6,7 +6,7 @@ import {
   subagentReportSubmittedSignal,
   taskUpdatedSignal,
 } from "../temporal/messages";
-import { subagentReportKey } from "../temporal/contracts";
+import { subagentReportKey } from "../types/subagent-reports";
 import {
   SUBAGENT_REPORT_SCHEMA_VERSION,
   SubagentAgentSchema,

@@ -19,6 +19,7 @@ import {
   SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
   SubagentAgentSchema,
   SubagentConsumerWarningSchema,
+  subagentReportKey,
   TronSubagentReportSchema,
   VerificationTriageBundleSubagentReportSchema,
 } from "./subagent-reports";
@@ -959,5 +960,57 @@ describe("Subagent report schemas", () => {
         );
       }
     });
+  });
+});
+
+describe("subagentReportKey", () => {
+  /**
+   * Pins the exact persisted-report identity format. This key is the cross-
+   * sidecar dedupe identity shared by tools/change.ts, tools/subagent-report.ts,
+   * tools/_recovery-writers.ts, tools/followup.ts, utils/loop-ledger.ts, and
+   * temporal/change-state.ts; the format MUST stay byte-identical after the
+   * helper is relocated out of temporal/contracts.ts.
+   */
+  it("uses the legacy changeId|taskId|agent|attempt shape when taskId is present", () => {
+    expect(
+      subagentReportKey({
+        changeId: "fixLoopLedgerRegressions",
+        taskId: "tk-abc123",
+        agent: "adv-engineer",
+        attempt: 2,
+      }),
+    ).toBe("fixLoopLedgerRegressions|tk-abc123|adv-engineer|2");
+  });
+
+  it("uses structural task scope when taskId is absent", () => {
+    expect(
+      subagentReportKey({
+        changeId: "fixLoopLedgerRegressions",
+        scope: { kind: "task", task_id: "tk-abc123" },
+        agent: "adv-reviewer",
+        attempt: 1,
+      }),
+    ).toBe("fixLoopLedgerRegressions|task:tk-abc123|adv-reviewer|1");
+  });
+
+  it("uses structural change scope when taskId is absent", () => {
+    expect(
+      subagentReportKey({
+        changeId: "fixLoopLedgerRegressions",
+        scope: { kind: "change", scope_key: "review:acceptance" },
+        agent: "adv-reviewer",
+        attempt: 3,
+      }),
+    ).toBe("fixLoopLedgerRegressions|change:review:acceptance|adv-reviewer|3");
+  });
+
+  it("falls back to unknown-scope when neither taskId nor scope is present", () => {
+    expect(
+      subagentReportKey({
+        changeId: "fixLoopLedgerRegressions",
+        agent: "adv-tron",
+        attempt: 1,
+      }),
+    ).toBe("fixLoopLedgerRegressions|unknown-scope|adv-tron|1");
   });
 });

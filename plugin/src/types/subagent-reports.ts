@@ -992,6 +992,39 @@ export type SupportedSubagentReport = z.infer<
   typeof SupportedSubagentReportSchema
 >;
 
+/**
+ * Stable persisted sub-agent report identity shared by every sidecar
+ * (tools/change.ts, tools/subagent-report.ts, tools/_recovery-writers.ts,
+ * tools/followup.ts, utils/loop-ledger.ts, temporal/change-state.ts).
+ *
+ * Lives in `types/` (workflow-safe vocabulary) rather than
+ * `temporal/contracts.ts` so both tool and workflow layers import the same
+ * pure helper without the workflow bundle owning cross-layer identity.
+ *
+ * Format (byte-stable — pinned by `subagent-reports.test.ts`):
+ * - taskId present: `changeId|taskId|agent|attempt` (legacy shape)
+ * - taskId absent + task scope: `changeId|task:<task_id>|agent|attempt`
+ * - taskId absent + change scope: `changeId|change:<scope_key>|agent|attempt`
+ * - neither: `changeId|unknown-scope|agent|attempt`
+ */
+export function subagentReportKey(input: {
+  changeId: string;
+  taskId?: string;
+  scope?: SubagentReportScope;
+  agent: SubagentAgent;
+  attempt: number;
+}): string {
+  if (input.taskId) {
+    return `${input.changeId}|${input.taskId}|${input.agent}|${input.attempt}`;
+  }
+  const scopeId = input.scope
+    ? input.scope.kind === "task"
+      ? `task:${input.scope.task_id}`
+      : `change:${input.scope.scope_key}`
+    : "unknown-scope";
+  return `${input.changeId}|${scopeId}|${input.agent}|${input.attempt}`;
+}
+
 /** @deprecated Use `TaskScopedSubagentReportSchema` or `ScopedSubagentReportSchema` explicitly. */
 export const SubagentReportSchema = SupportedSubagentReportSchema;
 /** @deprecated Use `TaskScopedSubagentReport` or `ScopedSubagentReport` explicitly. */

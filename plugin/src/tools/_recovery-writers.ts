@@ -31,8 +31,8 @@ import type { Store } from "../storage/store-types";
 import type { Change, DesignConcernDisposition, Gates } from "../types";
 import { saveChange } from "../storage/json";
 import type { ArtifactMetadata } from "../temporal/contracts";
-import { subagentReportKey } from "../temporal/contracts";
-import { findArchiveBundle } from "../archive/archive";
+import { subagentReportKey } from "../types/subagent-reports";
+import { findArchiveBundle, bundleJsonStringify } from "../archive/archive";
 import { atomicWriteFile } from "../utils/fs";
 
 interface RecoveryWriteAuthorization {
@@ -400,7 +400,7 @@ async function persistTerminalProjection(
     const { join } = await import("node:path");
     await atomicWriteFile(
       join(bundleDir, "change.json"),
-      JSON.stringify(updated, null, 2),
+      bundleJsonStringify(updated),
     );
     return;
   }
