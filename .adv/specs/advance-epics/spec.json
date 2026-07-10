@@ -3,8 +3,8 @@
   "name": "advance-epics",
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
-  "version": "1.11.0",
-  "updated_at": "2026-07-08T00:00:00.000Z",
+  "version": "1.12.0",
+  "updated_at": "2026-07-10T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-epicEntity01",
@@ -1206,6 +1206,65 @@
             "The packet MAY include a compact Epic context section",
             "The section includes Epic ID, title, and membership status",
             "The section does not dump the full Epic entry list"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicOpsPlanning01",
+      "title": "Epic Operational-Work Planning Is Explicit, Typed, and Linked",
+      "body": "Epic creation and planning MUST include an explicit operational-work assessment that considers first deployment, migration/backfill, deployment configuration, monitoring, cleanup, and teardown. The assessment is contextual: an Epic with no operational need MUST record no follow-up, and operational need MUST NOT be inferred from Epic metadata alone. When required operational work is identified, planning MUST direct it to a typed, linked ops follow-up associated with the relevant delivery change through the existing `adv_followup_promote` / `ops_followup_links` path (`rq-opsFollowTrace01`); free-text agenda items, generic shell entries, or undocumented assumptions MUST NOT be the authoritative record for required operational work. Release-safety-critical operational work MUST use the `blocks` relationship so the existing release gate prevents release until the linked child work completes (`rq-opsFollowRelease01`, `rq-opsRunReleaseReadiness01`); release-first work such as post-release monitoring or cleanup MUST use an existing non-blocking relationship only with the surviving-obligation handoff semantics already defined for linked ops follow-ups (`rq-opsFollowRelease01`). This requirement adds planning traceability only: Epic order remains advisory and MUST NOT gate release, promotion, or tasks by itself; ADV records and governs operational state and MUST NOT perform deployment execution as an Epic gate; and this requirement MUST NOT introduce a new data model, validator, relationship enum, or gate-readiness rule beyond the ops-follow-up semantics it cites.",
+      "priority": "must",
+      "tags": ["epics", "ops-follow-up", "planning", "release", "traceability"],
+      "scenarios": [
+        {
+          "id": "rq-epicOpsPlanning01.1",
+          "title": "First-deployment Epic directs a blocking typed ops follow-up",
+          "given": [
+            "An Epic introduces first-time infrastructure deployment or deployment configuration that must complete before release is safe"
+          ],
+          "when": "Epic planning performs the operational-work assessment",
+          "then": [
+            "Planning directs creation of a typed linked ops follow-up tied to the relevant delivery change via `adv_followup_promote`",
+            "The follow-up uses the `blocks` relationship when release safety requires completion",
+            "Authoritative provenance is recorded per `rq-opsFollowTrace01`, not as a generic shell entry or free-text agenda item"
+          ]
+        },
+        {
+          "id": "rq-epicOpsPlanning01.2",
+          "title": "Release-first monitoring or cleanup stays non-blocking with handoff",
+          "given": [
+            "An Epic identifies post-release monitoring or cleanup that does not gate release safety"
+          ],
+          "when": "Planning records the operational work as a linked ops follow-up",
+          "then": [
+            "The follow-up uses an existing non-blocking release-first relationship",
+            "The existing surviving-obligation handoff semantics from `rq-opsFollowRelease01` apply",
+            "Release is not blocked by the non-blocking follow-up once its handoff is recorded"
+          ]
+        },
+        {
+          "id": "rq-epicOpsPlanning01.3",
+          "title": "No operational need records no follow-up",
+          "given": [
+            "An Epic has no first deployment, migration, backfill, deployment configuration, monitoring, cleanup, or teardown need"
+          ],
+          "when": "Epic planning performs the operational-work assessment",
+          "then": [
+            "No ops follow-up is mandated or created",
+            "Operational need is not inferred from Epic metadata alone",
+            "The absence of operational work is a valid assessed outcome"
+          ]
+        },
+        {
+          "id": "rq-epicOpsPlanning01.4",
+          "title": "Operational planning does not execute, re-gate, or remodel",
+          "given": ["An Epic has linked operational follow-ups and advisory ordering"],
+          "when": "Epic planning guidance is applied",
+          "then": [
+            "Epic order remains advisory and does not gate release, promotion, or tasks by itself",
+            "ADV records and governs operational state without performing deployment execution as an Epic gate",
+            "No new data model, validator, relationship enum, or gate-readiness rule is introduced beyond the cited ops-follow-up semantics"
           ]
         }
       ]
