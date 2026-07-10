@@ -2697,6 +2697,36 @@ describe("change tools — signal-driven lifecycle", () => {
           projectId: "target-project-id",
         });
       });
+
+      test("fails closed when target queue is unavailable without signaling or cleanup", async () => {
+        const store = createMockStore();
+        mocks.withTargetPathStore.mockRejectedValueOnce(
+          new Error(
+            "Target project Temporal queue is not serviceable for target_path mutation: advance-target-project-id; status=unavailable; blockers=server_poller_probe_unavailable; action=open or restart the target project ADV worker, then retry the target_path mutation",
+          ),
+        );
+
+        const result = await changeTools.adv_change_close.execute(
+          {
+            changeId: "test-change",
+            reason: "cancelled",
+            approvedByUser: true,
+            approvalEvidence: "user confirmed target cancellation",
+            target_path: "/tmp/target",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target close",
+          } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(false);
+        expect(parsed.error).toContain("Target project close unavailable");
+        expect(parsed.error).toContain("not serviceable");
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+        expect(mocks.getChangeHandle).not.toHaveBeenCalled();
+        expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -3159,6 +3189,36 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(parsed._projectContext).toMatchObject({
           projectId: "target-project-id",
         });
+      });
+
+      test("fails closed when target queue is unavailable without signaling or sweeping", async () => {
+        const store = createMockStore();
+        mocks.withTargetPathStore.mockRejectedValueOnce(
+          new Error(
+            "Target project Temporal queue is not serviceable for target_path mutation: advance-target-project-id; status=unavailable; blockers=server_poller_probe_unavailable; action=open or restart the target project ADV worker, then retry the target_path mutation",
+          ),
+        );
+
+        const result = await changeTools.adv_change_bulk_close.execute(
+          {
+            selector: { kind: "explicit", changeIds: ["chg-t1", "chg-t2"] },
+            reason: "not_planned",
+            approvedByUser: true,
+            approvalEvidence: "user approved target bulk close",
+            target_path: "/tmp/target",
+            target_confirmed: true,
+            confirmationEvidence: "user approved target bulk close",
+          } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(false);
+        expect(parsed.error).toContain("Target project bulk close unavailable");
+        expect(parsed.error).toContain("not serviceable");
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+        expect(mocks.getChangeHandle).not.toHaveBeenCalled();
+        expect(mocks.sweepClosedChangesFromDisk).not.toHaveBeenCalled();
       });
     });
   });
