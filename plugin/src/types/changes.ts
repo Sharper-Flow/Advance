@@ -833,6 +833,25 @@ export const SignalRejectionSchema = z.object({
   rejectedAt: z.string(),
 });
 
+/**
+ * Read-model mirror of the workflow's bounded `state.testRuns[taskId][]`
+ * evidence. This is evidence-only and never controls task or gate completion.
+ */
+export const TestRunRecordSchema = z.object({
+  runId: z.string(),
+  phase: z.enum(["red", "green", "verify"]).optional(),
+  exitCode: z.number().int().nullable(),
+  classification: z.string(),
+  command: z.string(),
+  durationMs: z.number(),
+  assertionDensity: z.number().optional(),
+  mockSurface: z
+    .array(z.object({ pattern: z.string(), count: z.number() }))
+    .optional(),
+  behaviorSurface: z.enum(["small", "medium", "large"]).optional(),
+  recordedAt: z.string(),
+});
+
 export const ChangeSchema = z
   .object({
     $schema: z.string().optional(),
@@ -849,6 +868,8 @@ export const ChangeSchema = z
     tasks: z.array(TaskSchema).optional().default([]),
     /** Canonical sidecar store for compact persisted sub-agent reports. */
     subagent_reports: z.array(ScopedSubagentReportSchema).optional(),
+    /** Bounded task test-run evidence projection; omitted from normal readback. */
+    test_runs: z.record(z.string(), z.array(TestRunRecordSchema)).optional(),
     deltas: z.record(z.string(), z.array(DeltaSchema)).optional().default({}),
     validation: ValidationResultSchema.optional(),
     /** Accumulated wisdom/learnings for this change (optional, backwards compatible) */

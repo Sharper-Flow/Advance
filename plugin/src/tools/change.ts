@@ -33,6 +33,7 @@ import { getProjectId } from "../utils/project-id";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 import { subagentReportKey } from "../temporal/contracts";
+import { projectLoopLedger } from "../utils/loop-ledger";
 import { advWorktreeCleanup } from "./worktree";
 import { initStateDb as initWorktreeStateDb } from "./worktree/state";
 import {
@@ -512,6 +513,24 @@ export const changeTools = {
             .describe(
               "When true, attaches the in-progress task's durable run ledger as `_ledger`.",
             ),
+          loopLedger: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches the compact typed loop-ledger summary as `_loopLedger`.",
+            ),
+          loopLedgerDetails: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, includes bounded detailed loop-ledger entries in `_loopLedger`.",
+            ),
+          loopLedgerLimit: z
+            .number()
+            .min(1)
+            .max(100)
+            .optional()
+            .describe("Maximum detailed loop-ledger entries. Range 1-100; default 20."),
           snapshot: z
             .boolean()
             .optional()
@@ -620,6 +639,9 @@ export const changeTools = {
         target_path?: string;
         include?: {
           ledger?: boolean;
+          loopLedger?: boolean;
+          loopLedgerDetails?: boolean;
+          loopLedgerLimit?: number;
           snapshot?: boolean;
           readyTasks?: boolean;
           readyTasksLimit?: number;
@@ -658,8 +680,9 @@ export const changeTools = {
           return formatToolOutput({ error: `Change not found: ${changeId}` });
         }
         const change = result.data;
+        const { test_runs, ...publicChange } = change;
         const displayChange: Change = {
-          ...change,
+          ...publicChange,
           artifacts: await normalizeArtifactMetadataForReadback(
             change.artifacts,
           ),
@@ -799,6 +822,20 @@ export const changeTools = {
           }
           if (include.ledger) {
             output._ledger = null;
+          }
+          if (include.loopLedger || include.loopLedgerDetails) {
+            output._loopLedger = projectLoopLedger(
+              {
+                changeId: change.id,
+                tasks: change.tasks,
+                subagent_reports: change.subagent_reports,
+                testRuns: test_runs,
+              },
+              {
+                details: include.loopLedgerDetails === true,
+                limit: include.loopLedgerLimit,
+              },
+            );
           }
           if (include.subagentReports) {
             const legacyTaskReports = change.tasks.flatMap((task) =>

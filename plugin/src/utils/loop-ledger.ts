@@ -54,7 +54,7 @@ interface ReportLike {
   scope?: ReportScopeLike | string | null;
   task_id?: string;
   targets?: Array<Record<string, unknown>> | null;
-  findings?: Array<{ severity?: string }> | null;
+  findings?: unknown[] | null;
   summary?: string;
   recommended_next_action?: string;
 }
@@ -307,7 +307,11 @@ function buildReportEntry(
     const kind: LoopKind =
       report.phase === "harden" ? "harden_remediation" : "review_remediation";
     const hasBlocker = (report.findings ?? []).some(
-      (f) => f?.severity === "blocker",
+      (finding) =>
+        typeof finding === "object" &&
+        finding !== null &&
+        "severity" in finding &&
+        finding.severity === "blocker",
     );
     const verdict: LoopVerdict = hasBlocker ? "fail" : "pass";
     return {

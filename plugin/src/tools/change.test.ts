@@ -377,6 +377,95 @@ describe("change tools — signal-driven lifecycle", () => {
   });
 
   describe("adv_change_show", () => {
+    test("returns opt-in bounded loop-ledger readback without changing legacy ledger", async () => {
+      const reviewerReport = {
+        schema_version: "1.0",
+        change_id: "test-change",
+        attempt: 1,
+        workdir_used: "/worktree",
+        scope: { kind: "change", scope_key: "review:acceptance" },
+        agent: "adv-reviewer",
+        phase: "review",
+        verdict: "NEEDS_WORK",
+        blocking_findings: [],
+        nonblocking_findings: [],
+        changes_made: [],
+        wisdom_candidates: [],
+        verification: { tests_run: [], results: "n/a", evidence: "fixture" },
+        scope_drift: null,
+        risks: [],
+        required_main_agent_actions: [],
+      } as const;
+      const store = createMockStore({
+        tasks: [
+          {
+            id: "tk-loop",
+            title: "Loop task",
+            status: "done",
+            priority: 0,
+            created_at: "2026-01-01T00:00:00Z",
+            attempts: [
+              {
+                attempt_number: 1,
+                outcome: "succeeded",
+                attempted_at: "2026-01-01T00:00:00Z",
+              },
+            ],
+          } as Change["tasks"][number],
+        ],
+        subagent_reports: [reviewerReport],
+        test_runs: {
+          "tk-loop": [
+            {
+              runId: "tr-loop",
+              phase: "green",
+              exitCode: 0,
+              classification: "passed",
+              command: "pnpm exec vitest run",
+              durationMs: 12,
+              recordedAt: "2026-01-01T00:00:01Z",
+            },
+          ],
+        },
+      });
+
+      const compact = JSON.parse(
+        await changeTools.adv_change_show.execute(
+          { changeId: "test-change", include: { loopLedger: true } },
+          store,
+        ),
+      );
+      expect(compact._loopLedger).toMatchObject({
+        version: "1.0",
+        summary: {
+          totalEntries: 2,
+          byVerdict: { pass: 1, fail: 1 },
+          sourceTotals: { testRuns: 1 },
+        },
+      });
+      expect(compact._loopLedger.details).toBeUndefined();
+      expect(compact._ledger).toBeUndefined();
+      expect(compact).not.toHaveProperty("test_runs");
+
+      const detailed = JSON.parse(
+        await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: {
+              loopLedger: true,
+              loopLedgerDetails: true,
+              loopLedgerLimit: 1,
+              ledger: true,
+            },
+          },
+          store,
+        ),
+      );
+      expect(detailed._loopLedger.details).toHaveLength(1);
+      expect(detailed._loopLedger.detailsLimit).toBe(1);
+      expect(detailed._ledger).toBeNull();
+    });
+
     test("includes TodoWrite projection when readyTasks include flag is set", async () => {
       const store = createMockStore({
         tasks: [
