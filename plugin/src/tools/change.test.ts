@@ -1873,6 +1873,55 @@ describe("change tools — signal-driven lifecycle", () => {
       }
     });
 
+    test("recovers executive-summary metadata from poisoned signal error without broadening completed-only recovery", async () => {
+      const { mkdir, readFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = pathJoin(
+        tmpdir(),
+        `adv-change-update-poisoned-recovery-${Date.now()}`,
+      );
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+        vi.mocked(store.changes.updateArtifacts).mockRejectedValueOnce(
+          new Error("TMPRL1100 nondeterminism while recording metadata"),
+        );
+
+        const result = await changeTools.adv_change_update.execute(
+          {
+            changeId: "test-change",
+            executiveSummary: "# Executive Summary\n\nRecovered from poison.",
+            recoveryMode: "poisoned_history",
+            recoveryEvidence:
+              "TMPRL1100 nondeterminism while recording metadata",
+            recoveryReason: "poisoned workflow metadata signal recovery",
+            priorApprovalEvidence: "Prior user acceptance approval: accept",
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(mocks.getChangeHandle).toHaveBeenCalledWith(
+          mocks.temporalBundle.client,
+          "test-project-id",
+          "test-change",
+        );
+        const saved = JSON.parse(
+          await readFile(pathJoin(changeDir, "change.json"), "utf-8"),
+        );
+        expect(saved.artifacts.executiveSummary.source).toBe("recovery");
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
     test("preserves recovery executive-summary path when file is materialized", async () => {
       const { createHash } = await import("crypto");
       const { mkdir, readFile, rm, writeFile } = await import("fs/promises");
@@ -3744,6 +3793,49 @@ describe("change tools — signal-driven lifecycle", () => {
 
         expect(parsed.success).toBe(true);
         expect(parsed._recoveryMutation).toBe(true);
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
+    });
+
+    test("does not archive-status recover from poisoned signal-error text without describe evidence", async () => {
+      const tempDir = await createTempDir(
+        "adv-change-archive-poisoned-signal-only-no-recovery-",
+      );
+      try {
+        await prepareNoRemoteReleaseProof(tempDir);
+        const store = createMockStore({ gates: allDoneGates });
+        store.paths.root = tempDir;
+        store.paths.changes = `${tempDir}/changes`;
+        store.paths.archive = `${tempDir}/archive`;
+        vi.mocked(store.changes.save).mockRejectedValueOnce(
+          new Error("TMPRL1100 nondeterminism while saving archive status"),
+        );
+        (
+          mocks.handleMock as typeof mocks.handleMock & {
+            describe: ReturnType<typeof vi.fn>;
+          }
+        ).describe = vi.fn(async () => ({ status: "RUNNING" }));
+        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+        const result = await changeTools.adv_change_archive.execute(
+          {
+            changeId: "test-change",
+            phase9: "skip",
+            recoveryMode: "poisoned_history",
+            recoveryEvidence:
+              "TMPRL1100 nondeterminism while saving archive status",
+          },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(false);
+        expect(parsed._recoveryMutation).toBeUndefined();
+        expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
+        expect(parsed.error).toContain(
+          "TMPRL1100 nondeterminism while saving archive status",
+        );
       } finally {
         await cleanupTempDir(tempDir);
       }

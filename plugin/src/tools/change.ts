@@ -100,6 +100,34 @@ import { reconcileRecoveredGates } from "./gate";
 const logger = createLogger("change");
 const STATUS_REPAIR_PHASE9_EVIDENCE_RE =
   /phase9_status\s*(?::|=|\.)\s*failed|phase9 status failed|phase9_status\.failed/i;
+
+async function getChangeWorkflowHandleForStore(store: Store, changeId: string) {
+  const { getService } = await import("../temporal/service");
+  const service = getService();
+  const projectId = service ? await getProjectId(store.paths.root) : null;
+  if (!service || !projectId) return undefined;
+  const { getChangeHandle } = await import("./_adapters");
+  return getChangeHandle(service.client, projectId, changeId);
+}
+
+async function classifyCompletedOrPoisonedChangeRecovery(
+  store: Store,
+  changeId: string,
+  error: unknown,
+): Promise<{ completedWorkflow: boolean; recover: boolean }> {
+  const { isWorkflowCompletedError } =
+    await import("../temporal/recovery-classification");
+  const completedWorkflow = isWorkflowCompletedError(error);
+  if (completedWorkflow) return { completedWorkflow, recover: true };
+
+  const handle = await getChangeWorkflowHandleForStore(store, changeId);
+  if (!handle) return { completedWorkflow: false, recover: false };
+
+  const { classifyCompletedOrPoisonedRecovery } =
+    await import("./recovery-probe");
+  return classifyCompletedOrPoisonedRecovery(handle, error);
+}
+
 function subagentReportTaskId(
   report: ScopedSubagentReport,
 ): string | undefined {
@@ -1564,30 +1592,14 @@ export const changeTools = {
           ) {
             throw error;
           }
-          const { RECOVERY_RECONCILIATION_WARNING, isWorkflowCompletedError } =
+          const { RECOVERY_RECONCILIATION_WARNING } =
             await import("../temporal/recovery-classification");
-          const completedWorkflow = isWorkflowCompletedError(error);
-          let poisonedWorkflow = false;
-          if (!completedWorkflow) {
-            const bundle = await import("../temporal/service");
-            const service = bundle.getService();
-            const projectId = await getProjectId(activeStore.paths.root);
-            if (service && projectId) {
-              const { getChangeHandle } = await import("./_adapters");
-              const { workflowHasPoisonedRecoveryEvidence } =
-                await import("./recovery-probe");
-              const handle = getChangeHandle(
-                service.client,
-                projectId,
-                changeId,
-              );
-              poisonedWorkflow = await workflowHasPoisonedRecoveryEvidence(
-                handle,
-                { signalError: error },
-              );
-            }
-          }
-          if (!completedWorkflow && !poisonedWorkflow) throw error;
+          const { recover } = await classifyCompletedOrPoisonedChangeRecovery(
+            activeStore,
+            changeId,
+            error,
+          );
+          if (!recover) throw error;
           const { saveRecoveredArtifactMetadata } =
             await import("./_recovery-writers");
           const executiveSummaryPath = join(
@@ -3040,18 +3052,10 @@ export const changeTools = {
                   if (!completedWorkflow) {
                     const { workflowHasPoisonedRecoveryEvidence } =
                       await import("./recovery-probe");
-                    const { getService } = await import("../temporal/service");
-                    const { getChangeHandle } = await import("./_adapters");
-                    const { getProjectId } =
-                      await import("../utils/project-id");
-                    const bundle = getService();
-                    const projectId = bundle
-                      ? await getProjectId(store.paths.root)
-                      : null;
-                    const handle =
-                      bundle && projectId
-                        ? getChangeHandle(bundle.client, projectId, changeId)
-                        : undefined;
+                    const handle = await getChangeWorkflowHandleForStore(
+                      store,
+                      changeId,
+                    );
                     poisoned = handle
                       ? await workflowHasPoisonedRecoveryEvidence(handle)
                       : false;
