@@ -3015,7 +3015,8 @@ export const epicTools = {
                 completedAt,
               }),
             );
-            const consistency = terminalProjectionConsistencyFields(updatedEntry);
+            const consistency =
+              terminalProjectionConsistencyFields(updatedEntry);
             const output = formatToolOutput({
               success: true,
               ...consistency,
