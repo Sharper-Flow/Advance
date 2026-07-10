@@ -629,6 +629,45 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
+  // AC2: a thrown finalization (git op failure) must NOT propagate out of
+  // adv_change_archive as a silent failure. It must record durable
+  // phase9_status="failed" with actionable recovery evidence, return
+  // success=false, and leave the change active (no archive transition).
+  test("records durable phase9_status failed and stays active when finalization throws", async () => {
+    mocks.finalizeRelease.mockRejectedValueOnce(
+      new Error("git push failed: network unreachable"),
+    );
+
+    const store = createMockStore();
+    // Resolves (no unhandled rejection) — the throw is handled internally.
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    // (1) resolves with success: false rather than throwing
+    expect(parsed.success).toBe(false);
+    // (2) cites the requirement + actionable remediation
+    expect(parsed.requirement).toBe("rq-releaseFinalization01");
+    expect(parsed.error).toContain("Archive finalization failed");
+    expect(parsed.error).toContain("git push failed: network unreachable");
+    expect(typeof parsed.remediation).toBe("string");
+    expect(parsed.remediation).toContain("re-run adv_change_archive");
+    // (3) durable phase9_status="failed" carrying error evidence was recorded
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({
+          status: "failed",
+          error: "git push failed: network unreachable",
+        }),
+      }),
+    );
+    // (4) change was NOT archived/saved (no silent pending/archive transition)
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
   test("keeps change active when finalization is pending auto-merge", async () => {
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "pending_merge",
@@ -1350,23 +1389,39 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
   });
 
-  test("phase9=run thrown finalization leaves no residual pending state", async () => {
+  test("phase9=run thrown finalization is handled and leaves no residual pending state", async () => {
+    // AC2 (rq-releaseFinalization01): a thrown finalization must NOT propagate
+    // as a silent failure. It is handled: durable phase9_status="failed" is
+    // recorded with the error evidence, the call resolves success=false, and
+    // the change stays active (no archive transition, no residual "pending").
     mocks.finalizeRelease.mockRejectedValueOnce(new Error("boom"));
     const store = createMockStore();
 
-    await expect(
-      changeTools.adv_change_archive.execute(
-        { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
-        store,
-      ),
-    ).rejects.toThrow("boom");
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      store,
+    );
 
-    // Thrown finalization must not leave a residual "pending" phase9_status.
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.requirement).toBe("rq-releaseFinalization01");
+    expect(parsed.error).toContain("Archive finalization failed");
+    expect(parsed.error).toContain("boom");
+    expect(mocks.workflow.signalPayloads).toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({
+          status: "failed",
+          error: "boom",
+        }),
+      }),
+    );
+    // No residual "pending" and no archive transition.
     expect(mocks.workflow.signalPayloads).not.toContainEqual(
       expect.objectContaining({
         phase9_status: expect.objectContaining({ status: "pending" }),
       }),
     );
+    expect(store.changes.save).not.toHaveBeenCalled();
   });
 
   test("dryRun with phase9=run does not finalize or mutate state", async () => {

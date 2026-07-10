@@ -2630,22 +2630,59 @@ export const changeTools = {
         if (!dryRun && archiveResult.success && phase9 !== "skip") {
           // Sync mode (existing behavior) — phase9 === "run" routes through
           // this same awaited finalization path; there is no detached async
-          // dispatch, so the call returns a terminal outcome and a thrown
-          // finalization cannot leave a residual "pending" phase9_status.
-          finalization = worktreePath
-            ? await finalizeRelease({
-                changeId,
-                workdir: worktreePath,
-                expectedMainCheckout: store.paths.root,
-                archiveMode,
-                autoPush,
-              })
-            : verifyReleaseEvidenceFromMain({
-                store,
-                changeId,
-                archiveMode,
-                change,
-              });
+          // dispatch, so the call returns a terminal outcome. A THROWN
+          // finalization (git op failure) is caught here and recorded as
+          // durable phase9_status="failed" with actionable recovery evidence
+          // (rq-releaseFinalization01 AC2); the change stays active so the
+          // operator can recover and re-run adv_change_archive instead of
+          // the failure being swallowed or leaving a residual "pending".
+          try {
+            finalization = worktreePath
+              ? await finalizeRelease({
+                  changeId,
+                  workdir: worktreePath,
+                  expectedMainCheckout: store.paths.root,
+                  archiveMode,
+                  autoPush,
+                })
+              : verifyReleaseEvidenceFromMain({
+                  store,
+                  changeId,
+                  archiveMode,
+                  change,
+                });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            const now = new Date().toISOString();
+            await recordPhase9Status({
+              store,
+              changeId,
+              status: preservePhase9Evidence(change.phase9_status, {
+                status: "failed",
+                startedAt: change.phase9_status?.startedAt ?? now,
+                completedAt: now,
+                error: message,
+              }),
+            });
+            return formatToolOutput({
+              success: false,
+              error: `Archive finalization failed: ${message}`,
+              requirement: "rq-releaseFinalization01",
+              remediation:
+                "Finalize the release manually (merge the change branch into the default branch and push, or resolve the underlying git error), then re-run adv_change_archive to complete the archive. The change remains active and the archive bundle is preserved for retry.",
+              changeId,
+              archivePath: archiveResult.archivePath,
+              phase9Failure: {
+                status: "failed",
+                error: message,
+                recoverable: false,
+                remediation:
+                  "Resolve the git error, then re-run adv_change_archive.",
+              },
+              ...openOpsObligationsPayload,
+            });
+          }
           if (finalization.status === "blocked") {
             return formatToolOutput({
               success: false,
