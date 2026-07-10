@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { followupTools } from "./followup";
 import { parseToolOutput } from "../__tests__/setup";
-import { subagentReportKey } from "../temporal/contracts";
+import { subagentReportKey } from "../types/subagent-reports";
 import {
   opsFollowupSeededSignal,
   opsFollowupLinkAddedSignal,

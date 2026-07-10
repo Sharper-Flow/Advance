@@ -28,7 +28,7 @@ import type {
 import { LOOP_LEDGER_SCHEMA_VERSION } from "../types/loop-ledger";
 import type { SubagentAgent } from "../types/subagent-reports";
 import type { SubagentReportScope } from "../types/subagent-reports";
-import { subagentReportKey } from "../temporal/contracts";
+import { subagentReportKey } from "../types/subagent-reports";
 
 // ---------------------------------------------------------------------------
 // Loose structural input (legacy-tolerant). All fields optional.

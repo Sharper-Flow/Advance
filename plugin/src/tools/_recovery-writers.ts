@@ -31,7 +31,7 @@ import type { Store } from "../storage/store-types";
 import type { Change, DesignConcernDisposition, Gates } from "../types";
 import { saveChange } from "../storage/json";
 import type { ArtifactMetadata } from "../temporal/contracts";
-import { subagentReportKey } from "../temporal/contracts";
+import { subagentReportKey } from "../types/subagent-reports";
 import { findArchiveBundle, bundleJsonStringify } from "../archive/archive";
 import { atomicWriteFile } from "../utils/fs";
 

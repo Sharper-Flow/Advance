@@ -57,7 +57,7 @@ import type {
 } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
 import { normalizePersistedSubagentReportState } from "../types";
-import { subagentReportKey } from "./contracts";
+import { subagentReportKey } from "../types/subagent-reports";
 import { describePayloadDigest } from "./digest";
 import type {
   ArtifactKind,
