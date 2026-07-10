@@ -310,6 +310,19 @@ describe("Archive and spec assets", () => {
     expect(content).not.toMatch(/append an activation advisory line/i);
   });
 
+  test("archive terminal templates retain the local deploy activation-pending state", () => {
+    const content = readAsset(join(REPO_ROOT, "docs/command-voice-standard.md"));
+    const shippedTemplate = content.match(/\*\*Shipped\*\*[\s\S]*?\*\*Merged locally\*\*/)?.[0] ?? "";
+    const localTemplate = content.match(/\*\*Merged locally\*\*[\s\S]*?\*\*Pending auto-merge\*\*/)?.[0] ?? "";
+
+    expect(shippedTemplate).toContain(
+      "- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}",
+    );
+    expect(localTemplate).toContain(
+      "- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}",
+    );
+  });
+
   test("advance-workflow spec encodes archive push-after-merge semantics", () => {
     const content = readAsset(ADVANCE_WORKFLOW_SPEC);
     expect(content).toMatch(/push origin \{default-branch\}/);

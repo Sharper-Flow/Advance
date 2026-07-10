@@ -353,7 +353,7 @@ What shipped, what spec deltas applied.
 - Git merge: {default-branch} ({mode})
 - Push: {SHA range pushed}
 - Release proof: {origin/{default-branch} reachable | PR {number} state MERGED}
-- Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
+- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}
 - Reflection: {completed | failed: <reason>; nonblocking}
 - Pre-push hooks: {strategy}
 - Asset sync: {action}
@@ -381,7 +381,7 @@ What was merged locally, what spec deltas applied. Note: no remote exists.
 - Git merge: {default-branch} ({mode})
 - Push: n/a (no origin remote)
 - Release proof: no_remote local merge proof
-- Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
+- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}
 - Reflection: {completed | failed: <reason>; nonblocking}
 - Cleanup: worktree + temp artifacts
 
