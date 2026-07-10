@@ -1,0 +1,1817 @@
+{
+  "id": "fixDirectArchiveMerge",
+  "title": "Fix direct archive merge",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-10T16:41:32.900Z",
+  "tasks": [
+    {
+      "id": "tk-1fdf4c678181",
+      "title": "Replace detached direct Phase-9 finalization",
+      "type": "code",
+      "section": "Direct finalization",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-10T17:59:17.888Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T18:02:03.581Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDirectArchiveMerge",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+          "task_id": "tk-1fdf4c678181",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-1fdf4c678181"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/archive-helpers/phase9-queue.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts",
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm test -- src/tools/change.archive-phase9.test.ts",
+              "exit_code": 1,
+              "summary": "RED (adv_run_test phase=red, runId tr_mrf9ce21_f31d816c): 4 new phase9=run tests failed against old code as expected — finalizeRelease called 0 times (wanted 1), parsed.phase9 'pending' (wanted 'pending_merge'), parsed.success true (wanted false), and no rejection on thrown finalization."
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN (adv_run_test phase=green, runId tr_mrf9l9na_e31d5b86): 33/33 passed, including the 4 new synchronous-behavior tests."
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY (adv_run_test phase=verify, runId tr_mrf9lp3l_ecefed2f): 101/101 passed after removing the phase9Queue import/spy/assertion; confirms the archived no-op test still passes and no module-load regression."
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit clean; confirms no unused-import or dangling-reference errors after removing the detached block and 4 imports."
+            },
+            {
+              "command": "pnpm exec eslint src/tools/change.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "eslint clean on all touched files."
+            },
+            {
+              "command": "pnpm exec prettier --check src/tools/change.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "prettier --check clean on all touched files."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Routed phase9=\"run\" through the existing awaited finalization path instead of adding new logic",
+              "why": "The awaited path was already battle-tested for phase9=undefined in both direct and PR modes; reusing it preserves PR-mode/#198 and the release-evidence->gate->durable-proof->archive->cleanup ordering for free, and makes explicit \"run\" and default behavior identical (terminal)."
+            },
+            {
+              "what": "Did not re-introduce eager changeTipSha/route/repo capture into the synchronous path",
+              "why": "finalizeRelease computes reachability synchronously while the change branch still exists, and the branch is never deleted on pending_merge (early return before cleanup), so the squash-merge (rq-fixPhase9SquashMergeRedetect) and PR-detection (rq-fixPhase9PrDetection) invariants hold without a pre-finalization \"pending\" record. Eager capture would have required persisting a \"pending\" status, which the task explicitly forbids (no residual pending on throw)."
+            },
+            {
+              "what": "Removed the now-unused imports Phase9FinalizationStatus, classifyFinalizationRoute, coercePrWorkflowRoute",
+              "why": "They were only referenced inside the deleted detached block; leaving them would fail noUnusedLocals typecheck (confirmed via tsc)."
+            },
+            {
+              "what": "Replaced the six legacy async-dispatch tests with four focused synchronous-behavior tests plus updated dryRun/phase9=skip guards",
+              "why": "The old tests asserted the removed fire-and-forget contract (dispatchPhase9Finalization called, finalizeRelease not called, phase9:\"pending\"). The new tests assert terminal outcomes and no-residual-pending, and were proven to fail red against the old code before passing green."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Pre-existing, out-of-scope spec-asset drift observed during the full-suite red run: src/ops-follow-up-assets.test.ts (subagent-reports version expected 1.6.0, received 1.7.1) and src/subagent-reports-spec-assets.test.ts (rq list length mismatch). Owned by the separate spec-update task for this change; no spec files were modified by this task."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned plugin/src for the detached-dispatch pattern: dispatchPhase9Finalization, runPhase9WithStatusTracking, phase9-queue, phase9Queue. Only production consumer was change.ts (import + single call site); removed both. After edits, zero references remain anywhere in plugin/src (production or test). No other fire-and-forget phase9 dispatch exists.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Replaced the detached direct Phase-9 finalization with the existing awaited path. adv_change_archive phase9:\"run\" now runs finalizeRelease inline and returns a terminal outcome (shipped->archived, pending_merge, or blocked error) instead of phase9:\"pending\". Because no \"pending\" phase9_status is written before finalization, a thrown finalization cannot leave residual pending state. Deleted plugin/src/tools/archive-helpers/phase9-queue.ts (consumer scan proved only self-refs) and removed all test-only references. PR-mode/#198 and release-proof ordering preserved by reusing the existing awaited path (release evidence -> release gate -> durable proof -> archive status -> cleanup); already-archived retry still routes through reconcileArchivedBundleRetry. Verified green (33/33 phase9, 101/101 change.test) plus typecheck/eslint/prettier all exit 0. Note: a full-suite red run surfaced two PRE-EXISTING spec-asset failures (ops-follow-up-assets version 1.7.1 vs expected 1.6.0; subagent-reports-spec-assets rq-list drift) that are unrelated to this task and owned by the separate spec-update task; no spec files were touched.",
+            "suggested_next_action": "Proceed to the spec-update task for this change (spec prose still describes the legacy detached phase9:pending contract); the implementation + tests are complete and verified, no commit made."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/tools/change.archive-phase9.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-phase9.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/tools/change.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/tools/change.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDirectArchiveMerge",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+          "task_id": "tk-1fdf4c678181",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-1fdf4c678181"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts -t \"records durable phase9_status failed\"",
+              "exit_code": 1,
+              "summary": "RED (runId tr_mrfd2p9a_73f96753): new AC2 test failed as expected — 'Error: git push failed: network unreachable' propagated as an unhandled rejection (the DONT2 bug)."
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts -t \"records durable phase9_status failed\"",
+              "exit_code": 0,
+              "summary": "GREEN targeted (runId tr_mrfd484u_02bb4c01): new AC2 test passes — thrown finalization handled, success=false, phase9_status failed recorded."
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN full (runId tr_mrfd5wwf_b7bff711): 135 passed / 0 failed across both files; updated phase9=run thrown test + existing blocked/pending/classify tests all green."
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "typecheck (runId tr_mrfd6g2d_6e0be852): tsc --noEmit clean."
+            },
+            {
+              "command": "pnpm exec eslint src/tools/change.ts src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "eslint clean (no output) on both touched files."
+            },
+            {
+              "command": "pnpm exec prettier --check src/tools/change.ts src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "prettier check clean: 'All matched files use Prettier code style!'"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Wrapped the awaited finalizeRelease/verifyReleaseEvidenceFromMain ternary in try/catch; on catch, record durable phase9_status=\"failed\" (preservePhase9Evidence carries error + startedAt/completedAt) and return formatToolOutput success=false with requirement rq-releaseFinalization01 + remediation, without rethrow and without archiving.",
+              "why": "AC2 requires a thrown finalization to be handled (not swallowed, not rethrown) with durable failed evidence and no silent pending/archive state. The early return prevents reaching the change.status=\"archived\" transition."
+            },
+            {
+              "what": "Emitted the failed classification inline (phase9Failure: {status,error,recoverable:false,remediation}) instead of reusing buildFailedPhase9Classification.",
+              "why": "That helper keys off change.phase9_status.status===\"failed\" and requires a non-optional GitFinalizeOutcome; the thrown path has no finalization and the in-memory change is not yet \"failed\". Reuse would force mutating in-memory change + synthesizing a finalization — broader and riskier than an equivalent inline classification, which the task explicitly permits."
+            },
+            {
+              "what": "Updated the pre-existing test \"phase9=run thrown finalization leaves no residual pending state\" (asserted rejects.toThrow(\"boom\")) to assert the new handled AC2 contract (resolves success=false, records phase9_status failed with error, no pending, no save).",
+              "why": "That test directly encoded the DONT2 (rethrow/lose failure) behavior this change exists to eliminate. Leaving it would keep a RED test against correct behavior and contradict the AC2 contract row; updating it is in-scope, not drift."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "archive-gate.ts reconcileArchivedBundleRetry verifyReleaseEvidenceFromMain not try-wrapped (AC7 retry path)"
+            ],
+            "details": "During related-scan I noticed reconcileArchivedBundleRetry (archive-gate.ts:~271) invokes verifyReleaseEvidenceFromMain synchronously without try/catch on the already-archived retry (AC7) path. It is verification-only (no git ops) and outside the direct Phase-9 path this task owns, so I did not touch it.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "Out-of-scope same-class observation: reconcileArchivedBundleRetry (plugin/src/tools/change/archive-gate.ts:~271) calls verifyReleaseEvidenceFromMain synchronously without try/catch on the already-archived retry path (AC7). That path is verification-only (no git ops, far lower throw risk) and is a different contract than the direct Phase-9 path fixed here; surface for a follow-up if defensive wrapping is desired there too."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned the direct archive path for other awaited git-op throws that could escape: completeReleaseGateAfterFinalization / verifyReleaseGateDurableForArchive return blocked result objects (handled, covered by existing tests); projectEpicTerminalSummaryAfterArchive is already try-wrapped post-transition. Only the finalizeRelease/verifyReleaseEvidenceFromMain throw was unguarded and is now fixed. The retry helper's synchronous verify call (archive-gate.ts:~271) is noted as out-of-scope follow-up, not modified.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC2 GREEN: the awaited finalizeRelease/verifyReleaseEvidenceFromMain path in plugin/src/tools/change.ts (phase9!==\"skip\") is now wrapped in try/catch. A thrown git-op error is recorded as durable phase9_status=\"failed\" (recordPhase9Status + preservePhase9Evidence, carrying error message) and returns success=false citing rq-releaseFinalization01 with actionable manual-merge/push + re-run remediation; the change stays active (no archive transition, no residual pending, no rethrow). blocked/pending_merge/shipped handling is byte-for-byte preserved; PR-mode and #198 unaffected. One pre-existing test that asserted rejects.toThrow (old DONT2 behavior) was updated to the new handled contract — flagging for reviewer awareness.",
+            "suggested_next_action": "Review the diff (change.ts try/catch + the two AC2 tests), then proceed to the next task / acceptance re-run for AC2. No ADV gates/tasks were mutated and nothing was committed."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-phase9.test.ts -t \"records durable phase9_status failed\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-phase9.test.ts -t \"records durable phase9_status failed\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/tools/change.ts src/tools/change.archive-phase9.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/tools/change.ts src/tools/change.archive-phase9.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "AC2 remediation: thrown finalization now records durable phase9_status:failed with recovery evidence and returns actionable rq-releaseFinalization01 error. RED tr_mrfd2p9a; GREEN targeted tr_mrfd484u; both files 135/135; typecheck/lint/prettier clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "7ef5fbbefab476815e212a38012e015afcd0f248",
+      "completedAt": "2026-07-10T20:06:58.034Z",
+      "completed_at": "2026-07-10T20:06:58.034Z"
+    },
+    {
+      "id": "tk-789feaca52c2",
+      "title": "Codify direct terminal finalization",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-10T17:59:35.608Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "C1"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T18:28:11.188Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDirectArchiveMerge",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+          "task_id": "tk-789feaca52c2",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-789feaca52c2"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-workflow/spec.json",
+            "docs/specs/advance-workflow.md"
+          ],
+          "verification": [
+            {
+              "command": "jq -e . .adv/specs/advance-workflow/spec.json",
+              "exit_code": 0,
+              "summary": "spec.json parses as valid JSON"
+            },
+            {
+              "command": "node mirror-check (requirement section render vs docs slice)",
+              "exit_code": 0,
+              "summary": "rq-releaseFinalization01: 12 scenarios, last .12; body exact mirror=true; full requirement section byte-identical to generateSpecDoc template=true"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/archive-release-finalization-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+              "exit_code": 0,
+              "summary": "2 files, 6 tests passed (body tokens, spec/doc parity, command/voice terminals, ADV_INSTRUCTIONS citations, spec-citation invariant)"
+            },
+            {
+              "command": "git diff --stat",
+              "exit_code": 0,
+              "summary": "Blast radius exactly 2 files: spec.json +18/-1, docs/specs/advance-workflow.md +17/-1; no code, no commit"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Appended one durability paragraph to the rq-releaseFinalization01 body and added a single scenario rq-releaseFinalization01.12 instead of spawning a new requirement",
+              "why": "Agreement LBP decision explicitly says 'Modify rq-releaseFinalization01'; the law is one invariant (direct dispatch must reach durable terminal evidence while retaining release-proof safeguards). AC1-AC5 remain test-evidence items for the implementation tasks; the spec states the law, tests prove the ACs."
+            },
+            {
+              "what": "Did not bump the advance-workflow spec version/updated_at",
+              "why": "Task scope is strictly the rq-releaseFinalization01 scenario + generated docs. The ops-follow-up-assets version pin (expects 1.26.0, actual 1.27.0) is already stale/pre-existing and failing independent of this edit; bumping here would expand blast radius into unrelated version-drift ownership without fixing that stale pin."
+            },
+            {
+              "what": "Mirrored docs/specs/advance-workflow.md by hand to match plugin/src/archive/docs.ts generateSpecDoc exactly, then proved byte-equality with a faithful node port of the generator",
+              "why": "docs/specs are deterministic generated mirrors of spec.json (regenerated at archive time). Hand-mirror + byte-equality proof satisfies 'generated docs as convention requires' without adding a one-off CLI."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "ops-follow-up-assets.test.ts version pins (advance-workflow 1.26.0 vs actual 1.27.0; subagent-reports)",
+              "subagent-reports-spec-assets.test.ts frozen list (rq-subagentReports23 added)",
+              "adv-skill-backed-commands-assets.test.ts criteria-ownership stage-boundary"
+            ],
+            "details": "An inadvertent full-suite `pnpm test` run (file filter did not apply) surfaced 4 pre-existing failures in unrelated specs; the correctly-scoped targeted run (`bin/oc-test targeted`) for this task's checks passes.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "Pre-existing: ops-follow-up-assets.test.ts pins advance-workflow 1.26.0 but spec is 1.27.0 (version drift from another change)",
+            "Pre-existing: subagent-reports-spec-assets.test.ts frozen list expects 22 reqs but rq-subagentReports23 was added (found 23)",
+            "Pre-existing: adv-skill-backed-commands-assets.test.ts criteria-ownership stage-boundary assertion failing",
+            "These surface under `pnpm test` full suite but are unrelated to rq-releaseFinalization01 and untouched by this change; assign to their owning changes."
+          ],
+          "required_main_agent_actions": [
+            "Triage the 4 pre-existing full-suite asset drifts (ops-follow-up version pins, subagent-reports rq-subagentReports23 frozen list, criteria-ownership) under their respective owning changes — out of scope for tk-789feaca52c2."
+          ],
+          "related_scan": "none (spec-law docs task; no code defect pattern to scan)",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Spec-law task complete. rq-releaseFinalization01 now codifies durable direct terminal finalization: body appended (awaited to durable shipped/failed before reporting; no fire-and-forget detach; no swallowed failures; no auto-retry; interruption resumes to durable state; manual recovery revalidates origin/default or merged-PR proof; PR-mode/#198 unchanged) plus new scenario rq-releaseFinalization01.12. All existing release-proof safeguards and assets-test tokens preserved (origin/{default-branch}, merged PR, Pending auto-merge., phase9:\"skip\", recovery, archived-but-unmerged, adv_archive_repair). docs/specs/advance-workflow.md regenerated to a byte-exact mirror of the generator template. No code, no version bump, no commit, no ADV state mutation. Implements C1; respects C2/C3/DONT1-3/OOS1-3.",
+            "suggested_next_action": "Mark tk-789feaca52c2 done and proceed to the implementation tasks (AC1-AC5 test-evidence items). Separately triage the 4 pre-existing full-suite asset drifts (ops-follow-up version pins, subagent-reports frozen list rq-subagentReports23, criteria-ownership) under their owning changes — not this task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: jq -e . .adv/specs/advance-workflow/spec.json"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: node mirror-check (requirement section render vs docs slice)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/archive-release-finalization-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --stat"
+            }
+          ]
+        }
+      ],
+      "verification": "Validated spec JSON and byte-exact generated docs mirror; bin/oc-test targeted archive-release-finalization-assets and spec-citation-invariant passed 6/6. Retried after verified worker restart.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "48e3219e94e10ad0a3566bb4235cdec42ad5000c",
+      "completedAt": "2026-07-10T19:28:55.125Z",
+      "completed_at": "2026-07-10T19:28:55.125Z"
+    },
+    {
+      "id": "tk-a716bf9a25e2",
+      "title": "Verify terminal archive recovery and regressions",
+      "type": "verification",
+      "section": "Recovery and regression",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-10T18:00:00.514Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1fdf4c678181"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "C1",
+          "C3"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T19:29:07.975Z",
+      "verification": "Focused archive regression suite passed 146/146 across change, Phase-9, archive-gate, release-finalization/spec assets; pnpm run typecheck and pnpm run lint passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "48e3219e94e10ad0a3566bb4235cdec42ad5000c",
+      "completedAt": "2026-07-10T19:30:49.336Z",
+      "completed_at": "2026-07-10T19:30:49.336Z"
+    },
+    {
+      "id": "tk-593d5838e082",
+      "title": "Repair stale asset expectations",
+      "type": "code",
+      "section": "Full-suite baseline",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-10T19:41:03.390Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Campsite scope authorized by user after full-suite verification: align stale asset expectations with already-current spec versions and requirement lists; no change to the approved direct-archive contract."
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T19:41:21.072Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDirectArchiveMerge",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+          "task_id": "tk-593d5838e082",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-593d5838e082"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/adv-skill-backed-commands-assets.test.ts",
+            "plugin/src/ops-follow-up-assets.test.ts",
+            "plugin/src/subagent-reports-spec-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts",
+              "exit_code": 1,
+              "summary": "RED (before fix): 4 failed / 84 passed — advance-workflow 1.26.0 expected vs 1.27.0 actual (adv-skill:317 + ops-follow-up:144), subagent-reports 1.6.0 expected vs 1.7.1 actual (ops-follow-up:149), requirement list length mismatch missing rq-subagentReports23 (subagent-reports-spec-assets:43)"
+            },
+            {
+              "command": "pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN (after fix): 3 files passed, 88/88 tests passed"
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 0,
+              "summary": "GREEN: 329 test files passed, 4826/4826 tests passed, 0 failed (Duration 134.91s). Epic time-skipping flake from the first run did not recur."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Bumped pinned spec-version expectations forward (1.26.0->1.27.0 advance-workflow; 1.6.0->1.7.1 subagent-reports) instead of editing specs",
+              "why": "Specs are the source of truth and already carry the newer versions on origin/trunk; the tests lagged. Task explicitly forbids changing specs/version metadata."
+            },
+            {
+              "what": "Appended rq-subagentReports23 to the expected requirement id list",
+              "why": "The subagent-reports spec now defines 23 requirements (verified via JSON parse of .adv/specs/subagent-reports/spec.json); the asset test asserted only 22 and was missing the new terminal id."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Searched the three named asset files plus the adv-skill stage-boundary assertion for other stale 1.26.0/1.6.0 pins; adv-prep (1.4.0) and backlog-coordination (1.4.0) pins already match their specs and were left untouched. The workflows.epic.test.ts QueryNotRegisteredError/time-skipping timeout observed in the first broad run is a Temporal environmental flake, not a stale asset assertion, and is out of scope; it did not reproduce in bin/oc-test full.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Repaired 4 stale asset assertions in 3 *-assets.test.ts files, aligned to source-of-truth specs on origin/trunk: advance-workflow 1.26.0->1.27.0 (adv-skill-backed-commands-assets.test.ts:317 and ops-follow-up-assets.test.ts:144); subagent-reports 1.6.0->1.7.1 (ops-follow-up-assets.test.ts:149); added missing rq-subagentReports23 to the expected requirement list (subagent-reports-spec-assets.test.ts:66). Specs, direct-archive files, version metadata, and unrelated behavior were NOT touched. Focused asset tests green (88/88); bin/oc-test full green (329 files / 4826 tests, 0 failed).",
+            "suggested_next_action": "No commit and no ADV mutations per instructions. Orchestrator may proceed to next task/gate. The earlier workflows.epic.test.ts time-skipping timeout seen in the very first run is environmental/flaky, not an asset defect, and did not recur in the full run — flag only if it reappears."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            }
+          ]
+        }
+      ],
+      "verification": "RED: stale asset assertions reproduced (4 failed/84 passed). GREEN: targeted asset tests 88/88; full suite 329 files, 4826/4826 tests passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "eefc3435023d8061b78f9551ba2f6e9f57764389",
+      "completedAt": "2026-07-10T19:51:27.709Z",
+      "completed_at": "2026-07-10T19:51:27.709Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: direct-archive Phase-9 terminal finalization",
+      "sources": [
+        {
+          "label": "phase9-queue.ts (queue under retirement)",
+          "locator": "plugin/src/tools/archive-helpers/phase9-queue.ts:47-54",
+          "summary": "dispatchPhase9Finalization uses `.catch(() => {})` fire-and-forget — the exact silent-loss mechanism (DONT1/DONT2 root cause). Imports Store (storage), confirming tool-layer, not workflow-bundle code."
+        },
+        {
+          "label": "phase9-queue consumer scan (grep)",
+          "locator": "plugin/src/tools/change.ts:316 (only production import); change.test.ts:17,3636 and change.archive-phase9.test.ts:171 (tests only)",
+          "summary": "Exactly one production consumer (change.ts). DC4/design decision #2 (sole-consumer) verified true. Remaining refs are test spy/mock."
+        },
+        {
+          "label": "Detached async branch under removal",
+          "locator": "plugin/src/tools/change.ts:2635-2880",
+          "summary": "phase9==='run' branch records pending, then dispatchPhase9Finalization() and returns phase9:'pending' immediately. Contains full finalize→releaseGate→durableProof→archive→cleanup closure duplicated from sync path."
+        },
+        {
+          "label": "Awaited sync pipeline (reuse target)",
+          "locator": "plugin/src/tools/change.ts:2882-3035 + 3041-3237",
+          "summary": "Enforces ordered chain: finalizeRelease → blocked/pending_merge handling → completeReleaseGateAfterFinalization → verifyReleaseGateDurableForArchive → archive status → removeChangeDir/advWorktreeCleanup/deleteChangeBranch (same direct+shipped+non-pr_auto_merge guard)/closeLinkedIssue/epic projection. Full behavioral parity with the async closure — removal drops no behavior."
+        },
+        {
+          "label": "reconcileArchivedBundleRetry (AC4 recovery reuse)",
+          "locator": "plugin/src/tools/change/archive-gate.ts:238-327; called at change.ts:2566",
+          "summary": "Archived-bundle re-entry calls verifyReleaseEvidenceFromMain, revalidating default-branch proof before release repair. Supports AC4 recovery-after-manual-merge/push without a new tool. Guarded by change.status==='archived' && existingBundlePath!==null (rq-archiveRetryIdempotence01 AC7)."
+        },
+        {
+          "label": "rq-releaseFinalization01 spec requirement",
+          "locator": ".adv/specs/advance-workflow/spec.json:384-543",
+          "summary": "11 scenarios enforcing origin/default-branch or merged-PR proof; scenarios .4/.9/.10 already require post-fetch reachability proof and recovery revalidation. Adding a direct-terminal scenario extends one cohesive law (design decision #4) rather than creating a competing requirement. C1 preserved."
+        }
+      ],
+      "architecture_assessment": "Design is a delete-not-add simplification: it removes the detached Phase-9 execution branch (change.ts:2635-2880) and routes direct phase9:'run' through the already-awaited sync finalization pipeline (2882-3235), then retires the single-consumer phase9-queue.ts. Source verification confirms every material claim: (1) the queue's `.catch(()=>{})` is the literal silent-loss mechanism; (2) change.ts is the sole production consumer; (3) the sync path has full behavioral parity with the async closure (same finalize→releaseGate→durableProof→status→cleanup→issue-closure ordering, identical branch-delete guard). Because the sync path already enforces rq-releaseFinalization01 release proof before archive status transition, reusing it structurally guarantees AC1 (shipped only after reachability proof), AC2 (thrown finalization returns a typed blocked/failed tool result, no detached pending), and C3 (no early success). AC3 is satisfied by eliminating the interruption window rather than adding a resumer: an interrupted awaited tool call simply does not complete, leaving an active retryable change — no detached merge work to lose. This is the correct boring solution and matches the agreement's explicit LBP decision to prefer window-elimination over a durable job/resumer subsystem (which would add workflow state, startup reconciliation, and new failure modes). C2 replay-safety is preserved because phase9-queue.ts and the archive branch are tool-layer (import Store/storage), not workflow-bundle code — no signal/query surface is touched. DONT1/DONT2/DONT3 all satisfied (no fire-and-forget, no swallow, no auto-retry). AC4 reuses reconcileArchivedBundleRetry + idempotent re-entry (both revalidate trunk proof). AC5/OOS honored — PR-mode and #198 paths are untouched.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All source claims in the design verified against actual code and spec. Line ranges accurate. Sole-consumer claim (DC4) verified via grep. Behavioral parity between async closure and sync path confirmed line-by-line — no dropped cleanup/issue-closure/branch-delete/epic-projection behavior. rq-releaseFinalization01 extension is additive to one law (C1 preserved). No blockers. Non-blocking advisories for planning: (1) AC3 phrasing ('when processing resumes') describes a resumer mechanism the design deliberately eliminates; recommend planning tasks/tests assert the intent (interrupted tool call = active retryable change, no residual phase9_status:'pending' per DC1) rather than a literal resume path. (2) The async closure re-fetched currentChange via store.changes.get(changeId); the sync path operates on the already-loaded `change` — planning should confirm the sync path's `change` is sufficiently fresh (it is loaded earlier in the same tool call) so DC1 no-pending-residue holds. (3) DC4 consumer scan must also remove the two test-only imports/mocks (change.test.ts:17,3636; change.archive-phase9.test.ts:171) to avoid orphaned references after deletion."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Longer synchronous archive call: direct git merge/push/fetch now runs inside the request instead of returning phase9:'pending' immediately. Acceptable — this is release-gate work and terminal correctness outweighs a fast-but-lossy pending response (design Risks section acknowledges this).",
+          "Removes the phase9:'pending' async response shape for direct archives; any caller/UX depending on 'pending' for direct mode must handle terminal shipped/pending_merge/blocked instead. PR-mode pending_merge is unaffected.",
+          "Eliminating the interruption window means a mid-call worker/process interruption aborts the whole archive tool call (change stays active, retry via adv_change_archive) rather than resuming detached work — strictly safer but shifts recovery to explicit re-invocation."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Add a durable job queue + worker-startup resumer to make the async path crash-safe",
+            "disposition": "rejected",
+            "rationale": "Agreement LBP decision and design LBP analysis both reject this: it adds new workflow state, startup reconciliation, and failure modes to fix a window that removing async eliminates entirely. Violates simplicity (P19) and risks C2 replay-safety if it touched workflow surface."
+          },
+          {
+            "option": "Keep async dispatch but replace `.catch(()=>{})` with durable recordFailure only",
+            "disposition": "rejected",
+            "rationale": "recordFailure is best-effort and cannot protect work discarded with the detached process-local promise (agreement discovery finding at change.ts:2828). Interruption before recordFailure still silently loses merge work — fails AC3. Retains DONT1 detach."
+          },
+          {
+            "option": "New dedicated direct-archive recovery tool for AC4",
+            "disposition": "rejected",
+            "rationale": "reconcileArchivedBundleRetry + idempotent archive re-entry already revalidate default-branch proof via verifyReleaseEvidenceFromMain. A new tool duplicates existing recovery surface for no user value; design decision #3 reuses existing entries."
+          },
+          {
+            "option": "Create a competing spec requirement for direct terminal finalization",
+            "disposition": "rejected",
+            "rationale": "Design decision #4 adds a scenario under rq-releaseFinalization01 instead, keeping one cohesive release-proof law. Verified the requirement already carries 11 proof scenarios; a competing requirement would fragment the law and risk drift."
+          }
+        ],
+        "recommendation": "Proceed to planning. Design is correct, minimal, spec-law-compliant, and satisfies all six ACs and three constraints with verified source backing. During planning: (a) write AC3 tests as no-residual-pending assertions (DC1) rather than resumer tests, since the resume path is deliberately removed; (b) include the test-only phase9-queue mock/import removals in the DC4 deletion scan; (c) add the rq-releaseFinalization01 direct-terminal scenario and regenerate spec docs (schemas:check/spec doc gen) as a planned task."
+      },
+      "recommendation": "PASS with high confidence. Approve the design and advance to planning. The reuse-and-delete approach is the boring, structurally-safe solution; all AC/constraint/avoidance mappings are source-verified. Planning should encode the three non-blocking advisories (AC3-as-no-residue tests, test-mock cleanup in DC4 scan, spec-doc regeneration).",
+      "follow_ups": [
+        "Planning: assert DC1 (no phase9_status:'pending' residue after direct phase9:'run' return) as the AC3 verification rather than a resume-path test.",
+        "Planning: include change.test.ts:17,3636 and change.archive-phase9.test.ts:171 phase9-queue references in the DC4 consumer-removal scope.",
+        "Planning: add rq-releaseFinalization01 direct-terminal scenario + run schemas:check/spec doc generation as an explicit task."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+      "task_id": "tk-1fdf4c678181",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-1fdf4c678181"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/archive-helpers/phase9-queue.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm test -- src/tools/change.archive-phase9.test.ts",
+          "exit_code": 1,
+          "summary": "RED (adv_run_test phase=red, runId tr_mrf9ce21_f31d816c): 4 new phase9=run tests failed against old code as expected — finalizeRelease called 0 times (wanted 1), parsed.phase9 'pending' (wanted 'pending_merge'), parsed.success true (wanted false), and no rejection on thrown finalization."
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN (adv_run_test phase=green, runId tr_mrf9l9na_e31d5b86): 33/33 passed, including the 4 new synchronous-behavior tests."
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY (adv_run_test phase=verify, runId tr_mrf9lp3l_ecefed2f): 101/101 passed after removing the phase9Queue import/spy/assertion; confirms the archived no-op test still passes and no module-load regression."
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit clean; confirms no unused-import or dangling-reference errors after removing the detached block and 4 imports."
+        },
+        {
+          "command": "pnpm exec eslint src/tools/change.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "eslint clean on all touched files."
+        },
+        {
+          "command": "pnpm exec prettier --check src/tools/change.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "prettier --check clean on all touched files."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Routed phase9=\"run\" through the existing awaited finalization path instead of adding new logic",
+          "why": "The awaited path was already battle-tested for phase9=undefined in both direct and PR modes; reusing it preserves PR-mode/#198 and the release-evidence->gate->durable-proof->archive->cleanup ordering for free, and makes explicit \"run\" and default behavior identical (terminal)."
+        },
+        {
+          "what": "Did not re-introduce eager changeTipSha/route/repo capture into the synchronous path",
+          "why": "finalizeRelease computes reachability synchronously while the change branch still exists, and the branch is never deleted on pending_merge (early return before cleanup), so the squash-merge (rq-fixPhase9SquashMergeRedetect) and PR-detection (rq-fixPhase9PrDetection) invariants hold without a pre-finalization \"pending\" record. Eager capture would have required persisting a \"pending\" status, which the task explicitly forbids (no residual pending on throw)."
+        },
+        {
+          "what": "Removed the now-unused imports Phase9FinalizationStatus, classifyFinalizationRoute, coercePrWorkflowRoute",
+          "why": "They were only referenced inside the deleted detached block; leaving them would fail noUnusedLocals typecheck (confirmed via tsc)."
+        },
+        {
+          "what": "Replaced the six legacy async-dispatch tests with four focused synchronous-behavior tests plus updated dryRun/phase9=skip guards",
+          "why": "The old tests asserted the removed fire-and-forget contract (dispatchPhase9Finalization called, finalizeRelease not called, phase9:\"pending\"). The new tests assert terminal outcomes and no-residual-pending, and were proven to fail red against the old code before passing green."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Pre-existing, out-of-scope spec-asset drift observed during the full-suite red run: src/ops-follow-up-assets.test.ts (subagent-reports version expected 1.6.0, received 1.7.1) and src/subagent-reports-spec-assets.test.ts (rq list length mismatch). Owned by the separate spec-update task for this change; no spec files were modified by this task."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned plugin/src for the detached-dispatch pattern: dispatchPhase9Finalization, runPhase9WithStatusTracking, phase9-queue, phase9Queue. Only production consumer was change.ts (import + single call site); removed both. After edits, zero references remain anywhere in plugin/src (production or test). No other fire-and-forget phase9 dispatch exists.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Replaced the detached direct Phase-9 finalization with the existing awaited path. adv_change_archive phase9:\"run\" now runs finalizeRelease inline and returns a terminal outcome (shipped->archived, pending_merge, or blocked error) instead of phase9:\"pending\". Because no \"pending\" phase9_status is written before finalization, a thrown finalization cannot leave residual pending state. Deleted plugin/src/tools/archive-helpers/phase9-queue.ts (consumer scan proved only self-refs) and removed all test-only references. PR-mode/#198 and release-proof ordering preserved by reusing the existing awaited path (release evidence -> release gate -> durable proof -> archive status -> cleanup); already-archived retry still routes through reconcileArchivedBundleRetry. Verified green (33/33 phase9, 101/101 change.test) plus typecheck/eslint/prettier all exit 0. Note: a full-suite red run surfaced two PRE-EXISTING spec-asset failures (ops-follow-up-assets version 1.7.1 vs expected 1.6.0; subagent-reports-spec-assets rq-list drift) that are unrelated to this task and owned by the separate spec-update task; no spec files were touched.",
+        "suggested_next_action": "Proceed to the spec-update task for this change (spec prose still describes the legacy detached phase9:pending contract); the implementation + tests are complete and verified, no commit made."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/tools/change.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/tools/change.ts src/tools/change.test.ts src/tools/change.archive-phase9.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+      "task_id": "tk-789feaca52c2",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-789feaca52c2"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "verification": [
+        {
+          "command": "jq -e . .adv/specs/advance-workflow/spec.json",
+          "exit_code": 0,
+          "summary": "spec.json parses as valid JSON"
+        },
+        {
+          "command": "node mirror-check (requirement section render vs docs slice)",
+          "exit_code": 0,
+          "summary": "rq-releaseFinalization01: 12 scenarios, last .12; body exact mirror=true; full requirement section byte-identical to generateSpecDoc template=true"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/archive-release-finalization-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+          "exit_code": 0,
+          "summary": "2 files, 6 tests passed (body tokens, spec/doc parity, command/voice terminals, ADV_INSTRUCTIONS citations, spec-citation invariant)"
+        },
+        {
+          "command": "git diff --stat",
+          "exit_code": 0,
+          "summary": "Blast radius exactly 2 files: spec.json +18/-1, docs/specs/advance-workflow.md +17/-1; no code, no commit"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Appended one durability paragraph to the rq-releaseFinalization01 body and added a single scenario rq-releaseFinalization01.12 instead of spawning a new requirement",
+          "why": "Agreement LBP decision explicitly says 'Modify rq-releaseFinalization01'; the law is one invariant (direct dispatch must reach durable terminal evidence while retaining release-proof safeguards). AC1-AC5 remain test-evidence items for the implementation tasks; the spec states the law, tests prove the ACs."
+        },
+        {
+          "what": "Did not bump the advance-workflow spec version/updated_at",
+          "why": "Task scope is strictly the rq-releaseFinalization01 scenario + generated docs. The ops-follow-up-assets version pin (expects 1.26.0, actual 1.27.0) is already stale/pre-existing and failing independent of this edit; bumping here would expand blast radius into unrelated version-drift ownership without fixing that stale pin."
+        },
+        {
+          "what": "Mirrored docs/specs/advance-workflow.md by hand to match plugin/src/archive/docs.ts generateSpecDoc exactly, then proved byte-equality with a faithful node port of the generator",
+          "why": "docs/specs are deterministic generated mirrors of spec.json (regenerated at archive time). Hand-mirror + byte-equality proof satisfies 'generated docs as convention requires' without adding a one-off CLI."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "ops-follow-up-assets.test.ts version pins (advance-workflow 1.26.0 vs actual 1.27.0; subagent-reports)",
+          "subagent-reports-spec-assets.test.ts frozen list (rq-subagentReports23 added)",
+          "adv-skill-backed-commands-assets.test.ts criteria-ownership stage-boundary"
+        ],
+        "details": "An inadvertent full-suite `pnpm test` run (file filter did not apply) surfaced 4 pre-existing failures in unrelated specs; the correctly-scoped targeted run (`bin/oc-test targeted`) for this task's checks passes.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "Pre-existing: ops-follow-up-assets.test.ts pins advance-workflow 1.26.0 but spec is 1.27.0 (version drift from another change)",
+        "Pre-existing: subagent-reports-spec-assets.test.ts frozen list expects 22 reqs but rq-subagentReports23 was added (found 23)",
+        "Pre-existing: adv-skill-backed-commands-assets.test.ts criteria-ownership stage-boundary assertion failing",
+        "These surface under `pnpm test` full suite but are unrelated to rq-releaseFinalization01 and untouched by this change; assign to their owning changes."
+      ],
+      "required_main_agent_actions": [
+        "Triage the 4 pre-existing full-suite asset drifts (ops-follow-up version pins, subagent-reports rq-subagentReports23 frozen list, criteria-ownership) under their respective owning changes — out of scope for tk-789feaca52c2."
+      ],
+      "related_scan": "none (spec-law docs task; no code defect pattern to scan)",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Spec-law task complete. rq-releaseFinalization01 now codifies durable direct terminal finalization: body appended (awaited to durable shipped/failed before reporting; no fire-and-forget detach; no swallowed failures; no auto-retry; interruption resumes to durable state; manual recovery revalidates origin/default or merged-PR proof; PR-mode/#198 unchanged) plus new scenario rq-releaseFinalization01.12. All existing release-proof safeguards and assets-test tokens preserved (origin/{default-branch}, merged PR, Pending auto-merge., phase9:\"skip\", recovery, archived-but-unmerged, adv_archive_repair). docs/specs/advance-workflow.md regenerated to a byte-exact mirror of the generator template. No code, no version bump, no commit, no ADV state mutation. Implements C1; respects C2/C3/DONT1-3/OOS1-3.",
+        "suggested_next_action": "Mark tk-789feaca52c2 done and proceed to the implementation tasks (AC1-AC5 test-evidence items). Separately triage the 4 pre-existing full-suite asset drifts (ops-follow-up version pins, subagent-reports frozen list rq-subagentReports23, criteria-ownership) under their owning changes — not this task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: jq -e . .adv/specs/advance-workflow/spec.json"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: node mirror-check (requirement section render vs docs slice)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/archive-release-finalization-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --stat"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:archive-regressions"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change.test.ts src/tools/change/archive-gate.test.ts src/archive-release-finalization-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+          "exit_code": 0,
+          "duration_ms": 3270
+        },
+        {
+          "kind": "command",
+          "command": "pnpm run typecheck",
+          "exit_code": 0
+        },
+        {
+          "kind": "command",
+          "command": "pnpm run lint",
+          "exit_code": 0
+        }
+      ],
+      "status": "pass",
+      "error_class": "UNKNOWN",
+      "confidence": "high",
+      "evidence_basis": "Focused repository wrapper test run passed: 5 files, 146 tests. Typecheck and lint exited 0.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "info",
+          "summary": "Direct Phase-9, archive-gate, change, release-finalization asset, and spec-citation regression coverage passed.",
+          "evidence": [
+            {
+              "label": "focused test output",
+              "locator": "bin/oc-test targeted",
+              "summary": "5 files; 146 tests passed."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "continue",
+      "scope_risk": false,
+      "required_main_agent_actions": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:full-release-checks"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "bin/oc-test full",
+          "exit_code": 1,
+          "duration_ms": 151140
+        },
+        {
+          "kind": "command",
+          "command": "pnpm run build",
+          "exit_code": 0
+        }
+      ],
+      "status": "fail",
+      "error_class": "SEMANTIC",
+      "confidence": "high",
+      "evidence_basis": "Full suite has four deterministic failures in unrelated baseline asset assertions; build passes from plugin/. Current and origin/trunk advance-workflow versions are both 1.27.0, so the 1.26.0 expected value predates this branch.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "issue",
+          "summary": "Full suite fails stale advance-workflow and subagent-reports asset expectations unrelated to this change.",
+          "evidence": [
+            {
+              "label": "full test output",
+              "locator": "bin/oc-test full",
+              "summary": "4822/4826 passed; four asset assertions failed."
+            },
+            {
+              "label": "baseline comparison",
+              "locator": "git show origin/trunk and c6139e5c spec versions",
+              "summary": "Both use advance-workflow 1.27.0; tests expecting 1.26.0 are pre-existing."
+            }
+          ]
+        },
+        {
+          "id": "verify-002",
+          "severity": "info",
+          "summary": "Plugin build passes.",
+          "evidence": [
+            {
+              "label": "build output",
+              "locator": "plugin/pnpm run build",
+              "summary": "tsup and temporal worker bundle completed successfully."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "ask_user",
+      "scope_risk": true,
+      "required_main_agent_actions": [
+        "Resolve whether to expand scope to repair unrelated baseline asset drift before execution gate completion."
+      ],
+      "follow_ups": [
+        "Unrelated stale subagent-reports asset assertions require separate ownership."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+      "task_id": "tk-593d5838e082",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-593d5838e082"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts",
+          "exit_code": 1,
+          "summary": "RED (before fix): 4 failed / 84 passed — advance-workflow 1.26.0 expected vs 1.27.0 actual (adv-skill:317 + ops-follow-up:144), subagent-reports 1.6.0 expected vs 1.7.1 actual (ops-follow-up:149), requirement list length mismatch missing rq-subagentReports23 (subagent-reports-spec-assets:43)"
+        },
+        {
+          "command": "pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN (after fix): 3 files passed, 88/88 tests passed"
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "summary": "GREEN: 329 test files passed, 4826/4826 tests passed, 0 failed (Duration 134.91s). Epic time-skipping flake from the first run did not recur."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Bumped pinned spec-version expectations forward (1.26.0->1.27.0 advance-workflow; 1.6.0->1.7.1 subagent-reports) instead of editing specs",
+          "why": "Specs are the source of truth and already carry the newer versions on origin/trunk; the tests lagged. Task explicitly forbids changing specs/version metadata."
+        },
+        {
+          "what": "Appended rq-subagentReports23 to the expected requirement id list",
+          "why": "The subagent-reports spec now defines 23 requirements (verified via JSON parse of .adv/specs/subagent-reports/spec.json); the asset test asserted only 22 and was missing the new terminal id."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Searched the three named asset files plus the adv-skill stage-boundary assertion for other stale 1.26.0/1.6.0 pins; adv-prep (1.4.0) and backlog-coordination (1.4.0) pins already match their specs and were left untouched. The workflows.epic.test.ts QueryNotRegisteredError/time-skipping timeout observed in the first broad run is a Temporal environmental flake, not a stale asset assertion, and is out of scope; it did not reproduce in bin/oc-test full.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Repaired 4 stale asset assertions in 3 *-assets.test.ts files, aligned to source-of-truth specs on origin/trunk: advance-workflow 1.26.0->1.27.0 (adv-skill-backed-commands-assets.test.ts:317 and ops-follow-up-assets.test.ts:144); subagent-reports 1.6.0->1.7.1 (ops-follow-up-assets.test.ts:149); added missing rq-subagentReports23 to the expected requirement list (subagent-reports-spec-assets.test.ts:66). Specs, direct-archive files, version metadata, and unrelated behavior were NOT touched. Focused asset tests green (88/88); bin/oc-test full green (329 files / 4826 tests, 0 failed).",
+        "suggested_next_action": "No commit and no ADV mutations per instructions. Orchestrator may proceed to next task/gate. The earlier workflows.epic.test.ts time-skipping timeout seen in the very first run is environmental/flaky, not an asset defect, and did not recur in the full run — flag only if it reappears."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "release-durability-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/change.ts",
+          "line": 2635,
+          "what": "A thrown direct finalization is propagated without recording a durable `phase9_status: failed` outcome.",
+          "why": "`rq-releaseFinalization01.12` requires a durable shipped-or-failed state, including when finalization throws or resumes after interruption. The current test at `change.archive-phase9.test.ts:1353` explicitly accepts the unrecorded throw, so a written archive bundle can remain active with no failure evidence or recovery guidance.",
+          "fix": "Catch exceptions around awaited direct finalization, persist `preservePhase9Evidence(previous, { status: \"failed\", startedAt, completedAt, error })` through `recordPhase9Status`, then return a structured actionable failure without archiving. Update the throw-path test to assert the failed status and no archive transition."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Replacing fire-and-forget Phase 9 dispatch with `await` removes detached work but does not by itself satisfy durability: exception paths must also write a terminal failed status before returning."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Focused Phase 9 suite passed: 1 file, 33 tests, exit 0. Static related scan found no remaining `phase9-queue`, `dispatchPhase9Finalization`, or `phase9: \"pending\"` references."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Direct finalization exceptions currently leave no durable failure record or actionable recovery evidence.",
+        "Scoped remediation could not be applied because `morph_edit` rejected the supplied ADV worktree as outside its allowed root; no repo files were changed by this review."
+      ],
+      "required_main_agent_actions": [
+        "Apply the scoped failed-finalization persistence and structured-error fix in plugin/src/tools/change.ts, then update plugin/src/tools/change.archive-phase9.test.ts.",
+        "Rerun `bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts` and the required plugin typecheck/lint before re-review.",
+        "Leave PR/#198 boundary, PR-mode behavior, and unrelated archive recovery paths unchanged."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveMerge",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+      "task_id": "tk-1fdf4c678181",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-1fdf4c678181"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts -t \"records durable phase9_status failed\"",
+          "exit_code": 1,
+          "summary": "RED (runId tr_mrfd2p9a_73f96753): new AC2 test failed as expected — 'Error: git push failed: network unreachable' propagated as an unhandled rejection (the DONT2 bug)."
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts -t \"records durable phase9_status failed\"",
+          "exit_code": 0,
+          "summary": "GREEN targeted (runId tr_mrfd484u_02bb4c01): new AC2 test passes — thrown finalization handled, success=false, phase9_status failed recorded."
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN full (runId tr_mrfd5wwf_b7bff711): 135 passed / 0 failed across both files; updated phase9=run thrown test + existing blocked/pending/classify tests all green."
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "typecheck (runId tr_mrfd6g2d_6e0be852): tsc --noEmit clean."
+        },
+        {
+          "command": "pnpm exec eslint src/tools/change.ts src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "eslint clean (no output) on both touched files."
+        },
+        {
+          "command": "pnpm exec prettier --check src/tools/change.ts src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "prettier check clean: 'All matched files use Prettier code style!'"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Wrapped the awaited finalizeRelease/verifyReleaseEvidenceFromMain ternary in try/catch; on catch, record durable phase9_status=\"failed\" (preservePhase9Evidence carries error + startedAt/completedAt) and return formatToolOutput success=false with requirement rq-releaseFinalization01 + remediation, without rethrow and without archiving.",
+          "why": "AC2 requires a thrown finalization to be handled (not swallowed, not rethrown) with durable failed evidence and no silent pending/archive state. The early return prevents reaching the change.status=\"archived\" transition."
+        },
+        {
+          "what": "Emitted the failed classification inline (phase9Failure: {status,error,recoverable:false,remediation}) instead of reusing buildFailedPhase9Classification.",
+          "why": "That helper keys off change.phase9_status.status===\"failed\" and requires a non-optional GitFinalizeOutcome; the thrown path has no finalization and the in-memory change is not yet \"failed\". Reuse would force mutating in-memory change + synthesizing a finalization — broader and riskier than an equivalent inline classification, which the task explicitly permits."
+        },
+        {
+          "what": "Updated the pre-existing test \"phase9=run thrown finalization leaves no residual pending state\" (asserted rejects.toThrow(\"boom\")) to assert the new handled AC2 contract (resolves success=false, records phase9_status failed with error, no pending, no save).",
+          "why": "That test directly encoded the DONT2 (rethrow/lose failure) behavior this change exists to eliminate. Leaving it would keep a RED test against correct behavior and contradict the AC2 contract row; updating it is in-scope, not drift."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "archive-gate.ts reconcileArchivedBundleRetry verifyReleaseEvidenceFromMain not try-wrapped (AC7 retry path)"
+        ],
+        "details": "During related-scan I noticed reconcileArchivedBundleRetry (archive-gate.ts:~271) invokes verifyReleaseEvidenceFromMain synchronously without try/catch on the already-archived retry (AC7) path. It is verification-only (no git ops) and outside the direct Phase-9 path this task owns, so I did not touch it.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "Out-of-scope same-class observation: reconcileArchivedBundleRetry (plugin/src/tools/change/archive-gate.ts:~271) calls verifyReleaseEvidenceFromMain synchronously without try/catch on the already-archived retry path (AC7). That path is verification-only (no git ops, far lower throw risk) and is a different contract than the direct Phase-9 path fixed here; surface for a follow-up if defensive wrapping is desired there too."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned the direct archive path for other awaited git-op throws that could escape: completeReleaseGateAfterFinalization / verifyReleaseGateDurableForArchive return blocked result objects (handled, covered by existing tests); projectEpicTerminalSummaryAfterArchive is already try-wrapped post-transition. Only the finalizeRelease/verifyReleaseEvidenceFromMain throw was unguarded and is now fixed. The retry helper's synchronous verify call (archive-gate.ts:~271) is noted as out-of-scope follow-up, not modified.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC2 GREEN: the awaited finalizeRelease/verifyReleaseEvidenceFromMain path in plugin/src/tools/change.ts (phase9!==\"skip\") is now wrapped in try/catch. A thrown git-op error is recorded as durable phase9_status=\"failed\" (recordPhase9Status + preservePhase9Evidence, carrying error message) and returns success=false citing rq-releaseFinalization01 with actionable manual-merge/push + re-run remediation; the change stays active (no archive transition, no residual pending, no rethrow). blocked/pending_merge/shipped handling is byte-for-byte preserved; PR-mode and #198 unaffected. One pre-existing test that asserted rejects.toThrow (old DONT2 behavior) was updated to the new handled contract — flagging for reviewer awareness.",
+        "suggested_next_action": "Review the diff (change.ts try/catch + the two AC2 tests), then proceed to the next task / acceptance re-run for AC2. No ADV gates/tasks were mutated and nothing was committed."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-phase9.test.ts -t \"records durable phase9_status failed\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-phase9.test.ts -t \"records durable phase9_status failed\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/tools/change.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/tools/change.ts src/tools/change.archive-phase9.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveMerge",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "Direct archive finalization can preserve durable terminal semantics by reusing the awaited release pipeline: record thrown-finalization failure before returning, then block archive transition."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git diff --check",
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Diff whitespace check passed. Focused Phase-9 suite passed 34/34. Archive + change suite passed 135/135. Source review confirms thrown finalization is caught, preserves prior Phase-9 evidence while writing status=failed plus error, returns actionable rq-releaseFinalization01 failure, and returns before release-gate/archive transition. PR pending-merge and completed-workflow recovery tests remain covered."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveMerge",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveMerge",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:final-acceptance"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "bin/oc-test full",
+          "exit_code": 1,
+          "duration_ms": 200020
+        },
+        {
+          "kind": "command",
+          "command": "pnpm run typecheck",
+          "exit_code": 0
+        },
+        {
+          "kind": "command",
+          "command": "bin/oc-test targeted -- src/temporal/workflows.epic.test.ts src/temporal/workflows.signal-handlers.test.ts",
+          "exit_code": 0,
+          "duration_ms": 35260
+        }
+      ],
+      "status": "pass",
+      "error_class": "TRANSIENT",
+      "confidence": "high",
+      "evidence_basis": "Full suite 4825/4827; two failures are Temporal 5000ms timeouts that pass on isolated rerun (31/31). Unrelated to direct-archive scope. Typecheck clean.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "info",
+          "summary": "Two full-suite Temporal timeouts reproduce as pass on isolated rerun — transient host-load flake, not change-caused.",
+          "evidence": [
+            {
+              "label": "isolated rerun",
+              "locator": "bin/oc-test targeted temporal files",
+              "summary": "2 files / 31 tests passed."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "continue",
+      "scope_risk": false,
+      "required_main_agent_actions": [],
+      "follow_ups": [
+        "Optional: raise testTimeout for Temporal workflow-env test files if CI flakiness persists; out of scope."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-1fdf4c678181": [
+      {
+        "runId": "tr_mrf9ce21_f31d816c",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 123754.07264100015,
+        "recordedAt": "2026-07-10T18:17:00.565Z"
+      },
+      {
+        "runId": "tr_mrf9l9na_e31d5b86",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts",
+        "durationMs": 3453.6231519998983,
+        "recordedAt": "2026-07-10T18:23:54.698Z"
+      },
+      {
+        "runId": "tr_mrf9lp3l_ecefed2f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change.test.ts",
+        "durationMs": 3236.110779000446,
+        "recordedAt": "2026-07-10T18:24:14.717Z"
+      },
+      {
+        "runId": "tr_mrfd2p9a_73f96753",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts -t \"records durable phase9_status failed\"",
+        "durationMs": 3936.604713000357,
+        "recordedAt": "2026-07-10T20:01:26.942Z"
+      },
+      {
+        "runId": "tr_mrfd484u_02bb4c01",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts -t \"records durable phase9_status failed\"",
+        "durationMs": 3431.1940979994833,
+        "recordedAt": "2026-07-10T20:02:38.045Z"
+      },
+      {
+        "runId": "tr_mrfd4njw_9d59f3df",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/tools/change.test.ts",
+        "durationMs": 3793.760808998719,
+        "recordedAt": "2026-07-10T20:02:58.027Z"
+      },
+      {
+        "runId": "tr_mrfd5wwf_b7bff711",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change.archive-phase9.test.ts src/tools/change.test.ts",
+        "durationMs": 4580.639704000205,
+        "recordedAt": "2026-07-10T20:03:56.803Z"
+      },
+      {
+        "runId": "tr_mrfd6g2d_6e0be852",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9024.46430600062,
+        "recordedAt": "2026-07-10T20:04:21.637Z"
+      }
+    ],
+    "tk-593d5838e082": [
+      {
+        "runId": "tr_mrfcfkpy_5d3b5a98",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm test -- src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts 2>&1 | tail -120",
+        "durationMs": 85824.43035200052,
+        "recordedAt": "2026-07-10T19:43:27.961Z"
+      },
+      {
+        "runId": "tr_mrfcg6u6_2099048f",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts",
+        "durationMs": 1768.8258919995278,
+        "recordedAt": "2026-07-10T19:43:56.638Z"
+      },
+      {
+        "runId": "tr_mrfcko2b_26bba435",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/subagent-reports-spec-assets.test.ts",
+        "durationMs": 1529.6883589997888,
+        "recordedAt": "2026-07-10T19:47:25.570Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-10T16:51:41.799Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal framing for GitHub issue #214; scope excludes #202, #203, and #198.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "45a9e1c3039c24afd9e90d5950bce5c69fa8a0bfba8da36fcb0dc702b1b47faf",
+        "non_whitespace_chars": 1956,
+        "checked_at": "2026-07-10T16:41:32.948Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-10T17:52:26.715Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved strict SC1-SC2 and AC1-AC5. Agreement persisted; strict ChangeContract minted with 16 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "non_whitespace_chars": 3154,
+        "checked_at": "2026-07-10T16:41:32.949Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-10T17:58:36.134Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator PASS (high confidence, low risk); no user-value tradeoff, contract compromise, or validator conflict. Design removes detached Phase-9 path and reuses awaited finalization.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "104d9450dcdab40e2d10c323ffd5244c0c43a173f88ebd265d35feb15c4a3ed2",
+        "non_whitespace_chars": 3624,
+        "checked_at": "2026-07-10T16:41:32.950Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-10T19:41:15.775Z",
+      "completed_by": "agent",
+      "approval_evidence": "User said “fix now so you can move ahead”, authorizing planning re-entry task tk-593d5838e082 for stale full-suite asset assertions; strict validation passed."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-10T19:51:44.916Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks checkpointed. Focused archive regression suite 146/146, focused asset suite 88/88, full suite 4826/4826, plugin build/typecheck/lint passed. Strict validation passes; NO_DELTAS warning is expected because required law update was applied directly to existing spec."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-10T20:15:47.828Z",
+      "completed_by": "user",
+      "approval_evidence": "User directed \"complete this change\". Independent reviewer verdict READY (attempt 2); strict contract review matrix 16/16 satisfied, 0 failing; full suite 4825/4827 (2 unrelated transient Temporal flakes pass on isolated rerun). Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "5be396e3b1b897ba9430d2749962eb230aa14f43afc1b5e7baf95c13055d38ff",
+        "non_whitespace_chars": 2372,
+        "checked_at": "2026-07-10T16:41:32.951Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "planning",
+      "reason": "User directed immediate repair of stale full-suite asset assertions discovered during final verification.",
+      "scope_delta": "Repair baseline asset assertions for advance-workflow and subagent-reports so full suite can pass; preserve direct archive behavior.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-10T19:40:50.882Z",
+      "gates_reset": [
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 214
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+      "approvedAt": "2026-07-10T17:52:14.991Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A direct archive request reaches a durable terminal finalization state of shipped or failed before its completion is reported.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "An archive affected by the prior direct-finalization defect can complete release through supported recovery after default-branch proof is available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a direct archive whose merge succeeds, when finalization completes, then it records shipped evidence and completes release only after default-branch reachability verification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given direct finalization throws, when finalization handles the error, then it records failed with actionable recovery evidence and leaves no silent pending state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given processing is interrupted after dispatch, when processing resumes, then finalization reaches durable shipped or failed state rather than losing merge work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given manual merge/push recovery for an affected archive, when supported recovery runs, then it revalidates trunk evidence and completes release.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given PR-mode finalization or #198 wedged-workflow recovery, when this change is applied, then existing behavior remains unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve the existing origin/default-branch or merged-PR proof enforced by `rq-releaseFinalization01`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep Temporal behavior replay-safe and preserve the signal/query-only change-workflow surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "A direct archive must not be reported as successfully released before terminal finalization evidence exists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not detach direct merge work behind a fire-and-forget promise.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not swallow direct-finalization failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not add automatic retry behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "PR-mode finalization defects tracked in #202 and #203.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Live wedged-workflow recovery defect tracked in #198.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Async branch-cleanup warning parity; it is a distinct observability issue, not #214's causal path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-10T20:15:03.849Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Direct phase9:run routes through awaited finalization; returns terminal shipped/pending_merge/blocked/failed. Reviewer READY attempt 2 confirmed no silent pending; change.ts:2630-2688."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Affected archives recover via reconcileArchivedBundleRetry (archive-gate.ts:238) + idempotent re-entry, revalidating origin/default proof before release. Reviewer confirmed AC4 path preserved."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.archive-phase9.test.ts synchronous-finalization tests: shipped recorded only after finalizeRelease reachability; 34/34 pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "New AC2 test: thrown finalization records durable phase9_status:failed via preservePhase9Evidence and returns actionable rq-releaseFinalization01 error; no archive save. RED tr_mrfd2p9a → GREEN tr_mrfd484u."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Interruption window eliminated; no residual phase9_status:pending on return. Verified by no-residual-pending assertions in change.archive-phase9.test.ts."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "reconcileArchivedBundleRetry revalidates trunk evidence via verifyReleaseEvidenceFromMain before completing release; archive-gate.test.ts recovery coverage green in full suite."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "PR-mode pending_merge and #198 recovery paths untouched; reviewer verified boundaries; full suite 4825/4827 (2 unrelated transient flakes)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Existing origin/default-branch and merged-PR proof in finalizeRelease/verifyReleaseGateDurableForArchive unchanged; rq-releaseFinalization01 extended, not weakened."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Changes confined to tool-layer change.ts (imports Store); no workflow-bundle/signal-query surface modified. workflow-bundle-boundary test green."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "success:false returned on blocked/failed/pending paths before archive status transition; no early success. Ordering finalization→gate→durable proof→archive preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "phase9-queue.ts fire-and-forget module deleted; direct merge work awaited inline."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "try/catch records durable failed status and returns actionable error; no swallowed failure (.catch(()=>{}) removed)."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No automatic retry added; recovery is explicit operator re-invocation."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "PR-mode defects #202/#203 not touched."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "#198 wedged-workflow recovery not touched."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Async branch-cleanup warning parity not addressed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given a direct archive whose merge succeeds, when finalization completes, then it records shipped evidence and completes release only after default-branch reachability verification.",
+    "Given direct finalization throws, when finalization handles the error, then it records failed with actionable recovery evidence and leaves no silent pending state.",
+    "Given processing is interrupted after dispatch, when processing resumes, then finalization reaches durable shipped or failed state rather than losing merge work.",
+    "Given manual merge/push recovery for an affected archive, when supported recovery runs, then it revalidates trunk evidence and completes release.",
+    "Given PR-mode finalization or #198 wedged-workflow recovery, when this change is applied, then existing behavior remains unchanged."
+  ],
+  "documents": {
+    "proposal": "## Why\n\nDirect archives can be marked archived while Phase-9 trunk merge work is silently lost, leaving release pending and requiring manual merge/push recovery.\n\n## What Changes\n\nEstablish durable, observable direct-archive finalization so merge work is awaited, failures are recorded, and recovery can act on persisted finalization state.\n\n## User Outcomes\n\n- Release operators receive either confirmed trunk-merge completion or a concrete, actionable failure.\n- Direct archives do not silently require manual git recovery.\n\n## Scope\n\n### In Scope\n\n- Phase-9 direct-archive merge dispatch and completion handling.\n- Durable finalization failure recording and surfaced recovery state.\n- Regression coverage for thrown or interrupted merge work.\n\n### Out of Scope\n\n- PR-mode archive finalization defects (#202, #203).\n- Live wedged-workflow recovery semantics (#198).\n\n### Must Not\n\n- Mark release complete without default-branch reachability evidence.\n- Swallow direct-archive finalization errors.\n\n## Affected Code\n\nLikely `plugin/src/tools/archive*.ts` and Phase-9 Temporal activity/workflow paths; exact ownership requires discovery.\n\n## Related Repositories\n\nCurrent Advance plugin repository only.\n\n## Constraints\n\n- Preserve existing direct and PR archive behavior outside the direct Phase-9 path.\n- Keep Temporal workflow behavior replay-safe and signal/query-oriented.\n\n## Impact\n\nCritical release-safety correction for direct archives.\n\n## Context\n\nGitHub issue #214 documents three consecutive direct-archive failures, each requiring manual non-fast-forward merge, push, and release-gate recovery.\n\n## Spec-Law Assessment\n\n`advance-workflow` governs archive/release sequencing and trunk-merge evidence. Discovery must determine whether the direct-archive finalization contract needs an explicit requirement or whether this is an implementation correction to existing archive/release laws.\n\n## Discovery Agenda\n\n- Trace direct Phase-9 dispatch and identify the floating promise, swallowing catch, and unwired `recordFailure` path.\n- Determine required durable state transitions and recovery API behavior.\n- Locate archive/release regression-test patterns and applicable `advance-workflow` requirements.\n- Confirm worker-restart and thrown-activity test seams.",
+    "problemStatement": "## Problem\n\nDirect archives can report success while their Phase-9 trunk merge is silently discarded. A fire-and-forget promise, a swallowing `.catch()`, and an unwired failure recorder allow a worker restart or thrown merge operation to leave the release gate pending without durable error evidence.\n\n## Desired outcome\n\nDirect-archive Phase-9 finalization must either merge and push the change commits to the default branch with durable success evidence, or persist an actionable failure state that supports recovery. Archive/release completion must not be claimed without trunk-merge evidence.\n\n## Scope\n\n- Direct-archive Phase-9 dispatch, failure persistence, and recovery visibility.\n- Tests covering worker interruption and thrown finalization work.\n\n## Exclusions\n\n- PR-mode finalization defects tracked separately in #202 and #203.\n- The live wedged-workflow recovery defect tracked in #198.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make direct-archive Phase-9 finalization durable across worker interruption.\n2. Return a terminal shipped or actionable failed outcome for direct archive requests.\n3. Provide supported release recovery for affected archives after manual merge/push evidence exists.\n\n## Discovery Findings\n\n- `change.ts:2694` dispatches direct finalization without awaiting completion.\n- `phase9-queue.ts:50` detaches the promise and swallows rejection.\n- `change.ts:2828` supplies `recordFailure`, but its best-effort use cannot protect work discarded with the detached process-local promise.\n- Existing regression coverage captures callbacks directly and does not prove durable terminal behavior through interruption/resumption.\n- `fixPhase9PrDetection` is related PR-mode work, not a conflict.\n- Async branch-cleanup warning parity is a secondary observability issue; it is explicitly out of scope.\n\n## Success Criteria\n\n- SC1: A direct archive request reaches a durable terminal finalization state of shipped or failed before its completion is reported.\n- SC2: An archive affected by the prior direct-finalization defect can complete release through supported recovery after default-branch proof is available.\n\n## Acceptance Criteria\n\n- AC1: Given a direct archive whose merge succeeds, when finalization completes, then it records shipped evidence and completes release only after default-branch reachability verification.\n- AC2: Given direct finalization throws, when finalization handles the error, then it records failed with actionable recovery evidence and leaves no silent pending state.\n- AC3: Given processing is interrupted after dispatch, when processing resumes, then finalization reaches durable shipped or failed state rather than losing merge work.\n- AC4: Given manual merge/push recovery for an affected archive, when supported recovery runs, then it revalidates trunk evidence and completes release.\n- AC5: Given PR-mode finalization or #198 wedged-workflow recovery, when this change is applied, then existing behavior remains unchanged.\n\n## Constraints\n\n- C1: Preserve the existing origin/default-branch or merged-PR proof enforced by `rq-releaseFinalization01`.\n- C2: Keep Temporal behavior replay-safe and preserve the signal/query-only change-workflow surface.\n- C3: A direct archive must not be reported as successfully released before terminal finalization evidence exists.\n\n## Avoidances\n\n- DONT1: Do not detach direct merge work behind a fire-and-forget promise.\n- DONT2: Do not swallow direct-finalization failures.\n- DONT3: Do not add automatic retry behavior.\n\n## Out of Scope\n\n- OOS1: PR-mode finalization defects tracked in #202 and #203.\n- OOS2: Live wedged-workflow recovery defect tracked in #198.\n- OOS3: Async branch-cleanup warning parity; it is a distinct observability issue, not #214's causal path.\n\n## Preview Applicability\n\nvisual_surface: false\n\nThis is backend workflow and git-finalization behavior; no frontend preview is applicable.\n\n## Decisions\n\n### User Decisions\n\n- Failure outcome: durable failure plus actionable recovery; automatic retry is excluded.\n- Existing affected archives: include supported recovery after manual merge/push proof.\n- Archive response: direct archives report terminal shipped or failed result, not merely pending.\n\n### Agent Decisions (LBP)\n\n- Use durable workflow-owned finalization state rather than process-local detached work.\n- Modify `rq-releaseFinalization01`: direct dispatch must produce durable terminal evidence while retaining existing release-proof safeguards.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved by user in this conversation on 2026-07-10.",
+    "design": "# Design\n\n## Architecture Overview\n\nRemove the detached direct-archive Phase-9 execution path. A direct `adv_change_archive phase9:\"run\"` call will use the existing awaited finalization pipeline: `finalizeRelease` → release-gate completion → durable release-proof verification → archive status transition. The tool therefore returns only a terminal shipped, pending-merge, or actionable blocked/failed result.\n\n## Key Decisions\n\n1. **Reuse the existing synchronous finalization pipeline.** `change.ts:2882-3035` already enforces release proof before archive retirement. Remove the duplicate detached closure at `change.ts:2635-2880` rather than create another durable queue.\n2. **Retire `phase9-queue.ts`.** Its sole production consumer is the direct archive path; its `.catch(() => {})` is the silent-loss mechanism. Remove production and test-only references.\n3. **Use existing recovery entries.** Failed synchronous attempts retain an active change and can be retried through `adv_change_archive`; already-archived bundle cases continue through `reconcileArchivedBundleRetry`, which revalidates default-branch proof before release repair. No new recovery tool or auto-retry is introduced.\n4. **Extend existing release law.** Add a scenario under `rq-releaseFinalization01` requiring direct finalization to be awaited and terminal before successful completion is reported; retain existing proof and recovery rules.\n\n## Implementation Strategy\n\n1. Remove the `phase9 === \"run\"` async-dispatch branch in `plugin/src/tools/change.ts`; let direct archives use the existing awaited path.\n2. Delete the queue module and all production/test-only imports, mocks, and spies after exact consumer scan.\n3. Rewrite callback-capture tests as direct archive-call tests proving terminal success, typed failure, no residual pending state, and recovery after manual merge/push proof.\n4. Add the `rq-releaseFinalization01` scenario and regenerate/check spec documentation.\n5. Run focused archive tests, then repository validation required by touched specs.\n\n## LBP Analysis\n\nA durable job/resumer subsystem adds workflow state, startup reconciliation, and failure modes. Existing awaited finalization already supplies terminal semantics and release-proof enforcement. Removing the interruption window is structurally safer and honors the no-auto-retry agreement.\n\n## Affected Components\n\n- `plugin/src/tools/change.ts`\n- `plugin/src/tools/archive-helpers/phase9-queue.ts` (delete)\n- `plugin/src/tools/change.archive-phase9.test.ts`\n- `plugin/src/tools/change.test.ts`\n- `.adv/specs/advance-workflow/spec.json` and generated spec documentation\n\n## Design-Derived Criteria\n\n- DC1: On return from direct `phase9:\"run\"`, no active change retains `phase9_status: \"pending\"` from that request.\n- DC2: Ordering remains finalization proof → release gate → durable readback → archive status.\n- DC3: No retry loop, worker-startup reconciler, or direct external-state-file mutation.\n- DC4: Exact scan proves no production or test-only queue references remain before deletion.\n\n## Risks / Mitigations\n\n- Longer archive calls: acceptable release-gate tradeoff; correctness replaces false success.\n- Recovery: test active-change re-entry and archived-bundle reconciliation separately.\n- PR regression: retain route-specific pending-merge coverage.\n- Spec drift: scenario extends existing release law; regenerate/check docs.\n\n## Design Leverage Scout\n\nFive candidates considered. Adopted: reuse awaited pipeline, remove sole-consumer queue, structurally eliminate interruption window. Reused recovery and existing law scenario require explicit tests only.\n\n## Independent Validation\n\nValidator: PASS — high confidence, low risk.\n\nEvidence: queue is sole production consumer; awaited path preserves direct cleanup, issue closure, Epic projection, and finalization ordering. `reconcileArchivedBundleRetry` supplies proof-based recovery. No workflow-bundle or signal/query surface changes. Tradeoff: longer synchronous archive call; accepted as release-gate work.\n\nNon-blocking planning anchors: assert DC1 directly; remove queue test references; regenerate/check spec docs.",
+    "executiveSummary": "# Executive Summary — fixDirectArchiveMerge\n\n## Outcome\n\nDirect archives no longer silently lose their trunk-merge finalization. A direct `adv_change_archive phase9:\"run\"` now runs its Phase-9 git finalization inline and reaches a durable terminal state — shipped (after default-branch reachability proof), pending-merge, blocked, or a recorded failed state — before it reports completion.\n\n## Why It Matters\n\nGitHub issue #214 documented three consecutive direct archives that reported success while their trunk merge was discarded, each requiring manual non-fast-forward merge, push, and release-gate recovery. The defect was structural: a fire-and-forget promise, a swallowing `.catch(() => {})`, and a best-effort failure recorder that could not survive a worker restart or a thrown merge. Release operators now receive either confirmed completion or a concrete, actionable failure — never a false success.\n\n## What Changed\n\n- Removed the detached direct Phase-9 execution branch; direct archives reuse the existing awaited finalization pipeline (finalization proof → release gate → durable readback → archive status → cleanup).\n- Deleted the single-consumer `phase9-queue.ts` fire-and-forget module.\n- Wrapped finalization so a thrown git operation records a durable `phase9_status: \"failed\"` with recovery evidence and returns an actionable error, instead of propagating silently.\n- Codified the behavior in `rq-releaseFinalization01` (new scenario `.12`) as release law.\n- Repaired stale full-suite asset assertions surfaced during verification (user-authorized campsite fix).\n\n## Verification\n\n- Focused archive/change suites: 34/34 Phase-9, 135/135 combined.\n- Full suite: 4825/4827 — the two failures are transient Temporal 5000ms timeouts that pass on isolated rerun (31/31), unrelated to this change.\n- Typecheck, lint, prettier, and plugin build all pass.\n- Independent acceptance review verdict: READY (attempt 2). Strict contract review matrix: 16/16 items satisfied, 0 failing.\n\n## Risks / Follow-ups\n\n- Direct archive calls are now longer because git merge/push/fetch runs inside the request; this is release-gate work and terminal correctness outweighs the former fast-but-lossy pending response.\n- Out of scope and unchanged: PR-mode finalization (#202/#203), wedged-workflow recovery (#198), async branch-cleanup warning parity.\n- Advisory follow-up: raise `testTimeout` for Temporal workflow-env test files if CI flakiness persists.\n\n## Live-Behavior Note\n\nThis change modifies ADV tool behavior in `plugin/src/tools/change.ts`. Per repo convention, live tool-invocation validation requires a rebuild (`pnpm run build` + `deploy-local.sh --fix`) and a fresh OpenCode session; source fixes were validated via the vitest suite in-session.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-10T20:15:03.849Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A direct archive request reaches a durable terminal finalization state of shipped or failed before its completion is reported. | pass | Direct phase9:run routes through awaited finalization; returns terminal shipped/pending_merge/blocked/failed. Reviewer READY attempt 2 confirmed no silent pending; change.ts:2630-2688. |\n| SC2 | success_criterion | An archive affected by the prior direct-finalization defect can complete release through supported recovery after default-branch proof is available. | pass | Affected archives recover via reconcileArchivedBundleRetry (archive-gate.ts:238) + idempotent re-entry, revalidating origin/default proof before release. Reviewer confirmed AC4 path preserved. |\n| AC1 | acceptance_criterion | Given a direct archive whose merge succeeds, when finalization completes, then it records shipped evidence and completes release only after default-branch reachability verification. | pass | change.archive-phase9.test.ts synchronous-finalization tests: shipped recorded only after finalizeRelease reachability; 34/34 pass. |\n| AC2 | acceptance_criterion | Given direct finalization throws, when finalization handles the error, then it records failed with actionable recovery evidence and leaves no silent pending state. | pass | New AC2 test: thrown finalization records durable phase9_status:failed via preservePhase9Evidence and returns actionable rq-releaseFinalization01 error; no archive save. RED tr_mrfd2p9a → GREEN tr_mrfd484u. |\n| AC3 | acceptance_criterion | Given processing is interrupted after dispatch, when processing resumes, then finalization reaches durable shipped or failed state rather than losing merge work. | pass | Interruption window eliminated; no residual phase9_status:pending on return. Verified by no-residual-pending assertions in change.archive-phase9.test.ts. |\n| AC4 | acceptance_criterion | Given manual merge/push recovery for an affected archive, when supported recovery runs, then it revalidates trunk evidence and completes release. | pass | reconcileArchivedBundleRetry revalidates trunk evidence via verifyReleaseEvidenceFromMain before completing release; archive-gate.test.ts recovery coverage green in full suite. |\n| AC5 | acceptance_criterion | Given PR-mode finalization or #198 wedged-workflow recovery, when this change is applied, then existing behavior remains unchanged. | pass | PR-mode pending_merge and #198 recovery paths untouched; reviewer verified boundaries; full suite 4825/4827 (2 unrelated transient flakes). |\n| C1 | constraint | Preserve the existing origin/default-branch or merged-PR proof enforced by `rq-releaseFinalization01`. | respected | Existing origin/default-branch and merged-PR proof in finalizeRelease/verifyReleaseGateDurableForArchive unchanged; rq-releaseFinalization01 extended, not weakened. |\n| C2 | constraint | Keep Temporal behavior replay-safe and preserve the signal/query-only change-workflow surface. | respected | Changes confined to tool-layer change.ts (imports Store); no workflow-bundle/signal-query surface modified. workflow-bundle-boundary test green. |\n| C3 | constraint | A direct archive must not be reported as successfully released before terminal finalization evidence exists. | respected | success:false returned on blocked/failed/pending paths before archive status transition; no early success. Ordering finalization→gate→durable proof→archive preserved. |\n| DONT1 | avoidance | Do not detach direct merge work behind a fire-and-forget promise. | respected | phase9-queue.ts fire-and-forget module deleted; direct merge work awaited inline. |\n| DONT2 | avoidance | Do not swallow direct-finalization failures. | respected | try/catch records durable failed status and returns actionable error; no swallowed failure (.catch(()=>{}) removed). |\n| DONT3 | avoidance | Do not add automatic retry behavior. | respected | No automatic retry added; recovery is explicit operator re-invocation. |\n| OOS1 | out_of_scope | PR-mode finalization defects tracked in #202 and #203. | not_applicable | PR-mode defects #202/#203 not touched. |\n| OOS2 | out_of_scope | Live wedged-workflow recovery defect tracked in #198. | not_applicable | #198 wedged-workflow recovery not touched. |\n| OOS3 | out_of_scope | Async branch-cleanup warning parity; it is a distinct observability issue, not #214's causal path. | not_applicable | Async branch-cleanup warning parity not addressed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-10T16:42:12.350Z",
+      "contentHash": "45a9e1c3039c24afd9e90d5950bce5c69fa8a0bfba8da36fcb0dc702b1b47faf",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-10T16:41:32.995Z",
+      "contentHash": "48524ad357cd4c01fa9510e3cb72fa92100d8b0615c72cf05b139050a97fe7ca",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-10T17:52:08.663Z",
+      "contentHash": "7704cb67c1dfac59c4fcc0ddeb45dcbd7b1477c913f0fe8ac94f46940dd29aa2",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-10T17:58:10.279Z",
+      "contentHash": "104d9450dcdab40e2d10c323ffd5244c0c43a173f88ebd265d35feb15c4a3ed2",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-10T20:15:43.028Z",
+      "contentHash": "5be396e3b1b897ba9430d2749962eb230aa14f43afc1b5e7baf95c13055d38ff",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-10T20:15:47.828Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
