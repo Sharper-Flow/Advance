@@ -145,7 +145,7 @@ function terminalProjectionConsistencyFields(
   entry: Extract<EpicEntry, { kind: "change" }>,
 ) {
   const member_status = memberStatusForEntry(entry);
-  if (member_status.status === "ok") {
+  if (entry.membership_status === "terminal") {
     return { repaired: true, member_status };
   }
   return {
