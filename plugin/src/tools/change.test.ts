@@ -14,7 +14,6 @@ import type { Store } from "../storage/store";
 import type { Change, Spec } from "../types";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import * as gitFinalize from "./archive-helpers/git-finalize";
-import * as phase9Queue from "./archive-helpers/phase9-queue";
 import * as worktree from "./worktree";
 
 const mocks = vi.hoisted(() => {
@@ -3632,9 +3631,6 @@ describe("change tools — signal-driven lifecycle", () => {
         const deleteBranchSpy = vi
           .spyOn(gitFinalize, "deleteChangeBranch")
           .mockReturnValue({ localDeleted: true, remoteDeleted: false });
-        const dispatchSpy = vi
-          .spyOn(phase9Queue, "dispatchPhase9Finalization")
-          .mockReturnValue(undefined);
         const worktreeCleanupSpy = vi
           .spyOn(worktree, "advWorktreeCleanup")
           .mockResolvedValue(undefined);
@@ -3650,7 +3646,6 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(parsed.archivePath).toContain("test-change");
         expect(finalizeSpy).not.toHaveBeenCalled();
         expect(deleteBranchSpy).not.toHaveBeenCalled();
-        expect(dispatchSpy).not.toHaveBeenCalled();
         expect(worktreeCleanupSpy).not.toHaveBeenCalled();
         expect(mocks.removeChangeDir).not.toHaveBeenCalled();
         expect(mocks.execGh).not.toHaveBeenCalled();

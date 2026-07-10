@@ -117,7 +117,6 @@ const mocks = vi.hoisted(() => {
         };
       },
     ),
-    dispatchPhase9Finalization: vi.fn(),
   };
 });
 
@@ -166,10 +165,6 @@ vi.mock("../temporal/service", () => ({
 
 vi.mock("./_recovery-writers", () => ({
   saveRecoveredGateCompletion: mocks.saveRecoveredGateCompletion,
-}));
-
-vi.mock("./archive-helpers/phase9-queue", () => ({
-  dispatchPhase9Finalization: mocks.dispatchPhase9Finalization,
 }));
 
 function createMockStore(
@@ -1259,8 +1254,12 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(store.changes.save).not.toHaveBeenCalled();
   });
 
-  // AC3: async phase9 dispatch
-  test("dispatches phase9 finalization async when phase9=run", async () => {
+  // AC3: phase9=run finalizes synchronously (no detached async dispatch).
+  // Direct phase9:run must return a terminal outcome (shipped/archived,
+  // pending_merge, or blocked error) rather than the legacy "pending"
+  // fire-and-forget, and a thrown finalization must leave no residual
+  // "pending" phase9_status.
+  test("phase9=run runs finalization synchronously and archives (terminal, no pending)", async () => {
     const store = createMockStore();
     const result = await changeTools.adv_change_archive.execute(
       { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
@@ -1269,46 +1268,22 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
-    expect(parsed.phase9).toBe("pending");
-    expect(mocks.dispatchPhase9Finalization).toHaveBeenCalledTimes(1);
-    // Finalization must NOT run synchronously
-    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
-    // phase9_status should be persisted via workflow state, not legacy save.
-    expect(mocks.workflow.signalPayloads).toContainEqual(
+    // Finalization runs inline (synchronous), not via a detached dispatch.
+    expect(mocks.finalizeRelease).toHaveBeenCalledTimes(1);
+    // Terminal: no "pending" fire-and-forget marker is returned or recorded.
+    expect(parsed.phase9).not.toBe("pending");
+    expect(mocks.workflow.signalPayloads).not.toContainEqual(
       expect.objectContaining({
         phase9_status: expect.objectContaining({ status: "pending" }),
       }),
     );
-  });
-
-  test("async phase9 callback completes archive and updates phase9_status to done", async () => {
-    const store = createMockStore();
-    let capturedRun: (() => Promise<void>) | undefined;
-    mocks.dispatchPhase9Finalization.mockImplementationOnce(
-      (params: { run: () => Promise<void> }) => {
-        capturedRun = params.run;
-      },
-    );
-
-    await changeTools.adv_change_archive.execute(
-      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
-      store,
-    );
-
-    expect(capturedRun).toBeDefined();
-    await capturedRun!();
-
-    expect(mocks.workflow.signalPayloads).toContainEqual(
-      expect.objectContaining({
-        phase9_status: expect.objectContaining({ status: "done" }),
-      }),
-    );
-    expect(store.changes.save).toHaveBeenLastCalledWith(
+    // Archive transition completes synchronously.
+    expect(store.changes.save).toHaveBeenCalledWith(
       expect.objectContaining({ status: "archived" }),
     );
   });
 
-  test("async phase9 callback records pending_merge without archiving", async () => {
+  test("phase9=run records pending_merge terminal without archiving", async () => {
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "pending_merge",
       mainCheckout: "/tmp/main",
@@ -1321,21 +1296,14 @@ describe("adv_change_archive Phase 9 behavior", () => {
       route: "pr_auto_merge",
     });
     const store = createMockStore();
-    let capturedRun: (() => Promise<void>) | undefined;
-    mocks.dispatchPhase9Finalization.mockImplementationOnce(
-      (params: { run: () => Promise<void> }) => {
-        capturedRun = params.run;
-      },
-    );
 
-    await changeTools.adv_change_archive.execute(
+    const result = await changeTools.adv_change_archive.execute(
       { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
       store,
     );
 
-    expect(capturedRun).toBeDefined();
-    await capturedRun!();
-
+    const parsed = JSON.parse(result);
+    expect(parsed.phase9).toBe("pending_merge");
     expect(mocks.workflow.signalPayloads).toContainEqual(
       expect.objectContaining({
         phase9_status: expect.objectContaining({
@@ -1348,10 +1316,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(store.changes.save).not.toHaveBeenCalledWith(
       expect.objectContaining({ status: "archived" }),
     );
-    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
-  test("async phase9 callback records failed status on blocked finalization", async () => {
+  test("phase9=run returns blocked error without residual pending state", async () => {
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "blocked",
       mainCheckout: "/tmp/main",
@@ -1362,138 +1329,47 @@ describe("adv_change_archive Phase 9 behavior", () => {
         remediation: "Clean the main checkout",
       },
     });
-
     const store = createMockStore();
-    let capturedRun: (() => Promise<void>) | undefined;
-    mocks.dispatchPhase9Finalization.mockImplementationOnce(
-      (params: { run: () => Promise<void> }) => {
-        capturedRun = params.run;
-      },
-    );
 
-    await changeTools.adv_change_archive.execute(
+    const result = await changeTools.adv_change_archive.execute(
       { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
       store,
     );
 
-    expect(capturedRun).toBeDefined();
-    await expect(capturedRun!()).rejects.toThrow();
-
-    // Failure state should be recorded by the queue wrapper
-    // (the queue module is responsible for catching and recording)
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("Archive finalization blocked");
+    // No "pending" phase9_status was ever written (no residual pending).
+    expect(mocks.workflow.signalPayloads).not.toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({ status: "pending" }),
+      }),
+    );
+    expect(store.changes.save).not.toHaveBeenCalledWith(
+      expect.objectContaining({ status: "archived" }),
+    );
   });
 
-  // rq-fixPhase9PrDetection AC4: the async recordFailure transition must
-  // preserve durable Phase-9 evidence (repo, prNumber, prUrl, route,
-  // changeTipSha) so a later archived-bundle retry can still resolve
-  // reachability after branch auto-delete.
-  test("async recordFailure preserves durable phase9 evidence across failed transition", async () => {
-    const store = createMockStore({
-      phase9_status: {
-        status: "pending",
-        startedAt: "2026-01-01T00:00:00Z",
-        changeTipSha: "tip-202-abc",
-        repo: "Sharper-Flow/Advance",
-        route: "pr_auto_merge",
-      },
-    });
-    let capturedRecordFailure: ((error: unknown) => Promise<void>) | undefined;
-    mocks.dispatchPhase9Finalization.mockImplementationOnce(
-      (params: { recordFailure: (error: unknown) => Promise<void> }) => {
-        capturedRecordFailure = params.recordFailure;
-      },
-    );
-
-    await changeTools.adv_change_archive.execute(
-      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
-      store,
-    );
-
-    expect(capturedRecordFailure).toBeDefined();
-    await capturedRecordFailure!(new Error("Archive finalization blocked"));
-
-    const failedSignal = mocks.workflow.signalPayloads.find(
-      (payload) =>
-        (payload.phase9_status as { status?: string } | undefined)?.status ===
-        "failed",
-    );
-    expect(failedSignal).toBeDefined();
-    expect(failedSignal?.phase9_status).toMatchObject({
-      status: "failed",
-      changeTipSha: "tip-202-abc",
-      repo: "Sharper-Flow/Advance",
-      route: "pr_auto_merge",
-      error: "Archive finalization blocked",
-    });
-  });
-
-  // rq-fixPhase9PrDetection release-readiness: even if reading the change
-  // record fails, recordFailure must still attempt to record a failed status.
-  test("async recordFailure records failed status even when store.changes.get fails", async () => {
-    const change: Change = {
-      id: "example",
-      title: "Example",
-      status: "active",
-      created_at: "2026-01-01T00:00:00Z",
-      created_by: "test",
-      tasks: [
-        {
-          id: "tk-1",
-          title: "Task 1",
-          status: "done",
-          created_at: "2026-01-01T00:00:00Z",
-        },
-      ],
-      deltas: {},
-      wisdom: [],
-      gates: {
-        proposal: { status: "done" },
-        discovery: { status: "done" },
-        design: { status: "done" },
-        planning: { status: "done" },
-        execution: { status: "done" },
-        acceptance: { status: "done" },
-        release: { status: "pending" },
-      },
-      phase9_status: undefined,
-    };
+  test("phase9=run thrown finalization leaves no residual pending state", async () => {
+    mocks.finalizeRelease.mockRejectedValueOnce(new Error("boom"));
     const store = createMockStore();
-    let shouldFailGet = false;
-    store.changes.get = vi.fn(async () => {
-      if (shouldFailGet) {
-        throw new Error("disk read failed");
-      }
-      return { success: true, data: change };
-    });
-    let capturedRecordFailure: ((error: unknown) => Promise<void>) | undefined;
-    mocks.dispatchPhase9Finalization.mockImplementationOnce(
-      (params: { recordFailure: (error: unknown) => Promise<void> }) => {
-        capturedRecordFailure = params.recordFailure;
-        shouldFailGet = true;
-      },
-    );
 
-    await changeTools.adv_change_archive.execute(
-      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
-      store,
-    );
+    await expect(
+      changeTools.adv_change_archive.execute(
+        { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+        store,
+      ),
+    ).rejects.toThrow("boom");
 
-    expect(capturedRecordFailure).toBeDefined();
-    await capturedRecordFailure!(new Error("Archive finalization blocked"));
-
-    const failedSignal = mocks.workflow.signalPayloads.find(
-      (payload) =>
-        (payload.phase9_status as { status?: string } | undefined)?.status ===
-        "failed",
+    // Thrown finalization must not leave a residual "pending" phase9_status.
+    expect(mocks.workflow.signalPayloads).not.toContainEqual(
+      expect.objectContaining({
+        phase9_status: expect.objectContaining({ status: "pending" }),
+      }),
     );
-    expect(failedSignal).toBeDefined();
-    expect(failedSignal?.phase9_status).toMatchObject({
-      status: "failed",
-      error: "Archive finalization blocked",
-    });
   });
 
-  test("dryRun with phase9=run does not dispatch async or mutate state", async () => {
+  test("dryRun with phase9=run does not finalize or mutate state", async () => {
     const store = createMockStore();
     const result = await changeTools.adv_change_archive.execute(
       {
@@ -1507,7 +1383,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
     const parsed = JSON.parse(result);
     expect(parsed.dryRun).toBe(true);
-    expect(mocks.dispatchPhase9Finalization).not.toHaveBeenCalled();
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
     expect(store.changes.save).not.toHaveBeenCalled();
     expect(parsed.phase9).toBeUndefined();
   });
@@ -1523,7 +1399,6 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.finalization).toBeUndefined();
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
-    expect(mocks.dispatchPhase9Finalization).not.toHaveBeenCalled();
   });
 
   // AC4: phase9_status visible in adv_change_show
