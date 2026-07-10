@@ -632,6 +632,7 @@ describe("epic-state", () => {
         status: "archived",
         completed_at: "2026-06-24T00:02:00.000Z",
       });
+      expect(entry.membership_status).toBe("terminal");
     });
 
     it("records closed terminal summary and recomputes progress", () => {
@@ -657,6 +658,7 @@ describe("epic-state", () => {
       expect(entry.kind).toBe("change");
       if (entry.kind !== "change") throw new Error("Expected change entry");
       expect(entry.terminal_summary?.status).toBe("closed");
+      expect(entry.membership_status).toBe("terminal");
     });
 
     it("returns entry_not_found for missing entry", () => {
