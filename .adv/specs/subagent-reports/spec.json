@@ -3,8 +3,8 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.7.0",
-  "updated_at": "2026-07-02T18:00:00.000Z",
+  "version": "1.7.1",
+  "updated_at": "2026-07-10T00:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
@@ -844,6 +844,60 @@
           "given": ["A change workflow is active (draft, pending, or active)"],
           "when": "adv_subagent_report_submit is called",
           "then": ["The signal path (subagentReportSubmittedSignal) is used as before", "No disk-projection fallback is triggered", "A defensive catch routes completed-workflow race errors to the fallback"]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports23",
+      "title": "Report-derived loop-ledger sources are typed evidence, not authority",
+      "body": "adv-reviewer remediation and harden reports, adv-scanner-bundle review/harden summaries, and orchestrator-submitted adv-verification-triage-bundle (local_verify and ci_check) reports are loop-ledger sources surfaced through adv_change_show include.loopLedger. Reviewer reports map to review_remediation/harden_remediation; verification triage maps to verification_triage (local_verify) or ci_repair (ci_check, carrying ci_check source refs). These ledger entries are derived, typed evidence and MUST NOT authorize, complete, or block any task, contract item, report, or gate; they MUST NOT mutate tasks, change scope, edit code, or spawn remediation. UNKNOWN or routing-only verification triage MUST remain evidence-only: it maps to verdict inconclusive, MUST NOT write task error_recovery (re-affirming rq-subagentReports19), and MUST NOT increment the loop ledger retryFailureCount. The loop ledger is a readback projection; vector/ML similarity and autonomy/retry changes remain out of scope (AC5/AC7).",
+      "priority": "must",
+      "tags": [
+        "subagents",
+        "reports",
+        "loop-ledger",
+        "projection",
+        "evidence"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports23.1",
+          "title": "Reviewer and triage reports are loop sources",
+          "given": [
+            "Persisted adv-reviewer (review/harden), adv-scanner-bundle, or adv-verification-triage-bundle reports exist"
+          ],
+          "when": "adv_change_show include.loopLedger projects the change",
+          "then": [
+            "Reviewer reports produce review_remediation/harden_remediation entries",
+            "local_verify triage produces verification_triage; ci_check triage produces ci_repair with ci_check source refs",
+            "Entries carry producer, evaluator, attemptCount, verdict, nextAction, and sourceRefs"
+          ]
+        },
+        {
+          "id": "rq-subagentReports23.2",
+          "title": "UNKNOWN triage stays inconclusive and non-authoritative",
+          "given": [
+            "A verification-triage report has error_class UNKNOWN or status inconclusive"
+          ],
+          "when": "The loop ledger entry is derived",
+          "then": [
+            "The entry verdict is inconclusive",
+            "No task error_recovery is written (re-affirming rq-subagentReports19)",
+            "retryFailureCount is not incremented",
+            "No task, gate, scope, code, or autonomy mutation occurs"
+          ]
+        },
+        {
+          "id": "rq-subagentReports23.3",
+          "title": "Ledger projection grants no authority",
+          "given": [
+            "A report-derived ledger entry has verdict pass or fail"
+          ],
+          "when": "Task, contract, report, or gate readiness is evaluated",
+          "then": [
+            "The entry does not complete, unblock, or block any task, contract item, report, or gate",
+            "Vector/ML similarity is advisory-only and out of scope (AC5/AC7)"
+          ]
         }
       ]
     }

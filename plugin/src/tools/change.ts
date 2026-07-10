@@ -530,7 +530,9 @@ export const changeTools = {
             .min(1)
             .max(100)
             .optional()
-            .describe("Maximum detailed loop-ledger entries. Range 1-100; default 20."),
+            .describe(
+              "Maximum detailed loop-ledger entries. Range 1-100; default 20.",
+            ),
           snapshot: z
             .boolean()
             .optional()
@@ -823,6 +825,8 @@ export const changeTools = {
           if (include.ledger) {
             output._ledger = null;
           }
+          // rq-loopLedger01 — opt-in compact/detail _loopLedger readback;
+          // legacy include.ledger above stays _ledger:null and is not aliased.
           if (include.loopLedger || include.loopLedgerDetails) {
             output._loopLedger = projectLoopLedger(
               {

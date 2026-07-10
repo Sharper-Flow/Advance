@@ -7,6 +7,14 @@
  * records; it never mutates state, never increments retry budgets, and never
  * authorizes task/gate completion (AC5/D5). Missing legacy fields default
  * safely and never throw (AC6/DDC5).
+ *
+ * rq-loopLedger01 — opt-in compact/detail _loopLedger readback (1–100/default
+ * 20; legacy include.ledger unchanged; target_path + terminal safe).
+ * rq-subagentReports23 — report-derived review/harden/verification/ci entries
+ * are typed evidence, not authority; UNKNOWN/routing-only → inconclusive.
+ * rq-TDD012ledgerEvidence — test_runs + retryFailureCount are evidence, never
+ * retry/attempt authority (testRunRecordedSignal ordering + task.error_recovery
+ * remain authoritative).
  */
 
 import type {

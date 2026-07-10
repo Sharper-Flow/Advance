@@ -1,7 +1,7 @@
 # TDD Contract
 
-> **Version:** 1.7.0
-> **Updated:** 2026-06-22
+> **Version:** 1.7.1
+> **Updated:** 2026-07-10
 
 ## Purpose
 
@@ -359,5 +359,45 @@ For ordinary inline TDD work, the primary red/green execution path MUST use adv_
 - Only `red`, `green`, or `verify` values are accepted
 - The accepted value is returned as descriptive metadata
 - The phase value is not gate enforcement
+
+---
+
+### Loop-Ledger test_runs and retryFailureCount Are Derived Evidence, Not Retry Authority
+
+**ID:** `rq-TDD012ledgerEvidence` | **Priority:** **[MUST]**
+
+The adv_change_show loop-ledger readback (rq-loopLedger01) surfaces test_runs only as source references (kind test_run) and exposes a derived retryFailureCount. Neither is authoritative. The authoritative red/green sequence remains the testRunRecordedSignal record ordering enforced at task completion (rq-TDD009seq), and the authoritative retry/attempt accounting remains task.attempts plus task.error_recovery. test_runs MUST NOT be reinterpreted as attempt counts, and the ledger retryFailureCount MUST NOT redefine or gate the retry budget, task completion, or acceptance. This clarification does not broaden TDD enforcement; it only pins the readback as evidence.
+
+**Tags:** `tdd`, `loop-ledger`, `evidence`, `projection`
+
+#### Scenarios
+
+**test_runs are evidence refs, never attempt counts** (`rq-TDD012ledgerEvidence.1`)
+
+**Given:**
+
+- A task has adv_run_test test_runs recorded against it
+
+**When:** The loop ledger is projected or task completion is evaluated
+
+**Then:**
+
+- test_runs appear only as source refs of kind test_run in the ledger
+- They are not counted as task retry attempts
+- Red/green ordering authority remains testRunRecordedSignal ordering (rq-TDD009seq)
+
+**Ledger retryFailureCount does not redefine retry authority** (`rq-TDD012ledgerEvidence.2`)
+
+**Given:**
+
+- The loop ledger reports a retryFailureCount for a change
+
+**When:** Task completion, retry budget, or acceptance is evaluated
+
+**Then:**
+
+- retryFailureCount is treated as derived evidence only
+- task.attempts and task.error_recovery remain the authoritative retry accounting
+- The ledger value does not gate task completion or acceptance
 
 ---
