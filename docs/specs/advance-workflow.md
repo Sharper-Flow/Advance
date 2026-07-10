@@ -454,7 +454,7 @@ Archive of a change that touches a spec with `conformance_required: true` is blo
 
 **ID:** `rq-releaseFinalization01` | **Priority:** **[MUST]**
 
-Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` may complete as local-only and report `Merged locally.`. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:"skip"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_archive_repair` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push.
+Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` may complete as local-only and report `Merged locally.`. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:"skip"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_archive_repair` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push. For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or `Merged locally.` for `no_remote`), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.
 
 **Tags:** `workflow`, `archive`, `worktree`, `git`
 
@@ -611,6 +611,21 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 - Scan reports the archived-but-unmerged branch with release-proof diagnostics
 - Re-drive opens or reuses exactly one PR for the branch and arms GitHub auto-merge when possible
 - Re-drive never force-pushes and does not mark release complete until origin/default reachability or merged PR state is proven
+
+**Direct finalization reaches durable terminal evidence** (`rq-releaseFinalization01.12`)
+
+**Given:**
+- A direct (non-PR) archive dispatches Phase 9 Git Finalization
+- The change requires post-fetch `origin/{default-branch}` reachability, merged PR state, or no-remote local proof before release
+
+**When:** Phase 9 finalization runs to completion, throws, or is interrupted after dispatch and then resumes
+
+**Then:**
+- Finalization is awaited to a durable terminal state before archive completion is reported: `Shipped.` only after post-fetch `origin/{default-branch}` reachability (or `Merged locally.` for `no_remote`), else a recorded failed outcome with actionable recovery evidence
+- Direct merge work is not detached behind a fire-and-forget promise and finalization failures are not swallowed
+- Interruption after dispatch resumes to the same durable shipped-or-failed state rather than losing merge work, with no automatic retry
+- Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release
+- PR-mode finalization and wedged-workflow recovery remain unchanged
 
 ---
 
