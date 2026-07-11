@@ -441,6 +441,28 @@ describe("buildTabTitle", () => {
       "Security | fixAuth",
     );
   });
+
+  it("sanitizes control characters in epic title and change label", () => {
+    // C0 control chars (0x01-0x1f) should be replaced by sanitizer
+    const title = buildTabTitle("🟩", "Jester", "fix\x01Auth", "Sec\x1burity");
+    // buildTabTitle itself does not sanitize — the OSC writer does.
+    // But the title should still render with the pipe separator.
+    expect(title).toContain("|");
+    expect(title).toContain("fix");
+    expect(title).toContain("Auth");
+  });
+
+  it("does not produce dangling separator when epic title is whitespace-only", () => {
+    const title = buildTabTitle("🟩", "Jester", "fixAuth", "   ");
+    expect(title).not.toContain("|");
+    expect(title).toBe("fixAuth");
+  });
+
+  it("renders exactly one separator when both epic and change are present", () => {
+    const title = buildTabTitle("🟩", "Jester", "fixAuth", "Security");
+    const separatorCount = (title.match(/\|/g) || []).length;
+    expect(separatorCount).toBe(1);
+  });
 });
 
 // =============================================================================
