@@ -1,7 +1,7 @@
 # Advance Delivery
 
-> **Version:** 1.3.3
-> **Updated:** 2026-07-10
+> **Version:** 1.4.0
+> **Updated:** 2026-07-11
 
 ## Purpose
 
@@ -675,5 +675,89 @@ adv_change_show MUST expose an opt-in typed loop-ledger readback over existing A
 **Then:**
 - _loopLedger is returned from the target store or terminal disk projection
 - No live/running workflow is required for the read
+
+---
+
+### Orphan Identity Store Consolidation
+
+**ID:** `rq-storeConsolidation01` | **Priority:** **[MUST]**
+
+ADV must provide a consolidation tool (`adv_store_consolidate`) that merges an orphaned identity store — minted under a shallow-boundary or graft pseudo-root SHA — into the true-root store with zero silent data loss. The tool is dry-run-first: scan and dry-run are strictly read-only, and execution is approval-gated. Terminal items import as disk projections and live items are recreated under the true identity via new Temporal workflows carrying prior state (never history rewrites). Duplicate item IDs halt consolidation with a per-ID collision report; nothing is overwritten. An append-only ledger keyed on (sourceProjectId, targetProjectId, itemId) makes re-runs structurally idempotent no-ops. The orphan source store is never modified or deleted by consolidation.
+
+**Tags:** `identity`, `consolidation`, `recovery`, `audit`
+
+#### Scenarios
+
+**Scan enumerates orphan candidates without mutations** (`rq-storeConsolidation01.1`)
+
+**Given:**
+- A repository with one or more external state stores minted under shallow-boundary or unstable SHAs
+
+**When:** adv_store_consolidate runs with action `scan`
+
+**Then:**
+- Candidate orphan stores are enumerated across XDG shard layouts (`opencode-projects/<shard>/…` and legacy `opencode/plugins/advance/<id>/`)
+- Stores minted under unstable SHAs are flagged using structural git checks only
+- No files are created, modified, or deleted
+
+**Dry-run emits the full per-item plan with zero mutations** (`rq-storeConsolidation01.2`)
+
+**Given:**
+- A source orphan store and a resolved true-root target store
+
+**When:** adv_store_consolidate runs with action `dry_run`
+
+**Then:**
+- The plan partitions changes into live vs terminal, and lists archive bundles, Epics (including retired Epics), and wisdom/agenda/reflections row counts
+- Each item carries a plan action (`recreate`, `import_projection`, `append_dedupe`, `skip_collision`, or `skip_ledgered`)
+- A per-ID collision report is included
+- No mutations are applied to either store
+
+**Execute is approval-gated and refuses unsafe preconditions** (`rq-storeConsolidation01.3`)
+
+**Given:**
+- A valid dry-run plan for a source/target store pair
+
+**When:** adv_store_consolidate runs with action `execute`
+
+**Then:**
+- Without `approvedByUser: true` and non-blank approval evidence, execution refuses with `ConsolidationError` code `approval_required`
+- A live source worker lock refuses with code `worker_lock_live`
+- Any item-ID collision refuses with code `collisions_present` and a per-ID report; nothing is overwritten
+- Every refusal applies zero mutations
+
+**Execution imports terminal items first, then recreates live items** (`rq-storeConsolidation01.4`)
+
+**Given:**
+- An approved execution with no collisions and no live source worker lock
+
+**When:** The plan is applied
+
+**Then:**
+- Terminal (archived/closed) changes and Epics import as disk projections visible via `includeArchived: true`
+- Live changes and Epics are recreated under the true identity as new Temporal workflows carrying prior tasks, gates, artifacts, and Epic membership — never history rewrites
+- Wisdom, agenda, and reflections rows append with content-hash dedupe
+
+**Re-running consolidation is an idempotent no-op** (`rq-storeConsolidation01.5`)
+
+**Given:**
+- A consolidation that already completed successfully, recorded in the target store's `consolidation-ledger.jsonl`
+
+**When:** adv_store_consolidate runs again for the same source/target pair
+
+**Then:**
+- Already-ledgered items plan as `skip_ledgered` and are not re-imported or recreated
+- The re-run is reported as a no-op
+
+**Orphan source store is retained untouched** (`rq-storeConsolidation01.6`)
+
+**Given:**
+- A completed consolidation
+
+**When:** The source orphan store is inspected
+
+**Then:**
+- No source files were modified or deleted by consolidation
+- Source store deletion requires a separate explicit approval outside the consolidation flow
 
 ---

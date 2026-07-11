@@ -1202,6 +1202,37 @@ pnpm exec tsx scripts/orphan-sweep.ts
 After repair, **restart OpenCode** so the plugin reconnects to the refreshed
 Temporal workflow set.
 
+### Shallow Clones Refuse ADV State (`UnstableIdentityError`)
+
+ADV derives each project's identity from the repository's root commit. In a
+**shallow clone** (`git clone --depth N`, or any fetch that leaves a
+`.git/shallow` file), the apparent root is the moving shallow-fetch boundary —
+it changes every time the fetch depth shifts. Minting ADV state under that
+boundary orphans the entire store: changes and Epics appear to vanish when the
+boundary moves.
+
+ADV therefore refuses to initialize or mutate state in a shallow repository.
+Any ADV state operation fails with a typed `UnstableIdentityError` naming the
+repo path and the remediation command; **no external store or Temporal state is
+created** under the unstable identity.
+
+**Remediation:**
+
+```bash
+git fetch --unshallow
+```
+
+After the unshallow completes, ADV resolves the true root commit and any
+previously "missing" state reappears. Partial clones created with
+`--filter=blob:none` download full commit history (no `.git/shallow`) and are
+**not** affected. Repositories with commit grafts (`.git/info/grafts`) refuse
+the same way; remove the grafts (or migrate to `git replace`) and unshallow if
+needed.
+
+**Already orphaned?** If a shallow clone already minted state under a
+boundary SHA (before the guard shipped), recover it with the store
+consolidation tool — see [Store consolidation (`adv_store_consolidate`)](docs/store-consolidation.md).
+
 ### Stale Spec Rows After Deletion
 
 If you delete a spec from `.adv/specs/` but `adv_spec list` still shows it,

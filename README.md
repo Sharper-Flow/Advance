@@ -521,6 +521,7 @@ scripts/             sync, migration, maintenance, blind-test helpers
 | [`docs/adv-gates.md`](docs/adv-gates.md)                 | Gate contracts and sequencing                                |
 | [`docs/checklists/`](docs/checklists/)                   | Prep, review, and harden checklists                          |
 | [`docs/temporal-recovery.md`](docs/temporal-recovery.md) | Temporal worker recovery model                               |
+| [`docs/store-consolidation.md`](docs/store-consolidation.md) | Orphan identity-store recovery (`adv_store_consolidate`) |
 | [`docs/specs/`](docs/specs/)                             | Generated/spec-facing documentation                          |
 
 ## Philosophy

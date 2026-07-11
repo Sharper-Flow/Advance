@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.22.0
-> **Updated:** 2026-07-08
+> **Version:** 1.23.0
+> **Updated:** 2026-07-11
 
 ## Purpose
 
@@ -2615,5 +2615,62 @@ Agenda JSONL persistence must preserve durability when a line cannot be parsed. 
 **Then:**
 - Compaction is skipped and a warning is surfaced
 - The malformed content is not permanently discarded
+
+---
+
+### Shallow-Repo Project Identity Refusal
+
+**ID:** `rq-projectIdentityStability01` | **Priority:** **[MUST]**
+
+ADV project identity is derived from the repository root commit. In a shallow clone, `git rev-list --max-parents=0 HEAD` returns the moving `.git/shallow` graft boundary as a fake root, and commit grafts rewrite parentage the same way. ADV MUST NOT mint external state or Temporal state under such an unstable pseudo-root identity: identity resolution must structurally detect shallow and grafted repositories and refuse with a typed, actionable error. Full clones, partial clones with complete root history (for example `--filter=blob:none`), and multi-root repositories must resolve exactly as before — the guard must never false-trip on stable histories.
+
+**Tags:** `identity`, `git`, `stability`, `guard`
+
+#### Scenarios
+
+**Shallow clone refuses identity minting with unshallow guidance** (`rq-projectIdentityStability01.1`)
+
+**Given:**
+- A repository where `git rev-parse --is-shallow-repository` reports true
+
+**When:** ADV resolves the project identity to initialize or mutate state
+
+**Then:**
+- Resolution returns an unstable-identity refusal instead of the shallow graft-boundary SHA
+- The raised `UnstableIdentityError` names the repository path and the exact remediation command `git fetch --unshallow`
+- No external store directory or Temporal workflow state is created under the unstable identity
+
+**Grafted repository refuses with graft remediation** (`rq-projectIdentityStability01.2`)
+
+**Given:**
+- A repository with `.git/info/grafts` present
+
+**When:** ADV resolves the project identity
+
+**Then:**
+- Resolution returns an unstable-identity refusal with reason `graft`
+- The error guidance directs removal of `.git/info/grafts` (or `git replace` migration) plus `git fetch --unshallow` when the repo is also shallow
+
+**Partial clone with full root history does not trip the guard** (`rq-projectIdentityStability01.3`)
+
+**Given:**
+- A partial clone created with `--filter=blob:none` (no `.git/shallow` file)
+
+**When:** ADV resolves the project identity
+
+**Then:**
+- The guard does not trip
+- Identity resolves to the true root commit exactly as in a full clone
+
+**Multi-root and non-git directories keep legacy resolution behavior** (`rq-projectIdentityStability01.4`)
+
+**Given:**
+- A repository with multiple root commits and complete history, or a directory that is not a git repository
+
+**When:** ADV resolves the project identity
+
+**Then:**
+- A multi-root repository resolves deterministically to the lexicographically first root commit
+- A non-git directory resolves to a not-git outcome (legacy null/fallback behavior), never an unstable-identity refusal
 
 ---
