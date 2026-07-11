@@ -79,6 +79,7 @@
 | `adv_change_validate` | `mcp+cli-additive` | Gates/archive need MCP; CLI/CI verdict additive (C5 path) |
 | `adv_temporal_diagnose` | `mcp+cli-additive` | Add CLI `doctor`; MCP kept for in-recovery use |
 | `adv_snapshot_health` | `mcp+cli-additive` | CLI scan additive; repair remains approval-gated MCP-only |
+| `adv_store_consolidate` | `keep-mcp-only` | Ops recovery tool; scan/dry_run read-only, execute approval-gated |
 | `adv_session_list` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_session_show` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_worktree_triage` | `mcp+cli-additive` | Human inventory/report; additive CLI output |

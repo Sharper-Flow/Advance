@@ -145,6 +145,15 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_wisdom_list: (args) => read(`List wisdom${suffix(args, "changeId")}`),
   adv_snapshot_health: (args) =>
     operator(`Check snapshot health${suffix(args, "action")}`),
+  adv_store_consolidate: (args) => {
+    const action = typeof args.action === "string" ? args.action : "scan";
+    if (action === "execute") return operator("Execute store consolidation");
+    return read(
+      action === "dry_run"
+        ? `Dry-run store consolidation${suffix(args, "source_project_id")}`
+        : "Scan orphan stores",
+    );
+  },
   adv_agenda_list: () => read("List agenda"),
   adv_agenda_add: (args) => write(`Add agenda item${suffix(args, "title")}`),
   adv_agenda_start: (args) =>

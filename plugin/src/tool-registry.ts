@@ -53,6 +53,7 @@ import { conformanceTools } from "./tools/conformance";
 import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionTools } from "./tools/adv-session";
 import { epicTools } from "./tools/epic";
+import { storeConsolidateTools } from "./tools/store-consolidate";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -604,6 +605,13 @@ export function createToolMap(
       store,
     ),
 
+    // Store Consolidation Tool (scan/dry_run read-only; execute approval-gated)
+    adv_store_consolidate: bindTool(
+      storeConsolidateTools.adv_store_consolidate,
+      "adv_store_consolidate",
+      store,
+    ),
+
     // Agenda Tools
     adv_agenda_list: bindToolSimple(
       agendaTools.adv_agenda_list,
@@ -1014,6 +1022,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_session_list",
   "adv_session_show",
   "adv_snapshot_health",
+  "adv_store_consolidate",
 ] as const;
 
 /**

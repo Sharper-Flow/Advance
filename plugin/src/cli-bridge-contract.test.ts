@@ -202,6 +202,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_session_list",
       "adv_session_show",
       "adv_snapshot_health",
+      "adv_store_consolidate",
     ];
     expect(ADV_TOOL_NAMES).toEqual(frozen);
   });

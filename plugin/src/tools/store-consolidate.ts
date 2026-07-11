@@ -1,0 +1,1265 @@
+/**
+ * Store Consolidation Tool — `adv_store_consolidate` (read-only half).
+ *
+ * rq-storeConsolidation01: merges an orphaned identity store (minted under a
+ * shallow-boundary / graft pseudo-root SHA) into the true-root store.
+ *
+ * This module implements the two read-only actions:
+ *  - `scan`: enumerate candidate orphan external stores for the current repo
+ *    across XDG shard layouts (`opencode-projects/<shard>/opencode/plugins/
+ *    advance/<id>/` and legacy `opencode/plugins/advance/<id>/`); flag state
+ *    dirs minted under shallow-boundary / unstable SHAs using structural git
+ *    checks only (C3).
+ *  - `dry_run`: emit the full per-item consolidation plan — changes
+ *    partitioned live vs terminal, archive bundles, Epics (incl.
+ *    retired-epics), wisdom/agenda/reflections row counts, per-ID collision
+ *    report (AC5, DONT2) — with ZERO mutations (AC3, C2).
+ *
+ * The `execute` action (terminal-first import, live recreation, ledger
+ * idempotency) lands with task tk-9e02f3b6015f; the dry-run plan and the
+ * future execute report share `ConsolidationReportSchema` (DDC3) and the
+ * append-only ledger row contract `ConsolidationLedgerRowSchema` (DDC4),
+ * keyed on (sourceProjectId, targetProjectId, itemId).
+ *
+ * Testability: every filesystem walk is rooted at an injectable
+ * `dataHomeRoot` (the directory holding `opencode/` and
+ * `opencode-projects/`), so tests never touch real XDG stores.
+ */
+
+import { readdir, readFile } from "fs/promises";
+import { basename, dirname, join } from "path";
+import { createHash } from "crypto";
+import { z } from "zod";
+import { formatToolOutput } from "../utils/tool-output";
+import { getDataHome, resolveProjectIdentity } from "../utils/project-id";
+import { execFileGitAsync } from "../utils/git-binary";
+import { isProcessAlive } from "../utils/process-liveness";
+import { WORKER_LOCK_FILENAME } from "../temporal/worker-lock";
+import { createTemporalClientBundle } from "../temporal/client";
+import { listEpicWorkflows } from "../temporal/list-epic-workflows";
+import type { Store } from "../storage/store";
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+const SHA40 = /^[0-9a-f]{40}$/;
+const SHA256_HEX = /^sha256:[0-9a-f]{64}$/;
+
+/** Ledger filename inside the target store (design D3/DDC4). */
+export const CONSOLIDATION_LEDGER_FILENAME = "consolidation-ledger.jsonl";
+
+const TERMINAL_CHANGE_STATUSES = new Set(["archived", "closed"]);
+
+// =============================================================================
+// Schemas (shared dry-run plan / execute report — DDC3; ledger — DDC4)
+// =============================================================================
+
+export const ConsolidationPlanActionSchema = z.enum([
+  "recreate",
+  "import_projection",
+  "append_dedupe",
+  "skip_collision",
+  "skip_ledgered",
+]);
+export type ConsolidationPlanAction = z.infer<
+  typeof ConsolidationPlanActionSchema
+>;
+
+export const ConsolidationItemKindSchema = z.enum([
+  "change",
+  "archive_bundle",
+  "epic",
+]);
+export type ConsolidationItemKind = z.infer<typeof ConsolidationItemKindSchema>;
+
+export const ConsolidationPlanItemSchema = z
+  .object({
+    id: z.string(),
+    kind: ConsolidationItemKindSchema,
+    title: z.string().optional(),
+    status: z.string().optional(),
+    classification: z.enum(["live", "terminal"]).optional(),
+    plan_action: ConsolidationPlanActionSchema,
+    collision: z.boolean(),
+    ledgered: z.boolean(),
+    source_path: z.string().optional(),
+    content_hash: z.string().optional(),
+  })
+  .strict();
+export type ConsolidationPlanItem = z.infer<typeof ConsolidationPlanItemSchema>;
+
+export const ConsolidationCollisionSchema = z
+  .object({
+    item_id: z.string(),
+    kinds: z.array(z.string()),
+    in_source: z.array(z.string()),
+    in_target: z.array(z.string()),
+    policy: z.literal("halt"),
+  })
+  .strict();
+export type ConsolidationCollision = z.infer<
+  typeof ConsolidationCollisionSchema
+>;
+
+export const ConsolidationAppendPlanSchema = z
+  .object({
+    source_rows: z.number().int().nonnegative(),
+    target_rows: z.number().int().nonnegative(),
+    new_rows: z.number().int().nonnegative(),
+    duplicate_rows: z.number().int().nonnegative(),
+    malformed_source_rows: z.number().int().nonnegative(),
+  })
+  .strict();
+export type ConsolidationAppendPlan = z.infer<
+  typeof ConsolidationAppendPlanSchema
+>;
+
+/**
+ * Append-only consolidation ledger row (DDC4). Keyed on
+ * (source_project_id, target_project_id, item_id); content-hashed so
+ * re-runs are structurally idempotent (AC6). Exported for the execute
+ * task (tk-9e02f3b6015f).
+ */
+export const ConsolidationLedgerRowSchema = z
+  .object({
+    schema_version: z.literal(1),
+    source_project_id: z.string().regex(SHA40),
+    target_project_id: z.string().regex(SHA40),
+    item_id: z.string().min(1),
+    item_kind: z.enum([
+      "change_live",
+      "change_terminal",
+      "archive_bundle",
+      "epic_live",
+      "epic_retired",
+      "wisdom_row",
+      "agenda_row",
+      "reflection_row",
+    ]),
+    action: z.enum(["import_projection", "recreate", "append_dedupe"]),
+    content_hash: z.string().regex(SHA256_HEX),
+    plan_hash: z.string().regex(SHA256_HEX),
+    applied_at: z.string(),
+  })
+  .strict();
+export type ConsolidationLedgerRow = z.infer<
+  typeof ConsolidationLedgerRowSchema
+>;
+
+/** Execute-time per-item outcome (task 3 fills these; dry_run emits null). */
+export const ConsolidationItemOutcomeSchema = z
+  .object({
+    item_id: z.string(),
+    kind: ConsolidationItemKindSchema,
+    action: ConsolidationPlanActionSchema,
+    status: z.enum(["applied", "skipped", "failed"]),
+    error: z.string().optional(),
+  })
+  .strict();
+export type ConsolidationItemOutcome = z.infer<
+  typeof ConsolidationItemOutcomeSchema
+>;
+
+export const ConsolidationReportSchema = z
+  .object({
+    schema_version: z.literal(1),
+    action: z.enum(["dry_run", "execute"]),
+    generated_at: z.string(),
+    plan_hash: z.string(),
+    source: z
+      .object({
+        project_id: z.string().regex(SHA40),
+        path: z.string(),
+        layout: z.enum(["legacy", "shard"]),
+      })
+      .strict(),
+    target: z
+      .object({
+        project_id: z.string().regex(SHA40),
+        path: z.string().nullable(),
+        layout: z.enum(["legacy", "shard"]).nullable(),
+        exists: z.boolean(),
+      })
+      .strict(),
+    changes: z
+      .object({
+        live: z.array(ConsolidationPlanItemSchema),
+        terminal: z.array(ConsolidationPlanItemSchema),
+      })
+      .strict(),
+    archive_bundles: z.array(ConsolidationPlanItemSchema),
+    epics: z
+      .object({
+        retired: z.array(ConsolidationPlanItemSchema),
+        live: z.array(ConsolidationPlanItemSchema),
+        live_source: z.enum(["temporal_visibility", "unavailable"]),
+      })
+      .strict(),
+    appends: z
+      .object({
+        wisdom: ConsolidationAppendPlanSchema,
+        agenda: ConsolidationAppendPlanSchema,
+        reflections: ConsolidationAppendPlanSchema,
+      })
+      .strict(),
+    collisions: z.array(ConsolidationCollisionSchema),
+    ledger: z
+      .object({
+        path: z.string().nullable(),
+        exists: z.boolean(),
+        rows: z.number().int().nonnegative(),
+        malformed_rows: z.number().int().nonnegative(),
+        applied_item_ids: z.array(z.string()),
+      })
+      .strict(),
+    safety: z
+      .object({
+        source_worker_lock_live: z.boolean(),
+        notes: z.array(z.string()),
+      })
+      .strict(),
+    outcomes: z.array(ConsolidationItemOutcomeSchema).nullable().default(null),
+    zero_mutations: z.boolean(),
+  })
+  .strict();
+export type ConsolidationReport = z.infer<typeof ConsolidationReportSchema>;
+
+// =============================================================================
+// Scan types
+// =============================================================================
+
+export const ConsolidationScanStoreSchema = z
+  .object({
+    project_id: z.string(),
+    path: z.string(),
+    layout: z.enum(["legacy", "shard"]),
+    shard: z.string().nullable(),
+    relation: z.enum([
+      "true_store",
+      "orphan_candidate",
+      "unrelated",
+      "malformed",
+      "identity_unresolved",
+    ]),
+    is_commit_in_repo: z.boolean().nullable(),
+    is_root_commit: z.boolean().nullable(),
+    unstable_identity_suspect: z.boolean(),
+    note: z.string().nullable(),
+    worker_lock: z
+      .object({
+        present: z.boolean(),
+        live: z.boolean().nullable(),
+        pid: z.number().int().nullable(),
+      })
+      .strict(),
+    summary: z
+      .object({
+        changes: z.number().int().nonnegative(),
+        archive_bundles: z.number().int().nonnegative(),
+        retired_epics: z.number().int().nonnegative(),
+        wisdom_rows: z.number().int().nonnegative(),
+        agenda_rows: z.number().int().nonnegative(),
+        reflections_rows: z.number().int().nonnegative(),
+      })
+      .strict(),
+  })
+  .strict();
+export type ConsolidationScanStore = z.infer<
+  typeof ConsolidationScanStoreSchema
+>;
+
+export const ConsolidationScanResultSchema = z
+  .object({
+    action: z.literal("scan"),
+    directory: z.string(),
+    data_home_root: z.string(),
+    identity: z.union([
+      z.object({ kind: z.literal("ok"), project_id: z.string() }),
+      z.object({ kind: z.literal("not_git") }),
+      z.object({
+        kind: z.literal("unstable"),
+        reason: z.enum(["shallow", "graft"]),
+        guidance: z.string(),
+      }),
+    ]),
+    layouts_walked: z.array(
+      z
+        .object({
+          layout: z.enum(["legacy", "shard"]),
+          root: z.string(),
+          exists: z.boolean(),
+        })
+        .strict(),
+    ),
+    stores: z.array(ConsolidationScanStoreSchema),
+    flagged: z.array(z.string()),
+    warnings: z.array(z.string()),
+  })
+  .strict();
+export type ConsolidationScanResult = z.infer<
+  typeof ConsolidationScanResultSchema
+>;
+
+// =============================================================================
+// Filesystem helpers (all read-only)
+// =============================================================================
+
+interface StoreDirRef {
+  projectId: string;
+  path: string;
+  layout: "legacy" | "shard";
+  shard: string | null;
+}
+
+interface LayoutWalk {
+  layout: "legacy" | "shard";
+  root: string;
+  exists: boolean;
+}
+
+async function readdirSafe(dir: string): Promise<string[]> {
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  } catch {
+    return [];
+  }
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await readdir(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readFileSafe(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, "utf-8");
+  } catch {
+    return null;
+  }
+}
+
+async function countJsonlRows(path: string): Promise<number> {
+  const content = await readFileSafe(path);
+  if (content === null) return 0;
+  return content.split("\n").filter((line) => line.trim().length > 0).length;
+}
+
+function sha256(content: string): string {
+  return `sha256:${createHash("sha256").update(content).digest("hex")}`;
+}
+
+/** Deterministic JSON with sorted keys for plan hashing (arrays keep order). */
+function canonicalize(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalize).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => a.localeCompare(b));
+    return `{${entries
+      .map(([k, v]) => `${JSON.stringify(k)}:${canonicalize(v)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
+
+/**
+ * Resolve the directory that holds `opencode/` and `opencode-projects/`.
+ * Under the oc per-project shard, XDG_DATA_HOME itself is
+ * `.../opencode-projects/<40hex>`; the walk root is its grandparent.
+ */
+export function defaultDataHomeRoot(): string {
+  const dataHome = getDataHome();
+  const leaf = basename(dataHome);
+  const parent = basename(dirname(dataHome));
+  if (parent === "opencode-projects" && SHA40.test(leaf)) {
+    return dirname(dirname(dataHome));
+  }
+  return dataHome;
+}
+
+/**
+ * Enumerate ADV external store dirs under a data-home root across both
+ * layouts. Read-only; never throws on missing/unreadable dirs.
+ */
+export async function walkStoreDirs(dataHomeRoot: string): Promise<{
+  stores: StoreDirRef[];
+  layouts: LayoutWalk[];
+}> {
+  const stores: StoreDirRef[] = [];
+  const layouts: LayoutWalk[] = [];
+
+  const legacyRoot = join(dataHomeRoot, "opencode/plugins/advance");
+  const legacyNames = await readdirSafe(legacyRoot);
+  layouts.push({
+    layout: "legacy",
+    root: legacyRoot,
+    exists: await pathExists(legacyRoot),
+  });
+  for (const name of legacyNames) {
+    stores.push({
+      projectId: name,
+      path: join(legacyRoot, name),
+      layout: "legacy",
+      shard: null,
+    });
+  }
+
+  const shardsRoot = join(dataHomeRoot, "opencode-projects");
+  layouts.push({
+    layout: "shard",
+    root: shardsRoot,
+    exists: await pathExists(shardsRoot),
+  });
+  for (const shard of await readdirSafe(shardsRoot)) {
+    const advanceRoot = join(shardsRoot, shard, "opencode/plugins/advance");
+    for (const name of await readdirSafe(advanceRoot)) {
+      stores.push({
+        projectId: name,
+        path: join(advanceRoot, name),
+        layout: "shard",
+        shard,
+      });
+    }
+  }
+
+  return { stores, layouts };
+}
+
+// =============================================================================
+// Git helpers (structural classification — C3)
+// =============================================================================
+
+async function gitIsCommit(repoDir: string, sha: string): Promise<boolean> {
+  try {
+    await execFileGitAsync(["cat-file", "-e", `${sha}^{commit}`], {
+      cwd: repoDir,
+      timeout: 5000,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** True when `sha` has no parents (a real history root). */
+async function gitIsRootCommit(repoDir: string, sha: string): Promise<boolean> {
+  try {
+    const { stdout } = await execFileGitAsync(
+      ["rev-list", "--max-parents=0", sha],
+      { cwd: repoDir, timeout: 5000 },
+    );
+    return stdout
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .includes(sha);
+  } catch {
+    return false;
+  }
+}
+
+// =============================================================================
+// Worker-lock probe (read-only)
+// =============================================================================
+
+async function probeWorkerLock(storePath: string): Promise<{
+  present: boolean;
+  live: boolean | null;
+  pid: number | null;
+}> {
+  const raw = await readFileSafe(join(storePath, WORKER_LOCK_FILENAME));
+  if (raw === null) return { present: false, live: null, pid: null };
+  try {
+    const parsed = JSON.parse(raw) as { pid?: unknown };
+    const pid = typeof parsed.pid === "number" ? parsed.pid : null;
+    return {
+      present: true,
+      live: pid === null ? null : isProcessAlive(pid),
+      pid,
+    };
+  } catch {
+    return { present: true, live: null, pid: null };
+  }
+}
+
+// =============================================================================
+// Store content probes (read-only)
+// =============================================================================
+
+interface ChangeHead {
+  id: string;
+  title?: string;
+  status: string;
+}
+
+const ChangeHeadSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().optional(),
+    status: z.string().min(1),
+  })
+  .passthrough();
+
+async function readChangeHead(
+  changeJsonPath: string,
+): Promise<ChangeHead | null> {
+  const raw = await readFileSafe(changeJsonPath);
+  if (raw === null) return null;
+  try {
+    return ChangeHeadSchema.parse(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+async function readStoreChanges(
+  storePath: string,
+): Promise<{ head: ChangeHead; dir: string; content: string | null }[]> {
+  const changesDir = join(storePath, "changes");
+  const out: { head: ChangeHead; dir: string; content: string | null }[] = [];
+  for (const dir of await readdirSafe(changesDir)) {
+    const changeJsonPath = join(changesDir, dir, "change.json");
+    const head = await readChangeHead(changeJsonPath);
+    if (!head) continue;
+    out.push({
+      head,
+      dir,
+      content: await readFileSafe(changeJsonPath),
+    });
+  }
+  return out;
+}
+
+async function readStoreArchiveBundles(
+  storePath: string,
+): Promise<{ head: ChangeHead; dir: string; content: string | null }[]> {
+  const archiveDir = join(storePath, "archive");
+  const out: { head: ChangeHead; dir: string; content: string | null }[] = [];
+  for (const dir of await readdirSafe(archiveDir)) {
+    const changeJsonPath = join(archiveDir, dir, "change.json");
+    const head = await readChangeHead(changeJsonPath);
+    if (!head) continue;
+    out.push({
+      head,
+      dir,
+      content: await readFileSafe(changeJsonPath),
+    });
+  }
+  return out;
+}
+
+async function readStoreRetiredEpics(storePath: string): Promise<string[]> {
+  return readdirSafe(join(storePath, "retired-epics"));
+}
+
+async function readJsonlHashed(path: string): Promise<{
+  rows: number;
+  malformed: number;
+  hashes: Set<string>;
+}> {
+  const content = await readFileSafe(path);
+  if (content === null) return { rows: 0, malformed: 0, hashes: new Set() };
+  const lines = content.split("\n").filter((l) => l.trim().length > 0);
+  const hashes = new Set<string>();
+  let malformed = 0;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    try {
+      JSON.parse(trimmed);
+      hashes.add(sha256(trimmed));
+    } catch {
+      malformed += 1;
+    }
+  }
+  return { rows: lines.length, malformed, hashes };
+}
+
+// =============================================================================
+// scan
+// =============================================================================
+
+export interface ScanStoresOptions {
+  /** Repo directory whose identity candidate stores are compared against. */
+  directory: string;
+  /** Injected data-home root (holds `opencode/` and `opencode-projects/`). */
+  dataHomeRoot: string;
+}
+
+/**
+ * Enumerate candidate orphan stores for the repo at `directory` and flag
+ * dirs minted under shallow-boundary / unstable SHAs. Read-only (AC3).
+ */
+export async function scanStoresForRepo(
+  options: ScanStoresOptions,
+): Promise<ConsolidationScanResult> {
+  const resolution = await resolveProjectIdentity(options.directory);
+  const identity: ConsolidationScanResult["identity"] =
+    resolution.kind === "ok"
+      ? { kind: "ok", project_id: resolution.projectId }
+      : resolution.kind === "not_git"
+        ? { kind: "not_git" }
+        : {
+            kind: "unstable",
+            reason: resolution.reason,
+            guidance: resolution.guidance,
+          };
+
+  const { stores, layouts } = await walkStoreDirs(options.dataHomeRoot);
+  const warnings: string[] = [];
+  const entries: ConsolidationScanStore[] = [];
+
+  for (const ref of stores) {
+    const isSha = SHA40.test(ref.projectId);
+    let relation: ConsolidationScanStore["relation"] = "malformed";
+    let isCommit: boolean | null = null;
+    let isRoot: boolean | null = null;
+    let suspect = false;
+    let note: string | null = null;
+
+    if (!isSha) {
+      note = "directory name is not a 40-hex project id";
+    } else if (identity.kind !== "ok") {
+      relation = "identity_unresolved";
+      note =
+        "repo identity could not be resolved; structural comparison skipped";
+    } else {
+      isCommit = await gitIsCommit(options.directory, ref.projectId);
+      if (!isCommit) {
+        relation = "unrelated";
+        note = "not a commit of this repository (belongs to another repo)";
+      } else {
+        isRoot = await gitIsRootCommit(options.directory, ref.projectId);
+        if (ref.projectId === identity.project_id) {
+          relation = "true_store";
+        } else {
+          relation = "orphan_candidate";
+          if (!isRoot) {
+            suspect = true;
+            note =
+              "store id is a non-root commit of this repo — the shallow-boundary / graft unstable-identity class; consolidation candidate";
+          } else {
+            note =
+              "store id is a root commit but not the canonical identity root (multi-root repo); review before consolidating";
+          }
+        }
+      }
+    }
+
+    const lock = await probeWorkerLock(ref.path);
+    if (lock.present && lock.live) {
+      warnings.push(
+        `store ${ref.projectId} holds a live ${WORKER_LOCK_FILENAME} (pid ${lock.pid}) — stale sessions may still write; execute refuses while present`,
+      );
+    }
+
+    entries.push({
+      project_id: ref.projectId,
+      path: ref.path,
+      layout: ref.layout,
+      shard: ref.shard,
+      relation,
+      is_commit_in_repo: isCommit,
+      is_root_commit: isRoot,
+      unstable_identity_suspect: suspect,
+      note,
+      worker_lock: lock,
+      summary: {
+        changes: (await readdirSafe(join(ref.path, "changes"))).length,
+        archive_bundles: (await readdirSafe(join(ref.path, "archive"))).length,
+        retired_epics: (await readdirSafe(join(ref.path, "retired-epics")))
+          .length,
+        wisdom_rows: await countJsonlRows(join(ref.path, "wisdom.jsonl")),
+        agenda_rows: await countJsonlRows(join(ref.path, "agenda.jsonl")),
+        reflections_rows: await countJsonlRows(
+          join(ref.path, "reflections.jsonl"),
+        ),
+      },
+    });
+  }
+
+  return {
+    action: "scan",
+    directory: options.directory,
+    data_home_root: options.dataHomeRoot,
+    identity,
+    layouts_walked: layouts,
+    stores: entries.sort((a, b) => a.project_id.localeCompare(b.project_id)),
+    flagged: entries
+      .filter((e) => e.unstable_identity_suspect)
+      .map((e) => e.project_id)
+      .sort(),
+    warnings,
+  };
+}
+
+// =============================================================================
+// dry_run
+// =============================================================================
+
+export type LiveEpicLister = (projectId: string) => Promise<string[]>;
+
+export interface BuildPlanOptions {
+  sourceProjectId: string;
+  targetProjectId: string;
+  dataHomeRoot: string;
+  /** Injectable live-epic enumeration (Temporal visibility). */
+  listLiveEpicIds?: LiveEpicLister;
+  now?: () => Date;
+}
+
+async function defaultListLiveEpicIds(projectId: string): Promise<string[]> {
+  const bundle = await createTemporalClientBundle();
+  try {
+    const entries = await listEpicWorkflows(bundle.client, {
+      projectId,
+      status: "active",
+    });
+    return entries.map((e) => e.id);
+  } finally {
+    bundle.connection.close();
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`timed out after ${ms}ms`)),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/**
+ * Build the read-only consolidation plan for source → target. Throws when
+ * the source store does not exist. Zero mutations (AC3); colliding IDs are
+ * reported with policy `halt` and marked skip_collision (AC5, DONT2).
+ */
+export async function buildConsolidationPlan(
+  options: BuildPlanOptions,
+): Promise<ConsolidationReport> {
+  const { stores } = await walkStoreDirs(options.dataHomeRoot);
+  const warnings: string[] = [];
+
+  const locate = (projectId: string): StoreDirRef | undefined => {
+    const matches = stores.filter((s) => s.projectId === projectId);
+    if (matches.length > 1) {
+      warnings.push(
+        `store ${projectId} exists in multiple layouts; using the shard-layout copy and reporting alternates`,
+      );
+    }
+    // Deterministic preference: shard layout (canonical under oc) first.
+    return (
+      matches.find((m) => m.layout === "shard") ??
+      matches.find((m) => m.layout === "legacy")
+    );
+  };
+
+  const source = locate(options.sourceProjectId);
+  if (!source) {
+    throw new Error(
+      `source store not found for project ${options.sourceProjectId} under data-home root ${options.dataHomeRoot}`,
+    );
+  }
+  const target = locate(options.targetProjectId);
+
+  const [
+    sourceChanges,
+    sourceArchive,
+    sourceRetiredEpics,
+    sourceLock,
+    sourceWisdom,
+    sourceAgenda,
+    sourceReflections,
+  ] = await Promise.all([
+    readStoreChanges(source.path),
+    readStoreArchiveBundles(source.path),
+    readStoreRetiredEpics(source.path),
+    probeWorkerLock(source.path),
+    readJsonlHashed(join(source.path, "wisdom.jsonl")),
+    readJsonlHashed(join(source.path, "agenda.jsonl")),
+    readJsonlHashed(join(source.path, "reflections.jsonl")),
+  ]);
+
+  // --- Target-side probes (for collisions, ledger, append dedupe) ----------
+  const targetChanges = target ? await readStoreChanges(target.path) : [];
+  const targetArchive = target
+    ? await readStoreArchiveBundles(target.path)
+    : [];
+  const targetRetiredEpics = target
+    ? await readStoreRetiredEpics(target.path)
+    : [];
+  const targetWisdom = target
+    ? await readJsonlHashed(join(target.path, "wisdom.jsonl"))
+    : { rows: 0, malformed: 0, hashes: new Set<string>() };
+  const targetAgenda = target
+    ? await readJsonlHashed(join(target.path, "agenda.jsonl"))
+    : { rows: 0, malformed: 0, hashes: new Set<string>() };
+  const targetReflections = target
+    ? await readJsonlHashed(join(target.path, "reflections.jsonl"))
+    : { rows: 0, malformed: 0, hashes: new Set<string>() };
+
+  // --- Live epics (Temporal visibility; best-effort) -----------------------
+  const listLive = options.listLiveEpicIds ?? defaultListLiveEpicIds;
+  let liveSource: "temporal_visibility" | "unavailable" = "temporal_visibility";
+  let sourceLiveEpics: string[] = [];
+  let targetLiveEpics: string[] = [];
+  try {
+    sourceLiveEpics = await withTimeout(
+      listLive(options.sourceProjectId),
+      10_000,
+    );
+    targetLiveEpics = await withTimeout(
+      listLive(options.targetProjectId),
+      10_000,
+    );
+  } catch (error) {
+    liveSource = "unavailable";
+    warnings.push(
+      `live epic enumeration unavailable (${error instanceof Error ? error.message : String(error)}); retired-epics disk projection still planned`,
+    );
+  }
+
+  // --- Collision maps: per-ID across every category ------------------------
+  const sourceLocations = new Map<string, string[]>();
+  const targetLocations = new Map<string, string[]>();
+  const kinds = new Map<string, Set<string>>();
+  const add = (
+    map: Map<string, string[]>,
+    id: string,
+    location: string,
+    kind: string,
+  ) => {
+    const list = map.get(id) ?? [];
+    list.push(location);
+    map.set(id, list);
+    const k = kinds.get(id) ?? new Set<string>();
+    k.add(kind);
+    kinds.set(id, k);
+  };
+
+  for (const c of sourceChanges)
+    add(sourceLocations, c.head.id, `changes/${c.dir}`, "change");
+  for (const c of targetChanges)
+    add(targetLocations, c.head.id, `changes/${c.dir}`, "change");
+  for (const c of sourceArchive)
+    add(sourceLocations, c.head.id, `archive/${c.dir}`, "archive_bundle");
+  for (const c of targetArchive)
+    add(targetLocations, c.head.id, `archive/${c.dir}`, "archive_bundle");
+  for (const id of sourceRetiredEpics)
+    add(sourceLocations, id, `retired-epics/${id}`, "epic");
+  for (const id of targetRetiredEpics)
+    add(targetLocations, id, `retired-epics/${id}`, "epic");
+  if (liveSource === "temporal_visibility") {
+    for (const id of sourceLiveEpics)
+      add(sourceLocations, id, `epics.live/${id}`, "epic");
+    for (const id of targetLiveEpics)
+      add(targetLocations, id, `epics.live/${id}`, "epic");
+  }
+
+  const collisions: ConsolidationCollision[] = [];
+  const collidingIds = new Set<string>();
+  for (const [id, inSource] of sourceLocations) {
+    const inTarget = targetLocations.get(id);
+    if (!inTarget) continue;
+    collidingIds.add(id);
+    collisions.push({
+      item_id: id,
+      kinds: [...(kinds.get(id) ?? new Set())].sort(),
+      in_source: inSource,
+      in_target: inTarget,
+      policy: "halt",
+    });
+  }
+  collisions.sort((a, b) => a.item_id.localeCompare(b.item_id));
+
+  // --- Ledger (target-side, append-only) -----------------------------------
+  const ledgerPath = target
+    ? join(target.path, CONSOLIDATION_LEDGER_FILENAME)
+    : null;
+  const ledgerApplied = new Set<string>();
+  let ledgerRows = 0;
+  let ledgerMalformed = 0;
+  let ledgerExists = false;
+  if (ledgerPath) {
+    const raw = await readFileSafe(ledgerPath);
+    if (raw !== null) {
+      ledgerExists = true;
+      for (const line of raw.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const row = ConsolidationLedgerRowSchema.parse(JSON.parse(trimmed));
+          if (
+            row.source_project_id === options.sourceProjectId &&
+            row.target_project_id === options.targetProjectId
+          ) {
+            ledgerApplied.add(row.item_id);
+          }
+          ledgerRows += 1;
+        } catch {
+          ledgerMalformed += 1;
+        }
+      }
+    }
+  }
+
+  const planAction = (
+    id: string,
+    base: ConsolidationPlanAction,
+  ): {
+    action: ConsolidationPlanAction;
+    collision: boolean;
+    ledgered: boolean;
+  } => {
+    if (collidingIds.has(id)) {
+      return { action: "skip_collision", collision: true, ledgered: false };
+    }
+    if (ledgerApplied.has(id)) {
+      return { action: "skip_ledgered", collision: false, ledgered: true };
+    }
+    return { action: base, collision: false, ledgered: false };
+  };
+
+  // --- Plan items -----------------------------------------------------------
+  const live: ConsolidationPlanItem[] = [];
+  const terminal: ConsolidationPlanItem[] = [];
+  for (const c of sourceChanges) {
+    const isTerminal = TERMINAL_CHANGE_STATUSES.has(c.head.status);
+    const decided = planAction(
+      c.head.id,
+      isTerminal ? "import_projection" : "recreate",
+    );
+    const item: ConsolidationPlanItem = {
+      id: c.head.id,
+      kind: "change",
+      ...(c.head.title !== undefined ? { title: c.head.title } : {}),
+      status: c.head.status,
+      classification: isTerminal ? "terminal" : "live",
+      plan_action: decided.action,
+      collision: decided.collision,
+      ledgered: decided.ledgered,
+      source_path: `changes/${c.dir}`,
+      ...(c.content !== null ? { content_hash: sha256(c.content) } : {}),
+    };
+    (isTerminal ? terminal : live).push(item);
+  }
+
+  const archiveItems: ConsolidationPlanItem[] = sourceArchive.map((c) => {
+    const decided = planAction(c.head.id, "import_projection");
+    return {
+      id: c.head.id,
+      kind: "archive_bundle" as const,
+      ...(c.head.title !== undefined ? { title: c.head.title } : {}),
+      status: c.head.status,
+      classification: "terminal" as const,
+      plan_action: decided.action,
+      collision: decided.collision,
+      ledgered: decided.ledgered,
+      source_path: `archive/${c.dir}`,
+      ...(c.content !== null ? { content_hash: sha256(c.content) } : {}),
+    };
+  });
+
+  const retiredEpicItems: ConsolidationPlanItem[] = sourceRetiredEpics.map(
+    (id) => {
+      const decided = planAction(id, "import_projection");
+      return {
+        id,
+        kind: "epic" as const,
+        classification: "terminal" as const,
+        plan_action: decided.action,
+        collision: decided.collision,
+        ledgered: decided.ledgered,
+        source_path: `retired-epics/${id}`,
+      };
+    },
+  );
+
+  const liveEpicItems: ConsolidationPlanItem[] = sourceLiveEpics.map((id) => {
+    const decided = planAction(id, "recreate");
+    return {
+      id,
+      kind: "epic" as const,
+      classification: "live" as const,
+      plan_action: decided.action,
+      collision: decided.collision,
+      ledgered: decided.ledgered,
+      source_path: `epics.live/${id}`,
+    };
+  });
+
+  const appendPlan = (
+    source: { rows: number; malformed: number; hashes: Set<string> },
+    targetSet: { rows: number; hashes: Set<string> },
+  ): ConsolidationAppendPlan => {
+    let newRows = 0;
+    let duplicateRows = 0;
+    for (const hash of source.hashes) {
+      if (targetSet.hashes.has(hash)) duplicateRows += 1;
+      else newRows += 1;
+    }
+    return {
+      source_rows: source.rows,
+      target_rows: targetSet.rows,
+      new_rows: newRows,
+      duplicate_rows: duplicateRows,
+      malformed_source_rows: source.malformed,
+    };
+  };
+
+  if (sourceLock.present && sourceLock.live) {
+    warnings.push(
+      `source store holds a live ${WORKER_LOCK_FILENAME} (pid ${sourceLock.pid}); execute will refuse until stale sessions are closed`,
+    );
+  }
+
+  const now = options.now ?? (() => new Date());
+  const reportBase = {
+    schema_version: 1 as const,
+    action: "dry_run" as const,
+    source: {
+      project_id: source.projectId,
+      path: source.path,
+      layout: source.layout,
+    },
+    target: {
+      project_id: options.targetProjectId,
+      path: target?.path ?? null,
+      layout: target?.layout ?? null,
+      exists: target !== undefined,
+    },
+    changes: {
+      live: live.sort((a, b) => a.id.localeCompare(b.id)),
+      terminal: terminal.sort((a, b) => a.id.localeCompare(b.id)),
+    },
+    archive_bundles: archiveItems.sort((a, b) => a.id.localeCompare(b.id)),
+    epics: {
+      retired: retiredEpicItems.sort((a, b) => a.id.localeCompare(b.id)),
+      live: liveEpicItems.sort((a, b) => a.id.localeCompare(b.id)),
+      live_source: liveSource,
+    },
+    appends: {
+      wisdom: appendPlan(sourceWisdom, targetWisdom),
+      agenda: appendPlan(sourceAgenda, targetAgenda),
+      reflections: appendPlan(sourceReflections, targetReflections),
+    },
+    collisions,
+    ledger: {
+      path: ledgerPath,
+      exists: ledgerExists,
+      rows: ledgerRows,
+      malformed_rows: ledgerMalformed,
+      applied_item_ids: [...ledgerApplied].sort(),
+    },
+    safety: {
+      source_worker_lock_live: sourceLock.present && sourceLock.live === true,
+      notes: warnings.sort(),
+    },
+    outcomes: null,
+    zero_mutations: true,
+  };
+
+  return {
+    ...reportBase,
+    generated_at: now().toISOString(),
+    plan_hash: sha256(canonicalize(reportBase)),
+  };
+}
+
+// =============================================================================
+// Tool definition
+// =============================================================================
+
+const SHA40_DESCRIBE = "40-hex ADV project id (git root commit)";
+
+export const storeConsolidateTools = {
+  adv_store_consolidate: {
+    description:
+      "Consolidate an orphaned ADV identity store (minted under a shallow-boundary / unstable SHA) into the true-root store. " +
+      "action 'scan' (default, read-only) enumerates candidate orphan stores for the current repo across XDG shard layouts and flags dirs minted under unstable SHAs. " +
+      "action 'dry_run' emits the full per-item plan (changes live vs terminal, archive bundles, Epics, wisdom/agenda/reflections, per-ID collision report) with zero mutations. " +
+      "Colliding item IDs halt with a per-ID report — nothing is overwritten. " +
+      "action 'execute' is approval-gated and lands with the execute task; in this build it refuses without mutating.",
+    args: {
+      action: z
+        .enum(["scan", "dry_run", "execute"])
+        .default("scan")
+        .describe(
+          "scan = enumerate orphan candidates (read-only); dry_run = full per-item plan (read-only); execute = apply plan (approval-gated, not available in this build)",
+        ),
+      directory: z
+        .string()
+        .optional()
+        .describe(
+          "Repo directory whose identity candidate stores are compared against. Defaults to the current project root.",
+        ),
+      data_home_root: z
+        .string()
+        .optional()
+        .describe(
+          "Data-home root holding opencode/ and opencode-projects/. Injected for tests; defaults to the resolved XDG data home.",
+        ),
+      source_project_id: z
+        .string()
+        .optional()
+        .describe(
+          `${SHA40_DESCRIBE} of the orphan store to consolidate from. Required for dry_run/execute.`,
+        ),
+      target_project_id: z
+        .string()
+        .optional()
+        .describe(
+          `${SHA40_DESCRIBE} of the true-root store to consolidate into. Defaults to the current repo's resolved identity.`,
+        ),
+      approvedByUser: z
+        .boolean()
+        .optional()
+        .describe("Required for execute. Must be true."),
+      approvalEvidence: z
+        .string()
+        .optional()
+        .describe("Required for execute. Audit evidence of user approval."),
+    },
+    execute: async (
+      args: {
+        action: "scan" | "dry_run" | "execute";
+        directory?: string;
+        data_home_root?: string;
+        source_project_id?: string;
+        target_project_id?: string;
+        approvedByUser?: boolean;
+        approvalEvidence?: string;
+      },
+      store: Store,
+    ) => {
+      const directory = args.directory ?? store.paths.root;
+      const dataHomeRoot = args.data_home_root ?? defaultDataHomeRoot();
+
+      if (args.action === "scan") {
+        const result = await scanStoresForRepo({ directory, dataHomeRoot });
+        return formatToolOutput(result, { tool: "adv_store_consolidate" });
+      }
+
+      if (args.action === "execute") {
+        // Approval-gated mutation action — not available in this build
+        // (task tk-9e02f3b6015f). Refuse without touching any store (C2).
+        return formatToolOutput(
+          {
+            success: false,
+            action: "execute",
+            error:
+              "adv_store_consolidate execute is not implemented in this build; it lands with task tk-9e02f3b6015f. " +
+              "Use action 'dry_run' to inspect the plan. No mutations were performed.",
+          },
+          { tool: "adv_store_consolidate" },
+        );
+      }
+
+      // action === "dry_run"
+      if (!args.source_project_id) {
+        return formatToolOutput(
+          {
+            success: false,
+            action: "dry_run",
+            error: "source_project_id is required for dry_run",
+          },
+          { tool: "adv_store_consolidate" },
+        );
+      }
+      if (!SHA40.test(args.source_project_id)) {
+        return formatToolOutput(
+          {
+            success: false,
+            action: "dry_run",
+            error: `source_project_id must be a ${SHA40_DESCRIBE}; got "${args.source_project_id}"`,
+          },
+          { tool: "adv_store_consolidate" },
+        );
+      }
+      if (args.target_project_id && !SHA40.test(args.target_project_id)) {
+        return formatToolOutput(
+          {
+            success: false,
+            action: "dry_run",
+            error: `target_project_id must be a ${SHA40_DESCRIBE}; got "${args.target_project_id}"`,
+          },
+          { tool: "adv_store_consolidate" },
+        );
+      }
+
+      let targetProjectId = args.target_project_id;
+      if (!targetProjectId) {
+        const resolution = await resolveProjectIdentity(directory);
+        if (resolution.kind === "ok") {
+          targetProjectId = resolution.projectId;
+        } else if (resolution.kind === "unstable") {
+          return formatToolOutput(
+            {
+              success: false,
+              action: "dry_run",
+              error: `${resolution.guidance} Pass target_project_id explicitly to override.`,
+            },
+            { tool: "adv_store_consolidate" },
+          );
+        } else {
+          return formatToolOutput(
+            {
+              success: false,
+              action: "dry_run",
+              error: `could not resolve target identity for ${directory}: not a git repository. Pass target_project_id explicitly to override.`,
+            },
+            { tool: "adv_store_consolidate" },
+          );
+        }
+      }
+
+      if (args.source_project_id === targetProjectId) {
+        return formatToolOutput(
+          {
+            success: false,
+            action: "dry_run",
+            error:
+              "source_project_id and target_project_id are the same store; nothing to consolidate",
+          },
+          { tool: "adv_store_consolidate" },
+        );
+      }
+
+      try {
+        const plan = await buildConsolidationPlan({
+          sourceProjectId: args.source_project_id,
+          targetProjectId,
+          dataHomeRoot,
+        });
+        return formatToolOutput(plan, { tool: "adv_store_consolidate" });
+      } catch (error) {
+        return formatToolOutput(
+          {
+            success: false,
+            action: "dry_run",
+            error: error instanceof Error ? error.message : String(error),
+          },
+          { tool: "adv_store_consolidate" },
+        );
+      }
+    },
+  },
+};

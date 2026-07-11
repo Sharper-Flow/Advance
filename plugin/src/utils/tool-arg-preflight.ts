@@ -280,6 +280,13 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     repair_actions: { emptyArray: "reject" },
     approvalEvidence: { blank: "reject" }, // audit
   },
+  adv_store_consolidate: {
+    source_project_id: { blank: "reject" },
+    target_project_id: { blank: "omit" },
+    directory: { blank: "omit" },
+    data_home_root: { blank: "omit" },
+    approvalEvidence: { blank: "reject" }, // audit
+  },
   adv_status: {
     target_path: { blank: "omit" },
   },
