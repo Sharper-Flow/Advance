@@ -401,16 +401,45 @@ describe("buildTabTitle", () => {
     expect(title).not.toMatch(/\[\d+\/\d+\]/);
   });
 
-  it("ignores BLOCKED/status prefix for the simple identity title", () => {
-    expect(buildTabTitle("🟥", "Jester", "changeX", "💀")).toBe("changeX");
+  it("ignores BLOCKED/status emoji for the simple identity title", () => {
+    expect(buildTabTitle("🟥", "Jester", "changeX")).toBe("changeX");
   });
 
-  it("shows project only when BLOCKED/status prefix is provided without active change", () => {
-    expect(buildTabTitle("🟥", "Jester", undefined, "💀")).toBe("Jester");
+  it("shows project only when BLOCKED status emoji is provided without active change", () => {
+    expect(buildTabTitle("🟥", "Jester", undefined)).toBe("Jester");
   });
 
   it("ignores status emoji in the tab title", () => {
     expect(buildTabTitle("🟩", "Jester", "changeX")).toBe("changeX");
+  });
+
+  it("renders Epic title | change label when both provided", () => {
+    expect(buildTabTitle("🟩", "Jester", "fixAuth", "Security Epic")).toBe(
+      "Security Epic | fixAuth",
+    );
+  });
+
+  it("renders change label only when no epic title", () => {
+    expect(buildTabTitle("🟩", "Jester", "fixAuth", undefined)).toBe("fixAuth");
+  });
+
+  it("renders change label only when epic title is empty", () => {
+    expect(buildTabTitle("🟩", "Jester", "fixAuth", "")).toBe("fixAuth");
+  });
+
+  it("renders change label only when epic title is whitespace", () => {
+    expect(buildTabTitle("🟩", "Jester", "fixAuth", "   ")).toBe("fixAuth");
+  });
+
+  it("does not produce dangling separator when epic title missing", () => {
+    const title = buildTabTitle("🟩", "Jester", "fixAuth", undefined);
+    expect(title).not.toContain("|");
+  });
+
+  it("trims whitespace in epic title and change label", () => {
+    expect(buildTabTitle("🟩", "Jester", "  fixAuth  ", "  Security  ")).toBe(
+      "Security | fixAuth",
+    );
   });
 });
 

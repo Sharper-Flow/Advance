@@ -156,7 +156,8 @@ const updateTerminal = (): void => {
   updateTerminalStatus(
     state.currentStatus,
     state.projectName,
-    state.activeChangeId ?? undefined,
+    state.activeChangeLabel ?? undefined,
+    state.activeEpicTitle ?? undefined,
     state.taskProgress ?? undefined,
   );
 };
