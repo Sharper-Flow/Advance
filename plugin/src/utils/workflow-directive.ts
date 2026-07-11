@@ -219,7 +219,10 @@ export function directiveCtxFromState(
 
   return {
     changeId: state.changeId,
-    isArchived: state.status === "archived",
+    // Terminal statuses (`archived` and `closed`) share the safe archived
+    // directive so a closed change with all gates done does NOT route to a
+    // confusing `continue(release, adv-archive)` next-action.
+    isArchived: isTerminalStatus(state.status),
     firstOpenGate,
     canArchive,
     noGatesStarted,
@@ -265,6 +268,35 @@ export function deriveWorkflowDirective(
     canArchive: ctx.canArchive,
     bucket: ctx.bucket,
   };
+}
+
+/**
+ * Best-effort wrapper for tool-layer call sites.
+ *
+ * `deriveWorkflowDirective` is pure and deterministic over well-formed
+ * `ChangeWorkflowState`, but tool handlers read state that may be partially
+ * hydrated (disk projections, poisoned-history fallbacks, target-path
+ * snapshots). A derivation throw must not break an otherwise-useful tool
+ * response (gate completion, gate status, change show/create, status
+ * enrichment, recovery handoff). This helper swallows the error and returns
+ * `undefined` so callers degrade gracefully: snapshots omit the `Next:` line,
+ * and load-bearing reads (gate status, status enrichment) fall back to
+ * gate-derived next-action.
+ *
+ * Intentionally NOT used from `temporal/workflows.ts`: inside the workflow the
+ * state is always well-formed and a throw must surface deterministically rather
+ * than be masked. Logging is the caller's responsibility — this module stays
+ * workflow-safe (no debug-log import, no `node:*`).
+ */
+export function deriveDirectiveSafe(
+  state: ChangeWorkflowState,
+  epoch: number,
+): WorkflowDirective | undefined {
+  try {
+    return deriveWorkflowDirective(state, epoch);
+  } catch {
+    return undefined;
+  }
 }
 
 function deriveAction(ctx: DirectiveContext): DirectiveAction {

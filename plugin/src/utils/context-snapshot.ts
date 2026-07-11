@@ -389,14 +389,21 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     taskLine,
   );
 
-  // Budget: we have 3 remaining line slots (10 total - 2 box borders - 5 fixed lines above)
-  // Priority: wisdom line > user outcomes (already included) > current task
-  // When both currentTask AND wisdom are present, we still fit (9 content lines = 11 total with borders)
-  // which is close enough — but let's drop the Success/Budget line if we need to save space
+  // Budget: hard 10-line cap (2 borders + 8 content). The directive `Next:`
+  // row is a new content line that competes with the wisdom and current-task
+  // rows. Count the optional rows present (directive + wisdom + current) and
+  // shed the least-critical lines in stages so every combination stays ≤10:
+  //   - ≥2 optional rows: drop the Outcomes/Budget line (least critical).
+  //   - 3 optional rows (directive + wisdom + current): also drop the Current
+  //     line — redundant with the directive's next-action orientation, while
+  //     wisdom (durable project knowledge) is retained.
   const hasCurrentTask = !!currentTask;
-  const needBudgetTrim = hasCurrentTask && hasWisdom;
-  if (needBudgetTrim) {
-    // Remove Outcomes/Budget line to make room for both Current and Wisdom
+  const hasDirective = !!directive;
+  const optionalCount =
+    (hasDirective ? 1 : 0) + (hasWisdom ? 1 : 0) + (hasCurrentTask ? 1 : 0);
+  const dropOutcomes = optionalCount >= 2;
+  const dropCurrent = optionalCount >= 3;
+  if (dropOutcomes) {
     const budgetLineIndex = lines.findIndex(
       (line) => line.startsWith("Outcomes:") || line.startsWith("⚠ "),
     );
@@ -407,7 +414,7 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     lines.push(wisdomLine);
   }
 
-  if (currentTask) {
+  if (currentTask && !dropCurrent) {
     const taskDesc =
       currentTask.title.length > 40
         ? currentTask.title.slice(0, 37) + "..."

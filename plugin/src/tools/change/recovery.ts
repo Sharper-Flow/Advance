@@ -17,7 +17,7 @@ import { loadChange } from "../../storage/json";
 import { formatToolOutput } from "../../utils/tool-output";
 import { buildChangeContextSnapshot } from "../../utils/context-snapshot";
 import { changeToDirectiveState } from "../../temporal/change-state";
-import { deriveWorkflowDirective } from "../../utils/workflow-directive";
+import { deriveDirectiveSafe } from "../../utils/workflow-directive";
 import { collectErrorText } from "../../temporal/retry-wrapper";
 import { loadProposalForContext } from "../change/artifacts";
 /**
@@ -168,7 +168,9 @@ export async function buildReentryResult(
     );
     // AC5: re-entry/recovery handoff snapshot carries the `Next:` orientation
     // line so a resumed change tells the agent which gate/command is next.
-    const directive = deriveWorkflowDirective(
+    // Best effort: a derivation failure must not break the handoff snapshot;
+    // the snapshot omits the `Next:` line.
+    const directive = deriveDirectiveSafe(
       changeToDirectiveState({
         projectId: updatedChange.data.adv_project_id ?? "unknown",
         change: updatedChange.data,

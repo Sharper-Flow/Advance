@@ -15,7 +15,7 @@ import {
 import { getCommandsByGate } from "../manifest";
 import { changeToDirectiveState } from "../temporal/change-state";
 import {
-  deriveWorkflowDirective,
+  deriveDirectiveSafe,
   type WorkflowDirective,
 } from "../utils/workflow-directive";
 import {
@@ -144,8 +144,10 @@ export async function enrichRecentChangeStatus(
 
   // Authoritative next-action projection shared with gate status and the
   // context snapshot. Derived from the disk change projection (Temporal-first
-  // reads elsewhere keep this fresh); never persisted.
-  const directive = deriveWorkflowDirective(
+  // reads elsewhere keep this fresh); never persisted. Best effort: a
+  // derivation failure must not break status enrichment — fall back to the
+  // first open gate and omit the `_directive` payload on the rare error path.
+  const directive = deriveDirectiveSafe(
     changeToDirectiveState({
       projectId: changeResult.data.adv_project_id ?? "unknown",
       change: changeResult.data,
@@ -153,6 +155,11 @@ export async function enrichRecentChangeStatus(
     }),
     Date.now(),
   );
+  const fallbackNextGate = directive
+    ? undefined
+    : (GATE_ORDER.find((gateId) => gates[gateId]?.status !== "done") as
+        | GateId
+        | undefined);
 
   const snapshotInput = {
     change: changeResult.data,
@@ -184,8 +191,10 @@ export async function enrichRecentChangeStatus(
       dependencyStatus.summary;
   }
 
-  const nextGate = directive.action.gateId as GateId | undefined;
-  if (nextGate) {
+  const nextGate = directive
+    ? (directive.action.gateId as GateId | undefined)
+    : fallbackNextGate;
+  if (directive && nextGate) {
     const parentContext = changeResult.data.fast_follow_of
       ? await getFastFollowParentContext(
           store,

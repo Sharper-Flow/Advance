@@ -270,7 +270,7 @@ import {
 import { checkRequirementSmells } from "../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { changeToDirectiveState } from "../temporal/change-state";
-import { deriveWorkflowDirective } from "../utils/workflow-directive";
+import { deriveDirectiveSafe } from "../utils/workflow-directive";
 import {
   renderBriefingPacket,
   type BriefingPacketRendererInput,
@@ -812,8 +812,10 @@ export const changeTools = {
                 : undefined;
               // AC5: derive the authoritative directive from the same change
               // projection + gates the snapshot renders, so the change-show
-              // packet carries the `Next:` orientation line.
-              const directive = deriveWorkflowDirective(
+              // packet carries the `Next:` orientation line. Best effort: a
+              // derivation failure must not break change-show; the snapshot
+              // omits the `Next:` line.
+              const directive = deriveDirectiveSafe(
                 changeToDirectiveState({
                   projectId: displayChange.adv_project_id ?? "unknown",
                   change: displayChange,
@@ -821,6 +823,11 @@ export const changeTools = {
                 }),
                 Date.now(),
               );
+              if (!directive) {
+                logger.warn(
+                  `deriveWorkflowDirective failed in change-show for ${changeId}; snapshot omits Next line`,
+                );
+              }
               output._contextSnapshot = buildChangeContextSnapshot({
                 change: displayChange,
                 proposalText,
@@ -1379,7 +1386,9 @@ export const changeTools = {
         const createdGates =
           createdChangeResult.data.gates ?? createDefaultGates();
         // AC5: created-change snapshot carries the `Next:` orientation line.
-        const createdDirective = deriveWorkflowDirective(
+        // Best effort: a derivation failure must not break change-create; the
+        // snapshot omits the `Next:` line.
+        const createdDirective = deriveDirectiveSafe(
           changeToDirectiveState({
             projectId: createdChangeResult.data.adv_project_id ?? "unknown",
             change: createdChangeResult.data,
@@ -1387,6 +1396,11 @@ export const changeTools = {
           }),
           Date.now(),
         );
+        if (!createdDirective) {
+          logger.warn(
+            `deriveWorkflowDirective failed in change-create for ${result.changeId}; snapshot omits Next line`,
+          );
+        }
         output._contextSnapshot = buildChangeContextSnapshot({
           change: createdChangeResult.data,
           proposalText,

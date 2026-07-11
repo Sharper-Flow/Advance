@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import type { GateId, GateReadinessBlocker, Gates } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
-import { deriveWorkflowDirective, GATE_COMMAND } from "./workflow-directive";
+import {
+  deriveDirectiveSafe,
+  deriveWorkflowDirective,
+  GATE_COMMAND,
+} from "./workflow-directive";
 
 const EPOCH = Date.parse("2026-05-05T12:00:00.000Z");
 const STALE = "2026-05-04T00:00:00.000Z"; // >24h before EPOCH
@@ -194,6 +198,21 @@ describe("deriveWorkflowDirective", () => {
     expect(d.canArchive).toBe(true);
   });
 
+  it("routes a closed change to the safe archived directive (terminal)", () => {
+    let gates = createDefaultGates();
+    gates = markDone(gates, ...GATE_ORDER);
+    const d = deriveWorkflowDirective(
+      makeState({ status: "closed", gates }),
+      EPOCH,
+    );
+    // Closed is terminal: must NOT fall through to
+    // `continue(release, adv-archive)` just because all gates are done.
+    expect(d.phase).toBe("archived");
+    expect(d.action.kind).toBe("archived");
+    expect(d.action.command).toBeUndefined();
+    expect(d.canArchive).toBe(true);
+  });
+
   it("classifies unclassifiable recovery audit as recovery reason unknown", () => {
     const gates = gatesWith("execution", "done", {
       recovery_audit: {
@@ -221,5 +240,28 @@ describe("deriveWorkflowDirective", () => {
     const b = deriveWorkflowDirective(state, EPOCH);
     expect(a).toEqual(b);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+});
+
+describe("deriveDirectiveSafe", () => {
+  it("returns the same directive as deriveWorkflowDirective for valid state", () => {
+    const gates = markDone(
+      gatesWith("design", "in_progress"),
+      "proposal",
+      "discovery",
+    );
+    const state = makeState({ gates });
+    expect(deriveDirectiveSafe(state, EPOCH)).toEqual(
+      deriveWorkflowDirective(state, EPOCH),
+    );
+  });
+
+  it("returns undefined instead of throwing on malformed state", () => {
+    // Missing gate entries make gate indexing throw inside the derivation; the
+    // safe wrapper must swallow and return undefined so tool-layer surfaces
+    // (gate status, snapshots, status enrichment) degrade gracefully.
+    const malformed = makeState({ gates: {} as Gates });
+    expect(() => deriveWorkflowDirective(malformed, EPOCH)).toThrow();
+    expect(deriveDirectiveSafe(malformed, EPOCH)).toBeUndefined();
   });
 });

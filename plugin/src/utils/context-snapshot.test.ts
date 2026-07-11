@@ -192,6 +192,25 @@ describe("formatContextSnapshot", () => {
     expect(output).toContain("Wisdom: 3 entries");
     expect(output).toContain("tk-abc123");
   });
+
+  test("fits within 10 lines with directive, wisdom, and current task", () => {
+    const input: ContextSnapshotInput = {
+      ...baseInput,
+      directive: {
+        action: { kind: "continue", gateId: "design", command: "adv-design" },
+      } as ContextSnapshotInput["directive"],
+      currentTask: { id: "tk-abc123", title: "Implement feature X" },
+      wisdomCount: 3,
+      wisdomByType: { convention: 2, pattern: 1 },
+    };
+    const output = formatContextSnapshot(input);
+    const lines = output.split("\n");
+    // Directive `Next:` row + wisdom + current all compete for the 10-line box;
+    // the budget trim must keep the hardest-pressed combination within cap.
+    expect(lines.length).toBeLessThanOrEqual(10);
+    expect(output).toContain("Next:");
+    expect(output).toContain("Wisdom: 3 entries");
+  });
 });
 
 describe("formatCrossRepoSwitch", () => {

@@ -4745,3 +4745,48 @@ At archive, ADV MUST generate a compact archive-lane briefing digest from final 
 - Durable promotions are not duplicated
 
 ---
+
+### Workflow Directive Is a Single-Source-of-Truth Projection
+
+**ID:** `rq-workflowDirective01` | **Priority:** **[MUST]**
+
+ADV MUST derive the agent-facing next action from one authoritative projection. `deriveWorkflowDirective(state, epoch)` in `plugin/src/utils/workflow-directive.ts` is the sole producer; the workflow's `getDirectiveQuery`, `adv-gate-status`, gate-completion and change-show/create context snapshots, status enrichment, recovery handoff, and compaction context MUST all consume the same `WorkflowDirective`. Every surface that orients the agent MUST render a compact `Next:` line from the directive — `Next: <gate> → /<command>` for `continue`/`never_started`, or `Next: archived` / `Next: recovery` / `Next: blocked` / `Next: approval` for the non-command kinds — so the context snapshot, gate status, and status recommendations always agree. The directive is derive-on-read: no persistence, no caching, no `defineUpdate`; equal `(state, epoch)` inputs yield structurally equal output. Terminal statuses (`archived` and `closed`) MUST collapse to a safe `archived` action kind with no command, so a closed change with all gates done never routes to a misleading `Next: release → /adv-archive`. Tool-layer callers (outside the workflow) MUST consume the projection through `deriveDirectiveSafe`, which returns `undefined` on a derivation failure; surfaces degrade gracefully (snapshots omit the `Next:` line, load-bearing reads fall back to gate-derived next-action) rather than breaking the tool response. The workflow itself calls `deriveWorkflowDirective` directly — its state is always well-formed and a throw there must surface deterministically.
+
+**Tags:** `workflow`, `directive`, `single-source-of-truth`, `context-snapshot`, `gate-status`
+
+#### Scenarios
+
+**One producer feeds every next-action surface** (`rq-workflowDirective01.1`)
+
+**Given:**
+- A change has durable workflow state with gates and status
+
+**When:** Gate status, a context snapshot, status enrichment, or compaction renders the next action
+
+**Then:**
+- Each surface consumes the same `deriveWorkflowDirective` projection
+- The rendered `Next:` line matches across surfaces for identical state
+
+**Terminal statuses route to a safe directive** (`rq-workflowDirective01.2`)
+
+**Given:**
+- A change is `archived` or `closed`
+
+**When:** The directive is derived
+
+**Then:**
+- The action kind is `archived` and no `Next: <gate> → /<command>` is emitted
+- A closed change with all gates done does not route to `continue(release, adv-archive)`
+
+**Derivation failure degrades gracefully outside the workflow** (`rq-workflowDirective01.3`)
+
+**Given:**
+- Tool-layer state is partially hydrated or carries a poisoned-history fallback
+
+**When:** `deriveWorkflowDirective` would throw
+
+**Then:**
+- `deriveDirectiveSafe` returns `undefined` and the tool still responds
+- Snapshots omit the `Next:` line; load-bearing reads fall back to gate-derived next-action
+
+---
