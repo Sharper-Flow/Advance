@@ -15,18 +15,22 @@
  *    retired-epics), wisdom/agenda/reflections row counts, per-ID collision
  *    report (AC5, DONT2) — with ZERO mutations (AC3, C2).
  *
- * The `execute` action (terminal-first import, live recreation, ledger
- * idempotency) lands with task tk-9e02f3b6015f; the dry-run plan and the
- * future execute report share `ConsolidationReportSchema` (DDC3) and the
- * append-only ledger row contract `ConsolidationLedgerRowSchema` (DDC4),
- * keyed on (sourceProjectId, targetProjectId, itemId).
+ * The `execute` action (task tk-9e02f3b6015f) applies the exact dry-run
+ * plan: approval-gated (C2), terminal-first disk-projection imports, live
+ * change/Epic recreation under the true identity via the existing Temporal
+ * creation/signal path (new workflows with carried state — never history
+ * rewrites, C1), content-hash-deduped jsonl appends, and an append-only
+ * ledger keyed on (sourceProjectId, targetProjectId, itemId) so re-runs
+ * are structurally idempotent no-ops (AC6, DDC4). The orphan store is
+ * never modified or deleted (DONT4). The dry-run plan and the execute
+ * report share `ConsolidationReportSchema` (DDC3).
  *
  * Testability: every filesystem walk is rooted at an injectable
  * `dataHomeRoot` (the directory holding `opencode/` and
  * `opencode-projects/`), so tests never touch real XDG stores.
  */
 
-import { readdir, readFile } from "fs/promises";
+import { appendFile, cp, mkdir, readdir, readFile } from "fs/promises";
 import { basename, dirname, join } from "path";
 import { createHash } from "crypto";
 import { z } from "zod";
@@ -35,8 +39,24 @@ import { getDataHome, resolveProjectIdentity } from "../utils/project-id";
 import { execFileGitAsync } from "../utils/git-binary";
 import { isProcessAlive } from "../utils/process-liveness";
 import { WORKER_LOCK_FILENAME } from "../temporal/worker-lock";
-import { createTemporalClientBundle } from "../temporal/client";
+import {
+  buildEpicWorkflowId,
+  createTemporalClientBundle,
+} from "../temporal/client";
 import { listEpicWorkflows } from "../temporal/list-epic-workflows";
+import { loadChange } from "../storage/json";
+import { changeSeedStateFromChange } from "../temporal/change-state";
+import { buildEpicSeedState } from "../temporal/epic-state";
+import {
+  ensureChangeWorkflowStarted,
+  ensureEpicWorkflowStarted,
+} from "../temporal/workflow-start";
+import { getEpicStateQuery } from "../temporal/messages";
+import type {
+  ChangeWorkflowInput,
+  EpicWorkflowInput,
+  EpicWorkflowState,
+} from "../temporal/contracts";
 import type { Store } from "../storage/store";
 
 // =============================================================================
@@ -221,6 +241,12 @@ export const ConsolidationReportSchema = z
       .strict(),
     outcomes: z.array(ConsolidationItemOutcomeSchema).nullable().default(null),
     zero_mutations: z.boolean(),
+    /** Execute reports only: false when any item failed (DDC3 shared shape). */
+    success: z.boolean().optional(),
+    /** Execute reports only: top-level failure summary; per-item detail in outcomes. */
+    error: z.string().optional(),
+    /** Execute reports only: true when a re-run applied nothing (AC6). */
+    no_op: z.boolean().optional(),
   })
   .strict();
 export type ConsolidationReport = z.infer<typeof ConsolidationReportSchema>;
@@ -837,6 +863,40 @@ export async function buildConsolidationPlan(
     );
   }
 
+  // --- Ledger (target-side, append-only) -----------------------------------
+  // Read BEFORE collision detection: an item that is both ledgered and
+  // present in the target is the expected post-consolidation state, not a
+  // collision (AC6 re-run idempotency).
+  const ledgerPath = target
+    ? join(target.path, CONSOLIDATION_LEDGER_FILENAME)
+    : null;
+  const ledgerApplied = new Set<string>();
+  let ledgerRows = 0;
+  let ledgerMalformed = 0;
+  let ledgerExists = false;
+  if (ledgerPath) {
+    const raw = await readFileSafe(ledgerPath);
+    if (raw !== null) {
+      ledgerExists = true;
+      for (const line of raw.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const row = ConsolidationLedgerRowSchema.parse(JSON.parse(trimmed));
+          if (
+            row.source_project_id === options.sourceProjectId &&
+            row.target_project_id === options.targetProjectId
+          ) {
+            ledgerApplied.add(row.item_id);
+          }
+          ledgerRows += 1;
+        } catch {
+          ledgerMalformed += 1;
+        }
+      }
+    }
+  }
+
   // --- Collision maps: per-ID across every category ------------------------
   const sourceLocations = new Map<string, string[]>();
   const targetLocations = new Map<string, string[]>();
@@ -879,6 +939,9 @@ export async function buildConsolidationPlan(
   for (const [id, inSource] of sourceLocations) {
     const inTarget = targetLocations.get(id);
     if (!inTarget) continue;
+    // Ledgered items present in both stores are the expected
+    // post-consolidation state (we put them there) — not collisions.
+    if (ledgerApplied.has(id)) continue;
     collidingIds.add(id);
     collisions.push({
       item_id: id,
@@ -889,37 +952,6 @@ export async function buildConsolidationPlan(
     });
   }
   collisions.sort((a, b) => a.item_id.localeCompare(b.item_id));
-
-  // --- Ledger (target-side, append-only) -----------------------------------
-  const ledgerPath = target
-    ? join(target.path, CONSOLIDATION_LEDGER_FILENAME)
-    : null;
-  const ledgerApplied = new Set<string>();
-  let ledgerRows = 0;
-  let ledgerMalformed = 0;
-  let ledgerExists = false;
-  if (ledgerPath) {
-    const raw = await readFileSafe(ledgerPath);
-    if (raw !== null) {
-      ledgerExists = true;
-      for (const line of raw.split("\n")) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        try {
-          const row = ConsolidationLedgerRowSchema.parse(JSON.parse(trimmed));
-          if (
-            row.source_project_id === options.sourceProjectId &&
-            row.target_project_id === options.targetProjectId
-          ) {
-            ledgerApplied.add(row.item_id);
-          }
-          ledgerRows += 1;
-        } catch {
-          ledgerMalformed += 1;
-        }
-      }
-    }
-  }
 
   const planAction = (
     id: string,
@@ -1085,10 +1117,511 @@ export async function buildConsolidationPlan(
 }
 
 // =============================================================================
+// execute
+// =============================================================================
+
+export type ConsolidationErrorCode =
+  | "approval_required"
+  | "worker_lock_live"
+  | "collisions_present";
+
+/**
+ * Typed refusal for the approval/safety gates. Thrown BEFORE any mutation —
+ * a rejected execute leaves both stores byte-identical.
+ */
+export class ConsolidationError extends Error {
+  readonly code: ConsolidationErrorCode;
+  constructor(code: ConsolidationErrorCode, message: string) {
+    super(message);
+    this.name = "ConsolidationError";
+    this.code = code;
+  }
+}
+
+/**
+ * Injectable recreation backends. Defaults use the existing Temporal
+ * creation/signal path (`ensureChangeWorkflowStarted` /
+ * `ensureEpicWorkflowStarted`) under the true identity — new workflows with
+ * carried state, never history rewrites (C1). Tests inject fakes so no real
+ * Temporal server is touched.
+ */
+export interface ConsolidationExecuteDeps {
+  recreateLiveChange?: (input: ChangeWorkflowInput) => Promise<void>;
+  queryLiveEpicState?: (
+    projectId: string,
+    epicId: string,
+  ) => Promise<EpicWorkflowState | null>;
+  recreateLiveEpic?: (input: EpicWorkflowInput) => Promise<void>;
+}
+
+export interface ExecuteConsolidationOptions extends BuildPlanOptions {
+  approvedByUser: boolean;
+  approvalEvidence: string;
+  /** Repo root recorded as the recreated workflow's archive project. */
+  archiveProjectPath?: string;
+  deps?: ConsolidationExecuteDeps;
+}
+
+/**
+ * Copy a disk projection directory source → target. Resume-safe:
+ *  - identical primary file → fill in any missing files, never overwrite;
+ *  - divergent primary file → throw (collision-class, DONT2);
+ *  - missing destination → full copy.
+ */
+async function importDirProjection(
+  srcDir: string,
+  destDir: string,
+  primaryRel: string,
+): Promise<void> {
+  const [srcPrimary, destPrimary] = await Promise.all([
+    readFileSafe(join(srcDir, primaryRel)),
+    readFileSafe(join(destDir, primaryRel)),
+  ]);
+  if (destPrimary !== null && destPrimary !== srcPrimary) {
+    throw new Error(
+      `destination ${destDir} already exists with divergent ${primaryRel}; refusing to overwrite (collision-class)`,
+    );
+  }
+  await mkdir(dirname(destDir), { recursive: true });
+  await cp(srcDir, destDir, {
+    recursive: true,
+    force: false,
+    errorOnExist: false,
+  });
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Apply the exact last dry-run plan: terminal-first disk-projection imports,
+ * then live recreation under the true identity, then content-hash-deduped
+ * jsonl appends. Append-only ledger rows make re-runs structurally
+ * idempotent (AC6, DDC4); the orphan store is never modified (DONT4).
+ *
+ * Throws ConsolidationError (typed refusal, zero mutations) for missing
+ * approval, live source worker.lock, or plan collisions.
+ */
+export async function executeConsolidation(
+  options: ExecuteConsolidationOptions,
+): Promise<ConsolidationReport> {
+  if (
+    options.approvedByUser !== true ||
+    typeof options.approvalEvidence !== "string" ||
+    options.approvalEvidence.trim().length === 0
+  ) {
+    throw new ConsolidationError(
+      "approval_required",
+      "execute requires approvedByUser: true and non-blank approvalEvidence (C2)",
+    );
+  }
+
+  const plan = await buildConsolidationPlan(options);
+  const now = options.now ?? (() => new Date());
+
+  if (plan.safety.source_worker_lock_live) {
+    throw new ConsolidationError(
+      "worker_lock_live",
+      `source store ${options.sourceProjectId} holds a live ${WORKER_LOCK_FILENAME}; close stale sessions before consolidating`,
+    );
+  }
+  if (plan.collisions.length > 0) {
+    throw new ConsolidationError(
+      "collisions_present",
+      `plan reports ${plan.collisions.length} collision(s) [${plan.collisions
+        .map((c) => c.item_id)
+        .join(", ")}]; resolve duplicates before executing (DONT2)`,
+    );
+  }
+
+  // Resolve (and if necessary create) the target store dir. A missing target
+  // is minted under the canonical legacy layout.
+  const targetPath =
+    plan.target.path ??
+    join(options.dataHomeRoot, "opencode/plugins/advance", options.targetProjectId);
+  await mkdir(targetPath, { recursive: true });
+  const ledgerFilePath = join(targetPath, CONSOLIDATION_LEDGER_FILENAME);
+
+  const sourcePath = plan.source.path;
+  const outcomes: ConsolidationItemOutcome[] = [];
+
+  const writeLedger = async (
+    row: Omit<ConsolidationLedgerRow, "schema_version" | "applied_at" | "plan_hash">,
+  ): Promise<void> => {
+    const full: ConsolidationLedgerRow = {
+      schema_version: 1,
+      ...row,
+      plan_hash: plan.plan_hash,
+      applied_at: now().toISOString(),
+    };
+    await appendFile(ledgerFilePath, `${JSON.stringify(full)}\n`, "utf-8");
+  };
+
+  // --- Phase 1: terminal imports (ALL before ANY live recreation) ----------
+  const terminalItems: Array<{
+    item: ConsolidationPlanItem;
+    primaryRel: string;
+    itemKind: ConsolidationLedgerRow["item_kind"];
+  }> = [
+    ...plan.changes.terminal.map((item) => ({
+      item,
+      primaryRel: "change.json",
+      itemKind: "change_terminal" as const,
+    })),
+    ...plan.archive_bundles.map((item) => ({
+      item,
+      primaryRel: "change.json",
+      itemKind: "archive_bundle" as const,
+    })),
+    ...plan.epics.retired.map((item) => ({
+      item,
+      primaryRel: "retired-projection.json",
+      itemKind: "epic_retired" as const,
+    })),
+  ];
+
+  for (const { item, primaryRel, itemKind } of terminalItems) {
+    if (item.plan_action === "skip_ledgered") {
+      outcomes.push({
+        item_id: item.id,
+        kind: item.kind,
+        action: item.plan_action,
+        status: "skipped",
+      });
+      continue;
+    }
+    try {
+      const srcDir = join(sourcePath, item.source_path!);
+      await importDirProjection(srcDir, join(targetPath, item.source_path!), primaryRel);
+      const primary = (await readFileSafe(join(srcDir, primaryRel))) ?? "";
+      await writeLedger({
+        source_project_id: options.sourceProjectId,
+        target_project_id: options.targetProjectId,
+        item_id: item.id,
+        item_kind: itemKind,
+        action: "import_projection",
+        content_hash: sha256(primary),
+      });
+      outcomes.push({
+        item_id: item.id,
+        kind: item.kind,
+        action: "import_projection",
+        status: "applied",
+      });
+    } catch (error) {
+      outcomes.push({
+        item_id: item.id,
+        kind: item.kind,
+        action: "import_projection",
+        status: "failed",
+        error: errorMessage(error),
+      });
+      // Terminal-first invariant: abort before the live phase so a mid-run
+      // failure leaves history correct with only live work to retry.
+      return finishExecuteReport(plan, outcomes, now, errorMessage(error));
+    }
+  }
+
+  // --- Phase 2: live recreation under the true identity --------------------
+  type TemporalBundle = Awaited<ReturnType<typeof createTemporalClientBundle>>;
+  let bundle: TemporalBundle | null = null;
+  const getClient = async (): Promise<TemporalBundle["client"]> => {
+    if (!bundle) bundle = await createTemporalClientBundle();
+    return bundle.client;
+  };
+
+  const deps = options.deps ?? {};
+  const recreateLiveChange =
+    deps.recreateLiveChange ??
+    (async (input: ChangeWorkflowInput): Promise<void> => {
+      const client = {
+        workflow: (await getClient()).workflow as unknown as {
+          start: (...args: unknown[]) => Promise<unknown>;
+          getHandle: (workflowId: string) => unknown,
+        },
+      };
+      await ensureChangeWorkflowStarted(client as never, input);
+    });
+  const queryLiveEpicState =
+    deps.queryLiveEpicState ??
+    (async (
+      projectId: string,
+      epicId: string,
+    ): Promise<EpicWorkflowState | null> => {
+      const client = await getClient();
+      const handle = client.workflow.getHandle(
+        buildEpicWorkflowId(projectId, epicId),
+      );
+      try {
+        return (await handle.query(getEpicStateQuery)) as EpicWorkflowState;
+      } catch (error) {
+        if (/not found/i.test(errorMessage(error))) return null;
+        throw error;
+      }
+    });
+  const recreateLiveEpic =
+    deps.recreateLiveEpic ??
+    (async (input: EpicWorkflowInput): Promise<void> => {
+      const client = {
+        workflow: (await getClient()).workflow as unknown as {
+          start: (...args: unknown[]) => Promise<unknown>;
+          getHandle: (workflowId: string) => unknown,
+        },
+      };
+      await ensureEpicWorkflowStarted(client as never, input);
+    });
+
+  try {
+    for (const item of plan.changes.live) {
+      if (item.plan_action !== "recreate") {
+        outcomes.push({
+          item_id: item.id,
+          kind: item.kind,
+          action: item.plan_action,
+          status: "skipped",
+        });
+        continue;
+      }
+      try {
+        const srcDir = join(sourcePath, item.source_path!);
+        const dirName = basename(srcDir);
+        const loaded = await loadChange(join(sourcePath, "changes"), dirName);
+        if (!loaded.success || !loaded.data) {
+          throw new Error(
+            `source change ${item.id} unreadable (${loaded.success ? "empty" : loaded.error}); cannot carry state`,
+          );
+        }
+        const change = loaded.data;
+        // Disk projection + artifact files into the target store (mirrors
+        // the store's own non-terminal dual-write).
+        await importDirProjection(
+          srcDir,
+          join(targetPath, "changes", dirName),
+          "change.json",
+        );
+        await recreateLiveChange({
+          projectId: options.targetProjectId,
+          changeId: change.id,
+          title: change.title,
+          initializedAt: change.created_at,
+          projectionChangesDir: join(targetPath, "changes"),
+          ...(options.archiveProjectPath
+            ? { archiveProjects: [{ projectPath: options.archiveProjectPath }] }
+            : {}),
+          seedState: changeSeedStateFromChange(change),
+        });
+        const raw = (await readFileSafe(join(srcDir, "change.json"))) ?? "";
+        await writeLedger({
+          source_project_id: options.sourceProjectId,
+          target_project_id: options.targetProjectId,
+          item_id: item.id,
+          item_kind: "change_live",
+          action: "recreate",
+          content_hash: sha256(raw),
+        });
+        outcomes.push({
+          item_id: item.id,
+          kind: item.kind,
+          action: "recreate",
+          status: "applied",
+        });
+      } catch (error) {
+        outcomes.push({
+          item_id: item.id,
+          kind: item.kind,
+          action: "recreate",
+          status: "failed",
+          error: errorMessage(error),
+        });
+      }
+    }
+
+    for (const item of plan.epics.live) {
+      if (item.plan_action !== "recreate") {
+        outcomes.push({
+          item_id: item.id,
+          kind: item.kind,
+          action: item.plan_action,
+          status: "skipped",
+        });
+        continue;
+      }
+      try {
+        const state = await queryLiveEpicState(options.sourceProjectId, item.id);
+        if (!state) {
+          throw new Error(
+            `source epic workflow state unavailable for ${item.id}; cannot carry Epic state — recreate manually or restore the source workflow`,
+          );
+        }
+        await recreateLiveEpic({
+          projectId: options.targetProjectId,
+          epicId: item.id,
+          title: state.epic.title,
+          narrative: state.epic.narrative,
+          initializedAt: state.initializedAt,
+          seedState: buildEpicSeedState(state),
+        });
+        await writeLedger({
+          source_project_id: options.sourceProjectId,
+          target_project_id: options.targetProjectId,
+          item_id: item.id,
+          item_kind: "epic_live",
+          action: "recreate",
+          content_hash: sha256(canonicalize(state.epic)),
+        });
+        outcomes.push({
+          item_id: item.id,
+          kind: item.kind,
+          action: "recreate",
+          status: "applied",
+        });
+      } catch (error) {
+        outcomes.push({
+          item_id: item.id,
+          kind: item.kind,
+          action: "recreate",
+          status: "failed",
+          error: errorMessage(error),
+        });
+      }
+    }
+  } finally {
+    // Cast defeats TS closure-narrowing (`bundle` is assigned inside the
+    // getClient closure, which the control-flow analysis cannot see).
+    const opened = bundle as TemporalBundle | null;
+    opened?.connection.close();
+  }
+
+  // --- Phase 3: jsonl appends with content-hash dedupe ---------------------
+  const appendTargets: Array<{
+    file: string;
+    itemKind: ConsolidationLedgerRow["item_kind"];
+  }> = [
+    { file: "wisdom.jsonl", itemKind: "wisdom_row" },
+    { file: "agenda.jsonl", itemKind: "agenda_row" },
+    { file: "reflections.jsonl", itemKind: "reflection_row" },
+  ];
+  for (const { file, itemKind } of appendTargets) {
+    const srcContent = await readFileSafe(join(sourcePath, file));
+    if (srcContent === null) continue;
+    const targetHashes = (
+      await readJsonlHashed(join(targetPath, file))
+    ).hashes;
+    const seen = new Set<string>();
+    const toAppend: string[] = [];
+    for (const line of srcContent.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        JSON.parse(trimmed);
+      } catch {
+        continue; // malformed source rows are reported in the plan, never copied
+      }
+      const hash = sha256(trimmed);
+      if (seen.has(hash) || targetHashes.has(hash)) continue;
+      seen.add(hash);
+      toAppend.push(trimmed);
+    }
+    if (toAppend.length === 0) continue;
+    await appendFile(
+      join(targetPath, file),
+      toAppend.map((l) => `${l}\n`).join(""),
+      "utf-8",
+    );
+    for (const line of toAppend) {
+      const hash = sha256(line);
+      await writeLedger({
+        source_project_id: options.sourceProjectId,
+        target_project_id: options.targetProjectId,
+        item_id: hash,
+        item_kind: itemKind,
+        action: "append_dedupe",
+        content_hash: hash,
+      });
+    }
+  }
+
+  return finishExecuteReport(plan, outcomes, now);
+}
+
+function finishExecuteReport(
+  plan: ConsolidationReport,
+  outcomes: ConsolidationItemOutcome[],
+  now: () => Date,
+  abortError?: string,
+): ConsolidationReport {
+  const failed = outcomes.filter((o) => o.status === "failed").length;
+  const applied = outcomes.filter((o) => o.status === "applied").length;
+  return {
+    ...plan,
+    action: "execute",
+    generated_at: now().toISOString(),
+    outcomes,
+    zero_mutations: false,
+    success: failed === 0,
+    no_op: applied === 0 && failed === 0,
+    ...(failed > 0
+      ? {
+          error:
+            abortError ??
+            `${failed} consolidation item(s) failed; see outcomes for per-item errors`,
+        }
+      : {}),
+  };
+}
+
+// =============================================================================
 // Tool definition
 // =============================================================================
 
 const SHA40_DESCRIBE = "40-hex ADV project id (git root commit)";
+
+/**
+ * Shared source/target validation + identity resolution for dry_run and
+ * execute. Returns either the resolved ids or a user-facing error string.
+ */
+async function resolveConsolidationTargetIds(
+  args: { source_project_id?: string; target_project_id?: string },
+  directory: string,
+  action: "dry_run" | "execute",
+): Promise<{ sourceProjectId: string; targetProjectId: string } | { error: string }> {
+  if (!args.source_project_id) {
+    return { error: `source_project_id is required for ${action}` };
+  }
+  if (!SHA40.test(args.source_project_id)) {
+    return {
+      error: `source_project_id must be a ${SHA40_DESCRIBE}; got "${args.source_project_id}"`,
+    };
+  }
+  if (args.target_project_id && !SHA40.test(args.target_project_id)) {
+    return {
+      error: `target_project_id must be a ${SHA40_DESCRIBE}; got "${args.target_project_id}"`,
+    };
+  }
+  let targetProjectId = args.target_project_id;
+  if (!targetProjectId) {
+    const resolution = await resolveProjectIdentity(directory);
+    if (resolution.kind === "ok") {
+      targetProjectId = resolution.projectId;
+    } else if (resolution.kind === "unstable") {
+      return {
+        error: `${resolution.guidance} Pass target_project_id explicitly to override.`,
+      };
+    } else {
+      return {
+        error: `could not resolve target identity for ${directory}: not a git repository. Pass target_project_id explicitly to override.`,
+      };
+    }
+  }
+  if (args.source_project_id === targetProjectId) {
+    return {
+      error:
+        "source_project_id and target_project_id are the same store; nothing to consolidate",
+    };
+  }
+  return { sourceProjectId: args.source_project_id, targetProjectId };
+}
 
 export const storeConsolidateTools = {
   adv_store_consolidate: {
@@ -1097,13 +1630,13 @@ export const storeConsolidateTools = {
       "action 'scan' (default, read-only) enumerates candidate orphan stores for the current repo across XDG shard layouts and flags dirs minted under unstable SHAs. " +
       "action 'dry_run' emits the full per-item plan (changes live vs terminal, archive bundles, Epics, wisdom/agenda/reflections, per-ID collision report) with zero mutations. " +
       "Colliding item IDs halt with a per-ID report — nothing is overwritten. " +
-      "action 'execute' is approval-gated and lands with the execute task; in this build it refuses without mutating.",
+      "action 'execute' applies the exact dry-run plan: approval-gated (approvedByUser + approvalEvidence), refuses on a live source worker.lock or collisions, imports terminal items as disk projections first, recreates live changes/Epics under the true identity, appends wisdom/agenda/reflections with content-hash dedupe, and writes an append-only ledger so re-runs are idempotent no-ops.",
     args: {
       action: z
         .enum(["scan", "dry_run", "execute"])
         .default("scan")
         .describe(
-          "scan = enumerate orphan candidates (read-only); dry_run = full per-item plan (read-only); execute = apply plan (approval-gated, not available in this build)",
+          "scan = enumerate orphan candidates (read-only); dry_run = full per-item plan (read-only); execute = apply the plan (approval-gated, terminal-first, ledger-idempotent)",
         ),
       directory: z
         .string()
@@ -1158,95 +1691,51 @@ export const storeConsolidateTools = {
         return formatToolOutput(result, { tool: "adv_store_consolidate" });
       }
 
+      const action = args.action as "dry_run" | "execute";
+      const resolved = await resolveConsolidationTargetIds(
+        args,
+        directory,
+        action,
+      );
+      if ("error" in resolved) {
+        return formatToolOutput(
+          { success: false, action, error: resolved.error },
+          { tool: "adv_store_consolidate" },
+        );
+      }
+
       if (args.action === "execute") {
-        // Approval-gated mutation action — not available in this build
-        // (task tk-9e02f3b6015f). Refuse without touching any store (C2).
-        return formatToolOutput(
-          {
-            success: false,
-            action: "execute",
-            error:
-              "adv_store_consolidate execute is not implemented in this build; it lands with task tk-9e02f3b6015f. " +
-              "Use action 'dry_run' to inspect the plan. No mutations were performed.",
-          },
-          { tool: "adv_store_consolidate" },
-        );
-      }
-
-      // action === "dry_run"
-      if (!args.source_project_id) {
-        return formatToolOutput(
-          {
-            success: false,
-            action: "dry_run",
-            error: "source_project_id is required for dry_run",
-          },
-          { tool: "adv_store_consolidate" },
-        );
-      }
-      if (!SHA40.test(args.source_project_id)) {
-        return formatToolOutput(
-          {
-            success: false,
-            action: "dry_run",
-            error: `source_project_id must be a ${SHA40_DESCRIBE}; got "${args.source_project_id}"`,
-          },
-          { tool: "adv_store_consolidate" },
-        );
-      }
-      if (args.target_project_id && !SHA40.test(args.target_project_id)) {
-        return formatToolOutput(
-          {
-            success: false,
-            action: "dry_run",
-            error: `target_project_id must be a ${SHA40_DESCRIBE}; got "${args.target_project_id}"`,
-          },
-          { tool: "adv_store_consolidate" },
-        );
-      }
-
-      let targetProjectId = args.target_project_id;
-      if (!targetProjectId) {
-        const resolution = await resolveProjectIdentity(directory);
-        if (resolution.kind === "ok") {
-          targetProjectId = resolution.projectId;
-        } else if (resolution.kind === "unstable") {
+        try {
+          const report = await executeConsolidation({
+            sourceProjectId: resolved.sourceProjectId,
+            targetProjectId: resolved.targetProjectId,
+            dataHomeRoot,
+            approvedByUser: args.approvedByUser === true,
+            approvalEvidence: args.approvalEvidence ?? "",
+            archiveProjectPath: store.paths.root,
+          });
+          return formatToolOutput(report, { tool: "adv_store_consolidate" });
+        } catch (error) {
           return formatToolOutput(
             {
               success: false,
-              action: "dry_run",
-              error: `${resolution.guidance} Pass target_project_id explicitly to override.`,
-            },
-            { tool: "adv_store_consolidate" },
-          );
-        } else {
-          return formatToolOutput(
-            {
-              success: false,
-              action: "dry_run",
-              error: `could not resolve target identity for ${directory}: not a git repository. Pass target_project_id explicitly to override.`,
+              action: "execute",
+              error_code:
+                error instanceof ConsolidationError
+                  ? error.code
+                  : "execute_failed",
+              error: errorMessage(error),
             },
             { tool: "adv_store_consolidate" },
           );
         }
       }
 
-      if (args.source_project_id === targetProjectId) {
-        return formatToolOutput(
-          {
-            success: false,
-            action: "dry_run",
-            error:
-              "source_project_id and target_project_id are the same store; nothing to consolidate",
-          },
-          { tool: "adv_store_consolidate" },
-        );
-      }
-
+      // action === "dry_run"
       try {
         const plan = await buildConsolidationPlan({
-          sourceProjectId: args.source_project_id,
-          targetProjectId,
+          sourceProjectId: resolved.sourceProjectId,
+          targetProjectId: resolved.targetProjectId,
           dataHomeRoot,
         });
         return formatToolOutput(plan, { tool: "adv_store_consolidate" });

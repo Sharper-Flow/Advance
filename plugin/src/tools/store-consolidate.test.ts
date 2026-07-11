@@ -14,7 +14,15 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
-import { mkdtemp, rm, mkdir, writeFile, readdir, readFile } from "fs/promises";
+import {
+  mkdtemp,
+  rm,
+  mkdir,
+  writeFile,
+  readdir,
+  readFile,
+  stat,
+} from "fs/promises";
 import { tmpdir } from "os";
 import { join, relative } from "path";
 import { execFile } from "child_process";
@@ -24,11 +32,18 @@ import {
   storeConsolidateTools,
   scanStoresForRepo,
   buildConsolidationPlan,
+  executeConsolidation,
   ConsolidationReportSchema,
   ConsolidationLedgerRowSchema,
   CONSOLIDATION_LEDGER_FILENAME,
+  type ConsolidationLedgerRow,
 } from "./store-consolidate";
 import type { Store } from "../storage/store";
+import type {
+  ChangeWorkflowInput,
+  EpicWorkflowInput,
+  EpicWorkflowState,
+} from "../temporal/contracts";
 
 const run = promisify(execFile);
 
@@ -622,7 +637,21 @@ describe("adv_store_consolidate tool", () => {
     expect(result.error).toContain("git fetch --unshallow");
   });
 
-  test("execute action is a non-mutating refusal in this build", async () => {
+  test("execute without approval refuses with typed approval_required error", async () => {
+    const before = await snapshotTree(dataHomeRoot);
+    const result = (await executeTool({
+      action: "execute",
+      source_project_id: boundarySha,
+      target_project_id: trueRoot,
+      data_home_root: dataHomeRoot,
+    })) as { success: boolean; error: string; error_code: string };
+    expect(result.success).toBe(false);
+    expect(result.error_code).toBe("approval_required");
+    const after = await snapshotTree(dataHomeRoot);
+    expect(after).toEqual(before);
+  });
+
+  test("execute with approval but live source worker.lock refuses (zero mutations)", async () => {
     const before = await snapshotTree(dataHomeRoot);
     const result = (await executeTool({
       action: "execute",
@@ -630,10 +659,10 @@ describe("adv_store_consolidate tool", () => {
       target_project_id: trueRoot,
       data_home_root: dataHomeRoot,
       approvedByUser: true,
-      approvalEvidence: "test",
-    })) as { success: boolean; error: string };
+      approvalEvidence: "test approval",
+    })) as { success: boolean; error: string; error_code: string };
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not implemented|not available/i);
+    expect(result.error_code).toBe("worker_lock_live");
     const after = await snapshotTree(dataHomeRoot);
     expect(after).toEqual(before);
   });
@@ -645,6 +674,687 @@ describe("adv_store_consolidate tool", () => {
     })) as { action: string; stores: unknown[] };
     expect(result.action).toBe("scan");
     expect(result.stores.length).toBeGreaterThan(0);
+  });
+});
+
+// =============================================================================
+// execute
+// =============================================================================
+
+const EXEC_SOURCE = "b".repeat(40);
+const EXEC_TARGET = "c".repeat(40);
+
+interface ExecFixture {
+  root: string;
+  sourcePath: string;
+  targetPath: string;
+}
+
+async function makeExecFixture(overrides?: {
+  source?: StoreFixture;
+  target?: StoreFixture;
+}): Promise<ExecFixture> {
+  const root = await mkdtemp(join(tmpdir(), "adv-consol-exec-"));
+  const sourcePath = shardStorePath(root, shardHash, EXEC_SOURCE);
+  const targetPath = legacyStorePath(root, EXEC_TARGET);
+  await writeStoreDir(
+    sourcePath,
+    overrides?.source ?? {
+      changes: [
+        { id: "live-a", status: "active" },
+        { id: "term-a", status: "archived" },
+      ],
+      archive: ["arch-a"],
+      retiredEpics: ["epic-retired-a"],
+      wisdomRows: ["w1", "w2"],
+      agendaRows: ["a1"],
+      reflectionRows: ["r1"],
+    },
+  );
+  await writeStoreDir(
+    targetPath,
+    overrides?.target ?? {
+      changes: [{ id: "target-existing", status: "active" }],
+      wisdomRows: ["w1"],
+    },
+  );
+  return { root, sourcePath, targetPath };
+}
+
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await stat(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readLedgerRows(
+  targetPath: string,
+): Promise<ConsolidationLedgerRow[]> {
+  const raw = await readFile(
+    join(targetPath, CONSOLIDATION_LEDGER_FILENAME),
+    "utf-8",
+  ).catch(() => "");
+  return raw
+    .split("\n")
+    .filter((l) => l.trim().length > 0)
+    .map((l) => ConsolidationLedgerRowSchema.parse(JSON.parse(l)));
+}
+
+const listSourceLiveEpics = async (projectId: string): Promise<string[]> =>
+  projectId === EXEC_SOURCE ? ["epic-live-a"] : [];
+
+describe("executeConsolidation", () => {
+  test("approval gate: refuses without approvedByUser or blank evidence, zero mutations", async () => {
+    const { root } = await makeExecFixture();
+    try {
+      const before = await snapshotTree(root);
+      for (const args of [
+        { approvedByUser: false, approvalEvidence: "x" },
+        { approvedByUser: true, approvalEvidence: "   " },
+        { approvedByUser: true, approvalEvidence: "" },
+      ]) {
+        await expect(
+          executeConsolidation({
+            sourceProjectId: EXEC_SOURCE,
+            targetProjectId: EXEC_TARGET,
+            dataHomeRoot: root,
+            listLiveEpicIds: listSourceLiveEpics,
+            ...args,
+          }),
+        ).rejects.toMatchObject({ code: "approval_required" });
+      }
+      expect(await snapshotTree(root)).toEqual(before);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses while a live worker.lock exists in the orphan store", async () => {
+    const { root } = await makeExecFixture({
+      source: {
+        changes: [{ id: "live-a", status: "active" }],
+        workerLock: { pid: process.pid },
+      },
+    });
+    try {
+      const before = await snapshotTree(root);
+      await expect(
+        executeConsolidation({
+          sourceProjectId: EXEC_SOURCE,
+          targetProjectId: EXEC_TARGET,
+          dataHomeRoot: root,
+          approvedByUser: true,
+          approvalEvidence: "test approval",
+          listLiveEpicIds: async () => [],
+        }),
+      ).rejects.toMatchObject({ code: "worker_lock_live" });
+      expect(await snapshotTree(root)).toEqual(before);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("collisions from the plan abort execute before any mutation", async () => {
+    const { root } = await makeExecFixture({
+      target: {
+        changes: [{ id: "live-a", status: "active" }],
+        wisdomRows: ["w1"],
+      },
+    });
+    try {
+      const before = await snapshotTree(root);
+      await expect(
+        executeConsolidation({
+          sourceProjectId: EXEC_SOURCE,
+          targetProjectId: EXEC_TARGET,
+          dataHomeRoot: root,
+          approvedByUser: true,
+          approvalEvidence: "test approval",
+          listLiveEpicIds: listSourceLiveEpics,
+        }),
+      ).rejects.toMatchObject({ code: "collisions_present" });
+      expect(await snapshotTree(root)).toEqual(before);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("terminal-first: every terminal import lands on disk before any live recreation", async () => {
+    const { root, targetPath } = await makeExecFixture();
+    try {
+      let liveCalled = false;
+      const report = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: async () => [],
+        deps: {
+          recreateLiveChange: async () => {
+            liveCalled = true;
+            // Terminal imports MUST already be visible in the target store.
+            expect(
+              await pathExists(
+                join(targetPath, "archive", "2026-07-01-arch-a", "change.json"),
+              ),
+            ).toBe(true);
+            expect(
+              await pathExists(
+                join(
+                  targetPath,
+                  "retired-epics",
+                  "epic-retired-a",
+                  "retired-projection.json",
+                ),
+              ),
+            ).toBe(true);
+            expect(
+              await pathExists(join(targetPath, "changes", "term-a", "change.json")),
+            ).toBe(true);
+          },
+        },
+      });
+      expect(liveCalled).toBe(true);
+      expect(report.action).toBe("execute");
+      expect(report.success).toBe(true);
+      expect(report.zero_mutations).toBe(false);
+      expect(
+        report.outcomes?.every(
+          (o) => o.status === "applied" || o.status === "skipped",
+        ),
+      ).toBe(true);
+      // Ledger carries one row per terminal import + the live recreation.
+      const rows = await readLedgerRows(targetPath);
+      const byItem = Object.fromEntries(rows.map((r) => [r.item_id, r]));
+      expect(byItem["term-a"]!.item_kind).toBe("change_terminal");
+      expect(byItem["arch-a"]!.item_kind).toBe("archive_bundle");
+      expect(byItem["epic-retired-a"]!.item_kind).toBe("epic_retired");
+      expect(byItem["live-a"]!.item_kind).toBe("change_live");
+      for (const row of rows) {
+        expect(row.source_project_id).toBe(EXEC_SOURCE);
+        expect(row.target_project_id).toBe(EXEC_TARGET);
+        expect(row.plan_hash).toBe(report.plan_hash);
+      }
+      ConsolidationReportSchema.parse(report);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("live change recreation preserves tasks, gates, artifacts, epic_membership field-by-field", async () => {
+    const { root, sourcePath, targetPath } = await makeExecFixture({
+      source: { changes: [] },
+    });
+    try {
+      const richChange = {
+        id: "live-rich",
+        title: "Rich live change",
+        status: "active",
+        created_at: "2026-07-01T00:00:00.000Z",
+        updated_at: "2026-07-02T00:00:00.000Z",
+        tasks: [
+          {
+            id: "tk-1",
+            title: "First task",
+            type: "code",
+            status: "done",
+            priority: 0,
+            created_at: "2026-07-01T00:00:00.000Z",
+          },
+          {
+            id: "tk-2",
+            title: "Second task",
+            type: "code",
+            status: "pending",
+            priority: 1,
+            created_at: "2026-07-01T00:00:00.000Z",
+          },
+        ],
+        gates: {
+          proposal: {
+            status: "done",
+            completed_at: "2026-07-01T01:00:00.000Z",
+            completed_by: "user",
+          },
+        },
+        artifacts: {
+          proposal: {
+            path: "changes/live-rich/proposal.md",
+            content_hash: `sha256:${"a".repeat(64)}`,
+            updated_at: "2026-07-01T00:00:00.000Z",
+          },
+        },
+        documents: { proposal: "# Proposal\n\nRich body." },
+        epic_membership: {
+          epic_id: "epic-live-a",
+          entry_id: "en-1",
+          order: 0,
+          title: "Rich live change",
+          linked_at: "2026-07-01T00:00:00.000Z",
+          epic_project_id: EXEC_SOURCE,
+          repo_id: "repo-1",
+          source: "link_existing",
+        },
+      };
+      const richDir = join(sourcePath, "changes", "live-rich");
+      await mkdir(richDir, { recursive: true });
+      await writeFile(join(richDir, "change.json"), JSON.stringify(richChange));
+      await writeFile(join(richDir, "proposal.md"), "# Proposal\n\nRich body.");
+
+      let captured: ChangeWorkflowInput | null = null;
+      const report = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: async () => [],
+        deps: {
+          recreateLiveChange: async (input) => {
+            captured = input;
+          },
+        },
+      });
+      expect(report.success).toBe(true);
+      expect(captured).not.toBeNull();
+      const seed = captured!.seedState!;
+      expect(captured!.projectId).toBe(EXEC_TARGET);
+      expect(captured!.changeId).toBe("live-rich");
+      expect(captured!.title).toBe("Rich live change");
+      expect(captured!.projectionChangesDir).toBe(join(targetPath, "changes"));
+      expect(seed.tasks).toEqual(richChange.tasks);
+      expect(seed.gates?.proposal).toMatchObject({
+        status: "done",
+        completed_by: "user",
+      });
+      expect(seed.gates?.execution.status).toBe("pending");
+      expect(seed.artifacts).toEqual(richChange.artifacts);
+      expect(seed.documents).toEqual(richChange.documents);
+      expect(seed.epic_membership).toEqual(richChange.epic_membership);
+      // Disk projection + artifact files copied into the target store.
+      expect(
+        await pathExists(join(targetPath, "changes", "live-rich", "change.json")),
+      ).toBe(true);
+      expect(
+        await pathExists(join(targetPath, "changes", "live-rich", "proposal.md")),
+      ).toBe(true);
+      const rows = await readLedgerRows(targetPath);
+      expect(rows.map((r) => r.item_id)).toContain("live-rich");
+      expect(rows.find((r) => r.item_id === "live-rich")!.item_kind).toBe(
+        "change_live",
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("live epic recreation carries the epic record via seedState", async () => {
+    const { root, targetPath } = await makeExecFixture({
+      source: { changes: [{ id: "term-a", status: "archived" }] },
+    });
+    try {
+      const epicState = {
+        projectId: EXEC_SOURCE,
+        epicId: "epic-live-a",
+        title: "Epic A",
+        narrative: "Narrative",
+        initializedAt: "2026-06-01T00:00:00.000Z",
+        id: "epic-live-a",
+        status: "active",
+        epic: {
+          id: "epic-live-a",
+          title: "Epic A",
+          narrative: "Narrative",
+          entries: [
+            {
+              entry_id: "en-1",
+              kind: "change",
+              change_id: "live-rich",
+              title: "Rich",
+              order: 0,
+            },
+          ],
+          progress: {
+            status: "active",
+            total_entries: 1,
+            completed_entries: 0,
+            active_entries: 1,
+            next_entry_id: "en-1",
+            updated_at: "2026-06-02T00:00:00.000Z",
+          },
+          created_at: "2026-06-01T00:00:00.000Z",
+          updated_at: "2026-06-02T00:00:00.000Z",
+          version: 3,
+        },
+        idempotencyLedger: {
+          "promote|en-1": {
+            processedAt: "2026-06-02T00:00:00.000Z",
+            outcome: "ok",
+          },
+        },
+        lastSignalAt: "2026-06-02T00:00:00.000Z",
+      } as unknown as EpicWorkflowState;
+
+      let capturedEpic: EpicWorkflowInput | null = null;
+      const report = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: listSourceLiveEpics,
+        deps: {
+          queryLiveEpicState: async (projectId, epicId) => {
+            expect(projectId).toBe(EXEC_SOURCE);
+            expect(epicId).toBe("epic-live-a");
+            return epicState;
+          },
+          recreateLiveEpic: async (input) => {
+            capturedEpic = input;
+          },
+        },
+      });
+      expect(report.success).toBe(true);
+      expect(capturedEpic).not.toBeNull();
+      expect(capturedEpic!.projectId).toBe(EXEC_TARGET);
+      expect(capturedEpic!.epicId).toBe("epic-live-a");
+      expect(capturedEpic!.title).toBe("Epic A");
+      expect(capturedEpic!.narrative).toBe("Narrative");
+      expect(capturedEpic!.initializedAt).toBe("2026-06-01T00:00:00.000Z");
+      expect(capturedEpic!.seedState?.epic).toEqual(epicState.epic);
+      expect(capturedEpic!.seedState?.status).toBe("active");
+      expect(capturedEpic!.seedState?.idempotencyLedger).toEqual(
+        epicState.idempotencyLedger,
+      );
+      const rows = await readLedgerRows(targetPath);
+      expect(rows.find((r) => r.item_id === "epic-live-a")!.item_kind).toBe(
+        "epic_live",
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("appends dedupe by content hash and ledger each appended row", async () => {
+    const { root, targetPath } = await makeExecFixture({
+      source: {
+        changes: [{ id: "term-a", status: "archived" }],
+        wisdomRows: ["w1", "w2"],
+        agendaRows: ["a1"],
+        reflectionRows: ["r1"],
+      },
+    });
+    try {
+      const report = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: async () => [],
+      });
+      expect(report.success).toBe(true);
+      const wisdom = await readFile(join(targetPath, "wisdom.jsonl"), "utf-8");
+      expect(wisdom).toContain('"w1"');
+      expect(wisdom).toContain('"w2"');
+      expect(wisdom.split("\n").filter((l) => l.trim())).toHaveLength(2);
+      const agenda = await readFile(join(targetPath, "agenda.jsonl"), "utf-8");
+      expect(agenda).toContain('"a1"');
+      const reflections = await readFile(
+        join(targetPath, "reflections.jsonl"),
+        "utf-8",
+      );
+      expect(reflections).toContain('"r1"');
+      const rows = await readLedgerRows(targetPath);
+      expect(rows.filter((r) => r.item_kind === "wisdom_row")).toHaveLength(1);
+      expect(rows.filter((r) => r.item_kind === "agenda_row")).toHaveLength(1);
+      expect(
+        rows.filter((r) => r.item_kind === "reflection_row"),
+      ).toHaveLength(1);
+      for (const row of rows.filter((r) =>
+        ["wisdom_row", "agenda_row", "reflection_row"].includes(r.item_kind),
+      )) {
+        expect(row.action).toBe("append_dedupe");
+      }
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("second run after success is a reported no-op via the ledger", async () => {
+    const { root, targetPath } = await makeExecFixture();
+    try {
+      let changeCalls = 0;
+      let epicCalls = 0;
+      const deps = {
+        recreateLiveChange: async () => {
+          changeCalls += 1;
+        },
+        recreateLiveEpic: async () => {
+          epicCalls += 1;
+        },
+      };
+      const first = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: async () => [],
+        deps,
+      });
+      expect(first.success).toBe(true);
+      expect(first.no_op).toBe(false);
+      expect(changeCalls).toBe(1);
+      const ledgerAfterFirst = await readLedgerRows(targetPath);
+
+      const second = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: async () => [],
+        deps,
+      });
+      expect(second.success).toBe(true);
+      expect(second.no_op).toBe(true);
+      expect(second.outcomes?.every((o) => o.status === "skipped")).toBe(true);
+      expect(changeCalls).toBe(1);
+      expect(epicCalls).toBe(0);
+      expect(await readLedgerRows(targetPath)).toHaveLength(
+        ledgerAfterFirst.length,
+      );
+      // No collisions reported on re-run even though items now exist in both.
+      expect(second.collisions).toEqual([]);
+      ConsolidationReportSchema.parse(second);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("interrupted run resumes: ledgered items are skipped, remainder applied", async () => {
+    const { root, sourcePath, targetPath } = await makeExecFixture({
+      source: {
+        changes: [{ id: "term-a", status: "archived" }],
+        archive: ["arch-a"],
+      },
+      target: { changes: [] },
+    });
+    try {
+      // Simulate a crash AFTER arch-a was fully applied (projection +
+      // ledger row) but BEFORE term-a: re-run must skip arch-a and apply
+      // term-a only.
+      const { cp } = await import("fs/promises");
+      await mkdir(join(targetPath, "archive"), { recursive: true });
+      await cp(
+        join(sourcePath, "archive", "2026-07-01-arch-a"),
+        join(targetPath, "archive", "2026-07-01-arch-a"),
+        { recursive: true },
+      );
+      await writeFile(
+        join(targetPath, CONSOLIDATION_LEDGER_FILENAME),
+        JSON.stringify({
+          schema_version: 1,
+          source_project_id: EXEC_SOURCE,
+          target_project_id: EXEC_TARGET,
+          item_id: "arch-a",
+          item_kind: "archive_bundle",
+          action: "import_projection",
+          content_hash: `sha256:${"0".repeat(64)}`,
+          plan_hash: `sha256:${"1".repeat(64)}`,
+          applied_at: "2026-07-10T00:00:00.000Z",
+        }) + "\n",
+      );
+
+      const report = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: async () => [],
+      });
+      expect(report.success).toBe(true);
+      expect(report.collisions).toEqual([]);
+      const archOutcome = report.outcomes?.find((o) => o.item_id === "arch-a");
+      expect(archOutcome?.status).toBe("skipped");
+      const termOutcome = report.outcomes?.find((o) => o.item_id === "term-a");
+      expect(termOutcome?.status).toBe("applied");
+      const rows = await readLedgerRows(targetPath);
+      expect(rows.map((r) => r.item_id).sort()).toEqual(["arch-a", "term-a"]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("terminal import failure aborts before the live phase", async () => {
+    const { root, targetPath } = await makeExecFixture();
+    try {
+      // A FILE (not dir) squatting on the terminal change's destination:
+      // invisible to collision detection (dirs only) but un-copyable.
+      await mkdir(join(targetPath, "changes"), { recursive: true });
+      await writeFile(join(targetPath, "changes", "term-a"), "squatter");
+
+      let liveCalled = false;
+      const report = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: async () => [],
+        deps: {
+          recreateLiveChange: async () => {
+            liveCalled = true;
+          },
+        },
+      });
+      expect(liveCalled).toBe(false);
+      expect(report.success).toBe(false);
+      const failed = report.outcomes?.filter((o) => o.status === "failed");
+      expect(failed).toHaveLength(1);
+      expect(failed![0]!.item_id).toBe("term-a");
+      // Ordering abort: later terminal items were NOT imported.
+      expect(
+        await pathExists(join(targetPath, "archive", "2026-07-01-arch-a")),
+      ).toBe(false);
+      expect(
+        await pathExists(join(targetPath, "retired-epics", "epic-retired-a")),
+      ).toBe(false);
+      // No ledger rows — nothing was durably applied.
+      expect(await readLedgerRows(targetPath)).toHaveLength(0);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("missing source epic workflow state fails that item without crashing the run", async () => {
+    const { root } = await makeExecFixture({
+      source: { changes: [{ id: "term-a", status: "archived" }] },
+    });
+    try {
+      const report = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: listSourceLiveEpics,
+        deps: {
+          queryLiveEpicState: async () => null,
+        },
+      });
+      expect(report.success).toBe(false);
+      const epicOutcome = report.outcomes?.find(
+        (o) => o.item_id === "epic-live-a",
+      );
+      expect(epicOutcome?.status).toBe("failed");
+      expect(epicOutcome?.error).toMatch(/state/i);
+      // Terminal items still applied (they precede the live phase).
+      const termOutcome = report.outcomes?.find((o) => o.item_id === "term-a");
+      expect(termOutcome?.status).toBe("applied");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("orphan source store is never deleted or truncated", async () => {
+    const { root, sourcePath } = await makeExecFixture();
+    try {
+      const before = await snapshotTree(sourcePath);
+      await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: async () => [],
+        deps: { recreateLiveChange: async () => {} },
+      });
+      expect(await snapshotTree(sourcePath)).toEqual(before);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("tool-level execute succeeds end-to-end without Temporal when no live items exist", async () => {
+    const { root, targetPath } = await makeExecFixture({
+      source: {
+        changes: [{ id: "term-a", status: "archived" }],
+        archive: ["arch-a"],
+        retiredEpics: ["epic-retired-a"],
+        wisdomRows: ["w1"],
+      },
+      target: { changes: [] },
+    });
+    try {
+      const result = (await executeTool({
+        action: "execute",
+        source_project_id: EXEC_SOURCE,
+        target_project_id: EXEC_TARGET,
+        data_home_root: root,
+        approvedByUser: true,
+        approvalEvidence: "operator approved in test",
+      })) as { success: boolean; action: string; error?: string };
+      expect(result.action).toBe("execute");
+      expect(result.success).toBe(true);
+      expect(
+        await pathExists(join(targetPath, "changes", "term-a", "change.json")),
+      ).toBe(true);
+      expect(
+        await pathExists(join(targetPath, "archive", "2026-07-01-arch-a")),
+      ).toBe(true);
+      expect(
+        await pathExists(join(targetPath, "retired-epics", "epic-retired-a")),
+      ).toBe(true);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
 
