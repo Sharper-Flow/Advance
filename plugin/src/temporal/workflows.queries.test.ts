@@ -11,6 +11,7 @@ import {
   gateAwaitingApprovalSignal,
   getChangeStateQuery,
   getCurrentBucketQuery,
+  getDirectiveQuery,
   getInvestmentReportQuery,
   getReadyTasksQuery,
   getReviewVerificationQuery,
@@ -133,6 +134,17 @@ describe("changeWorkflow query handlers", () => {
           await expect(handle.query(getCurrentBucketQuery)).resolves.toBe(
             "awaiting_approval",
           );
+          await expect(handle.query(getDirectiveQuery)).resolves.toMatchObject({
+            changeId: "query-test-change",
+            canArchive: false,
+            action: expect.objectContaining({
+              kind: expect.any(String),
+            }),
+            gateStatus: expect.objectContaining({
+              proposal: "done",
+              execution: "done",
+            }),
+          });
           await expect(handle.query(getReadyTasksQuery)).resolves.toMatchObject(
             {
               ready: [expect.objectContaining({ id: "tk-ready" })],

@@ -15,6 +15,7 @@
  */
 
 import { buildChangeContextSnapshot, type GateInfo } from "./context-snapshot";
+import type { WorkflowDirective } from "./workflow-directive";
 
 // ─── Local types ────────────────────────────────────────────────────────────
 
@@ -44,6 +45,14 @@ export interface BuildCompactionContextInput {
   specs: CompactionSpecLike[];
   /** Optional byte budget; output is truncated past this limit. */
   maxBytes?: number;
+  /**
+   * Authoritative execution directive (derive-on-read). When provided, the
+   * compaction snapshot renders the same `Next:` orientation line the live
+   * context shows, preserving fidelity parity across compaction (AC5). Caller
+   * derives it from the full change projection via `changeToDirectiveState` +
+   * `deriveWorkflowDirective`; this module stays a pure formatter.
+   */
+  directive?: WorkflowDirective;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -141,6 +150,7 @@ export function buildCompactionContext(
     },
     gates: input.gates,
     workdir: input.workdir,
+    directive: input.directive,
   });
   sections.push(snapshot);
 

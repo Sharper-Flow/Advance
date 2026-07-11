@@ -192,6 +192,25 @@ describe("formatContextSnapshot", () => {
     expect(output).toContain("Wisdom: 3 entries");
     expect(output).toContain("tk-abc123");
   });
+
+  test("fits within 10 lines with directive, wisdom, and current task", () => {
+    const input: ContextSnapshotInput = {
+      ...baseInput,
+      directive: {
+        action: { kind: "continue", gateId: "design", command: "adv-design" },
+      } as ContextSnapshotInput["directive"],
+      currentTask: { id: "tk-abc123", title: "Implement feature X" },
+      wisdomCount: 3,
+      wisdomByType: { convention: 2, pattern: 1 },
+    };
+    const output = formatContextSnapshot(input);
+    const lines = output.split("\n");
+    // Directive `Next:` row + wisdom + current all compete for the 10-line box;
+    // the budget trim must keep the hardest-pressed combination within cap.
+    expect(lines.length).toBeLessThanOrEqual(10);
+    expect(output).toContain("Next:");
+    expect(output).toContain("Wisdom: 3 entries");
+  });
 });
 
 describe("formatCrossRepoSwitch", () => {
@@ -359,6 +378,50 @@ describe("buildChangeContextSnapshot", () => {
 
     expect(output).toContain("Wisdom: 3 entries");
     expect(output).toContain("2 pattern");
+  });
+
+  test("renders a Next: orientation line when a directive is provided", () => {
+    const output = buildChangeContextSnapshot({
+      change: {
+        id: "addWorkflowDirectives",
+        title: "add workflow directives",
+        tasks: [{ id: "tk-1", title: "Done task", status: "done" }],
+      },
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "in_progress" },
+      },
+      directive: {
+        changeId: "addWorkflowDirectives",
+        phase: "design",
+        gateStatus: {} as never,
+        action: { kind: "continue", gateId: "design", command: "adv-design" },
+        approvalPending: false,
+        blockers: [],
+        canArchive: false,
+        bucket: "in_flight",
+      },
+      workdir: "/tmp/worktree",
+    });
+
+    expect(output).toContain("Next:");
+    expect(output).toContain("design");
+    expect(output).toContain("/adv-design");
+  });
+
+  test("omits the Next: line when no directive is provided", () => {
+    const output = buildChangeContextSnapshot({
+      change: {
+        id: "addWorkflowDirectives",
+        title: "add workflow directives",
+        tasks: [{ id: "tk-1", title: "Done task", status: "done" }],
+      },
+      gates: { proposal: { status: "done" } },
+      workdir: "/tmp/worktree",
+    });
+
+    expect(output).not.toContain("Next:");
   });
 });
 

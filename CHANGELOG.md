@@ -1,3 +1,9 @@
+## Unreleased
+
+### Added
+
+- **addWorkflowDirectives** — single-source-of-truth workflow directive projection. `deriveWorkflowDirective(state, epoch)` derives one authoritative next-action (phase, per-gate status, `Next:` orientation command, approval/recovery/blocked/archived routing, `canArchive`, bucket) straight from durable `ChangeWorkflowState`. The workflow's `getDirectiveQuery` is the sole producer; gate completion/status, change show/create, status enrichment, and compaction all consume the same `WorkflowDirective` and render an identical `Next:` line. Terminal statuses (`archived` and `closed`) collapse to a safe archived directive, and tool-layer callers use `deriveDirectiveSafe` so a derivation failure degrades gracefully instead of breaking the response.
+
 ## 2026-05-28 (v1.0.0)
 
 First 1.x release. ADV graduates from 0.12.x with a coherent architectural milestone: artifact content lives in Temporal workflow state, gate readiness validates state (not disk), signal handlers no longer fail workflows on ordinary errors, and sub-agent contracts are structurally enforced.

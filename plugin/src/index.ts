@@ -22,7 +22,7 @@ import {
   pruneStaleRetries,
 } from "./events";
 import { tryInitStore, registerShutdownHandlers } from "./plugin-init";
-import type { StatusMarker } from "./types";
+import type { Change, StatusMarker } from "./types";
 import { withStabilityFeatureDefaults } from "./types";
 import { resolveProjectContext } from "./plugin-context";
 // P2.7: legacy-state migration removed. Disk-only store reads from existing
@@ -33,6 +33,8 @@ import {
   type SessionHealthIssue,
 } from "./utils/system-block";
 import { buildCompactionContext } from "./utils/compaction-context";
+import { changeToDirectiveState } from "./temporal/change-state";
+import { deriveWorkflowDirective } from "./utils/workflow-directive";
 import {
   recordAdvToolCall,
   recordSubagentSpawn,
@@ -1126,10 +1128,12 @@ const advancePluginImpl: Plugin = async (input) => {
         // by falling back to a minimal CompactionChangeLike sourced from
         // active state — the snapshot still produces useful output.
         let changeTitle = changeId;
+        let changeForDirective: Change | undefined;
         try {
           const changeResult = await store.changes.get(changeId);
           if (changeResult.success && changeResult.data) {
             changeTitle = changeResult.data.title || changeTitle;
+            changeForDirective = changeResult.data;
           }
         } catch (e) {
           debugLog(`Error loading change for compaction: ${e}`);
@@ -1157,6 +1161,26 @@ const advancePluginImpl: Plugin = async (input) => {
           debugLog(`Error loading specs for compaction: ${e}`);
         }
 
+        // AC5: derive the authoritative directive from the full change
+        // projection so the compacted snapshot renders the same `Next:`
+        // orientation line the live context shows (fidelity parity). Best
+        // effort — a derivation failure must not break compaction output.
+        let directive: ReturnType<typeof deriveWorkflowDirective> | undefined;
+        if (changeForDirective) {
+          try {
+            directive = deriveWorkflowDirective(
+              changeToDirectiveState({
+                projectId: changeForDirective.adv_project_id ?? "unknown",
+                change: changeForDirective,
+                gates: gates ?? undefined,
+              }),
+              Date.now(),
+            );
+          } catch (e) {
+            debugLog(`Error deriving directive for compaction: ${e}`);
+          }
+        }
+
         const block = buildCompactionContext({
           change: { id: changeId, title: changeTitle },
           tasks: tasks.map((t) => ({
@@ -1169,6 +1193,7 @@ const advancePluginImpl: Plugin = async (input) => {
           gates: gates ?? undefined,
           workdir: directory,
           specs,
+          directive,
         });
 
         output.context.push(block);

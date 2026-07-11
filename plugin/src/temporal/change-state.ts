@@ -201,6 +201,26 @@ export function changeToWorkflowState(input: {
   };
 }
 
+/**
+ * Build a `ChangeWorkflowState` suitable for `deriveWorkflowDirective` from a
+ * disk `Change` projection. Preserves the directive-relevant sidecar fields
+ * (`pendingCheckpoint`, `terminated`) that `changeToWorkflowState`'s seed
+ * projection drops, so tool-layer consumers (gate status, status enrichment)
+ * derive the same directive the workflow's `getDirectiveQuery` would.
+ *
+ * No persistence, no caching — equal inputs yield equal output.
+ */
+export function changeToDirectiveState(input: {
+  projectId: string;
+  change: Change;
+  gates?: ChangeWorkflowState["gates"];
+}): ChangeWorkflowState {
+  const state = changeToWorkflowState(input);
+  state.pendingCheckpoint = input.change.pendingCheckpoint;
+  state.terminated = input.change.terminated;
+  return state;
+}
+
 function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
   if (state.lastSignalAt && state.lastSignalAt > at) return;
   state.lastSignalAt = at;

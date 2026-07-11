@@ -1,5 +1,6 @@
 import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
+import { deriveWorkflowDirective } from "../utils/workflow-directive";
 import type { GateReadinessBlocker } from "../types";
 import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
@@ -233,6 +234,9 @@ const changeReadyQuery = wf.defineQuery<
 const getCurrentBucketQuery = wf.defineQuery<ReturnType<typeof deriveBucket>>(
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getCurrentBucket,
 );
+const getDirectiveQuery = wf.defineQuery<
+  ReturnType<typeof deriveWorkflowDirective>
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getDirective);
 const getInvestmentReportQuery = wf.defineQuery<{
   taskCounts: {
     total: number;
@@ -692,6 +696,9 @@ export async function changeWorkflow(
   wf.setHandler(changeReadyQuery, () => getReadyTasksFromChangeState(state));
   wf.setHandler(getCurrentBucketQuery, () =>
     deriveBucket(bucketCtxFromState(state, workflowEpoch)),
+  );
+  wf.setHandler(getDirectiveQuery, () =>
+    deriveWorkflowDirective(state, workflowEpoch),
   );
   wf.setHandler(getInvestmentReportQuery, () =>
     deriveInvestmentReportFromState(state),

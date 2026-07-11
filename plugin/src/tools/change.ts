@@ -269,6 +269,8 @@ import {
 } from "../utils/tool-formatters";
 import { checkRequirementSmells } from "../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
+import { changeToDirectiveState } from "../temporal/change-state";
+import { deriveDirectiveSafe } from "../utils/workflow-directive";
 import {
   renderBriefingPacket,
   type BriefingPacketRendererInput,
@@ -805,13 +807,33 @@ export const changeTools = {
               } catch {
                 // best-effort: missing gates → snapshot still useful
               }
+              const normalizedGates = gates
+                ? await normalizeGateArtifactEvidenceForReadback(gates)
+                : undefined;
+              // AC5: derive the authoritative directive from the same change
+              // projection + gates the snapshot renders, so the change-show
+              // packet carries the `Next:` orientation line. Best effort: a
+              // derivation failure must not break change-show; the snapshot
+              // omits the `Next:` line.
+              const directive = deriveDirectiveSafe(
+                changeToDirectiveState({
+                  projectId: displayChange.adv_project_id ?? "unknown",
+                  change: displayChange,
+                  gates: normalizedGates ?? undefined,
+                }),
+                Date.now(),
+              );
+              if (!directive) {
+                logger.warn(
+                  `deriveWorkflowDirective failed in change-show for ${changeId}; snapshot omits Next line`,
+                );
+              }
               output._contextSnapshot = buildChangeContextSnapshot({
                 change: displayChange,
                 proposalText,
-                gates: gates
-                  ? await normalizeGateArtifactEvidenceForReadback(gates)
-                  : undefined,
+                gates: normalizedGates,
                 workdir: activeStore.paths.root,
+                directive,
               });
             } catch (e) {
               output._contextSnapshotError =
@@ -1361,11 +1383,30 @@ export const changeTools = {
           result.changeId,
           createdChangeResult.data.title,
         );
+        const createdGates =
+          createdChangeResult.data.gates ?? createDefaultGates();
+        // AC5: created-change snapshot carries the `Next:` orientation line.
+        // Best effort: a derivation failure must not break change-create; the
+        // snapshot omits the `Next:` line.
+        const createdDirective = deriveDirectiveSafe(
+          changeToDirectiveState({
+            projectId: createdChangeResult.data.adv_project_id ?? "unknown",
+            change: createdChangeResult.data,
+            gates: createdGates,
+          }),
+          Date.now(),
+        );
+        if (!createdDirective) {
+          logger.warn(
+            `deriveWorkflowDirective failed in change-create for ${result.changeId}; snapshot omits Next line`,
+          );
+        }
         output._contextSnapshot = buildChangeContextSnapshot({
           change: createdChangeResult.data,
           proposalText,
-          gates: createdChangeResult.data.gates ?? createDefaultGates(),
+          gates: createdGates,
           workdir: store.paths.root,
+          directive: createdDirective,
         });
       }
       // rq-backlogCoord03 — Post-create double-check for race tolerance.

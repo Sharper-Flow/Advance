@@ -16,6 +16,8 @@ import type { Store } from "../../storage/store";
 import { loadChange } from "../../storage/json";
 import { formatToolOutput } from "../../utils/tool-output";
 import { buildChangeContextSnapshot } from "../../utils/context-snapshot";
+import { changeToDirectiveState } from "../../temporal/change-state";
+import { deriveDirectiveSafe } from "../../utils/workflow-directive";
 import { collectErrorText } from "../../temporal/retry-wrapper";
 import { loadProposalForContext } from "../change/artifacts";
 /**
@@ -164,11 +166,24 @@ export async function buildReentryResult(
       changeId,
       updatedChange.data.title,
     );
+    // AC5: re-entry/recovery handoff snapshot carries the `Next:` orientation
+    // line so a resumed change tells the agent which gate/command is next.
+    // Best effort: a derivation failure must not break the handoff snapshot;
+    // the snapshot omits the `Next:` line.
+    const directive = deriveDirectiveSafe(
+      changeToDirectiveState({
+        projectId: updatedChange.data.adv_project_id ?? "unknown",
+        change: updatedChange.data,
+        gates: gates ?? undefined,
+      }),
+      Date.now(),
+    );
     contextSnapshot = buildChangeContextSnapshot({
       change: updatedChange.data,
       proposalText,
       gates: gates ?? undefined,
       workdir: store.paths.root,
+      directive,
     });
   }
   const output: Record<string, unknown> = {
