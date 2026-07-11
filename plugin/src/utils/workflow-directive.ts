@@ -290,9 +290,16 @@ function deriveAction(ctx: DirectiveContext): DirectiveAction {
   }
 
   // Never started: either nothing has begun, or the bucket classifier says the
-  // change is a stale proposal-only change (never_started bucket).
+  // change is a stale proposal-only change (never_started bucket). Surface the
+  // first gate's manifest-owned command so agents see an executable next step
+  // (e.g. `Next: proposal → /adv-proposal`) rather than a bare gate label.
   if (ctx.noGatesStarted || ctx.bucket === "never_started") {
-    return { kind: "never_started", gateId: ctx.firstOpenGate };
+    return {
+      kind: "never_started",
+      ...(ctx.firstOpenGate
+        ? { gateId: ctx.firstOpenGate, command: commandFor(ctx.firstOpenGate) }
+        : {}),
+    };
   }
 
   // Fully complete → continue into archive (release gate owns adv-archive).

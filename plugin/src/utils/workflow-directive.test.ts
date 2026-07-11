@@ -61,6 +61,10 @@ describe("deriveWorkflowDirective", () => {
     expect(d.changeId).toBe("change-1");
     expect(d.phase).toBe("proposal");
     expect(d.action.kind).toBe("never_started");
+    // AC5: never_started carries an executable command for the first gate so
+    // handoff/recovery snapshots render `Next: proposal → /adv-proposal`.
+    expect(d.action.gateId).toBe("proposal");
+    expect(d.action.command).toBe(GATE_COMMAND.proposal);
     expect(d.canArchive).toBe(false);
     expect(d.approvalPending).toBe(false);
     expect(d.blockers).toEqual([]);

@@ -758,6 +758,17 @@ async function completeGateAndBuildResponse({
   // string downstream (gate-completion success output, not validation).
   const proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
 
+  // AC5: gate-completion snapshot carries the `Next:` orientation line so the
+  // agent knows which gate/command follows the just-completed gate.
+  const directive = deriveWorkflowDirective(
+    changeToDirectiveState({
+      projectId: change.adv_project_id ?? "unknown",
+      change,
+      gates: completedGates,
+    }),
+    Date.now(),
+  );
+
   return formatToolOutput({
     success: true,
     changeId,
@@ -770,6 +781,7 @@ async function completeGateAndBuildResponse({
       proposalText,
       gates: completedGates,
       workdir: store.paths.root,
+      directive,
     }),
     ...(boundaryWarning ? { boundaryWarning } : {}),
     ...extraPayload,
