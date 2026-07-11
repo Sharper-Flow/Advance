@@ -307,7 +307,12 @@ export const updateTerminalStatus = (
   epicTitle?: string,
   _progress?: string,
 ): void => {
-  const title = buildTabTitle(getStatusEmoji(status), projectName, changeLabel, epicTitle);
+  const title = buildTabTitle(
+    getStatusEmoji(status),
+    projectName,
+    changeLabel,
+    epicTitle,
+  );
 
   if (title !== lastTitle) {
     if (setTitle(title)) {

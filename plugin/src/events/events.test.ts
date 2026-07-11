@@ -184,7 +184,10 @@ describe("Status State Management", () => {
 
     it("accepts structured context with label and epic title", () => {
       initializeStatus("test-project");
-      setActiveChange("my-change", { label: "Fix auth bug", epicTitle: "Security Epic" });
+      setActiveChange("my-change", {
+        label: "Fix auth bug",
+        epicTitle: "Security Epic",
+      });
       const status = getStatus();
       expect(status.activeChangeId).toBe("my-change");
       expect(status.activeChangeLabel).toBe("Fix auth bug");
@@ -201,7 +204,10 @@ describe("Status State Management", () => {
 
     it("clears structured context when change set to null", () => {
       initializeStatus("test-project");
-      setActiveChange("my-change", { label: "Fix auth bug", epicTitle: "Security Epic" });
+      setActiveChange("my-change", {
+        label: "Fix auth bug",
+        epicTitle: "Security Epic",
+      });
       setActiveChange(null);
       const status = getStatus();
       expect(status.activeChangeId).toBeNull();

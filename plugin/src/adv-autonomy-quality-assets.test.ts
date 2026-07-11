@@ -311,9 +311,15 @@ describe("Archive and spec assets", () => {
   });
 
   test("archive terminal templates retain the local deploy activation-pending state", () => {
-    const content = readAsset(join(REPO_ROOT, "docs/command-voice-standard.md"));
-    const shippedTemplate = content.match(/\*\*Shipped\*\*[\s\S]*?\*\*Merged locally\*\*/)?.[0] ?? "";
-    const localTemplate = content.match(/\*\*Merged locally\*\*[\s\S]*?\*\*Pending auto-merge\*\*/)?.[0] ?? "";
+    const content = readAsset(
+      join(REPO_ROOT, "docs/command-voice-standard.md"),
+    );
+    const shippedTemplate =
+      content.match(/\*\*Shipped\*\*[\s\S]*?\*\*Merged locally\*\*/)?.[0] ?? "";
+    const localTemplate =
+      content.match(
+        /\*\*Merged locally\*\*[\s\S]*?\*\*Pending auto-merge\*\*/,
+      )?.[0] ?? "";
 
     expect(shippedTemplate).toContain(
       "- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}",
