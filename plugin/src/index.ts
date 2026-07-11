@@ -620,7 +620,8 @@ const advancePluginImpl: Plugin = async (input) => {
           );
           if (reachable) {
             state.activeChange.id = String(args.changeId);
-            setActiveChange(state.activeChange.id);
+            const ctx = await resolveChangeContext(state.activeChange.id);
+            setActiveChange(state.activeChange.id, ctx);
             debugLog(`handleToolExecuteBefore: re-pointed to ${args.changeId}`);
           } else {
             debugLog(
@@ -818,11 +819,35 @@ const advancePluginImpl: Plugin = async (input) => {
     handleLongRunningToolStart(toolName);
   };
 
-  const recordCreatedChange = (rawOutput: string) => {
+  /**
+   * Resolve change label and parent Epic title from the project store.
+   * Used at active-change pointer transitions to feed structured context to
+   * the terminal title renderer. Falls back gracefully — never blocks or
+   * fails the tool operation.
+   */
+  const resolveChangeContext = async (
+    changeId: string,
+  ): Promise<{ label?: string; epicTitle?: string }> => {
+    if (!store) return {};
+    try {
+      const result = await store.changes.get(changeId);
+      if (!result.success || !result.data) return {};
+      const change = result.data;
+      return {
+        label: change.title,
+        epicTitle: change.epic_membership?.title,
+      };
+    } catch {
+      return {};
+    }
+  };
+
+  const recordCreatedChange = async (rawOutput: string) => {
     const newChangeId = extractCreatedChangeId(rawOutput);
     if (!newChangeId) return;
     state.activeChange.id = newChangeId;
-    setActiveChange(newChangeId);
+    const ctx = await resolveChangeContext(newChangeId);
+    setActiveChange(newChangeId, ctx);
     debugLog(`adv_change_create: set activeChange to ${newChangeId}`);
   };
 
@@ -957,7 +982,7 @@ const advancePluginImpl: Plugin = async (input) => {
         // Track new change creation (changeId only in output, not input args)
         if (input.tool === "adv_change_create" && output.output) {
           try {
-            recordCreatedChange(output.output);
+            await recordCreatedChange(output.output);
           } catch (err) {
             // Outer parse error — unexpected if banner format changes
             hooksLogger.warn(

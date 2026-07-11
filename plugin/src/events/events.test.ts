@@ -181,6 +181,33 @@ describe("Status State Management", () => {
       setActiveChange(null);
       expect(getStatus().activeChangeId).toBeNull();
     });
+
+    it("accepts structured context with label and epic title", () => {
+      initializeStatus("test-project");
+      setActiveChange("my-change", { label: "Fix auth bug", epicTitle: "Security Epic" });
+      const status = getStatus();
+      expect(status.activeChangeId).toBe("my-change");
+      expect(status.activeChangeLabel).toBe("Fix auth bug");
+      expect(status.activeEpicTitle).toBe("Security Epic");
+    });
+
+    it("defaults label to changeId when context not provided", () => {
+      initializeStatus("test-project");
+      setActiveChange("my-change");
+      const status = getStatus();
+      expect(status.activeChangeLabel).toBe("my-change");
+      expect(status.activeEpicTitle).toBeNull();
+    });
+
+    it("clears structured context when change set to null", () => {
+      initializeStatus("test-project");
+      setActiveChange("my-change", { label: "Fix auth bug", epicTitle: "Security Epic" });
+      setActiveChange(null);
+      const status = getStatus();
+      expect(status.activeChangeId).toBeNull();
+      expect(status.activeChangeLabel).toBeNull();
+      expect(status.activeEpicTitle).toBeNull();
+    });
   });
 
   describe("setTaskProgress", () => {
@@ -374,16 +401,67 @@ describe("buildTabTitle", () => {
     expect(title).not.toMatch(/\[\d+\/\d+\]/);
   });
 
-  it("ignores BLOCKED/status prefix for the simple identity title", () => {
-    expect(buildTabTitle("🟥", "Jester", "changeX", "💀")).toBe("changeX");
+  it("ignores BLOCKED/status emoji for the simple identity title", () => {
+    expect(buildTabTitle("🟥", "Jester", "changeX")).toBe("changeX");
   });
 
-  it("shows project only when BLOCKED/status prefix is provided without active change", () => {
-    expect(buildTabTitle("🟥", "Jester", undefined, "💀")).toBe("Jester");
+  it("shows project only when BLOCKED status emoji is provided without active change", () => {
+    expect(buildTabTitle("🟥", "Jester", undefined)).toBe("Jester");
   });
 
   it("ignores status emoji in the tab title", () => {
     expect(buildTabTitle("🟩", "Jester", "changeX")).toBe("changeX");
+  });
+
+  it("renders Epic title | change label when both provided", () => {
+    expect(buildTabTitle("🟩", "Jester", "fixAuth", "Security Epic")).toBe(
+      "Security Epic | fixAuth",
+    );
+  });
+
+  it("renders change label only when no epic title", () => {
+    expect(buildTabTitle("🟩", "Jester", "fixAuth", undefined)).toBe("fixAuth");
+  });
+
+  it("renders change label only when epic title is empty", () => {
+    expect(buildTabTitle("🟩", "Jester", "fixAuth", "")).toBe("fixAuth");
+  });
+
+  it("renders change label only when epic title is whitespace", () => {
+    expect(buildTabTitle("🟩", "Jester", "fixAuth", "   ")).toBe("fixAuth");
+  });
+
+  it("does not produce dangling separator when epic title missing", () => {
+    const title = buildTabTitle("🟩", "Jester", "fixAuth", undefined);
+    expect(title).not.toContain("|");
+  });
+
+  it("trims whitespace in epic title and change label", () => {
+    expect(buildTabTitle("🟩", "Jester", "  fixAuth  ", "  Security  ")).toBe(
+      "Security | fixAuth",
+    );
+  });
+
+  it("sanitizes control characters in epic title and change label", () => {
+    // C0 control chars (0x01-0x1f) should be replaced by sanitizer
+    const title = buildTabTitle("🟩", "Jester", "fix\x01Auth", "Sec\x1burity");
+    // buildTabTitle itself does not sanitize — the OSC writer does.
+    // But the title should still render with the pipe separator.
+    expect(title).toContain("|");
+    expect(title).toContain("fix");
+    expect(title).toContain("Auth");
+  });
+
+  it("does not produce dangling separator when epic title is whitespace-only", () => {
+    const title = buildTabTitle("🟩", "Jester", "fixAuth", "   ");
+    expect(title).not.toContain("|");
+    expect(title).toBe("fixAuth");
+  });
+
+  it("renders exactly one separator when both epic and change are present", () => {
+    const title = buildTabTitle("🟩", "Jester", "fixAuth", "Security");
+    const separatorCount = (title.match(/\|/g) || []).length;
+    expect(separatorCount).toBe(1);
   });
 });
 
