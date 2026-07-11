@@ -2349,6 +2349,9 @@ export async function advWorktreeDelete(
         branch,
         worktreePath,
         workspaceCleanup.reason,
+        undefined,
+        undefined,
+        workspaceCleanup.error.toLowerCase(),
       );
       return {
         ok: false,

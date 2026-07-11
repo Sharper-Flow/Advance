@@ -439,6 +439,7 @@ export async function setPendingDelete(
   reason: string,
   now?: string,
   authority?: PendingDeleteAuthority,
+  lastErrorClass?: string,
 ): Promise<void> {
   await withPendingDeleteLock(access, async () => {
     const pendingDeletes = await readPendingDeletes(access);
@@ -450,7 +451,7 @@ export async function setPendingDelete(
       recordedAt: existing?.recordedAt ?? now ?? new Date().toISOString(),
       attempts: existing?.attempts ?? 0,
       lastError: existing?.lastError,
-      lastErrorClass: existing?.lastErrorClass,
+      lastErrorClass: lastErrorClass ?? existing?.lastErrorClass,
       authority: authority ?? existing?.authority,
     };
     await writePendingDeletes(access, [

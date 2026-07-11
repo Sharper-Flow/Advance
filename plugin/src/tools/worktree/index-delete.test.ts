@@ -440,6 +440,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       expect.objectContaining({
         branch,
         reason: expect.stringContaining("workspace cleanup failed"),
+        lastErrorClass: "workspace_cleanup_failed",
         attempts: 0,
       }),
     ]);
@@ -474,6 +475,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       expect.objectContaining({
         branch,
         reason: expect.stringContaining("ownership uncertain"),
+        lastErrorClass: "workspace_ownership_uncertain",
         attempts: 0,
       }),
     ]);

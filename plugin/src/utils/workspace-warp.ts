@@ -272,6 +272,7 @@ const isAdvWorkspaceListItem = (
   isRecord(value) &&
   "id" in value &&
   typeof value.id === "string" &&
+  value.id.length > 0 &&
   value.type === "adv-worktree" &&
   "directory" in value &&
   (typeof value.directory === "string" || value.directory === null) &&
@@ -339,13 +340,4 @@ export async function findWorkspaceByDirectoryChecked(
     ok: true,
     workspace: isAdvWorkspaceListItem(match) ? { workspaceID: match.id } : null,
   };
-}
-
-export async function findWorkspaceByDirectory(
-  deps: WarpDeps,
-  directory: string,
-  branch?: string,
-): Promise<WorkspaceHandle | null> {
-  const result = await findWorkspaceByDirectoryChecked(deps, directory, branch);
-  return result.ok ? result.workspace : null;
 }
