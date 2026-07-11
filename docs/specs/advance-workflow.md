@@ -820,7 +820,7 @@ Release-repair recovery for completed or poisoned change workflows MUST be expli
 **When:** The archive terminal report is emitted
 
 **Then:**
-- Local deploy status is shown as ran, not available, not needed, or failed with reason and nonblocking marker
+- Local deploy status is shown as ran, ran; OpenCode activation pending restart, not available, not needed, or failed with reason; every state is nonblocking
 - Reflection status is shown as completed or failed with reason and nonblocking marker
 - Deploy and reflection visibility does not reintroduce investment-report summary noise
 

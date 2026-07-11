@@ -4,6 +4,7 @@ import {
   createAdvWorkspace,
   deleteAdvWorkspace,
   findWorkspaceByDirectory,
+  findWorkspaceByDirectoryChecked,
   getSessionWorkspaceID,
   warpFlagEnabled,
   warpSession,
@@ -538,6 +539,98 @@ describe("workspace-warp", () => {
           "/tmp/wt",
         ),
       ).resolves.toBeNull();
+    });
+  });
+
+  // rq-terminalCleanupSafety01: terminal cleanup must distinguish a proven
+  // empty workspace list from a failed lookup so callers can fail closed
+  // instead of treating "unknown" as "no workspace owns this worktree".
+  describe("findWorkspaceByDirectoryChecked", () => {
+    it("returns ok with no workspace without HTTP when the warp flag is off", async () => {
+      const fetchImpl = vi.fn();
+
+      await expect(
+        findWorkspaceByDirectoryChecked(baseDeps({ fetchImpl }), "/tmp/wt"),
+      ).resolves.toEqual({ ok: true, workspace: null });
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
+
+    it("returns ok with the matching workspace handle", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse([
+          {
+            id: "ws-match",
+            type: "adv-worktree",
+            directory: "/tmp/wt",
+            extra: { directory: "/tmp/wt", branch: "change/test" },
+          },
+        ]),
+      );
+
+      await expect(
+        findWorkspaceByDirectoryChecked(
+          baseDeps({ fetchImpl }),
+          "/tmp/wt",
+          "change/test",
+        ),
+      ).resolves.toEqual({
+        ok: true,
+        workspace: { workspaceID: "ws-match" },
+      });
+    });
+
+    it("returns ok with null when no workspace matches", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(jsonResponse([]));
+
+      await expect(
+        findWorkspaceByDirectoryChecked(baseDeps({ fetchImpl }), "/tmp/wt"),
+      ).resolves.toEqual({ ok: true, workspace: null });
+    });
+
+    it("fails closed with a typed reason on non-2xx list responses", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValue(textResponse("no", { status: 500 }));
+
+      const result = await findWorkspaceByDirectoryChecked(
+        baseDeps({ fetchImpl }),
+        "/tmp/wt",
+      );
+
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error("expected lookup failure");
+      expect(result.reason).toContain("500");
+    });
+
+    it("fails closed with a typed reason when the list is not valid JSON", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValue(jsonResponse({ id: "not-a-list" }));
+
+      const result = await findWorkspaceByDirectoryChecked(
+        baseDeps({ fetchImpl }),
+        "/tmp/wt",
+      );
+
+      expect(result.ok).toBe(false);
+    });
+
+    it("fails closed with a typed reason on fetch errors", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockRejectedValue(new Error("network down"));
+
+      const result = await findWorkspaceByDirectoryChecked(
+        baseDeps({ fetchImpl }),
+        "/tmp/wt",
+      );
+
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error("expected lookup failure");
+      expect(result.reason).toContain("network down");
     });
   });
 

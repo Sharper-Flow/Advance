@@ -472,6 +472,12 @@ export function classifyPendingDelete(
   if (entry.lastErrorClass) return entry.lastErrorClass;
   const reason = entry.reason.toLowerCase();
   if (reason.includes("in use")) return "worktree_in_use";
+  if (reason.includes("ownership uncertain")) {
+    return "workspace_ownership_uncertain";
+  }
+  if (reason.includes("workspace cleanup failed")) {
+    return "workspace_cleanup_failed";
+  }
   if (reason.includes("terminal cleanup discovered")) {
     return "terminal_cleanup_discovered";
   }

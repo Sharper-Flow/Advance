@@ -99,7 +99,7 @@ import {
 import {
   createAdvWorkspace,
   deleteAdvWorkspace,
-  findWorkspaceByDirectory,
+  findWorkspaceByDirectoryChecked,
   getSessionWorkspaceID,
   warpFlagEnabled,
   warpSession,
@@ -1439,35 +1439,88 @@ export type AdvWorktreeDeleteResult =
       files: string[];
       hint: string;
     }
+  | {
+      ok: false;
+      error: "WORKSPACE_OWNERSHIP_UNCERTAIN";
+      branch: string;
+      path: string;
+      reason: string;
+      hint: string;
+    }
+  | {
+      ok: false;
+      error: "WORKSPACE_CLEANUP_FAILED";
+      branch: string;
+      path: string;
+      reason: string;
+      hint: string;
+    }
   | { ok: false; error: "REMOVE_FAILED"; reason: string };
+
+/**
+ * Result of the OpenCode workspace preflight that runs before git worktree
+ * removal.
+ *
+ * rq-terminalCleanupSafety01 / rq-terminalCleanupLifecycle01: ownership
+ * preflight precedes workspace/git removal. An uncertain lookup or a failed
+ * workspace delete is a typed retained blocker — the caller must NOT proceed
+ * to `git worktree remove`, and the worktree stays queued for manual retry.
+ */
+type OpenCodeWorkspaceCleanupResult =
+  | { ok: true; warning: string | null }
+  | {
+      ok: false;
+      error: "WORKSPACE_OWNERSHIP_UNCERTAIN" | "WORKSPACE_CLEANUP_FAILED";
+      reason: string;
+      hint: string;
+    };
 
 async function cleanupOpenCodeWorkspaceForWorktree(
   worktreePath: string,
   branch: string,
   deps: AdvWorktreeDeleteDeps,
-): Promise<string | null> {
-  if (!deps.warpDeps) return null;
+): Promise<OpenCodeWorkspaceCleanupResult> {
+  if (!deps.warpDeps) return { ok: true, warning: null };
 
-  const found = await findWorkspaceByDirectory(
+  const lookup = await findWorkspaceByDirectoryChecked(
     deps.warpDeps,
     worktreePath,
     branch,
   );
-  if (!found) return null;
+  if (!lookup.ok) {
+    // Fail closed: we cannot prove whether an OpenCode workspace owns this
+    // worktree, so neither workspace nor git removal may proceed (DONT3).
+    deps.log.warn(
+      `[worktree] Retaining ${branch} — OpenCode workspace ownership uncertain: ${lookup.reason}`,
+    );
+    return {
+      ok: false,
+      error: "WORKSPACE_OWNERSHIP_UNCERTAIN",
+      reason: `workspace ownership uncertain: ${lookup.reason}`,
+      hint: "Could not verify whether an OpenCode workspace owns this worktree; retained without removal. Retry with adv_worktree_cleanup after the OpenCode server responds.",
+    };
+  }
+  if (!lookup.workspace) return { ok: true, warning: null };
 
   try {
-    await deleteAdvWorkspace(deps.warpDeps, found.workspaceID);
+    await deleteAdvWorkspace(deps.warpDeps, lookup.workspace.workspaceID);
     deps.log.debug(
-      `[worktree] Cleaned up OpenCode workspace ${found.workspaceID}`,
+      `[worktree] Cleaned up OpenCode workspace ${lookup.workspace.workspaceID}`,
     );
   } catch (error) {
-    const warning = `Failed to delete OpenCode workspace ${found.workspaceID}: ${error}`;
+    // Fail closed: the workspace still exists, so git removal would strand
+    // an owned workspace. Retain with a typed blocker for retry (AC3/AC4).
     deps.log.warn(
-      `[worktree] Failed to delete OpenCode workspace ${found.workspaceID} (continuing worktree delete): ${error}`,
+      `[worktree] Failed to delete OpenCode workspace ${lookup.workspace.workspaceID} (retaining worktree): ${error}`,
     );
-    return warning;
+    return {
+      ok: false,
+      error: "WORKSPACE_CLEANUP_FAILED",
+      reason: `workspace cleanup failed: could not delete OpenCode workspace ${lookup.workspace.workspaceID}: ${error}`,
+      hint: "OpenCode workspace deletion failed; retained the worktree without removal. Retry with adv_worktree_cleanup after the OpenCode server responds.",
+    };
   }
-  return null;
+  return { ok: true, warning: null };
 }
 
 async function getWorktreeRegistryEntry(
@@ -2282,11 +2335,31 @@ export async function advWorktreeDelete(
   }
   let workspaceCleanupWarning: string | null;
   try {
-    workspaceCleanupWarning = await withTimeout(
+    // Ownership preflight precedes workspace/git removal: an uncertain or
+    // failed workspace cleanup is a typed retained blocker, never a silent
+    // pass-through to `git worktree remove` (rq-terminalCleanupSafety01).
+    const workspaceCleanup = await withTimeout(
       cleanupOpenCodeWorkspaceForWorktree(worktreePath, branch, deps),
       remainingMs,
       "OpenCode workspace cleanup timed out",
     );
+    if (!workspaceCleanup.ok) {
+      await setPendingDelete(
+        deps.database,
+        branch,
+        worktreePath,
+        workspaceCleanup.reason,
+      );
+      return {
+        ok: false,
+        error: workspaceCleanup.error,
+        branch,
+        path: worktreePath,
+        reason: workspaceCleanup.reason,
+        hint: workspaceCleanup.hint,
+      };
+    }
+    workspaceCleanupWarning = workspaceCleanup.warning;
   } catch (err) {
     if (err instanceof TimeoutError) {
       return retainDeleteForTimeBudget(
@@ -2720,6 +2793,10 @@ function classifyDeleteResultForPendingDelete(
   switch (result.error) {
     case "WORKTREE_IN_USE":
       return "worktree_in_use";
+    case "WORKSPACE_OWNERSHIP_UNCERTAIN":
+      return "workspace_ownership_uncertain";
+    case "WORKSPACE_CLEANUP_FAILED":
+      return "workspace_cleanup_failed";
     case "WORKTREE_NOT_FOUND":
       return "worktree_not_found";
     case "UNCOMMITTED_WORK":
@@ -3251,6 +3328,10 @@ export const WorktreePlugin: Plugin = async (ctx) => {
               return `Pre-delete hook failed. Details: ${JSON.stringify(result.details)}`;
             case "HOOK_INTRODUCED_CHANGES":
               return `Hook introduced uncommitted changes:\n${result.files.join("\n")}\n\n${result.hint}`;
+            case "WORKSPACE_OWNERSHIP_UNCERTAIN":
+              return `Retained worktree "${result.branch}" at ${result.path} — OpenCode workspace ownership uncertain. ${result.hint}`;
+            case "WORKSPACE_CLEANUP_FAILED":
+              return `Retained worktree "${result.branch}" at ${result.path} — OpenCode workspace cleanup failed. ${result.hint}`;
             case "REMOVE_FAILED":
               return `Failed to remove worktree: ${result.reason}`;
             default:

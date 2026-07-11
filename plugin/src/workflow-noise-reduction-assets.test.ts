@@ -240,6 +240,12 @@ describe("archive and reflection visibility policy", () => {
       expect(content).toMatch(/structural release-safety failure/i);
       expect(content).toMatch(/archive cleanup scanner/i);
       expect(content).toMatch(/executive-summary/i);
+      // SC4/AC5 — archive status contract surfaces share one five-state
+      // Local deploy enumeration; law and generated projection must match
+      // the archive command and terminal templates.
+      expect(content).toMatch(
+        /Local deploy status is shown as ran, ran; OpenCode activation pending restart, not available, not needed, or failed with reason; every state is nonblocking/,
+      );
     }
   });
 
