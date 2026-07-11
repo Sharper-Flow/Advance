@@ -24,6 +24,7 @@
  */
 
 import { execFileGitCb } from "./git-binary";
+import { existsSync } from "fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "path";
 import { homedir } from "os";
 import { createHash } from "crypto";
@@ -104,10 +105,112 @@ export async function getProjectId(directory: string): Promise<string | null> {
   return getProjectIdFromGit(directory);
 }
 
+// =============================================================================
+// Typed identity resolution (rq-projectIdentityStability01)
+// =============================================================================
+
 /**
- * Raw git-resolution path that always reads the actual root commit hash,
- * bypassing the test-mode synthetic override. Exported so tests that
- * need to verify the real-SHA resolution logic can call it directly.
+ * Typed project-identity resolution result.
+ *
+ * `unstable` means the repository cannot produce a stable root-commit
+ * identity: shallow clones expose the moving graft boundary as a fake
+ * root (`rev-list --max-parents=0 HEAD` returns the `.git/shallow`
+ * boundary, which rewrites on `fetch --depth/--deepen/--unshallow`),
+ * and grafted repos rewrite parentage the same way. Minting ADV state
+ * under such a SHA orphans the store when the boundary moves.
+ */
+export type IdentityResolution =
+  | { kind: "ok"; projectId: string }
+  | { kind: "not_git" }
+  | { kind: "unstable"; reason: "shallow" | "graft"; guidance: string };
+
+/**
+ * Typed refusal raised when ADV state would be minted under an unstable
+ * pseudo-root identity. Carries repo path, detected reason, and the exact
+ * remediation command (DDC1).
+ */
+export class UnstableIdentityError extends Error {
+  constructor(
+    public readonly repoPath: string,
+    public readonly reason: "shallow" | "graft",
+  ) {
+    super(unstableIdentityGuidance(repoPath, reason));
+    this.name = "UnstableIdentityError";
+  }
+}
+
+function unstableIdentityGuidance(
+  repoPath: string,
+  reason: "shallow" | "graft",
+): string {
+  const cause =
+    reason === "shallow"
+      ? "is a shallow clone (its root commit is a moving shallow-fetch boundary)"
+      : "has commit grafts (its root commit is rewritten parentage)";
+  const fix =
+    reason === "shallow"
+      ? `Run \`git fetch --unshallow\` in ${repoPath} and retry.`
+      : `Remove \`.git/info/grafts\` (or migrate to \`git replace\` and un-graft) in ${repoPath}, then run \`git fetch --unshallow\` if the repo is also shallow, and retry.`;
+  return (
+    `ADV cannot derive a stable project identity for ${repoPath}: the repository ${cause}. ` +
+    `${fix} No ADV state was created under the unstable identity.`
+  );
+}
+
+/**
+ * Resolve a stable project identity with structural instability detection.
+ *
+ * Order: git-dir check (not_git) → `rev-parse --is-shallow-repository`
+ * (structural: git reads `.git/shallow`) → `info/grafts` presence → true
+ * root via `rev-list --max-parents=0 HEAD` (first sorted root for
+ * multi-root determinism). Partial clones (`--filter=...`) write no
+ * `.git/shallow` and resolve normally.
+ */
+export async function resolveProjectIdentity(
+  directory: string,
+): Promise<IdentityResolution> {
+  let gitDir: string;
+  try {
+    gitDir = (
+      await execGit(["rev-parse", "--absolute-git-dir"], directory)
+    ).trim();
+  } catch {
+    return { kind: "not_git" };
+  }
+
+  try {
+    const shallow = (
+      await execGit(["rev-parse", "--is-shallow-repository"], directory)
+    ).trim();
+    if (shallow === "true") {
+      return {
+        kind: "unstable",
+        reason: "shallow",
+        guidance: unstableIdentityGuidance(directory, "shallow"),
+      };
+    }
+  } catch {
+    return { kind: "not_git" };
+  }
+
+  if (existsSync(join(gitDir, "info", "grafts"))) {
+    return {
+      kind: "unstable",
+      reason: "graft",
+      guidance: unstableIdentityGuidance(directory, "graft"),
+    };
+  }
+
+  const projectId = await resolveRootCommit(directory);
+  if (!projectId) return { kind: "not_git" };
+  return { kind: "ok", projectId };
+}
+
+/**
+ * Raw git-resolution path that reads the actual root commit hash,
+ * bypassing the test-mode synthetic override. Guarded: shallow/grafted
+ * repositories throw `UnstableIdentityError` instead of returning the
+ * moving pseudo-root (rq-projectIdentityStability01).
  *
  * × Do NOT use this from production call sites — use `getProjectId`
  * instead so the synthetic test override applies during vitest runs.
@@ -115,6 +218,16 @@ export async function getProjectId(directory: string): Promise<string | null> {
 export async function getProjectIdFromGit(
   directory: string,
 ): Promise<string | null> {
+  const resolution = await resolveProjectIdentity(directory);
+  if (resolution.kind === "ok") return resolution.projectId;
+  if (resolution.kind === "unstable") {
+    throw new UnstableIdentityError(directory, resolution.reason);
+  }
+  return null;
+}
+
+/** Unguarded root-commit read shared by the typed resolver. */
+async function resolveRootCommit(directory: string): Promise<string | null> {
   try {
     const sha = await execGit(
       ["rev-list", "--max-parents=0", "HEAD"],

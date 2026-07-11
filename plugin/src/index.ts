@@ -319,6 +319,7 @@ const advancePluginImpl: Plugin = async (input) => {
     effectiveDir,
     externalRoot,
     projectId: resolvedProjectId,
+    identityError,
   } = await resolveProjectContext(directory, project, worktree);
   // P2.7: legacy migration removed — disk-only store reads/writes the same
   // on-disk paths. No migration step needed.
@@ -355,7 +356,14 @@ const advancePluginImpl: Plugin = async (input) => {
   // Initialize store. tryInitStore() never throws — if createStore or
   // store.init() fails, it returns { store: null, initError: Error } so we
   // can register a degraded tool map rather than nuking every adv_* tool.
-  const { store, initError } = await tryInitStore(effectiveDir, externalRoot);
+  //
+  // Unstable identity (shallow/grafted repo) refuses store initialization
+  // entirely: falling through to tryInitStore without an externalRoot would
+  // mint legacy in-repo state under a moving pseudo-root
+  // (rq-projectIdentityStability01, DONT1).
+  const { store, initError } = identityError
+    ? { store: null, initError: identityError }
+    : await tryInitStore(effectiveDir, externalRoot);
 
   // Reachability dependencies for the active-change pointer gate.
   // Visibility lister uses the store's own change getter (workflow state

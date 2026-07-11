@@ -137,7 +137,7 @@ export async function detectPeerSessions(
 
   const myPid = process.pid;
   const myCommonDir = await getGitCommonDir(currentCwd);
-  const myProjectId = await getProjectId(currentCwd);
+  const myProjectId = await safeProjectId(currentCwd);
 
   // If neither identifier is resolvable, we cannot determine peers.
   if (!myCommonDir && !myProjectId) {
@@ -159,7 +159,7 @@ export async function detectPeerSessions(
     }
 
     if (myProjectId) {
-      const peerProjectId = await getProjectId(proc.cwd);
+      const peerProjectId = await safeProjectId(proc.cwd);
       if (peerProjectId && peerProjectId === myProjectId) {
         peers.push({ ...proc, matchVia: "project-id" });
       }
@@ -167,4 +167,16 @@ export async function detectPeerSessions(
   }
 
   return peers;
+}
+
+/**
+ * Peer scanning must never fail because an unrelated peer cwd is a
+ * shallow/grafted repo — treat unstable identities as unmatchable.
+ */
+async function safeProjectId(cwd: string): Promise<string | null> {
+  try {
+    return await getProjectId(cwd);
+  } catch {
+    return null;
+  }
 }
