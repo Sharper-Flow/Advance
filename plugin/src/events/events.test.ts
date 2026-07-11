@@ -181,6 +181,33 @@ describe("Status State Management", () => {
       setActiveChange(null);
       expect(getStatus().activeChangeId).toBeNull();
     });
+
+    it("accepts structured context with label and epic title", () => {
+      initializeStatus("test-project");
+      setActiveChange("my-change", { label: "Fix auth bug", epicTitle: "Security Epic" });
+      const status = getStatus();
+      expect(status.activeChangeId).toBe("my-change");
+      expect(status.activeChangeLabel).toBe("Fix auth bug");
+      expect(status.activeEpicTitle).toBe("Security Epic");
+    });
+
+    it("defaults label to changeId when context not provided", () => {
+      initializeStatus("test-project");
+      setActiveChange("my-change");
+      const status = getStatus();
+      expect(status.activeChangeLabel).toBe("my-change");
+      expect(status.activeEpicTitle).toBeNull();
+    });
+
+    it("clears structured context when change set to null", () => {
+      initializeStatus("test-project");
+      setActiveChange("my-change", { label: "Fix auth bug", epicTitle: "Security Epic" });
+      setActiveChange(null);
+      const status = getStatus();
+      expect(status.activeChangeId).toBeNull();
+      expect(status.activeChangeLabel).toBeNull();
+      expect(status.activeEpicTitle).toBeNull();
+    });
   });
 
   describe("setTaskProgress", () => {
