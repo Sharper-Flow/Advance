@@ -194,8 +194,6 @@ The worker returns Architecture Judgement as typed report data — pass only tas
 - Underlying primitives (e.g., Bits UI) that power those components
 - CSS frameworks, state management, testing tools, etc.
 
-Without this, the sub-agent cannot research the correct libraries for project's actual stack.
-
 Redact secrets/internal-only details before passing to external research tools.
 Redact at minimum: API keys, tokens, passwords, connection strings, private keys, internal hostnames/URLs, proprietary identifiers, customer data.
 

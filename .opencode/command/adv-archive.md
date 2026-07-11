@@ -250,8 +250,7 @@ and the archive-owned release-gate recording/projection-proof path. This
 markdown remains the human-facing orchestration recipe; the helper module is
 the shared runtime contract used by direct tool paths. When this slash-command path calls
 `adv_change_archive`, it passes `phase9: "run"` with `worktreePath` so the
-shared helper owns the structural git finalization. The markdown below remains
-the human-facing explanation of that runtime contract.
+shared helper owns the structural git finalization.
 
 > **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch, the readiness check (Step 4.4) hard-blocks and asks user. If main is on the default branch but dirty, ADV commits pre-existing changes as an auditable checkpoint and continues — ADV does not create new change-owned work on main.
 

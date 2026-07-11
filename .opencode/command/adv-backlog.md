@@ -15,7 +15,7 @@ requiresChangeId: false
 
 # ADV Repo Backlog — Capture Future Work
 
-Add, inspect, promote, and archive lightweight future-work items in `.adv/backlog.jsonl`. Backlog items are git-tracked, branch-local, and promotable to an ADV change or an Epic shell entry.
+Add, inspect, promote, and archive lightweight future-work items in `.adv/backlog.jsonl` — git-tracked, branch-local, and promotable to an ADV change or Epic shell entry.
 
 <UserRequest>
   $ARGUMENTS

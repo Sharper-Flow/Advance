@@ -8,7 +8,7 @@ requiresChangeId: false
 
 # ADV Epic — Goal-First Epic Creation
 
-Create or update an ADV Epic through a collaborative, goal-first workflow. Epics are initiative containers; membership remains optional and order remains advisory.
+Create/update an ADV Epic through a collaborative goal-first workflow. Epics are initiative containers; membership optional, order advisory.
 
 <UserRequest>
   $ARGUMENTS
@@ -89,7 +89,7 @@ Present:
 - overlap decision
 - initial entries, if any
 
-Initial entries are optional. A valid Epic may start with only title, ultimate goal, and narrative.
+Initial entries optional; a valid Epic may start with only title, ultimate goal, and narrative.
 
 Ask for explicit final confirmation. `adv_epic_create` may run only after the `## Ultimate Goal` and final confirmation are both present.
 

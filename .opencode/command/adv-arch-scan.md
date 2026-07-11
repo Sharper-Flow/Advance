@@ -24,7 +24,7 @@ Parse `$ARGUMENTS`:
 
 ---
 ## Phase 0: Load Skill
-`skill("adv-arch-detection")` → three-phase detection strategy, Known-Stack Rule Matrix, Research Fallback, finding format, severity rubric, P33 boundaries. Skill unavailable → use embedded protocol here.
+`skill("adv-arch-detection")` → three-phase detection strategy, Known-Stack Rule Matrix, Research Fallback, finding format, severity rubric, P33 boundaries. Unavailable → use embedded protocol.
 
 ---
 ## Pre-flight
