@@ -1037,6 +1037,62 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(parsed._recovery).toBeUndefined();
     });
 
+    test("includes _directive and derives nextGate/canArchive from it", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "in_progress" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+
+      mocks.querySignal.mockResolvedValueOnce(gates);
+
+      const result = await gateTools.adv_gate_status.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed._directive).toBeDefined();
+      expect(parsed._directive.changeId).toBe("test-change");
+      expect(parsed._directive.canArchive).toBe(false);
+      expect(parsed._directive.action.gateId).toBe("planning");
+      expect(parsed._directive.action.command).toBe("adv-prep");
+      // next-action fields are sourced from the single directive projection.
+      expect(parsed.nextGate).toBe("planning");
+      expect(parsed.canArchive).toBe(false);
+    });
+
+    test("directive routes to adv-archive when all gates are done", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: { status: "done" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+
+      mocks.querySignal.mockResolvedValueOnce(gates);
+
+      const result = await gateTools.adv_gate_status.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.canArchive).toBe(true);
+      expect(parsed.nextGate).toBeNull();
+      expect(parsed._directive.canArchive).toBe(true);
+      expect(parsed._directive.action.command).toBe("adv-archive");
+    });
+
     test("prefers audited disk recovery gates over stale workflow gates", async () => {
       const tmp = await mkdtemp(join(tmpdir(), "adv-gate-recovery-audit-"));
       const changesDir = join(tmp, "changes");

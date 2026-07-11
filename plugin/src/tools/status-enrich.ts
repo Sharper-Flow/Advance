@@ -13,6 +13,11 @@ import {
   type ChangeRecency,
 } from "../types";
 import { getCommandsByGate } from "../manifest";
+import { changeToDirectiveState } from "../temporal/change-state";
+import {
+  deriveWorkflowDirective,
+  type WorkflowDirective,
+} from "../utils/workflow-directive";
 import {
   buildChangeContextSnapshot,
   buildChangeContextTicker,
@@ -58,26 +63,52 @@ export function pushStatusRecommendation(
 // =============================================================================
 
 /**
- * Map a gate ID to a recommended slash command string.
- * Uses the manifest to find commands that trigger the given gate.
- * Falls back to a sensible default if no manifest entry exists.
+ * Build a `next_gate` status recommendation from the authoritative workflow
+ * directive. The directive's `action` owns the gate + command; the manifest is
+ * only a fallback for actions that carry a gate but no command (blocked /
+ * approval). Returns null for archived directives (no forward gate) or when no
+ * actionable gate is present.
+ *
+ * This is the single next-action projection shared with gate status and the
+ * context snapshot.
  */
-export function getRecommendationForGate(
-  gateId: GateId,
-  changeId: string,
-  parentContext?: string,
-): string | null {
-  const cmds = getCommandsByGate(gateId);
-  if (cmds.length === 0) {
-    return null;
-  }
+export function buildNextGateRecommendationFromDirective(input: {
+  directive: WorkflowDirective;
+  changeId: string;
+  parentContext?: string;
+  minutesSinceActivity?: number;
+}): StatusRecommendationItem | null {
+  const { directive, changeId, parentContext, minutesSinceActivity } = input;
+  const action = directive.action;
 
-  // Pick the first (primary) command for this gate
-  const cmd = cmds[0];
-  const label = parentContext
+  if (action.kind === "archived") return null;
+  const gateId = action.gateId as GateId | undefined;
+  if (!gateId) return null;
+
+  const command = action.command ?? getCommandsByGate(gateId)[0]?.name ?? null;
+
+  const title = parentContext
     ? `Change \`${changeId}\` (fast-follow of \`${parentContext}\`)`
     : `Change \`${changeId}\``;
-  return `${label}: next gate is \`${gateId}\` → run \`/${cmd.name} ${changeId}\``;
+  const actionText = command
+    ? `run \`/${command} ${changeId}\``
+    : "review gate status";
+  const message = command
+    ? `${title}: next gate is \`${gateId}\` → run \`/${command} ${changeId}\``
+    : `${title}: next gate is \`${gateId}\` → review gate status`;
+
+  return {
+    kind: "next_gate",
+    priority: gateId === "release" ? "high" : "medium",
+    changeId,
+    gateId,
+    title,
+    detail: `next gate is \`${gateId}\``,
+    action: actionText,
+    source: "gate",
+    minutesSinceActivity,
+    message,
+  };
 }
 
 export async function getFastFollowParentContext(
@@ -111,6 +142,18 @@ export async function enrichRecentChangeStatus(
   // for snapshot rendering (status output is read-only).
   const proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
 
+  // Authoritative next-action projection shared with gate status and the
+  // context snapshot. Derived from the disk change projection (Temporal-first
+  // reads elsewhere keep this fresh); never persisted.
+  const directive = deriveWorkflowDirective(
+    changeToDirectiveState({
+      projectId: changeResult.data.adv_project_id ?? "unknown",
+      change: changeResult.data,
+      gates,
+    }),
+    Date.now(),
+  );
+
   const snapshotInput = {
     change: changeResult.data,
     proposalText,
@@ -128,8 +171,9 @@ export async function enrichRecentChangeStatus(
         }
       : undefined,
     _contextSnapshot: isPrimary
-      ? buildChangeContextSnapshot(snapshotInput)
+      ? buildChangeContextSnapshot({ ...snapshotInput, directive })
       : buildChangeContextTicker(snapshotInput),
+    _directive: directive,
   });
 
   const dependencyStatus = await buildExternalDependencyStatus(
@@ -140,7 +184,7 @@ export async function enrichRecentChangeStatus(
       dependencyStatus.summary;
   }
 
-  const nextGate = GATE_ORDER.find((gateId) => !isGateSatisfied(gates[gateId]));
+  const nextGate = directive.action.gateId as GateId | undefined;
   if (nextGate) {
     const parentContext = changeResult.data.fast_follow_of
       ? await getFastFollowParentContext(
@@ -148,28 +192,14 @@ export async function enrichRecentChangeStatus(
           changeResult.data.fast_follow_of.parent_change_id,
         )
       : undefined;
-    const rec = getRecommendationForGate(
-      nextGate as GateId,
+    const item = buildNextGateRecommendationFromDirective({
+      directive,
       changeId,
       parentContext,
-    );
-    if (rec) {
-      const cmds = getCommandsByGate(nextGate as GateId);
-      const cmd = cmds[0];
-      pushStatusRecommendation(status, {
-        kind: "next_gate",
-        priority: nextGate === "release" ? "high" : "medium",
-        changeId,
-        gateId: nextGate as GateId,
-        title: parentContext
-          ? `Change \`${changeId}\` (fast-follow of \`${parentContext}\`)`
-          : `Change \`${changeId}\``,
-        detail: `next gate is \`${nextGate}\``,
-        action: cmd ? `run \`/${cmd.name} ${changeId}\`` : "review gate status",
-        source: "gate",
-        minutesSinceActivity: rc.minutesSinceActivity,
-        message: rec,
-      });
+      minutesSinceActivity: rc.minutesSinceActivity,
+    });
+    if (item) {
+      pushStatusRecommendation(status, item);
     }
   }
 

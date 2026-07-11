@@ -360,6 +360,50 @@ describe("buildChangeContextSnapshot", () => {
     expect(output).toContain("Wisdom: 3 entries");
     expect(output).toContain("2 pattern");
   });
+
+  test("renders a Next: orientation line when a directive is provided", () => {
+    const output = buildChangeContextSnapshot({
+      change: {
+        id: "addWorkflowDirectives",
+        title: "add workflow directives",
+        tasks: [{ id: "tk-1", title: "Done task", status: "done" }],
+      },
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "in_progress" },
+      },
+      directive: {
+        changeId: "addWorkflowDirectives",
+        phase: "design",
+        gateStatus: {} as never,
+        action: { kind: "continue", gateId: "design", command: "adv-design" },
+        approvalPending: false,
+        blockers: [],
+        canArchive: false,
+        bucket: "in_flight",
+      },
+      workdir: "/tmp/worktree",
+    });
+
+    expect(output).toContain("Next:");
+    expect(output).toContain("design");
+    expect(output).toContain("/adv-design");
+  });
+
+  test("omits the Next: line when no directive is provided", () => {
+    const output = buildChangeContextSnapshot({
+      change: {
+        id: "addWorkflowDirectives",
+        title: "add workflow directives",
+        tasks: [{ id: "tk-1", title: "Done task", status: "done" }],
+      },
+      gates: { proposal: { status: "done" } },
+      workdir: "/tmp/worktree",
+    });
+
+    expect(output).not.toContain("Next:");
+  });
 });
 
 // =============================================================================

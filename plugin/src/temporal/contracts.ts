@@ -61,6 +61,7 @@ export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
   tasks: "adv.change.tasks",
   task: "adv.change.task",
   getCurrentBucket: "adv.change.getCurrentBucket",
+  getDirective: "adv.change.getDirective",
   getInvestmentReport: "adv.change.getInvestmentReport",
   getReviewVerification: "adv.change.getReviewVerification",
   getTaskRunSummary: "adv.change.getTaskRunSummary",

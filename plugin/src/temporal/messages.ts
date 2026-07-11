@@ -83,6 +83,7 @@ import type {
   CrossProjectCoordinationUpdatedSignalPayload,
   EpicWorkflowState,
 } from "./contracts";
+import type { WorkflowDirective } from "../utils/workflow-directive";
 import {
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
@@ -124,6 +125,9 @@ export const getConformanceStateQuery = wf.defineQuery<
 >(CHANGE_WORKFLOW_QUERY_NAMES.getConformanceState);
 export const getCurrentBucketQuery = wf.defineQuery<string>(
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getCurrentBucket,
+);
+export const getDirectiveQuery = wf.defineQuery<WorkflowDirective>(
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getDirective,
 );
 export const getReadyTasksQuery = wf.defineQuery<
   ReturnType<typeof import("./change-state").getReadyTasksFromChangeState>

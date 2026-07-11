@@ -12,6 +12,8 @@
 // Types
 // =============================================================================
 
+import type { WorkflowDirective } from "./workflow-directive";
+
 export interface GateInfo {
   status: string;
   completed_at?: string;
@@ -39,6 +41,12 @@ export interface ContextSnapshotInput {
   touchedFilesCount?: number;
   /** Doom-loop budget proximity indicator (e.g. "⚠ 2/3 budget") */
   errorBudgetProximity?: string;
+  /**
+   * Authoritative execution directive (derive-on-read). When provided, the
+   * snapshot renders a compact `Next:` orientation line so agents see the
+   * same next-action the gate/status surfaces consume.
+   */
+  directive?: WorkflowDirective;
   /** Compact Epic membership context for child changes (no full Epic hydration) */
   epicMembership?: {
     epic_id: string;
@@ -166,11 +174,13 @@ export function buildChangeContextSnapshot({
   proposalText,
   gates,
   workdir,
+  directive,
 }: {
   change: SnapshotChangeLike;
   proposalText?: string;
   gates?: Record<string, GateInfo>;
   workdir?: string;
+  directive?: WorkflowDirective;
 }): string {
   const { taskCounts, currentTask, touchedFilesCount, errorBudgetProximity } =
     summarizeTasks(change.tasks);
@@ -188,6 +198,7 @@ export function buildChangeContextSnapshot({
     wisdomByType,
     touchedFilesCount,
     errorBudgetProximity,
+    directive,
     epicMembership: change.epic_membership,
   });
 }
@@ -278,6 +289,33 @@ function boxLine(content: string, width: number): string {
  * ╚═══════════════════════════════════════════════════════════╝
  * ```
  */
+/**
+ * Compact single-line rendering of a workflow directive for agent orientation.
+ * Surfaces the same next-action the gate/status surfaces consume so the
+ * context snapshot, gate status, and status recommendations agree.
+ */
+function formatDirectiveNextLine(directive: WorkflowDirective): string {
+  const action = directive.action;
+  const gate = action.gateId;
+  const command = action.command;
+  switch (action.kind) {
+    case "archived":
+      return "Next: archived";
+    case "recovery":
+      return `Next: recovery${gate ? ` · ${gate}` : ""}`;
+    case "blocked":
+      return `Next: blocked${gate ? ` · ${gate}` : ""}`;
+    case "approval":
+      return `Next: approval${gate ? ` · ${gate}` : ""}`;
+    case "never_started":
+    case "continue":
+    default:
+      if (gate && command) return `Next: ${gate} → /${command}`;
+      if (gate) return `Next: ${gate}`;
+      return `Next: ${action.kind}`;
+  }
+}
+
 export function formatContextSnapshot(input: ContextSnapshotInput): string {
   const {
     changeId,
@@ -290,6 +328,7 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     wisdomByType,
     touchedFilesCount,
     errorBudgetProximity,
+    directive,
     epicMembership,
   } = input;
 
@@ -341,8 +380,11 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
     lines.push("");
   }
 
+  lines.push(`Gates: ${gateProgress}`);
+  if (directive) {
+    lines.push(formatDirectiveNextLine(directive));
+  }
   lines.push(
-    `Gates: ${gateProgress}`,
     errorBudgetProximity ?? `Outcomes: ${userOutcomeCount ?? "?"} items`,
     taskLine,
   );

@@ -17,7 +17,6 @@ import {
   GATE_ORDER,
   canCompleteGate,
   getIncompleteGates,
-  allGatesSatisfied,
   createDefaultGates,
   isMetadataOnlyGate,
   isWorktreeMutationGate,
@@ -83,7 +82,11 @@ import {
   inspectArtifactActivity,
   writeArtifactActivity,
 } from "../temporal/activities";
-import { changeToWorkflowState } from "../temporal/change-state";
+import {
+  changeToDirectiveState,
+  changeToWorkflowState,
+} from "../temporal/change-state";
+import { deriveWorkflowDirective } from "../utils/workflow-directive";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import {
   isPreciseWorkflowRecoveryEvidence,
@@ -1023,8 +1026,22 @@ export const gateTools = {
             const normalizedGates =
               (await normalizeGateArtifactEvidenceForReadback(gates)) ?? gates;
             const incomplete = getIncompleteGates(normalizedGates);
-            const canArchive = allGatesSatisfied(normalizedGates);
-            const nextGate = incomplete.length > 0 ? incomplete[0] : null;
+            // Single directive projection: next-action (nextGate/canArchive)
+            // is sourced from deriveWorkflowDirective, the same derivation the
+            // workflow's getDirectiveQuery and status enrichment consume.
+            const directive = deriveWorkflowDirective(
+              changeToDirectiveState({
+                projectId: projectId ?? result.data.adv_project_id ?? "unknown",
+                change: result.data,
+                gates: normalizedGates,
+              }),
+              Date.now(),
+            );
+            const canArchive = directive.canArchive;
+            const nextGate = directive.canArchive
+              ? null
+              : ((directive.action.gateId as GateId | undefined) ??
+                (incomplete.length > 0 ? incomplete[0] : null));
 
             return formatToolOutput({
               changeId,
@@ -1032,6 +1049,7 @@ export const gateTools = {
               incomplete,
               canArchive,
               nextGate,
+              _directive: directive,
               ...(gateCriteria ? { gateCriteria } : {}),
               ...(poisonedFallback
                 ? { _recovery: { reason: "poisoned_history" } }
