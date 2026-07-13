@@ -384,6 +384,12 @@ describe("bounded one-pass change-list resolution", () => {
     } as never);
 
     const pending = ops.listSummary!({});
+    // Yield to the event loop so the un-slowed disk enumeration resolves
+    // via real I/O before the fake clock advances. Under
+    // vi.useFakeTimers(), advanceTimersByTimeAsync fires fake timers
+    // during its synchronous advance phase — without this yield, the
+    // disk-race timer would reject before the fs callback fires.
+    await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(TEMPORAL_READ_DEADLINE_BUDGET_MS + 1000);
     const result = await pending;
 
@@ -401,6 +407,109 @@ describe("bounded one-pass change-list resolution", () => {
         }),
       ]),
     );
+  });
+
+  it("returns typed deadline degradation when listSummary active-disk listChangeDirs hangs (AC1/AC5)", async () => {
+    // Scope of this regression test (fixChangeListTimeouts task 5): the
+    // raw `listChangeDirs(legacy.paths.changes)` call in
+    // `changes.ts:listSummary` was outside the aggregate deadline, so a
+    // hung active-disk enumeration could outlive the 8s budget and drag
+    // `adv_status` (view: "summary") with it. The fix mirrors the
+    // already-deadline-wrapped pattern in `index.ts` (line 867).
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    // An active change on disk + visibility so the two sources agree on
+    // one candidate; the warm-cache row is seeded below.
+    await legacy.changes.save(activeChange("activeOne"));
+
+    const memo = new ChangeSummaryMemo();
+    const seededCache = new Map<string, Change>();
+
+    let queryCount = 0;
+    const getTemporalChange = vi.fn().mockImplementation(async () => {
+      queryCount += 1;
+      return {
+        success: true as const,
+        data: activeChange("activeOne"),
+      };
+    });
+    const workflowClient = {
+      workflow: {
+        getHandle: vi.fn(),
+        // Visibility enumerates quickly so the failure attribution is
+        // specific to the active-disk source.
+        list: async function* () {
+          yield { workflowId: "adv/change/project-1/activeOne" };
+        },
+      },
+    };
+
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "project-1",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: vi.fn(),
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange,
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+      memo,
+      changeCache: seededCache,
+    } as never);
+
+    // Hang the active-disk enumeration past the aggregate budget.
+    // Visibility still resolves so the failure attribution is specific
+    // to the active-disk source.
+    SLOW_LIST_CHANGE_DIRS.set(
+      legacy.paths.changes,
+      TEMPORAL_READ_DEADLINE_BUDGET_MS + 2_000,
+    );
+
+    const pending = ops.listSummary!({});
+    // Settle async work in rounds (see the listResolvedChanges
+    // active-disk test for rationale): the slow-read mock's setTimeout is
+    // scheduled only after earlier awaits resolve, so one
+    // runAllTimersAsync may miss it.
+    let settled = false;
+    void pending.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    for (let i = 0; i < 10 && !settled; i++) {
+      await vi.runAllTimersAsync();
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+    const result = await pending;
+
+    // Typed source-specific deadline degradation on the active-disk
+    // source — never a silent complete-looking result (C2/AC5). The
+    // visibility candidate was admitted but could not be hydrated after
+    // the budget was gone, so the row is omitted and hydration stops.
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "SOURCE_DEADLINE_EXCEEDED",
+          source: "active_disk",
+        }),
+      ]),
+    );
+    expect(result.hydrationStats).toMatchObject({
+      deadlineExceeded: true,
+    });
+    expect(queryCount).toBe(0);
+    expect(result.changes.map((c) => c.id)).not.toContain("activeOne");
   });
 
   it("returns complete results without deadline metadata when sources resolve within budget", async () => {

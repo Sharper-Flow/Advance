@@ -919,13 +919,30 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         }
       }
 
+      // Disk enumeration is typically fast local I/O (one readdir per path)
+      // but can hang on slow network/FUSE/NFS-backed project roots or
+      // transiently-stalled filesystems. Route it through the same
+      // aggregate-deadline admission gate as visibility and the
+      // `listResolvedChanges` active-disk path (AC1/AC5/C2) so a slow
+      // readdir degrades with typed source-specific incompleteness
+      // rather than outliving the request budget. Disk still stays
+      // available as an omission-evidence source on Temporal-side
+      // degradation; the deadline gates the potentially-unbounded stages.
       let diskIds: string[] = [];
       try {
-        diskIds = await listChangeDirs(legacy.paths.changes);
-      } catch (err) {
-        logger.warn(
-          `[listSummary] Disk listChangeDirs failed: ${err instanceof Error ? err.message : String(err)}`,
+        diskIds = await raceWithTemporalDeadline(
+          listChangeDirs(legacy.paths.changes),
+          deadline,
         );
+      } catch (err) {
+        const hitDeadline =
+          err instanceof TemporalQueryTimeoutError || expired();
+        logger.warn(
+          `[listSummary] Disk listChangeDirs ${
+            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+          }: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        if (hitDeadline) markDeadline("active_disk");
       }
 
       const changeIds = Array.from(
