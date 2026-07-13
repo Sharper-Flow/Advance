@@ -535,6 +535,26 @@ describe("safeExecute timeout overrides for slow-subprocess tools", () => {
     const value = Number(valueMatch![1].replace(/_/g, ""));
     expect(value).toBeGreaterThanOrEqual(15_000);
   });
+
+  // fixArchiveTerminalProjection SC3/AC4: adv_change_archive must declare a
+  // heavy-tier timeoutMs override (its inner git push budget alone defaults
+  // to 300s) plus an onToolTimeout classifier so an interruption past the
+  // durable bundle write returns a typed still-finalizing/reconcile result
+  // instead of a bare ToolExecutionTimeout.
+  test("adv_change_archive registers safeExecute with heavy-tier timeoutMs override + onToolTimeout classifier", () => {
+    const block = extractRegistrationBlock(registrySrc, "adv_change_archive");
+    expect(
+      block,
+      "adv_change_archive registration block not found",
+    ).not.toBeNull();
+    expect(block!).toMatch(/timeoutMs:\s*\d/);
+    const valueMatch = block!.match(/timeoutMs:\s*(\d[\d_]*)/);
+    expect(valueMatch).toBeTruthy();
+    const value = Number(valueMatch![1].replace(/_/g, ""));
+    // Must exceed the 300s inner git push budget (DEFAULT_GIT_PUSH_TIMEOUT_MS).
+    expect(value).toBeGreaterThan(300_000);
+    expect(block!).toContain("onToolTimeout");
+  });
 });
 
 describe("rq-zodParseValidation01 — runtime Zod schema validation at SDK boundary", () => {
