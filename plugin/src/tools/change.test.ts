@@ -1601,9 +1601,9 @@ describe("change tools — signal-driven lifecycle", () => {
       store.changes.listSummary = vi.fn().mockResolvedValue({
         changes: [
           {
-            id: "activeA",
-            title: "Active A",
-            status: "active",
+            id: "draftA",
+            title: "Draft A",
+            status: "draft",
             created_at: "2026-01-01T00:00:00Z",
             lastActivityAt: "2026-01-01T01:00:00Z",
             taskCount: 0,
@@ -1640,7 +1640,7 @@ describe("change tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
 
       expect(parsed.changes.map((c: { id: string }) => c.id)).toEqual([
-        "activeA",
+        "draftA",
       ]);
       expect(store.changes.listSummary).toHaveBeenCalledWith(
         expect.objectContaining({

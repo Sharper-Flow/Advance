@@ -194,7 +194,9 @@ describe("store-disk — bounded warnings + monotonic IDs", () => {
     const status = await store.status();
 
     expect(status.changes.byStatus.draft).toBe(2);
-    expect(status.changes.byStatus.active).toBe(0);
+    // Enum narrowed to reachable states — legacy open keys are gone entirely.
+    expect(status.changes.byStatus).not.toHaveProperty("active");
+    expect(status.changes.byStatus).not.toHaveProperty("pending");
     const counts = Object.values(status.changes.byStatus);
     expect(counts.every(Number.isFinite)).toBe(true);
     expect(counts.reduce((sum, n) => sum + n, 0)).toBe(2);

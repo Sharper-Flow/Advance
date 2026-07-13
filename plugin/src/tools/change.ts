@@ -385,7 +385,7 @@ export const changeTools = {
       "List active changes with optional filtering, recency enrichment, and sorting",
     args: {
       status: ChangeListStatusFilterSchema.optional().describe(
-        'Filter by status. Use "in-flight" for the union of draft + pending + active.',
+        'Filter by status. Use "in-flight" for open changes (draft).',
       ),
       includeArchived: z
         .boolean()
@@ -518,7 +518,7 @@ export const changeTools = {
             scope,
           );
           if (status === "in-flight") {
-            const inFlightStatuses = new Set(["draft", "pending", "active"]);
+            const inFlightStatuses = new Set(["draft"]);
             filtered = filtered.filter((c) => inFlightStatuses.has(c.status));
           }
           // Sort: stalest (asc by lastActivity) or recency (desc by lastActivity)

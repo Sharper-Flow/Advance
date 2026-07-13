@@ -41,11 +41,11 @@ describe("visibility-epic-queries: query construction (rq-epicTemporalConstraint
     expect(query).toContain('AdvEpicId = "evil\\"epic"');
   });
 
-  it("maps legacy open custom statuses to open lifecycle filtering", () => {
+  it("maps open draft status to open lifecycle filtering", () => {
     const query = buildEpicMembersVisibilityQuery({
       projectId: "pid-abc",
       epicId: "addAuthEpic",
-      statuses: ["active"],
+      statuses: ["draft"],
     });
 
     expect(query).toBe(

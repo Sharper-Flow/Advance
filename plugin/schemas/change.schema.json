@@ -3216,8 +3216,6 @@
     "status": {
       "enum": [
         "draft",
-        "pending",
-        "active",
         "archived",
         "closed"
       ],

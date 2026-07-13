@@ -1058,8 +1058,6 @@ export async function createDiskStore(
       }
       const byStatus: Record<ChangeStatus, number> = {
         draft: 0,
-        pending: 0,
-        active: 0,
         archived: 0,
         closed: 0,
       };

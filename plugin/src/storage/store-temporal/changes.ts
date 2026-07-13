@@ -613,10 +613,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             message: `Bulk close aborted: Change "${id}" not found.`,
           };
         }
-        if (
-          change.data.status !== "draft" &&
-          change.data.status !== "pending"
-        ) {
+        if (change.data.status !== "draft") {
           return {
             success: false,
             closed: 0,
@@ -628,7 +625,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
                   ? `Protected status "${change.data!.status}"`
                   : "Aborted due to sibling failure",
             })),
-            message: `Bulk close aborted: Change "${id}" has protected status "${change.data.status}". Only draft or pending changes can be bulk-closed.`,
+            message: `Bulk close aborted: Change "${id}" has protected status "${change.data.status}". Only draft changes can be bulk-closed.`,
           };
         }
       }

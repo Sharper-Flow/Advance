@@ -261,7 +261,7 @@ export async function computeHealthSnapshot(
         }
       } else if (status === "archived") {
         leakedArchivedSourceDirs++;
-      } else if (status === "active") {
+      } else if (status === "draft") {
         activeCount++;
       }
     }),

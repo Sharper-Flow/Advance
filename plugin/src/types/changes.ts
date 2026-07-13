@@ -61,9 +61,7 @@ type _ValidationResult = z.infer<typeof ValidationResultSchema>;
 // =============================================================================
 
 export const ChangeStatusSchema = z.enum([
-  "draft", // Being written
-  "pending", // Awaiting approval
-  "active", // In progress
+  "draft", // Open — being written or in progress (see AdvLifecycleState for open-claim authority)
   "archived", // Completed and promoted
   "closed", // Retired without completion
 ]);
@@ -99,12 +97,21 @@ export type ChangeLifecycleState = z.infer<typeof ChangeLifecycleStateSchema>;
 
 /**
  * Filter-only status value for adv_change_list.
- * "in-flight" is a union filter (draft + pending + active), not a stored status.
+ * "in-flight" is a union filter for open changes (draft), not a stored status.
  * "active" and "pending" are never stored on changes; they are rejected with
  * a hint to use "in-flight" (or no status filter) for open changes.
+ *
+ * The legacy open spellings ("active"/"pending") are union members only so the
+ * superRefine below can intercept them with an actionable hint — they always
+ * fail validation and are never valid output.
  */
 export const ChangeListStatusFilterSchema = z
-  .union([ChangeStatusSchema, z.literal("in-flight")])
+  .union([
+    ChangeStatusSchema,
+    z.literal("in-flight"),
+    z.literal("active"),
+    z.literal("pending"),
+  ])
   .superRefine((value, ctx) => {
     if (value === "active" || value === "pending") {
       ctx.addIssue({

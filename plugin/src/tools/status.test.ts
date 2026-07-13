@@ -1862,7 +1862,7 @@ Vague in-flight work.
         $schema: "https://advance.dev/schemas/change.v1.json",
         id,
         title: `Change ${id}`,
-        status: "active" as const,
+        status: "draft" as const,
         created_at: "2026-05-07T00:00:00.000Z",
         tasks: [],
         deltas: {},
@@ -1877,7 +1877,7 @@ Vague in-flight work.
         specs: { count: 0, capabilities: [] },
         changes: {
           active: 2,
-          byStatus: { draft: 0, pending: 0, active: 2, archived: 0, closed: 0 },
+          byStatus: { draft: 2, archived: 0, closed: 0 },
           recent: docs.map((doc) => ({
             id: doc.id,
             title: doc.title,
@@ -1917,7 +1917,7 @@ Vague in-flight work.
         specs: { count: 0, capabilities: [] },
         changes: {
           active: 0,
-          byStatus: { draft: 0, pending: 0, active: 0, archived: 0, closed: 0 },
+          byStatus: { draft: 0, archived: 0, closed: 0 },
           recent: [],
         },
         recommendations: [],
