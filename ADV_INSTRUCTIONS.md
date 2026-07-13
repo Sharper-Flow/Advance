@@ -594,7 +594,7 @@ No direct non-LLM ADV tool-exec helper ships until OpenCode exposes stable tool 
 
 #### `status: "in-flight"` filter shorthand
 
-`adv_change_list status: "in-flight"` returns the union `draft + pending + active`. Use this when an agent prompt or human asks "what's in flight" without caring about the specific stored status. The filter is **input-only**; it never appears as a stored `status` value on a change. The plain `"active"` filter (and other status values) keeps its strict storage-enum meaning.
+`adv_change_list status: "in-flight"` returns the open stored status `draft` — the only lifecycle-open value in the stored `ChangeStatus` enum (`draft`/`archived`/`closed`). Use this when an agent prompt or human asks "what's in flight" without caring about the specific stored status. The filter is **input-only**; it never appears as a stored `status` value on a change. The plain `"active"` and `"pending"` filters are rejected with a hint to use `"in-flight"` (those values are never stored on changes); `"archived"` and `"closed"` select terminal changes.
 
 ### Cancellation Policy
 
