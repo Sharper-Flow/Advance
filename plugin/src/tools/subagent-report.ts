@@ -22,6 +22,7 @@ import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { saveRecoveredSubagentReport } from "./_recovery-writers";
+import { isWorkflowCompletedError } from "../temporal/recovery-classification";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -836,14 +837,20 @@ async function executeSubmit(
           error instanceof Error
             ? error.message
             : "Failed to persist sub-agent report";
-        // Defensive: an active→terminal race between loadChange and signal
-        // surfaces as a completed-workflow error. Fall back to the disk
-        // projection instead of returning SUBMIT_SIGNAL_FAILED.
-        const isCompletedWorkflow =
-          /already completed|WorkflowExecutionAlreadyCompleted|WorkflowNotFound/i.test(
-            message,
-          );
-        if (isCompletedWorkflow) {
+        // Tightened authorization for non-terminal WorkflowNotFound recovery
+        // (AC3/SC2): use the structural completed-workflow classifier instead
+        // of a regex on the message text. This catches err.name-only matches
+        // (e.g. WorkflowNotFoundError with a generic message) and rejects
+        // benign messages that merely contain a recognized substring.
+        const completedWorkflow = isWorkflowCompletedError(error);
+        if (completedWorkflow) {
+          // Derive precise audit evidence from the error so the recovery
+          // record cites the actual completed-workflow marker.
+          const errorName = error instanceof Error ? error.name : undefined;
+          const evidence =
+            errorName && errorName !== "Error"
+              ? `${errorName}: ${message}`
+              : message;
           try {
             await saveRecoveredSubagentReport({
               store,
@@ -851,7 +858,7 @@ async function executeSubmit(
               report,
               authorization: {
                 reason: "post_archive_report_persist_race_fallback",
-                evidence: message,
+                evidence,
               },
             });
           } catch (fallbackError) {

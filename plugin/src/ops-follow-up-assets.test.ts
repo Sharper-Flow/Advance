@@ -146,7 +146,7 @@ describe("ops-follow-up spec versions bumped", () => {
 
   test("subagent-reports version is at least 1.3.0", () => {
     const spec = loadSpec("subagent-reports");
-    expect(spec.version).toBe("1.7.1");
+    expect(spec.version).toBe("1.7.2");
   });
 
   test("backlog-coordination version is at least 1.4.0", () => {
