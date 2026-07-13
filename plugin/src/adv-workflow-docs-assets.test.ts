@@ -40,3 +40,71 @@ describe("docs/adv-workflow.md asset contract", () => {
     expect(content).toContain("adv-gates.md");
   });
 });
+
+describe("docs/adv-gates.md Per-Gate Line-Item Map", () => {
+  const content = readFileSync(
+    join(REPO_ROOT, "docs/adv-gates.md"),
+    "utf8",
+  );
+
+  it("contains the map section header", () => {
+    expect(content).toContain("## Per-Gate Line-Item Map");
+  });
+
+  it("contains all 7 gates + post-release subsection", () => {
+    expect(content).toContain("### 1. Proposal");
+    expect(content).toContain("### 2. Discovery");
+    expect(content).toContain("### 3. Design");
+    expect(content).toContain("### 4. Planning");
+    expect(content).toContain("### 5. Execution");
+    expect(content).toContain("### 6. Acceptance");
+    expect(content).toContain("### 7. Release");
+    expect(content).toContain("### Post-Release");
+  });
+
+  it("contains the legend section", () => {
+    expect(content).toContain("### Legend");
+  });
+
+  it("references worktree isolation anchor in execution gate", () => {
+    expect(content).toContain("adv_worktree_create");
+    expect(content).toContain("Worktree Isolation");
+  });
+
+  it("references design-concern disposition tool in acceptance gate", () => {
+    expect(content).toContain("adv_design_concern_disposition");
+  });
+
+  it("references design-concern spec anchor", () => {
+    expect(content).toContain("rq-designQualityEvidence01");
+  });
+
+  it("references ops-blocks release blocker checker", () => {
+    expect(content).toContain("checkOpsFollowupReleaseBlockers");
+  });
+
+  it("marks wisdom capture as advisory", () => {
+    expect(content).toContain("Wisdom capture (advisory");
+  });
+
+  it("references reflection tool in post-release", () => {
+    expect(content).toContain("adv_reflect");
+  });
+
+  it("references planning machine-enforcement token", () => {
+    expect(content).toContain("userApproved: true");
+  });
+
+  it("references Tier B whitelist-only approval type", () => {
+    expect(content).toContain("Tier B");
+  });
+
+  it("references machine-enforced approval type in legend", () => {
+    expect(content).toContain("machine-enforced");
+  });
+
+  it("does NOT include verification-evidence disposition rows", () => {
+    expect(content).not.toContain("VERIFICATION_EVIDENCE_MISSING");
+    expect(content).not.toContain("verification-evidence disposition");
+  });
+});
