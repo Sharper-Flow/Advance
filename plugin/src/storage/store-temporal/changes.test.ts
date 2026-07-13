@@ -613,6 +613,7 @@ describe("createChangeOps", () => {
 
       expect(listResolvedChanges).toHaveBeenCalledWith(
         expect.objectContaining({ includeArchived: true }),
+        expect.objectContaining({ budgetMs: expect.any(Number) }),
       );
       expect(result.changes.map((c) => c.id)).toEqual(["archivedC"]);
       expect(result.hydrationStats?.fromMemo).toBe(0);

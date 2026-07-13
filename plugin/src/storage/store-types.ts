@@ -252,6 +252,12 @@ export interface Store {
           fromMemo: number;
           fromCache: number;
           fromHydration: number;
+          /**
+           * True when the request-scoped aggregate read deadline expired
+           * before all cold-miss hydrations resolved; the row set is
+           * explicitly degraded, never a complete-looking partial.
+           */
+          deadlineExceeded?: boolean;
         };
       }
     >;

@@ -34,13 +34,21 @@ export type TerminalSource =
 
 export type TerminalWarningCode =
   | "TERMINAL_SOURCE_DEGRADED"
-  | "TERMINAL_CANDIDATE_OMITTED";
+  | "TERMINAL_CANDIDATE_OMITTED"
+  | "SOURCE_DEADLINE_EXCEEDED";
 
 export interface TerminalWarning {
   code: TerminalWarningCode;
   source: TerminalSource;
   message: string;
   omittedCount?: number;
+  /**
+   * Bounded list of candidate IDs omitted by this warning (max 20).
+   * Present when specific candidates could not be resolved — e.g. after
+   * the aggregate read deadline expired — so operators can re-query the
+   * named changes instead of inferring completeness from row counts.
+   */
+  omittedIds?: string[];
 }
 
 export interface TerminalHydrationStats {
@@ -61,6 +69,13 @@ export interface HydrationStats {
   terminalFromDisk?: number;
   terminalFromWorkflow?: number;
   omitted?: number;
+  /**
+   * True when the request-scoped aggregate read deadline
+   * (TEMPORAL_READ_DEADLINE_BUDGET_MS) expired before all required
+   * sources/candidates resolved. A result carrying this flag is
+   * explicitly degraded — never a complete-looking partial.
+   */
+  deadlineExceeded?: boolean;
 }
 
 export interface ChangeListResponse {
