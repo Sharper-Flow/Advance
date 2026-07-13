@@ -14,10 +14,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
-import {
-  resolveProjectIdentity,
-  UnstableIdentityError,
-} from "./project-id";
+import { resolveProjectIdentity, UnstableIdentityError } from "./project-id";
 
 const run = promisify(execFile);
 

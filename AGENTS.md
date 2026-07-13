@@ -4,7 +4,7 @@
 
 - This is an OpenCode plugin repository, not a monorepo. Supported buildable code is only `plugin/`; `acp-mux/` is archived reference material, not a release surface.
 - Plugin entry: `plugin/src/index.ts`. Tool definitions live beside handlers under `plugin/src/tools/`; `tool-registry.ts` binds exported `*Tools` groups to the SDK.
-- `.adv/specs/` contains git-tracked, branch-local capability laws. Runtime change/task/gate state is Temporal-backed; do not restore a legacy SQLite/file-backed runtime path.
+- `.adv/specs/` contains git-tracked, branch-local capability laws. Runtime change/task/gate state uses Temporal-only persistence written to per-project external state (keyed by the repo root commit); do not restore a legacy SQLite/file-backed runtime path.
 - `project.md` is agent-facing project context. `ADV_INSTRUCTIONS.md` owns detailed ADV workflow protocol; do not duplicate either here.
 
 ## Commands
@@ -27,7 +27,7 @@ bin/oc-test smoke
 bin/oc-test full
 ```
 
-- CI uses Node 24 and pnpm 11. Tests run on Node/Vitest; the OpenCode runtime is Bun. CI builds the Temporal worker before `pnpm test` and separately runs `bun test bin/`.
+- CI uses Node 24 and pnpm 11. CI order: schemas:check → typecheck → lint → format:check → test → build. Tests run on Node/Vitest; the OpenCode runtime is Bun. CI builds the Temporal worker before `pnpm test` and separately runs `bun test bin/`.
 - `pnpm` owns dependencies. Never add `bun.lock` or `bun.lockb` beside `plugin/pnpm-lock.yaml`.
 
 ## Boundaries enforced by tests
@@ -35,7 +35,7 @@ bin/oc-test full
 - Keep tests that create changes or access worktree/data-home state isolated with `createTempDir`, `tmpdir`, `os.tmpdir`, or `XDG_DATA_HOME`; the isolation checker enforces this outside its small explicit allowlist.
 - `plugin/src/temporal/workflows.ts` is the worker-bundle root. Its static import graph must not reach `storage/`, `tools/`, `tool-registry.ts`, `plugin-init.ts`, or `node:*`; do not add `defineUpdate` handlers to workflow-reachable code.
 - `utils/context-snapshot.ts` is a pure formatter. Persistence-backed loading belongs in `storage/context-snapshot-fetch.ts`.
-- Zod schemas are authoritative. Public JSON schemas originate in `src/schema-registry.ts`; regenerate them after schema changes and keep `pnpm run schemas:check` green.
+- Zod schemas are authoritative. Public JSON schemas originate in `src/schema-registry.ts`, generated deterministically via Zod v4 `z.toJSONSchema()`; run `pnpm run schemas:generate` after public Zod changes and keep `pnpm run schemas:check` green.
 - Tool-argument schemas use the intentional `as any` SDK-boundary cast in `tool-registry.ts`; do not remove it. Add tools through their `src/tools/*` group and its export rather than wiring handlers directly in `index.ts`.
 
 ## Deployment and local runtime

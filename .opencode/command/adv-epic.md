@@ -89,7 +89,7 @@ Present:
 - overlap decision
 - initial entries, if any
 
-Initial entries optional; a valid Epic may start with only title, ultimate goal, and narrative.
+Initial entries are optional; a valid Epic may start with only title, ultimate goal, and narrative.
 
 Ask for explicit final confirmation. `adv_epic_create` may run only after the `## Ultimate Goal` and final confirmation are both present.
 

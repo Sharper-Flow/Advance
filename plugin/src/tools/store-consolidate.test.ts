@@ -853,7 +853,9 @@ describe("executeConsolidation", () => {
               ),
             ).toBe(true);
             expect(
-              await pathExists(join(targetPath, "changes", "term-a", "change.json")),
+              await pathExists(
+                join(targetPath, "changes", "term-a", "change.json"),
+              ),
             ).toBe(true);
           },
         },
@@ -977,10 +979,14 @@ describe("executeConsolidation", () => {
       expect(seed.epic_membership).toEqual(richChange.epic_membership);
       // Disk projection + artifact files copied into the target store.
       expect(
-        await pathExists(join(targetPath, "changes", "live-rich", "change.json")),
+        await pathExists(
+          join(targetPath, "changes", "live-rich", "change.json"),
+        ),
       ).toBe(true);
       expect(
-        await pathExists(join(targetPath, "changes", "live-rich", "proposal.md")),
+        await pathExists(
+          join(targetPath, "changes", "live-rich", "proposal.md"),
+        ),
       ).toBe(true);
       const rows = await readLedgerRows(targetPath);
       expect(rows.map((r) => r.item_id)).toContain("live-rich");
@@ -1112,9 +1118,9 @@ describe("executeConsolidation", () => {
       const rows = await readLedgerRows(targetPath);
       expect(rows.filter((r) => r.item_kind === "wisdom_row")).toHaveLength(1);
       expect(rows.filter((r) => r.item_kind === "agenda_row")).toHaveLength(1);
-      expect(
-        rows.filter((r) => r.item_kind === "reflection_row"),
-      ).toHaveLength(1);
+      expect(rows.filter((r) => r.item_kind === "reflection_row")).toHaveLength(
+        1,
+      );
       for (const row of rows.filter((r) =>
         ["wisdom_row", "agenda_row", "reflection_row"].includes(r.item_kind),
       )) {

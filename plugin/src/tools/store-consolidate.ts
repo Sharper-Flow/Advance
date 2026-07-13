@@ -1239,7 +1239,11 @@ export async function executeConsolidation(
   // is minted under the canonical legacy layout.
   const targetPath =
     plan.target.path ??
-    join(options.dataHomeRoot, "opencode/plugins/advance", options.targetProjectId);
+    join(
+      options.dataHomeRoot,
+      "opencode/plugins/advance",
+      options.targetProjectId,
+    );
   await mkdir(targetPath, { recursive: true });
   const ledgerFilePath = join(targetPath, CONSOLIDATION_LEDGER_FILENAME);
 
@@ -1247,7 +1251,10 @@ export async function executeConsolidation(
   const outcomes: ConsolidationItemOutcome[] = [];
 
   const writeLedger = async (
-    row: Omit<ConsolidationLedgerRow, "schema_version" | "applied_at" | "plan_hash">,
+    row: Omit<
+      ConsolidationLedgerRow,
+      "schema_version" | "applied_at" | "plan_hash"
+    >,
   ): Promise<void> => {
     const full: ConsolidationLedgerRow = {
       schema_version: 1,
@@ -1293,7 +1300,11 @@ export async function executeConsolidation(
     }
     try {
       const srcDir = join(sourcePath, item.source_path!);
-      await importDirProjection(srcDir, join(targetPath, item.source_path!), primaryRel);
+      await importDirProjection(
+        srcDir,
+        join(targetPath, item.source_path!),
+        primaryRel,
+      );
       const primary = (await readFileSafe(join(srcDir, primaryRel))) ?? "";
       await writeLedger({
         source_project_id: options.sourceProjectId,
@@ -1338,7 +1349,7 @@ export async function executeConsolidation(
       const client = {
         workflow: (await getClient()).workflow as unknown as {
           start: (...args: unknown[]) => Promise<unknown>;
-          getHandle: (workflowId: string) => unknown,
+          getHandle: (workflowId: string) => unknown;
         },
       };
       await ensureChangeWorkflowStarted(client as never, input);
@@ -1366,7 +1377,7 @@ export async function executeConsolidation(
       const client = {
         workflow: (await getClient()).workflow as unknown as {
           start: (...args: unknown[]) => Promise<unknown>;
-          getHandle: (workflowId: string) => unknown,
+          getHandle: (workflowId: string) => unknown;
         },
       };
       await ensureEpicWorkflowStarted(client as never, input);
@@ -1448,7 +1459,10 @@ export async function executeConsolidation(
         continue;
       }
       try {
-        const state = await queryLiveEpicState(options.sourceProjectId, item.id);
+        const state = await queryLiveEpicState(
+          options.sourceProjectId,
+          item.id,
+        );
         if (!state) {
           throw new Error(
             `source epic workflow state unavailable for ${item.id}; cannot carry Epic state — recreate manually or restore the source workflow`,
@@ -1505,9 +1519,7 @@ export async function executeConsolidation(
   for (const { file, itemKind } of appendTargets) {
     const srcContent = await readFileSafe(join(sourcePath, file));
     if (srcContent === null) continue;
-    const targetHashes = (
-      await readJsonlHashed(join(targetPath, file))
-    ).hashes;
+    const targetHashes = (await readJsonlHashed(join(targetPath, file))).hashes;
     const seen = new Set<string>();
     const toAppend: string[] = [];
     for (const line of srcContent.split("\n")) {
@@ -1585,7 +1597,9 @@ async function resolveConsolidationTargetIds(
   args: { source_project_id?: string; target_project_id?: string },
   directory: string,
   action: "dry_run" | "execute",
-): Promise<{ sourceProjectId: string; targetProjectId: string } | { error: string }> {
+): Promise<
+  { sourceProjectId: string; targetProjectId: string } | { error: string }
+> {
   if (!args.source_project_id) {
     return { error: `source_project_id is required for ${action}` };
   }
