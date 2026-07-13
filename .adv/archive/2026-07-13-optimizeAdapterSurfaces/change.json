@@ -1,0 +1,2303 @@
+{
+  "id": "optimizeAdapterSurfaces",
+  "title": "Optimize adapter surfaces",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-10T00:15:05.599Z",
+  "tasks": [
+    {
+      "id": "tk-253c52dc3ebc",
+      "title": "Pin target-path artifact readback/update behavior",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-10T06:05:51.942Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Completed target-path characterization predates the detector-coverage re-entry; no current detector-contract item directly represents this preserved regression coverage."
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T06:11:14.609Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "optimizeAdapterSurfaces",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+          "task_id": "tk-253c52dc3ebc",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-253c52dc3ebc"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "npx vitest run src/tools/change.test.ts -t \"target_path artifact readback/update authority\"",
+              "exit_code": 0,
+              "summary": "GREEN runId tr_mrejt9s4_6356efb9 — 3 new AC1/AC2 tests pass (multi-kind target readback; update routes temporal-required + writes target not local; update→show same-target readback)."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.read-artifact.test.ts src/tools/target-project.test.ts",
+              "exit_code": 0,
+              "summary": "134 passed across 3 files (change 103 incl. 3 new, read-artifact 9, target-project 22) — regression + AC4 routing coverage green."
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit clean."
+            },
+            {
+              "command": "npx eslint src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "eslint clean (exit 0)."
+            },
+            {
+              "command": "npx prettier --check src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "Prettier check clean."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added characterization tests instead of changing product code",
+              "why": "RED confirmed the gap was missing AC2 test coverage, not adapter drift: adv_change_update target_path already routes temporal-required through withTargetPathStore and writes the target store; adv_change_show target_path already reads target Temporal documents. DONE_WHEN branch: source already correct → keep added tests and make them pass."
+            },
+            {
+              "what": "Added updateArtifacts: vi.fn() to the hoisted targetStore mock",
+              "why": "The mock targetStore.changes only exposed get/save/refresh/list; adv_change_update calls activeStore.changes.updateArtifacts, so a faithful AC2 test requires the fixture to expose that seam. Test-only change."
+            },
+            {
+              "what": "Used include:{design,artifactOnly:true} for the same-target readback assertion",
+              "why": "artifactOnly takes the lighter runShow branch while still exercising readArtifacts(targetStore) → _design, proving readback authority without the heavy full-show path."
+            },
+            {
+              "what": "Pinned drift-catchers: local-store-not-written, temporal-required-not-downgraded, local-get-called-once",
+              "why": "Assertions are structural so any future downgrade to snapshot-ok or local-store read/write fails the test — non-vacuous characterization."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed AC4 subset (trusted related_repos, untrusted mutation rejection, target queue none/stale/unavailable fail-closed, snapshot-ok non-authoritative authority marker) is already comprehensively covered in plugin/src/tools/target-project.test.ts — no duplication added. Existing AC1 single-kind show coverage at change.test.ts:431 left intact; added multi-kind AC1 pin plus two AC2 pins.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC1 + AC2 + AC4-subset target_path artifact behavior is now pinned by characterization tests in plugin/src/tools/change.test.ts (3 new tests; 134 total pass across change/change.read-artifact/target-project). Product code (change.ts adv_change_show/adv_change_update + change/artifacts.ts) was already correct — no source edits required, only test coverage + a targetStore mock fixture (updateArtifacts). Verified the fail-closed/untrusted/queue-unavailable/snapshot-ok semantics already live in target-project.test.ts (not duplicated).",
+            "suggested_next_action": "Mark AC1/AC2/AC4-subset pinned; proceed to sibling tasks (close/bulk-close tk-46c2bd98b7a6, recovery tk-f76e8fce46f9). No deploy needed — test-only change."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts -t \"target_path artifact readback/update authority\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.read-artifact.test.ts src/tools/target-project.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx eslint src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx prettier --check src/tools/change.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Task tk-253c52dc3ebc verified target-path artifact readback/update authority with characterization tests. Evidence: adv-engineer report complete; green adv_run_test tr_mrek0mt6_c5035302 for `bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.read-artifact.test.ts src/tools/target-project.test.ts` passed 134 tests; verify adv_run_test tr_mrek0qeq_7b62d9db for `pnpm run typecheck` passed. Product code unchanged; test-only change in plugin/src/tools/change.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts"
+      ],
+      "checkpointSha": "416ea0eec08ac92b7d2d0b7c81ad077bc1decdef",
+      "completedAt": "2026-07-10T06:28:14.793Z",
+      "completed_at": "2026-07-10T06:28:14.793Z",
+      "notes": "Contract-reference normalization after detector-coverage re-entry: preserved target-path characterization remains verified but is not represented by the reminted detector-only contract.",
+      "updatedAt": "2026-07-13T00:16:37.862Z"
+    },
+    {
+      "id": "tk-46c2bd98b7a6",
+      "title": "Pin target-path close/bulk-close workflow identity and cache refresh",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-10T06:06:08.608Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Completed target-path close/bulk-close characterization predates the detector-coverage re-entry; no current detector-contract item directly represents this preserved regression coverage."
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T06:28:37.978Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "optimizeAdapterSurfaces",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+          "task_id": "tk-46c2bd98b7a6",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-46c2bd98b7a6"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "npx vitest run src/tools/change.test.ts -t \"target\"",
+              "exit_code": 0,
+              "summary": "GREEN baseline runId tr_mrekc0fh_6048e477 — 20 pre-existing target_path tests pass (close/bulk-close/show) before adding new tests; confirms AC3/AC6/AC4-trusted-untrusted-dryrun pins already hold."
+            },
+            {
+              "command": "npx vitest run src/tools/change.test.ts -t \"queue is unavailable\"",
+              "exit_code": 0,
+              "summary": "GREEN runId tr_mreki7ql_70feb64e — 2 new AC4 queue-unavailable fail-closed tests pass against correct source."
+            },
+            {
+              "command": "npx vitest run src/tools/change.test.ts -t \"target\" (with injected source drift)",
+              "exit_code": 0,
+              "summary": "RED runId tr_mrekkbav_a356f756 — under injected source-identity + source-cache + envelope drift, 4 target tests FAILED (close identity/cache, bulk-close identity/cache, both new queue envelope), proving the AC3/AC6/AC4 pins are non-vacuous drift-catchers. Source reverted losslessly afterward (change.ts empty diff vs HEAD)."
+            },
+            {
+              "command": "npx vitest run src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN runId tr_mreklixy_23231b81 — full change.test.ts 105 passed (103 pre-existing + 2 new) after revert."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/target-project.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN runId tr_mrekm3nw_235c54cc — required VERIFICATION gate; 127 passed (change.test.ts 105 incl. 2 new, target-project.test.ts 22), authoritative exit 0."
+            },
+            {
+              "command": "npx tsc --noEmit && npx eslint src/tools/change.test.ts && npx prettier --check src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN runId tr_mrekmsvh_2c14f9f1 — typecheck clean, eslint clean, prettier 'All matched files use Prettier code style!' (QUALITY_OK)."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added two AC4 queue-unavailable fail-closed characterization tests (close + bulk-close)",
+              "why": "AC4 subset explicitly required 'target queue unavailable ... for close/bulk-close where applicable'. The existing close/bulk-close target tests mocked withTargetPathStore and covered trusted/untrusted/dry-run/recovery but not the queue-serviceability fail-closed envelope wired through the tools' catch blocks (change.ts:1869-1878 / 2161-2169). The new tests pin: parsed.error contains 'Target project (bulk )close unavailable' + 'not serviceable', and fireSignalAndRefresh / getChangeHandle / disk-cleanup are NOT called when the target queue is down."
+            },
+            {
+              "what": "Did not change product source (change.ts / _adapters.ts)",
+              "why": "DONE_WHEN GREEN branch: source already correct. adv_change_close/adv_change_bulk_close target_path already route through withTargetPathStore(stateRequirement:'temporal-required', mutation:!dryRun), compute workflow identity from projectContext?.projectId (target), and call fireSignalAndRefresh(handle, activeStore=targetStore, ...) — satisfying rq-cacheRefresh01 against the target store. Pre-existing AC3 (getChangeHandle 'target-project-id') and AC6 (signalCall[1]===targetStore) pins already catch source-identity/source-cache drift."
+            },
+            {
+              "what": "Proved pin non-vacuity with a reversible RED drift injection instead of shipping source changes",
+              "why": "Temporarily injected (a) projectId=source via getProjectId(store.paths.root), (b) fireSignalAndRefresh store=source, (c) catch-envelope string swap in change.ts → 4 target tests failed (close identity/cache, bulk-close identity/cache, both new queue envelope), runId tr_mrekkbav_a356f756. Reverted losslessly with `git checkout -- plugin/src/tools/change.ts` and verified change.ts is byte-identical to HEAD (empty diff). Net shipped change remains test-only."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed AC3+AC6 pins are symmetric across close AND bulk-close (getChangeHandle 'target-project-id' + signalCall[1]===targetStore in both target_path describes). target-project.test.ts already covers helper-level queue readiness (lines 288-427: temporal-required queue open, poller-unavailable fail-closed, no-Temporal-service fail-closed) and AC4 trusted/untrusted/snapshot-ok generically — not duplicated. The only close/bulk-close-tool-specific AC4 gap was the queue-unavailable envelope, which the two new tests close. snapshot-ok non-authoritative is N/A for close/bulk-close (mutations are temporal-required).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC3 (target project identity), AC6 (target-store cache refresh), and the AC4 subset (trusted / untrusted-rejection / dry-run-read-only / target-queue-unavailable) for adv_change_close + adv_change_bulk_close target_path are fully pinned and GREEN. Product source (plugin/src/tools/change.ts) was already correct — no source change shipped. Only durable change is test-only: +60 lines in plugin/src/tools/change.test.ts adding two AC4 queue-unavailable fail-closed tests (close + bulk-close). Pre-existing AC3/AC6 pins proven non-vacuous via a reversible RED drift injection (4 tests failed under source-identity/source-cache/envelope drift; reverted losslessly).",
+            "suggested_next_action": "Mark tk-46c2bd98b7a6 done (test-only, no deploy needed) and proceed to sibling recovery task tk-f76e8fce46f9, then verification task tk-7fe504de5ae6."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts -t \"target\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts -t \"queue is unavailable\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts -t \"target\" (with injected source drift)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/target-project.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx tsc --noEmit && npx eslint src/tools/change.test.ts && npx prettier --check src/tools/change.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Task tk-46c2bd98b7a6 verified close/bulk-close target_path identity/cache-refresh and queue-unavailable fail-closed behavior. Evidence: adv-engineer report complete; direct rerun after adv_run_test recording timeout: `bin/oc-test targeted -- src/tools/change.test.ts src/tools/target-project.test.ts` passed 127 tests; `pnpm run typecheck` passed. Net product code unchanged; test-only changes in plugin/src/tools/change.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts"
+      ],
+      "checkpointSha": "d2e33657bcf95895b9ba35d0f038e1ab33ee9484",
+      "completedAt": "2026-07-10T06:48:59.291Z",
+      "completed_at": "2026-07-10T06:48:59.291Z",
+      "notes": "Contract-reference normalization after detector-coverage re-entry: preserved close/bulk-close characterization remains verified but is not represented by the reminted detector-only contract.",
+      "updatedAt": "2026-07-13T00:16:43.015Z"
+    },
+    {
+      "id": "tk-f76e8fce46f9",
+      "title": "Characterize and narrow recovery cleanup without authority broadening",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-10T06:06:26.217Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Completed recovery characterization predates the detector-coverage re-entry; no current detector-contract item directly represents this preserved regression coverage."
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T06:49:21.473Z",
+      "verification": "Task tk-f76e8fce46f9 verified recovery cleanup without authority broadening. Red evidence tr_mrekxhn9_a44edbd3: temporary archive-status signal-error-text recovery drift caused the new characterization test to fail. Green evidence tr_mrekxv6u_f7327654: signal-error text/poisoned signal tests passed after reverting drift. Verification tr_mrekzm6l_a8cd109b: change.test.ts + recovery-probe.test.ts passed 115 tests. Typecheck tr_mrekzplx_64171507 passed. Lint/format tr_mrekzo7d_5a810cd0 passed after Prettier retry.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "8361d7a87fa9fb172323784a2252584345c5acb2",
+      "completedAt": "2026-07-10T06:55:35.229Z",
+      "completed_at": "2026-07-10T06:55:35.229Z",
+      "notes": "Contract-reference normalization after detector-coverage re-entry: preserved recovery characterization remains verified but is not represented by the reminted detector-only contract.",
+      "updatedAt": "2026-07-13T00:16:48.737Z"
+    },
+    {
+      "id": "tk-7fe504de5ae6",
+      "title": "Run compatibility and release-readiness verification for adapter surface",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-10T06:06:45.622Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-253c52dc3ebc"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-46c2bd98b7a6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f76e8fce46f9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Completed compatibility verification predates the detector-coverage re-entry; current detector-contract verification is owned by the later detector restoration task and hardening evidence."
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T06:56:10.553Z",
+      "notes": "Contract-reference normalization after detector-coverage re-entry: this prior full-suite verification remains evidence, while renewed detector-specific verification is owned by tk-00044c84bed7 and release hardening.",
+      "updatedAt": "2026-07-13T00:16:54.351Z",
+      "blockReason": "Blocked until re-entry task tk-00a59233abd5 corrects concurrent-signaling gate-order stress contract; then final verification resumes.",
+      "attempts": [],
+      "verification": "Final compatibility/release-readiness verification passed after re-entry fix. Check tr_mrezsbx3_94b14719 passed pnpm run check. Targeted regression tr_mrezrmaj_362e4a09 passed asset version tests plus concurrent-signaling integration test: 3 files / 69 tests. Full suite tr_mrezuu7d_c4887a5b passed bin/oc-test full. Remaining edits update stale asset spec version expectations: advance-workflow 1.26.0→1.27.0 and subagent-reports 1.6.0→1.7.0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts"
+      ],
+      "checkpointSha": "08889061d2575cc93e103df67ee0c0f1ffd97a0f",
+      "completedAt": "2026-07-10T13:52:45.791Z",
+      "completed_at": "2026-07-10T13:52:45.791Z"
+    },
+    {
+      "id": "tk-00a59233abd5",
+      "title": "Correct concurrent-signaling gate-order stress contract",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-10T13:43:52.132Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Completed concurrent gate-order characterization predates the detector-coverage re-entry; no current detector-contract item directly represents this preserved regression coverage."
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T13:44:57.286Z",
+      "verification": "Task tk-00a59233abd5 corrected concurrent-signaling gate-order stress contract. Red tr_mreznjmn_c3af0dd6 failed because burst still contained 120 signals instead of expected 111 independent signals. Green tr_mrezpmg3_11030e3b passed targeted concurrent-signaling test after sequencing dependent proposal/discovery/design gates with barriers and preserving total 150 signals. Typecheck tr_mrezq29b_22809f03 passed. Lint/format tr_mrezq163_164f574d passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/__tests__/concurrent-signaling.itest.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/__tests__/concurrent-signaling.itest.ts"
+      ],
+      "checkpointSha": "099f49b4ed7cda638e5cb13214897b84b0bdd11e",
+      "completedAt": "2026-07-10T13:48:19.270Z",
+      "completed_at": "2026-07-10T13:48:19.270Z",
+      "notes": "Contract-reference normalization after detector-coverage re-entry: preserved concurrent gate-order characterization remains verified but is not represented by the reminted detector-only contract.",
+      "updatedAt": "2026-07-13T00:16:59.562Z"
+    },
+    {
+      "id": "tk-00044c84bed7",
+      "title": "Restore required slop-scan detector coverage",
+      "type": "code",
+      "section": "Detector reproducibility",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-10T15:51:09.930Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "optimizeAdapterSurfaces",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+          "task_id": "tk-00044c84bed7",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-00044c84bed7"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/package.json",
+            "plugin/pnpm-lock.yaml",
+            "plugin/pnpm-workspace.yaml",
+            "plugin/knip.json",
+            "plugin/.jscpd.json",
+            "sgconfig.yml",
+            "slop-rules/no-debugger.yml",
+            "bin/lib/slop-scan/adapters/knip.ts",
+            "bin/lib/slop-scan/adapters/jscpd.ts",
+            "bin/lib/slop-scan/adapters/ast-grep.ts",
+            "bin/lib/slop-scan/scan.ts",
+            "bin/lib/slop-scan/adapters/knip.test.ts",
+            "bin/lib/slop-scan/adapters/jscpd.test.ts",
+            "bin/lib/slop-scan/adapters/ast-grep.test.ts",
+            "bin/lib/slop-scan/scan.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bun test bin/lib/slop-scan",
+              "exit_code": 1,
+              "summary": "RED (recorded, runId tr_mrf51poq_39bc23a0): 5 failing tests — knip 6 parser (0 findings), ast-grep/jscpd build*Command missing pnpm exec, scan packageRoot-cwd routing, and degraded-to-run recovery."
+            },
+            {
+              "command": "bun test bin/lib/slop-scan",
+              "exit_code": 0,
+              "summary": "GREEN (recorded, runId tr_mrf55c2r_1b83e48d): 42 pass / 0 fail across 12 files after implementation."
+            },
+            {
+              "command": "bun test bin/",
+              "exit_code": 0,
+              "summary": "Full bin surface: 207 pass / 0 fail across 30 files."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "plugin pre-push gate passed: schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, format:check (Prettier clean). pnpm install deps-status exits 0 with allowBuilds override."
+            },
+            {
+              "command": "bin/adv slop-scan plugin/src/tools/change.ts --json",
+              "exit_code": 0,
+              "summary": "Live scan: slop_scan_report.v1, languages=[typescript]; eslint/knip/ast-grep/jscpd all state=run (important=true), external-ci-semgrep externally_covered (important=false); failure NONE — no SLOP_SCAN_DEGRADED; 356 tool-backed findings."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Set plugin/pnpm-workspace.yaml allowBuilds '@ast-grep/cli' to false (explicit deny), not true.",
+              "why": "@ast-grep/cli ships a JS bin shim whose postinstall replaces it with the native binary. pnpm generated a `node`-invoking .bin shim (the original target had a node shebang), so after the postinstall swap `pnpm exec ast-grep` runs `node <ELF>` and fails with SyntaxError. Denying the build keeps the JS fallback shim, which spawns the platform optional binary at runtime; this is the only state where `pnpm install` exits 0 AND `pnpm exec ast-grep` runs. Cost: a benign stderr warning from the fallback, which the runner ignores for coverage state."
+            },
+            {
+              "what": "Rewrote normalizeKnipJson to read knip 6's `{issues:[{files,exports,dependencies}]}` schema instead of the legacy flat `{files,exports,dependencies}` string arrays.",
+              "why": "The installed knip is 6.25.0, which only emits the issues[] shape; the legacy parser silently produced zero findings, so knip coverage was restored in name only. The new parser maps issue.files->unused_file, issue.exports->unused_export (with line), issue.dependencies->unused_dependency, all as MAINT-003 review_required deletion candidates. Updated knip.test.ts to the knip 6 shape."
+            },
+            {
+              "what": "Set plugin/.jscpd.json `threshold` to 100 (report-only) instead of 0.",
+              "why": "With threshold 0 jscpd exits 1 (\"too many duplicates over threshold\") on any duplication, which reads as an error even though the report file is still written. threshold 100 makes jscpd exit 0 while still emitting every duplicate into jscpd-report.json; the adapter's report-file parse is the real gate (valid report -> run/findings, missing report -> failed/degraded), so signal is preserved and the exit code stays clean."
+            },
+            {
+              "what": "Placed sgconfig.yml at the repo root with `ruleDirs: [slop-rules]` and did not add a `--config` flag to the ast-grep command.",
+              "why": "Verified empirically that `ast-grep scan` discovers sgconfig.yml by walking up from the absolute target's ancestry, so with cwd=packageRoot (plugin) it still finds the root config and ruleDirs resolve relative to the root. Keeping the command as `pnpm exec ast-grep scan --json=compact <absTarget>` stays minimal and robust. Added one bounded, low-noise rule (no-debugger-statement) so `scan` has a valid rule set and never errors on missing rules."
+            },
+            {
+              "what": "Added an optional `runner?: ToolRunner` to SlopScanOptions, defaulting to createToolRunner().",
+              "why": "runSlopScan previously hardcoded createToolRunner(), making packageRoot-cwd routing and degraded-to-run recovery untestable without spawning real binaries. The seam lets scan.test.ts inject a fake runner that records per-detector cwd/command and flips a detector between unavailable and success, proving required coverage recovers to run purely from tool availability. It is a minimal, additive test seam and does not touch the change.ts hotspot."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Upstream wart to revisit: if pnpm ever regenerates the @ast-grep/cli .bin shim to exec the native binary directly (or @ast-grep/cli stops swapping the bin in postinstall), the allowBuilds '@ast-grep/cli': false override can be flipped to true to remove the benign per-invocation stderr fallback warning. No action required now."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed eslint and knip already used the restored pattern (pnpm exec + packageRoot cwd); ast-grep and jscpd now match. Python (radon/vulture) and Go (gocyclo/go-deadcode) detectors intentionally remain on repoRoot cwd because they are system-installed binaries, not plugin-local node_modules tools, so there is no same-pattern defect to fix there. Updated the existing knip.test.ts to the knip 6 schema, and verified the existing polyglot.test.ts \"no network installers\" assertion still passes under `pnpm exec` (no dlx/npx/go install/pip install). change.ts (the scanned target) was not modified, per the no-refactor constraint.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Restored required slop-scan detector coverage for knip, jscpd, and ast-grep. Added the three as plugin devDeps (plus lockfile) with configs plugin/knip.json, plugin/.jscpd.json, root sgconfig.yml and a bounded TypeScript rule dir slop-rules/. Routed jscpd and ast-grep through `pnpm exec` at the package-root cwd (knip/eslint already followed this pattern); repo-root cwd cannot resolve plugin-local binaries. Updated the knip parser to the installed knip 6 `issues[]` schema (the legacy flat schema silently produced zero findings). Added a small runner-injection seam on SlopScanOptions to make cwd routing and degraded-to-run recovery testable. Explicitly denied @ast-grep/cli's build (allowBuilds false) so `pnpm install` exits 0 while `pnpm exec ast-grep` still resolves the platform binary. Live `bin/adv slop-scan plugin/src/tools/change.ts --json` reports eslint/knip/ast-grep/jscpd all state=run and no SLOP_SCAN_DEGRADED (356 tool-backed findings; nothing suppressed).",
+            "suggested_next_action": "Run `pnpm install` in a clean environment to confirm lockfile + allowBuilds reproduce a working ast-grep with exit 0, then review the diff and proceed to the next task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/lib/slop-scan"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/lib/slop-scan"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun test bin/"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/adv slop-scan plugin/src/tools/change.ts --json"
+            }
+          ]
+        }
+      ],
+      "verification": "Engineer report complete. RED tr_mrf51poq recorded failing detector suite; GREEN tr_mrf55c2r passed 42 slop-scan tests. bun test bin passed 207 tests. pnpm run check passed. Live bin/adv slop-scan plugin/src/tools/change.ts --json ran eslint/knip/ast-grep/jscpd with no SLOP_SCAN_DEGRADED.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/lib/slop-scan/adapters/ast-grep.test.ts",
+        "bin/lib/slop-scan/adapters/ast-grep.ts",
+        "bin/lib/slop-scan/adapters/jscpd.test.ts",
+        "bin/lib/slop-scan/adapters/jscpd.ts",
+        "bin/lib/slop-scan/adapters/knip.test.ts",
+        "bin/lib/slop-scan/adapters/knip.ts",
+        "bin/lib/slop-scan/scan.test.ts",
+        "bin/lib/slop-scan/scan.ts",
+        "plugin/.jscpd.json",
+        "plugin/knip.json",
+        "plugin/package.json",
+        "plugin/pnpm-lock.yaml",
+        "plugin/pnpm-workspace.yaml",
+        "sgconfig.yml",
+        "slop-rules/no-debugger.yml"
+      ],
+      "touched_files": [
+        "bin/lib/slop-scan/adapters/ast-grep.test.ts",
+        "bin/lib/slop-scan/adapters/ast-grep.ts",
+        "bin/lib/slop-scan/adapters/jscpd.test.ts",
+        "bin/lib/slop-scan/adapters/jscpd.ts",
+        "bin/lib/slop-scan/adapters/knip.test.ts",
+        "bin/lib/slop-scan/adapters/knip.ts",
+        "bin/lib/slop-scan/scan.test.ts",
+        "bin/lib/slop-scan/scan.ts",
+        "plugin/.jscpd.json",
+        "plugin/knip.json",
+        "plugin/package.json",
+        "plugin/pnpm-lock.yaml",
+        "plugin/pnpm-workspace.yaml",
+        "sgconfig.yml",
+        "slop-rules/no-debugger.yml"
+      ],
+      "checkpointSha": "2f2fc76810f45ff18f596e9b1ac320b7b67c45d2",
+      "completedAt": "2026-07-10T16:32:23.784Z",
+      "completed_at": "2026-07-10T16:32:23.784Z",
+      "notes": "Contract references added for the detector-coverage re-entry contract.",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "updatedAt": "2026-07-13T00:17:09.384Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Adapter-surface opportunity scout: highest-coupling seams and leverage points across _adapters.ts, change.ts, task.ts, gate.ts, tool-registry.ts",
+      "sources": [
+        {
+          "label": "plugin/src/tools/recovery-probe.ts (in-repo)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/recovery-probe.ts:83-92",
+          "summary": "classifyCompletedOrPoisonedRecovery already exists and its docstring states it 'consolidates the duplicated detection expression' for completed-OR-poisoned recovery."
+        },
+        {
+          "label": "In-repo adoption evidence (gate.ts, contract.ts, design-concern.ts)",
+          "locator": "gate.ts:1249,1401 / contract.ts:377,560 / design-concern.ts:163",
+          "summary": "Five sibling call sites across three files already use classifyCompletedOrPoisonedRecovery with static imports and top-of-block handle construction; recovery-probe.test.ts pins its behavior."
+        },
+        {
+          "label": "change.ts duplicated recovery blocks (in-repo)",
+          "locator": "change.ts:1567-1592, 3037-3061, 4134",
+          "summary": "change.ts hand-rolls the same probe at 3 sites via dynamic import('../temporal/recovery-classification'), import('./recovery-probe'), import('../temporal/service'), import('./_adapters').getChangeHandle, import('../utils/project-id') — NOT using the existing combinator."
+        },
+        {
+          "label": "target_path routing wrappers (in-repo)",
+          "locator": "change.ts:897-914 + withTargetPathStore/withOptionalTargetPathStore call sites",
+          "summary": "Dual-path target routing (withTargetPathStore for mutation, withOptionalTargetPathStore for optional) repeats across change/task/gate/wisdom/status with a per-tool runX(activeStore, projectContext) closure."
+        },
+        {
+          "label": "tool-arg-preflight.ts FIELD_POLICIES (in-repo)",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/tool-arg-preflight.ts:53-85",
+          "summary": "Preflight is already a pure/synchronous declarative FIELD_POLICIES table; tool-registry.ts:76-98 has a test-only rq-zodParseValidation01 guard. Schema-boundary validation (issue #65) is already substantially declarative."
+        },
+        {
+          "label": "_adapters.ts signal/query surface (in-repo)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/_adapters.ts:1-349",
+          "summary": "fireSignal/querySignal/fireSignalAndRefresh/isChangeReachable are already cohesive, overload-typed, and dependency-injected (ReachabilityDeps). Low coupling; not a refactor target."
+        }
+      ],
+      "architecture_assessment": "The adapter surface is unevenly refactored. _adapters.ts is already clean (injected deps, overload-typed, single-responsibility). tool-arg-preflight.ts is already a declarative pure policy table, so issue #65 has only a narrow residual tie-in. The real hotspot is change.ts (~4334 lines): it duplicates the poisoned/completed-workflow recovery probe at 3 sites using inline dynamic imports, even though a tested combinator classifyCompletedOrPoisonedRecovery already exists and is adopted by gate.ts, contract.ts, and design-concern.ts. This is a partially-completed prior extraction — the highest-value, lowest-risk convergence available. Secondary: the withTargetPathStore/withOptionalTargetPathStore dual-path closure pattern repeats at every mutation tool but is spec-anchored (rq-cacheRefresh01, rq-crossProjectTaskMutation01) and already thin; consolidating it risks obscuring the exact target-store routing the specs require, so it is design-around rather than auto-adopt. The change.ts dynamic imports around recovery are intentional workflow-bundle-boundary avoidance (recovery-probe.ts docstring explains recovery-classification is transitively in the workflow bundle), so extraction must preserve tool-layer placement and not hoist probe logic into temporal/.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No spec/security/release blockers. All surfaced candidates are behavior-preserving and have in-repo tested precedents. #65/#192 open-state taken from briefing durable_facts (live gh verification skipped: adv_run_test requires a real task ID and this draft change has none yet)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Converging change.ts to classifyCompletedOrPoisonedRecovery reduces duplication and locks recovery semantics to one tested path, but the combinator does NOT cover handle construction (getService/getProjectId/getChangeHandle); a thin change.ts-local helper to build the handle is still needed, so the extraction is 'wire to combinator + one small handle builder', not a single call swap.",
+          "Consolidating the target_path dual-wrapper would shrink change/task/gate but risks obscuring the spec-mandated target-store cache-refresh routing; keeping it explicit is safer even if more verbose.",
+          "change.ts uses dynamic imports deliberately to stay out of the Temporal workflow bundle; a naive static-import refactor could reintroduce the workflow-bundle-boundary regression class the boundary tests guard against."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Full per-concern split of change.ts into validation/routing/recovery/formatter modules",
+            "disposition": "deferred",
+            "rationale": "Larger blast radius; proposal favors evidence-driven narrow extraction. Start with the proven recovery convergence, then reassess."
+          },
+          {
+            "option": "Adopt existing classifyCompletedOrPoisonedRecovery in change.ts's 3 recovery sites",
+            "disposition": "preferred",
+            "rationale": "Already tested and adopted by 3 sibling files; strictly behavior-preserving; removes the largest duplication in the highest-coupling file."
+          },
+          {
+            "option": "Consolidate withTargetPathStore/withOptionalTargetPathStore into one routing helper",
+            "disposition": "rejected",
+            "rationale": "Spec-anchored (rq-cacheRefresh01, rq-crossProjectTaskMutation01); explicitness is a feature. Surface to user/design only if maintainers want it."
+          },
+          {
+            "option": "Expand issue #65 declarative-Zod work into this change",
+            "disposition": "deferred",
+            "rationale": "Preflight is already declarative; residual #65 scope is narrow and only in-scope where directly tied to adapter arg safety per proposal. Do not broaden."
+          }
+        ],
+        "recommendation": "Design around a single primary extraction: converge change.ts's 3 recovery blocks onto the existing classifyCompletedOrPoisonedRecovery combinator plus one small tool-layer handle-builder helper (getService+getProjectId+getChangeHandle), preserving dynamic-import bundle-boundary placement and pinning behavior with a before/after test. Treat target_path wrapper consolidation and #65 expansion as surface-to-user/deferred, not auto-adopt."
+      },
+      "recommendation": "Primary auto-adopt: converge change.ts recovery duplication (3 sites) onto the already-tested classifyCompletedOrPoisonedRecovery combinator, matching the gate.ts/contract.ts/design-concern.ts pattern; add a small change.ts-local handle-builder to cover the getService/getProjectId/getChangeHandle plumbing the combinator does not. This is the highest-leverage, lowest-risk, behavior-preserving win in the highest-coupling file. Keep _adapters.ts and tool-arg-preflight.ts untouched (already clean). Surface target_path wrapper consolidation to the user before acting.",
+      "follow_ups": [
+        "Design should decide whether the change.ts handle-builder is change.ts-local or promoted into _adapters.ts (leans local to avoid widening the adapter surface).",
+        "Confirm workflow-bundle-boundary tests still pass after any static/dynamic import change in change.ts recovery paths.",
+        "Live-verify issue #65/#192 open state with gh once a task exists (durable_facts asserts open; not independently confirmed this session)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout: draft design for optimizeAdapterSurfaces (target-path routing/readback + recovery convergence in change.ts)",
+      "sources": [
+        {
+          "label": "change.ts poisoned_history recovery block #1 (adv_change_update executiveSummary)",
+          "locator": "plugin/src/tools/change.ts:1560-1592",
+          "summary": "Hand-rolls completed-OR-poisoned probe: isWorkflowCompletedError(error) then, if not completed, dynamic-imports service+getProjectId(activeStore.paths.root)+getChangeHandle+workflowHasPoisonedRecoveryEvidence. This is exactly the expression classifyCompletedOrPoisonedRecovery consolidates."
+        },
+        {
+          "label": "change.ts poisoned_history recovery block #2 (archive final-status disk fallback)",
+          "locator": "plugin/src/tools/change.ts:3032-3058",
+          "summary": "Second hand-rolled completed-OR-poisoned probe with the same 5-import plumbing (recovery-classification, recovery-probe, service, _adapters, project-id) building the handle from store.paths.root before workflowHasPoisonedRecoveryEvidence."
+        },
+        {
+          "label": "classifyCompletedOrPoisonedRecovery combinator + adoption sites",
+          "locator": "plugin/src/tools/recovery-probe.ts:83-92; gate.ts:1249,1401; contract.ts:377,560; design-concern.ts:163",
+          "summary": "Tested combinator returns {completedWorkflow, recover}; adopted by 3 sibling files. Docstring (lines 77-81) is explicit: it consolidates ONLY the detection expression; callers keep their own gating+action; completed-only sites must NOT adopt it (would broaden recovery); combinator does NOT build the handle."
+        },
+        {
+          "label": "Already-extracted change/recovery.ts close seam (completed-only, correct)",
+          "locator": "plugin/src/tools/change/recovery.ts:359-390",
+          "summary": "recoverCompletedWorkflowClose already exists as an extracted change-tool-local seam and is completed-only (isWorkflowCompletedError direct, no poisoned probe). Per combinator docstring this is a completed-only site that must stay direct. The change-close recovery path the design worries about is already refactored and correct."
+        },
+        {
+          "label": "Target-path artifact show + bulk-close routing (current, correct)",
+          "locator": "plugin/src/tools/change.ts:897-914 (show), 2147-2171 (bulk_close); design-concern.ts:81-88 (getChangeHandleForChangeId helper precedent)",
+          "summary": "adv_change_show already routes artifact reads via withTargetPathStore(temporal-required, mutation:false) and non-artifact via withOptionalTargetPathStore(snapshot-ok). Bulk-close routes temporal-required, mutation:!dryRun and runs its closure inside targetStore, so handle-building resolves target project ID from targetStore.paths.root. design-concern.ts:81-88 getChangeHandleForChangeId(store,changeId) is the exact resolveWorkflowProjectIdForChangeTool helper the design proposes (productProjectId ?? getProjectId(store.paths.root))."
+        }
+      ],
+      "architecture_assessment": "The draft design is directionally correct and safety-conscious, but its inline line references are stale and it slightly under-credits current state. Verified against source: (1) The change-close recovery path the design treats as a candidate is ALREADY extracted to change/recovery.ts (recoverCompletedWorkflowClose) and is correctly completed-only, so KD2/KD4 for close is already satisfied and should be recorded as closure evidence, not re-refactored. (2) The genuine, highest-leverage convergence target is the TWO remaining poisoned_history sites in change.ts (1560-1592 and 3032-3058) that hand-roll the completed-OR-poisoned probe with 5 dynamic imports each; these match the combinator's contract exactly and have 3 tested sibling adoptions to mirror. This is behavior-preserving and lowest-risk. (3) Target-path routing (KD1/KD3, AC1/AC3) is already structurally correct in current source: artifact show uses temporal-required/mutation:false; bulk-close routes temporal-required and computes handles inside the target store; design-concern.ts:81-88 is a ready-made helper precedent. So AC1/AC3 collapse to PIN-with-tests (KD1 test-first is the right call), not fix. The design's KD3 'target identity is structural' is validated by construction: handles are built inside the target-store closure. Risk in the design is minimal; main watch item is preserving dynamic-import placement (workflow-bundle-boundary avoidance, recovery-probe.ts:4-5 docstring) when converging the 2 recovery sites, and NOT adopting the combinator at the completed-only close site.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No spec/security/release blockers. All candidates are behavior-preserving with in-repo tested precedents. Design stays within agreement scope (clarity-first, #192 verify/fix, additive cleanup). One correction: change-close recovery is already extracted and completed-only; design should pin it, not re-refactor. #192/#65 open-state not independently gh-verified this session (no task ID on draft change); taken from briefing durable_facts."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Converging the 2 change.ts poisoned_history sites onto classifyCompletedOrPoisonedRecovery removes ~10 dynamic imports of duplication and locks recovery detection to one tested path, but the combinator does not build the handle; a small change-tool-local handle builder (mirroring design-concern.ts:81-88 getChangeHandleForChangeId) is still required, so it is 'wire combinator + one local helper', not a one-line swap.",
+          "KD1 test-first on target-path show/update/close/bulk-close is correct even though current source appears already correct: without pinning tests the #192 fix cannot be proven closed and future churn could regress target identity silently. Cost is test authorship for a mostly-green surface.",
+          "Explicit temporal-required vs snapshot-ok call sites (KD2/DDC3) are more verbose than one generic wrapper but preserve the spec-anchored target-store authority/cache-refresh routing; verbosity is a feature here.",
+          "Adopting the combinator at the completed-only close site (change/recovery.ts recoverCompletedWorkflowClose) would BROADEN recovery and violate the combinator's own contract; the design's KD4 'completed-only sites remain direct' must be enforced as a hard guard, not guidance."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Converge change.ts's 2 remaining poisoned_history recovery blocks onto classifyCompletedOrPoisonedRecovery + one local handle-builder helper",
+            "disposition": "preferred",
+            "rationale": "Highest-leverage, lowest-risk, behavior-preserving win; matches gate.ts/contract.ts/design-concern.ts precedent; preserves dynamic-import bundle-boundary placement; pinnable with before/after tests (DDC5)."
+          },
+          {
+            "option": "Re-refactor the change-close recovery path as the design's KD2/KD4 example",
+            "disposition": "rejected",
+            "rationale": "Already extracted to change/recovery.ts recoverCompletedWorkflowClose and correctly completed-only. Record as closure evidence; touching it risks broadening recovery and churn for no gain."
+          },
+          {
+            "option": "Treat AC1/AC3 target-path routing as a fix (assume #192 still open in source)",
+            "disposition": "rejected",
+            "rationale": "Current source already routes artifact show temporal-required/mutation:false and builds close/bulk-close handles inside the target store. Correct move is KD1 PIN-with-tests + record closure, per design's own Risk mitigation."
+          },
+          {
+            "option": "Extract a shared resolveWorkflowProjectIdForChangeTool helper into change.ts (or _adapters.ts) to replace inline getProjectId+getChangeHandle at the 2 recovery sites",
+            "disposition": "preferred",
+            "rationale": "design-concern.ts:81-88 is a proven tested precedent for exactly this (productProjectId ?? getProjectId(root)). Keep it change-tool-local to avoid widening the _adapters surface (agreement avoidance: treat _adapters as stable)."
+          },
+          {
+            "option": "Consolidate withTargetPathStore/withOptionalTargetPathStore into one routing wrapper",
+            "disposition": "rejected",
+            "rationale": "Spec-anchored (rq-cacheRefresh01, rq-crossProjectTaskMutation01); explicit temporal-required vs snapshot-ok is safety-significant. Out of scope per agreement avoidance #6."
+          }
+        ],
+        "recommendation": "Adopt the design with three refinements: (a) scope the recovery convergence to the TWO remaining change.ts poisoned_history sites (1560-1592, 3032-3058) plus one change-tool-local handle-builder mirroring design-concern.ts:81-88 — NOT the already-extracted completed-only close path; (b) reclassify AC1/AC3 target-path work as KD1 PIN-with-tests + closure evidence since current source is already correct; (c) enforce 'completed-only sites stay direct' as a hard guard per the combinator contract."
+      },
+      "recommendation": "Design is APPROVE-with-refinements. Primary leverage: converge the 2 remaining change.ts poisoned_history recovery blocks (1560-1592, 3032-3058) onto the tested classifyCompletedOrPoisonedRecovery combinator + a small change-tool-local handle-builder (mirror design-concern.ts:81-88), preserving dynamic-import workflow-bundle-boundary placement. Secondary: KD1 test-first PINs target-path show/update/close/bulk-close (AC1-AC4) which current source already satisfies, so record #192 as closed-in-source with regression anchors rather than fixing. Do NOT re-refactor the already-extracted completed-only close path (change/recovery.ts). Keep withTargetPathStore/withOptionalTargetPathStore explicit; do not consolidate. Update stale line references in design before planning.",
+      "follow_ups": [
+        "Design/planning should correct stale change.ts line references (recovery sites are 1560-1592 and 3032-3058; close recovery is already at change/recovery.ts:359-390).",
+        "Add a design note that recoverCompletedWorkflowClose is already extracted+completed-only so AC5 close-path work is closure evidence, not new refactor.",
+        "Confirm workflow-bundle-boundary tests (workflow-bundle-boundary.test.ts) stay green after converging the 2 recovery sites; keep dynamic imports.",
+        "Live-verify #192/#65 open state with gh once a task exists (durable_facts asserts open; source suggests #192 target-path routing already fixed — reconcile in planning)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for optimizeAdapterSurfaces adapter-surface change (target_path routing/readback, recovery convergence)",
+      "sources": [
+        {
+          "label": "change.ts target close/bulk-close project ID resolution",
+          "locator": "plugin/src/tools/change.ts:1777-1786, 2025-2043",
+          "summary": "Both close and bulk-close resolve projectId = projectContext?.projectId ?? getProjectId(activeStore.paths.root), then getChangeHandle(bundle.client, projectId, changeId). Inside withTargetPathStore temporal-required closure, projectContext.projectId is the TARGET project id. AC3 substantiated."
+        },
+        {
+          "label": "change.ts target-path show artifact routing",
+          "locator": "plugin/src/tools/change.ts:897-908",
+          "summary": "target_path && requestedKinds.length>0 routes readArtifacts through withTargetPathStore stateRequirement=temporal-required, mutation=false. Non-artifact reads fall to withOptionalTargetPathStore. AC1 substantiated."
+        },
+        {
+          "label": "withTargetPathStore state mode dispatch",
+          "locator": "plugin/src/tools/target-project.ts:272-339",
+          "summary": "temporal-required throws TargetProjectError when no Temporal bundle (fail-closed, 315-320) and calls ensureTargetMutationQueueReady (322-326). snapshot-ok opens legacy disk store, stateMode=disk-snapshot, no worker mutation (284-296). Distinct code paths; AC4 fail-closed + snapshot-ok separation structurally enforced."
+        },
+        {
+          "label": "snapshot-ok non-authoritative marking",
+          "locator": "plugin/src/tools/target-project.ts:344-361; test 481-509",
+          "summary": "formatTargetProjectContext emits authority=disk_snapshot_non_authoritative for disk-snapshot mode; target-project.test.ts:481-509 pins non-authoritative + untrusted warnings. AC4 snapshot-ok non-authoritative read behavior already tested."
+        },
+        {
+          "label": "classifyCompletedOrPoisonedRecovery combinator semantics",
+          "locator": "plugin/src/tools/recovery-probe.ts:83-92 and doc 66-82",
+          "summary": "recover = completedWorkflow || workflowHasPoisonedRecoveryEvidence(handle, { signalError: error }). ALWAYS passes signalError. Doc explicitly warns completed-only sites must NOT adopt this combinator (broadens recovery)."
+        },
+        {
+          "label": "recoverCompletedWorkflowClose is completed-only",
+          "locator": "plugin/src/tools/change/recovery.ts:359-402",
+          "summary": "Gates on isWorkflowCompletedError(signalError) at 381; returns non-recovered otherwise; never probes poisoned evidence. Design KD4/DDC6 (leave unchanged) is CORRECT."
+        },
+        {
+          "label": "signalError param divergence between the two convergence-target sites",
+          "locator": "plugin/src/tools/change.ts:1584-1586 (update-artifacts, passes {signalError}) vs 3055-3056 (archive-status, NO signalError)",
+          "summary": "Update-artifacts site passes {signalError:error} to the probe (combinator-compatible, no behavior change). Archive-status site calls workflowHasPoisonedRecoveryEvidence(handle) WITHOUT signalError — recovers only on describe()-confirmed poisoned evidence, deliberately NOT signal-error text. The combinator adds signalError, so converging the archive-status site would BROADEN its poisoned recovery to trust error-message text (isPoisonedHistoryError TMPRL1100/Nondeterminism substrings) without describe() confirmation."
+        },
+        {
+          "label": "isPoisonedHistoryError text classifier",
+          "locator": "plugin/src/temporal/recovery-classification.ts:4-5,26-28,57-62",
+          "summary": "workflowHasPoisonedRecoveryEvidence with signalError returns true when isPoisonedHistoryError(error) matches error TEXT before any describe() call. This is the broadening vector for the archive-status site."
+        },
+        {
+          "label": "combinator signalError behavior is pinned; archive-status no-signalError behavior is NOT pinned",
+          "locator": "plugin/src/tools/recovery-probe.test.ts:83-99; no counterpart test for archive-status site",
+          "summary": "recovery-probe.test.ts pins combinator true-on-'TMPRL1100 nondeterminism'-text. No test pins archive-status site's stricter no-signalError contract, so a naive swap would broaden recovery silently and still pass CI."
+        },
+        {
+          "label": "existing target-path readback + project-id tests",
+          "locator": "plugin/src/tools/change.test.ts:459 (_design target-design-from-documents), 2802-2852 (bulk-close uses 'target-project-id' handles + target store signal)",
+          "summary": "AC1 target Temporal document readback and AC3 target project id already have strong existing test backing; design's pin-with-tests-first (KD1) is well-founded."
+        }
+      ],
+      "architecture_assessment": "The clarity-first, test-first design is accurate against current source and largely satisfies the agreement. Target-path routing for show(artifacts)/update/close/bulk-close already routes through withTargetPathStore temporal-required and resolves the TARGET project id from projectContext?.projectId inside the closure; #192-style identity/readback drift appears already fixed, so pin-with-regression-tests (KD1) is the correct strategy and existing tests (change.test.ts:459,2802) partially cover AC1/AC3. temporal-required fail-closed and snapshot-ok non-authoritative are distinct, spec-tagged code paths (rq-targetReadAuthority01.x) — AC4 is structurally enforced and partly tested. Cache-refresh discipline (AC6) is satisfied: close/bulk-close call fireSignalAndRefresh(handle, activeStore=targetStore, ...). KD4/DDC6 correctly leave the intentionally completed-only recoverCompletedWorkflowClose untouched, matching the combinator's own doc warning. ONE material gap: the design's recovery convergence (step 3 / scout auto-adopt #1) treats the two remaining change.ts completed-or-poisoned sites as uniformly combinator-safe. They are not. The update-artifacts site (1584) already passes {signalError} and is combinator-equivalent, but the archive-status site (3055) deliberately omits signalError and recovers only on describe()-confirmed poisoned evidence. classifyCompletedOrPoisonedRecovery always injects signalError, so converging the archive-status site would broaden its poisoned recovery to trust signal-error TEXT — a recovery-broadening behavior change that AC5/DDC5/DDC6 exist to prevent, and which would pass silently because no test pins the current stricter behavior.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Design is sound and agreement-aligned except for one recovery-broadening risk at the archive-status convergence site. Not a hard CONFLICT: fixable via a design amendment plus a characterization test. Must be resolved before planning locks the recovery-convergence tasks."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Converging both change.ts completed-or-poisoned sites onto one combinator reduces duplication and improves clarity, but the archive-status site's stricter no-signalError probe contract is not preserved by the combinator's always-on signalError argument.",
+          "Pin-with-tests-first (KD1) avoids churn on already-correct target routing but risks under-testing if regression tests only assert happy-path routing and not the exact target-vs-source project id and non-authoritative markers.",
+          "Keeping temporal-required/snapshot-ok explicit (KD2) costs some line count but preserves auditability of safety modes; correct call given fail-closed semantics."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Converge BOTH change.ts recovery sites onto classifyCompletedOrPoisonedRecovery uniformly (as design step 3 currently reads)",
+            "disposition": "rejected",
+            "rationale": "Broadens archive-status recovery to trust signal-error text without describe() confirmation; violates AC5/DDC6 recovery-preservation. No current test guards against this, so the regression would ship silently."
+          },
+          {
+            "option": "Converge ONLY the update-artifacts site (already passes signalError) and leave the archive-status site's no-signalError probe direct, OR add a describe-only combinator overload",
+            "disposition": "preferred",
+            "rationale": "Update-artifacts is behavior-equivalent under the combinator. Archive-status must either stay direct or adopt a describe-only variant (no signalError). Add a characterization test pinning archive-status recovery does NOT trigger on signal-error text alone before any refactor."
+          },
+          {
+            "option": "Broad target-wrapper consolidation across change/task/gate/wisdom",
+            "disposition": "rejected",
+            "rationale": "Out of scope per agreement OOS#6 and KD2; hides temporal-required/snapshot-ok safety modes."
+          }
+        ],
+        "recommendation": "Proceed to planning with an amended recovery-convergence scope: (1) treat the two change.ts completed-or-poisoned sites as NON-uniform; (2) require a characterization/RED test pinning the archive-status site does not recover on signal-error text alone (describe()-confirmed poisoned or completed only) BEFORE any combinator swap; (3) converge only the update-artifacts site onto classifyCompletedOrPoisonedRecovery, or introduce a describe-only (no-signalError) combinator variant for the archive-status site; (4) keep recoverCompletedWorkflowClose untouched (KD4 correct)."
+      },
+      "recommendation": "Verdict CAUTION. Amend Design step 3 / Design Leverage Scout auto-adopt #1 to stop treating the two change.ts completed-or-poisoned recovery sites as uniformly combinator-safe. The archive-status site (change.ts:3055) uses a stricter no-signalError poisoned probe than classifyCompletedOrPoisonedRecovery (which always passes signalError and can recover on error-text alone). Add DDC7: 'Archive-status poisoned recovery must remain describe()-confirmed (no signal-error-text-only recovery); a characterization test must pin this before any combinator adoption.' All other design decisions (target routing pin-with-tests, temporal-required/snapshot-ok explicitness, KD4 completed-only exclusion, cache-refresh with target store) are verified accurate and PASS.",
+      "follow_ups": [
+        "Planning: add a characterization (RED) test asserting adv_change_archive poisoned_history recovery does NOT flip status to archived on a signal error whose TEXT contains poisoned markers unless describe() confirms poisoned OR the error is a completed-workflow error.",
+        "Planning: split recovery-convergence into (a) update-artifacts site -> classifyCompletedOrPoisonedRecovery (behavior-equivalent) and (b) archive-status site -> keep direct or add describe-only combinator variant.",
+        "Optional: add explicit AC1/AC3 assertion strengthening so target vs source project id and disk_snapshot_non_authoritative markers are asserted, not just routing shape."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+      "task_id": "tk-253c52dc3ebc",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-253c52dc3ebc"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "npx vitest run src/tools/change.test.ts -t \"target_path artifact readback/update authority\"",
+          "exit_code": 0,
+          "summary": "GREEN runId tr_mrejt9s4_6356efb9 — 3 new AC1/AC2 tests pass (multi-kind target readback; update routes temporal-required + writes target not local; update→show same-target readback)."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.read-artifact.test.ts src/tools/target-project.test.ts",
+          "exit_code": 0,
+          "summary": "134 passed across 3 files (change 103 incl. 3 new, read-artifact 9, target-project 22) — regression + AC4 routing coverage green."
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit clean."
+        },
+        {
+          "command": "npx eslint src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "eslint clean (exit 0)."
+        },
+        {
+          "command": "npx prettier --check src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "Prettier check clean."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added characterization tests instead of changing product code",
+          "why": "RED confirmed the gap was missing AC2 test coverage, not adapter drift: adv_change_update target_path already routes temporal-required through withTargetPathStore and writes the target store; adv_change_show target_path already reads target Temporal documents. DONE_WHEN branch: source already correct → keep added tests and make them pass."
+        },
+        {
+          "what": "Added updateArtifacts: vi.fn() to the hoisted targetStore mock",
+          "why": "The mock targetStore.changes only exposed get/save/refresh/list; adv_change_update calls activeStore.changes.updateArtifacts, so a faithful AC2 test requires the fixture to expose that seam. Test-only change."
+        },
+        {
+          "what": "Used include:{design,artifactOnly:true} for the same-target readback assertion",
+          "why": "artifactOnly takes the lighter runShow branch while still exercising readArtifacts(targetStore) → _design, proving readback authority without the heavy full-show path."
+        },
+        {
+          "what": "Pinned drift-catchers: local-store-not-written, temporal-required-not-downgraded, local-get-called-once",
+          "why": "Assertions are structural so any future downgrade to snapshot-ok or local-store read/write fails the test — non-vacuous characterization."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed AC4 subset (trusted related_repos, untrusted mutation rejection, target queue none/stale/unavailable fail-closed, snapshot-ok non-authoritative authority marker) is already comprehensively covered in plugin/src/tools/target-project.test.ts — no duplication added. Existing AC1 single-kind show coverage at change.test.ts:431 left intact; added multi-kind AC1 pin plus two AC2 pins.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC1 + AC2 + AC4-subset target_path artifact behavior is now pinned by characterization tests in plugin/src/tools/change.test.ts (3 new tests; 134 total pass across change/change.read-artifact/target-project). Product code (change.ts adv_change_show/adv_change_update + change/artifacts.ts) was already correct — no source edits required, only test coverage + a targetStore mock fixture (updateArtifacts). Verified the fail-closed/untrusted/queue-unavailable/snapshot-ok semantics already live in target-project.test.ts (not duplicated).",
+        "suggested_next_action": "Mark AC1/AC2/AC4-subset pinned; proceed to sibling tasks (close/bulk-close tk-46c2bd98b7a6, recovery tk-f76e8fce46f9). No deploy needed — test-only change."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts -t \"target_path artifact readback/update authority\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.read-artifact.test.ts src/tools/target-project.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx eslint src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx prettier --check src/tools/change.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+      "task_id": "tk-46c2bd98b7a6",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-46c2bd98b7a6"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "npx vitest run src/tools/change.test.ts -t \"target\"",
+          "exit_code": 0,
+          "summary": "GREEN baseline runId tr_mrekc0fh_6048e477 — 20 pre-existing target_path tests pass (close/bulk-close/show) before adding new tests; confirms AC3/AC6/AC4-trusted-untrusted-dryrun pins already hold."
+        },
+        {
+          "command": "npx vitest run src/tools/change.test.ts -t \"queue is unavailable\"",
+          "exit_code": 0,
+          "summary": "GREEN runId tr_mreki7ql_70feb64e — 2 new AC4 queue-unavailable fail-closed tests pass against correct source."
+        },
+        {
+          "command": "npx vitest run src/tools/change.test.ts -t \"target\" (with injected source drift)",
+          "exit_code": 0,
+          "summary": "RED runId tr_mrekkbav_a356f756 — under injected source-identity + source-cache + envelope drift, 4 target tests FAILED (close identity/cache, bulk-close identity/cache, both new queue envelope), proving the AC3/AC6/AC4 pins are non-vacuous drift-catchers. Source reverted losslessly afterward (change.ts empty diff vs HEAD)."
+        },
+        {
+          "command": "npx vitest run src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN runId tr_mreklixy_23231b81 — full change.test.ts 105 passed (103 pre-existing + 2 new) after revert."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/target-project.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN runId tr_mrekm3nw_235c54cc — required VERIFICATION gate; 127 passed (change.test.ts 105 incl. 2 new, target-project.test.ts 22), authoritative exit 0."
+        },
+        {
+          "command": "npx tsc --noEmit && npx eslint src/tools/change.test.ts && npx prettier --check src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN runId tr_mrekmsvh_2c14f9f1 — typecheck clean, eslint clean, prettier 'All matched files use Prettier code style!' (QUALITY_OK)."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added two AC4 queue-unavailable fail-closed characterization tests (close + bulk-close)",
+          "why": "AC4 subset explicitly required 'target queue unavailable ... for close/bulk-close where applicable'. The existing close/bulk-close target tests mocked withTargetPathStore and covered trusted/untrusted/dry-run/recovery but not the queue-serviceability fail-closed envelope wired through the tools' catch blocks (change.ts:1869-1878 / 2161-2169). The new tests pin: parsed.error contains 'Target project (bulk )close unavailable' + 'not serviceable', and fireSignalAndRefresh / getChangeHandle / disk-cleanup are NOT called when the target queue is down."
+        },
+        {
+          "what": "Did not change product source (change.ts / _adapters.ts)",
+          "why": "DONE_WHEN GREEN branch: source already correct. adv_change_close/adv_change_bulk_close target_path already route through withTargetPathStore(stateRequirement:'temporal-required', mutation:!dryRun), compute workflow identity from projectContext?.projectId (target), and call fireSignalAndRefresh(handle, activeStore=targetStore, ...) — satisfying rq-cacheRefresh01 against the target store. Pre-existing AC3 (getChangeHandle 'target-project-id') and AC6 (signalCall[1]===targetStore) pins already catch source-identity/source-cache drift."
+        },
+        {
+          "what": "Proved pin non-vacuity with a reversible RED drift injection instead of shipping source changes",
+          "why": "Temporarily injected (a) projectId=source via getProjectId(store.paths.root), (b) fireSignalAndRefresh store=source, (c) catch-envelope string swap in change.ts → 4 target tests failed (close identity/cache, bulk-close identity/cache, both new queue envelope), runId tr_mrekkbav_a356f756. Reverted losslessly with `git checkout -- plugin/src/tools/change.ts` and verified change.ts is byte-identical to HEAD (empty diff). Net shipped change remains test-only."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed AC3+AC6 pins are symmetric across close AND bulk-close (getChangeHandle 'target-project-id' + signalCall[1]===targetStore in both target_path describes). target-project.test.ts already covers helper-level queue readiness (lines 288-427: temporal-required queue open, poller-unavailable fail-closed, no-Temporal-service fail-closed) and AC4 trusted/untrusted/snapshot-ok generically — not duplicated. The only close/bulk-close-tool-specific AC4 gap was the queue-unavailable envelope, which the two new tests close. snapshot-ok non-authoritative is N/A for close/bulk-close (mutations are temporal-required).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC3 (target project identity), AC6 (target-store cache refresh), and the AC4 subset (trusted / untrusted-rejection / dry-run-read-only / target-queue-unavailable) for adv_change_close + adv_change_bulk_close target_path are fully pinned and GREEN. Product source (plugin/src/tools/change.ts) was already correct — no source change shipped. Only durable change is test-only: +60 lines in plugin/src/tools/change.test.ts adding two AC4 queue-unavailable fail-closed tests (close + bulk-close). Pre-existing AC3/AC6 pins proven non-vacuous via a reversible RED drift injection (4 tests failed under source-identity/source-cache/envelope drift; reverted losslessly).",
+        "suggested_next_action": "Mark tk-46c2bd98b7a6 done (test-only, no deploy needed) and proceed to sibling recovery task tk-f76e8fce46f9, then verification task tk-7fe504de5ae6."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts -t \"target\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts -t \"queue is unavailable\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts -t \"target\" (with injected source drift)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/target-project.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx tsc --noEmit && npx eslint src/tools/change.test.ts && npx prettier --check src/tools/change.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:full-suite-concurrent-signaling"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "bin/oc-test full",
+          "exit_code": 1,
+          "duration_ms": 121990
+        },
+        {
+          "kind": "command",
+          "command": "bin/oc-test targeted -- src/temporal/__tests__/concurrent-signaling.itest.ts",
+          "exit_code": 1,
+          "duration_ms": 33250
+        }
+      ],
+      "status": "fail",
+      "error_class": "SEMANTIC",
+      "confidence": "high",
+      "evidence_basis": "Latest full-suite artifact shows one failing test in src/temporal/__tests__/concurrent-signaling.itest.ts, with tasks=30 and wisdom=30 but discovery/design stuck on PRIOR_GATE_INCOMPLETE. Narrow rerun also failed with same class. Source indicates dependent gateCompleted signals are fired concurrently while readiness requires prior gates already done when handled.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "blocker",
+          "summary": "Full suite blocked by concurrent-signaling integration gate-order failure.",
+          "evidence": [
+            {
+              "label": "full-suite artifact",
+              "locator": "/home/jon/.local/share/opencode-projects/bdf259aa162ae192af5b18899ccdc653b085528d/opencode/tool-output/tool_f4ae11ce7001Ok3Q5I63lXPvA6:3794-3812",
+              "summary": "FAIL concurrent-signaling.itest.ts; State predicate never satisfied. Final state proposal done, discovery/design stuck with PRIOR_GATE_INCOMPLETE; 1 failed, 326 passed."
+            }
+          ]
+        },
+        {
+          "id": "verify-002",
+          "severity": "blocker",
+          "summary": "Narrow rerun reproduced gate-order failure.",
+          "evidence": [
+            {
+              "label": "rerun output",
+              "locator": "command: bin/oc-test targeted -- src/temporal/__tests__/concurrent-signaling.itest.ts",
+              "summary": "Exit 1 after 33.25s. Final state tasks=30 wisdom=30, design stuck PRIOR_GATE_INCOMPLETE."
+            }
+          ]
+        },
+        {
+          "id": "verify-003",
+          "severity": "issue",
+          "summary": "Test concurrently emits dependent gate completions while expecting ordered success.",
+          "evidence": [
+            {
+              "label": "test source",
+              "locator": "plugin/src/temporal/__tests__/concurrent-signaling.itest.ts:170-183,301-331",
+              "summary": "Agents enqueue proposal/discovery/design gateCompletedSignal concurrently and predicate expects all three done."
+            },
+            {
+              "label": "workflow/readiness source",
+              "locator": "plugin/src/temporal/workflows.ts:1348-1360; plugin/src/temporal/gate-readiness.ts:68-84,799-805",
+              "summary": "gate completion is chained through completeGateWithReadiness; readiness blocks when earlier gate status is not done."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "ask_user",
+      "scope_risk": true,
+      "suggested_handoff": {
+        "summary": "Full-suite failure needs a decision because fixing concurrent gate-completion ordering/test semantics is outside the approved adapter-surface scope.",
+        "in_scope": [
+          "Decide whether to re-enter/expand current change or create follow-up for concurrent-signaling gate-order behavior."
+        ],
+        "out_of_scope": [
+          "Silently folding workflow concurrency semantics into adapter-surface change."
+        ],
+        "done_when": [
+          "User selects scope handling path."
+        ],
+        "verification": [
+          "bin/oc-test targeted -- src/temporal/__tests__/concurrent-signaling.itest.ts",
+          "bin/oc-test full"
+        ]
+      },
+      "required_main_agent_actions": [
+        "Ask user for scope decision before modifying workflow concurrency behavior."
+      ],
+      "follow_ups": [
+        "Full suite remains blocked by concurrent-signaling gate-order failure outside approved adapter-surface scope."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:reentry-concurrent-signaling-gate-order"
+      },
+      "agent": "adv-researcher",
+      "topic": "Re-entry design validation: concurrent-signaling gate-order full-suite blocker",
+      "sources": [
+        {
+          "label": "gate-readiness.ts priorGateBlockers",
+          "locator": "plugin/src/temporal/gate-readiness.ts:68-85",
+          "summary": "priorGateBlockers emits PRIOR_GATE_INCOMPLETE for any GATE_ORDER-prior gate whose status !== 'done'. Sequential gate ordering is structural readiness logic, not a test convenience."
+        },
+        {
+          "label": "gate-readiness.ts evaluateGateReadiness",
+          "locator": "plugin/src/temporal/gate-readiness.ts:799-849",
+          "summary": "evaluateGateReadiness computes priorGateBlockers first; ready = blockers.length === 0. Prior-gate incompleteness makes a gate non-ready."
+        },
+        {
+          "label": "workflows.ts completeGateWithReadiness",
+          "locator": "plugin/src/temporal/workflows.ts:948-961",
+          "summary": "On !readiness.ready the handler calls markGateStuckForBlockers and returns without completing. A later gate completion arriving before its prior gate is done is correctly rejected to 'stuck'."
+        },
+        {
+          "label": "workflows.ts gateCompletionChain serialization",
+          "locator": "plugin/src/temporal/workflows.ts:1204,1348-1363",
+          "summary": "gateCompleted signals are serialized via gateCompletionChain (previous.then(...)). Serialization guarantees one-at-a-time processing but NOT dependency ordering; delivery/processing order of concurrently-fired proposal/discovery/design is nondeterministic."
+        },
+        {
+          "label": "change-state.ts applyGateCompletedToState",
+          "locator": "plugin/src/temporal/change-state.ts:1143-1166",
+          "summary": "State applier sets gate 'done' with no buffering/retry of prematurely-arriving completions. Once stuck via readiness rejection, that signal will not self-heal; only a later re-fire after priors are done would complete it."
+        },
+        {
+          "label": "Existing codified contract test",
+          "locator": "plugin/src/temporal/workflows.signal-handlers.test.ts:852-880",
+          "summary": "'blocks direct completion that skips prior gates before artifact inspection' already asserts a direct design completion with incomplete priors becomes 'stuck' with stuck_reason containing PRIOR_GATE_INCOMPLETE. The itest's expectation contradicts this established contract."
+        },
+        {
+          "label": "concurrent-signaling itest offending pattern",
+          "locator": "plugin/src/temporal/__tests__/concurrent-signaling.itest.ts:170-184,301-360",
+          "summary": "buildAgentRemainingSignals fires dependent proposal/discovery/design gateCompleted inside the concurrent Promise.allSettled burst, then lines 358-360 assert all three 'done'. Ordering among the three is not guaranteed, so design/discovery can be processed before proposal is done and land 'stuck' -> flaky by construction."
+        },
+        {
+          "label": "reopenFromGate GATE_ORDER slice",
+          "locator": "plugin/src/temporal/change-state.ts:1601-1608",
+          "summary": "Re-entry logic slices GATE_ORDER from the reopened gate onward, reinforcing that gate sequencing is the canonical state-machine model."
+        }
+      ],
+      "architecture_assessment": "The re-entry addendum design is architecturally correct and self-consistent with the existing ADV gate state machine. Sequential gate ordering is enforced structurally in three layers: (1) priorGateBlockers computes PRIOR_GATE_INCOMPLETE for any non-done prior gate (gate-readiness.ts:68-85), (2) evaluateGateReadiness surfaces it as a hard blocker (gate-readiness.ts:804), and (3) completeGateWithReadiness marks the gate 'stuck' rather than 'done' when not ready (workflows.ts:958-961). This is the intended state-machine invariant (rq-gatemodel01 sequential enforcement), and an existing test at workflows.signal-handlers.test.ts:852-880 already codifies exactly this rejection behavior for a direct out-of-order design completion. The concurrent-signaling itest is the party at fault: it fires the three DEPENDENT gate completions (proposal->discovery->design) inside a concurrent Promise.allSettled burst (itest:170-184, 301-317) whose processing order is nondeterministic. gateCompletionChain (workflows.ts:1204,1353-1357) serializes signal handlers but does not impose dependency ordering; therefore design or discovery can be processed before proposal is done, land in 'stuck', and never self-heal (change-state.ts:1143-1166 has no buffer/retry). The subsequent assertions (itest:358-360) expecting all three 'done' are unsatisfiable under that race. The design's preferred fix -- sequence the three dependent gate completions with barriers, keep the remaining independent signal burst concurrent, and change product code only under a focused RED proof -- preserves the invariant, matches the boring/proven approach, and restores deterministic stress coverage. It is strictly preferable to weakening workflow readiness (buffering/auto-retrying arbitrary future gate completions), which would erode the state machine and mask real out-of-order-completion bugs.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design preserves the ADV gate model and specs. Sequential gate ordering is structural (gate-readiness.ts:68-85, workflows.ts:958-961) and already contract-tested (workflows.signal-handlers.test.ts:852-880). Correcting the itest to sequence dependent gate completions is the correct fix; the itest currently encodes an unsatisfiable expectation (itest:170-184 vs 358-360). No contract-compromise or spec conflict. Minor amendments recommended for coverage integrity (see recommendation) but none are blocking."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Ordering the three dependent gate completions slightly reduces the raw concurrency of the burst for those specific signals, but the remaining ~144 signals stay concurrent, so overall stress coverage is materially preserved (DDC9).",
+          "Test-contract correction leaves the theoretical question of premature-future-gate-completion buffering unaddressed; acceptable because current product behavior (reject-to-stuck) is the correct and specified semantics, and no user/workflow actually fires dependent gate completions concurrently in production.",
+          "Keeping the invariant means the itest must retain a barrier/poll between dependent completions, marginally increasing test complexity vs a naive fire-all burst."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Weaken workflow readiness: buffer/auto-retry a prematurely-arriving gate completion until priors are done",
+            "disposition": "rejected",
+            "rationale": "Turns a deterministic state machine into an eventually-consistent one, masks genuine out-of-order-completion defects, contradicts the existing contract test (workflows.signal-handlers.test.ts:852-880) and rq-gatemodel01. High blast radius for zero real production need."
+          },
+          {
+            "option": "Relax the itest assertions to accept design/discovery in 'stuck'",
+            "disposition": "rejected",
+            "rationale": "Would assert incorrect end-state as acceptable and hide the ordering requirement; loses the invariant's coverage value."
+          },
+          {
+            "option": "Sequence dependent gate completions with barriers, keep remaining burst concurrent (design's preferred)",
+            "disposition": "preferred",
+            "rationale": "Restores determinism, preserves the invariant and stress coverage, matches existing contract semantics, minimal-diff and boring. Product code changed only under focused RED proof."
+          }
+        ],
+        "recommendation": "Adopt the design as written (test-contract correction preferred; product change only under focused RED). Before green, run the targeted itest to capture the RED first (bin/oc-test targeted -- src/temporal/__tests__/concurrent-signaling.itest.ts) so the fix is characterization-backed. In the corrected itest, fire+await proposal, then discovery, then design in dependency order (each behind the existing pollForState/query barrier pattern already used at itest:298-299), then run the remaining independent burst (task updates/blocks/assigns, wisdom, gateInProgress for planning/execution, gateAwaitingApproval acceptance, gateStuck release, document signals) concurrently. Preserve SC1 (no rejections) and SC9 (total signal count) assertions; adjust totalSignals math only if the restructure changes counts. Keep proposal's duplicate-completion edge case (fired by all 3 agents) intact to retain the last-write-wins coverage."
+      },
+      "recommendation": "PASS. Preserve sequential gate invariants; correct the concurrent-signaling itest to sequence dependent proposal->discovery->design gate completions with barriers while keeping the remaining independent signal burst concurrent. Do not weaken workflow readiness. Change product code only if a focused RED test proves the workflow (not just the test setup) violates the invariant. Capture RED first for characterization.",
+      "follow_ups": [
+        "Planning task: RED-capture + itest correction for src/temporal/__tests__/concurrent-signaling.itest.ts (sequence dependent gate completions, keep remaining burst concurrent, preserve SC1/SC9 and proposal duplicate-completion edge case).",
+        "Planning task (conditional): only if RED proves product behavior violates the invariant, apply a minimal bounded gate-completion ordering/readiness fix with a test proving prior-gate enforcement (PRIOR_GATE_INCOMPLETE) still blocks invalid sequential calls.",
+        "Verify DDC8/DDC9 assertions are explicitly exercised by the corrected itest before acceptance."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "traceability-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 925,
+          "what": "target_path artifact readback routes through withTargetPathStore with temporal-required only when artifact include flags need authoritative content.",
+          "why": "Matches AC1/AC4: target artifacts come from target Temporal-backed store instead of source/disk scaffold behavior while preserving snapshot-ok optional target read semantics."
+        },
+        {
+          "id": "target-routing-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 1656,
+          "what": "target_path update/close/bulk-close paths resolve target store and pass target store/project identity into mutation and cache-refresh paths.",
+          "why": "Matches AC2/AC3/AC6: cross-project mutations use target workflow namespace and fireSignalAndRefresh receives the target store for cache invalidation."
+        },
+        {
+          "id": "concurrency-praise-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/__tests__/concurrent-signaling.itest.ts",
+          "line": 303,
+          "what": "concurrent-signaling stress test now orders dependent proposal/discovery/design completions before independent concurrent burst.",
+          "why": "Matches AC9 and re-entry constraint: exercises high-volume concurrent signaling without weakening sequential gate invariants."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For target_path mutation/readback fixes, tests should assert both routing surface and authority: withTargetPathStore stateRequirement, target confirmation behavior, target project ID passed to getChangeHandle, and target store passed to fireSignalAndRefresh/readArtifacts."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "test -e plugin/src/tools/change.ts plugin/src/tools/change.test.ts plugin/src/temporal/__tests__/concurrent-signaling.itest.ts plugin/src/adv-skill-backed-commands-assets.test.ts plugin/src/ops-follow-up-assets.test.ts via shell loop",
+          "git diff --stat origin/trunk...HEAD && git diff --name-only origin/trunk...HEAD",
+          "grep -rn \"fireSignal(handle\" plugin/src/tools/ | grep -v \".test.ts\" | grep -v rq-cacheRefresh01-exempt || true",
+          "bin/oc-test targeted -- src/tools/change.test.ts src/temporal/__tests__/concurrent-signaling.itest.ts src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts",
+          "git status --short"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight: all 5 scoped files OK. Diff matches scope: 5 files, 440 insertions, 60 deletions. Cache-refresh grep returned no direct fireSignal(handle) violations. Targeted verification passed: 4 files, 176 tests. git status clean after review. Prior recorded evidence also includes pnpm run check and bin/oc-test full passing."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Asset test emitted existing warn-only ADV token budget line-ceiling warnings; test still passed and warnings are outside this adapter-surface acceptance scope.",
+        "Live deployed OpenCode plugin copy was not rebuilt/restarted during review; source-level tests and prior full-suite evidence passed in this worktree."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git status --short",
+          "git diff --name-only origin/trunk...HEAD",
+          "git diff --stat origin/trunk...HEAD -- scoped files",
+          "git diff --check origin/trunk...HEAD -- scoped files",
+          "rg -n \"fireSignal\\(handle|process\\.env|TODO|FIXME|XXX|HACK|debugger|\\.only\\(|@ts-ignore|@ts-expect-error\" scoped files",
+          "provided evidence: pnpm run check → tr_mrezsbx3_94b14719",
+          "provided evidence: targeted regression → tr_mrezrmaj_362e4a09",
+          "provided evidence: bin/oc-test full → tr_mrezuu7d_c4887a5b"
+        ],
+        "results": "pass",
+        "evidence": "Path preflight passed for all scoped files. git status --short clean before and after review. Diff vs origin/trunk limited to five scoped files; diff stat 440 insertions/60 deletions; git diff --check clean. Static slop/readiness scan across scoped files found no direct fireSignal(handle) bypass, new process.env usage, TODO/FIXME/HACK/XXX/debugger/.only/@ts-ignore/@ts-expect-error markers. Source inspection confirmed target_path artifact readback uses Temporal target store for artifact includes and snapshot path for non-artifact reads; close/bulk-close target_path route through withTargetPathStore with temporal-required, target confirmation, target project identity, target store cache/signal path, dry-run no-signal behavior, fail-closed queue-unavailable behavior, and completed-workflow recovery preserving target store. Concurrent-signaling integration test sequences dependent proposal/discovery/design gate completion while preserving concurrent independent burst. ADV readback showed ops_followup_links: [] and ops_followup: null; acceptance matrix included 39 required rows with 0 failures. Initial submit using requested scope_key harden-release-readiness was rejected by tool schema; persisted using schema-allowed harden:release scope."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Proceed with harden/release aggregation; no release hardening blockers found.",
+        "No cleanup candidates or ops follow-ups identified by this harden review.",
+        "Note: requested scope_key harden-release-readiness is not accepted by current REVIEWER_REPORT schema; report persisted under harden:release."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 1,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability",
+        "test-coverage"
+      ],
+      "summary": "Bounded harden assessment corroborated by one independent harden reviewer report. No additional explore scanner was risk-triggered: five-file TypeScript source/test change; no env/config/migration/external-service/docs/frontend scope. Evidence: accepted 39-row matrix, pnpm run check, targeted regressions, full suite, clean worktree, and conflict-free merge dry-run against origin/trunk.",
+      "findings": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+      "task_id": "tk-00044c84bed7",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-00044c84bed7"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/package.json",
+        "plugin/pnpm-lock.yaml",
+        "plugin/pnpm-workspace.yaml",
+        "plugin/knip.json",
+        "plugin/.jscpd.json",
+        "sgconfig.yml",
+        "slop-rules/no-debugger.yml",
+        "bin/lib/slop-scan/adapters/knip.ts",
+        "bin/lib/slop-scan/adapters/jscpd.ts",
+        "bin/lib/slop-scan/adapters/ast-grep.ts",
+        "bin/lib/slop-scan/scan.ts",
+        "bin/lib/slop-scan/adapters/knip.test.ts",
+        "bin/lib/slop-scan/adapters/jscpd.test.ts",
+        "bin/lib/slop-scan/adapters/ast-grep.test.ts",
+        "bin/lib/slop-scan/scan.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bun test bin/lib/slop-scan",
+          "exit_code": 1,
+          "summary": "RED (recorded, runId tr_mrf51poq_39bc23a0): 5 failing tests — knip 6 parser (0 findings), ast-grep/jscpd build*Command missing pnpm exec, scan packageRoot-cwd routing, and degraded-to-run recovery."
+        },
+        {
+          "command": "bun test bin/lib/slop-scan",
+          "exit_code": 0,
+          "summary": "GREEN (recorded, runId tr_mrf55c2r_1b83e48d): 42 pass / 0 fail across 12 files after implementation."
+        },
+        {
+          "command": "bun test bin/",
+          "exit_code": 0,
+          "summary": "Full bin surface: 207 pass / 0 fail across 30 files."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "plugin pre-push gate passed: schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, format:check (Prettier clean). pnpm install deps-status exits 0 with allowBuilds override."
+        },
+        {
+          "command": "bin/adv slop-scan plugin/src/tools/change.ts --json",
+          "exit_code": 0,
+          "summary": "Live scan: slop_scan_report.v1, languages=[typescript]; eslint/knip/ast-grep/jscpd all state=run (important=true), external-ci-semgrep externally_covered (important=false); failure NONE — no SLOP_SCAN_DEGRADED; 356 tool-backed findings."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Set plugin/pnpm-workspace.yaml allowBuilds '@ast-grep/cli' to false (explicit deny), not true.",
+          "why": "@ast-grep/cli ships a JS bin shim whose postinstall replaces it with the native binary. pnpm generated a `node`-invoking .bin shim (the original target had a node shebang), so after the postinstall swap `pnpm exec ast-grep` runs `node <ELF>` and fails with SyntaxError. Denying the build keeps the JS fallback shim, which spawns the platform optional binary at runtime; this is the only state where `pnpm install` exits 0 AND `pnpm exec ast-grep` runs. Cost: a benign stderr warning from the fallback, which the runner ignores for coverage state."
+        },
+        {
+          "what": "Rewrote normalizeKnipJson to read knip 6's `{issues:[{files,exports,dependencies}]}` schema instead of the legacy flat `{files,exports,dependencies}` string arrays.",
+          "why": "The installed knip is 6.25.0, which only emits the issues[] shape; the legacy parser silently produced zero findings, so knip coverage was restored in name only. The new parser maps issue.files->unused_file, issue.exports->unused_export (with line), issue.dependencies->unused_dependency, all as MAINT-003 review_required deletion candidates. Updated knip.test.ts to the knip 6 shape."
+        },
+        {
+          "what": "Set plugin/.jscpd.json `threshold` to 100 (report-only) instead of 0.",
+          "why": "With threshold 0 jscpd exits 1 (\"too many duplicates over threshold\") on any duplication, which reads as an error even though the report file is still written. threshold 100 makes jscpd exit 0 while still emitting every duplicate into jscpd-report.json; the adapter's report-file parse is the real gate (valid report -> run/findings, missing report -> failed/degraded), so signal is preserved and the exit code stays clean."
+        },
+        {
+          "what": "Placed sgconfig.yml at the repo root with `ruleDirs: [slop-rules]` and did not add a `--config` flag to the ast-grep command.",
+          "why": "Verified empirically that `ast-grep scan` discovers sgconfig.yml by walking up from the absolute target's ancestry, so with cwd=packageRoot (plugin) it still finds the root config and ruleDirs resolve relative to the root. Keeping the command as `pnpm exec ast-grep scan --json=compact <absTarget>` stays minimal and robust. Added one bounded, low-noise rule (no-debugger-statement) so `scan` has a valid rule set and never errors on missing rules."
+        },
+        {
+          "what": "Added an optional `runner?: ToolRunner` to SlopScanOptions, defaulting to createToolRunner().",
+          "why": "runSlopScan previously hardcoded createToolRunner(), making packageRoot-cwd routing and degraded-to-run recovery untestable without spawning real binaries. The seam lets scan.test.ts inject a fake runner that records per-detector cwd/command and flips a detector between unavailable and success, proving required coverage recovers to run purely from tool availability. It is a minimal, additive test seam and does not touch the change.ts hotspot."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Upstream wart to revisit: if pnpm ever regenerates the @ast-grep/cli .bin shim to exec the native binary directly (or @ast-grep/cli stops swapping the bin in postinstall), the allowBuilds '@ast-grep/cli': false override can be flipped to true to remove the benign per-invocation stderr fallback warning. No action required now."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed eslint and knip already used the restored pattern (pnpm exec + packageRoot cwd); ast-grep and jscpd now match. Python (radon/vulture) and Go (gocyclo/go-deadcode) detectors intentionally remain on repoRoot cwd because they are system-installed binaries, not plugin-local node_modules tools, so there is no same-pattern defect to fix there. Updated the existing knip.test.ts to the knip 6 schema, and verified the existing polyglot.test.ts \"no network installers\" assertion still passes under `pnpm exec` (no dlx/npx/go install/pip install). change.ts (the scanned target) was not modified, per the no-refactor constraint.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Restored required slop-scan detector coverage for knip, jscpd, and ast-grep. Added the three as plugin devDeps (plus lockfile) with configs plugin/knip.json, plugin/.jscpd.json, root sgconfig.yml and a bounded TypeScript rule dir slop-rules/. Routed jscpd and ast-grep through `pnpm exec` at the package-root cwd (knip/eslint already followed this pattern); repo-root cwd cannot resolve plugin-local binaries. Updated the knip parser to the installed knip 6 `issues[]` schema (the legacy flat schema silently produced zero findings). Added a small runner-injection seam on SlopScanOptions to make cwd routing and degraded-to-run recovery testable. Explicitly denied @ast-grep/cli's build (allowBuilds false) so `pnpm install` exits 0 while `pnpm exec ast-grep` still resolves the platform binary. Live `bin/adv slop-scan plugin/src/tools/change.ts --json` reports eslint/knip/ast-grep/jscpd all state=run and no SLOP_SCAN_DEGRADED (356 tool-backed findings; nothing suppressed).",
+        "suggested_next_action": "Run `pnpm install` in a clean environment to confirm lockfile + allowBuilds reproduce a working ast-grep with exit 0, then review the diff and proceed to the next task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/lib/slop-scan"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/lib/slop-scan"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun test bin/"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/adv slop-scan plugin/src/tools/change.ts --json"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "optimizeAdapterSurfaces",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "Package-local CLI adapters must invoke `pnpm exec` with the discovered package root as cwd while retaining absolute scan targets; this makes config and binary resolution reproducible without global installs."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bun test bin/lib/slop-scan",
+          "bin/adv slop-scan plugin/src/tools/change.ts --json",
+          "bin/oc-test targeted -- src/tools/change.test.ts src/temporal/__tests__/concurrent-signaling.itest.ts",
+          "git diff --check trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Independent review: 42 slop-scan tests passed (0 failures); live scan reported required eslint, Knip, ast-grep, and jscpd detectors as `run`, with no `SLOP_SCAN_DEGRADED`; targeted plugin verification passed 108 tests across change and concurrent-signaling suites; diff check and worktree status were clean. Reviewed trunk...HEAD: local declared dependencies/config, package-root pnpm-exec adapter dispatch, JSON normalization, degraded-to-run handling, bounded root sgconfig/rule pack, target-path/recovery tests, and ordered gate-signaling test. change.ts has a bounded 39-addition/35-deletion recovery helper cleanup, not a broad complexity split."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live scan still reports inherited review-required low/medium complexity, dead-code, and duplication findings in change.ts and the plugin; contract AC5 records those non-overlapping complexity hotspots as pre-existing debt, and this change does not refactor them.",
+        "ast-grep coverage currently has one intentionally narrow TypeScript debugger rule; any broader structural-policy coverage requires a separately approved bounded rule expansion."
+      ],
+      "required_main_agent_actions": []
+    }
+  ],
+  "test_runs": {
+    "tk-253c52dc3ebc": [
+      {
+        "runId": "tr_mrejt9s4_6356efb9",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/tools/change.test.ts -t \"target_path artifact readback/update authority\"",
+        "durationMs": 3495.9582780003548,
+        "recordedAt": "2026-07-10T06:22:18.124Z"
+      },
+      {
+        "runId": "tr_mrejy891_d09c13ff",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.read-artifact.test.ts src/tools/target-project.test.ts",
+        "durationMs": 5178.507952999324,
+        "recordedAt": "2026-07-10T06:26:09.411Z"
+      },
+      {
+        "runId": "tr_mrejyqu8_c554dd8e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9399.673151001334,
+        "recordedAt": "2026-07-10T06:26:33.493Z"
+      },
+      {
+        "runId": "tr_mrejyzud_8c06587f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx eslint src/tools/change.test.ts",
+        "durationMs": 1542.7395210005343,
+        "recordedAt": "2026-07-10T06:26:45.163Z"
+      },
+      {
+        "runId": "tr_mrejz2hw_63eaf216",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx prettier --check src/tools/change.test.ts",
+        "durationMs": 1159.1695300005376,
+        "recordedAt": "2026-07-10T06:26:48.629Z"
+      },
+      {
+        "runId": "tr_mrek0mt6_c5035302",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.read-artifact.test.ts src/tools/target-project.test.ts",
+        "durationMs": 4744.659080997109,
+        "recordedAt": "2026-07-10T06:28:01.642Z"
+      },
+      {
+        "runId": "tr_mrek0qeq_7b62d9db",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9358.211616002023,
+        "recordedAt": "2026-07-10T06:28:06.246Z"
+      }
+    ],
+    "tk-46c2bd98b7a6": [
+      {
+        "runId": "tr_mrekc0fh_6048e477",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces/plugin && npx vitest run src/tools/change.test.ts -t \"target\" 2>&1 | tail -40",
+        "durationMs": 3623.0674069970846,
+        "recordedAt": "2026-07-10T06:36:52.500Z"
+      },
+      {
+        "runId": "tr_mreki7ql_70feb64e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces/plugin && npx vitest run src/tools/change.test.ts -t \"queue is unavailable\" 2>&1 | tail -30",
+        "durationMs": 2965.615014001727,
+        "recordedAt": "2026-07-10T06:41:41.853Z"
+      },
+      {
+        "runId": "tr_mrekkbav_a356f756",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces/plugin && npx vitest run src/tools/change.test.ts -t \"target\" 2>&1 | tail -45",
+        "durationMs": 3021.217200998217,
+        "recordedAt": "2026-07-10T06:43:19.793Z"
+      },
+      {
+        "runId": "tr_mreklixy_23231b81",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces/plugin && npx vitest run src/tools/change.test.ts 2>&1 | grep -E \"Test Files|Tests |✓ src/tools/change.test.ts|FAIL|passed|failed\"",
+        "durationMs": 3761.4667470008135,
+        "recordedAt": "2026-07-10T06:44:16.371Z"
+      },
+      {
+        "runId": "tr_mrekm3nw_235c54cc",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/target-project.test.ts",
+        "durationMs": 3942.332553997636,
+        "recordedAt": "2026-07-10T06:44:43.209Z"
+      },
+      {
+        "runId": "tr_mrekmsvh_2c14f9f1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/optimizeAdapterSurfaces/plugin && npx tsc --noEmit && npx eslint src/tools/change.test.ts && npx prettier --check src/tools/change.test.ts && echo \"QUALITY_OK\"",
+        "durationMs": 13817.18312400207,
+        "recordedAt": "2026-07-10T06:45:15.894Z"
+      }
+    ],
+    "tk-f76e8fce46f9": [
+      {
+        "runId": "tr_mrekxhn9_a44edbd3",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"signal-error text\"",
+        "durationMs": 3488.713137000799,
+        "recordedAt": "2026-07-10T06:53:34.535Z"
+      },
+      {
+        "runId": "tr_mrekxv6u_f7327654",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"signal-error text|poisoned signal error\"",
+        "durationMs": 3474.4214890003204,
+        "recordedAt": "2026-07-10T06:53:52.110Z"
+      },
+      {
+        "runId": "tr_mreky7b3_51277d0c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/recovery-probe.test.ts",
+        "durationMs": 4715.794387999922,
+        "recordedAt": "2026-07-10T06:54:07.844Z"
+      },
+      {
+        "runId": "tr_mrekyaxh_b47201d3",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9288.41010800004,
+        "recordedAt": "2026-07-10T06:54:12.494Z"
+      },
+      {
+        "runId": "tr_mrekytwl_85928762",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec eslint src/tools/change.ts src/tools/change.test.ts && pnpm exec prettier --check src/tools/change.ts src/tools/change.test.ts",
+        "durationMs": 5891.3553620018065,
+        "recordedAt": "2026-07-10T06:54:37.080Z"
+      },
+      {
+        "runId": "tr_mrekzm6l_a8cd109b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/recovery-probe.test.ts",
+        "durationMs": 4863.175276000053,
+        "recordedAt": "2026-07-10T06:55:13.745Z"
+      },
+      {
+        "runId": "tr_mrekzo7d_5a810cd0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec eslint src/tools/change.ts src/tools/change.test.ts && pnpm exec prettier --check src/tools/change.ts src/tools/change.test.ts",
+        "durationMs": 7318.473589997739,
+        "recordedAt": "2026-07-10T06:55:16.349Z"
+      },
+      {
+        "runId": "tr_mrekzplx_64171507",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9196.676398999989,
+        "recordedAt": "2026-07-10T06:55:18.158Z"
+      }
+    ],
+    "tk-7fe504de5ae6": [
+      {
+        "runId": "tr_mrel2c36_e3b9ad38",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 43363.85102599859,
+        "recordedAt": "2026-07-10T06:57:20.629Z"
+      },
+      {
+        "runId": "tr_mrel62ca_8620fa15",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test full",
+        "durationMs": 165550.6090719998,
+        "recordedAt": "2026-07-10T07:00:14.662Z"
+      },
+      {
+        "runId": "tr_mrel84dh_61899a4d",
+        "phase": "verify",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts",
+        "durationMs": 4.717640001326799,
+        "recordedAt": "2026-07-10T07:01:50.613Z"
+      },
+      {
+        "runId": "tr_mrel8juf_150eaaf6",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts",
+        "durationMs": 1612.923809003085,
+        "recordedAt": "2026-07-10T07:02:10.673Z"
+      },
+      {
+        "runId": "tr_mrelg73f_73865f14",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "bin/oc-test full",
+        "durationMs": 348033.71887199953,
+        "recordedAt": "2026-07-10T07:08:08.720Z"
+      },
+      {
+        "runId": "tr_mreln0ef_d36b8144",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/__tests__/concurrent-signaling.itest.ts",
+        "durationMs": 5418.587841000408,
+        "recordedAt": "2026-07-10T07:13:25.267Z"
+      },
+      {
+        "runId": "tr_mrelnoo1_23dd9ea2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/__tests__/no-psw-references.test.ts src/temporal/workflows.signal-handlers.test.ts",
+        "durationMs": 36884.72577200085,
+        "recordedAt": "2026-07-10T07:13:56.715Z"
+      },
+      {
+        "runId": "tr_mrezrmaj_362e4a09",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-skill-backed-commands-assets.test.ts src/ops-follow-up-assets.test.ts src/temporal/__tests__/concurrent-signaling.itest.ts",
+        "durationMs": 4871.800122000277,
+        "recordedAt": "2026-07-10T13:48:54.865Z"
+      },
+      {
+        "runId": "tr_mrezsbx3_94b14719",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 38199.886011995375,
+        "recordedAt": "2026-07-10T13:49:28.097Z"
+      },
+      {
+        "runId": "tr_mrezuu7d_c4887a5b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test full",
+        "durationMs": 108102.21178399771,
+        "recordedAt": "2026-07-10T13:51:25.083Z"
+      }
+    ],
+    "tk-00a59233abd5": [
+      {
+        "runId": "tr_mrezmxml_07ca1764",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/__tests__/concurrent-signaling.itest.ts",
+        "durationMs": 4566.311457999051,
+        "recordedAt": "2026-07-10T13:45:16.269Z"
+      },
+      {
+        "runId": "tr_mreznjmn_c3af0dd6",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/__tests__/concurrent-signaling.itest.ts",
+        "durationMs": 4426.307574003935,
+        "recordedAt": "2026-07-10T13:45:44.785Z"
+      },
+      {
+        "runId": "tr_mrezpmg3_11030e3b",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/__tests__/concurrent-signaling.itest.ts",
+        "durationMs": 4891.643647998571,
+        "recordedAt": "2026-07-10T13:47:21.751Z"
+      },
+      {
+        "runId": "tr_mrezq163_164f574d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec eslint src/temporal/__tests__/concurrent-signaling.itest.ts && pnpm exec prettier --check src/temporal/__tests__/concurrent-signaling.itest.ts",
+        "durationMs": 5400.147108003497,
+        "recordedAt": "2026-07-10T13:47:40.835Z"
+      },
+      {
+        "runId": "tr_mrezq29b_22809f03",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 8699.487285993993,
+        "recordedAt": "2026-07-10T13:47:42.241Z"
+      }
+    ],
+    "tk-00044c84bed7": [
+      {
+        "runId": "tr_mrf51poq_39bc23a0",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bun test bin/lib/slop-scan",
+        "durationMs": 5224.428158998489,
+        "recordedAt": "2026-07-10T16:16:43.904Z"
+      },
+      {
+        "runId": "tr_mrf55c2r_1b83e48d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/lib/slop-scan",
+        "durationMs": 152.75102500617504,
+        "recordedAt": "2026-07-10T16:19:32.895Z"
+      },
+      {
+        "runId": "tr_mrf63feg_7ffd57fc",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test full",
+        "durationMs": 238528.91474699974,
+        "recordedAt": "2026-07-10T16:46:03.505Z"
+      },
+      {
+        "runId": "tr_mrf6d3lb_ca4ecb81",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "bin/oc-test full",
+        "durationMs": 309556.1202599928,
+        "recordedAt": "2026-07-10T16:53:34.755Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-10T02:27:21.658Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal refreshed after discovery-scope re-entry. User explicitly selected clarity-first, include #192 target_path routing fix, and allow cleanup. Updated proposal includes refreshed scope, constraints, discovery agenda, and B/F/S scan with no critical findings.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "17e9d8df2898e7af0f2120c4bd902487283bb0e8dcc8820e810b300f9b942a73",
+        "non_whitespace_chars": 20673,
+        "checked_at": "2026-07-10T00:15:05.702Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-10T13:39:24.448Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "Re-entry discovery addendum approved. Scope now includes bounded concurrent-signaling gate-order full-suite blocker in addition to adapter-surface work.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "9eef937015a3ac67caecb2daed2332208229cc42e000161a0070b4965e3e5b69",
+        "non_whitespace_chars": 7577,
+        "checked_at": "2026-07-10T00:15:05.705Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-10T15:49:17.491Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry detector design persisted and independently validated. Validator CAUTION resolved: jscpd and ast-grep must mirror Knip with pnpm exec at packageRoot; root-cwd bare binaries would remain degraded. User selected bounded repo-local ast-grep rule pack; broad change.ts complexity refactor remains excluded.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "d40041074f21f198d68533cbf353582f5f9e9e17d28ecccf64b0f3422311fd44",
+        "non_whitespace_chars": 1796,
+        "checked_at": "2026-07-10T00:15:05.708Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-10T15:51:16.694Z",
+      "completed_by": "user:approval",
+      "approval_evidence": "User explicitly instructed `execute` after selecting the repo-local ast-grep rule-pack design. Added tk-00044c84bed7 for reproducible Knip/jscpd/ast-grep detector coverage and live slop-scan verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:03:26.507Z",
+      "completed_by": "agent",
+      "approval_evidence": "All six planned tasks are checkpointed done on change/optimizeAdapterSurfaces (HEAD 2f2fc768). Final verification evidence includes bin/oc-test full, pnpm run check, detector suite, and live bin/adv slop-scan plugin/src/tools/change.ts --json with required eslint/knip/ast-grep/jscpd detectors in run state and no SLOP_SCAN_DEGRADED."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:11:16.671Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved acceptance in this session after independent review returned READY with no blockers and all 13 strict-contract review-matrix rows passed/respected.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "4e9b8bfd724714fdd38033d9281f703e08fdecf138f37533e4e956a97e09f177",
+        "non_whitespace_chars": 1870,
+        "checked_at": "2026-07-10T00:15:05.709Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "proposal",
+      "reason": "Discovery clarification expanded scope: user selected clarity-first outcome, include #192-style target_path routing fix, and allow cleanup behavior changes if design proves safer.",
+      "scope_delta": "Add target_path readback/close routing bug (#192) to in-scope adapter work; allow broader response-envelope cleanup if design proves it is safer long term; optimize primarily for clarity while preserving spec-law and safety constraints.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-10T02:25:03.663Z",
+      "gates_reset": [
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "discovery",
+      "reason": "Full-suite verification exposed out-of-scope workflow gate-order failure: concurrent dependent proposal/discovery/design gate completions can process out of order and leave design stuck on PRIOR_GATE_INCOMPLETE. User selected Reenter current (Recommended) to expand current change and fix it.",
+      "scope_delta": "Add workflow concurrent gate-completion ordering resilience/test repair to current change, bounded to src/temporal/__tests__/concurrent-signaling.itest.ts and only minimal workflow readiness/ordering code if tests prove product behavior needs change. Preserve adapter-surface deliverables already completed.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-10T13:33:45.231Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "design",
+      "reason": "User explicitly directed `fix issues and re run harden` after hardening found degraded required slop-scan detector coverage and 13 high-confidence MAINT-004 complexity findings in plugin/src/tools/change.ts.",
+      "scope_delta": "Expand scope to restore required slop-scan detector coverage (Knip JSON parsing, ast-grep, jscpd availability/configuration) and address validated complexity hotspots reported in plugin/src/tools/change.ts. Preserve adapter safety and gate-order deliverables; re-plan bounded remediation after source analysis.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-10T14:56:50.419Z",
+      "gates_reset": [
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+      "approvedAt": "2026-07-10T13:39:24.448Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`bin/adv slop-scan plugin/src/tools/change.ts --json` completes without `SLOP_SCAN_DEGRADED` caused by missing or undeclared required Knip, jscpd, or ast-grep tooling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Required detectors use repository-declared, reproducible dependencies/configuration; no global installation is required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "ast-grep has committed `sgconfig.yml` and a bounded rule directory containing at least one tested TypeScript structural rule aligned with existing slop-scan policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Knip and jscpd have committed project configuration and adapter tests proving their commands resolve through local package tooling and their JSON output is parsed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Existing `change.ts` complexity hotspots not overlapping this change’s hunks are documented as pre-existing debt; no broad `change.ts` split is required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Full `bin/oc-test full`, `pnpm run check`, detector tests, and the live slop scan pass before re-running harden.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve existing specs, adapter safety, Temporal signal/query semantics, and gate-order invariants.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Use repo-local dev dependencies and committed config/rules; do not rely on globally installed binaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve required-detector semantics; do not downgrade detector importance or suppress degraded coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep ast-grep rules bounded to existing structural/slop policy. No generic lint platform or broad rule migration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Full `change.ts` complexity refactor/split for pre-existing hotspots outside changed hunks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Broad AST rule-pack migration beyond the minimum rules needed to establish reproducible required ast-grep coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "New user-facing workflows, schema-boundary redesign, status/list performance work, and unrelated cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T00:08:01.531Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Live `bin/adv slop-scan plugin/src/tools/change.ts --json` exited 0 with eslint/knip/jscpd/ast-grep all `run` and no SLOP_SCAN_DEGRADED; independent review READY."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Committed plugin dev dependencies/configuration verified by review; detector suite 42 passing and no global install used."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Root sgconfig.yml, bounded slop-rules/no-debugger.yml, and ast-grep adapter/rule-discovery tests pass."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Knip 6 issues[] parser and jscpd JSON parsing are covered by adapter tests; commands run with pnpm exec at plugin package root."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Design records whole-file change.ts complexity findings as pre-existing debt; task scope did not split/refactor change.ts."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Recorded evidence: bin/oc-test full, pnpm run check, detector suite, and live slop scan all passed; independent reviewer reran focused detector and adapter/concurrency checks."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Independent review found no regression in existing target-path/recovery/gate-order behavior; targeted adapter/concurrency tests passed."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Dependencies are declared in plugin/package.json and lockfile; committed configs/rules are used through pnpm exec."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Required detector failures remain degraded; live scan evidence confirms restored coverage rather than severity suppression."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Rule pack is bounded to sgconfig.yml plus slop-rules/no-debugger.yml; no generic lint platform or broad migration added."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broad change.ts complexity refactor or split was performed."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Only the minimum no-debugger ast-grep rule was added."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new user workflow, schema-boundary redesign, status/list performance work, or unrelated cleanup."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`bin/adv slop-scan plugin/src/tools/change.ts --json` completes without `SLOP_SCAN_DEGRADED` caused by missing or undeclared required Knip, jscpd, or ast-grep tooling.",
+    "Required detectors use repository-declared, reproducible dependencies/configuration; no global installation is required.",
+    "ast-grep has committed `sgconfig.yml` and a bounded rule directory containing at least one tested TypeScript structural rule aligned with existing slop-scan policy.",
+    "Knip and jscpd have committed project configuration and adapter tests proving their commands resolve through local package tooling and their JSON output is parsed.",
+    "Existing `change.ts` complexity hotspots not overlapping this change’s hunks are documented as pre-existing debt; no broad `change.ts` split is required.",
+    "Full `bin/oc-test full`, `pnpm run check`, detector tests, and the live slop scan pass before re-running harden."
+  ],
+  "documents": {
+    "proposal": "# Optimize adapter surfaces\n\n## Why\n\nADV adapter/tool surfaces are harder to evolve safely because change, task, and tool-registry concerns are coupled across large implementation hot spots. Schema validation, target-path routing, Temporal signal dispatch/cache refresh, recovery handling, and response formatting are not consistently isolated. This raises regression risk for Temporal-backed state mutation, cross-project `target_path` behavior, typed tool boundaries, and future performance/structure work in the optimizeAdvPerformanceStructure Epic.\n\nDiscovery clarification expanded the intended outcome: optimize primarily for clearer maintainable boundaries, include verification/fix of the open #192-style `target_path` readback/close routing behavior where current code or tests still drift, and allow response-envelope cleanup when design proves it is safer and backward-compatible enough.\n\n## What Changes\n\nThis change proposes adapter-surface optimization with bounded functional repair:\n\n- Identify the highest-coupling seams in change/task/tool-registry adapter code.\n- Separate schema-boundary validation, target-path routing, signal/cache-refresh helpers, recovery handling, and formatter/projection concerns where evidence shows extraction reduces risk.\n- Preserve existing tool contracts and Temporal signal/query behavior with deterministic tests unless design proves a safer additive/cleanup response shape.\n- Verify #192-style `target_path` readback/update/close routing behavior against current code and tests; fix remaining drift in scope.\n- Consider issue #65 only where it directly matches schema-boundary validation or typed tool argument handling.\n- Keep changes scoped to adapter-surface structure and target-path routing correctness, not broad feature redesign.\n\n## User Outcomes\n\n- ADV maintainers can change task/change/tool behavior with less risk of unrelated adapter regressions.\n- Tool contract behavior remains stable or improves through intentional, tested cleanup rather than incidental drift.\n- Cross-project `target_path` readback/update/close operations are verified or corrected so source-project sessions do not silently use wrong project identity or non-authoritative artifact content.\n- Future Epic performance/structure work has smaller, clearer surfaces to build on.\n\n## Affected Code\n\nLikely areas for discovery/design validation:\n\n- `plugin/src/tools/change.ts` — large change-tool surface with artifact readback, update, close/bulk close, recovery, archive, origin, and formatting.\n- `plugin/src/tools/target-project.ts` — `withTargetPathStore`, `withOptionalTargetPathStore`, and target project context/authority formatting.\n- `plugin/src/tools/_adapters.ts` — signal/cache refresh, handle/reachability adapter helpers.\n- `plugin/src/tools/task.ts` — task mutation routing, target-path handling, task status lifecycle.\n- `plugin/src/tools/gate.ts` — gate mutation routing and target-path signal path.\n- `plugin/src/tool-registry.ts` and `plugin/src/utils/tool-arg-preflight.ts` — tool schema/preflight boundaries.\n- `plugin/src/storage/store-temporal/changes.ts` and `plugin/src/tools/change/artifacts.ts` — Temporal document/artifact content readback and update behavior.\n- Nearby tests under `plugin/src/tools/*.test.ts`, `plugin/src/tools/change.read-artifact.test.ts`, target-project tests, and boundary/spec drift tests where applicable.\n\n## Related Repositories\n\n- Current repo only: `/home/jon/dev/advance`.\n- No product-linked cross-repo implementation scope identified.\n- Cross-project behavior must be represented via temp/test target projects, not live external repo mutation unless explicitly approved later.\n\n## Constraints\n\n- Specs are law: implementation must preserve relevant requirements in `advance-delivery`, `advance-workflow`, `advance-meta`, and cross-project coordination requirements.\n- Preserve Temporal signal/query model; do not introduce update-based mutation surfaces.\n- Preserve `fireSignalAndRefresh` cache-refresh discipline for change-workflow signals.\n- Preserve `withTargetPathStore(...)` target-store routing for cross-project mutations.\n- Preserve snapshot-ok read-only semantics and non-authoritative disk-snapshot markers.\n- Preserve tool arg schema/preflight behavior and Zod v4 schema source of truth.\n- Preserve root CLI/source-boundary contracts; do not reintroduce forbidden deep imports.\n- Do not read or couple to ADV external state files directly.\n\n## Impact\n\nExpected impact is maintainability and regression-risk reduction, plus correction or closure of target-path routing/readback drift if tests confirm current behavior still fails. User-visible behavior may change only through intentional, documented, test-backed cleanup or additive diagnostics.\n\n## Context\n\nEpic `optimizeAdvPerformanceStructure` has already shipped related entries for slop-scan behavior, CLI command boundary, archive-listing/status performance, and CLI source boundary. This entry follows that sequence by reducing adapter coupling before deeper Temporal workflow hot-path work.\n\nRelevant evidence gathered during proposal/discovery:\n\n- `advance-delivery` includes `rq-cacheRefresh01` obligations around `fireSignalAndRefresh` and target-store cache invalidation.\n- `advance-workflow` defines seven-gate sequencing, scope re-entry, cross-project task mutation, and target read-authority semantics.\n- `advance-meta` defines CLI/source-boundary and status/dashboard worker-free constraints that adapter refactors must not break.\n- Project wisdom from `stabilizeCliSourceBoundary` recommends narrow named boundaries plus deterministic forbidden-import tests for source-boundary work.\n- GitHub issue #65 is open; current preflight infrastructure already handles many schema-boundary concerns, so broad #65 work is secondary.\n- GitHub issue #192 is open; current code already shows some target-path fixes (`adv_change_show` artifact reads route through `withTargetPathStore` when artifact includes are requested; close/bulk close use `projectContext?.projectId`). Discovery/design must verify current tests and close remaining drift instead of assuming the issue body is current.\n- lgrep semantic search timed out twice; exact text/search and direct file reads are reliable for this surface.\n\n## Scope\n\n### In Scope\n\n- Behavior-preserving extraction or reorganization inside ADV tool adapter surfaces.\n- Verification/fix of `target_path` artifact readback, artifact update, close, and bulk-close routing through target Temporal store/project identity.\n- Tests that pin current behavior before refactor and verify unchanged or intentionally cleaned-up behavior after refactor.\n- Structural boundary tests where coupling risk is import/path/schema-related.\n- Schema-boundary validation work only where directly tied to adapter/tool argument safety.\n- Response-envelope cleanup or additive diagnostics when design proves it reduces ambiguity without unsafe compatibility break.\n- Documentation or wisdom updates for newly clarified adapter conventions.\n\n### Out of Scope\n\n- OCA-specific work, including issue #104.\n- Unrelated unused-export sweeps or broad housekeeping not tied to adapter coupling evidence.\n- New user-facing ADV workflow features unrelated to adapter-surface safety.\n- Rewriting Temporal workflow state machines or changing gate semantics.\n- Replacing the root CLI architecture beyond adapter-boundary needs.\n- Live mutation of unrelated target projects for validation without explicit approval.\n\n### Must Not\n\n- Must not weaken spec-law, gate sequencing, or archive validation.\n- Must not weaken typed tool boundaries, Zod schemas, or tool-arg preflight normalization.\n- Must not bypass `fireSignalAndRefresh` for change-workflow signals.\n- Must not bypass `withTargetPathStore(...)` for target-project mutations.\n- Must not blur `snapshot-ok` read-only state with authoritative Temporal state.\n- Must not add direct ADV state-file reads.\n- Must not introduce stale disk fallback for live Temporal status/active-change data.\n- Must not introduce direct `defineUpdate` mutation surfaces for change workflows.\n\n## Discovery Agenda\n\n### Codebase unknowns\n\n- Which adapter surface currently has the highest coupling and safest extraction seam: `change.ts` recovery/routing, `_adapters.ts`, `task.ts`, `gate.ts`, or `tool-registry.ts`?\n- Which tests already pin target-path artifact readback/update/close routing, cache refresh, recovery fallback, and schema preflight behavior?\n- Whether current #192 behavior is already fixed in source and only lacks issue closure/regression tests, or whether a live drift remains.\n- Whether dynamic imports in `change.ts` around `getChangeHandle` are intentional recovery boundaries or refactor leftovers.\n- Whether tool-registry schema compatibility casts should remain entirely untouched or can be protected by a smaller boundary test.\n\n### Ecosystem unknowns\n\n- No new external ecosystem dependency is expected. If design proposes a new parser/generator/library, discovery/design must consult current docs first.\n\n### Domain unknowns\n\n- User preference resolved during discovery: optimize for clarity first, include target-path routing fix, and allow cleanup behavior changes when safer.\n\n### Integration unknowns\n\n- How active Epic work and prior CLI/status/target-worker changes constrain adapter extraction order.\n- Whether issue #65 is still materially linked to schema-boundary validation after #192 scope is included.\n- Whether any active changes touch the same files and require collision handling.\n\n## B/F/S Ambiguity Scan\n\n- B / Boundaries: PASS — `## Scope` includes In Scope, Out of Scope, and Must Not, updated for #192-style target_path routing scope.\n- F / Functional Scope: PASS — `## User Outcomes` is still implementation-free and now includes cross-project target_path correctness.\n- S / Completion Signals: PASS for proposal stage — no engineering AC/SC included; discovery must firm testable success and acceptance criteria.\n\n# Discovery Findings\n\n## Discovery Checklist\n\n| Step | Status | Reason |\n|---|---|---|\n| Skill Discovery | PASS | Considered `adv-agent-tool-contracts` and `adv-refactor`; loaded both. No pending skill review found; grep match was instructional text, not `metadata.review_status`. |\n| Prior Research Extension | PASS | Read `docs/repo-improve-prep.md`, `docs/adv-run-test-prep.md`, `docs/adv-slop-scan-prep.md`, and `docs/non-coding-task-rigor-prep.md`; new finding: strongest seam is `change.ts` duplicated recovery/target routing, not `_adapters.ts` itself. |\n| Conflict & Related-Work Scan | PASS | Ran `adv_change_list includeArchived`, `adv_change_validate`, `adv_agenda_list`, and inspected #65/#192. Own-change `NO_TASKS`/`NO_DELTAS` warnings expected pre-prep. |\n| Edge Case Investigation | PASS | Recovery, target-path, schema-preflight, and dynamic-import edge cases recorded below. |\n| Design Question Depth | PASS | Questions annotated with trust model, blast radius, alternatives; user resolved scope preference to clarity-first/include routing fix/allow cleanup. |\n| Draft Spec Delta Shapes | PASS | No spec deltas required if work stays within existing target_path/read-authority/preflight law; spec-change trigger recorded. |\n| Related Pattern Scan | PASS | Found repeated recovery probe patterns, target_path wrapper patterns, and existing central preflight/adapter helpers. |\n| LBP Check | PASS | Best direction: clarify `change.ts` adapter seams, verify/fix #192 behavior, reuse existing recovery combinator where applicable. |\n| Completeness Verification | PASS | Scope broadened via re-entry and proposal refresh; secondary surfaces classified. |\n\n## Skills Considered\n\n- `adv-agent-tool-contracts`: matched because adapter work may touch agent-callable tool contracts, Zod schemas, preflight policy, and test guards. Applied: tool-boundary correctness must be structural.\n- `adv-refactor`: partial match for drift/conflict methodology. Applied: compare current code against open issues and archived changes before assuming issue bodies are current.\n- `adv-worktree`: not loaded yet; relevant later if implementation mutates files. Worktree must be resumed before edits.\n- No new skill gap detected.\n\n## Extends\n\n- `docs/repo-improve-prep.md`: cites `_adapters.ts` and read-path performance. New finding: target_path artifact readback now has dedicated code path when artifact includes are requested, so design must test current behavior before implementing #192 body literally.\n- `docs/adv-run-test-prep.md`: reinforces structural evidence and test-result contracts. New finding: target-path routing fix needs temp-project integration tests, not live external project mutation.\n- `docs/adv-slop-scan-prep.md`: reinforces deterministic scanner/JSON-first direction. New finding: no direct overlap beyond structural correctness.\n- `docs/non-coding-task-rigor-prep.md`: reinforces typed evidence. New finding: broadened scope was captured through ADV re-entry instead of silently absorbing it.\n\n## Conflict Scan\n\n- Active related changes:\n  - `fixEpicTerminalProjection` is active/draft and explicitly out-scopes broad adapter refactoring; likely no primary file collision.\n  - `diagnoseArchivedListingTimeout` remains stale draft; superseded by archived Epic entries for this initiative.\n- Related archived changes:\n  - `stabilizeCliSourceBoundary`: constrain any tool-registry/root CLI refactor through narrow boundaries and deterministic tests.\n  - `fixTargetPathRouting` and `ensureTargetWorkers`: constrain target_path trust/worker/read-authority behavior.\n  - `diagnoseArchivedListingTimeout2` / `addStatusHealthProbeTtl`: avoid duplicating hot-read scope.\n- Validation: `adv_change_validate` passed with expected pre-prep warnings `NO_TASKS` and `NO_DELTAS`.\n- Agenda: visible relevant items include target_path artifact readback/close routing follow-ups and active-target-worker failure semantics. These support including #192-style verification/fix.\n- GitHub #65: open; schema-boundary validation. Secondary, not primary.\n- GitHub #192: open; high-priority target_path workflow identity/routing. User selected include routing fix; discovery code read shows source may already contain partial or full fixes, so acceptance must require verification and issue disposition rather than assume failure.\n\n## Current State\n\n- `_adapters.ts` is 349 lines and already a narrow signal/query helper surface. It should probably remain stable unless tests prove a direct gap.\n- `change.ts` is 4334 lines and mixes artifact readback/update, close/bulk close, archive, origin, re-entry, recovery, and formatting.\n- `change.ts` current target artifact show path routes `target_path` + artifact include flags through `withTargetPathStore(... stateRequirement:\"temporal-required\", mutation:false)` before falling back to `withOptionalTargetPathStore` for other reads.\n- `adv_change_update target_path` routes through `withTargetPathStore(... stateRequirement:\"temporal-required\")` and target store artifact update.\n- `adv_change_close` and `adv_change_bulk_close` now compute project ID from `projectContext?.projectId ?? getProjectId(activeStore.paths.root)` and route `target_path` through `withTargetPathStore`. This may already address the issue #192 close-routing symptom; tests must prove it.\n- `withOptionalTargetPathStore` still uses `stateRequirement:\"snapshot-ok\"` for target reads without artifact include flags; this is correct only if non-authoritative disk-snapshot semantics remain explicit.\n- `store-temporal/changes.ts` intentionally keeps artifact content in workflow `state.documents` and metadata `readable:false`; target artifact readback must therefore query Temporal for active target content.\n- `recovery-probe.ts` defines `classifyCompletedOrPoisonedRecovery`; gate, contract, and design-concern tools consume it, while change.ts still has local recovery logic.\n- `tool-registry.ts` centralizes SDK binding and runs `preflightToolArgs` before tool execution.\n- `tool-arg-preflight.ts` centralizes placeholder policy in `FIELD_POLICIES` with drift tests.\n\n## Edge Cases\n\n1. Recovery refactor edge cases:\n   - Completed workflow errors must still take the disk-direct path where current behavior requires it.\n   - Poisoned-history recovery must still require explicit `recoveryMode`, evidence, and rationale; helper adoption must not broaden completed-only recovery sites.\n2. Target-path edge cases:\n   - `adv_change_show target_path include.proposal/problemStatement` for an active target change must read target workflow documents, not disk scaffold placeholders.\n   - `adv_change_close`/`adv_change_bulk_close target_path` must use target project ID for workflow handles and target store for cache refresh/cleanup.\n   - Target queue unserviceable must fail closed with target queue evidence rather than falling back to source project identity.\n   - Snapshot-ok target reads without artifact includes must remain read-only and non-authoritative.\n3. Schema/preflight edge cases:\n   - Strict-mode optional blanks normalize correctly; always-required semantic/audit fields reject blanks before handlers.\n4. Dynamic import / bundle-boundary edge cases:\n   - Dynamic imports in `change.ts` recovery paths may be intentional; design must verify before static extraction.\n   - Helper extraction must not create cycles from workflow-safe modules into tool/storage code.\n\n## Open Design Questions\n\n1. Where should target_path routing verification/fix be centered?\n   - Trust model: agent-resolved from tests/code.\n   - Blast radius: high; wrong project identity can mutate or fail against wrong workflow namespace.\n   - Alternatives: artifact readback only; close/bulk close only; unified change-tool target routing tests. Recommendation: unified tests around readback/update/close/bulk close.\n2. Should the primary clarity extraction target be `change.ts` recovery classification, target_path routing helpers, or both?\n   - Trust model: agent-resolved, with user preference for clarity first.\n   - Blast radius: medium-high; too broad risks churn, too narrow leaves approved #192 scope unresolved.\n   - Alternatives: recovery only; target_path only; sequence target_path verification first, then recovery extraction if still low-risk. Recommendation: target_path verification/fix first, recovery extraction second if same files are touched safely.\n3. Should #65 schema-boundary work be included?\n   - Trust model: joint for scope; agent can verify technical fit.\n   - Blast radius: medium; schema/preflight is central to all tools.\n   - Alternatives: defer #65; add only tests around existing preflight; implement new Zod/refinement layer. Recommendation: defer broad #65 unless target_path cleanup exposes a direct preflight gap.\n4. How broad can response cleanup be?\n   - Trust model: user has allowed cleanup; design owns compatibility guard.\n   - Blast radius: medium for tool consumers.\n   - Alternatives: additive diagnostics only; typed envelope cleanup with compatibility projections; breaking cleanup. Recommendation: allow additive/compatibility-preserving cleanup only.\n\n## Draft Spec Deltas\n\nNo spec deltas required if work implements existing target_path/read-authority/cache-refresh/preflight laws. Existing requirements likely cover the work:\n\n- `rq-cacheRefresh01` — `fireSignalAndRefresh` for change-workflow signals and target-store cache invalidation.\n- `rq-crossProjectTaskMutation01` — target-path task mutation precedent.\n- Target read-authority requirements from `advance-workflow` — disk-snapshot target reads must be non-authoritative.\n- CLI/source-boundary requirements from `advance-meta` if tool-registry/root CLI imports are touched.\n- `rq-toolPlaceholderPolicy01` / `FIELD_POLICIES` requirements — central preflight policy.\n\nSpec-delta trigger: add a concrete `rq-*` delta if design introduces new public response-envelope semantics, new target_path authority semantics not already covered, or new schema-boundary rules.\n\n## Related Pattern Scan\n\n- Repeated completed/poisoned recovery detection exists in `change.ts`; sibling tools use `classifyCompletedOrPoisonedRecovery`.\n- `target_path` routing appears in `change.ts`, `task.ts`, `gate.ts`, `wisdom.ts`, `status.ts`; broad wrapper consolidation is risky unless it preserves `snapshot-ok` vs `temporal-required` distinctions.\n- Raw `fireSignal(handle` direct calls were not found in non-test tool-layer code except documented exempt patterns.\n- `FIELD_POLICIES` has drift tests for live registered tool args; broad #65 work is likely lower priority than target_path verification/fix.\n\n## Completeness Verification\n\n- Problem-completeness check: discovery now includes both maintainability coupling and target_path correctness drift. Confidence high for current repo scope; live external repro remains unverified and should be replaced by temp-project tests.\n- Solution-scope check: full intended solution is a clarity-first adapter refactor plus verified/fixed #192-style target_path behavior, not blanket module decomposition.\n- Sole-entry claim status: no unverified sole-entry claim remains. Target artifact readback is claimed only for the include-artifact path verified in `change.ts`; tests must prove behavior.\n- Secondary surfaces:\n  - #65 schema-boundary expansion — out of scope except direct adapter/test needs.\n  - status/list performance — out of scope; later Epic entry covers Temporal hot path.\n  - generic target_path wrappers outside change/task/gate — out of scope unless tests expose shared bug.\n  - live external PokeEdge/PokeEdge-web validation — out of scope without explicit target approval; use isolated temp ADV projects.\n\n## LBP Check\n\nLikely direction matches long-term best practice: clarify the change-tool target routing surface with deterministic tests, preserve explicit target authority modes, and reuse existing repo-local recovery combinators only where they reduce duplication without broadening recovery semantics.\n\nExternal-solution check skipped: this is internal TypeScript/Temporal adapter behavior with no realistic external library/service alternative. If design proposes a new parser/generator/library, docs-first lookup becomes required.\n\n## Discovery Opportunity Scout\n\n- Trigger decision: run — broad adapter/architecture scope.\n- Candidates considered: 5 from adv-researcher before user broadened #192 scope.\n- Adopted/design-around:\n  - Use existing recovery combinator for `change.ts` if safe.\n  - Add a small handle-builder/helper as needed, placement decided in design.\n- User-expanded scope supersedes scout's recommendation to keep target_path consolidation separate: target_path routing verification/fix is now in scope, but broad wrapper consolidation still requires design caution.\n- Deferred: broad #65 expansion, `_adapters.ts` refactor, full change.ts split.\n\n## Recommended Objectives\n\n1. Make the `change.ts` target_path readback/update/close/bulk-close adapter surface clear and structurally tested.\n2. Verify or fix #192-style target workflow identity/readback drift using isolated target-project tests.\n3. Preserve target-store cache refresh, trust gates, `snapshot-ok` non-authoritative reads, and temporal-required fail-closed behavior.\n4. Reduce duplicated recovery/handle-building logic in `change.ts` only where tests prove behavior stays the same.\n5. Allow response cleanup only when additive or compatibility-preserving and backed by tests.\n6. Keep broad #65 schema-boundary work and status/list performance outside this change unless directly forced by the selected design.\n\n## AMBIGUITY ANALYSIS\n\n### AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C\n\nTrigger evaluation: clean after user resolved scope questions and proposal re-entry refreshed scope.\n",
+    "problemStatement": "# Problem Statement\n\nADV adapter/tool surfaces are harder to evolve safely because change, task, and tool-registry concerns are coupled across large implementation hot spots. Schema validation, target-path routing, Temporal signal dispatch/cache refresh, recovery handling, and response formatting are not consistently isolated. This raises regression risk for Temporal-backed state mutation, cross-project `target_path` behavior, typed tool boundaries, and future performance/structure work in the optimizeAdvPerformanceStructure Epic.\n\nDiscovery clarification expanded the intended outcome: optimize primarily for clearer maintainable boundaries, include verification/fix of the open #192-style `target_path` readback/close routing behavior where current code or tests still drift, and allow response-envelope cleanup when design proves it is safer and backward-compatible enough.\n\nDesired outcome: make the adapter surfaces clearer, more structurally testable, and easier to evolve while preserving spec-law constraints and fixing/closing target-path routing drift within the approved scope.",
+    "agreement": "# Agreement\n\n## Objective\n\nPreserve delivered target-path, recovery, and gate-order safety while making required harden slop-scan coverage reproducible in this repository.\n\n## Existing Acceptance Preserved\n\nThe previously accepted target-path artifact/update/close/bulk-close, recovery, cache-refresh, concurrent-signaling, check, and full-suite criteria remain required.\n\n## Re-entry Addendum: Detector Coverage\n\n### Acceptance Criteria\n\n11. `bin/adv slop-scan plugin/src/tools/change.ts --json` completes without `SLOP_SCAN_DEGRADED` caused by missing or undeclared required Knip, jscpd, or ast-grep tooling.\n12. Required detectors use repository-declared, reproducible dependencies/configuration; no global installation is required.\n13. ast-grep has committed `sgconfig.yml` and a bounded rule directory containing at least one tested TypeScript structural rule aligned with existing slop-scan policy.\n14. Knip and jscpd have committed project configuration and adapter tests proving their commands resolve through local package tooling and their JSON output is parsed.\n15. Existing `change.ts` complexity hotspots not overlapping this change’s hunks are documented as pre-existing debt; no broad `change.ts` split is required.\n16. Full `bin/oc-test full`, `pnpm run check`, detector tests, and the live slop scan pass before re-running harden.\n\n### Constraints\n\n- Preserve existing specs, adapter safety, Temporal signal/query semantics, and gate-order invariants.\n- Use repo-local dev dependencies and committed config/rules; do not rely on globally installed binaries.\n- Preserve required-detector semantics; do not downgrade detector importance or suppress degraded coverage.\n- Keep ast-grep rules bounded to existing structural/slop policy. No generic lint platform or broad rule migration.\n\n### Out of Scope\n\n- Full `change.ts` complexity refactor/split for pre-existing hotspots outside changed hunks.\n- Broad AST rule-pack migration beyond the minimum rules needed to establish reproducible required ast-grep coverage.\n- New user-facing workflows, schema-boundary redesign, status/list performance work, and unrelated cleanup.\n\n## User Decision\n\nUser selected `Add rule pack (Recommended)` on 2026-07-10: add repo-local ast-grep CLI, `sgconfig.yml`, bounded rule pack, and tests. User then instructed `execute`.",
+    "design": "# Design\n\n## Scope\n\nKeep completed adapter-surface and concurrent-gate work intact. This re-entry makes required slop-scan detector coverage reproducible without weakening detector requirements or broadening into a `change.ts` complexity refactor.\n\n## Evidence\n\nThe live scan degraded because Knip is undeclared; jscpd and ast-grep are bare binaries unavailable at repo root. Existing whole-file ESLint complexity findings do not overlap this change’s `change.ts` hunks and remain out-of-scope debt.\n\n## Architecture\n\n1. Add local dev dependencies for Knip, jscpd, and `@ast-grep/cli` in `plugin/package.json`; update `plugin/pnpm-lock.yaml`.\n2. Add committed Knip/jscpd configs and root `sgconfig.yml` plus a narrow TypeScript rule directory.\n3. Mirror the existing Knip resolution seam for **both** jscpd and ast-grep: invoke `pnpm exec <tool>` with `cwd=packageRoot` (`plugin/`), retaining absolute scan targets. Do not invoke bare binaries from repository root.\n4. Keep `sgconfig.yml` discoverable from the plugin working directory; rule files represent existing slop/structural-correctness policy only.\n5. Add adapter/config/asset tests for command construction, package-root working directory, JSON parsing, rule discovery, and degraded-to-run recovery.\n6. Keep required-detector importance unchanged. No global install, silent fallback, or severity downgrade.\n7. Record pre-existing whole-file complexity hotspots as debt; do not split/refactor `change.ts`.\n\n## Verification\n\n- RED/GREEN detector/config tests in `bin/lib/slop-scan`.\n- `bun test bin/lib/slop-scan`, `pnpm run check`, and `bin/oc-test full`.\n- Live `bin/adv slop-scan plugin/src/tools/change.ts --json`: Knip, jscpd, and ast-grep coverage is `run` or spec-authorized externally-covered; no `SLOP_SCAN_DEGRADED`.\n\n## Independent Validation\n\nValidator CAUTION resolved by this amendment: package-local dependencies cannot be resolved by `pnpm exec` from repo root. jscpd and ast-grep must run from packageRoot, like Knip. This is a local execution-seam correction, not an architecture redesign.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThis change is accepted and release-ready pending archive sign-off. It makes required ADV slop-scan coverage reproducible while preserving earlier target-project, recovery, and concurrent gate-order safety work.\n\n## Why It Matters\n\nRequired static-analysis detectors now resolve from declared repository dependencies and produce parsed, actionable output. Future work will not silently lose Knip, jscpd, or ast-grep coverage because a developer lacks global binaries or runs from the wrong directory.\n\n## What Was Built\n\n1. Added repository-local Knip, jscpd, and ast-grep dependencies plus committed Knip/jscpd configuration.\n2. Added root `sgconfig.yml` and a bounded TypeScript `no-debugger` structural rule.\n3. Routed jscpd and ast-grep through `pnpm exec` at `plugin/`, matching Knip and preserving absolute scan targets.\n4. Updated Knip JSON parsing for Knip 6 `issues[]` output; added detector command, parser, rule-discovery, and degraded-to-run recovery tests.\n5. Preserved required-detector severity: unavailable required tooling still degrades the scan rather than falling back silently.\n6. Retained prior target-path authority/cache-refresh pins, recovery characterization, and concurrent-signaling gate-order coverage.\n\n## What Was Verified\n\n- `bun test bin/lib/slop-scan`: 42 passing tests.\n- `bun test bin/`: 207 passing tests.\n- `pnpm run check`: passed.\n- `bin/oc-test full`: passed.\n- `bin/adv slop-scan plugin/src/tools/change.ts --json`: required eslint, Knip, jscpd, and ast-grep detectors all reported `run`; no `SLOP_SCAN_DEGRADED`.\n- Acceptance review: READY, no blockers; contract matrix: 13/13 pass, respected, or out-of-scope.\n- Release hardening: READY; clean worktree, `git diff --check`, detector CLI checks, 10/10 detector tests, 107/107 lifecycle tests, `pnpm run check`, and frozen offline install passed.\n\n## Remaining Concerns\n\nNon-blocking: `@ast-grep/cli` currently uses an explicit `allowBuilds: false` workaround so its JS launcher resolves the platform binary. Revisit only if package installation behavior changes. No data migration, production operation, frontend, preview, or required ops follow-up.\n\n## Release Readiness Summary\n\n- Delivered value: deterministic, repo-local required detector coverage and structural protection for target-path, recovery, and gate-order behavior.\n- Release risk: low; hardening found no blockers or findings.\n- Ops/migration/frontend impact: none.\n- Collision risk: low; branch is clean and verification is green.\n- Follow-ups: none required. The ast-grep installer behavior is documented as a non-blocking maintenance watch item.\n- Archive action: safe to archive after user sign-off.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T00:08:01.531Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `bin/adv slop-scan plugin/src/tools/change.ts --json` completes without `SLOP_SCAN_DEGRADED` caused by missing or undeclared required Knip, jscpd, or ast-grep tooling. | pass | Live `bin/adv slop-scan plugin/src/tools/change.ts --json` exited 0 with eslint/knip/jscpd/ast-grep all `run` and no SLOP_SCAN_DEGRADED; independent review READY. |\n| AC2 | acceptance_criterion | Required detectors use repository-declared, reproducible dependencies/configuration; no global installation is required. | pass | Committed plugin dev dependencies/configuration verified by review; detector suite 42 passing and no global install used. |\n| AC3 | acceptance_criterion | ast-grep has committed `sgconfig.yml` and a bounded rule directory containing at least one tested TypeScript structural rule aligned with existing slop-scan policy. | pass | Root sgconfig.yml, bounded slop-rules/no-debugger.yml, and ast-grep adapter/rule-discovery tests pass. |\n| AC4 | acceptance_criterion | Knip and jscpd have committed project configuration and adapter tests proving their commands resolve through local package tooling and their JSON output is parsed. | pass | Knip 6 issues[] parser and jscpd JSON parsing are covered by adapter tests; commands run with pnpm exec at plugin package root. |\n| AC5 | acceptance_criterion | Existing `change.ts` complexity hotspots not overlapping this change’s hunks are documented as pre-existing debt; no broad `change.ts` split is required. | pass | Design records whole-file change.ts complexity findings as pre-existing debt; task scope did not split/refactor change.ts. |\n| AC6 | acceptance_criterion | Full `bin/oc-test full`, `pnpm run check`, detector tests, and the live slop scan pass before re-running harden. | pass | Recorded evidence: bin/oc-test full, pnpm run check, detector suite, and live slop scan all passed; independent reviewer reran focused detector and adapter/concurrency checks. |\n| C1 | constraint | Preserve existing specs, adapter safety, Temporal signal/query semantics, and gate-order invariants. | respected | Independent review found no regression in existing target-path/recovery/gate-order behavior; targeted adapter/concurrency tests passed. |\n| C2 | constraint | Use repo-local dev dependencies and committed config/rules; do not rely on globally installed binaries. | respected | Dependencies are declared in plugin/package.json and lockfile; committed configs/rules are used through pnpm exec. |\n| C3 | constraint | Preserve required-detector semantics; do not downgrade detector importance or suppress degraded coverage. | respected | Required detector failures remain degraded; live scan evidence confirms restored coverage rather than severity suppression. |\n| C4 | constraint | Keep ast-grep rules bounded to existing structural/slop policy. No generic lint platform or broad rule migration. | respected | Rule pack is bounded to sgconfig.yml plus slop-rules/no-debugger.yml; no generic lint platform or broad migration added. |\n| OOS1 | out_of_scope | Full `change.ts` complexity refactor/split for pre-existing hotspots outside changed hunks. | not_applicable | No broad change.ts complexity refactor or split was performed. |\n| OOS2 | out_of_scope | Broad AST rule-pack migration beyond the minimum rules needed to establish reproducible required ast-grep coverage. | not_applicable | Only the minimum no-debugger ast-grep rule was added. |\n| OOS3 | out_of_scope | New user-facing workflows, schema-boundary redesign, status/list performance work, and unrelated cleanup. | not_applicable | No new user workflow, schema-boundary redesign, status/list performance work, or unrelated cleanup. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-10T02:27:12.860Z",
+      "contentHash": "17e9d8df2898e7af0f2120c4bd902487283bb0e8dcc8820e810b300f9b942a73",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-10T02:27:12.860Z",
+      "contentHash": "dc2333c0475e9ed2871e2aae1b17254f19a56133f1a573e8df5bb5c5e7b1b05a",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-10T15:31:36.956Z",
+      "contentHash": "84c30bea25cdcbb8b46a986ce27f7587961e92af91da9c49324742f5f6af5967",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-10T15:49:10.533Z",
+      "contentHash": "d40041074f21f198d68533cbf353582f5f9e9e17d28ecccf64b0f3422311fd44",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T00:15:59.349Z",
+      "contentHash": "650c98dfaa5d535f55f9180fdd23f534be5eebecabf5815a7a6a4713334023e9",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T00:17:09.384Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "optimizeAdvPerformanceStructure",
+    "entry_id": "shell-1783186808933-eyrgp3",
+    "order": 5,
+    "title": "Optimize adapter surfaces",
+    "linked_at": "2026-07-10T16:41:58.064Z",
+    "source": "link_existing"
+  }
+}
