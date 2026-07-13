@@ -94,7 +94,8 @@ From change data: affected files, spec scenarios, task completion evidence, `cha
 `pwd` → record as `{workdir}`. Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Critical in worktrees — sub-agents inherit default project root, not worktree path.
 
 ---
-See the 12-Dimension Framework table in [Phase 0: Embedded Methodology](#phase-0-embedded-methodology) above.
+## 12-Dimension Review Framework
+Apply the 12-dimension matrix defined once in the embedded methodology above (Phase 0 → Review Methodology → 12-Dimension Framework). Every review must assess all 12 dimensions — including Security's OWASP top 10 scope; skipping any dimension requires explicit justification. The scanner fan-out, dimension contracts, and inline fallbacks below execute this framework; they do not replace it.
 ---
 ## Sub-Agent Resilience
 Empty/failed result = transient failure (empty string, missing `"dimension"` key, error-only).

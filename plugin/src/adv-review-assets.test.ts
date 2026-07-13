@@ -75,6 +75,39 @@ describe("adv-review non-code evidence policy surface", () => {
   });
 });
 
+// AC1: the 12-dimension framework is defined exactly once (embedded
+// methodology) and later usage is a same-file reference that preserves the
+// mandatory scanner behavior. Reintroducing a second full matrix, dropping the
+// OWASP top 10 security scope, or weakening the reference must fail here.
+describe("adv-review 12-dimension framework single-source (AC1)", () => {
+  const command = readFileSync(REVIEW_PATH, "utf8");
+
+  test("exactly one full 12-dimension matrix is defined", () => {
+    expect(command.match(/^\| 1 \| Design \|/gm) ?? []).toHaveLength(1);
+    expect(command.match(/^\| 12 \| Consistency \|/gm) ?? []).toHaveLength(1);
+    expect(command.match(/^\| 9 \| Security \|/gm) ?? []).toHaveLength(1);
+  });
+
+  test("canonical matrix retains OWASP top 10 security scope", () => {
+    expect(command).toContain(
+      "| 9 | Security | Auth, validation, secrets, OWASP top 10 |",
+    );
+  });
+
+  test("later framework section is a same-file reference preserving mandatory behavior", () => {
+    const methodologyIdx = command.indexOf("### Review Methodology");
+    const frameworkIdx = command.indexOf("## 12-Dimension Review Framework");
+    expect(methodologyIdx).toBeGreaterThan(-1);
+    expect(frameworkIdx).toBeGreaterThan(methodologyIdx);
+
+    const section = command.slice(frameworkIdx, frameworkIdx + 800);
+    expect(section).not.toMatch(/^\| 1 \| Design \|/m);
+    expect(section).toMatch(/embedded methodology/i);
+    expect(section).toMatch(/all 12 dimensions/i);
+    expect(section).toMatch(/explicit justification/i);
+  });
+});
+
 // NON-BEHAVIORAL (asset presence only): these tests assert that the command
 // markdown points operators at the STRUCTURAL enforcement rail. They prove the
 // guidance text exists — NOT that enforcement works. The behavioral guarantees
