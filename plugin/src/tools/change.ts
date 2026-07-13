@@ -3152,13 +3152,14 @@ export const changeTools = {
   },
   adv_archive_repair: {
     description:
-      "Scan for archived change branches not reachable from origin/default and re-drive PR auto-merge handoff; OR clean up local change/* branches left behind after PR-mode archive merges",
+      "Scan/redrive archived change branches, clean up merged local change/* branches, or reconcile bundle-present fully-shipped changes whose terminal archived projection is wedged",
     args: {
       action: z
-        .enum(["scan", "redrive", "cleanup_merged"])
+        .enum(["scan", "redrive", "cleanup_merged", "reconcile"])
         .describe(
           "scan = list candidates; redrive = open/reuse PR and arm auto-merge for one archived change; " +
-            "cleanup_merged = scan local change/* branches tied to archived ADV changes, detect fully-merged ones (squash-merge-safe), and delete the safe ones",
+            "cleanup_merged = scan local change/* branches tied to archived ADV changes, detect fully-merged ones (squash-merge-safe), and delete the safe ones; " +
+            "reconcile = audited repair of only bundle-present, fully-gated, merged changes stuck before archived status",
         ),
       changeId: z
         .string()
@@ -3172,21 +3173,257 @@ export const changeTools = {
         .describe(
           "Preview redrive or cleanup_merged without creating PRs, arming auto-merge, or deleting branches",
         ),
+      approvedByUser: z
+        .literal(true)
+        .optional()
+        .describe(
+          "Required for action='reconcile'. Confirms explicit operator approval for audited terminal-projection repair.",
+        ),
+      approvalEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required for action='reconcile'. Cite explicit operator approval and terminal interruption evidence.",
+        ),
+      recoveryReason: z
+        .string()
+        .optional()
+        .describe(
+          "Required for action='reconcile'. Explain why bundle-anchored terminal-projection recovery is appropriate.",
+        ),
     },
     execute: async (
       {
         action,
         changeId,
         dryRun,
+        approvedByUser,
+        approvalEvidence,
+        recoveryReason,
       }: {
-        action: "scan" | "redrive" | "cleanup_merged";
+        action: "scan" | "redrive" | "cleanup_merged" | "reconcile";
         changeId?: string;
         dryRun?: boolean;
+        approvedByUser?: true;
+        approvalEvidence?: string;
+        recoveryReason?: string;
       },
       store: Store,
     ) => {
       const mainCheckout = resolveMainCheckout(store.paths.root);
       const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+      if (action === "reconcile") {
+        const evidence = approvalEvidence?.trim() ?? "";
+        const reason = recoveryReason?.trim() ?? "";
+        if (approvedByUser !== true) {
+          return formatToolOutput({
+            success: false,
+            action,
+            error: "approvedByUser must be true when action='reconcile'",
+            hint: "Bundle-anchored terminal-projection recovery requires explicit operator approval.",
+          });
+        }
+        if (!evidence) {
+          return formatToolOutput({
+            success: false,
+            action,
+            error: "approvalEvidence is required when action='reconcile'",
+            hint: "Cite the terminal interruption evidence and explicit operator approval.",
+          });
+        }
+        if (!reason) {
+          return formatToolOutput({
+            success: false,
+            action,
+            error: "recoveryReason is required when action='reconcile'",
+            hint: "Explain why the durable bundle proves this terminal-projection recovery is appropriate.",
+          });
+        }
+
+        // The default list is the release-stuck candidate set: changes still
+        // projected as in-flight. Archived changes are already terminal and
+        // intentionally excluded; this is a repair-only operation.
+        const inFlight = await store.changes.list({});
+        const candidateSummaries = inFlight.changes.filter(
+          (change) =>
+            change.status !== "archived" && change.status !== "closed",
+        );
+        const merged = detectArchivedMergedBranches({
+          mainCheckout,
+          defaultBranch,
+          archivedChangeIds: candidateSummaries.map((change) => change.id),
+        });
+        if (merged.status === "blocked") {
+          return formatToolOutput({
+            success: false,
+            action,
+            error: `Archive reconcile scan blocked: ${merged.reason}`,
+            requirement: "rq-archiveRecoveryConsistency01",
+            details: merged.details,
+          });
+        }
+        const mergedByChangeId = new Map(
+          merged.branches.map((branch) => [branch.changeId, branch]),
+        );
+        const results: Array<Record<string, unknown>> = [];
+
+        for (const candidate of candidateSummaries) {
+          // List returns compact summaries by design. Fetch the full durable
+          // change before evaluating gates or writing recovery state; a stale
+          // or unavailable record is a non-mutating disposition, never a
+          // reason to infer shipment from the summary.
+          let loaded: Awaited<ReturnType<Store["changes"]["get"]>>;
+          try {
+            loaded = await store.changes.get(candidate.id);
+          } catch (error) {
+            results.push({
+              changeId: candidate.id,
+              fromStatus: candidate.status,
+              disposition: "skipped_unreadable_change",
+              detail: error instanceof Error ? error.message : String(error),
+            });
+            continue;
+          }
+          if (!loaded.success || !loaded.data) {
+            results.push({
+              changeId: candidate.id,
+              fromStatus: candidate.status,
+              disposition: "skipped_unreadable_change",
+              detail: loaded.success
+                ? `Change not found: ${candidate.id}`
+                : loaded.error,
+            });
+            continue;
+          }
+          const change = loaded.data;
+          const incompleteGates = GATE_ORDER.filter(
+            (gateId) => change.gates?.[gateId]?.status !== "done",
+          );
+          if (incompleteGates.length > 0) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              disposition: "skipped_incomplete_gates",
+              incompleteGates,
+            });
+            continue;
+          }
+
+          let archivePath: string | null;
+          try {
+            archivePath = await findArchiveBundle(
+              store.paths.archive,
+              change.id,
+            );
+          } catch (error) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              disposition: "skipped_bundle_probe_failed",
+              detail: error instanceof Error ? error.message : String(error),
+            });
+            continue;
+          }
+          if (!archivePath) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              disposition: "skipped_no_bundle",
+            });
+            continue;
+          }
+
+          const branch = mergedByChangeId.get(change.id);
+          if (!branch) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              archivePath,
+              disposition: "skipped_unmerged_branch",
+            });
+            continue;
+          }
+          if (dryRun) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              toStatus: "archived",
+              archivePath,
+              mergeProof: branch.mergeProof,
+              disposition: "would_repair",
+            });
+            continue;
+          }
+
+          try {
+            const { saveRecoveredChangeStatus } =
+              await import("./_recovery-writers");
+            await saveRecoveredChangeStatus({
+              store,
+              change,
+              authorization: { reason, evidence },
+              status: "archived",
+            });
+            const readback = await verifyStatusRepairReadAfterWrite({
+              store,
+              changeId: change.id,
+            });
+            if (!readback.ok) {
+              results.push({
+                changeId: change.id,
+                fromStatus: change.status,
+                archivePath,
+                mergeProof: branch.mergeProof,
+                disposition: "readback_failed",
+                detail: readback.error,
+                readback: readback.readback,
+              });
+              continue;
+            }
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              status: "archived",
+              archivePath,
+              mergeProof: branch.mergeProof,
+              disposition: "repaired",
+              readback: readback.readback,
+            });
+          } catch (error) {
+            results.push({
+              changeId: change.id,
+              fromStatus: change.status,
+              archivePath,
+              mergeProof: branch.mergeProof,
+              disposition: "repair_failed",
+              detail: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        const summary = {
+          total: results.length,
+          repaired: results.filter((r) => r.disposition === "repaired").length,
+          skipped: results.filter((r) =>
+            String(r.disposition).startsWith("skipped_"),
+          ).length,
+          failed: results.filter(
+            (r) =>
+              r.disposition === "readback_failed" ||
+              r.disposition === "repair_failed",
+          ).length,
+        };
+        return formatToolOutput({
+          success: summary.failed === 0,
+          action,
+          dryRun: Boolean(dryRun),
+          mainCheckout,
+          defaultBranch,
+          recoveryReason: reason,
+          results,
+          summary,
+        });
+      }
       const archivedList = await store.changes.list({
         status: "archived",
         includeArchived: true,

@@ -53,6 +53,7 @@ import { WisdomEntrySchema } from "../types";
 import {
   createChangeScaffold,
   getProjectPaths,
+  hasArchiveBundle,
   listChangeDirs,
   listSpecDirs,
   loadChange,
@@ -335,21 +336,56 @@ export async function createDiskStore(
           paths.changes,
           changeId,
         );
-        if (!id) {
-          if (candidates.length > 1) {
+        if (id) {
+          const loaded = await loadChange(paths.changes, id);
+          // rq-terminalProjectionTruth01 bundle dominance: if an archive bundle
+          // exists, the shipped invariant holds and the change is `archived`
+          // regardless of the active record's (possibly stale) status — the
+          // terminal status signal may have been lost after the bundle write.
+          // Read-side dominance only; does not write/resurrect the active
+          // record (rq-archiveRetirement01.2, rq-fix-archive-terminal-proj).
+          if (
+            loaded.success &&
+            loaded.data &&
+            loaded.data.status !== "archived" &&
+            (await hasArchiveBundle(paths.archive, changeId))
+          ) {
             return {
-              success: false,
-              error: `Ambiguous change ID "${changeId}". Matches: ${candidates.join(", ")}`,
-              type: "not_found" as const,
+              success: true,
+              data: { ...loaded.data, status: "archived" as const },
             };
           }
+          return loaded;
+        }
+        // No active record resolves for this id. Before returning "not found",
+        // consult the archive bundle (self-heal): a terminal-step interruption
+        // may have written the bundle + removed nothing, leaving the change
+        // reachable only via the bundle. rq-terminalProjectionTruth01.
+        if (candidates.length <= 1) {
+          if (await hasArchiveBundle(paths.archive, changeId)) {
+            const archived = (await loadArchivedChanges()).find(
+              (c) => c.id === changeId,
+            );
+            if (archived) {
+              return {
+                success: true,
+                data: { ...archived, status: "archived" as const },
+              };
+            }
+          }
+        }
+        if (candidates.length > 1) {
           return {
             success: false,
-            error: `Change not found: ${changeId}`,
+            error: `Ambiguous change ID "${changeId}". Matches: ${candidates.join(", ")}`,
             type: "not_found" as const,
           };
         }
-        return loadChange(paths.changes, id);
+        return {
+          success: false,
+          error: `Change not found: ${changeId}`,
+          type: "not_found" as const,
+        };
       },
 
       create: async (summary, options) => {

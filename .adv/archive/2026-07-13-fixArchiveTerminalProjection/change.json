@@ -1,0 +1,1385 @@
+{
+  "id": "fixArchiveTerminalProjection",
+  "title": "Fix archive terminal projection wedge",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T12:47:14.920Z",
+  "tasks": [
+    {
+      "id": "tk-23fd806e1cd9",
+      "title": "Make legacy disk store `get` bundle-aware (self-heal reads)",
+      "type": "code",
+      "section": "Self-heal reads",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T16:32:40.427Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T16:35:02.109Z",
+      "verification": "Bundle-aware legacy disk `get` implemented (store-disk.ts:333+): when active record missing, consults archive bundle via hasArchiveBundle + loadArchivedChanges (self-heal); when active record present with stale status + bundle exists, forces status archived (bundle dominance). Reuses hasArchiveBundle for canonical-id dedupe (rq-terminalProjectionTruth01.2). Read-only — no active-record resurrection. RED runId tr_mrjg6bma (2 failed: both wedge cases) → GREEN runId tr_mrjg8evo (8/8). Typecheck + eslint clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts"
+      ],
+      "checkpointSha": "de5fd170037b61b7cad33ca62f0c852195375923",
+      "completedAt": "2026-07-13T16:42:02.937Z",
+      "completed_at": "2026-07-13T16:42:02.937Z"
+    },
+    {
+      "id": "tk-08b5f7e5c1fe",
+      "title": "Add adv_change_archive timeout override + typed in-progress/reconcile result",
+      "type": "code",
+      "section": "Archive timeout",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-13T16:32:47.974Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T20:19:42.359Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchiveTerminalProjection",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveTerminalProjection",
+          "task_id": "tk-08b5f7e5c1fe",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-08b5f7e5c1fe"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/utils/safe-execute.ts",
+            "plugin/src/utils/safe-execute.test.ts",
+            "plugin/src/tools/change/archive-timeout.ts",
+            "plugin/src/tools/change/archive-timeout.test.ts",
+            "plugin/src/tool-registry.ts",
+            "plugin/src/tool-registry.test.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/utils/safe-execute.test.ts src/tools/change/archive-timeout.test.ts src/tool-registry.test.ts (RED)",
+              "exit_code": 1,
+              "summary": "RED confirmed before implementation: 3 test files failed (missing onToolTimeout hook, missing archive-timeout module, missing registry override)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/utils/safe-execute.test.ts src/tools/change/archive-timeout.test.ts src/tool-registry.test.ts src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 120/120 tests pass — safeExecute onToolTimeout hook (4 new), archive-timeout classifier (7 new), registry override static assertion (1 new), AC4 idempotent re-run test (1 new)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.archive-repair.test.ts src/tool-registry.surface.test.ts src/utils/tool-arg-preflight.test.ts src/__tests__/active-change-pointer.test.ts src/cli-bridge-contract.test.ts",
+              "exit_code": 0,
+              "summary": "Regression surface green: 278/278 tests pass across registry-shape, preflight, bridge-contract, and archive-repair suites"
+            },
+            {
+              "command": "pnpm run check (plugin/)",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, eslint, prettier — all green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Timeout classifier implemented as an onToolTimeout hook on SafeExecuteOptions, invoked from safeExecute's catch on ToolExecutionTimeoutError",
+              "why": "The safety-net race lives outside tool execute(); a hook is the only seam that can retype the timeout response without redesigning the wrapper. Hook is best-effort (undefined/throw → generic response) so it can never mask the original timeout"
+            },
+            {
+              "what": "Classifier probe is disk-only (findArchiveBundle over external archive + worktreePath/target_path/store-root in-repo mirrors); no Temporal queries, no git ops",
+              "why": "After a timeout the Temporal worker may be the hung component; a second unbounded call could hang the error path itself. Disk probe covers both native and target_path routing without resolving target project identity"
+            },
+            {
+              "what": "timeoutMs: 420_000 = 300s inner git push budget (DEFAULT_GIT_PUSH_TIMEOUT_MS) + 120s headroom for fetch/merge/gh ops, release-gate signals, durable-proof queries, cleanup, issue closure",
+              "why": "rq-toolTimeoutOverride01 requires the override to cite inner-budget rationale; 305s (adv_run_test tier) would still clip a slow push plus terminal-step work"
+            },
+            {
+              "what": "Typed payload keeps errorClass:'ToolExecutionTimeout' and adds archiveStatus:'still_finalizing', bundleDurable, archivePath, retrySafe, remediation, requirement:'rq-archiveOrdering01'",
+              "why": "Preserves classifier continuity for downstream error-class consumers while making the interrupted-past-bundle-write state machine-readable and actionable per SC3/AC4"
+            },
+            {
+              "what": "No changes to plugin/src/tools/change.ts archive flow",
+              "why": "C1 (preserve bundle-first ordering) — the fix is at the tool-boundary wrapper only; the idempotent re-run path (existingBundlePath recovery) already existed and is now explicitly test-locked for AC4"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Task tk-a98c3ce70ad3 (verification) owns SC4's cross-store read-parity regression; the AC4 typed-timeout + re-run legs added here compose with it",
+            "If operators raise ADV_GIT_PUSH_TIMEOUT_MS above ~360s, the 420s outer net can still fire — safe by design (typed result), but worth noting in any future push-budget change"
+          ],
+          "required_main_agent_actions": [
+            "Checkpoint this task (tk-08b5f7e5c1fe) — work is uncommitted per delegation instructions",
+            "Task tk-f7248412becc (status_repair bundle-anchored) and tk-29dd9803ee8a (archive_repair reconcile) remain pending; this task does not unblock them (they depend on tk-23fd806e1cd9, already done)"
+          ],
+          "related_scan": "Checked for same-pattern tools needing a timeout classifier: no other tool has a durable-bundle terminal step (adv_task_checkpoint/adv_run_test/adv_temporal_worker_restart already carry explicit timeoutMs overrides per rq-toolTimeoutOverride01). safeExecuteSimple received only the generic type param for consistency — no behavioral change. change.ts archive write flow untouched; pre-existing idempotent re-run tests (change.archive-phase9.test.ts:716+, change.test.ts:3932+) still pass.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "SC3/AC4 implemented. adv_change_archive now registers via registerTool with timeoutMs 420_000 (heavy tier, comment cites rq-toolTimeoutOverride01 inner-budget rationale) and an onToolTimeout classifier. On safety-net timeout, formatArchiveTimeoutResult (new, plugin/src/tools/change/archive-timeout.ts) does a disk-only bundle probe across external archive + worktreePath/target_path/root in-repo mirrors: bundle durable → typed {success:false, errorClass:'ToolExecutionTimeout', archiveStatus:'still_finalizing', bundleDurable:true, archivePath, retrySafe:true, remediation:'re-run adv_change_archive...idempotent'}; no bundle → generic timeout surfaces the real failure (DONT2 intact). Bundle-first ordering (C1) untouched — zero changes to change.ts archive flow. safe-execute.ts gained SafeExecuteOptions<TArgs>.onToolTimeout (best-effort: undefined/throw falls back to generic). New AC4 test locks idempotent re-run → archived without bundle rewrite. All verification green: 120 targeted + 278 regression tests, pnpm run check clean. Uncommitted — ready for checkpoint.",
+            "suggested_next_action": "Checkpoint tk-08b5f7e5c1fe, then proceed to tk-f7248412becc (adv_change_status_repair bundle-anchored) or tk-29dd9803ee8a (adv_archive_repair reconcile mode) per plan priorities."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/safe-execute.test.ts src/tools/change/archive-timeout.test.ts src/tool-registry.test.ts (RED)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/safe-execute.test.ts src/tools/change/archive-timeout.test.ts src/tool-registry.test.ts src/tools/change.archive-phase9.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.archive-repair.test.ts src/tool-registry.surface.test.ts src/utils/tool-arg-preflight.test.ts src/__tests__/active-change-pointer.test.ts src/cli-bridge-contract.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check (plugin/)"
+            }
+          ]
+        }
+      ],
+      "verification": "RED→GREEN targeted tests (120/120), archive regression surface (278/278), and plugin `pnpm run check` passed; typed ENGINEER_REPORT persisted.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-timeout.test.ts",
+        "plugin/src/tools/change/archive-timeout.ts",
+        "plugin/src/utils/safe-execute.test.ts",
+        "plugin/src/utils/safe-execute.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-timeout.test.ts",
+        "plugin/src/tools/change/archive-timeout.ts",
+        "plugin/src/utils/safe-execute.test.ts",
+        "plugin/src/utils/safe-execute.ts"
+      ],
+      "checkpointSha": "66f33bcf9d3a8bef4ccfb5e154975a6747b6dc74",
+      "completedAt": "2026-07-13T20:38:43.621Z",
+      "completed_at": "2026-07-13T20:38:43.621Z"
+    },
+    {
+      "id": "tk-f7248412becc",
+      "title": "Make adv_change_status_repair bundle-anchored (recover without a healthy workflow)",
+      "type": "code",
+      "section": "Audited recovery",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-13T16:33:03.014Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-23fd806e1cd9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC2"
+        ],
+        "verifies": [
+          "AC2"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T20:38:58.696Z",
+      "verification": "Bundle-dominant archived projection is explicitly covered: status repair resolves it idempotently without a healthy workflow, secondary bundle lookup, or recovery write. `bin/oc-test targeted -- src/tools/change.status-repair.test.ts` passed 15/15 (run tr_mrjothjo_8e53367c).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.status-repair.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.status-repair.test.ts"
+      ],
+      "checkpointSha": "392cef730901a3096ca48900666e4f03291afded",
+      "completedAt": "2026-07-13T20:41:29.768Z",
+      "completed_at": "2026-07-13T20:41:29.768Z"
+    },
+    {
+      "id": "tk-29dd9803ee8a",
+      "title": "Add adv_archive_repair reconcile mode for the release-stuck cluster",
+      "type": "code",
+      "section": "Audited recovery",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-13T16:33:12.809Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-23fd806e1cd9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C3",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T20:41:36.769Z",
+      "verification": "TDD RED (reconcile absent) → GREEN: new audited `adv_archive_repair action:\"reconcile\"` repairs only bundle-present, all-gates-done, structurally merged release-stuck changes via `saveRecoveredChangeStatus`; incomplete, bundle-missing, unmerged, unreadable, and probe-failed candidates remain non-mutating per-change dispositions. Targeted test 13/13 passed (run tr_mrjp02e9_56f4c8b1); `pnpm run check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-repair.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-repair.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "332955a783865a4091e0f7b94dd76958818df672",
+      "completedAt": "2026-07-13T20:48:26.474Z",
+      "completed_at": "2026-07-13T20:48:26.474Z"
+    },
+    {
+      "id": "tk-a98c3ce70ad3",
+      "title": "Consolidated regression + cross-cutting verification",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-13T16:33:30.831Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-23fd806e1cd9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-08b5f7e5c1fe"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f7248412becc"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-29dd9803ee8a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T20:48:39.675Z",
+      "verification": "Acceptance reviewer READY. Added a fail-closed unreadable-candidate disposition test and catch path; reviewer verification: 149 focused tests, `pnpm -C plugin run check`, and `git diff --check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-repair.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-repair.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "32ec44f8fea16308ee9f9e1a63c6fded99b5902c",
+      "completedAt": "2026-07-13T20:59:15.636Z",
+      "completed_at": "2026-07-13T20:59:15.636Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveTerminalProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:archive-phase9-timeout-durability"
+      },
+      "agent": "adv-researcher",
+      "topic": "Phase 9 archive timeout override + durable pre-finalization checkpoint (GH #216)",
+      "sources": [
+        {
+          "label": "safeExecute timeout override mechanism",
+          "locator": "plugin/src/utils/safe-execute.ts:240,247-289,427-470",
+          "summary": "DEFAULT_TOOL_TIMEOUT_MS=10_000 (L240). SafeExecuteOptions.timeoutMs override (L247-250). raceWithTimeout uses Promise.race against a setTimeout that rejects with ToolExecutionTimeoutError (L275-289). On timeout the outer Promise.race rejects the whole tool promise — the wrapped fn keeps running but its own try/catch never surfaces because the race already rejected. safeExecute reads timeoutMs=options?.timeoutMs ?? DEFAULT (L433)."
+        },
+        {
+          "label": "Existing per-tool override registrations (exact seam)",
+          "locator": "plugin/src/tool-registry.ts:687-706,739-756,764-783",
+          "summary": "Named-override pattern: registerTool(desc,args,namedExecute(name, safeExecute(execFn, name, undefined, { timeoutMs: N }))). adv_run_test=305_000, adv_task_checkpoint=35_000, adv_temporal_worker_restart=15_000. Each carries an inline rationale comment; worker_restart cites rq-toolTimeoutOverride01.2."
+        },
+        {
+          "label": "adv_change_archive currently has NO override (root cause)",
+          "locator": "plugin/src/tool-registry.ts:379-382",
+          "summary": "adv_change_archive is registered via plain bindTool(changeTools.adv_change_archive, \"adv_change_archive\", store). bindTool (L215-228) calls safeExecute(fn, name) with no options → inherits the 10s default ceiling. This is the direct cause of GH #216: Phase 9 git+Temporal work exceeds 10s, race rejects, tool-local failed-status catch is bypassed."
+        },
+        {
+          "label": "Override test seam (structural registry guard)",
+          "locator": "plugin/src/tool-registry.test.ts:458-538",
+          "summary": "describe('safeExecute timeout overrides for slow-subprocess tools') reads tool-registry.ts as source text, extractRegistrationBlock(src,toolName) walks balanced parens from '<name>: registerTool(', asserts /timeoutMs:\\s*(\\d[\\d_]*)/ >= threshold. NOTE: extractor anchors on 'registerTool(' — a bindTool-registered tool is NOT matched. Adding an archive override requires converting adv_change_archive from bindTool to an explicit registerTool block (like adv_gate_complete L714-728) so the guard can assert it."
+        },
+        {
+          "label": "Phase9 finalization flow — no pre-finalization checkpoint",
+          "locator": "plugin/src/tools/change.ts:2683-2738,2758,2862",
+          "summary": "finalizeRelease/verifyReleaseEvidenceFromMain is awaited at L2692-2706 inside try. recordPhase9Status is only ever called AFTER the await resolves: failed in catch (L2711), pending_merge (L2758), done (L2862). There is NO recordPhase9Status BEFORE L2692. A 10s outer-race rejection kills the promise before the catch runs → zero durable phase9_status is written → split-brain (bundle written by archiveChange at L2660, terminal status absent)."
+        },
+        {
+          "label": "Phase9FinalizationStatusSchema enum (widening target)",
+          "locator": "plugin/src/types/changes.ts:782-809",
+          "summary": "status enum is [\"pending\",\"pending_merge\",\"done\",\"failed\"] with startedAt(required), completedAt/error/route/changeTipSha optional. No in_progress/started member exists to mark 'finalization dispatched, not yet terminal'."
+        },
+        {
+          "label": "Workflow signal handler is opaque assignment (replay-safe widening)",
+          "locator": "plugin/src/temporal/workflows.ts:1476-1487,628-629,1715; plugin/src/tools/change/archive-gate.ts:468-492",
+          "summary": "phase9StatusUpdatedSignal handler does state.phase9_status = payload.phase9_status — no exhaustive switch on the enum in workflow-reachable code. Seed (L628) and projection (L1715) also opaque. recordPhase9Status fires phase9StatusUpdatedSignal via fireSignalAndRefresh. Adding an enum member introduces no new signal/handler/branch → replay-safe; only the Zod boundary widens."
+        },
+        {
+          "label": "Existing bundle-present retry / reconciliation seams",
+          "locator": "plugin/src/tools/change.ts:2567-2569,2606-2625,2636-2658; plugin/src/tools/change/archive-gate.ts:238,290-431",
+          "summary": "findArchiveBundle probes existing bundle (L2567). rq-archiveRetryIdempotence01: if status==archived && bundle present → reconcileArchivedBundleRetry (bounded metadata-only, L2610-2625). rq-archiveOrdering01: if bundle present but status!=archived → synthetic archiveResult, skip disk re-write, let status transition complete recovery (L2636-2658). reconcileArchivedBundleRetry (archive-gate.ts:290-431) re-verifies structural release proof + durable proof before no-op success."
+        },
+        {
+          "label": "Relevant spec requirements",
+          "locator": ".adv/specs/advance-workflow/spec.json:384,758,809,2916,4964 (advance-workflow v1.28.0)",
+          "summary": "rq-releaseFinalization01 (finalization→gate ordering, shipped invariant, .1-.12), rq-releaseProjectionDurability01 (durable proof or block), rq-archiveRecoveryConsistency01 (failed recovery must classify + fail closed), rq-archiveOrdering01 (resilient to failed disk write), rq-archiveRetryIdempotence01 (bounded reconcile). A new AC for pre-finalization durable checkpoint fits under rq-releaseFinalization01 or a sibling rq-releaseFinalization01.N."
+        },
+        {
+          "label": "Failed-status regression test seam (proven harness)",
+          "locator": "plugin/src/tools/change.archive-phase9.test.ts:636-669",
+          "summary": "mocks.finalizeRelease.mockRejectedValueOnce(...) then asserts mocks.workflow.signalPayloads containsEqual phase9_status.status='failed' and store.changes.save NOT called. Same mock harness (createMockStore, mocks.workflow.signalPayloads) can assert an 'in_progress'/'started' payload is fired BEFORE finalization and that a timeout leaves durable actionable state."
+        }
+      ],
+      "architecture_assessment": "GH #216 root cause is precise and single-seam: adv_change_archive (tool-registry.ts:379-382) is bound via bindTool with no SafeExecuteOptions, inheriting the 10s DEFAULT_TOOL_TIMEOUT_MS. Phase 9 legitimately does cumulative git + Temporal work exceeding 10s; safe-execute.ts raceWithTimeout rejects the tool promise, and because the ONLY durable phase9_status writes (change.ts:2711/2758/2862) occur AFTER the awaited finalization resolves, an outer-timeout abort bypasses all of them — no failed, no pending_merge, no done. Result: archive bundle present (archiveChange ran at L2660) with terminal projection absent = the exact split-brain wedge the change targets. Two mutually-reinforcing fixes: (1) explicit archive timeout override, (2) a durable pre-finalization checkpoint. The retry/reconciliation machinery to consume that checkpoint already exists (reconcileArchivedBundleRetry, rq-archiveOrdering01 synthetic-result recovery, rq-archiveRetryIdempotence01) — the missing durable link is a status set BEFORE the vulnerable await, independent of the inner catch.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "The proposed direction is architecturally sound and low-risk. Fix 1 (timeout override) is a mechanical extension of a proven pattern (adv_run_test/adv_task_checkpoint/adv_temporal_worker_restart). Fix 2 (pre-finalization checkpoint) requires: (a) convert adv_change_archive from bindTool to an explicit registerTool block so the timeoutMs override is expressible AND the registry guard test can assert it — bindTool cannot carry SafeExecuteOptions and the extractor only matches 'registerTool('; (b) call recordPhase9Status with a non-terminal 'in_progress'/'started' status immediately before the finalizeRelease/verify await at change.ts:2692; (c) widen Phase9FinalizationStatusSchema enum — replay-safe because the workflow handler is an opaque assignment with no exhaustive switch. Suggested budget: 180s (matches proposal; must exceed archive's cumulative git+Temporal ceiling and stay under the SDK output-race practicalities; note adv_run_test already sets 305s so 180s is well within precedent)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Converting adv_change_archive from bindTool to registerTool adds ~15 lines of explicit wiring but is required for both the override and its structural guard test; this trades one-line brevity for testability and matches the existing adv_gate_complete precedent (L714-728).",
+          "A non-terminal 'in_progress' phase9_status must NOT satisfy any release/shipped invariant check — every existing consumer that treats status!=done as incomplete (change.ts:2858-2861, archive-gate.ts:399-401) already fails-closed, so widening is safe, but any future code that switches on the enum must handle the new member.",
+          "An explicit override does not itself fix a genuinely-hung finalization (infinite git prompt); the 180s bound converts an unbounded hang into a bounded failure. The pre-finalization checkpoint is what makes that bounded failure durable and recoverable — both are needed together, not either alone.",
+          "The 180s budget is advisory; if archive later grows heavier work it must be re-tuned, and the inner git/Temporal ops remain the authoritative wall-clock source (mirroring the adv_run_test 305s comment at tool-registry.ts:732-738)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Timeout override alone (raise archive to 180s, no checkpoint)",
+            "disposition": "rejected",
+            "rationale": "Reduces incidence but does not eliminate the class: any interruption after bundle write and before the post-await recordPhase9Status (worker loss, process kill, a >180s hang) reproduces the split-brain. The durable invariant requires a checkpoint written BEFORE the vulnerable await, independent of the inner catch (proposal item 2)."
+          },
+          {
+            "option": "Pre-finalization checkpoint alone (no override)",
+            "disposition": "rejected",
+            "rationale": "Makes the wedge recoverable but leaves the 10s ceiling routinely aborting legitimate finalizations, so every long archive still fails first-try. Poor operator UX and unnecessary retries. Both fixes are complementary."
+          },
+          {
+            "option": "Add a defineUpdate handler / detached async workflow to own Phase 9 out-of-band",
+            "disposition": "rejected",
+            "rationale": "Violates the project's signal-only change-workflow constraint (AGENTS.md: no defineUpdate in workflow-reachable code) and the 'no general Temporal worker supervision redesign' out-of-scope boundary. The signal-based recordPhase9Status path already exists and is replay-safe."
+          },
+          {
+            "option": "Keep adv_change_archive on bindTool and thread timeoutMs through bindTool",
+            "disposition": "rejected",
+            "rationale": "bindTool has no SafeExecuteOptions parameter and the registry guard test's extractRegistrationBlock only matches 'registerTool(' anchors. Threading options through bindTool would over-generalize a helper used by ~30 tools for one caller; the explicit registerTool block is the locality-correct, testable choice matching adv_gate_complete."
+          }
+        ],
+        "recommendation": "Implement all three coordinated edits: (1) tool-registry.ts:379-382 — replace bindTool with an explicit registerTool(...safeExecute(...,{ timeoutMs: 180_000 })) block carrying an rq-* rationale comment; add a matching guard test in tool-registry.test.ts:458-538 asserting timeoutMs >= ~180_000 and the rq citation. (2) change.ts:~2692 — call recordPhase9Status with a non-terminal status ('in_progress' or 'started', startedAt=now) immediately before the finalizeRelease/verify await, so a subsequent timeout/interruption leaves durable, retry-visible evidence consumed by the existing rq-archiveOrdering01 / reconcileArchivedBundleRetry recovery. (3) types/changes.ts:782 — widen Phase9FinalizationStatusSchema.status enum with the new member (replay-safe per workflows.ts:1481 opaque assignment); run pnpm run schemas:generate + keep schemas:check green if the schema is published."
+      },
+      "recommendation": "Ship the coordinated fix. Deterministic verification cases the implementation agent can assert: (V1) tool-registry.test.ts — extractRegistrationBlock('adv_change_archive') is non-null (proves conversion to registerTool) AND matches /timeoutMs:\\s*(\\d[\\d_]*)/ with value >= 180_000 AND contains the rq-* citation. (V2) change.archive-phase9.test.ts — a successful archive fires a non-terminal phase9_status ('in_progress'/'started') payload BEFORE the finalizeRelease mock resolves (assert ordering in mocks.workflow.signalPayloads or via mock call sequence), then a terminal 'done'. (V3) simulate outer-timeout: with the pre-finalization checkpoint in place, assert that after a rejected/aborted finalization the durable phase9_status is a recoverable non-'done' state and store.changes.save was NOT called (no archived transition) — mirrors the existing L636-669 failed-path test. (V4) bundle-present retry: with existing bundle + non-'done' phase9_status, adv_change_archive reconciles via reconcileArchivedBundleRetry / rq-archiveOrdering01 synthetic path without re-running finalization (assert finalizeRelease NOT re-invoked). (V5) schemas:check stays green after enum widening.",
+      "follow_ups": [
+        "Confirm the exact non-terminal enum member name with the implementation agent ('in_progress' vs 'started'); either is replay-safe but the choice must be consistent across schema, change.ts checkpoint, and any gate.ts/archive-gate.ts status!=done predicates (change.ts:2858-2861, archive-gate.ts:399-401 already treat any non-'done' as incomplete, so both work).",
+        "Verify no chat-history-based reasoning was used: this report is sourced entirely from live file:line reads; the SESSION_HEALTH banner flagged history may be unsafe.",
+        "IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were not provided in the delegating prompt; continued under existing prompt scope (read-only supplemental design evidence) per fallback policy."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveTerminalProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: archive terminal projection wedge — root-cause hypotheses and architecture",
+      "sources": [
+        {
+          "label": "disk get bundle-blind",
+          "locator": "plugin/src/storage/store-disk.ts:333-353",
+          "summary": "get resolves only paths.changes, returns literal 'Change not found' at :348, no archive fallback (H1 confirmed)."
+        },
+        {
+          "label": "disk list bundle-aware",
+          "locator": "plugin/src/storage/store-disk.ts:123-134,283-290",
+          "summary": "loadArchivedChanges reads paths.archive; merged when includeArchived — the get/list asymmetry."
+        },
+        {
+          "label": "temporal get bundle-dominant",
+          "locator": "plugin/src/storage/store-temporal/index.ts:460-489",
+          "summary": "loadArchiveBundleDominantProjection forces status archived when hasArchiveBundle (claim 2 confirmed)."
+        },
+        {
+          "label": "target_path legacy routing",
+          "locator": "plugin/src/tools/target-project.ts:284-307",
+          "summary": "snapshot-ok and scaffold route to createLegacyStore; exact wedge surface (claim 3 confirmed)."
+        },
+        {
+          "label": "archive no timeout override",
+          "locator": "plugin/src/tool-registry.ts:379-383,215-228; plugin/src/utils/safe-execute.ts:240",
+          "summary": "archive uses plain bindTool → inherits DEFAULT_TOOL_TIMEOUT_MS=10000; checkpoint 35s / worker-restart 15s override (claim 4 confirmed)."
+        },
+        {
+          "label": "audited recovery writer",
+          "locator": "plugin/src/tools/_recovery-writers.ts:178-193",
+          "summary": "saveRecoveredChangeStatus asserts authorization then disk-direct saveChange, bypassing archiveChangeSignal (claim 5 confirmed)."
+        },
+        {
+          "label": "canonical-id dedupe helper",
+          "locator": "plugin/src/storage/json.ts:918-933",
+          "summary": "hasArchiveBundle handles non-eponymous archive dirs; reuse for rq-terminalProjectionTruth01.2 dedupe."
+        }
+      ],
+      "architecture_assessment": "All five root-cause claims confirmed at file:line. The wedge is primarily H1: target_path/snapshot-ok reads route to the legacy disk store whose get is bundle-blind, so a bundle-present change returns 'Change not found' while the native temporal get would surface it archived. Making the legacy disk get bundle-aware (read-only, mirroring loadArchiveBundleDominantProjection, deduped via hasArchiveBundle) is the correct minimal self-heal fix and does not touch write-side ordering. The adv_archive_repair reconcile mode is structurally identical to the shipped adv_change_status_repair audited flip. The typed idempotent archive-timeout plus raised ceiling matches existing override and idempotent-retry precedent.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No spec conflict. Two non-blocking cautions: (1) disk get bundle path must dedupe by canonical change.json.id per rq-terminalProjectionTruth01.2 — reuse hasArchiveBundle, do not reimplement; (2) add a test asserting temporal re-spread of status archived over a now-archived disk get is an idempotent no-op."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Read-side self-heal keeps write ordering (rq-archiveRetirement01) untouched but requires the disk get and temporal get to agree on bundle dominance.",
+          "Cluster reconcile must stay strictly gated to avoid force-archiving incomplete changes."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Temporal-only fix",
+            "disposition": "rejected",
+            "rationale": "Does not reach the snapshot-ok disk path; the cross-project/target_path wedge stays."
+          },
+          {
+            "option": "Route target_path through the temporal store",
+            "disposition": "rejected",
+            "rationale": "Violates rq-targetReadAuthority01.2 (target-project.ts:285)."
+          },
+          {
+            "option": "Bare timeout ceiling raise",
+            "disposition": "rejected",
+            "rationale": "Moves the cliff without classification; rq-terminalAggregateRead01 wants structural degradation, not an unclassified ToolExecutionTimeout."
+          }
+        ],
+        "recommendation": "Proceed. Make legacy disk get bundle-aware via hasArchiveBundle-based canonical-id dedupe; add adv_archive_repair reconcile gated on bundle+gates+merge; add archive timeoutMs override + typed in-progress result; add the double-application no-op test."
+      },
+      "recommendation": "Proceed with the design. Reuse hasArchiveBundle for canonical-id dedupe; keep all status writes through saveRecoveredChangeStatus.",
+      "follow_ups": [
+        "Add regression test that temporal re-spread of archived over an already-archived disk get is a no-op (caution 2)."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Worker report transport failed with WorkflowNotFoundError; orchestrator persisted this source-backed validator report through the target store."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveTerminalProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveTerminalProjection",
+      "task_id": "tk-08b5f7e5c1fe",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-08b5f7e5c1fe"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/utils/safe-execute.ts",
+        "plugin/src/utils/safe-execute.test.ts",
+        "plugin/src/tools/change/archive-timeout.ts",
+        "plugin/src/tools/change/archive-timeout.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/utils/safe-execute.test.ts src/tools/change/archive-timeout.test.ts src/tool-registry.test.ts (RED)",
+          "exit_code": 1,
+          "summary": "RED confirmed before implementation: 3 test files failed (missing onToolTimeout hook, missing archive-timeout module, missing registry override)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/utils/safe-execute.test.ts src/tools/change/archive-timeout.test.ts src/tool-registry.test.ts src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 120/120 tests pass — safeExecute onToolTimeout hook (4 new), archive-timeout classifier (7 new), registry override static assertion (1 new), AC4 idempotent re-run test (1 new)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.archive-repair.test.ts src/tool-registry.surface.test.ts src/utils/tool-arg-preflight.test.ts src/__tests__/active-change-pointer.test.ts src/cli-bridge-contract.test.ts",
+          "exit_code": 0,
+          "summary": "Regression surface green: 278/278 tests pass across registry-shape, preflight, bridge-contract, and archive-repair suites"
+        },
+        {
+          "command": "pnpm run check (plugin/)",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, test-isolation, lockfile-policy, eslint, prettier — all green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Timeout classifier implemented as an onToolTimeout hook on SafeExecuteOptions, invoked from safeExecute's catch on ToolExecutionTimeoutError",
+          "why": "The safety-net race lives outside tool execute(); a hook is the only seam that can retype the timeout response without redesigning the wrapper. Hook is best-effort (undefined/throw → generic response) so it can never mask the original timeout"
+        },
+        {
+          "what": "Classifier probe is disk-only (findArchiveBundle over external archive + worktreePath/target_path/store-root in-repo mirrors); no Temporal queries, no git ops",
+          "why": "After a timeout the Temporal worker may be the hung component; a second unbounded call could hang the error path itself. Disk probe covers both native and target_path routing without resolving target project identity"
+        },
+        {
+          "what": "timeoutMs: 420_000 = 300s inner git push budget (DEFAULT_GIT_PUSH_TIMEOUT_MS) + 120s headroom for fetch/merge/gh ops, release-gate signals, durable-proof queries, cleanup, issue closure",
+          "why": "rq-toolTimeoutOverride01 requires the override to cite inner-budget rationale; 305s (adv_run_test tier) would still clip a slow push plus terminal-step work"
+        },
+        {
+          "what": "Typed payload keeps errorClass:'ToolExecutionTimeout' and adds archiveStatus:'still_finalizing', bundleDurable, archivePath, retrySafe, remediation, requirement:'rq-archiveOrdering01'",
+          "why": "Preserves classifier continuity for downstream error-class consumers while making the interrupted-past-bundle-write state machine-readable and actionable per SC3/AC4"
+        },
+        {
+          "what": "No changes to plugin/src/tools/change.ts archive flow",
+          "why": "C1 (preserve bundle-first ordering) — the fix is at the tool-boundary wrapper only; the idempotent re-run path (existingBundlePath recovery) already existed and is now explicitly test-locked for AC4"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Task tk-a98c3ce70ad3 (verification) owns SC4's cross-store read-parity regression; the AC4 typed-timeout + re-run legs added here compose with it",
+        "If operators raise ADV_GIT_PUSH_TIMEOUT_MS above ~360s, the 420s outer net can still fire — safe by design (typed result), but worth noting in any future push-budget change"
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint this task (tk-08b5f7e5c1fe) — work is uncommitted per delegation instructions",
+        "Task tk-f7248412becc (status_repair bundle-anchored) and tk-29dd9803ee8a (archive_repair reconcile) remain pending; this task does not unblock them (they depend on tk-23fd806e1cd9, already done)"
+      ],
+      "related_scan": "Checked for same-pattern tools needing a timeout classifier: no other tool has a durable-bundle terminal step (adv_task_checkpoint/adv_run_test/adv_temporal_worker_restart already carry explicit timeoutMs overrides per rq-toolTimeoutOverride01). safeExecuteSimple received only the generic type param for consistency — no behavioral change. change.ts archive write flow untouched; pre-existing idempotent re-run tests (change.archive-phase9.test.ts:716+, change.test.ts:3932+) still pass.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "SC3/AC4 implemented. adv_change_archive now registers via registerTool with timeoutMs 420_000 (heavy tier, comment cites rq-toolTimeoutOverride01 inner-budget rationale) and an onToolTimeout classifier. On safety-net timeout, formatArchiveTimeoutResult (new, plugin/src/tools/change/archive-timeout.ts) does a disk-only bundle probe across external archive + worktreePath/target_path/root in-repo mirrors: bundle durable → typed {success:false, errorClass:'ToolExecutionTimeout', archiveStatus:'still_finalizing', bundleDurable:true, archivePath, retrySafe:true, remediation:'re-run adv_change_archive...idempotent'}; no bundle → generic timeout surfaces the real failure (DONT2 intact). Bundle-first ordering (C1) untouched — zero changes to change.ts archive flow. safe-execute.ts gained SafeExecuteOptions<TArgs>.onToolTimeout (best-effort: undefined/throw falls back to generic). New AC4 test locks idempotent re-run → archived without bundle rewrite. All verification green: 120 targeted + 278 regression tests, pnpm run check clean. Uncommitted — ready for checkpoint.",
+        "suggested_next_action": "Checkpoint tk-08b5f7e5c1fe, then proceed to tk-f7248412becc (adv_change_status_repair bundle-anchored) or tk-29dd9803ee8a (adv_archive_repair reconcile mode) per plan priorities."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/safe-execute.test.ts src/tools/change/archive-timeout.test.ts src/tool-registry.test.ts (RED)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/utils/safe-execute.test.ts src/tools/change/archive-timeout.test.ts src/tool-registry.test.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.archive-repair.test.ts src/tool-registry.surface.test.ts src/utils/tool-arg-preflight.test.ts src/__tests__/active-change-pointer.test.ts src/cli-bridge-contract.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check (plugin/)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveTerminalProjection",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveTerminalProjection",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:archive-terminal-projection"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "bin/oc-test targeted -- src/storage/store-disk.test.ts src/tools/change.status-repair.test.ts src/tools/change.archive-repair.test.ts src/tools/change.archive-phase9.test.ts src/tools/_recovery-writers.test.ts src/utils/safe-execute.test.ts src/tool-registry.test.ts src/tool-registry.surface.test.ts src/storage/store-temporal/bounded-status.test.ts",
+          "exit_code": 0,
+          "duration_ms": 3170
+        },
+        {
+          "kind": "command",
+          "command": "bin/oc-test smoke",
+          "exit_code": 0,
+          "duration_ms": 2710
+        }
+      ],
+      "status": "pass",
+      "error_class": "UNKNOWN",
+      "confidence": "high",
+      "evidence_basis": "Focused wrapper suite passed: 9 files, 194 tests. Smoke passed schemas, typecheck, isolation, lockfile, lint, format, and 62 tests.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "info",
+          "summary": "All requested regression and cross-cutting verification surfaces passed.",
+          "evidence": [
+            {
+              "label": "focused test output",
+              "locator": "command: bin/oc-test targeted -- src/storage/store-disk.test.ts src/tools/change.status-repair.test.ts src/tools/change.archive-repair.test.ts src/tools/change.archive-phase9.test.ts src/tools/_recovery-writers.test.ts src/utils/safe-execute.test.ts src/tool-registry.test.ts src/tool-registry.surface.test.ts src/storage/store-temporal/bounded-status.test.ts",
+              "summary": "9 passed files; 194 passed tests."
+            },
+            {
+              "label": "smoke output",
+              "locator": "command: bin/oc-test smoke",
+              "summary": "Schemas/typecheck/isolation/lockfile/lint/format passed; 2 files, 62 tests."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "continue",
+      "scope_risk": false,
+      "required_main_agent_actions": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveTerminalProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveTerminalProjection",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/change.ts",
+          "summary": "Handled a thrown full-record read during archive reconcile as the non-mutating `skipped_unreadable_change` disposition, preserving per-candidate reconcile reporting rather than aborting the scan.",
+          "verification": "Focused archive-repair test and 6-file acceptance regression suite passed; typecheck and plugin check passed."
+        },
+        {
+          "file": "plugin/src/tools/change.archive-repair.test.ts",
+          "summary": "Added regression coverage proving unreadable reconcile candidates are reported and never probe bundles or invoke the audited recovery writer.",
+          "verification": "`bin/oc-test targeted -- src/tools/change.archive-repair.test.ts` passed (14 tests)."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Batch recovery scans must catch per-candidate durable-read exceptions and emit an explicit non-mutating disposition; treating only `{ success: false }` as unreadable lets one corrupt candidate abort reporting for the set."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts src/tools/change/archive-timeout.test.ts src/utils/safe-execute.test.ts src/tool-registry.test.ts",
+          "pnpm -C plugin run check",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Acceptance-focused suite: 6 files, 149 tests passed. Plugin schemas, typecheck, isolation/lockfile checks, ESLint, and Prettier passed. Diff whitespace check passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "The 420-second production timeout path is covered by deterministic classifier/wrapper tests rather than a real multi-minute archive execution.",
+        "No browser review applicable: internal Temporal/archive tooling only."
+      ],
+      "required_main_agent_actions": [
+        "No acceptance blocker remains. Retain the two uncommitted reviewer fixes for the parent agent's normal change workflow; do not revisit unrelated Temporal worker supervision or report-transport recovery. "
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveTerminalProjection",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveTerminalProjection",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Release recovery safety is strongest when every reconciliation candidate must independently satisfy durable bundle, completed gates, merge proof, audited authorization, and read-after-write verification; unreadable/probe-failed candidates must be explicit non-mutating dispositions."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/storage/store-disk.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts src/tools/change/archive-timeout.test.ts src/tool-registry.test.ts src/utils/safe-execute.test.ts",
+          "pnpm -C plugin run check",
+          "pnpm -C plugin run build",
+          "git diff --check 81604d7d..HEAD",
+          "git fsck --no-dangling --no-reflogs"
+        ],
+        "results": "pass",
+        "evidence": "Focused release/recovery regression suite passed 157/157. Schema freshness, typecheck, isolation/lockfile policy, lint, and formatting passed. Plugin plus Temporal worker build passed. Diff checks passed; worktree was clean before and after build; checkpoint history contains five task checkpoints; git fsck returned no errors."
+      },
+      "scope_drift": null,
+      "risks": [
+        "The 420-second archive outer timeout is deterministically tested but not exercised in a live-duration release run.",
+        "Live reconciliation of the existing release-stuck cluster remains an explicit post-deploy, operator-approved action; this hardening review did not execute it."
+      ],
+      "required_main_agent_actions": [
+        "Release hardening complete; proceed with the normal release/archive gate flow.",
+        "Do not treat a production reconcile as automatic: require approvedByUser, precise evidence, recovery reason, bundle/gates/merge proof, and inspect per-candidate dispositions.",
+        "No executive-summary append made: reviewer runtime exposes no permitted artifact-write operation, and the existing executive summary already records ops readiness and the post-deploy reconcile follow-up."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-23fd806e1cd9": [
+      {
+        "runId": "tr_mrjg6bma_663971e3",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/storage/store-disk.test.ts",
+        "durationMs": 2872.1135959997773,
+        "recordedAt": "2026-07-13T16:39:19.424Z"
+      },
+      {
+        "runId": "tr_mrjg8evo_a77983e4",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/storage/store-disk.test.ts",
+        "durationMs": 1647.0736349970102,
+        "recordedAt": "2026-07-13T16:40:56.963Z"
+      }
+    ],
+    "tk-08b5f7e5c1fe": [
+      {
+        "runId": "tr_mrjoot17_76281ed5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change/archive-timeout.test.ts src/utils/safe-execute.test.ts src/tool-registry.test.ts src/tools/change.archive-phase9.test.ts",
+        "durationMs": 4208.9192100001965,
+        "recordedAt": "2026-07-13T20:37:38.746Z"
+      }
+    ],
+    "tk-f7248412becc": [
+      {
+        "runId": "tr_mrjothjo_8e53367c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.status-repair.test.ts",
+        "durationMs": 3469.2370609999634,
+        "recordedAt": "2026-07-13T20:41:17.126Z"
+      }
+    ],
+    "tk-29dd9803ee8a": [
+      {
+        "runId": "tr_mrjowtuq_eff9fe8a",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-repair.test.ts",
+        "durationMs": 3279.206630000146,
+        "recordedAt": "2026-07-13T20:43:53.056Z"
+      },
+      {
+        "runId": "tr_mrjoyju1_5d9998fd",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-repair.test.ts",
+        "durationMs": 3420.115615000017,
+        "recordedAt": "2026-07-13T20:45:13.387Z"
+      },
+      {
+        "runId": "tr_mrjp02e9_56f4c8b1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-repair.test.ts",
+        "durationMs": 8050.595037000021,
+        "recordedAt": "2026-07-13T20:46:24.191Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T16:02:56.108Z",
+      "completed_by": "user",
+      "approval_evidence": "User invoked `/adv-discover fixArchiveTerminalProjection` — explicit proposal approval.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "f576eb74026eed70856455883bc107f7d1560a04aff0e5ebebcb99285d650f03",
+        "non_whitespace_chars": 2475,
+        "checked_at": "2026-07-13T12:47:14.949Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T16:23:26.954Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved behavioral criteria. Scope confirmed: durability + self-heal reads + audited reconcile (incl. bounded cluster reconcile) + typed idempotent archive timeout. Mechanism trace deferred to design. Contract minted with 19 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "non_whitespace_chars": 4429,
+        "checked_at": "2026-07-13T12:47:14.950Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T16:30:22.704Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Independent adv-researcher validator PASS (high confidence, low risk); all 5 root-cause claims confirmed at file:line, spec-consistent, two non-blocking cautions folded in. No user-value tradeoff or contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "70e0dbb338e7e42fa086b1e27db15b74520175cc580d87f2dfa002a0e9963327",
+        "non_whitespace_chars": 5307,
+        "checked_at": "2026-07-13T12:47:14.951Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T16:34:43.754Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the 5-task graph (A self-heal read, D archive timeout, B status_repair, C archive_repair reconcile, E verification) with full contract traceability. Live cluster reconcile is a documented post-deploy ops follow-up."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T20:52:39.853Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 planned tasks checkpointed in change/fixArchiveTerminalProjection. Independent verifier: focused 9-file regression suite 194/194 and smoke 62 tests passed; plugin check passed. Contract AC1–AC6 covered by bundle-aware reads, audited status repair/reconcile, typed timeout recovery, and regression tests."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T21:03:17.843Z",
+      "completed_by": "user",
+      "approval_evidence": "User invoked exact pending continuation command `/adv-review fixArchiveTerminalProjection`, constituting Tier A acceptance approval. Acceptance review APPROVED: 0 blockers/issues; contract review matrix 19 rows has 0 failed/violated/unknown; executive summary persisted with content hash 1db083fd9ce38565827831442e830976d3348ddd3e04a81d5fe63126dfb7129b; preview not applicable for internal plugin-only durability work.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "1db083fd9ce38565827831442e830976d3348ddd3e04a81d5fe63126dfb7129b",
+        "non_whitespace_chars": 2858,
+        "checked_at": "2026-07-13T12:47:14.952Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-07-13T12:47:13.871Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+      "approvedAt": "2026-07-13T16:23:08.394Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** A change whose archive bundle is durably written resolves as `archived` on ADV reads (show/list/reflect) even when the terminal status signal was lost and no healthy workflow exists — correct with no operator action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** An audited recovery/reconcile path brings any bundle-present, terminal-interrupted change to a consistent archived projection (read-after-write parity) and can reconcile the existing stuck-at-release cluster, without force-archiving changes whose archive is genuinely incomplete.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** `adv_change_archive` interrupted past bundle write returns a typed, idempotent \"still finalizing / re-run to reconcile\" result instead of a bare `ToolExecutionTimeout`; a re-run safely reaches `archived`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**SC4:** Behavior is locked by a regression test simulating terminal-signal loss after bundle write.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Given a bundle-present change whose status was never flipped, `adv_change_show`, `adv_change_list` with `status: archived`, and `adv_reflect` all report it `archived` (read-after-write parity), on both native and `target_path` routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_show",
+          "tool:adv_change_list",
+          "tool:adv_reflect"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** An audited recovery path reconciles a bundle-present, terminal-interrupted change to `archived` from on-disk evidence (bundle present + all gates done) without requiring a loadable/healthy workflow record; it refuses changes lacking a durable bundle or completed gates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_status_repair"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** A reconcile operation over the stuck-at-release set repairs only genuinely-shipped-but-wedged changes (bundle present + gates done + branch merged) and leaves not-yet-archived changes untouched, reporting each disposition.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_archive_repair"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** `adv_change_archive` interrupted past bundle write returns a typed in-progress/reconcile result (not a bare `ToolExecutionTimeout`); re-running `adv_change_archive` is idempotent and reaches `archived`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_archive"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** A regression test simulates terminal-signal loss after bundle write and asserts `archived` read-after-write parity across show/list/reflect.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** No self-heal/recovery path weakens existing structural blockers or writes ADV external state files outside the audited recovery writer.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve bundle-first archive ordering (rq-archiveRetirement01); do not write status before the bundle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Recovery must be audited/typed (evidence + reason), consistent with existing poisoned-history recovery discipline.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not force-archive changes whose archive is genuinely incomplete (no durable bundle, gates not done, or branch not merged).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep changes within the ADV plugin; no Temporal worker-supervision redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not resurrect the active change record after the archived transition (rq-archiveRetirement01.2).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not mask real archive failures as success — reconcile only when the shipped invariant (bundle + gates + merge) holds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not bypass the audited recovery writer with ad-hoc external-state disk writes (rq-archiveRecoveryConsistency01.4).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "The broader sub-agent report-transport `WorkflowNotFoundError` fragility (separate change unless design proves a shared root cause).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "General Temporal worker supervision / restart redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T20:59:48.385Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused verifier suite: store-disk self-heal and status-readback coverage passed (194 tests)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Acceptance reviewer READY; audited bundle/gates/merge reconcile path and readback checked."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Archive timeout classifier tests plus phase9 idempotent re-run test passed."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Archive phase9 terminal-loss regression passed in focused verifier suite."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "store-disk and temporal readback tests passed; bundle-dominant archived parity covered."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.status-repair tests passed, including durable bundle-dominant no-workflow resolution."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.archive-repair tests cover only shipped repair and incomplete/no-bundle/unmerged/unreadable skips."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive-timeout and archive-phase9 tests passed; typed still_finalizing and idempotent re-run covered."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused verifier suite passed the terminal-loss/archive readback regression surface."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Recovery writes route through saveRecoveredChangeStatus; acceptance review found no direct external-state write bypass."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Archive write flow unchanged; timeout handling occurs at tool wrapper after durable-bundle probe."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reconcile requires approvedByUser, approvalEvidence, recoveryReason, and passes authorization to audited writer."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Reconcile test verifies no mutation for incomplete gates, missing bundle, unmerged branch, and unreadable records."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Diff limited to plugin archive/read/recovery tool surfaces; no worker-supervision changes."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Bundle-aware reads are read-only; no active record resurrection path added."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Timeout typing declines without a durable bundle; reconcile skips candidates missing any shipped invariant."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reconcile uses saveRecoveredChangeStatus; reviewer inspected direct-write boundary."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Report-transport fragility remains excluded by approved scope."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No Temporal worker supervision or restart redesign included."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Given a bundle-present change whose status was never flipped, `adv_change_show`, `adv_change_list` with `status: archived`, and `adv_reflect` all report it `archived` (read-after-write parity), on both native and `target_path` routing.",
+    "**AC2:** An audited recovery path reconciles a bundle-present, terminal-interrupted change to `archived` from on-disk evidence (bundle present + all gates done) without requiring a loadable/healthy workflow record; it refuses changes lacking a durable bundle or completed gates.",
+    "**AC3:** A reconcile operation over the stuck-at-release set repairs only genuinely-shipped-but-wedged changes (bundle present + gates done + branch merged) and leaves not-yet-archived changes untouched, reporting each disposition.",
+    "**AC4:** `adv_change_archive` interrupted past bundle write returns a typed in-progress/reconcile result (not a bare `ToolExecutionTimeout`); re-running `adv_change_archive` is idempotent and reaches `archived`.",
+    "**AC5:** A regression test simulates terminal-signal loss after bundle write and asserts `archived` read-after-write parity across show/list/reflect.",
+    "**AC6:** No self-heal/recovery path weakens existing structural blockers or writes ADV external state files outside the audited recovery writer."
+  ],
+  "documents": {
+    "proposal": "# Fix archive terminal projection wedge\n\n## Problem\nWhen `adv_change_archive` is interrupted at its terminal step (worker death, or the 10s tool ceiling firing while phase-9 git work continues), the change can be left in a state ADV's live reads cannot resolve to `archived` — even though the archive bundle is written and git is finalized. Recovery tools then also fail to help.\n\n## Discovery Findings\n\n### Skills Considered\n- No matching ADV skill for Temporal terminal-step durability. `adv-audit` (spec/impl drift) is tangential; not loaded. Reported gap; core domain is internal Temporal/archive plumbing, not skill-shaped.\n\n### Extends\nNo durable research pack. Grounded in source recon (this session): `plugin/src/tools/change.ts`, `plugin/src/archive/archive.ts`, `plugin/src/storage/store-temporal/index.ts`, `plugin/src/storage/store-disk.ts`, `plugin/src/tools/_recovery-writers.ts`, and `.adv/specs/advance-workflow/spec.json`. New finding vs proposal: the proposal's premise (\"no loadable change record\") is FALSE for this incident — the active record and bundle both exist on disk.\n\n### Conflict Scan\n- Recurring class: adv_status hygiene shows ~12 changes stuck at `release` (alignCoordinateProjects, deepScanTemporalWorkflowHot, optimizeAdapterSurfaces, updateEpicOpsGuidance, fixLoopLedgerRegressions, fixDirectArchiveMerge, fixEpicTerminalProjection, persistPostArchiveSubagent, ensureTargetWorkers, addEpicTimestamps, bounceDeployedWorkers, strengthenMinimaxProviderHint). Some may be the same shipped-but-stuck wedge.\n- Prior archive-recovery changes (archived): validateReleaseRecovery, fixDirectArchiveMerge, fixEpicTerminalProjection, persistPostArchiveSubagent, fixPhase9PrDetection. This is a repeatedly-patched area.\n- Agenda: `ag-jPEv5v1T` (adv-recovery: \"Repair portZellijLauncher release gate projection\") is a sibling projection-repair symptom. No agenda item duplicates this change.\n- No active in-flight change found targeting archive terminal-projection durability.\n\n### Current State (source-grounded)\n- Archive finalization order (`tools/change.ts` runArchive): spec deltas → bundle write (`archive.ts:816` createArchive, `status:\"archived\"` baked) → in-repo mirror → phase-9 commit/merge/push → release-gate durable → `phase9StatusUpdatedSignal` (writes disk projection) → **status flip** (`change.status=\"archived\"; store.changes.save`) → epic projection → **removeChangeDir (active source cleanup)** → issue close → branch delete. Bundle-first is intentional (`rq-archiveRetirement01`).\n- Status flip is a **Temporal signal** (`archiveChangeSignal`), not a direct disk write (`store-temporal/changes.ts:312`). If the workflow is gone/poisoned it throws; only `recoveryMode:\"poisoned_history\"` writes disk via `saveRecoveredChangeStatus`.\n- Bundle-dominant read path EXISTS: `loadTerminalProjection` → `loadArchiveBundleDominantProjection` forces `status:\"archived\"` when `hasArchiveBundle` is true (`store-temporal/index.ts:446-492`, `rq-terminalProjectionTruth01`). So a bundle-present change SHOULD read as archived on the Temporal store.\n- **Read asymmetry** (`rq`-relevant gap): legacy disk `get` is bundle-blind (`store-disk.ts:333-353`, returns literal \"Change not found\"), while legacy `list` is bundle-aware (`loadArchivedChanges` `:123`). `target_path`/`dryRun` reads route to the legacy store (`target-project.ts:284-296`), so `adv_change_show`/`adv_change_status_repair` via target_path can miss a bundle-only change.\n- `adv_change_archive` has NO `timeoutMs` override → inherits `DEFAULT_TOOL_TIMEOUT_MS = 10_000` (`safe-execute.ts:240`); phase-9 push (300s git budget) easily exceeds it; `raceWithTimeout` does not abort the underlying work, so the tool reports `ToolExecutionTimeout` while archive continues.\n- Observed on-disk truth for the incident: external `paths.archive/2026-07-13-alignProviderEvalTargets/` present; external `changes/alignProviderEvalTargets.json` STILL present (removeChangeDir did not run); in-repo mirror present; git trunk has archive+merge commits; remote branch deleted. All live reads via target_path returned \"Change not found\".\n\n### Edge Cases\n1. Worker dies between bundle write (step 2) and status flip (step 8): bundle + active record both remain; status never flips.\n2. Tool ceiling fires mid-phase-9: tool returns ToolExecutionTimeout but archive keeps running; agent can't tell what completed.\n3. target_path/dryRun recovery routes to bundle-blind legacy `get` → false \"not found\" even when bundle exists.\n4. Bundle in external `paths.archive` vs in-repo `.adv/archive` mirror: a reader scanning the wrong root won't find it.\n\n### Open Design Questions\n1. **Why did the Temporal bundle-dominant read still return \"not found\" for this change?** Both active record and bundle exist on disk, yet reads failed. Trust: agent-only (runtime tracing). Blast radius: determines whether the fix is in the read path, the target_path routing, or the archive terminal step. Alternatives: (a) target_path forced legacy bundle-blind get; (b) deadline exhaustion in `loadArchiveProjection`; (c) canonical-id vs date-dir-name dedup miss. Must be traced in design.\n2. **Scope breadth**: fix only the archive terminal-step durability + a bundle-anchored recovery tool, OR also reconcile the ~12 stuck-at-release changes as part of validating the fix? User-facing scope decision.\n3. **Recovery entry point**: extend `adv_change_status_repair` to be bundle-anchored (work without a loadable workflow record), add a new `adv_archive_repair` reconcile mode, or make legacy `get` bundle-aware. Trust: joint. Blast radius: recovery ergonomics + read consistency.\n\n### Draft Spec Deltas\nLikely amend/extend existing archive-recovery requirements rather than net-new: `rq-archiveRecoveryConsistency01` (read-after-write), `rq-terminalProjectionTruth01` (bundle dominance), `rq-terminalAggregateRead01` (no bare ToolExecutionTimeout for terminal reads). Exact `rq-*` IDs to be firmed in design after the mechanism trace. G/W/T example: Given a change whose bundle exists and whose status flip signal was lost, When any ADV read resolves it, Then it reports `archived` (read-after-write parity across show/list/reflect).\n\n### Related Pattern Scan\nSame-class code: `saveRecoveredChangeStatus` (`_recovery-writers.ts:178`), `adv_change_status_repair` (`change.ts:3924`), `adv_archive_repair` (`change.ts:3153`), `loadArchiveBundleDominantProjection` (`index.ts:446`). Prior recovery specs `rq-releaseRepairRecovery01`, `rq-archiveOrdering01`. This is a well-trodden recovery surface with an unclosed gap.\n\n### Completeness Verification\n- Problem-completeness: MEDIUM confidence. The trigger (terminal-step interruption + tool ceiling) is well-characterized, but the precise reason live reads fail despite bundle+record on disk is UNVERIFIED and must be traced in design. The recurring stuck-at-release cluster suggests the problem is broader than one call.\n- Solution-scope: MEDIUM. Three candidate fix surfaces (archive terminal step, recovery tool, read/routing asymmetry) — likely all three, to be confirmed after the mechanism trace.\n- Reproduction finding classification: core symptom (\"archive completes but change unreachable/unrepairable to archived\") = `broken_capability` (may seed criteria). Sub-claim from the original proposal (\"recovery fails because no loadable record exists\") = `unverified` (record exists on disk) → downgraded to an out-of-scope note, NOT a criterion.\n- Secondary surfaces: the ~12 stuck-at-release changes = unresolved user-facing scope question (surface in agreement). Sub-agent report-transport WorkflowNotFoundError = related but separate (out of scope unless design proves shared root cause).\n\n### LBP Check\nInternal Temporal/durability fix; no external solution applies. LBP: the shipped invariant should be reconstructable from durable on-disk evidence (bundle + gates + git), independent of live workflow health — ADV already leans this way (`loadArchiveBundleDominantProjection`); the fix should close the remaining gaps rather than invent a new mechanism.\n\n### AMBIGUITY ANALYSIS\nNo blocking ambiguity in the confirmed problem. One HIGH advisory: the exact failure mechanism is unverified (open design question 1) — this is design-investigation work, not a proposal-scope ambiguity block. Coverage: B:C F:C S:P M:C.\n\n### Recommended Objectives\n1. An archive interrupted at the terminal step leaves the change reachable and repairable to `archived` through ADV tools, from durable on-disk evidence.\n2. A single audited recovery tool reconciles a bundle-present change to a consistent `archived` projection even when the normal signal path failed and no healthy workflow exists.\n3. `adv_change_archive` no longer reports a bare `ToolExecutionTimeout` that hides completed terminal work.\n4. Regression test simulating terminal-step interruption after bundle write, proving read-after-write parity across show/list/reflect.",
+    "problemStatement": "`adv_change_archive phase9:\"run\"` can exceed the default 10-second `safeExecute` tool budget while executing cumulative archive bundle/spec writes, git finalization, and Temporal signals. The outer timeout rejects the handler before `change.ts` can execute its local failure catch and record `phase9_status: \"failed\"`.\n\nObserved impact in GitHub issue #216:\n- Archive bundle and/or disk projection may be written before finalization completes.\n- Release gate and terminal Temporal status may remain pending, missing, or unreachable.\n- `phase9_status` may be absent, so operators receive only `ToolExecutionTimeout` rather than durable recovery evidence.\n- Retry can re-run finalization against a bundle-present partial state without knowing which durable steps completed.\n\nThis overlaps directly with the existing terminal-projection wedge: a terminal-step timeout or worker loss can leave ADV without a reliably visible archived change, blocking reflection, cleanup, and audited recovery.\n\nRequired outcome: archive interruption must converge on a durable shipped, failed, or explicitly recoverable state. A Phase 9 operation that legitimately exceeds the historical 10-second safety net must use an explicit, tested timeout override; its status must be checkpointed before and after finalization; and bundle-present retries must reconcile safely rather than create another split-brain state.",
+    "agreement": "# Agreement\n\n## Objectives\n1. Make the archived invariant reconstructable from durable on-disk evidence (bundle + gates + git), independent of live workflow health.\n2. Provide an audited recovery/reconcile path that also cleans up the existing stuck-at-release cluster, without force-archiving genuinely-incomplete changes.\n3. Replace the archive terminal-step bare-timeout failure with a typed, idempotent in-progress/reconcile result.\n\n## Success Criteria\n1. **SC1:** A change whose archive bundle is durably written resolves as `archived` on ADV reads (show/list/reflect) even when the terminal status signal was lost and no healthy workflow exists — correct with no operator action.\n2. **SC2:** An audited recovery/reconcile path brings any bundle-present, terminal-interrupted change to a consistent archived projection (read-after-write parity) and can reconcile the existing stuck-at-release cluster, without force-archiving changes whose archive is genuinely incomplete.\n3. **SC3:** `adv_change_archive` interrupted past bundle write returns a typed, idempotent \"still finalizing / re-run to reconcile\" result instead of a bare `ToolExecutionTimeout`; a re-run safely reaches `archived`.\n4. **SC4:** Behavior is locked by a regression test simulating terminal-signal loss after bundle write.\n\n## Acceptance Criteria\n1. **AC1:** Given a bundle-present change whose status was never flipped, `adv_change_show`, `adv_change_list` with `status: archived`, and `adv_reflect` all report it `archived` (read-after-write parity), on both native and `target_path` routing. [warrant: tool:adv_change_show, tool:adv_change_list, tool:adv_reflect]\n2. **AC2:** An audited recovery path reconciles a bundle-present, terminal-interrupted change to `archived` from on-disk evidence (bundle present + all gates done) without requiring a loadable/healthy workflow record; it refuses changes lacking a durable bundle or completed gates. [warrant: tool:adv_change_status_repair]\n3. **AC3:** A reconcile operation over the stuck-at-release set repairs only genuinely-shipped-but-wedged changes (bundle present + gates done + branch merged) and leaves not-yet-archived changes untouched, reporting each disposition. [warrant: tool:adv_archive_repair]\n4. **AC4:** `adv_change_archive` interrupted past bundle write returns a typed in-progress/reconcile result (not a bare `ToolExecutionTimeout`); re-running `adv_change_archive` is idempotent and reaches `archived`. [warrant: tool:adv_change_archive]\n5. **AC5:** A regression test simulates terminal-signal loss after bundle write and asserts `archived` read-after-write parity across show/list/reflect.\n6. **AC6:** No self-heal/recovery path weakens existing structural blockers or writes ADV external state files outside the audited recovery writer.\n\n## Constraints\n1. Preserve bundle-first archive ordering (rq-archiveRetirement01); do not write status before the bundle.\n2. Recovery must be audited/typed (evidence + reason), consistent with existing poisoned-history recovery discipline.\n3. Do not force-archive changes whose archive is genuinely incomplete (no durable bundle, gates not done, or branch not merged).\n4. Keep changes within the ADV plugin; no Temporal worker-supervision redesign.\n\n## Avoidances\n1. Do not resurrect the active change record after the archived transition (rq-archiveRetirement01.2).\n2. Do not mask real archive failures as success — reconcile only when the shipped invariant (bundle + gates + merge) holds.\n3. Do not bypass the audited recovery writer with ad-hoc external-state disk writes (rq-archiveRecoveryConsistency01.4).\n\n## Out of Scope\n1. The broader sub-agent report-transport `WorkflowNotFoundError` fragility (separate change unless design proves a shared root cause).\n2. General Temporal worker supervision / restart redesign.\n\n## Preview Applicability\n- visual_surface: false\n- rationale: internal Temporal/archive plumbing and tool-boundary behavior; no browser-visible output.\n- preview_expectation: exact_route_required: not_applicable; data_state_expectation: not_applicable; viewport_expectation: not_applicable.\n\n## Decisions\n### User Decisions\n- Scope breadth: also reconcile the ~12 stuck-at-release cluster (bounded to genuinely-shipped-but-wedged changes; not-yet-archived changes are left untouched).\n- Recovery UX: self-heal on next read/list (bundle-present dominates) with an audited repair tool as backstop.\n- Timeout behavior: structured idempotent in-progress/reconcile result plus a raised archive tool ceiling.\n\n### Agent Decisions (LBP)\n- Reconstruct the shipped invariant from durable on-disk evidence rather than inventing a new mechanism; close the gaps around the existing `loadArchiveBundleDominantProjection` path.\n- The exact failure mechanism (why reads failed despite bundle+record on disk) is resolved by runtime tracing in `/adv-design` before implementation; criteria are behavioral and design-independent.\n\n## Deferred Questions\n- None.\n\n## Sign-Off\nAcceptance criteria approved by user: `approve` at the discovery criteria checkpoint on 2026-07-13.",
+    "design": "# Design\n\n## Root-Cause Hypotheses (validator-confirmed)\nIndependent validation confirmed all five source claims at file:line. The wedge is primarily **H1**: `target_path`/`snapshot-ok` reads route to the legacy disk store (`target-project.ts:284-307`) whose `get` is bundle-BLIND (`store-disk.ts:333-353`, literal `Change not found` at :348), while the native temporal `get` IS bundle-aware (`loadArchiveBundleDominantProjection`, `store-temporal/index.ts:460-489`). So a bundle-present change returns \"Change not found\" via target_path even though the bundle exists. **H2** (residual flat `changes/<id>.json` not resolving via the subdir-shaped legacy `get`) is a compounding possibility to disambiguate with the RED test; the fix covers both.\n\n## Key Decisions\n1. **Close the get/list bundle-awareness asymmetry (SC1/AC1).** Make the legacy disk `get` bundle-aware: when `paths.changes` has no record, consult the archive bundle and return the archived projection (`status:\"archived\"`). Read-only — cannot resurrect the active record (rq-archiveRetirement01.2). Sanctioned by rq-terminalProjectionTruth01 and rq-archiveRetirement01.2 (\"archived lookups resolve from durable archived state OR the archive bundle\").\n2. **Audited bundle-anchored reconcile (SC2/AC2/AC3).** With #1, `adv_change_status_repair`'s `get` resolves bundle-present changes. Add an `adv_archive_repair` reconcile mode enumerating release-stuck changes, repairing only those satisfying the shipped invariant (durable bundle + all gates done + branch merged), leaving not-yet-archived changes untouched with per-change disposition reporting. Structurally identical to the shipped `adv_change_status_repair` audited flip. All status writes via `saveRecoveredChangeStatus` (AC6/DONT3).\n3. **Typed idempotent archive timeout (SC3/AC4).** Give `adv_change_archive` a `timeoutMs` override (heavy-tool tier, cf. checkpoint 35s / worker-restart 15s in `tool-registry.ts`) and return a typed `finalizing`/`reconcile` result on the terminal-step path (aligns rq-terminalAggregateRead01: structural degradation, not a bare `ToolExecutionTimeout`). Preserve idempotent re-run (rq-archiveOrdering01).\n4. **Preserve bundle-first ordering (C1).** Fix strengthens read/recovery only; write order unchanged.\n\n## Implementation Strategy\n1. RED: write an archive bundle + leave status unflipped (simulate lost terminal signal); assert `get`/`list(status:archived)`/reflect-eligibility report archived on BOTH stores and via target_path. Confirm current legacy `get` fails (H1) and characterize the flat-file case (H2).\n2. Make legacy disk `get` bundle-aware. **Reuse `hasArchiveBundle` (`json.ts:918-933`) for canonical `change.json.id` dedupe (rq-terminalProjectionTruth01.2) — do NOT reimplement the non-eponymous-dir scan** (validator caution 1).\n3. Confirm `adv_change_status_repair` now resolves bundle-present changes; keep its bundle+gates invariant refusal for incomplete changes.\n4. Add `adv_archive_repair` reconcile mode for the release-stuck cluster (repair-only, refuse-incomplete, report dispositions).\n5. Add `adv_change_archive` `timeoutMs` override + typed terminal-step in-progress/reconcile result.\n6. GREEN + regression: read-after-write parity across show/list/reflect (AC5); required-field/incomplete-change refusals; idempotent re-run. **Add a test asserting the temporal re-spread of `status:\"archived\"` over a now-archived disk `get` is an idempotent no-op** (validator caution 2), so a future temporal refactor cannot assume a raw-active disk `get`.\n\n## Affected Components (anticipated)\n- `plugin/src/storage/store-disk.ts` (bundle-aware `get`)\n- `plugin/src/storage/json.ts` (reuse `hasArchiveBundle` / `findArchiveBundle`)\n- `plugin/src/tools/change.ts` (`adv_change_status_repair`, `adv_archive_repair` reconcile mode, `adv_change_archive` typed result)\n- `plugin/src/tool-registry.ts` (archive `timeoutMs` override)\n- `plugin/src/tools/_recovery-writers.ts` (audited writer reuse)\n- Tests: `store-disk`, `change.status-repair`, `store-temporal/index.status-repair-readback`, archive terminal-step simulation.\n\n## Spec Deltas (to firm in prep)\nExtend existing requirements: rq-terminalProjectionTruth01 (bundle dominance now also enforced in legacy `get`), rq-archiveRecoveryConsistency01.3 (read-after-write parity across stores/routing), rq-terminalAggregateRead01 (no bare `ToolExecutionTimeout` hiding completed terminal work). Exact `rq-*` IDs + G/W/T finalized in prep.\n\n## Risks / Mitigations\n- Over-reach in cluster reconcile → strict bundle+gates+merge gate; report dispositions; never force-archive incomplete (C3/DONT2).\n- Masking real failures → typed in-progress only after durable bundle write; else surface the real error (DONT2).\n- Active fast-path regression → `get` is single-id resolve, not the active-list primitive; list bundle-merge stays gated on `includeArchived` (rq-activeListFastPath01 intact).\n- Audit discipline → all status writes via `saveRecoveredChangeStatus` (rq-archiveRecoveryConsistency01.4).\n\n## Independent Validation\nadv-researcher: **PASS** (high confidence, low risk). All 5 root-cause claims confirmed at file:line; all 3 design decisions spec-consistent (rq-archiveRetirement01/.2, rq-terminalProjectionTruth01/.2, rq-activeListFastPath01, rq-archiveRecoveryConsistency01.2/.4, rq-archiveOrdering01.1, rq-terminalAggregateRead01). Rejected alternatives: temporal-only fix (misses snapshot-ok path), routing target_path through temporal (violates rq-targetReadAuthority01.2), bare ceiling raise (no classification). Two non-blocking cautions folded into Implementation Strategy steps 2 and 6. Report transport failed (WorkflowNotFoundError — the fragility under repair); orchestrator persisted the source-backed report.\n\n## Design Leverage Scout\nSkipped — internal durability/recovery fix reusing existing bundle-dominant read + audited recovery-writer primitives; leverage is consolidating the bundle-lookup via `hasArchiveBundle`.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nArchive completion now remains recoverable when the durable archive bundle exists but its final status projection is interrupted. Approval accepts a bounded durability repair: archived reads self-heal, timeout responses explain safe reconciliation, and a controlled cluster reconcile repairs only already-shipped changes.\n\n## Why It Matters\nA completed archive no longer appears missing or in-flight solely because its terminal workflow signal was lost. Operators receive a typed, audited recovery path instead of an opaque timeout or a manual state-file workaround.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Bundle-dominant legacy reads resolve durable archived state without recreating an active record (tk-23fd806e1cd9).\n2. `adv_change_archive` reports a typed `still_finalizing` result after a post-bundle timeout and supports idempotent re-run reconciliation (tk-08b5f7e5c1fe).\n3. Status repair recognizes bundle-dominant terminal state without a healthy workflow (tk-f7248412becc).\n4. `adv_archive_repair action:\"reconcile\"` requires explicit approval, evidence, and reason; it repairs only bundle-present, fully-gated, merged candidates and reports all skipped dispositions (tk-29dd9803ee8a).\n\n## What Was Verified\n- Verdict: APPROVED; 0 blockers, 0 issues, 0 suggestions, 0 nits.\n- Tests: independent focused suite passed 194 tests; smoke passed 62 tests; hardening focused suite passed 157 tests; `pnpm run check` and production build passed.\n- Preview URL: not_applicable. This is an internal TypeScript plugin durability/recovery change with no browser-visible surface or visual-output task.\n- Contract matrix: 19 required rows passed, respected, or marked approved out-of-scope; 0 failed, violated, or unknown.\n\n## Remaining Concerns\n- Non-blocking: the 420-second outer archive timeout is covered by deterministic tests, not a live-duration integration run.\n- Live release-stuck cluster reconciliation remains an explicit post-deploy operator action and is not performed by this change.\n\n## Supporting Evidence\n- Checkpoints: tk-23fd806e1cd9, tk-08b5f7e5c1fe, tk-f7248412becc, tk-29dd9803ee8a, tk-a98c3ce70ad3.\n- Review: `review:acceptance` READY; `harden:release` READY; independent verification `verifier:archive-terminal-projection` PASS.\n- Contract review matrix: 19 rows persisted for this change.\n\n## Consequence Context\n1. Delivered value — complete archive bundles now remain visible and safely recoverable after terminal projection interruption (task checkpoints and contract matrix).\n2. Enabling-only/follow-up dependency — no blocking dependency; optional live cluster reconcile follows deployment (planning evidence).\n3. Ops readiness — hardening READY; reconcile remains operator-explicit and audited.\n4. Migration/data impact — n/a; no application data migration or backfill (plugin recovery-state projection only).\n5. Frontend/preview impact — not_applicable; no frontend or browser-visible output changed.\n6. Collision/release risk — low; recovery paths are fail-closed on missing bundle, gates, merge proof, unreadable state, or probe failure (review and tests).\n7. Open follow-ups — non-blocking live reconcile validation after deployment.\n8. Next action — archive sign-off initiates Phase 9 release finalization.\n\n## Release Readiness Summary\nHarden review is READY: 157 focused tests, `pnpm run check`, production build, clean worktree/diff, and `git fsck` passed. No unresolved acceptance, design, release-safety, documentation, or cleanup blocker. Residual risk is limited to no live-duration exercise of the 420-second timeout; production reconcile remains explicit and audited.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T20:59:48.385Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** A change whose archive bundle is durably written resolves as `archived` on ADV reads (show/list/reflect) even when the terminal status signal was lost and no healthy workflow exists — correct with no operator action. | pass | Focused verifier suite: store-disk self-heal and status-readback coverage passed (194 tests). |\n| SC2 | success_criterion | **SC2:** An audited recovery/reconcile path brings any bundle-present, terminal-interrupted change to a consistent archived projection (read-after-write parity) and can reconcile the existing stuck-at-release cluster, without force-archiving changes whose archive is genuinely incomplete. | pass | Acceptance reviewer READY; audited bundle/gates/merge reconcile path and readback checked. |\n| SC3 | success_criterion | **SC3:** `adv_change_archive` interrupted past bundle write returns a typed, idempotent \"still finalizing / re-run to reconcile\" result instead of a bare `ToolExecutionTimeout`; a re-run safely reaches `archived`. | pass | Archive timeout classifier tests plus phase9 idempotent re-run test passed. |\n| SC4 | success_criterion | **SC4:** Behavior is locked by a regression test simulating terminal-signal loss after bundle write. | pass | Archive phase9 terminal-loss regression passed in focused verifier suite. |\n| AC1 | acceptance_criterion | **AC1:** Given a bundle-present change whose status was never flipped, `adv_change_show`, `adv_change_list` with `status: archived`, and `adv_reflect` all report it `archived` (read-after-write parity), on both native and `target_path` routing. | pass | store-disk and temporal readback tests passed; bundle-dominant archived parity covered. |\n| AC2 | acceptance_criterion | **AC2:** An audited recovery path reconciles a bundle-present, terminal-interrupted change to `archived` from on-disk evidence (bundle present + all gates done) without requiring a loadable/healthy workflow record; it refuses changes lacking a durable bundle or completed gates. | pass | change.status-repair tests passed, including durable bundle-dominant no-workflow resolution. |\n| AC3 | acceptance_criterion | **AC3:** A reconcile operation over the stuck-at-release set repairs only genuinely-shipped-but-wedged changes (bundle present + gates done + branch merged) and leaves not-yet-archived changes untouched, reporting each disposition. | pass | change.archive-repair tests cover only shipped repair and incomplete/no-bundle/unmerged/unreadable skips. |\n| AC4 | acceptance_criterion | **AC4:** `adv_change_archive` interrupted past bundle write returns a typed in-progress/reconcile result (not a bare `ToolExecutionTimeout`); re-running `adv_change_archive` is idempotent and reaches `archived`. | pass | archive-timeout and archive-phase9 tests passed; typed still_finalizing and idempotent re-run covered. |\n| AC5 | acceptance_criterion | **AC5:** A regression test simulates terminal-signal loss after bundle write and asserts `archived` read-after-write parity across show/list/reflect. | pass | Focused verifier suite passed the terminal-loss/archive readback regression surface. |\n| AC6 | acceptance_criterion | **AC6:** No self-heal/recovery path weakens existing structural blockers or writes ADV external state files outside the audited recovery writer. | pass | Recovery writes route through saveRecoveredChangeStatus; acceptance review found no direct external-state write bypass. |\n| C1 | constraint | Preserve bundle-first archive ordering (rq-archiveRetirement01); do not write status before the bundle. | respected | Archive write flow unchanged; timeout handling occurs at tool wrapper after durable-bundle probe. |\n| C2 | constraint | Recovery must be audited/typed (evidence + reason), consistent with existing poisoned-history recovery discipline. | respected | Reconcile requires approvedByUser, approvalEvidence, recoveryReason, and passes authorization to audited writer. |\n| C3 | constraint | Do not force-archive changes whose archive is genuinely incomplete (no durable bundle, gates not done, or branch not merged). | respected | Reconcile test verifies no mutation for incomplete gates, missing bundle, unmerged branch, and unreadable records. |\n| C4 | constraint | Keep changes within the ADV plugin; no Temporal worker-supervision redesign. | respected | Diff limited to plugin archive/read/recovery tool surfaces; no worker-supervision changes. |\n| DONT1 | avoidance | Do not resurrect the active change record after the archived transition (rq-archiveRetirement01.2). | respected | Bundle-aware reads are read-only; no active record resurrection path added. |\n| DONT2 | avoidance | Do not mask real archive failures as success — reconcile only when the shipped invariant (bundle + gates + merge) holds. | respected | Timeout typing declines without a durable bundle; reconcile skips candidates missing any shipped invariant. |\n| DONT3 | avoidance | Do not bypass the audited recovery writer with ad-hoc external-state disk writes (rq-archiveRecoveryConsistency01.4). | respected | Reconcile uses saveRecoveredChangeStatus; reviewer inspected direct-write boundary. |\n| OOS1 | out_of_scope | The broader sub-agent report-transport `WorkflowNotFoundError` fragility (separate change unless design proves a shared root cause). | not_applicable | Report-transport fragility remains excluded by approved scope. |\n| OOS2 | out_of_scope | General Temporal worker supervision / restart redesign. | not_applicable | No Temporal worker supervision or restart redesign included. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T16:15:38.418Z",
+      "contentHash": "b9328e82edb1eaae321e3bc23e0b0b9228e5bb1d41ef85f0728933cb1e6c5603",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T16:04:46.189Z",
+      "contentHash": "5b2ad3d40c676421683d3dbef81f03ad900fa1b172c14c87e1948df3365869c2",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T16:23:00.881Z",
+      "contentHash": "0791012a2ebda33141cc3f47c30e527cfaddf2d6c187fce0f6cbe0e4ebb7fed1",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T16:30:12.603Z",
+      "contentHash": "70e0dbb338e7e42fa086b1e27db15b74520175cc580d87f2dfa002a0e9963327",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T21:07:31.298Z",
+      "contentHash": "23eb839ac08f2125929beafed8e5290d66e22fb121182d0e460757529efcfa3c",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T21:07:31.298Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-13T21:02:06.513Z"
+    }
+  ]
+}

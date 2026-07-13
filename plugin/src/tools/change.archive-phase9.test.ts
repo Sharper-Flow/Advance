@@ -713,6 +713,29 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
+  // fixArchiveTerminalProjection SC3/AC4: when adv_change_archive is
+  // interrupted past the durable bundle write (typed still-finalizing
+  // result at the tool boundary), the operator's re-run must skip the
+  // bundle write and complete the terminal projection to archived.
+  test("re-run after interrupted terminal projection reaches archived without re-writing the bundle", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    // Bundle-first idempotence: no second bundle write on re-run.
+    expect(mocks.archiveChange).not.toHaveBeenCalled();
+    // Terminal projection completes: status flips to archived.
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "archived" }),
+    );
+  });
+
   test("reconciles release gate from existing bundle without worktree", async () => {
     // T10 (removePositionalArtifactApi): readArtifact in validation
     // context now calls findArchiveBundle as fallback before the archive

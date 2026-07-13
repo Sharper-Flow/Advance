@@ -244,9 +244,26 @@ const DEFAULT_TOOL_TIMEOUT_MS = 10_000;
  * `safeExecuteSimple`; when omitted the default `DEFAULT_TOOL_TIMEOUT_MS`
  * is used.
  */
-export interface SafeExecuteOptions {
+export interface SafeExecuteOptions<TArgs = unknown> {
   /** Hard timeout (ms) for a single tool execute() call. Default: 10_000. */
   timeoutMs?: number;
+  /**
+   * Optional timeout classifier invoked when the safety-net timeout fires.
+   *
+   * Tools whose durable work may already have landed when the outer
+   * budget expires (e.g. adv_change_archive's bundle-first write) can
+   * replace the bare `ToolExecutionTimeout` response with a typed,
+   * actionable result. Return a formatted tool-output string to use it,
+   * or `undefined` to keep the generic timeout response.
+   *
+   * Best-effort: a throwing classifier falls back to the generic
+   * response, and the (uncancellable) execute promise keeps running in
+   * the background either way.
+   */
+  onToolTimeout?: (
+    args: TArgs,
+    error: ToolExecutionTimeoutError,
+  ) => Promise<string | undefined>;
 }
 
 /**
@@ -428,7 +445,7 @@ export function safeExecute<TArgs, TContext>(
   fn: (args: TArgs, context: TContext) => Promise<string>,
   toolName: string,
   contextExtractor?: ContextExtractor<TArgs>,
-  options?: SafeExecuteOptions,
+  options?: SafeExecuteOptions<TArgs>,
 ): (args: TArgs, context: TContext) => Promise<string> {
   const timeoutMs = options?.timeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS;
   return async (args: TArgs, context: TContext): Promise<string> => {
@@ -455,6 +472,29 @@ export function safeExecute<TArgs, TContext>(
     } catch (error) {
       const extra = contextExtractor ? contextExtractor(args) : undefined;
       recordToolTelemetry(toolName, startedAt, "error");
+      if (
+        error instanceof ToolExecutionTimeoutError &&
+        options?.onToolTimeout
+      ) {
+        try {
+          const typed = await options.onToolTimeout(args, error);
+          if (typed !== undefined) {
+            if (profiling) {
+              recordToolProfile(
+                toolName,
+                startedAt,
+                "error",
+                deriveErrorClass(error),
+                extra,
+              );
+            }
+            return applyOutputBudget(typed);
+          }
+        } catch {
+          // Classifier failure must never mask the original timeout —
+          // fall through to the generic response below.
+        }
+      }
       if (profiling) {
         recordToolProfile(
           toolName,
@@ -481,7 +521,7 @@ export function safeExecuteSimple<TArgs, TExtra>(
   fn: (args: TArgs, extra: TExtra) => Promise<string>,
   toolName: string,
   contextExtractor?: ContextExtractorSimple<TArgs, TExtra>,
-  options?: SafeExecuteOptions,
+  options?: SafeExecuteOptions<TArgs>,
 ): (args: TArgs, extra: TExtra, extraPath?: unknown) => Promise<string> {
   const timeoutMs = options?.timeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS;
   return async (

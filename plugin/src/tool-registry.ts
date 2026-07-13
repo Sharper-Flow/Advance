@@ -46,6 +46,7 @@ import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
 import { temporalOpsTools } from "./tools/temporal-ops";
 import { checkpointTools } from "./tools/checkpoint";
+import { formatArchiveTimeoutResult } from "./tools/change/archive-timeout";
 import { reflectionTools } from "./tools/reflection";
 import { snapshotHealthTools } from "./tools/snapshot";
 import { projectMetadataTools } from "./tools/project-metadata";
@@ -376,10 +377,47 @@ export function createToolMap(
       "adv_change_validate",
       store,
     ),
-    adv_change_archive: bindTool(
-      changeTools.adv_change_archive,
-      "adv_change_archive",
-      store,
+    // adv_change_archive — fixArchiveTerminalProjection SC3/AC4 +
+    // rq-toolTimeoutOverride01. Heavy-tier outer budget: the inner git
+    // push alone defaults to 300s (DEFAULT_GIT_PUSH_TIMEOUT_MS in
+    // archive-helpers/git-finalize.ts), plus fetch/merge/gh ops at 30s
+    // each, release-gate signals, durable-proof queries, worktree
+    // cleanup, and issue closure. 420s = 300s push + 120s headroom for
+    // the remaining terminal-step work; the inner git budgets remain the
+    // authoritative per-op bounds. If the outer net still fires after the
+    // bundle write, onToolTimeout returns a typed still-finalizing /
+    // re-run-to-reconcile result instead of a bare ToolExecutionTimeout
+    // (re-runs are idempotent — rq-archiveOrdering01).
+    adv_change_archive: registerTool(
+      changeTools.adv_change_archive.description,
+      changeTools.adv_change_archive.args,
+      namedExecute(
+        "adv_change_archive",
+        safeExecute(
+          async (args) =>
+            changeTools.adv_change_archive.execute(
+              args as Parameters<
+                typeof changeTools.adv_change_archive.execute
+              >[0],
+              store,
+            ),
+          "adv_change_archive",
+          undefined,
+          {
+            timeoutMs: 420_000,
+            onToolTimeout: (args, error) =>
+              formatArchiveTimeoutResult({
+                store,
+                args: args as {
+                  changeId?: unknown;
+                  worktreePath?: unknown;
+                  target_path?: unknown;
+                },
+                timeoutMs: error.timeoutMs,
+              }),
+          },
+        ),
+      ),
     ),
     adv_archive_repair: bindTool(
       changeTools.adv_archive_repair,
