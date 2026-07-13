@@ -743,7 +743,11 @@ describe("bounded one-pass change-list resolution", () => {
     // Temporal failure, the terminal-projection disk read, the owner-guard
     // disk read, and the reseed disk read have already happened. The fourth
     // diskGet call is the loadCandidate fallback.
-    for (let i = 0; i < 5000 && (diskGetCalls.get("slowDiskFallback") ?? 0) < 4; i++) {
+    for (
+      let i = 0;
+      i < 5000 && (diskGetCalls.get("slowDiskFallback") ?? 0) < 4;
+      i++
+    ) {
       await new Promise<void>((resolve) => setImmediate(resolve));
     }
     expect(diskGetCalls.get("slowDiskFallback")).toBe(4);
