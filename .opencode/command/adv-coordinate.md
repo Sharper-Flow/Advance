@@ -30,7 +30,7 @@ Run a read-first coordination pass across active Epics and current repository ev
 | `/adv-cleanup` | Triages active changes; does not mutate Epic roadmap structure. |
 | `bin/adv epic list --json` | Read-only CLI list; no CLI mutation verbs. |
 
-Epic membership remains optional. Epic order is advisory: recommendations may guide display and next-work choices, but must not block gates, tasks, promotion, or change progress.
+Epic membership remains optional; order stays advisory — may guide display/next-work but must not block gates, tasks, promotion, or change progress.
 
 ## Parse Arguments
 
@@ -102,7 +102,7 @@ Classify every finding with one of these stable labels:
 | `judgment_call` | Plausible overlap or sequencing issue needs user/domain review. |
 | `freshness_limited` | Repository evidence is missing or stale; the conclusion cannot be evidence-backed. |
 
-Heuristics may rank likely overlap. Heuristics must not authorize mutation.
+Heuristics may rank likely overlap but must not authorize mutation.
 
 Possible recommendations include cancel/supersede review, narrative update, advisory reorder, retarget/repair, no-action, or freshness-limited no-conclusion. All durable actions still require explicit approval and typed tools.
 
@@ -117,11 +117,14 @@ Analyze each Epic and the set of Epics:
 | Ownership boundaries | Entry belongs in the current Epic vs another Epic. |
 | Narrative accuracy | Narrative still matches current entries and known terminal work. |
 | Cross-Epic dependencies | Prerequisites are explicit in both directions where useful. |
+| Operational-work grounding | Required operational work is represented by typed `ops_followup_links[]` from the relevant delivery change (via `adv_followup_promote`), not by shell entries, agenda text, or prose; the `blocks` vs release-first (`follows_release`/`monitors`/`cleanup_after`) relationship matches the work's release-safety need. |
 | Evidence grounding | Claims cite typed ADV/spec/current repository evidence when checkable. |
 
-Heuristics may rank or group likely findings. Typed reads and cited current repository evidence own correctness. Separate evidence-backed facts from judgment calls.
+Heuristics may rank/group likely findings; typed reads + cited current repository evidence own correctness; separate evidence-backed facts from judgment calls.
 
 Prefer narrative cross-links over duplicating the same work in multiple Epics.
+
+For operational-work findings, cite the delivery change's `ops_followup_links[]` (child/source-of-truth state or fresh reconciliation, not stale parent link status) as `adv-backed-fact`. Treat free-text-only operational tracking — shell entries, agenda items, or prose without a typed linked ops follow-up — as a `judgment_call` to repair through `adv_followup_promote` from the relevant delivery change, never as authoritative proof. Use `blocks` when release safety requires completion before release and release-first relationships (`follows_release`/`monitors`/`cleanup_after`) for post-release follow-through; do not recommend executing deployments from coordination, and do not let Epic order block release.
 
 ---
 

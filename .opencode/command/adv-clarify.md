@@ -9,7 +9,7 @@ Resolve hidden assumptions, edge cases, acceptance criteria, and decision gaps a
 
 ## Phase 0: Load Skill
 
-`skill("adv-clarify")` → Socratic types, ambiguity categories, funnel technique, findings-driven mode, resolution log, output summary. If unavailable, use fallback below.
+`skill("adv-clarify")` → Socratic types, ambiguity categories, funnel technique, findings-driven mode, resolution log, output summary. Unavailable → use fallback below.
 
 Fallback: analyze context, summarize understanding, ask 1-2 neutral questions via `question`, update proposal only when findings-driven, then emit REQUIREMENTS DISCOVERY SUMMARY.
 

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createAdvWorkspace,
   deleteAdvWorkspace,
-  findWorkspaceByDirectory,
+  findWorkspaceByDirectoryChecked,
   getSessionWorkspaceID,
   warpFlagEnabled,
   warpSession,
@@ -395,13 +395,13 @@ describe("workspace-warp", () => {
     ).rejects.toThrow("deleteAdvWorkspace failed: 503 boom");
   });
 
-  describe("findWorkspaceByDirectory", () => {
+  describe("findWorkspaceByDirectoryChecked", () => {
     it("short-circuits without HTTP when the warp flag is off", async () => {
       const fetchImpl = vi.fn();
 
       await expect(
-        findWorkspaceByDirectory(baseDeps({ fetchImpl }), "/tmp/wt"),
-      ).resolves.toBeNull();
+        findWorkspaceByDirectoryChecked(baseDeps({ fetchImpl }), "/tmp/wt"),
+      ).resolves.toEqual({ ok: true, workspace: null });
       expect(fetchImpl).not.toHaveBeenCalled();
     });
 
@@ -425,12 +425,12 @@ describe("workspace-warp", () => {
       );
 
       await expect(
-        findWorkspaceByDirectory(
+        findWorkspaceByDirectoryChecked(
           baseDeps({ fetchImpl }),
           "/tmp/wt",
           "change/test",
         ),
-      ).resolves.toEqual({ workspaceID: "ws-match" });
+      ).resolves.toEqual({ ok: true, workspace: { workspaceID: "ws-match" } });
       expect(String(getCall(fetchImpl)[0])).toBe(
         "http://127.0.0.1:4096/experimental/workspace",
       );
@@ -450,12 +450,12 @@ describe("workspace-warp", () => {
       );
 
       await expect(
-        findWorkspaceByDirectory(
+        findWorkspaceByDirectoryChecked(
           baseDeps({ fetchImpl }),
           "/tmp/wt",
           "change/test",
         ),
-      ).resolves.toEqual({ workspaceID: "ws-match" });
+      ).resolves.toEqual({ ok: true, workspace: { workspaceID: "ws-match" } });
     });
 
     it("ignores non-ADV or metadata-mismatched workspace rows", async () => {
@@ -484,12 +484,12 @@ describe("workspace-warp", () => {
       );
 
       await expect(
-        findWorkspaceByDirectory(
+        findWorkspaceByDirectoryChecked(
           baseDeps({ fetchImpl }),
           "/tmp/wt",
           "change/test",
         ),
-      ).resolves.toBeNull();
+      ).resolves.toEqual({ ok: true, workspace: null });
     });
 
     it("returns null when no workspace directory matches", async () => {
@@ -501,15 +501,15 @@ describe("workspace-warp", () => {
         );
 
       await expect(
-        findWorkspaceByDirectory(baseDeps({ fetchImpl }), "/tmp/wt"),
-      ).resolves.toBeNull();
+        findWorkspaceByDirectoryChecked(baseDeps({ fetchImpl }), "/tmp/wt"),
+      ).resolves.toEqual({ ok: true, workspace: null });
     });
 
-    it("returns null on non-2xx, fetch errors, or malformed list responses", async () => {
+    it("returns typed failures on non-2xx, fetch errors, or malformed list responses", async () => {
       vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
 
       await expect(
-        findWorkspaceByDirectory(
+        findWorkspaceByDirectoryChecked(
           baseDeps({
             fetchImpl: vi
               .fn()
@@ -517,19 +517,19 @@ describe("workspace-warp", () => {
           }),
           "/tmp/wt",
         ),
-      ).resolves.toBeNull();
+      ).resolves.toMatchObject({ ok: false });
 
       await expect(
-        findWorkspaceByDirectory(
+        findWorkspaceByDirectoryChecked(
           baseDeps({
             fetchImpl: vi.fn().mockRejectedValue(new Error("network")),
           }),
           "/tmp/wt",
         ),
-      ).resolves.toBeNull();
+      ).resolves.toMatchObject({ ok: false });
 
       await expect(
-        findWorkspaceByDirectory(
+        findWorkspaceByDirectoryChecked(
           baseDeps({
             fetchImpl: vi
               .fn()
@@ -537,7 +537,121 @@ describe("workspace-warp", () => {
           }),
           "/tmp/wt",
         ),
-      ).resolves.toBeNull();
+      ).resolves.toMatchObject({ ok: false });
+    });
+  });
+
+  // rq-terminalCleanupSafety01: terminal cleanup must distinguish a proven
+  // empty workspace list from a failed lookup so callers can fail closed
+  // instead of treating "unknown" as "no workspace owns this worktree".
+  describe("findWorkspaceByDirectoryChecked", () => {
+    it("returns ok with no workspace without HTTP when the warp flag is off", async () => {
+      const fetchImpl = vi.fn();
+
+      await expect(
+        findWorkspaceByDirectoryChecked(baseDeps({ fetchImpl }), "/tmp/wt"),
+      ).resolves.toEqual({ ok: true, workspace: null });
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
+
+    it("returns ok with the matching workspace handle", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse([
+          {
+            id: "ws-match",
+            type: "adv-worktree",
+            directory: "/tmp/wt",
+            extra: { directory: "/tmp/wt", branch: "change/test" },
+          },
+        ]),
+      );
+
+      await expect(
+        findWorkspaceByDirectoryChecked(
+          baseDeps({ fetchImpl }),
+          "/tmp/wt",
+          "change/test",
+        ),
+      ).resolves.toEqual({
+        ok: true,
+        workspace: { workspaceID: "ws-match" },
+      });
+    });
+
+    it("returns ok with null when no workspace matches", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(jsonResponse([]));
+
+      await expect(
+        findWorkspaceByDirectoryChecked(baseDeps({ fetchImpl }), "/tmp/wt"),
+      ).resolves.toEqual({ ok: true, workspace: null });
+    });
+
+    it("ignores empty workspace IDs", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse([
+          {
+            id: "",
+            type: "adv-worktree",
+            directory: "/tmp/wt",
+            extra: { directory: "/tmp/wt", branch: "change/test" },
+          },
+        ]),
+      );
+
+      await expect(
+        findWorkspaceByDirectoryChecked(
+          baseDeps({ fetchImpl }),
+          "/tmp/wt",
+          "change/test",
+        ),
+      ).resolves.toEqual({ ok: true, workspace: null });
+    });
+
+    it("fails closed with a typed reason on non-2xx list responses", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValue(textResponse("no", { status: 500 }));
+
+      const result = await findWorkspaceByDirectoryChecked(
+        baseDeps({ fetchImpl }),
+        "/tmp/wt",
+      );
+
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error("expected lookup failure");
+      expect(result.reason).toContain("500");
+    });
+
+    it("fails closed with a typed reason when the list is not valid JSON", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValue(jsonResponse({ id: "not-a-list" }));
+
+      const result = await findWorkspaceByDirectoryChecked(
+        baseDeps({ fetchImpl }),
+        "/tmp/wt",
+      );
+
+      expect(result.ok).toBe(false);
+    });
+
+    it("fails closed with a typed reason on fetch errors", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockRejectedValue(new Error("network down"));
+
+      const result = await findWorkspaceByDirectoryChecked(
+        baseDeps({ fetchImpl }),
+        "/tmp/wt",
+      );
+
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error("expected lookup failure");
+      expect(result.reason).toContain("network down");
     });
   });
 
@@ -595,11 +709,11 @@ describe("workspace-warp", () => {
       ).toBe(expectedHeader);
     });
 
-    it("attaches x-opencode-directory on findWorkspaceByDirectory GET", async () => {
+    it("attaches x-opencode-directory on findWorkspaceByDirectoryChecked GET", async () => {
       vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
       const fetchImpl = vi.fn().mockResolvedValue(jsonResponse([]));
 
-      await findWorkspaceByDirectory(baseDeps({ fetchImpl }), "/tmp/wt");
+      await findWorkspaceByDirectoryChecked(baseDeps({ fetchImpl }), "/tmp/wt");
 
       const [, init] = getCall(fetchImpl);
       expect(
@@ -656,7 +770,7 @@ describe("workspace-warp", () => {
       process.env = originalEnv;
     });
 
-    it("findWorkspaceByDirectory aborts on timeout when fetch hangs", async () => {
+    it("findWorkspaceByDirectoryChecked aborts on timeout when fetch hangs", async () => {
       // fetchImpl respects AbortSignal — simulates a hung HTTP request
       const fetchImpl = vi.fn(
         (_url: string, init: RequestInit) =>
@@ -677,14 +791,13 @@ describe("workspace-warp", () => {
           }),
       );
 
-      const result = await findWorkspaceByDirectory(
+      const result = await findWorkspaceByDirectoryChecked(
         baseDeps({ fetchImpl }),
         "/tmp/wt",
         "change/test",
       );
 
-      // Should return null (graceful degradation) instead of hanging
-      expect(result).toBeNull();
+      expect(result.ok).toBe(false);
     });
 
     it("deleteAdvWorkspace aborts on timeout when fetch hangs", async () => {

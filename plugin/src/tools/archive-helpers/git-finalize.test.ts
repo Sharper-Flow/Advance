@@ -1130,6 +1130,257 @@ describe("git-finalize helpers", () => {
     ).toBe(false);
   });
 
+  // updateArchiveVisibilitySpec AC1/AC2/SC1: route × proof discriminant
+  // regression locks. Each finalization route must produce either positive
+  // structural proof (reachable:true) or an explicit actionable non-terminal
+  // classification — never an implicit success. These tests pin the remaining
+  // discriminants not covered above: blocked, no_remote-unmerged, pr_manual,
+  // and merge_queue (including deleted-branch tree fallback).
+  describe("route × proof discriminants (updateArchiveVisibilitySpec AC1/SC1)", () => {
+    it("blocked route returns proof blocked and performs no git/gh I/O", () => {
+      let ioCalled = false;
+      const result = resolveReleaseReachability(
+        {
+          mainCheckout: "/repo",
+          defaultBranch: "trunk",
+          changeId: "blockedRoute",
+          route: {
+            route: "blocked",
+            reason: "GH_UNAVAILABLE",
+            details: ["gh CLI not available"],
+          },
+        },
+        {
+          runGit: () => {
+            ioCalled = true;
+            return { status: 1, stdout: "", stderr: "must not be called" };
+          },
+          runGh: () => {
+            ioCalled = true;
+            return { status: 1, stdout: "", stderr: "must not be called" };
+          },
+        },
+      );
+
+      expect(result).toMatchObject({
+        reachable: false,
+        proof: "blocked",
+        details: ["gh CLI not available"],
+      });
+      expect(ioCalled).toBe(false);
+    });
+
+    it("no_remote route + unmerged change branch returns local_unmerged with actionable details", () => {
+      const result = resolveReleaseReachability(
+        {
+          mainCheckout: "/repo",
+          defaultBranch: "trunk",
+          changeId: "noRemoteUnmerged",
+          route: { route: "no_remote" },
+        },
+        {
+          runGit: (_cwd, args) => {
+            if (
+              args[0] === "log" &&
+              args[2] === "trunk..change/noRemoteUnmerged"
+            ) {
+              return {
+                status: 0,
+                stdout: "abc123 unmerged change commit\n",
+                stderr: "",
+              };
+            }
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+        },
+      );
+
+      expect(result.reachable).toBe(false);
+      expect(result.proof).toBe("local_unmerged");
+      expect(result.details).toEqual(["abc123 unmerged change commit"]);
+    });
+
+    it("pr_manual route + merged PR returns pr_merged typed proof", () => {
+      const result = resolveReleaseReachability(
+        {
+          mainCheckout: "/repo",
+          defaultBranch: "trunk",
+          changeId: "manualPrMerged",
+          prNumber: 77,
+          route: { route: "pr_manual", repo: "Sharper-Flow/Advance" },
+        },
+        {
+          runGit: (_cwd, args) => {
+            if (args[0] === "fetch")
+              return { status: 0, stdout: "", stderr: "" };
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+          runGh: (_cwd, args) => {
+            if (args[0] === "pr" && args[1] === "view") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "MERGED",
+                  mergedAt: "2026-07-01T00:00:00Z",
+                  mergeCommit: { oid: "merge-77" },
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+        },
+      );
+
+      expect(result).toMatchObject({
+        reachable: true,
+        proof: "pr_merged",
+        prNumber: 77,
+        mergeCommitOid: "merge-77",
+      });
+    });
+
+    it("pr_manual route + open PR returns pr_unmerged actionable state, never success", () => {
+      const result = resolveReleaseReachability(
+        {
+          mainCheckout: "/repo",
+          defaultBranch: "trunk",
+          changeId: "manualPrOpen",
+          prNumber: 78,
+          route: { route: "pr_manual", repo: "Sharper-Flow/Advance" },
+        },
+        {
+          runGit: (_cwd, args) => {
+            if (args[0] === "fetch")
+              return { status: 0, stdout: "", stderr: "" };
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+          runGh: (_cwd, args) => {
+            if (args[0] === "pr" && args[1] === "view") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "OPEN",
+                  mergedAt: null,
+                  mergeCommit: null,
+                  autoMergeRequest: null,
+                }),
+                stderr: "",
+              };
+            }
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+        },
+      );
+
+      expect(result.reachable).toBe(false);
+      expect(result.proof).toBe("pr_unmerged");
+      expect(result.prNumber).toBe(78);
+      expect(result.autoMergeArmed).toBe(false);
+      expect(result.details?.some((d) => d.includes("OPEN"))).toBe(true);
+    });
+
+    it("merge_queue route + merged PR returns pr_merged typed proof", () => {
+      const result = resolveReleaseReachability(
+        {
+          mainCheckout: "/repo",
+          defaultBranch: "trunk",
+          changeId: "queueMerged",
+          prNumber: 99,
+          route: {
+            route: "merge_queue",
+            repo: "Sharper-Flow/Advance",
+            mergeQueueRequired: true,
+          },
+        },
+        {
+          runGit: (_cwd, args) => {
+            if (args[0] === "fetch")
+              return { status: 0, stdout: "", stderr: "" };
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+          runGh: (_cwd, args) => {
+            if (args[0] === "pr" && args[1] === "view") {
+              return {
+                status: 0,
+                stdout: JSON.stringify({
+                  state: "MERGED",
+                  mergedAt: "2026-07-02T00:00:00Z",
+                  mergeCommit: { oid: "merge-99" },
+                  autoMergeRequest: { enabledAt: "2026-07-01T00:00:00Z" },
+                }),
+                stderr: "",
+              };
+            }
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+        },
+      );
+
+      expect(result).toMatchObject({
+        reachable: true,
+        proof: "pr_merged",
+        prNumber: 99,
+        mergeCommitOid: "merge-99",
+      });
+    });
+
+    it("merge_queue route + deleted branch + changeTipSha tree match returns pr_merged via structural fallback", () => {
+      const result = resolveReleaseReachability(
+        {
+          mainCheckout: "/repo",
+          defaultBranch: "trunk",
+          changeId: "queueDeletedBranch",
+          changeTipSha: "tip999xyz",
+          route: {
+            route: "merge_queue",
+            repo: "Sharper-Flow/Advance",
+            mergeQueueRequired: true,
+          },
+        },
+        {
+          runGit: (_cwd, args) => {
+            if (args[0] === "rev-parse") {
+              const ref = args[1] ?? "";
+              // Persisted tip resolves; live change/* ref is deleted.
+              if (ref === "tip999xyz^{tree}") {
+                return { status: 0, stdout: "shared-tree-sha\n", stderr: "" };
+              }
+              if (ref.includes("change/queueDeletedBranch")) {
+                return {
+                  status: 128,
+                  stdout: "",
+                  stderr: "unknown revision",
+                };
+              }
+              return { status: 0, stdout: "abc123\n", stderr: "" };
+            }
+            if (args[0] === "log" && args[1] === "--format=%H %T") {
+              return {
+                status: 0,
+                stdout: "squash999 shared-tree-sha\n",
+                stderr: "",
+              };
+            }
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+          runGh: (_cwd, args) => {
+            // No discoverable PR — forces the tree-SHA structural fallback.
+            if (args[0] === "pr" && args[1] === "list") {
+              return { status: 0, stdout: "[]", stderr: "" };
+            }
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+        },
+      );
+
+      expect(result.reachable).toBe(true);
+      expect(result.proof).toBe("pr_merged");
+      expect(result.mergeCommitOid).toBe("squash999");
+    });
+  });
+
   it("detectArchivedUnmergedBranches lists origin change branches not reachable from origin/default", () => {
     const calls: string[][] = [];
     const result = detectArchivedUnmergedBranches(

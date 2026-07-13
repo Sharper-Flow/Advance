@@ -16,6 +16,8 @@ interface StatusState {
   currentStatus: StatusMarker;
   projectName: string;
   activeChangeId: string | null;
+  activeChangeLabel: string | null;
+  activeEpicTitle: string | null;
   taskProgress: string | null;
   lastUpdated: number;
 }
@@ -24,6 +26,8 @@ let state: StatusState = {
   currentStatus: "IDLE",
   projectName: "Unknown",
   activeChangeId: null,
+  activeChangeLabel: null,
+  activeEpicTitle: null,
   taskProgress: null,
   lastUpdated: Date.now(),
 };
@@ -83,6 +87,8 @@ export const initializeStatus = (projectName: string): void => {
     currentStatus: "IDLE",
     projectName,
     activeChangeId: null,
+    activeChangeLabel: null,
+    activeEpicTitle: null,
     taskProgress: null,
     lastUpdated: Date.now(),
   };
@@ -100,6 +106,8 @@ export const resetStatusForTest = (): void => {
     currentStatus: "IDLE",
     projectName: "Unknown",
     activeChangeId: null,
+    activeChangeLabel: null,
+    activeEpicTitle: null,
     taskProgress: null,
     lastUpdated: Date.now(),
   };
@@ -118,9 +126,18 @@ export const setStatus = (status: StatusMarker): void => {
 
 /**
  * Set the active change being worked on.
+ *
+ * Accepts optional structured context (label and epicTitle) for pane title
+ * rendering. When context is not provided, label defaults to changeId and
+ * epicTitle defaults to null. Passing null for changeId clears all context.
  */
-export const setActiveChange = (changeId: string | null): void => {
+export const setActiveChange = (
+  changeId: string | null,
+  context?: { label?: string; epicTitle?: string },
+): void => {
   state.activeChangeId = changeId;
+  state.activeChangeLabel = changeId ? (context?.label ?? changeId) : null;
+  state.activeEpicTitle = changeId ? (context?.epicTitle ?? null) : null;
   updateTerminal();
 };
 
@@ -139,7 +156,8 @@ const updateTerminal = (): void => {
   updateTerminalStatus(
     state.currentStatus,
     state.projectName,
-    state.activeChangeId ?? undefined,
+    state.activeChangeLabel ?? undefined,
+    state.activeEpicTitle ?? undefined,
     state.taskProgress ?? undefined,
   );
 };
@@ -159,6 +177,8 @@ export const resetStatus = (): void => {
     ...state,
     currentStatus: "IDLE",
     activeChangeId: null,
+    activeChangeLabel: null,
+    activeEpicTitle: null,
     taskProgress: null,
     lastUpdated: Date.now(),
   };
@@ -176,6 +196,8 @@ export const cleanup = (): void => {
     currentStatus: "IDLE",
     projectName: "Unknown",
     activeChangeId: null,
+    activeChangeLabel: null,
+    activeEpicTitle: null,
     taskProgress: null,
     lastUpdated: Date.now(),
   };

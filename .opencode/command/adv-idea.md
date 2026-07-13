@@ -7,7 +7,7 @@ description: "Explore rough ideas before drafting a proposal"
 
 # ADV Idea — Collaborative Ideation Before Proposal
 
-Shape a vague idea into a proposal-ready summary. Fully collaborative. Read-only with respect to ADV state.
+Shape a vague idea into a proposal-ready summary. Fully collaborative; read-only for ADV state.
 
 <UserRequest>
   $ARGUMENTS

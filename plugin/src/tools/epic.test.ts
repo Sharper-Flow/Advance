@@ -1529,6 +1529,8 @@ describe("adv_epic_repair_membership", () => {
 
     expect(parsed.success).toBe(true);
     expect(parsed.terminal_summary_projected).toBe(true);
+    expect(parsed.entry.membership_status).toBe("terminal");
+    expect(parsed.member_status.status).toBe("ok");
     expect(store.epics.setEntryTerminalSummary).toHaveBeenCalledWith(
       "addAuthEpic",
       {
@@ -1538,6 +1540,137 @@ describe("adv_epic_repair_membership", () => {
       },
     );
     expect(store.changes.setEpicMembership).not.toHaveBeenCalled();
+  });
+
+  test("sync_child_projection warns when terminal projection leaves membership stale", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_ref: {
+            change_id: "change-2",
+            project_id: "epic-test-project",
+          },
+          title: "Linked Change",
+          membership_status: "projection_stale",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "repair test",
+        }),
+      ],
+    });
+    store.epics.setEntryTerminalSummary = vi.fn(async () =>
+      makeChangeEntry({
+        entry_id: "entry-2",
+        change_ref: { change_id: "change-2", project_id: "epic-test-project" },
+        title: "Linked Change",
+        membership_status: "projection_stale",
+        linked_at: "2026-06-25T00:00:00.000Z",
+        linked_by: "agent",
+        link_evidence: "terminal repair",
+        terminal_summary: {
+          status: "archived",
+          completed_at: "2026-06-26T00:00:00.000Z",
+        },
+      }),
+    );
+    vi.mocked(store.changes.get).mockResolvedValueOnce({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "archived",
+        gates: {},
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-26T00:00:00.000Z",
+      } as Change,
+    });
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "entry-2",
+        mode: "sync_child_projection",
+        evidence: "Operator verified archived child remains active in Epic.",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.terminal_summary_projected).toBe(true);
+    expect(parsed.repaired).toBe(false);
+    expect(parsed.warning).toContain("membership status is not terminal");
+    expect(parsed.member_status.status).toBe("stale");
+  });
+
+  test("sync_child_projection warns when terminal projection remains linked", async () => {
+    const store = makeStore({
+      entries: [
+        makeChangeEntry({
+          entry_id: "entry-2",
+          change_ref: {
+            change_id: "change-2",
+            project_id: "epic-test-project",
+          },
+          title: "Linked Change",
+          membership_status: "projection_stale",
+          linked_at: "2026-06-25T00:00:00.000Z",
+          linked_by: "agent",
+          link_evidence: "repair test",
+        }),
+      ],
+    });
+    store.epics.setEntryTerminalSummary = vi.fn(async () =>
+      makeChangeEntry({
+        entry_id: "entry-2",
+        change_ref: { change_id: "change-2", project_id: "epic-test-project" },
+        title: "Linked Change",
+        membership_status: "linked",
+        linked_at: "2026-06-25T00:00:00.000Z",
+        linked_by: "agent",
+        link_evidence: "terminal repair",
+        terminal_summary: {
+          status: "archived",
+          completed_at: "2026-06-26T00:00:00.000Z",
+        },
+      }),
+    );
+    vi.mocked(store.changes.get).mockResolvedValueOnce({
+      success: true,
+      data: {
+        id: "change-2",
+        title: "Linked Change",
+        status: "archived",
+        gates: {},
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        created_at: "2026-06-25T00:00:00.000Z",
+        updated_at: "2026-06-26T00:00:00.000Z",
+      } as Change,
+    });
+
+    const output = await epicTools.adv_epic_repair_membership.execute(
+      {
+        epic_id: "addAuthEpic",
+        entry_id: "entry-2",
+        mode: "sync_child_projection",
+        evidence: "Operator verified archived child remains active in Epic.",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.terminal_summary_projected).toBe(true);
+    expect(parsed.repaired).toBe(false);
+    expect(parsed.warning).toContain("membership status is not terminal");
+    expect(parsed.member_status.status).toBe("ok");
+    expect(parsed.entry.membership_status).toBe("linked");
   });
 
   test("dry-run sync_child_projection previews closed child terminal backfill without mutation", async () => {

@@ -6,7 +6,7 @@ description: Detect drift between specs and current implementation
 <!-- rq-ambiguityScan01 rq-ambiguityScan02 rq-ambiguityScan03 rq-ambiguityScan04 rq-ambiguityScan05 -->
 # ADV Audit — Spec/Implementation Alignment Check
 
-Multi-phase audit for spec/implementation drift. Uses sub-agents and quality gates. Command owns orchestration + metadata write.
+Multi-phase spec/implementation drift audit using sub-agents + quality gates; command owns orchestration + metadata write.
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
 

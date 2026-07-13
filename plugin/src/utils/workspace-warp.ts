@@ -272,38 +272,72 @@ const isAdvWorkspaceListItem = (
   isRecord(value) &&
   "id" in value &&
   typeof value.id === "string" &&
+  value.id.length > 0 &&
   value.type === "adv-worktree" &&
   "directory" in value &&
   (typeof value.directory === "string" || value.directory === null) &&
   isRecord(value.extra) &&
   typeof value.extra.directory === "string";
 
-export async function findWorkspaceByDirectory(
+/**
+ * Typed workspace-directory lookup result.
+ *
+ * rq-terminalCleanupSafety01: terminal cleanup must distinguish a proven
+ * empty workspace list (`ok: true, workspace: null`) from a failed lookup
+ * (`ok: false`) so deletion paths can fail closed instead of treating
+ * "unknown" as "no workspace owns this worktree".
+ */
+export type WorkspaceDirectoryLookupResult =
+  | { ok: true; workspace: WorkspaceHandle | null }
+  | { ok: false; reason: string };
+
+export async function findWorkspaceByDirectoryChecked(
   deps: WarpDeps,
   directory: string,
   branch?: string,
-): Promise<WorkspaceHandle | null> {
-  if (!warpFlagEnabled()) return null;
+): Promise<WorkspaceDirectoryLookupResult> {
+  if (!warpFlagEnabled()) return { ok: true, workspace: null };
 
+  let list: unknown;
   try {
     const response = await fetchWith(deps)(workspaceUrl(deps), {
       headers: directoryHeaders(deps),
       signal: AbortSignal.timeout(WORKSPACE_OP_TIMEOUT_MS),
     });
-    if (!response.ok) return null;
-
-    const list: unknown = await response.json();
-    if (!Array.isArray(list)) return null;
-
-    const match = list.find(
-      (item) =>
-        isAdvWorkspaceListItem(item) &&
-        item.extra.directory === directory &&
-        (item.directory === null || item.directory === directory) &&
-        (branch === undefined || item.extra.branch === branch),
-    );
-    return isAdvWorkspaceListItem(match) ? { workspaceID: match.id } : null;
-  } catch {
-    return null;
+    if (!response.ok) {
+      return {
+        ok: false,
+        reason: `workspace list request failed: ${response.status} ${await responseText(
+          response,
+        )}`,
+      };
+    }
+    list = await response.json();
+  } catch (error) {
+    return {
+      ok: false,
+      reason: `workspace list request failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    };
   }
+
+  if (!Array.isArray(list)) {
+    return {
+      ok: false,
+      reason: "workspace list response was not a valid workspace list",
+    };
+  }
+
+  const match = list.find(
+    (item) =>
+      isAdvWorkspaceListItem(item) &&
+      item.extra.directory === directory &&
+      (item.directory === null || item.directory === directory) &&
+      (branch === undefined || item.extra.branch === branch),
+  );
+  return {
+    ok: true,
+    workspace: isAdvWorkspaceListItem(match) ? { workspaceID: match.id } : null,
+  };
 }

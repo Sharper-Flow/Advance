@@ -248,10 +248,84 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/If deploy fails[\s\S]*nonblocking advisory/i);
     expect(content).not.toMatch(/If deploy fails → STOP\. Do not push/i);
     expect(content).toMatch(
-      /Local deploy: \{ran \| not available \| not needed \| failed: <reason>; nonblocking\}/,
+      /Local deploy: \{ran \| ran; OpenCode activation pending restart \| not available \| not needed \| failed: <reason>; nonblocking\}/,
     );
     expect(content).toMatch(
       /GIT FINALIZATION COMPLETE[\s\S]*local deploy status/i,
+    );
+  });
+
+  test("adv-archive.md Local Deploy Gate callout encodes deploy-rebuild, worker-bounce, and host-restart activation behavior", () => {
+    // Behavior-level: the callout must communicate the actual activation
+    // behavior of the Local Deploy Gate so that removing any required behavior
+    // fails this test (AC5). The canonical mechanics live in
+    // scripts/deploy-local.sh and docs/temporal-recovery.md (C3); this test
+    // proves the archive callout points at them accurately.
+    //
+    // AC1: names ./scripts/deploy-local.sh --fix from the repo root as the
+    // primary deploy and states it rebuilds a stale distribution before sync
+    // (deploy-local.sh: ensure_plugin_dist_fresh rebuilds stale dist).
+    // AC2: states the command attempts the deployed-worker bounce
+    // automatically, forbids manual worker termination, and routes a failed
+    // bounce to adv_temporal_worker_restart
+    // (deploy-local.sh: refresh_deployed_temporal_workers SIGTERM bounce).
+    // AC3: requires OpenCode session / plugin-host restart plus tool
+    // re-invocation, and explicitly denies any automatic host restart /
+    // live-reload claim (temporal-recovery.md external restart boundary).
+    // AC4: the existing Phase 8 `Local deploy` row is extended (no new row)
+    // with `ran; OpenCode activation pending restart`.
+    const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
+    // AC1 — primary deploy command + rebuild-before-sync behavior
+    expect(content).toMatch(/\.\/scripts\/deploy-local\.sh --fix/);
+    expect(content).toMatch(/from the repo root/);
+    expect(content).toMatch(/rebuilds[^.\n]*stale[^.\n]*distribut/i);
+    expect(content).toMatch(/before sync/i);
+    // AC2 — automatic deployed-worker bounce; no manual termination;
+    // failed bounce routes to adv_temporal_worker_restart
+    expect(content).toMatch(/bounce[^.\n]*deployed[^.\n]*worker/i);
+    expect(content).toMatch(/do not manually terminate[^.\n]*worker/i);
+    expect(content).toMatch(/adv_temporal_worker_restart/);
+    expect(content).not.toMatch(
+      /restart[^.\n]*standalone Temporal worker process/i,
+    );
+    // AC3 — host restart + tool re-invocation required; no auto-restart /
+    // live-reload claim
+    expect(content).toMatch(
+      /[Rr]estart the relevant OpenCode session \/ plugin host/,
+    );
+    expect(content).toMatch(/re-invoke the affected tool/i);
+    expect(content).toMatch(/does not auto-?restart/i);
+    // AC4 — Phase 8 row extended (single existing row) with the new state
+    expect(content).toMatch(/ran; OpenCode activation pending restart/);
+    expect(content).toMatch(
+      /- Local deploy: \{[^}]*ran; OpenCode activation pending restart[^}]*\}/,
+    );
+    // Preserved behavior — deploy completion is still not reload proof.
+    expect(content).toMatch(/[Dd]eploy completion is not reload proof/);
+    // AC4 — activation reporting is routed through the existing Phase 8
+    // `Local deploy` row; no appended/unstructured activation advisory line.
+    expect(content).toMatch(
+      /activation[^.\n]*through the existing Phase 8 `Local deploy` row/i,
+    );
+    expect(content).not.toMatch(/append an activation advisory line/i);
+  });
+
+  test("archive terminal templates retain the local deploy activation-pending state", () => {
+    const content = readAsset(
+      join(REPO_ROOT, "docs/command-voice-standard.md"),
+    );
+    const shippedTemplate =
+      content.match(/\*\*Shipped\*\*[\s\S]*?\*\*Merged locally\*\*/)?.[0] ?? "";
+    const localTemplate =
+      content.match(
+        /\*\*Merged locally\*\*[\s\S]*?\*\*Pending auto-merge\*\*/,
+      )?.[0] ?? "";
+
+    expect(shippedTemplate).toContain(
+      "- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}",
+    );
+    expect(localTemplate).toContain(
+      "- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}",
     );
   });
 

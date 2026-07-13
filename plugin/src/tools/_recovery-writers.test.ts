@@ -471,6 +471,14 @@ describe("saveRecoveredSubagentReport", () => {
       "archive-sidecar",
     );
 
+    // Archive-sidecar change.json ends with exactly one trailing newline (AC3/SC2)
+    const rawBundleChange = await readFile(
+      join(bundleDir, "change.json"),
+      "utf-8",
+    );
+    expect(rawBundleChange.endsWith("\n")).toBe(true);
+    expect(rawBundleChange.endsWith("\n\n")).toBe(false);
+
     // Did NOT route through the mocked saveChange (active dir)
     expect(mockedSaveChange).not.toHaveBeenCalled();
     // No refresh (clobbers repair)

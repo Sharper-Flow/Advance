@@ -14,7 +14,7 @@ Evidence-backed improvement analysis across current-state gaps, LBP/reference ar
 
 ## Phase 0: Load Skill
 
-`skill("adv-improve")` → target resolution, scan categories, LBP comparison, external landscape, synthesis, research pack schema. If unavailable, use fallback below.
+`skill("adv-improve")` → target resolution, scan categories, LBP comparison, external landscape, synthesis, research pack schema. Unavailable → use fallback below.
 
 Fallback: run phases in this file; cap findings; cite evidence; write only `docs/*-prep.md`; never create ADV changes/tasks/gates/specs.
 

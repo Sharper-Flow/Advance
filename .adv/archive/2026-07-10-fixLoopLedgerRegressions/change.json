@@ -1,0 +1,1801 @@
+{
+  "id": "fixLoopLedgerRegressions",
+  "title": "Fix loop ledger regressions",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-10T16:55:58.873Z",
+  "tasks": [
+    {
+      "id": "tk-5160f317f1cc",
+      "title": "Fix loop-ledger-related asset expectations",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-10T17:51:19.038Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "DONT1",
+          "OOS2",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T17:55:55.192Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixLoopLedgerRegressions",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixLoopLedgerRegressions",
+          "task_id": "tk-5160f317f1cc",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-5160f317f1cc"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/subagent-reports-spec-assets.test.ts",
+            "plugin/src/ops-follow-up-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm test -- src/subagent-reports-spec-assets.test.ts src/ops-follow-up-assets.test.ts",
+              "exit_code": 1,
+              "summary": "RED (before edits): 4 failures including both targets — subagent-reports spec rq list missing rq-subagentReports23 (expected 22, got 23) and subagent-reports version 1.6.0 vs 1.7.1."
+            },
+            {
+              "command": "pnpm test -- src/subagent-reports-spec-assets.test.ts src/ops-follow-up-assets.test.ts",
+              "exit_code": 1,
+              "summary": "GREEN (after edits): both targets no longer failing; failure count dropped 4→3, all remaining out-of-scope (2× advance-workflow 1.26.0 pin, 1× intermittent epic_membership)."
+            },
+            {
+              "command": "pnpm test -- src/subagent-reports-spec-assets.test.ts",
+              "exit_code": 1,
+              "summary": "Isolation: requested file produced no own failures; only full-suite bleed-through (advance-workflow pins + epic_membership) reported, confirming subagent-reports-spec-assets.test.ts is green."
+            },
+            {
+              "command": "pnpm test -- -t \"subagent-reports spec exists and parses as a Spec|subagent-reports version is at least 1.3.0\"",
+              "exit_code": 1,
+              "summary": "Name-filtered run: only the 2 advance-workflow pin failures remained; name-matched target tests passed; epic_membership absent (intermittent)."
+            },
+            {
+              "command": "node -e (spec rq-list and version equality check)",
+              "exit_code": 0,
+              "summary": "Deterministic proof: AC1 rq-list (with rq-subagentReports23) === spec ids → true; AC2 subagent-reports version === 1.7.1 → true."
+            },
+            {
+              "command": "git diff --check",
+              "exit_code": 0,
+              "summary": "No whitespace errors in the two-file diff."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Appended rq-subagentReports23 as the final element of the expected requirements array",
+              "why": "toEqual is order-sensitive and the spec places rq-subagentReports23 last (index 22, after rq-subagentReports22); appending preserves exact ordering rather than weakening to a set/contains check (design point 1: correct exact assertions, do not broaden)."
+            },
+            {
+              "what": "Updated subagent-reports version pin from 1.6.0 to 1.7.1 with an exact toBe",
+              "why": "AC2 requires the exact current version; kept a strict equality assertion rather than a loose/at-least comparison."
+            },
+            {
+              "what": "Left the advance-workflow 1.26.0 pin untouched",
+              "why": "DONT1/AC2 explicitly forbid altering unrelated advance-workflow baseline version-pin expectations; the 1.26.0-vs-1.27.0 drift is a pre-existing baseline failure owned by the verification task (AC7)."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "advance-workflow version pin 1.26.0-vs-1.27.0 in ops-follow-up-assets.test.ts (DONT1)",
+              "advance-workflow version pin 1.26.0-vs-1.27.0 in adv-skill-backed-commands-assets.test.ts (OOS4)",
+              "intermittent temporal/workflows.signal-handlers.test.ts epic_membership failure (unrelated subsystem)"
+            ],
+            "details": "Two unrelated advance-workflow version-pin failures (1.26.0 expected vs 1.27.0 actual) in ops-follow-up-assets.test.ts and adv-skill-backed-commands-assets.test.ts, plus an intermittent temporal epic_membership signal-handler failure, appear in the full suite. None are caused by this task's two-file diff; they are pre-existing baseline/subsystem failures.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "ops-follow-up-assets.test.ts:142-145 advance-workflow version pin expects 1.26.0 but spec is 1.27.0 (explicit DONT1 — leave for verification task AC7 / separate baseline repair)",
+            "adv-skill-backed-commands-assets.test.ts stage-boundary specs assertion expects advance-workflow 1.26.0 but spec is 1.27.0 (out of scope, OOS4)",
+            "temporal/workflows.signal-handlers.test.ts 'sets and clears epic_membership projection through signals' fails intermittently in unrelated Temporal subsystem (not touched by this diff; for verification task to classify)"
+          ],
+          "required_main_agent_actions": [
+            "Have verification task tk-550e9ea0c687 record the remaining failures (2× advance-workflow 1.26.0-vs-1.27.0 pin; intermittent temporal epic_membership) as pre-existing and unrelated under AC7 with parent/diff evidence.",
+            "Investigate why `pnpm test -- <file>` / `-t` does not narrow vitest collection in this repo (full suite runs regardless of filter); affects signal-to-noise for targeted engineer verification."
+          ],
+          "related_scan": "Grep confirmed no other in-scope subagent-reports 1.6.0 pin or rq-list-without-rq23 assertion remains. briefing-packets-spec-assets.test.ts loads subagent-reports but asserts only rq-subagentReports21 anchors, so it is unaffected and correctly out of scope (OOS4). Same-pattern advance-workflow 1.26.0 pin also appears in adv-skill-backed-commands-assets.test.ts — that is a different spec's baseline, explicitly out of scope (DONT1/OOS4), not fixed here.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC1 and AC2 implemented with exact (non-broadened) assertions. subagent-reports-spec-assets.test.ts now expects rq-subagentReports23 appended at the tail to match spec order; ops-follow-up-assets.test.ts now pins subagent-reports to 1.7.1. The advance-workflow version pin (1.26.0) was left unchanged per DONT1. Diff is exactly 2 files (+2/-1) and git diff --check is clean. Note: `pnpm test -- <file>` and `-t` did not narrow vitest collection in this repo, so each run reported full-suite failures; the two target tests were failing in RED and absent from failures after edits, corroborated by a deterministic node check (rq-list===spec true; version===1.7.1 true). Remaining full-suite failures are out of scope: advance-workflow 1.26.0-vs-1.27.0 pin in ops-follow-up-assets.test.ts (explicit DONT1) and adv-skill-backed-commands-assets.test.ts, plus an intermittent temporal epic_membership signal test — none touched by this diff.",
+            "suggested_next_action": "Proceed to next ready task tk-38e52641f17a (archive JSON final newlines). Verification task tk-550e9ea0c687 owns AC7 documentation of the remaining out-of-scope full-suite failures as pre-existing/unrelated."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/subagent-reports-spec-assets.test.ts src/ops-follow-up-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/subagent-reports-spec-assets.test.ts src/ops-follow-up-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/subagent-reports-spec-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- -t \"subagent-reports spec exists and parses as a Spec|subagent-reports version is at least 1.3.0\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: node -e (spec rq-list and version equality check)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --check"
+            }
+          ]
+        }
+      ],
+      "verification": "RED and GREEN recorded via adv_run_test; exact spec asset expectations now match rq-subagentReports23 and 1.7.1; unrelated advance-workflow pins preserved; git diff --check clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/ops-follow-up-assets.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "9c84062cbab16e33584fb4260d88ea3ce8c7e70e",
+      "completedAt": "2026-07-10T18:11:15.804Z",
+      "completed_at": "2026-07-10T18:11:15.804Z"
+    },
+    {
+      "id": "tk-38e52641f17a",
+      "title": "Enforce archive JSON final newlines",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-10T17:51:27.888Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T18:11:22.144Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixLoopLedgerRegressions",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixLoopLedgerRegressions",
+          "task_id": "tk-38e52641f17a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-38e52641f17a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/archive/archive.ts",
+            "plugin/src/archive/archive.test.ts",
+            "plugin/src/tools/_recovery-writers.ts",
+            "plugin/src/tools/_recovery-writers.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/archive/archive.test.ts -t \"archive bundle JSON artifacts end with exactly one trailing newline\"",
+              "exit_code": 1,
+              "summary": "RED: 4 new AC3/SC2 tests failed with 'expected false to be true' on endsWith('\\n') — bundle artifacts had no trailing newline before the fix."
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/_recovery-writers.test.ts -t \"appends a report to the ARCHIVE BUNDLE change.json\"",
+              "exit_code": 1,
+              "summary": "RED: recovery archive-sidecar change.json assertion failed (expected false to be true on endsWith('\\n')) before the fix."
+            },
+            {
+              "command": "pnpm exec vitest run src/archive/archive.test.ts -t \"archive bundle JSON artifacts end with exactly one trailing newline\"",
+              "exit_code": 0,
+              "summary": "GREEN: 4 new AC3/SC2 tests pass (bundleJsonStringify unit + createArchive change.json/wisdom.json + multi-repo-archive.json + createInRepoArchive change.json/wisdom.json)."
+            },
+            {
+              "command": "pnpm exec vitest run src/tools/_recovery-writers.test.ts -t \"appends a report to the ARCHIVE BUNDLE change.json\"",
+              "exit_code": 0,
+              "summary": "GREEN: recovery archive-sidecar change.json now ends with exactly one trailing newline."
+            },
+            {
+              "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/_recovery-writers.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY: full files pass, 39/39 tests, no regressions."
+            },
+            {
+              "command": "pnpm exec tsc --noEmit",
+              "exit_code": 0,
+              "summary": "Typecheck clean — new archive.ts export and _recovery-writers import compile; no cycle/type errors."
+            },
+            {
+              "command": "git diff --check",
+              "exit_code": 0,
+              "summary": "AC6: no whitespace errors in the follow-up diff."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Introduced one exported pure helper bundleJsonStringify() in plugin/src/archive/archive.ts and reused it at all 6 archive-bundle JSON write sites plus the recovery archive-sidecar change.json in tools/_recovery-writers.ts.",
+              "why": "P33 structural correctness + P04 locality: a single owned serialization boundary guarantees exactly-one-trailing-newline everywhere instead of 7 ad-hoc concatenations. JSON.stringify never emits a trailing newline, so `${...}\\n` always yields exactly one. Reuse from _recovery-writers.ts (already imports findArchiveBundle from archive.ts) adds no new dependency/cycle."
+            },
+            {
+              "what": "Did NOT add newlines to writeSpecToDisk (spec.json), the sibling raw-copy writes (proposal.md etc.), markdown artifacts (ARCHIVE_SUMMARY.md, BRIEFING_DIGEST.md, CONTRACT_TRACEABILITY.md), or the active-dir change.json (storage/json.ts saveChange).",
+              "why": "AC3 enumerates only change.json/wisdom.json/multi-repo-archive.json; C2 scopes enforcement to archive writes + recovery archive-sidecar writes; DONT3 forbids broadening beyond bundle JSON. spec.json is a spec capability file, not a bundle artifact; sibling copies propagate source bytes verbatim; the active change.json is not an archive bundle."
+            },
+            {
+              "what": "Asserted exactly-one-newline via endsWith('\\n')===true && endsWith('\\n\\n')===false plus a JSON.parse round-trip, and added a direct bundleJsonStringify() unit test.",
+              "why": "The double assertion distinguishes 'exactly one' from 'at least one' (the original EOF-whitespace defect was blank trailing lines); the unit test structurally covers every call site regardless of path."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [
+            "Run bin/oc-test full for AC7 (gate-level, outside this task's inline TDD) and confirm any remaining failures are pre-existing/unrelated per parent/diff evidence.",
+            "Mark task tk-38e52641f17a complete after review (engineer did not complete the task per instruction)."
+          ],
+          "related_scan": "Grep-confirmed the only archive-bundle JSON writers are archive.ts (createArchive + createInRepoArchive) and the recovery archive-sidecar in tools/_recovery-writers.ts (persistTerminalProjection); all converted to bundleJsonStringify. storage/json.ts saveChange writes the ACTIVE change.json (out of scope); archive.ts line 806 writeSpecToDisk (spec.json) and line 226 traceability markdown line are intentionally untouched (DONT3). No other production bundle-JSON write sites exist.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-38e52641f17a implemented and verified (NOT completed). Added exported bundleJsonStringify() in archive.ts (serializes JSON with exactly one trailing \\n, owning the newline at the serialization boundary per C2 — atomicWriteFile writes verbatim) and applied it to all 6 archive-bundle JSON sites (change.json/wisdom.json/multi-repo-archive.json in createArchive + createInRepoArchive) and the recovery archive-sidecar change.json in tools/_recovery-writers.ts. New AC3/SC2 artifact assertions prove change.json, wisdom.json, multi-repo-archive.json and the recovery sidecar end with exactly one \\n. Historical addLoopLedger bundle NOT rewritten (C3/OOS3). TDD red->green via adv_run_test; full archive.test.ts + _recovery-writers.test.ts (39) pass; tsc --noEmit clean; git diff --check clean.",
+            "suggested_next_action": "Run bin/oc-test full (AC7) and, if green, mark task tk-38e52641f17a done; AC3/SC2 evidence is the new archive newline tests plus green tsc and git diff --check."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/archive/archive.test.ts -t \"archive bundle JSON artifacts end with exactly one trailing newline\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/_recovery-writers.test.ts -t \"appends a report to the ARCHIVE BUNDLE change.json\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/archive/archive.test.ts -t \"archive bundle JSON artifacts end with exactly one trailing newline\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/_recovery-writers.test.ts -t \"appends a report to the ARCHIVE BUNDLE change.json\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/archive/archive.test.ts src/tools/_recovery-writers.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --check"
+            }
+          ]
+        }
+      ],
+      "verification": "Harden remediation: bundleJsonStringify rejects non-serializable undefined input; targeted archive suite 40 tests passed; git diff --check clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/archive/archive.test.ts",
+        "plugin/src/archive/archive.ts"
+      ],
+      "touched_files": [
+        "plugin/src/archive/archive.test.ts",
+        "plugin/src/archive/archive.ts"
+      ],
+      "checkpointSha": "a4ad9a06a4d8de11cfebad1c854ae0b6cc755a2d",
+      "completedAt": "2026-07-10T20:38:31.750Z",
+      "completed_at": "2026-07-10T20:38:31.750Z"
+    },
+    {
+      "id": "tk-a02e7b6694d8",
+      "title": "Relocate report-key identity to types",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-10T17:51:36.884Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT2",
+          "OOS1"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T18:24:47.322Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixLoopLedgerRegressions",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixLoopLedgerRegressions",
+          "task_id": "tk-a02e7b6694d8",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-a02e7b6694d8"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/subagent-reports.ts",
+            "plugin/src/types/subagent-reports.test.ts",
+            "plugin/src/temporal/contracts.ts",
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/utils/loop-ledger.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/followup.ts",
+            "plugin/src/tools/followup.test.ts",
+            "plugin/src/tools/subagent-report.ts",
+            "plugin/src/tools/_recovery-writers.ts"
+          ],
+          "verification": [
+            {
+              "command": "npx vitest run src/types/subagent-reports.test.ts (RED, pre-implementation)",
+              "exit_code": 0,
+              "summary": "RED confirmed: 4 new subagentReportKey tests failed (helper not yet exported from ./subagent-reports); 49 pre-existing tests passed. (Note: exit code reflects the tail pipe; vitest reported 4 failed | 49 passed.)"
+            },
+            {
+              "command": "npx vitest run src/types/subagent-reports.test.ts (GREEN, post-implementation)",
+              "exit_code": 0,
+              "summary": "GREEN: 53 passed — 49 pre-existing + 4 new format-pinning tests for subagentReportKey."
+            },
+            {
+              "command": "npx vitest run src/temporal/workflow-bundle-boundary.test.ts src/utils/loop-ledger.purity.test.ts src/tools/followup.test.ts src/types/subagent-reports.test.ts",
+              "exit_code": 0,
+              "summary": "71 passed across 4 files: workflow-bundle-boundary (6), loop-ledger.purity (2), followup consumer (10), subagent-reports (53). Confirms temporal/change-state importing from types/ keeps the workflow bundle boundary intact and loop-ledger purity is preserved after repoint."
+            },
+            {
+              "command": "pnpm run typecheck (tsc --noEmit)",
+              "exit_code": 0,
+              "summary": "Clean — all 7 consumers compile against the new import and contracts.ts has no unused imports after removing the helper + 2 type imports."
+            },
+            {
+              "command": "pnpm run lint (eslint src/)",
+              "exit_code": 0,
+              "summary": "Clean — no ESLint errors/warnings across src/."
+            },
+            {
+              "command": "npx prettier --check <10 touched files>",
+              "exit_code": 0,
+              "summary": "All touched files use Prettier code style. (Whole-src format:check flags only the pre-existing, unrelated src/archive/archive.test.ts.)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Placed subagentReportKey in types/subagent-reports.ts (not the types/index.ts barrel); consumers import the explicit ../types/subagent-reports path.",
+              "why": "Matches the task target exactly, keeps the workflow-bundle edge explicit and local, and avoids forcing every consumer to import the whole types barrel."
+            },
+            {
+              "what": "Deleted SubagentAgent and SubagentReportScope from the temporal/contracts.ts type-import block when removing the helper.",
+              "why": "They were used only by subagentReportKey; leaving them would fail no-unused-vars. No re-export shim was added, per the task's 'remove temporal ownership' requirement."
+            },
+            {
+              "what": "Added 4 byte-stable format-pinning tests (legacy taskId shape, structural task scope, structural change scope, unknown-scope fallback) in types/subagent-reports.test.ts.",
+              "why": "The identity is a cross-sidecar dedupe key; relocating it must not change the persisted format, so the format is now locked by tests in the helper's new home."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "plugin/src/archive/archive.test.ts fails prettier --check (pre-existing, unrelated to subagentReportKey relocation)"
+            ],
+            "details": "During verification (`pnpm run format:check`), prettier flagged plugin/src/archive/archive.test.ts as unformatted. git status confirms it is NOT part of this task's modified set, so it is a pre-existing baseline issue in an unrelated subsystem. I left it untouched to avoid scope drift.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "Pre-existing prettier formatting issue in plugin/src/archive/archive.test.ts (reported by `pnpm run format:check`); unrelated to this relocation and not modified by me. Surface for a separate fix rather than expanding this scope."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed subagentReportKey had exactly one definition (temporal/contracts.ts) and exactly 7 import consumers; all repointed, none left on the old path and no re-export shim. types/loop-ledger.ts:62 is a JSDoc-only reference (name unchanged) and stays accurate. No other temporal-owned cross-layer identity helper of the same shape exists in the touched scope. The pre-existing archive.test.ts format drift is a separate subsystem and was not altered.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "subagentReportKey relocated from temporal/contracts.ts to types/subagent-reports.ts; all 7 consumers repointed to ../types/subagent-reports (incl. temporal/change-state.ts from ./contracts); no re-export shim left behind. Removed now-unused SubagentAgent/SubagentReportScope type imports from contracts.ts. Exact key format byte-preserved and pinned by 4 new tests. typecheck + eslint clean; workflow-bundle-boundary (6) + loop-ledger.purity (2) + followup consumer (10) + subagent-reports (53) all pass. TDD red->green done via adv_run_test. Pre-existing prettier issue in plugin/src/archive/archive.test.ts is unrelated and untouched (flagged as follow-up).",
+            "suggested_next_action": "Run the broader consumer/change-state test surfaces (e.g. subagent-report, _recovery-writers, temporal change-state/signal-handler tests) or proceed to the next task; the relocation is self-contained and verified."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/types/subagent-reports.test.ts (RED, pre-implementation)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/types/subagent-reports.test.ts (GREEN, post-implementation)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx vitest run src/temporal/workflow-bundle-boundary.test.ts src/utils/loop-ledger.purity.test.ts src/tools/followup.test.ts src/types/subagent-reports.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck (tsc --noEmit)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint (eslint src/)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx prettier --check <10 touched files>"
+            }
+          ]
+        }
+      ],
+      "verification": "RED/GREEN report-key relocation evidence recorded; 53 helper tests and 71 boundary/purity/consumer tests passed; typecheck, lint, and touched-file Prettier checks passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/followup.test.ts",
+        "plugin/src/tools/followup.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts",
+        "plugin/src/utils/loop-ledger.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/followup.test.ts",
+        "plugin/src/tools/followup.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts",
+        "plugin/src/utils/loop-ledger.ts"
+      ],
+      "checkpointSha": "a322ad3a75e2e2b323a8a0b7881337c87b7283dd",
+      "completedAt": "2026-07-10T18:36:26.675Z",
+      "completed_at": "2026-07-10T18:36:26.675Z"
+    },
+    {
+      "id": "tk-550e9ea0c687",
+      "title": "Verify loop-ledger regression remediation",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-10T17:51:50.792Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5160f317f1cc"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-38e52641f17a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a02e7b6694d8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T19:03:11.883Z",
+      "verification": "pnpm run check passes after formatting archive test. Targeted regression suite passed 175 tests. Full suite rerun: 4834 tests pass; exactly two documented pre-existing unrelated advance-workflow 1.26.0→1.27.0 asset pins fail, outside this follow-up by parent/diff evidence (AC7).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/archive/archive.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/archive/archive.test.ts"
+      ],
+      "checkpointSha": "28ec9026fe71f7ed12f4f208b503ea38194be544",
+      "completedAt": "2026-07-10T19:11:01.988Z",
+      "completed_at": "2026-07-10T19:11:01.988Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixLoopLedgerRegressions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: subagentReportKey relocation, archive JSON trailing-newline ownership, exact asset assertions — Temporal bundle safety + behavior preservation",
+      "sources": [
+        {
+          "label": "temporal/contracts.ts subagentReportKey definition",
+          "locator": "plugin/src/temporal/contracts.ts:146-162",
+          "summary": "Pure string-composition helper. Type-only deps: SubagentReportScope, SubagentAgent (imported from ../types). No runtime deps, no node:*, no side effects. Trivially relocatable."
+        },
+        {
+          "label": "types/subagent-reports.ts import surface",
+          "locator": "plugin/src/types/subagent-reports.ts:10-11",
+          "summary": "Imports only `zod` and `./wisdom`. Fully workflow-safe host module for subagentReportKey. SubagentAgent/SubagentReportScope already defined here."
+        },
+        {
+          "label": "Workflow bundle boundary test",
+          "locator": "plugin/src/temporal/workflow-bundle-boundary.test.ts:113-137",
+          "summary": "Forbids only storage/, tools/, tool-registry, plugin-init, node:*, and defineUpdate from workflow-reachable set. Moving helper into types/ trips none of these; change-state.ts already imports from ../types."
+        },
+        {
+          "label": "subagentReportKey consumer map",
+          "locator": "grep plugin/src: subagent-report.ts:9, _recovery-writers.ts:34, followup.ts:32, utils/loop-ledger.ts:31, change.ts:35, temporal/change-state.ts:60, followup.test.ts:4",
+          "summary": "7 production + 1 test consumer confirmed. All can retarget import to types-layer owner with identical key output (C1/AC4)."
+        },
+        {
+          "label": "atomicWriteFile verbatim-write behavior",
+          "locator": "plugin/src/utils/fs.ts:31-60",
+          "summary": "Writes content byte-for-byte; adds no formatting/newline. Confirms C2: trailing newline must be added at each JSON.stringify call site, not delegated to atomicWriteFile."
+        },
+        {
+          "label": "Archive JSON write sites",
+          "locator": "plugin/src/archive/archive.ts:817-855, 958-993; plugin/src/tools/_recovery-writers.ts:401-404",
+          "summary": "change.json/wisdom.json/multi-repo-archive.json written via JSON.stringify(...,null,2) in two archive code paths plus one recovery archive-sidecar. All lack trailing newline today."
+        },
+        {
+          "label": "Current spec vs stale assertions",
+          "locator": ".adv/specs/subagent-reports/spec.json:6,851 vs ops-follow-up-assets.test.ts:147-150 & subagent-reports-spec-assets.test.ts:43-66",
+          "summary": "Spec is already version 1.7.1 with rq-subagentReports23 present; test still asserts 1.6.0 and requirement list ending at rq-subagentReports22. Assertions are stale, not the spec."
+        },
+        {
+          "label": "POSIX text-file newline convention",
+          "locator": "POSIX.1-2017 Base Definitions §3.206 (Line) / §3.403 (Text File)",
+          "summary": "Canonical text files terminate the final line with a newline. Explicit trailing-newline for generated JSON is the boring, proven convention and aligns with git diff --check expectations (AC6)."
+        }
+      ],
+      "architecture_assessment": "All three decisions are minimal, boring, and behavior-preserving. (1) Relocating subagentReportKey from temporal/contracts to types/subagent-reports moves a pure, dependency-free helper to the layer that already owns its only type dependencies; the workflow bundle boundary test forbids only storage/tools/tool-registry/plugin-init/node:* and defineUpdate, none of which types/ can introduce, so Temporal replay/bundle safety is preserved and the loop-ledger projector's purity boundary becomes structurally true rather than nominal. Rejecting a temporal/contracts re-export shim (DONT2) is correct: a shim would leave the exact boundary smell the change exists to remove. (2) atomicWriteFile writes verbatim, so owning the trailing newline explicitly at each JSON.stringify boundary (both archive code paths + the recovery archive-sidecar) is the correct C2 placement; scope is bounded to bundle JSON trailing newlines (DONT3) and does not rewrite historical bundles (C3/OOS3). (3) The two asset assertions are stale relative to a spec already at 1.7.1 with rq-subagentReports23; updating the exact expected values (not weakening .toEqual to .toContain or a >= check) preserves assertion strength while isolating the unrelated advance-workflow 1.26.0 pin (DONT1).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No blockers. Temporal bundle safety preserved for the relocation (host module is zod+./wisdom only; boundary test cannot trip). Behavior preserved: identical report keys across all 7 consumers (C1/AC4), unchanged loop-ledger projection/dedupe/authority (AC5/C4), bounded archive-formatting delta (DONT3), and exact-strength asset assertions (no weakening). Recovery archive-sidecar write at _recovery-writers.ts:401-404 must be included to fully satisfy C2 — flagged as an implementation must-cover, not a design flaw."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Relocation touches 7 import sites (including workflow-reachable change-state.ts); low churn, no behavior change, but every consumer must retarget in one commit to keep tsc green (AC4).",
+          "Explicit `+ \\\"\\n\\\"` at each JSON.stringify boundary is repeated at 4+ call sites rather than centralized; acceptable given C2 bans delegating formatting to atomicWriteFile and the alternative (a JSON-write helper) is broader scope than this follow-up warrants.",
+          "Updating exact asset assertion literals re-couples tests to spec version/requirement-id values; this is the intended strength (asset tests are drift detectors) and must not be softened to tolerant matchers."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep subagentReportKey in temporal/contracts and add a types-layer re-export shim",
+            "disposition": "rejected",
+            "rationale": "Explicitly disallowed by DONT2 and architecturally wrong: the projector would still transitively import temporal/, leaving the purity boundary nominal. Relocation makes it structural (P33)."
+          },
+          {
+            "option": "Introduce a writeJsonFile helper that appends the trailing newline centrally",
+            "disposition": "deferred",
+            "rationale": "Cleaner long-term (P29) but broader than this bounded follow-up (DONT3/OOS4). Explicit newline at the existing call sites is the minimal correct fix; a shared helper can be a separate refactor."
+          },
+          {
+            "option": "Weaken stale asset assertions to tolerant matchers (.toContain / version >=)",
+            "disposition": "rejected",
+            "rationale": "Design point 1 forbids weakening. Asset tests are deterministic drift detectors; tolerant matchers would silence future real drift. Update the exact expected values instead."
+          },
+          {
+            "option": "Rewrite the archived addLoopLedger parent bundle to add the missing newline",
+            "disposition": "rejected",
+            "rationale": "C3/OOS3 forbid rewriting release history absent a structural archive invariant. Fix forward generation and validate emitted artifacts only."
+          }
+        ],
+        "recommendation": "Proceed. Define and export subagentReportKey from types/subagent-reports.ts (co-located with SubagentAgent/SubagentReportScope), retarget all 7 consumers + the test in one commit, and remove the temporal/contracts definition with no re-export. Append exactly one trailing newline at every bundle-JSON JSON.stringify write site in archive.ts (both code paths: change.json, wisdom.json, multi-repo-archive.json) AND the recovery sidecar _recovery-writers.ts:401-404 to satisfy C2. Update ops-follow-up-assets.test.ts subagent-reports expectation to 1.7.1 and append rq-subagentReports23 to the subagent-reports-spec-assets.test.ts requirement-id list, leaving advance-workflow 1.26.0 untouched. Verify with the workflow-bundle-boundary test, loop-ledger purity test, targeted archive tests asserting emitted-artifact newlines, git diff --check, and full suite."
+      },
+      "recommendation": "All three decisions pass independent design validation: Temporal workflow bundle safety is preserved (types/subagent-reports is a zod+./wisdom-only host and the boundary test cannot be tripped), existing behavior is preserved (identical report keys, unchanged loop-ledger semantics, bounded archive-formatting delta, exact-strength assertions). One implementation must-cover: include the recovery archive-sidecar write (_recovery-writers.ts:401-404) in the trailing-newline enforcement to fully satisfy C2.",
+      "follow_ups": [
+        "Implementation must include _recovery-writers.ts:401-404 in trailing-newline enforcement (C2 covers recovery archive-sidecar writes, not just archive.ts).",
+        "archive.ts has two archived-change write code paths (~817-855 and ~958-993); ensure both get the trailing newline to avoid a path-dependent regression.",
+        "Optional future refactor (out of scope here): centralize JSON+newline writes behind a helper to prevent recurrence (P29), tracked separately per DONT3/OOS4."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixLoopLedgerRegressions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixLoopLedgerRegressions",
+      "task_id": "tk-5160f317f1cc",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-5160f317f1cc"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/ops-follow-up-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm test -- src/subagent-reports-spec-assets.test.ts src/ops-follow-up-assets.test.ts",
+          "exit_code": 1,
+          "summary": "RED (before edits): 4 failures including both targets — subagent-reports spec rq list missing rq-subagentReports23 (expected 22, got 23) and subagent-reports version 1.6.0 vs 1.7.1."
+        },
+        {
+          "command": "pnpm test -- src/subagent-reports-spec-assets.test.ts src/ops-follow-up-assets.test.ts",
+          "exit_code": 1,
+          "summary": "GREEN (after edits): both targets no longer failing; failure count dropped 4→3, all remaining out-of-scope (2× advance-workflow 1.26.0 pin, 1× intermittent epic_membership)."
+        },
+        {
+          "command": "pnpm test -- src/subagent-reports-spec-assets.test.ts",
+          "exit_code": 1,
+          "summary": "Isolation: requested file produced no own failures; only full-suite bleed-through (advance-workflow pins + epic_membership) reported, confirming subagent-reports-spec-assets.test.ts is green."
+        },
+        {
+          "command": "pnpm test -- -t \"subagent-reports spec exists and parses as a Spec|subagent-reports version is at least 1.3.0\"",
+          "exit_code": 1,
+          "summary": "Name-filtered run: only the 2 advance-workflow pin failures remained; name-matched target tests passed; epic_membership absent (intermittent)."
+        },
+        {
+          "command": "node -e (spec rq-list and version equality check)",
+          "exit_code": 0,
+          "summary": "Deterministic proof: AC1 rq-list (with rq-subagentReports23) === spec ids → true; AC2 subagent-reports version === 1.7.1 → true."
+        },
+        {
+          "command": "git diff --check",
+          "exit_code": 0,
+          "summary": "No whitespace errors in the two-file diff."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Appended rq-subagentReports23 as the final element of the expected requirements array",
+          "why": "toEqual is order-sensitive and the spec places rq-subagentReports23 last (index 22, after rq-subagentReports22); appending preserves exact ordering rather than weakening to a set/contains check (design point 1: correct exact assertions, do not broaden)."
+        },
+        {
+          "what": "Updated subagent-reports version pin from 1.6.0 to 1.7.1 with an exact toBe",
+          "why": "AC2 requires the exact current version; kept a strict equality assertion rather than a loose/at-least comparison."
+        },
+        {
+          "what": "Left the advance-workflow 1.26.0 pin untouched",
+          "why": "DONT1/AC2 explicitly forbid altering unrelated advance-workflow baseline version-pin expectations; the 1.26.0-vs-1.27.0 drift is a pre-existing baseline failure owned by the verification task (AC7)."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "advance-workflow version pin 1.26.0-vs-1.27.0 in ops-follow-up-assets.test.ts (DONT1)",
+          "advance-workflow version pin 1.26.0-vs-1.27.0 in adv-skill-backed-commands-assets.test.ts (OOS4)",
+          "intermittent temporal/workflows.signal-handlers.test.ts epic_membership failure (unrelated subsystem)"
+        ],
+        "details": "Two unrelated advance-workflow version-pin failures (1.26.0 expected vs 1.27.0 actual) in ops-follow-up-assets.test.ts and adv-skill-backed-commands-assets.test.ts, plus an intermittent temporal epic_membership signal-handler failure, appear in the full suite. None are caused by this task's two-file diff; they are pre-existing baseline/subsystem failures.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "ops-follow-up-assets.test.ts:142-145 advance-workflow version pin expects 1.26.0 but spec is 1.27.0 (explicit DONT1 — leave for verification task AC7 / separate baseline repair)",
+        "adv-skill-backed-commands-assets.test.ts stage-boundary specs assertion expects advance-workflow 1.26.0 but spec is 1.27.0 (out of scope, OOS4)",
+        "temporal/workflows.signal-handlers.test.ts 'sets and clears epic_membership projection through signals' fails intermittently in unrelated Temporal subsystem (not touched by this diff; for verification task to classify)"
+      ],
+      "required_main_agent_actions": [
+        "Have verification task tk-550e9ea0c687 record the remaining failures (2× advance-workflow 1.26.0-vs-1.27.0 pin; intermittent temporal epic_membership) as pre-existing and unrelated under AC7 with parent/diff evidence.",
+        "Investigate why `pnpm test -- <file>` / `-t` does not narrow vitest collection in this repo (full suite runs regardless of filter); affects signal-to-noise for targeted engineer verification."
+      ],
+      "related_scan": "Grep confirmed no other in-scope subagent-reports 1.6.0 pin or rq-list-without-rq23 assertion remains. briefing-packets-spec-assets.test.ts loads subagent-reports but asserts only rq-subagentReports21 anchors, so it is unaffected and correctly out of scope (OOS4). Same-pattern advance-workflow 1.26.0 pin also appears in adv-skill-backed-commands-assets.test.ts — that is a different spec's baseline, explicitly out of scope (DONT1/OOS4), not fixed here.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC1 and AC2 implemented with exact (non-broadened) assertions. subagent-reports-spec-assets.test.ts now expects rq-subagentReports23 appended at the tail to match spec order; ops-follow-up-assets.test.ts now pins subagent-reports to 1.7.1. The advance-workflow version pin (1.26.0) was left unchanged per DONT1. Diff is exactly 2 files (+2/-1) and git diff --check is clean. Note: `pnpm test -- <file>` and `-t` did not narrow vitest collection in this repo, so each run reported full-suite failures; the two target tests were failing in RED and absent from failures after edits, corroborated by a deterministic node check (rq-list===spec true; version===1.7.1 true). Remaining full-suite failures are out of scope: advance-workflow 1.26.0-vs-1.27.0 pin in ops-follow-up-assets.test.ts (explicit DONT1) and adv-skill-backed-commands-assets.test.ts, plus an intermittent temporal epic_membership signal test — none touched by this diff.",
+        "suggested_next_action": "Proceed to next ready task tk-38e52641f17a (archive JSON final newlines). Verification task tk-550e9ea0c687 owns AC7 documentation of the remaining out-of-scope full-suite failures as pre-existing/unrelated."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/subagent-reports-spec-assets.test.ts src/ops-follow-up-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/subagent-reports-spec-assets.test.ts src/ops-follow-up-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/subagent-reports-spec-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- -t \"subagent-reports spec exists and parses as a Spec|subagent-reports version is at least 1.3.0\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: node -e (spec rq-list and version equality check)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixLoopLedgerRegressions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixLoopLedgerRegressions",
+      "task_id": "tk-38e52641f17a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-38e52641f17a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/archive/archive.ts",
+        "plugin/src/archive/archive.test.ts",
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/_recovery-writers.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/archive/archive.test.ts -t \"archive bundle JSON artifacts end with exactly one trailing newline\"",
+          "exit_code": 1,
+          "summary": "RED: 4 new AC3/SC2 tests failed with 'expected false to be true' on endsWith('\\n') — bundle artifacts had no trailing newline before the fix."
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/_recovery-writers.test.ts -t \"appends a report to the ARCHIVE BUNDLE change.json\"",
+          "exit_code": 1,
+          "summary": "RED: recovery archive-sidecar change.json assertion failed (expected false to be true on endsWith('\\n')) before the fix."
+        },
+        {
+          "command": "pnpm exec vitest run src/archive/archive.test.ts -t \"archive bundle JSON artifacts end with exactly one trailing newline\"",
+          "exit_code": 0,
+          "summary": "GREEN: 4 new AC3/SC2 tests pass (bundleJsonStringify unit + createArchive change.json/wisdom.json + multi-repo-archive.json + createInRepoArchive change.json/wisdom.json)."
+        },
+        {
+          "command": "pnpm exec vitest run src/tools/_recovery-writers.test.ts -t \"appends a report to the ARCHIVE BUNDLE change.json\"",
+          "exit_code": 0,
+          "summary": "GREEN: recovery archive-sidecar change.json now ends with exactly one trailing newline."
+        },
+        {
+          "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/_recovery-writers.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY: full files pass, 39/39 tests, no regressions."
+        },
+        {
+          "command": "pnpm exec tsc --noEmit",
+          "exit_code": 0,
+          "summary": "Typecheck clean — new archive.ts export and _recovery-writers import compile; no cycle/type errors."
+        },
+        {
+          "command": "git diff --check",
+          "exit_code": 0,
+          "summary": "AC6: no whitespace errors in the follow-up diff."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Introduced one exported pure helper bundleJsonStringify() in plugin/src/archive/archive.ts and reused it at all 6 archive-bundle JSON write sites plus the recovery archive-sidecar change.json in tools/_recovery-writers.ts.",
+          "why": "P33 structural correctness + P04 locality: a single owned serialization boundary guarantees exactly-one-trailing-newline everywhere instead of 7 ad-hoc concatenations. JSON.stringify never emits a trailing newline, so `${...}\\n` always yields exactly one. Reuse from _recovery-writers.ts (already imports findArchiveBundle from archive.ts) adds no new dependency/cycle."
+        },
+        {
+          "what": "Did NOT add newlines to writeSpecToDisk (spec.json), the sibling raw-copy writes (proposal.md etc.), markdown artifacts (ARCHIVE_SUMMARY.md, BRIEFING_DIGEST.md, CONTRACT_TRACEABILITY.md), or the active-dir change.json (storage/json.ts saveChange).",
+          "why": "AC3 enumerates only change.json/wisdom.json/multi-repo-archive.json; C2 scopes enforcement to archive writes + recovery archive-sidecar writes; DONT3 forbids broadening beyond bundle JSON. spec.json is a spec capability file, not a bundle artifact; sibling copies propagate source bytes verbatim; the active change.json is not an archive bundle."
+        },
+        {
+          "what": "Asserted exactly-one-newline via endsWith('\\n')===true && endsWith('\\n\\n')===false plus a JSON.parse round-trip, and added a direct bundleJsonStringify() unit test.",
+          "why": "The double assertion distinguishes 'exactly one' from 'at least one' (the original EOF-whitespace defect was blank trailing lines); the unit test structurally covers every call site regardless of path."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [
+        "Run bin/oc-test full for AC7 (gate-level, outside this task's inline TDD) and confirm any remaining failures are pre-existing/unrelated per parent/diff evidence.",
+        "Mark task tk-38e52641f17a complete after review (engineer did not complete the task per instruction)."
+      ],
+      "related_scan": "Grep-confirmed the only archive-bundle JSON writers are archive.ts (createArchive + createInRepoArchive) and the recovery archive-sidecar in tools/_recovery-writers.ts (persistTerminalProjection); all converted to bundleJsonStringify. storage/json.ts saveChange writes the ACTIVE change.json (out of scope); archive.ts line 806 writeSpecToDisk (spec.json) and line 226 traceability markdown line are intentionally untouched (DONT3). No other production bundle-JSON write sites exist.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-38e52641f17a implemented and verified (NOT completed). Added exported bundleJsonStringify() in archive.ts (serializes JSON with exactly one trailing \\n, owning the newline at the serialization boundary per C2 — atomicWriteFile writes verbatim) and applied it to all 6 archive-bundle JSON sites (change.json/wisdom.json/multi-repo-archive.json in createArchive + createInRepoArchive) and the recovery archive-sidecar change.json in tools/_recovery-writers.ts. New AC3/SC2 artifact assertions prove change.json, wisdom.json, multi-repo-archive.json and the recovery sidecar end with exactly one \\n. Historical addLoopLedger bundle NOT rewritten (C3/OOS3). TDD red->green via adv_run_test; full archive.test.ts + _recovery-writers.test.ts (39) pass; tsc --noEmit clean; git diff --check clean.",
+        "suggested_next_action": "Run bin/oc-test full (AC7) and, if green, mark task tk-38e52641f17a done; AC3/SC2 evidence is the new archive newline tests plus green tsc and git diff --check."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/archive/archive.test.ts -t \"archive bundle JSON artifacts end with exactly one trailing newline\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/_recovery-writers.test.ts -t \"appends a report to the ARCHIVE BUNDLE change.json\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/archive/archive.test.ts -t \"archive bundle JSON artifacts end with exactly one trailing newline\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/_recovery-writers.test.ts -t \"appends a report to the ARCHIVE BUNDLE change.json\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/archive/archive.test.ts src/tools/_recovery-writers.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixLoopLedgerRegressions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixLoopLedgerRegressions",
+      "task_id": "tk-a02e7b6694d8",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-a02e7b6694d8"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/subagent-reports.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/utils/loop-ledger.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/followup.ts",
+        "plugin/src/tools/followup.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/tools/_recovery-writers.ts"
+      ],
+      "verification": [
+        {
+          "command": "npx vitest run src/types/subagent-reports.test.ts (RED, pre-implementation)",
+          "exit_code": 0,
+          "summary": "RED confirmed: 4 new subagentReportKey tests failed (helper not yet exported from ./subagent-reports); 49 pre-existing tests passed. (Note: exit code reflects the tail pipe; vitest reported 4 failed | 49 passed.)"
+        },
+        {
+          "command": "npx vitest run src/types/subagent-reports.test.ts (GREEN, post-implementation)",
+          "exit_code": 0,
+          "summary": "GREEN: 53 passed — 49 pre-existing + 4 new format-pinning tests for subagentReportKey."
+        },
+        {
+          "command": "npx vitest run src/temporal/workflow-bundle-boundary.test.ts src/utils/loop-ledger.purity.test.ts src/tools/followup.test.ts src/types/subagent-reports.test.ts",
+          "exit_code": 0,
+          "summary": "71 passed across 4 files: workflow-bundle-boundary (6), loop-ledger.purity (2), followup consumer (10), subagent-reports (53). Confirms temporal/change-state importing from types/ keeps the workflow bundle boundary intact and loop-ledger purity is preserved after repoint."
+        },
+        {
+          "command": "pnpm run typecheck (tsc --noEmit)",
+          "exit_code": 0,
+          "summary": "Clean — all 7 consumers compile against the new import and contracts.ts has no unused imports after removing the helper + 2 type imports."
+        },
+        {
+          "command": "pnpm run lint (eslint src/)",
+          "exit_code": 0,
+          "summary": "Clean — no ESLint errors/warnings across src/."
+        },
+        {
+          "command": "npx prettier --check <10 touched files>",
+          "exit_code": 0,
+          "summary": "All touched files use Prettier code style. (Whole-src format:check flags only the pre-existing, unrelated src/archive/archive.test.ts.)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Placed subagentReportKey in types/subagent-reports.ts (not the types/index.ts barrel); consumers import the explicit ../types/subagent-reports path.",
+          "why": "Matches the task target exactly, keeps the workflow-bundle edge explicit and local, and avoids forcing every consumer to import the whole types barrel."
+        },
+        {
+          "what": "Deleted SubagentAgent and SubagentReportScope from the temporal/contracts.ts type-import block when removing the helper.",
+          "why": "They were used only by subagentReportKey; leaving them would fail no-unused-vars. No re-export shim was added, per the task's 'remove temporal ownership' requirement."
+        },
+        {
+          "what": "Added 4 byte-stable format-pinning tests (legacy taskId shape, structural task scope, structural change scope, unknown-scope fallback) in types/subagent-reports.test.ts.",
+          "why": "The identity is a cross-sidecar dedupe key; relocating it must not change the persisted format, so the format is now locked by tests in the helper's new home."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "plugin/src/archive/archive.test.ts fails prettier --check (pre-existing, unrelated to subagentReportKey relocation)"
+        ],
+        "details": "During verification (`pnpm run format:check`), prettier flagged plugin/src/archive/archive.test.ts as unformatted. git status confirms it is NOT part of this task's modified set, so it is a pre-existing baseline issue in an unrelated subsystem. I left it untouched to avoid scope drift.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "Pre-existing prettier formatting issue in plugin/src/archive/archive.test.ts (reported by `pnpm run format:check`); unrelated to this relocation and not modified by me. Surface for a separate fix rather than expanding this scope."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed subagentReportKey had exactly one definition (temporal/contracts.ts) and exactly 7 import consumers; all repointed, none left on the old path and no re-export shim. types/loop-ledger.ts:62 is a JSDoc-only reference (name unchanged) and stays accurate. No other temporal-owned cross-layer identity helper of the same shape exists in the touched scope. The pre-existing archive.test.ts format drift is a separate subsystem and was not altered.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "subagentReportKey relocated from temporal/contracts.ts to types/subagent-reports.ts; all 7 consumers repointed to ../types/subagent-reports (incl. temporal/change-state.ts from ./contracts); no re-export shim left behind. Removed now-unused SubagentAgent/SubagentReportScope type imports from contracts.ts. Exact key format byte-preserved and pinned by 4 new tests. typecheck + eslint clean; workflow-bundle-boundary (6) + loop-ledger.purity (2) + followup consumer (10) + subagent-reports (53) all pass. TDD red->green done via adv_run_test. Pre-existing prettier issue in plugin/src/archive/archive.test.ts is unrelated and untouched (flagged as follow-up).",
+        "suggested_next_action": "Run the broader consumer/change-state test surfaces (e.g. subagent-report, _recovery-writers, temporal change-state/signal-handler tests) or proceed to the next task; the relocation is self-contained and verified."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/types/subagent-reports.test.ts (RED, pre-implementation)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/types/subagent-reports.test.ts (GREEN, post-implementation)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx vitest run src/temporal/workflow-bundle-boundary.test.ts src/utils/loop-ledger.purity.test.ts src/tools/followup.test.ts src/types/subagent-reports.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck (tsc --noEmit)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint (eslint src/)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx prettier --check <10 touched files>"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixLoopLedgerRegressions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixLoopLedgerRegressions",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "packet-defect-1",
+          "label": "blocker",
+          "what": "packet_defect: missing SCOPE KEY for independent change-level review",
+          "why": "Reviewer protocol requires SCOPE KEY plus PHASE and ATTEMPT before independent analysis; TASK is a prose label, not a structural independent scope anchor.",
+          "fix": "Orchestrator must respawn with `SCOPE KEY: review:acceptance` and generated BRIEFING PACKET."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "No repository analysis or edits performed: required independent-review identity anchor was absent."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Acceptance review has not run; contract conformance and claimed unrelated full-suite failures remain unverified."
+      ],
+      "required_main_agent_actions": [
+        "packet_defect: respawn the reviewer with `SCOPE KEY: review:acceptance` (alongside CHANGE, ATTEMPT, PHASE, WORKING DIRECTORY, and BRIEFING PACKET).",
+        "Do not complete acceptance until independent review verifies AC1–AC7, including parent/diff evidence for the two advance-workflow version-pin failures."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixLoopLedgerRegressions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixLoopLedgerRegressions",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-pin-classification-1",
+          "label": "suggestion",
+          "file": "plugin/src/ops-follow-up-assets.test.ts",
+          "line": 144,
+          "what": "Scanner high classification for the two advance-workflow 1.26.0 pins is rejected with contract evidence; no pin change is warranted.",
+          "why": "DONT1 prohibits changing unrelated advance-workflow pins, and AC7 permits documented pre-existing unrelated full-suite failures. Parent/diff proof shows ops-follow-up changed only subagent-reports 1.6.0→1.7.1; adv-skill-backed-commands-assets is untouched; both 1.26.0 pins predate this follow-up."
+        },
+        {
+          "id": "harden-barrel-boundary-1",
+          "label": "praise",
+          "file": "plugin/src/archive/index.ts",
+          "line": 8,
+          "what": "bundleJsonStringify remains intentionally internal/direct-import-only rather than a barrel export.",
+          "why": "The barrel exposes archive orchestration APIs only; the recovery writer imports the helper directly from ./archive. Adding a public export solely for symmetry would broaden API without a requirement."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/archive/archive.ts",
+          "summary": "Added a structural guard that rejects values for which JSON.stringify returns undefined, preventing template interpolation from writing invalid archive JSON.",
+          "verification": "bin/oc-test targeted -- src/archive/archive.test.ts src/tools/_recovery-writers.test.ts (40 tests passed); git diff --check passed."
+        },
+        {
+          "file": "plugin/src/archive/archive.test.ts",
+          "summary": "Added regression coverage proving bundleJsonStringify rejects undefined rather than producing an invalid JSON artifact.",
+          "verification": "bin/oc-test targeted -- src/archive/archive.test.ts src/tools/_recovery-writers.test.ts (40 tests passed)."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Archive serialization helpers accepting unknown must guard JSON.stringify's undefined return, not rely on template interpolation; this turns malformed output into a deterministic local failure."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/archive/archive.test.ts",
+          "bin/oc-test targeted -- src/archive/archive.test.ts src/tools/_recovery-writers.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Archive suite passed 21/21, then archive plus recovery-writer suites passed 40/40. git diff --check exited clean. Call-site review covered archived Change objects, wisdom wrapper objects, typed MultiRepoArchiveMetadata, and recovery's updated Change; each is JSON-serializable. Existing full-suite evidence records only the two unrelated advance-workflow 1.26.0 pin failures permitted by AC7."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Current spec version is 1.27.0 while two unchanged baseline assertions still expect 1.26.0; contract DONT1 and AC7 require leaving them unchanged with documented evidence.",
+        "Scoped code changes are uncommitted because reviewer role cannot perform task checkpoint orchestration."
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint plugin/src/archive/archive.ts and plugin/src/archive/archive.test.ts through the normal task checkpoint path before advancing; reviewer intentionally did not mutate task/gate state.",
+        "Record Finding A as rejected_with_evidence/non-blocking in release-hardening evidence: DONT1 + AC7, unchanged parent/diff proof, and no advance-workflow pin edits.",
+        "Leave plugin/src/archive/index.ts public surface unchanged; no action required for Finding C."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixLoopLedgerRegressions",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixLoopLedgerRegressions",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 3,
+      "dimensions": [
+        "test_coverage",
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability"
+      ],
+      "summary": "Coverage scan found exact tests and RED/GREEN evidence for every behavior change. Production/deployment scan found no release blockers, no env/config/migration/external-service changes, and merge compatibility passed. Hygiene scan surfaced two pre-existing advance-workflow pins and one undefined-serialization edge; pins were rejected with contract/diff evidence under DONT1/AC7, and the edge was fixed and verified in harden checkpoint a4ad9a06.",
+      "findings": [],
+      "follow_ups": [
+        "Two unrelated advance-workflow 1.26.0 version-pin failures remain outside this change; non-blocking under AC7 and DONT1."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "test_runs": {
+    "tk-5160f317f1cc": [
+      {
+        "runId": "tr_mrf8qkgi_ce91023d",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/subagent-reports-spec-assets.test.ts src/ops-follow-up-assets.test.ts",
+        "durationMs": 131817.02868100256,
+        "recordedAt": "2026-07-10T18:00:02.431Z"
+      },
+      {
+        "runId": "tr_mrf8u6r6_ff205133",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/subagent-reports-spec-assets.test.ts src/ops-follow-up-assets.test.ts",
+        "durationMs": 113518.45575100183,
+        "recordedAt": "2026-07-10T18:02:51.234Z"
+      },
+      {
+        "runId": "tr_mrf8xm0j_0e8f5034",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/subagent-reports-spec-assets.test.ts",
+        "durationMs": 108072.37999299914,
+        "recordedAt": "2026-07-10T18:05:31.005Z"
+      },
+      {
+        "runId": "tr_mrf90ze3_c7c9468a",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- -t \"subagent-reports spec exists and parses as a Spec|subagent-reports version is at least 1.3.0\"",
+        "durationMs": 72968.50167799741,
+        "recordedAt": "2026-07-10T18:08:08.284Z"
+      }
+    ],
+    "tk-38e52641f17a": [
+      {
+        "runId": "tr_mrf9dzpx_faabd6a5",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts -t \"archive bundle JSON artifacts end with exactly one trailing newline\"",
+        "durationMs": 1781.580421000719,
+        "recordedAt": "2026-07-10T18:18:15.256Z"
+      },
+      {
+        "runId": "tr_mrf9e2rv_4f658a0c",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/_recovery-writers.test.ts -t \"appends a report to the ARCHIVE BUNDLE change.json\"",
+        "durationMs": 1673.8135040029883,
+        "recordedAt": "2026-07-10T18:18:19.197Z"
+      },
+      {
+        "runId": "tr_mrf9il8y_83e1edfd",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts -t \"archive bundle JSON artifacts end with exactly one trailing newline\"",
+        "durationMs": 1929.1505289971828,
+        "recordedAt": "2026-07-10T18:21:49.770Z"
+      },
+      {
+        "runId": "tr_mrf9inqv_a9a470c5",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/_recovery-writers.test.ts -t \"appends a report to the ARCHIVE BUNDLE change.json\"",
+        "durationMs": 1787.6628660038114,
+        "recordedAt": "2026-07-10T18:21:53.011Z"
+      },
+      {
+        "runId": "tr_mrf9j3qu_88e11112",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/archive/archive.test.ts src/tools/_recovery-writers.test.ts",
+        "durationMs": 2608.946689002216,
+        "recordedAt": "2026-07-10T18:22:13.735Z"
+      }
+    ],
+    "tk-a02e7b6694d8": [
+      {
+        "runId": "tr_mrf9tp1a_ed60c171",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/types/subagent-reports.test.ts 2>&1 | tail -40",
+        "durationMs": 1219.1826649978757,
+        "recordedAt": "2026-07-10T18:30:27.896Z"
+      },
+      {
+        "runId": "tr_mrf9uhg6_4e4c214b",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/types/subagent-reports.test.ts",
+        "durationMs": 1176.9881180003285,
+        "recordedAt": "2026-07-10T18:31:04.712Z"
+      },
+      {
+        "runId": "tr_mrf9x7oc_2a7031db",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/temporal/workflow-bundle-boundary.test.ts src/utils/loop-ledger.purity.test.ts src/tools/followup.test.ts src/types/subagent-reports.test.ts",
+        "durationMs": 1670.1702390015125,
+        "recordedAt": "2026-07-10T18:33:12.016Z"
+      }
+    ],
+    "tk-550e9ea0c687": [
+      {
+        "runId": "tr_mrfb9kky_e1a4647a",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test full",
+        "durationMs": 119580.56876999885,
+        "recordedAt": "2026-07-10T19:10:48.268Z"
+      },
+      {
+        "runId": "tr_mrfdmm62_42afd5bd",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test full",
+        "durationMs": 151701.492072,
+        "recordedAt": "2026-07-10T20:16:56.084Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-10T16:59:28.714Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved remediation proposal via inline Tier A reply: 'approve'.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "cc31fa43d9213c9ba336a4e59717fb16f776ab5fba23e049a835a7b5c439e88a",
+        "non_whitespace_chars": 1399,
+        "checked_at": "2026-07-10T16:55:58.921Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-10T17:48:23.174Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved agreement via inline Tier A reply: 'approve'. Contract minted with 22 items; source mapping captured exact affected files and boundaries.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "non_whitespace_chars": 2632,
+        "checked_at": "2026-07-10T16:55:58.922Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-10T17:50:53.776Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design uses exact assertion repair, explicit archive JSON newline ownership, and full relocation of subagentReportKey to types. Independent validator passed with high confidence and no conflicts.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "23fa8d3e98f9e000222b57d2807bd0d685dd03fd07be36a9b0259fa9a67fa24f",
+        "non_whitespace_chars": 723,
+        "checked_at": "2026-07-10T16:55:58.923Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-10T17:55:42.059Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved validated four-task remediation graph via inline Tier A reply: 'approve'."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-10T20:19:03.243Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 planned tasks are done in the resumed change worktree. Full verification rerun via bin/oc-test full recorded 2 failures only: unrelated advance-workflow 1.26.0→1.27.0 asset pins in adv-skill-backed-commands-assets.test.ts and ops-follow-up-assets.test.ts. Parent/diff proof: adv-skill-backed-commands-assets.test.ts is untouched; the only ops-follow-up-assets.test.ts diff updates the in-scope subagent-reports 1.6.0→1.7.1 expectation. git diff --check passes."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-10T20:26:03.554Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work via inline Tier A reply: 'approve'. Independent review READY with 0 findings; 22-row contract matrix has 0 failing rows; executive summary and consequence context were persisted and verified before approval.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "a9623df3d1b60490624a35a822e72e75475919d6889d5adc8488fa0a2f00dfcf",
+        "non_whitespace_chars": 2765,
+        "checked_at": "2026-07-10T16:55:58.924Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "addLoopLedger",
+    "linked_at": "2026-07-10T16:55:58.280Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "addLoopLedger post-release final full scan"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+      "approvedAt": "2026-07-10T17:48:18.351Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "All asset expectations directly affected by the `subagent-reports` 1.7.1 update match the current spec.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Every newly written archive-bundle JSON artifact ends with exactly one trailing newline.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "`plugin/src/utils/loop-ledger.ts` imports report identity from `types/`, not `temporal/`, while all existing report-key consumers retain identical keys.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Full verification passes except only documented failures proven unrelated to this follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`subagent-reports-spec-assets.test.ts` expects `rq-subagentReports23` and passes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`ops-follow-up-assets.test.ts` asserts `subagent-reports` version `1.7.1` and passes; unrelated `advance-workflow` version-pin assertions are unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Archive tests prove generated `change.json`, `wisdom.json`, and `multi-repo-archive.json` end with `\\n` whenever each artifact is produced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`subagentReportKey` is defined in a types-layer module and all seven known consumers compile without a `temporal/contracts` import for that helper.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Loop-ledger projector outputs, dedupe behavior, detail bounds, and authority semantics remain unchanged under existing targeted tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`git diff --check` reports no whitespace errors for the follow-up diff.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`bin/oc-test full` passes, or every remaining failure is proved pre-existing and unrelated by parent/diff evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve exact report-key string format and current consumers' behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "JSON newline enforcement applies to archive writes and recovery archive-sidecar writes; do not depend on `atomicWriteFile` to add formatting.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not rewrite the archived `addLoopLedger` bundle unless archive invariants require it; fix future generation and validate it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep task/gate/retry authority unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not alter unrelated `advance-workflow` baseline version-pin expectations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add a Temporal re-export shim for `subagentReportKey`; relocate callers to the types-layer owner.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not broaden archive formatting changes beyond deterministic trailing newlines for bundle JSON.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "New loop-ledger features or retriable-loop behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Broad subagent-report spec gap remediation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Retrospective rewrite of historical archive bundles without a structural requirement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Unrelated asset-test cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-10T20:23:25.400Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; exact subagent-reports requirement and version expectations match spec 1.7.1."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Archive review: bundleJsonStringify owns one newline at all bundle JSON writes and recovery sidecar."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer confirmed types-layer ownership and all seven consumers migrated without temporal re-export."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Full run tr_mrfdmm62_42afd5bd has only two documented unrelated advance-workflow pin failures; reviewer confirmed parent/diff proof."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task tk-5160f317f1cc deterministic spec-ID equality check and reviewer focused suite pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task tk-5160f317f1cc exact version check; diff preserves unrelated advance-workflow expectation."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task tk-38e52641f17a archive and recovery tests pass; 39/39 full files."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task tk-a02e7b6694d8: 53 helper tests, 71 boundary/purity/consumer tests, and typecheck pass."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task tk-a02e7b6694d8 loop-ledger purity and existing behavior suite pass; reviewer confirmed no behavior change."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "git diff --check trunk...HEAD exits clean; reviewer confirmed."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Full run tr_mrfdmm62_42afd5bd: only two unchanged advance-workflow 1.26.0 pins fail; reviewer verified unrelated."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Four format-pinning tests preserve exact subagentReportKey output; reviewer confirmed."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Dedicated archive serialization helper controls newline at archive and recovery write boundaries."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Parent addLoopLedger archive was not changed; diff is limited to forward generation and tests."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer found no task/gate/retry authority changes."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Unrelated advance-workflow 1.26.0 pins remain; only subagent-reports 1.6.0→1.7.1 assertion changed."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No temporal/contracts re-export remains; all seven consumers use types/subagent-reports."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review confirmed changes are limited to deterministic archive bundle JSON newlines."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new loop-ledger feature or retry behavior was introduced."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Only evidence-backed subagent-report asset repairs were made."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Historical parent archive bundle was not rewritten."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Unrelated advance-workflow and other asset cleanup was left unchanged."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`subagent-reports-spec-assets.test.ts` expects `rq-subagentReports23` and passes.",
+    "`ops-follow-up-assets.test.ts` asserts `subagent-reports` version `1.7.1` and passes; unrelated `advance-workflow` version-pin assertions are unchanged.",
+    "Archive tests prove generated `change.json`, `wisdom.json`, and `multi-repo-archive.json` end with `\\n` whenever each artifact is produced.",
+    "`subagentReportKey` is defined in a types-layer module and all seven known consumers compile without a `temporal/contracts` import for that helper.",
+    "Loop-ledger projector outputs, dedupe behavior, detail bounds, and authority semantics remain unchanged under existing targeted tests.",
+    "`git diff --check` reports no whitespace errors for the follow-up diff.",
+    "`bin/oc-test full` passes, or every remaining failure is proved pre-existing and unrelated by parent/diff evidence."
+  ],
+  "documents": {
+    "proposal": "# Fix loop-ledger release regressions\n\n## Problem\nThe post-release full suite found change-related stale asset expectations after `addLoopLedger` updated the sub-agent-reports spec. It also found archive-bundle EOF whitespace and a pure-layer boundary smell in the loop projector.\n\n## Proposed outcome\nRestore full-suite conformance, prevent archive EOF whitespace in future bundles, and move report-key identity outside the Temporal module so the projector's purity boundary is structurally true.\n\n## Scope\n- `plugin/src/subagent-reports-spec-assets.test.ts`: update expected requirement coverage for `rq-subagentReports23`.\n- `plugin/src/ops-follow-up-assets.test.ts`: update expected `subagent-reports` version to `1.7.1`; leave unrelated `advance-workflow` version-pin expectations unchanged.\n- Archive rendering/generation code and its tests: prevent trailing blank EOF lines in future bundles; do not rewrite the archived parent bundle unless a structural archive invariant requires it.\n- `plugin/src/utils/loop-ledger.ts`, report-key identity ownership, and purity tests: remove the Temporal-module import without changing ledger behavior.\n\n## Boundaries\n- Fix only evidence-backed findings from the final scan.\n- Keep task/gate authority and loop-ledger behavior unchanged.\n- Do not change unrelated `advance-workflow` version-pin baseline failures.\n\n## Verification\n- Relevant asset tests and full suite pass, except any separately documented pre-existing baseline failure.\n- `git diff --check` passes for the remediation diff.\n- Pure boundary test prevents Temporal import from the projector.",
+    "problemStatement": "Post-release full verification found two stale asset assertions caused by the `subagent-reports` spec update, archive EOF whitespace, and a pure-module boundary mismatch in the loop-ledger projector. The shipped change is archived, so remediation must proceed as a tracked follow-up rather than mutating release history.",
+    "agreement": "# Agreement: Fix loop-ledger release regressions\n\n## Objective\nRestore full-suite conformance for regressions introduced with `addLoopLedger`, prevent future archive JSON EOF whitespace, and make the loop projector's purity boundary structural.\n\n## Success Criteria\n- SC1: All asset expectations directly affected by the `subagent-reports` 1.7.1 update match the current spec.\n- SC2: Every newly written archive-bundle JSON artifact ends with exactly one trailing newline.\n- SC3: `plugin/src/utils/loop-ledger.ts` imports report identity from `types/`, not `temporal/`, while all existing report-key consumers retain identical keys.\n- SC4: Full verification passes except only documented failures proven unrelated to this follow-up.\n\n## Acceptance Criteria\n- AC1: `subagent-reports-spec-assets.test.ts` expects `rq-subagentReports23` and passes.\n- AC2: `ops-follow-up-assets.test.ts` asserts `subagent-reports` version `1.7.1` and passes; unrelated `advance-workflow` version-pin assertions are unchanged.\n- AC3: Archive tests prove generated `change.json`, `wisdom.json`, and `multi-repo-archive.json` end with `\\n` whenever each artifact is produced.\n- AC4: `subagentReportKey` is defined in a types-layer module and all seven known consumers compile without a `temporal/contracts` import for that helper.\n- AC5: Loop-ledger projector outputs, dedupe behavior, detail bounds, and authority semantics remain unchanged under existing targeted tests.\n- AC6: `git diff --check` reports no whitespace errors for the follow-up diff.\n- AC7: `bin/oc-test full` passes, or every remaining failure is proved pre-existing and unrelated by parent/diff evidence.\n\n## Constraints\n- C1: Preserve exact report-key string format and current consumers' behavior.\n- C2: JSON newline enforcement applies to archive writes and recovery archive-sidecar writes; do not depend on `atomicWriteFile` to add formatting.\n- C3: Do not rewrite the archived `addLoopLedger` bundle unless archive invariants require it; fix future generation and validate it.\n- C4: Keep task/gate/retry authority unchanged.\n\n## Avoid\n- DONT1: Do not alter unrelated `advance-workflow` baseline version-pin expectations.\n- DONT2: Do not add a Temporal re-export shim for `subagentReportKey`; relocate callers to the types-layer owner.\n- DONT3: Do not broaden archive formatting changes beyond deterministic trailing newlines for bundle JSON.\n\n## Out of Scope\n- OOS1: New loop-ledger features or retriable-loop behavior.\n- OOS2: Broad subagent-report spec gap remediation.\n- OOS3: Retrospective rewrite of historical archive bundles without a structural requirement.\n- OOS4: Unrelated asset-test cleanup.\n\n## Evidence\n- Final post-release scan: 4 full-suite failures / 4824 passing; two stale asset assertions tied to `subagent-reports`, archive EOF whitespace, and a projector Temporal-import boundary smell.\n- Source mapping: `subagent-reports-spec-assets.test.ts:43-66`, `ops-follow-up-assets.test.ts:147-150`, archive write sites, and seven `subagentReportKey` consumers.",
+    "design": "# Design: Fix loop-ledger release regressions\n\n## Architecture\n1. Correct exact asset assertions; do not weaken them into broad checks.\n2. Add `\\n` explicitly at every archive JSON write boundary, including recovery sidecars; test emitted artifacts.\n3. Move `subagentReportKey` into `types/subagent-reports.ts`; update every consumer, including workflow code, to import the types-layer owner. No compatibility re-export remains in `temporal/contracts`.\n\n## Safety\n- Preserve report-key format verbatim.\n- Preserve all loop-ledger projection logic and authority boundaries.\n- Do not modify parent archive contents or unrelated version-pin baselines.\n\n## Verification\n- Focused asset/archive/purity/workflow-boundary tests.\n- `git diff --check`.\n- `bin/oc-test full`; remaining failures require parent/diff proof of unrelated origin.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nThis follow-up restores test/spec alignment, archive-bundle formatting, and the loop-ledger module boundary after the parent release. Acceptance approves these bounded repairs; release hardening is complete and archive sign-off is next.\n\n## Why It Matters\nThe change prevents stale validation from masking real regressions, ensures newly generated archive JSON has a consistent final newline, and makes report-key ownership structurally independent of Temporal.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Updated subagent-report asset expectations to the current 1.7.1 specification without changing unrelated advance-workflow pins.\n2. Centralized archive-bundle JSON serialization so generated change, wisdom, multi-repo, and recovery-sidecar JSON ends with exactly one newline.\n3. Moved `subagentReportKey` to the types layer and migrated all seven consumers without a Temporal compatibility shim.\n4. Added a serialization guard so a non-JSON-serializable bundle value fails loudly instead of producing invalid JSON.\n\n## What Was Verified\n- Acceptance review: READY with 0 findings.\n- Tests: focused review suite passed 188 assertions; archive/recovery suite passed 40 tests after hardening; typecheck, lint, and `git diff --check` passed.\n- Full suite: run `tr_mrfdmm62_42afd5bd` has exactly two unrelated advance-workflow 1.26.0-to-1.27.0 asset-pin failures. Review, scanner, and parent/diff evidence confirm this follow-up did not introduce them.\n- Merge compatibility: dry-run merge with `origin/trunk` succeeded and was aborted without a commit.\n- Preview URL: not applicable — implementation changes internal plugin source, tests, and archive generation only; no browser-visible surface exists.\n- Contract matrix: 22 required rows passed, respected, or were explicitly not applicable; no failing rows.\n\n## Remaining Concerns\n- Non-blocking: two pre-existing advance-workflow asset pins keep the repository-wide full suite red. They are outside this change and unchanged by its diff.\n\n## Supporting Evidence\n- Tasks: `tk-5160f317f1cc`, `tk-38e52641f17a`, `tk-a02e7b6694d8`, `tk-550e9ea0c687`.\n- Independent reviewer reports: acceptance READY and harden READY.\n- Full-run evidence: `tr_mrfdmm62_42afd5bd`.\n- Harden checkpoint: `a4ad9a06`.\n- Typed contract review matrix: 22 rows, 0 failures.\n- Harden scanner bundle: `fixLoopLedgerRegressions|change:scanner-bundle:harden|adv-scanner-bundle|1`.\n\n## Consequence Context\n- Delivered value — pass: exact test/spec repairs, deterministic archive JSON formatting, and structural report-key ownership; supported by task checkpoints and review.\n- Enabling-only/follow-up dependency — n/a: no linked operational follow-up or required handoff exists for this bounded remediation.\n- Ops readiness — pass: hardening found no operational, deployment, environment, external-service, or cleanup requirement.\n- Migration/data impact — n/a: no runtime data, schema migration, or backfill changes; source/test/archive generation only.\n- Frontend/preview impact — n/a: no front-end or browser-visible output changed; preview is not applicable.\n- Collision/release risk — warning: two unrelated advance-workflow version-pin failures remain in the full suite; merge compatibility passed and this diff leaves their expectations unchanged.\n- Open follow-ups — warning: agenda item `ag-FdG2Q5G2` tracks baseline advance-workflow pins; it does not block this change.\n- Next action — pending: user archive sign-off.\n\n## Release Readiness Summary\nRelease readiness: READY. Coverage evidence is present for each changed behavior; structural/slop, documentation, cleanup, production, and deployment checks found no unresolved blocker or high issue. The only harden remediation adds an explicit JSON-serialization guard and a regression test. No cleanup candidates, migration, environment, infrastructure, external-service, or frontend deployment work exists. Merge compatibility with `origin/trunk` passed.\n\n### Approval Consequence Context\n- Delivered value — pass: remediation prevents stale asset validation, malformed future archive JSON, and an unnecessary Temporal-layer dependency.\n- Enabling-only/follow-up dependency — n/a: no release dependency or required handoff exists.\n- Ops readiness — pass: scanner bundle confirms no env vars, service provisioning, runbook, or cleanup action is required.\n- Migration/data impact — n/a: forward-only whitespace formatting and byte-stable key relocation require no migration or backfill.\n- Frontend/preview impact — n/a: no browser-visible output changed.\n- Collision/release risk — warning: unrelated baseline asset pins remain red; dry-run merge with `origin/trunk` passed and no release-safety finding is unresolved.\n- Open follow-ups — warning: `ag-FdG2Q5G2` tracks the unrelated advance-workflow baseline pins; non-blocking for this archive.\n- Next action — ready: archive preflight and user release sign-off.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-10T20:23:25.400Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | All asset expectations directly affected by the `subagent-reports` 1.7.1 update match the current spec. | pass | Reviewer READY; exact subagent-reports requirement and version expectations match spec 1.7.1. |\n| SC2 | success_criterion | Every newly written archive-bundle JSON artifact ends with exactly one trailing newline. | pass | Archive review: bundleJsonStringify owns one newline at all bundle JSON writes and recovery sidecar. |\n| SC3 | success_criterion | `plugin/src/utils/loop-ledger.ts` imports report identity from `types/`, not `temporal/`, while all existing report-key consumers retain identical keys. | pass | Reviewer confirmed types-layer ownership and all seven consumers migrated without temporal re-export. |\n| SC4 | success_criterion | Full verification passes except only documented failures proven unrelated to this follow-up. | pass | Full run tr_mrfdmm62_42afd5bd has only two documented unrelated advance-workflow pin failures; reviewer confirmed parent/diff proof. |\n| AC1 | acceptance_criterion | `subagent-reports-spec-assets.test.ts` expects `rq-subagentReports23` and passes. | pass | Task tk-5160f317f1cc deterministic spec-ID equality check and reviewer focused suite pass. |\n| AC2 | acceptance_criterion | `ops-follow-up-assets.test.ts` asserts `subagent-reports` version `1.7.1` and passes; unrelated `advance-workflow` version-pin assertions are unchanged. | pass | Task tk-5160f317f1cc exact version check; diff preserves unrelated advance-workflow expectation. |\n| AC3 | acceptance_criterion | Archive tests prove generated `change.json`, `wisdom.json`, and `multi-repo-archive.json` end with `\\n` whenever each artifact is produced. | pass | Task tk-38e52641f17a archive and recovery tests pass; 39/39 full files. |\n| AC4 | acceptance_criterion | `subagentReportKey` is defined in a types-layer module and all seven known consumers compile without a `temporal/contracts` import for that helper. | pass | Task tk-a02e7b6694d8: 53 helper tests, 71 boundary/purity/consumer tests, and typecheck pass. |\n| AC5 | acceptance_criterion | Loop-ledger projector outputs, dedupe behavior, detail bounds, and authority semantics remain unchanged under existing targeted tests. | pass | Task tk-a02e7b6694d8 loop-ledger purity and existing behavior suite pass; reviewer confirmed no behavior change. |\n| AC6 | acceptance_criterion | `git diff --check` reports no whitespace errors for the follow-up diff. | pass | git diff --check trunk...HEAD exits clean; reviewer confirmed. |\n| AC7 | acceptance_criterion | `bin/oc-test full` passes, or every remaining failure is proved pre-existing and unrelated by parent/diff evidence. | pass | Full run tr_mrfdmm62_42afd5bd: only two unchanged advance-workflow 1.26.0 pins fail; reviewer verified unrelated. |\n| C1 | constraint | Preserve exact report-key string format and current consumers' behavior. | respected | Four format-pinning tests preserve exact subagentReportKey output; reviewer confirmed. |\n| C2 | constraint | JSON newline enforcement applies to archive writes and recovery archive-sidecar writes; do not depend on `atomicWriteFile` to add formatting. | respected | Dedicated archive serialization helper controls newline at archive and recovery write boundaries. |\n| C3 | constraint | Do not rewrite the archived `addLoopLedger` bundle unless archive invariants require it; fix future generation and validate it. | respected | Parent addLoopLedger archive was not changed; diff is limited to forward generation and tests. |\n| C4 | constraint | Keep task/gate/retry authority unchanged. | respected | Reviewer found no task/gate/retry authority changes. |\n| DONT1 | avoidance | Do not alter unrelated `advance-workflow` baseline version-pin expectations. | respected | Unrelated advance-workflow 1.26.0 pins remain; only subagent-reports 1.6.0→1.7.1 assertion changed. |\n| DONT2 | avoidance | Do not add a Temporal re-export shim for `subagentReportKey`; relocate callers to the types-layer owner. | respected | No temporal/contracts re-export remains; all seven consumers use types/subagent-reports. |\n| DONT3 | avoidance | Do not broaden archive formatting changes beyond deterministic trailing newlines for bundle JSON. | respected | Review confirmed changes are limited to deterministic archive bundle JSON newlines. |\n| OOS1 | out_of_scope | New loop-ledger features or retriable-loop behavior. | not_applicable | No new loop-ledger feature or retry behavior was introduced. |\n| OOS2 | out_of_scope | Broad subagent-report spec gap remediation. | not_applicable | Only evidence-backed subagent-report asset repairs were made. |\n| OOS3 | out_of_scope | Retrospective rewrite of historical archive bundles without a structural requirement. | not_applicable | Historical parent archive bundle was not rewritten. |\n| OOS4 | out_of_scope | Unrelated asset-test cleanup. | not_applicable | Unrelated advance-workflow and other asset cleanup was left unchanged. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-10T16:56:16.429Z",
+      "contentHash": "cc31fa43d9213c9ba336a4e59717fb16f776ab5fba23e049a835a7b5c439e88a",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-10T16:55:58.983Z",
+      "contentHash": "bd1c71ac1cd0ff212e7b9d6eaf9211b2e056c863bc7a51634095c816136f0af8",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-10T17:05:57.378Z",
+      "contentHash": "6b11d24822b3fb8f02ea286173b6773f7e6c732fe319718e6ea0ca22cfe46814",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-10T17:48:31.240Z",
+      "contentHash": "23fa8d3e98f9e000222b57d2807bd0d685dd03fd07be36a9b0259fa9a67fa24f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-10T20:39:23.033Z",
+      "contentHash": "267a220511693bffc5df5c8a80b32ebe6baf71a148b889c5c3d197d3fb85a5c4",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-10T20:39:23.033Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

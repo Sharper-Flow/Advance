@@ -25,14 +25,14 @@ import {
   type ChangeRepoScope,
   type ScopedSubagentReport,
   type BriefingPacketLane,
-  type Phase9FinalizationStatus,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { getReflection } from "../storage/reflection";
 import { getProjectId } from "../utils/project-id";
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
-import { subagentReportKey } from "../temporal/contracts";
+import { subagentReportKey } from "../types/subagent-reports";
+import { projectLoopLedger } from "../utils/loop-ledger";
 import { advWorktreeCleanup } from "./worktree";
 import { initStateDb as initWorktreeStateDb } from "./worktree/state";
 import {
@@ -297,6 +297,8 @@ import {
 } from "../utils/tool-formatters";
 import { checkRequirementSmells } from "../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
+import { changeToDirectiveState } from "../temporal/change-state";
+import { deriveDirectiveSafe } from "../utils/workflow-directive";
 import {
   renderBriefingPacket,
   type BriefingPacketRendererInput,
@@ -336,11 +338,8 @@ import {
   redriveArchivedUnmergedBranch,
   detectArchivedMergedBranches,
   getCheckedOutChangeBranches,
-  classifyFinalizationRoute,
-  coercePrWorkflowRoute,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
-import { dispatchPhase9Finalization } from "./archive-helpers/phase9-queue";
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -540,6 +539,26 @@ export const changeTools = {
             .describe(
               "When true, attaches the in-progress task's durable run ledger as `_ledger`.",
             ),
+          loopLedger: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches the compact typed loop-ledger summary as `_loopLedger`.",
+            ),
+          loopLedgerDetails: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, includes bounded detailed loop-ledger entries in `_loopLedger`.",
+            ),
+          loopLedgerLimit: z
+            .number()
+            .min(1)
+            .max(100)
+            .optional()
+            .describe(
+              "Maximum detailed loop-ledger entries. Range 1-100; default 20.",
+            ),
           snapshot: z
             .boolean()
             .optional()
@@ -648,6 +667,9 @@ export const changeTools = {
         target_path?: string;
         include?: {
           ledger?: boolean;
+          loopLedger?: boolean;
+          loopLedgerDetails?: boolean;
+          loopLedgerLimit?: number;
           snapshot?: boolean;
           readyTasks?: boolean;
           readyTasksLimit?: number;
@@ -686,8 +708,9 @@ export const changeTools = {
           return formatToolOutput({ error: `Change not found: ${changeId}` });
         }
         const change = result.data;
+        const { test_runs, ...publicChange } = change;
         const displayChange: Change = {
-          ...change,
+          ...publicChange,
           artifacts: await normalizeArtifactMetadataForReadback(
             change.artifacts,
           ),
@@ -812,13 +835,33 @@ export const changeTools = {
               } catch {
                 // best-effort: missing gates → snapshot still useful
               }
+              const normalizedGates = gates
+                ? await normalizeGateArtifactEvidenceForReadback(gates)
+                : undefined;
+              // AC5: derive the authoritative directive from the same change
+              // projection + gates the snapshot renders, so the change-show
+              // packet carries the `Next:` orientation line. Best effort: a
+              // derivation failure must not break change-show; the snapshot
+              // omits the `Next:` line.
+              const directive = deriveDirectiveSafe(
+                changeToDirectiveState({
+                  projectId: displayChange.adv_project_id ?? "unknown",
+                  change: displayChange,
+                  gates: normalizedGates ?? undefined,
+                }),
+                Date.now(),
+              );
+              if (!directive) {
+                logger.warn(
+                  `deriveWorkflowDirective failed in change-show for ${changeId}; snapshot omits Next line`,
+                );
+              }
               output._contextSnapshot = buildChangeContextSnapshot({
                 change: displayChange,
                 proposalText,
-                gates: gates
-                  ? await normalizeGateArtifactEvidenceForReadback(gates)
-                  : undefined,
+                gates: normalizedGates,
                 workdir: activeStore.paths.root,
+                directive,
               });
             } catch (e) {
               output._contextSnapshotError =
@@ -827,6 +870,22 @@ export const changeTools = {
           }
           if (include.ledger) {
             output._ledger = null;
+          }
+          // rq-loopLedger01 — opt-in compact/detail _loopLedger readback;
+          // legacy include.ledger above stays _ledger:null and is not aliased.
+          if (include.loopLedger || include.loopLedgerDetails) {
+            output._loopLedger = projectLoopLedger(
+              {
+                changeId: change.id,
+                tasks: change.tasks,
+                subagent_reports: change.subagent_reports,
+                testRuns: test_runs,
+              },
+              {
+                details: include.loopLedgerDetails === true,
+                limit: include.loopLedgerLimit,
+              },
+            );
           }
           if (include.subagentReports) {
             const legacyTaskReports = change.tasks.flatMap((task) =>
@@ -1352,11 +1411,30 @@ export const changeTools = {
           result.changeId,
           createdChangeResult.data.title,
         );
+        const createdGates =
+          createdChangeResult.data.gates ?? createDefaultGates();
+        // AC5: created-change snapshot carries the `Next:` orientation line.
+        // Best effort: a derivation failure must not break change-create; the
+        // snapshot omits the `Next:` line.
+        const createdDirective = deriveDirectiveSafe(
+          changeToDirectiveState({
+            projectId: createdChangeResult.data.adv_project_id ?? "unknown",
+            change: createdChangeResult.data,
+            gates: createdGates,
+          }),
+          Date.now(),
+        );
+        if (!createdDirective) {
+          logger.warn(
+            `deriveWorkflowDirective failed in change-create for ${result.changeId}; snapshot omits Next line`,
+          );
+        }
         output._contextSnapshot = buildChangeContextSnapshot({
           change: createdChangeResult.data,
           proposalText,
-          gates: createdChangeResult.data.gates ?? createDefaultGates(),
+          gates: createdGates,
           workdir: store.paths.root,
+          directive: createdDirective,
         });
       }
       // rq-backlogCoord03 — Post-create double-check for race tolerance.
@@ -2603,268 +2681,61 @@ export const changeTools = {
             >
           | undefined;
         if (!dryRun && archiveResult.success && phase9 !== "skip") {
-          if (phase9 === "run" && change.status !== "archived") {
-            // AC3: Async phase9 dispatch. Save pending status, then run
-            // finalization + release gate + cleanup in background.
+          // Sync mode (existing behavior) — phase9 === "run" routes through
+          // this same awaited finalization path; there is no detached async
+          // dispatch, so the call returns a terminal outcome. A THROWN
+          // finalization (git op failure) is caught here and recorded as
+          // durable phase9_status="failed" with actionable recovery evidence
+          // (rq-releaseFinalization01 AC2); the change stays active so the
+          // operator can recover and re-run adv_change_archive instead of
+          // the failure being swallowed or leaving a residual "pending".
+          try {
+            finalization = worktreePath
+              ? await finalizeRelease({
+                  changeId,
+                  workdir: worktreePath,
+                  expectedMainCheckout: store.paths.root,
+                  archiveMode,
+                  autoPush,
+                })
+              : verifyReleaseEvidenceFromMain({
+                  store,
+                  changeId,
+                  archiveMode,
+                  change,
+                });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
             const now = new Date().toISOString();
-            // rq-fixPhase9SquashMergeRedetect SC1: capture change-tip SHA at
-            // dispatch time so reachability detection survives branch deletion
-            // (squash-merge + branch cleanup before phase9 completes).
-            let changeTipSha: string | undefined;
-            if (worktreePath) {
-              try {
-                changeTipSha = (
-                  await execGit(
-                    ["rev-parse", `change/${changeId}`],
-                    worktreePath,
-                  )
-                ).trim();
-                if (!changeTipSha) changeTipSha = undefined;
-              } catch (err) {
-                logger.warn(
-                  `phase9 dispatch: failed to capture change tip for ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
-                );
-              }
-            }
-            // rq-fixPhase9PrDetection SC1: capture durable route/repo metadata
-            // at dispatch time so later reachability detection can function even
-            // after the change branch is auto-deleted.
-            let phase9Route: Phase9FinalizationStatus["route"];
-            let phase9Repo: string | undefined;
-            try {
-              const { branch: defaultBranch } = detectDefaultBranch(
-                store.paths.root,
-              );
-              const classifiedRoute = classifyFinalizationRoute(
-                store.paths.root,
-                defaultBranch,
-              );
-              const coercedRoute =
-                archiveMode === "pr"
-                  ? coercePrWorkflowRoute(classifiedRoute)
-                  : classifiedRoute;
-              phase9Route =
-                coercedRoute.route as Phase9FinalizationStatus["route"];
-              phase9Repo = coercedRoute.repo;
-            } catch (err) {
-              logger.warn(
-                `phase9 dispatch: failed to classify finalization route for ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
-              );
-            }
             await recordPhase9Status({
               store,
               changeId,
-              status: {
-                status: "pending",
-                startedAt: now,
-                changeTipSha,
-                route: phase9Route,
-                repo: phase9Repo,
-              },
-            });
-            dispatchPhase9Finalization({
-              changeId,
-              store,
-              run: async () => {
-                const currentResult = await store.changes.get(changeId);
-                if (!currentResult.success || !currentResult.data) {
-                  throw new Error(
-                    "Change not found for async phase9 completion",
-                  );
-                }
-                const currentChange = currentResult.data;
-                const currentFinalization = worktreePath
-                  ? await finalizeRelease({
-                      changeId,
-                      workdir: worktreePath,
-                      expectedMainCheckout: store.paths.root,
-                      archiveMode,
-                      autoPush,
-                    })
-                  : verifyReleaseEvidenceFromMain({
-                      store,
-                      changeId,
-                      archiveMode,
-                      change: currentChange,
-                    });
-                if (currentFinalization.status === "blocked") {
-                  throw new Error(
-                    `Archive finalization blocked: ${currentFinalization.blocked?.reason}`,
-                  );
-                }
-                if (currentFinalization.status === "pending_merge") {
-                  await recordPhase9Status({
-                    store,
-                    changeId,
-                    status: buildPendingMergePhase9Status({
-                      finalization: currentFinalization,
-                      startedAt: currentChange.phase9_status?.startedAt ?? now,
-                      previous: currentChange.phase9_status,
-                    }),
-                  });
-                  return;
-                }
-                const releaseResult =
-                  await completeReleaseGateAfterFinalization({
-                    store,
-                    change: currentChange,
-                    changeId,
-                    finalization: currentFinalization,
-                  });
-                if (!releaseResult.ok) {
-                  throw new Error(
-                    `Archive release gate completion blocked: ${releaseResult.error}`,
-                  );
-                }
-                const releaseEvidence =
-                  buildReleaseCompletionEvidence(currentFinalization);
-                const durableProof = await verifyReleaseGateDurableForArchive({
-                  store,
-                  changeId,
-                  evidence: releaseEvidence,
-                });
-                if (!durableProof.ok) {
-                  throw new Error(
-                    `Archive durable release gate proof blocked: ${durableProof.error}`,
-                  );
-                }
-                // Archive status transition
-                const archivedAt = new Date().toISOString();
-                await recordPhase9Status({
-                  store,
-                  changeId,
-                  status: preservePhase9Evidence(currentChange.phase9_status, {
-                    status: "done",
-                    startedAt: currentChange.phase9_status?.startedAt ?? now,
-                    completedAt: archivedAt,
-                  }),
-                });
-                currentChange.status = "archived";
-                await store.changes.save(currentChange);
-                await projectEpicTerminalSummaryAfterArchive({
-                  store,
-                  change: currentChange,
-                  completedAt: archivedAt,
-                });
-                // Cleanup. Failures here are non-fatal (the change is already
-                // durably archived) but MUST be observable so leaked dirs,
-                // worktrees, and branches do not accumulate silently (QUAL-004).
-                try {
-                  await removeChangeDir(store.paths.changes, currentChange.id);
-                } catch (err) {
-                  logger.warn(
-                    `archive cleanup: failed to remove change dir for ${currentChange.id}: ${err instanceof Error ? err.message : String(err)}`,
-                  );
-                }
-                try {
-                  await advWorktreeCleanup("archive", {
-                    projectRoot: store.paths.root,
-                    database: await initWorktreeStateDb(store.paths.root),
-                    log: logger,
-                    store,
-                    forceAttempts: false,
-                  });
-                } catch (err) {
-                  logger.warn(
-                    `archive cleanup: worktree cleanup failed for ${currentChange.id}: ${err instanceof Error ? err.message : String(err)}`,
-                  );
-                }
-                if (
-                  currentFinalization?.status === "shipped" &&
-                  currentFinalization.mainCheckout &&
-                  currentFinalization.route !== "pr_auto_merge" &&
-                  archiveMode === "direct"
-                ) {
-                  try {
-                    deleteChangeBranch(
-                      currentFinalization.mainCheckout,
-                      currentChange.id,
-                    );
-                  } catch (err) {
-                    logger.warn(
-                      `archive cleanup: failed to delete change branch for ${currentChange.id}: ${err instanceof Error ? err.message : String(err)}`,
-                    );
-                  }
-                }
-                // Issue closure
-                await closeLinkedIssue({
-                  change: currentChange,
-                  store,
-                  noCloseIssue,
-                  dryRun: false,
-                  existingBundlePath: existingBundlePath ?? undefined,
-                  worktreePath,
-                });
-              },
-              recordFailure: async (error) => {
-                // rq-fixPhase9PrDetection AC4: preserve durable Phase-9
-                // evidence (repo, prNumber, prUrl, route, changeTipSha) across
-                // the failed transition so a later archived-bundle retry can
-                // still resolve reachability after branch auto-delete.
-                let previousPhase9: Change["phase9_status"] | undefined;
-                try {
-                  const failureCurrent = await store.changes.get(changeId);
-                  previousPhase9 = failureCurrent.success
-                    ? failureCurrent.data?.phase9_status
-                    : undefined;
-                } catch {
-                  previousPhase9 = undefined;
-                }
-                await recordPhase9Status({
-                  store,
-                  changeId,
-                  status: preservePhase9Evidence(previousPhase9, {
-                    status: "failed",
-                    startedAt: previousPhase9?.startedAt ?? now,
-                    completedAt: new Date().toISOString(),
-                    error:
-                      error instanceof Error ? error.message : String(error),
-                  }),
-                });
-              },
+              status: preservePhase9Evidence(change.phase9_status, {
+                status: "failed",
+                startedAt: change.phase9_status?.startedAt ?? now,
+                completedAt: now,
+                error: message,
+              }),
             });
             return formatToolOutput({
-              success: archiveResult.success,
-              specsUpdated: archiveResult.specsUpdated.map((s) => ({
-                capability: s.capability,
-                version: `${s.originalVersion} → ${s.newVersion}`,
-                deltas: s.deltaResults.length,
-              })),
-              docsGenerated: archiveResult.docsGenerated,
+              success: false,
+              error: `Archive finalization failed: ${message}`,
+              requirement: "rq-releaseFinalization01",
+              remediation:
+                "Finalize the release manually (merge the change branch into the default branch and push, or resolve the underlying git error), then re-run adv_change_archive to complete the archive. The change remains active and the archive bundle is preserved for retry.",
+              changeId,
               archivePath: archiveResult.archivePath,
-              errors: archiveResult.errors,
-              dryRun: false,
-              ...(archiveResult.multiRepo
-                ? { multiRepo: archiveResult.multiRepo }
-                : {}),
-              phase9: "pending",
+              phase9Failure: {
+                status: "failed",
+                error: message,
+                recoverable: false,
+                remediation:
+                  "Resolve the git error, then re-run adv_change_archive.",
+              },
               ...openOpsObligationsPayload,
-              ...(validationResult.warnings.length > 0
-                ? {
-                    validationWarnings: validationResult.warnings.map((w) => ({
-                      code: w.code,
-                      message: w.message,
-                      path: w.path,
-                    })),
-                  }
-                : {}),
             });
           }
-          // Sync mode (existing behavior)
-          finalization = worktreePath
-            ? await finalizeRelease({
-                changeId,
-                workdir: worktreePath,
-                expectedMainCheckout: store.paths.root,
-                archiveMode,
-                autoPush,
-              })
-            : verifyReleaseEvidenceFromMain({
-                store,
-                changeId,
-                archiveMode,
-                change,
-              });
           if (finalization.status === "blocked") {
             return formatToolOutput({
               success: false,

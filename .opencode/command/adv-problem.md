@@ -105,7 +105,7 @@ Propose exactly one exit path:
 - **iterate** — list the next 1–3 concrete evidence gaps or experiments
 - **stop** — user chooses to stop after triage
 
-The exit is a handoff recommendation only. `/adv-problem` does not create changes, tasks, gates, or spec deltas directly.
+The exit is a handoff recommendation only.
 
 ## Output
 

@@ -225,7 +225,7 @@ What shipped, merged locally, waits on PR auto-merge, or blocked release complet
 - Push: {SHA range pushed | n/a: no origin | branch pushed for PR | blocked: <reason>}
 - Release proof: {origin/{default-branch} reachable | PR {number} state MERGED | no_remote local proof | pending PR {number} | missing: <reason>}
 - PR: {n/a | <url> auto-merge armed | <url> manual merge required | unavailable: <reason>}
-- Local deploy: {ran | not available | not needed | failed: <reason>; nonblocking}
+- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}
 - Epic: {n/a | {epic_id}/{entry_id} terminal state verified | terminal projection recorded | membership repaired via adv_epic_repair_membership mode=<mode> | warning: <reason>}
 - Reflection: {completed: <id/path/summary> | failed: <reason>; nonblocking}
 - Pre-push hooks: {hooksPath | githooks | husky | lefthook | standard | none}
@@ -250,8 +250,7 @@ and the archive-owned release-gate recording/projection-proof path. This
 markdown remains the human-facing orchestration recipe; the helper module is
 the shared runtime contract used by direct tool paths. When this slash-command path calls
 `adv_change_archive`, it passes `phase9: "run"` with `worktreePath` so the
-shared helper owns the structural git finalization. The markdown below remains
-the human-facing explanation of that runtime contract.
+shared helper owns the structural git finalization.
 
 > **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch, the readiness check (Step 4.4) hard-blocks and asks user. If main is on the default branch but dirty, ADV commits pre-existing changes as an auditable checkpoint and continues — ADV does not create new change-owned work on main.
 
@@ -392,6 +391,14 @@ If `$MAIN/scripts/deploy-local.sh` exists and is executable:
 4. If deploy succeeds → record `deploy_action: ran` for Phase 8.
 
 If the script is absent → record `deploy_action: not available`. If the project explicitly documents that no local deploy is needed → record `deploy_action: not needed` with the source of that evidence.
+
+> **Local runtime activation callout.** `deploy_action: ran` means assets synced to the runtime path — it does NOT reload already-running OpenCode sessions, which keep the cached bundle in process memory. To activate local runtime changes after archive:
+>
+> 1. Run `./scripts/deploy-local.sh --fix` from the repo root as the primary deploy. It rebuilds a stale plugin distribution before syncing to the runtime path, so no separate manual build step is required.
+> 2. The same command attempts to bounce matching deployed Temporal worker processes automatically (SIGTERM); do not manually terminate workers. If the bounce fails, route recovery through `adv_temporal_worker_restart` rather than retrying manual termination.
+> 3. Restart the relevant OpenCode session / plugin host so host-loaded tool code reloads, then re-invoke the affected tool. OpenCode does not auto-restart or live-reload the host from deploy; activation requires the restart.
+>
+> Deploy completion is not reload proof. Do not claim live behavior changed until a fresh session has loaded the rebuilt bundle, and re-invoke the affected tool only after restart. Record activation status through the existing Phase 8 `Local deploy` row: when `deploy_action: ran` is recorded but the rebuilt bundle is not yet loaded by a restarted host, set the existing `Local deploy` field to `ran; OpenCode activation pending restart`; do not append a separate activation line to the report.
 
 After local merge succeeds, archive finalization attempts a safe remote push of the default branch from `$MAIN` when `origin` exists:
 

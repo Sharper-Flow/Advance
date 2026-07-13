@@ -113,19 +113,6 @@ From change data: affected files, spec scenarios, task completion evidence, `cha
 | 12 | Consistency | Matches existing patterns |
 
 ---
-## Conventional Comment Labels
-| Label | Meaning | Blocking? |
-|-------|---------|-----------|
-| `blocker:` | Must fix before merge | YES |
-| `issue:` | Should fix, real problem | YES |
-| `suggestion:` | Would improve code | NO |
-| `nit:` | Minor style/preference | NO |
-| `question:` | Need clarification | MAYBE |
-| `praise:` | Good work worth noting | NO |
-
-Format: `{label}: [{file}:{line}] {what}` + `Why: {why}` + `Fix: {how}` (optional).
-
----
 ## Sub-Agent Resilience
 Empty/failed result = transient failure (empty string, missing `"dimension"` key, error-only).
 

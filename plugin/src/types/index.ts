@@ -193,6 +193,29 @@ export {
 } from "./subagent-reports";
 
 // =============================================================================
+// Loop Ledger (read/projection vocabulary — evidence-only, non-authoritative)
+// =============================================================================
+export {
+  LOOP_LEDGER_SCHEMA_VERSION,
+  LoopKindSchema,
+  type LoopKind,
+  LoopVerdictSchema,
+  type LoopVerdict,
+  LoopSourceRefSchema,
+  type LoopSourceRef,
+  LoopLedgerEntrySchema,
+  type LoopLedgerEntry,
+  LoopLedgerSourceTotalsSchema,
+  type LoopLedgerSourceTotals,
+  LoopLedgerLatestStatusSchema,
+  type LoopLedgerLatestStatus,
+  LoopLedgerSummarySchema,
+  type LoopLedgerSummary,
+  LoopLedgerReadbackSchema,
+  type LoopLedgerReadback,
+} from "./loop-ledger";
+
+// =============================================================================
 // Briefing Packets
 // =============================================================================
 export {

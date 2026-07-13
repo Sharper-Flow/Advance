@@ -57,7 +57,7 @@ import type {
 } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
 import { normalizePersistedSubagentReportState } from "../types";
-import { subagentReportKey } from "./contracts";
+import { subagentReportKey } from "../types/subagent-reports";
 import { describePayloadDigest } from "./digest";
 import type {
   ArtifactKind,
@@ -199,6 +199,26 @@ export function changeToWorkflowState(input: {
     ...seed,
     gates: input.gates ?? seed.gates ?? createDefaultGates(),
   };
+}
+
+/**
+ * Build a `ChangeWorkflowState` suitable for `deriveWorkflowDirective` from a
+ * disk `Change` projection. Preserves the directive-relevant sidecar fields
+ * (`pendingCheckpoint`, `terminated`) that `changeToWorkflowState`'s seed
+ * projection drops, so tool-layer consumers (gate status, status enrichment)
+ * derive the same directive the workflow's `getDirectiveQuery` would.
+ *
+ * No persistence, no caching — equal inputs yield equal output.
+ */
+export function changeToDirectiveState(input: {
+  projectId: string;
+  change: Change;
+  gates?: ChangeWorkflowState["gates"];
+}): ChangeWorkflowState {
+  const state = changeToWorkflowState(input);
+  state.pendingCheckpoint = input.change.pendingCheckpoint;
+  state.terminated = input.change.terminated;
+  return state;
 }
 
 function setLastSignalAt(state: ChangeWorkflowState, at: string): void {

@@ -1,7 +1,7 @@
 # Advance Delivery
 
-> **Version:** 1.3.2
-> **Updated:** 2026-05-08
+> **Version:** 1.3.3
+> **Updated:** 2026-07-10
 
 ## Purpose
 
@@ -592,5 +592,88 @@ When a change has `change.contract`, archive MUST verify structural contract pro
 **Then:**
 - Contract proof validation runs before existing-bundle recovery
 - A stale or incomplete proof state still blocks the retry
+
+---
+
+### Loop Ledger Readback via adv_change_show Include Flags
+
+**ID:** `rq-loopLedger01` | **Priority:** **[MUST]**
+
+adv_change_show MUST expose an opt-in typed loop-ledger readback over existing ADV loop evidence. include.loopLedger:true attaches a compact summary as _loopLedger (version, summary: totalEntries, byKind, byVerdict, latestStatus, sourceTotals, retryFailureCount, inconclusiveCount). include.loopLedgerDetails:true additionally attaches bounded detailed entries; include.loopLedgerLimit bounds the detail slice and MUST accept 1-100 inclusive, default to 20, and reject or clamp values outside 1-100. The legacy include.ledger flag is unchanged: when requested it still attaches _ledger: null and MUST NOT be aliased to the loop ledger. The readback is a derived projection over authoritative sources (task attempts/error_recovery, sub-agent reports, test_runs, ci_check targets) and is evidence-only: it MUST NOT authorize, complete, or block any task, contract item, report, or gate (AC5), and MUST NOT change retry budgets or autonomy (AC7). test_runs appear only as source refs (kind test_run) and MUST NOT be used as an attempt-count source; UNKNOWN or routing-only verification triage maps to verdict inconclusive and MUST NOT increment retryFailureCount. The readback MUST work for cross-project target_path reads and for terminal changes via the disk projection without a live workflow.
+
+**Tags:** `delivery`, `tools`, `context-emission`, `loop-ledger`, `projection`
+
+#### Scenarios
+
+**include.loopLedger attaches compact summary only** (`rq-loopLedger01.1`)
+
+**Given:**
+- A change has task-attempt and sub-agent-report loop evidence
+
+**When:** adv_change_show is called with include: { loopLedger: true }
+
+**Then:**
+- The response includes _loopLedger with version and summary
+- summary exposes totalEntries, byKind, byVerdict, latestStatus, sourceTotals, retryFailureCount, inconclusiveCount
+- _loopLedger.details is omitted (compact default)
+
+**include.loopLedgerDetails opts into bounded details** (`rq-loopLedger01.2`)
+
+**Given:**
+- A request includes loopLedger:true with loopLedgerDetails:true and loopLedgerLimit:N
+
+**When:** adv_change_show projects the readback
+
+**Then:**
+- _loopLedger.details contains at most N entries
+- detailsLimit equals N and detailsTruncated reflects overflow
+- loopLedgerLimit accepts 1-100 inclusive, defaults to 20, and rejects or clamps values outside 1-100
+
+**Legacy include.ledger is unchanged** (`rq-loopLedger01.3`)
+
+**Given:**
+- adv_change_show is called with include: { ledger: true } only
+
+**When:** The response is built
+
+**Then:**
+- _ledger is attached and equals null
+- _loopLedger is NOT attached unless loopLedger/loopLedgerDetails is also requested
+- include.ledger is not aliased to the loop ledger
+
+**Loop ledger is evidence-only and non-authoritative** (`rq-loopLedger01.4`)
+
+**Given:**
+- A ledger entry reports verdict pass for a task or report
+
+**When:** Task, contract, report, or gate readiness is evaluated
+
+**Then:**
+- The entry does NOT complete or unblock any task, contract item, report, or gate (AC5)
+- Retry budgets and autonomy are unchanged (AC7)
+- Vector/ML similarity is advisory-only and remains out of scope
+
+**test_runs are evidence refs; UNKNOWN triage is inconclusive** (`rq-loopLedger01.5`)
+
+**Given:**
+- A task has test_runs but no recorded retry attempts, or a verification-triage report has error_class UNKNOWN or status inconclusive
+
+**When:** The loop ledger is projected
+
+**Then:**
+- test_runs contribute only source refs of kind test_run, never attempt counts
+- A task with test_runs but no attempts is not a retry loop
+- UNKNOWN/routing-only or inconclusive triage yields verdict inconclusive and does NOT increment retryFailureCount
+
+**Readback is target_path and terminal safe** (`rq-loopLedger01.6`)
+
+**Given:**
+- include.loopLedger is requested for a cross-project target_path read or for an archived/closed change
+
+**When:** adv_change_show builds the response
+
+**Then:**
+- _loopLedger is returned from the target store or terminal disk projection
+- No live/running workflow is required for the read
 
 ---

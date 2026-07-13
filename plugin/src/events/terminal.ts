@@ -259,30 +259,34 @@ const cleanTitlePart = (value: string | undefined): string =>
   (value ?? "").trim();
 
 /**
- * Build tab title from raw project name and raw change ID.
+ * Build tab title from project name, change label, and optional epic title.
+ *
+ * Title priority:
+ *   - Active change with Epic: "Epic title | change label"
+ *   - Active change without Epic: "change label"
+ *   - No active change: project name
  *
  * Deliberately avoids semantic normalization, shortname generation, acronym
- * generation, verb stripping, or AI/agent-driven naming. The terminal title is
- * a direct reflection of the active ADV change ID, falling back to the initial
- * project basename when no ADV change is active:
- *
- *   Project
- *   change-id
+ * generation, verb stripping, or AI/agent-driven naming.
  */
 export const buildTabTitle = (
   _emoji: string,
   projectName: string,
-  changeId: string | undefined,
-  _prefix?: string,
+  changeLabel: string | undefined,
+  epicTitle?: string,
 ): string => {
-  const projectLabel = cleanTitlePart(projectName);
-  const changeLabel = cleanTitlePart(changeId);
+  const projectPart = cleanTitlePart(projectName);
+  const changePart = cleanTitlePart(changeLabel);
+  const epicPart = cleanTitlePart(epicTitle);
 
-  if (changeLabel) {
-    return changeLabel;
+  if (changePart && epicPart) {
+    return `${epicPart} | ${changePart}`;
   }
-  if (projectLabel) {
-    return projectLabel;
+  if (changePart) {
+    return changePart;
+  }
+  if (projectPart) {
+    return projectPart;
   }
   return "";
 };
@@ -292,25 +296,23 @@ let lastTitle: string | null = null;
 /**
  * Update terminal based on status.
  * Title format:
- *   - Active change: "<change-id>"
+ *   - Active change with Epic: "Epic title | change label"
+ *   - Active change without Epic: "change label"
  *   - No active change: "<project>"
- *
- * Title policy: identity-only. Do not encode status/progress or repeatedly
- * rewrite the tab title during normal status churn. The simple identity title
- * is updated only when the identity string changes.
- *
- * Notification policy: ADV core does not emit audible terminal bells for
- * status transitions. Attention/completion notifications are handled by the
- * host/tool integration layer (for example Warp/OpenCode notifications) or by
- * user terminal settings outside this module.
  */
 export const updateTerminalStatus = (
   status: StatusMarker,
   projectName: string,
-  changeId?: string,
+  changeLabel?: string,
+  epicTitle?: string,
   _progress?: string,
 ): void => {
-  const title = buildTabTitle(getStatusEmoji(status), projectName, changeId);
+  const title = buildTabTitle(
+    getStatusEmoji(status),
+    projectName,
+    changeLabel,
+    epicTitle,
+  );
 
   if (title !== lastTitle) {
     if (setTitle(title)) {

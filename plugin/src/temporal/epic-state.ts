@@ -688,6 +688,7 @@ export function applyEntryTerminalSummaryToState(
     status: payload.status,
     completed_at: payload.completedAt,
   };
+  entry.membership_status = "terminal";
 
   bumpVersion(state.epic);
   recordIdempotency(state, payload.idempotencyKey, payload.completedAt);

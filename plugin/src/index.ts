@@ -22,7 +22,7 @@ import {
   pruneStaleRetries,
 } from "./events";
 import { tryInitStore, registerShutdownHandlers } from "./plugin-init";
-import type { StatusMarker } from "./types";
+import type { Change, StatusMarker } from "./types";
 import { withStabilityFeatureDefaults } from "./types";
 import { resolveProjectContext } from "./plugin-context";
 // P2.7: legacy-state migration removed. Disk-only store reads from existing
@@ -33,6 +33,8 @@ import {
   type SessionHealthIssue,
 } from "./utils/system-block";
 import { buildCompactionContext } from "./utils/compaction-context";
+import { changeToDirectiveState } from "./temporal/change-state";
+import { deriveWorkflowDirective } from "./utils/workflow-directive";
 import {
   recordAdvToolCall,
   recordSubagentSpawn,
@@ -618,7 +620,8 @@ const advancePluginImpl: Plugin = async (input) => {
           );
           if (reachable) {
             state.activeChange.id = String(args.changeId);
-            setActiveChange(state.activeChange.id);
+            const ctx = await resolveChangeContext(state.activeChange.id);
+            setActiveChange(state.activeChange.id, ctx);
             debugLog(`handleToolExecuteBefore: re-pointed to ${args.changeId}`);
           } else {
             debugLog(
@@ -816,11 +819,35 @@ const advancePluginImpl: Plugin = async (input) => {
     handleLongRunningToolStart(toolName);
   };
 
-  const recordCreatedChange = (rawOutput: string) => {
+  /**
+   * Resolve change label and parent Epic title from the project store.
+   * Used at active-change pointer transitions to feed structured context to
+   * the terminal title renderer. Falls back gracefully — never blocks or
+   * fails the tool operation.
+   */
+  const resolveChangeContext = async (
+    changeId: string,
+  ): Promise<{ label?: string; epicTitle?: string }> => {
+    if (!store) return {};
+    try {
+      const result = await store.changes.get(changeId);
+      if (!result.success || !result.data) return {};
+      const change = result.data;
+      return {
+        label: change.title,
+        epicTitle: change.epic_membership?.title,
+      };
+    } catch {
+      return {};
+    }
+  };
+
+  const recordCreatedChange = async (rawOutput: string) => {
     const newChangeId = extractCreatedChangeId(rawOutput);
     if (!newChangeId) return;
     state.activeChange.id = newChangeId;
-    setActiveChange(newChangeId);
+    const ctx = await resolveChangeContext(newChangeId);
+    setActiveChange(newChangeId, ctx);
     debugLog(`adv_change_create: set activeChange to ${newChangeId}`);
   };
 
@@ -955,7 +982,7 @@ const advancePluginImpl: Plugin = async (input) => {
         // Track new change creation (changeId only in output, not input args)
         if (input.tool === "adv_change_create" && output.output) {
           try {
-            recordCreatedChange(output.output);
+            await recordCreatedChange(output.output);
           } catch (err) {
             // Outer parse error — unexpected if banner format changes
             hooksLogger.warn(
@@ -1126,10 +1153,12 @@ const advancePluginImpl: Plugin = async (input) => {
         // by falling back to a minimal CompactionChangeLike sourced from
         // active state — the snapshot still produces useful output.
         let changeTitle = changeId;
+        let changeForDirective: Change | undefined;
         try {
           const changeResult = await store.changes.get(changeId);
           if (changeResult.success && changeResult.data) {
             changeTitle = changeResult.data.title || changeTitle;
+            changeForDirective = changeResult.data;
           }
         } catch (e) {
           debugLog(`Error loading change for compaction: ${e}`);
@@ -1157,6 +1186,26 @@ const advancePluginImpl: Plugin = async (input) => {
           debugLog(`Error loading specs for compaction: ${e}`);
         }
 
+        // AC5: derive the authoritative directive from the full change
+        // projection so the compacted snapshot renders the same `Next:`
+        // orientation line the live context shows (fidelity parity). Best
+        // effort — a derivation failure must not break compaction output.
+        let directive: ReturnType<typeof deriveWorkflowDirective> | undefined;
+        if (changeForDirective) {
+          try {
+            directive = deriveWorkflowDirective(
+              changeToDirectiveState({
+                projectId: changeForDirective.adv_project_id ?? "unknown",
+                change: changeForDirective,
+                gates: gates ?? undefined,
+              }),
+              Date.now(),
+            );
+          } catch (e) {
+            debugLog(`Error deriving directive for compaction: ${e}`);
+          }
+        }
+
         const block = buildCompactionContext({
           change: { id: changeId, title: changeTitle },
           tasks: tasks.map((t) => ({
@@ -1169,6 +1218,7 @@ const advancePluginImpl: Plugin = async (input) => {
           gates: gates ?? undefined,
           workdir: directory,
           specs,
+          directive,
         });
 
         output.context.push(block);

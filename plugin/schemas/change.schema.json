@@ -7429,6 +7429,94 @@
     "terminated": {
       "type": "boolean"
     },
+    "test_runs": {
+      "additionalProperties": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "assertionDensity": {
+              "type": "number"
+            },
+            "behaviorSurface": {
+              "enum": [
+                "small",
+                "medium",
+                "large"
+              ],
+              "type": "string"
+            },
+            "classification": {
+              "type": "string"
+            },
+            "command": {
+              "type": "string"
+            },
+            "durationMs": {
+              "type": "number"
+            },
+            "exitCode": {
+              "anyOf": [
+                {
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "mockSurface": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "count": {
+                    "type": "number"
+                  },
+                  "pattern": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "pattern",
+                  "count"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "phase": {
+              "enum": [
+                "red",
+                "green",
+                "verify"
+              ],
+              "type": "string"
+            },
+            "recordedAt": {
+              "type": "string"
+            },
+            "runId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "runId",
+            "exitCode",
+            "classification",
+            "command",
+            "durationMs",
+            "recordedAt"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
+      "type": "object"
+    },
     "title": {
       "type": "string"
     },

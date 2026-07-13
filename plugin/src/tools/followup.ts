@@ -29,7 +29,7 @@ import {
   opsFollowupSeededSignal,
   opsFollowupLinkAddedSignal,
 } from "../temporal/messages";
-import { subagentReportKey } from "../temporal/contracts";
+import { subagentReportKey } from "../types/subagent-reports";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import {
   withTargetPathStore,

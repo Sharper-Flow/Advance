@@ -1,0 +1,1850 @@
+{
+  "id": "addLoopLedger",
+  "title": "Add loop ledger",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-10T07:03:29.853Z",
+  "tasks": [
+    {
+      "id": "tk-52cde4253623",
+      "title": "Add loop-ledger schemas and pure projection helper",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-10T13:52:43.581Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T14:57:54.203Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addLoopLedger",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLoopLedger",
+          "task_id": "tk-52cde4253623",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-52cde4253623"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/loop-ledger.ts",
+            "plugin/src/utils/loop-ledger.ts",
+            "plugin/src/utils/loop-ledger.test.ts",
+            "plugin/src/utils/loop-ledger.purity.test.ts",
+            "plugin/src/types/index.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/utils/loop-ledger.test.ts",
+              "exit_code": 0,
+              "summary": "11/11 pass: apply_retry attemptCount (testRuns excluded), done→pass, review/harden verdict mapping, verification_triage + ci_repair, UNKNOWN/inconclusive→inconclusive not counted in retryFailureCount, cross-sidecar dedupe, compact-vs-detail with limit clamp ≤100, retryFailureCount fail-only, schema round-trip."
+            },
+            {
+              "command": "pnpm exec vitest run src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/utils/context-snapshot.purity.test.ts src/temporal/workflow-bundle-boundary.test.ts src/types/subagent-reports.test.ts src/temporal/change-state.test.ts",
+              "exit_code": 0,
+              "summary": "111/111 pass; new purity tests enforce no storage/tools/node imports and zod-only types; workflow-bundle boundary, context-snapshot purity, subagent-reports, and change-state suites unaffected."
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit clean (fixed SubagentReportScope type import source)."
+            },
+            {
+              "command": "pnpm exec eslint src/types/loop-ledger.ts src/utils/loop-ledger.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/types/index.ts",
+              "exit_code": 0,
+              "summary": "ESLint clean on all touched files (removed an unused local)."
+            },
+            {
+              "command": "pnpm exec prettier --check src/types/loop-ledger.ts src/utils/loop-ledger.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/types/index.ts",
+              "exit_code": 0,
+              "summary": "Prettier check passes on all touched files after --write."
+            },
+            {
+              "command": "pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "No schema-registry drift; registry/schemas intentionally untouched (owned by tk-42fcb03c8554)."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Split schemas into plugin/src/types/loop-ledger.ts (zod-only) and the pure projector into plugin/src/utils/loop-ledger.ts",
+              "why": "Matches design D6 and the established pure-projection convention (context-snapshot/buckets/archive-summary); keeps the type module workflow-safe and the projector free of storage/tools/node imports, verified by a dedicated purity test."
+            },
+            {
+              "what": "Granularity: one derived apply_retry entry per task (aggregated attempts); one recorded entry per sub-agent report for review/harden/verification/ci",
+              "why": "Task attempts/error_recovery are the authoritative attempt count (D4/DDC8), while each report is a recorded loop evaluation; reportKey dedupe collapses legacy task+change sidecar duplication (DDC3)."
+            },
+            {
+              "what": "verdict vocabulary (pass/fail/blocked/inconclusive) kept separate from source errorClass; UNKNOWN or status=inconclusive → inconclusive, excluded from retryFailureCount",
+              "why": "Implements D2/AC2/DDC4 so routing-only triage never becomes an authoritative task failure or increments the retry budget; errorClass is preserved on the entry for diagnostics."
+            },
+            {
+              "what": "Loop sources limited to adv-reviewer (phase-driven), adv-scanner-bundle, and adv-verification-triage-bundle; adv-engineer/adv-designer/adv-researcher/adv-tron/adv-visual-review are not emitted as loop entries",
+              "why": "Engineer task work is already represented by apply_retry (attempts + test evidence); the others are not remediation loops. Re-classifying engineer reports without a phase discriminator would risk double-counting/fabrication (D4)."
+            },
+            {
+              "what": "Detail readback clamps limit to a hard ceiling of 100 (default 20) and returns detailsTruncated + detailsLimit; details omitted unless opted in",
+              "why": "Implements DDC1/DDC2 in the pure helper so the boundary is enforced independent of the adv_change_show wiring task."
+            },
+            {
+              "what": "New surface named loopLedger; the retired include.ledger/_ledger vestige left untouched",
+              "why": "Satisfies D3/DDC9/C3 — avoids reviving retired task-run semantics and keeps the new vocabulary unambiguous for the wiring task."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "v1 classifies review_remediation/harden_remediation from adv-reviewer (phase-driven) and adv-scanner-bundle only; adv-engineer remediation reports are intentionally not re-classified (covered by apply_retry). Revisit if a phase discriminator is added to engineer reports.",
+            "ci_repair is report-derived only from ci_check triage bundles; no entry is fabricated when no CI bundle persists (known v1 thinness per design).",
+            "include.ledger/_ledger retired vestige left untouched per D3/DDC9; the new loopLedger surface is wired by tk-e45e7e3b8209."
+          ],
+          "required_main_agent_actions": [
+            "Wire include.loopLedger / loopLedgerDetails / loopLedgerLimit in adv_change_show (tk-e45e7e3b8209) using projectLoopLedger over loaded change state + state.testRuns.",
+            "Publish the loop-ledger readback schema and update specs/docs (tk-42fcb03c8554) only if the readback shape is public."
+          ],
+          "related_scan": "Mirrored the context-snapshot purity pattern with a dedicated loop-ledger.purity.test.ts and reused subagentReportKey for cross-sidecar dedupe consistent with tools/change.ts subagentReportReadbackKey. Sibling pure-projection modules (context-snapshot, buckets, archive-summary) checked — no same-pattern defects to fix.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Loop-ledger v1 schemas + pure projector are implemented and green. New files: plugin/src/types/loop-ledger.ts (LoopKind/LoopVerdict/LoopSourceRef/LoopLedgerEntry/LoopLedgerSummary/LoopLedgerReadback + inferred types, zod-only/workflow-safe) and plugin/src/utils/loop-ledger.ts (projectLoopLedger over already-loaded state; no storage/tools/node imports; enforced by loop-ledger.purity.test.ts). Barrel export added in types/index.ts. Projector derives apply_retry (per-task, attempts from task.attempts + error_recovery.attempts; testRuns attached as evidence refs only, never counted), review_remediation/harden_remediation (adv-reviewer phase-driven + adv-scanner-bundle), verification_triage/ci_repair (adv-verification-triage-bundle phase-driven). UNKNOWN error_class and status=inconclusive map to verdict inconclusive and are excluded from retryFailureCount (fail-only). Dedupe by stable report key across task+change sidecars. Detail opt-in clamps limit to [1,100] (default 20). schema-registry, adv_change_show wiring, specs/docs, and change-state.ts were intentionally NOT touched (owned by later tasks / design says avoid in v1).",
+            "suggested_next_action": "Proceed to tk-e45e7e3b8209: wire adv_change_show include.loopLedger by calling projectLoopLedger(changeState) over the already-loaded Change plus state.testRuns; do not add a live-workflow query so archived/terminal readback stays pure (AC6/DDC7). Then tk-42fcb03c8554 for schema-registry/spec/docs."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/loop-ledger.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/utils/context-snapshot.purity.test.ts src/temporal/workflow-bundle-boundary.test.ts src/types/subagent-reports.test.ts src/temporal/change-state.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/types/loop-ledger.ts src/utils/loop-ledger.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/types/index.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/types/loop-ledger.ts src/utils/loop-ledger.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/types/index.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+            }
+          ]
+        }
+      ],
+      "verification": "Focused loop-ledger projector tests (11), purity/boundary suites (111 total), typecheck, ESLint, Prettier, and schemas check passed; typed adv-engineer report persisted.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/types/index.ts",
+        "plugin/src/types/loop-ledger.ts",
+        "plugin/src/utils/loop-ledger.purity.test.ts",
+        "plugin/src/utils/loop-ledger.test.ts",
+        "plugin/src/utils/loop-ledger.ts"
+      ],
+      "touched_files": [
+        "plugin/src/types/index.ts",
+        "plugin/src/types/loop-ledger.ts",
+        "plugin/src/utils/loop-ledger.purity.test.ts",
+        "plugin/src/utils/loop-ledger.test.ts",
+        "plugin/src/utils/loop-ledger.ts"
+      ],
+      "checkpointSha": "803a31a29bd29771388e5b857e2c8c8f132ef15c",
+      "completedAt": "2026-07-10T15:18:46.529Z",
+      "completed_at": "2026-07-10T15:18:46.529Z"
+    },
+    {
+      "id": "tk-e45e7e3b8209",
+      "title": "Wire adv_change_show loopLedger readback surface",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-10T13:54:36.600Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-52cde4253623"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "AC3",
+          "AC4",
+          "AC6"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT3",
+          "DONT5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T15:19:09.669Z",
+      "verification": "RED recorded for missing loopLedger readback; GREEN/verify passed: change, loop-ledger, and storage mapping suites (122 tests), plus typecheck. Default output strips internal test_runs; legacy _ledger remains null only when explicitly requested.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/utils/loop-ledger.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/utils/loop-ledger.ts"
+      ],
+      "checkpointSha": "05fb6c1d68bdd328819ba64620a4eb8ab158da16",
+      "completedAt": "2026-07-10T15:27:39.743Z",
+      "completed_at": "2026-07-10T15:27:39.743Z"
+    },
+    {
+      "id": "tk-42fcb03c8554",
+      "title": "Update specs, schemas, and docs for loop-ledger semantics",
+      "type": "docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-10T13:54:50.920Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e45e7e3b8209"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "SC5",
+          "AC5",
+          "AC7"
+        ],
+        "verifies": [
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T15:27:46.870Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addLoopLedger",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLoopLedger",
+          "task_id": "tk-42fcb03c8554",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-42fcb03c8554"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-delivery/spec.json",
+            ".adv/specs/subagent-reports/spec.json",
+            ".adv/specs/tdd-contract/spec.json",
+            "docs/specs/advance-delivery.md",
+            "docs/specs/tdd-contract.md",
+            "plugin/schemas/change.schema.json",
+            "plugin/src/tools/change.ts",
+            "plugin/src/utils/loop-ledger.ts"
+          ],
+          "verification": [
+            {
+              "command": "SpecSchema.safeParse on .adv/specs/{advance-delivery,subagent-reports,tdd-contract}/spec.json",
+              "exit_code": 0,
+              "summary": "All three edited specs parse and conform to SpecSchema (VALID)."
+            },
+            {
+              "command": "pnpm run schemas:generate",
+              "exit_code": 0,
+              "summary": "Generated 8 JSON schemas; refreshed plugin/schemas/change.schema.json (+88 lines: test_runs). Not hand-authored."
+            },
+            {
+              "command": "pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "Deterministic schema drift check passes; no stale generated artifacts."
+            },
+            {
+              "command": "./node_modules/.bin/prettier --check src/tools/change.ts src/utils/loop-ledger.ts",
+              "exit_code": 0,
+              "summary": "All matched files use Prettier code style (after --write wrapped the loopLedgerLimit describe line)."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/schema-registry.test.ts src/utils/loop-ledger.test.ts",
+              "exit_code": 0,
+              "summary": "3 files / 16 tests passed (citation invariant satisfied by new rq- comments; registry set unchanged; loop-ledger projector green)."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "101 tests passed, including include.loopLedger compact/detail/limit readback cases."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/test-contract-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+              "exit_code": 1,
+              "summary": "159 passed, 1 failed: adv-skill-backed-commands-assets 'stage-boundary specs include criteria ownership requirements' expects advance-workflow version 1.26.0 but spec is 1.27.0. Pre-existing, unrelated to this task (advance-workflow untouched). change.test.ts (101) and test-contract-assets passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Did NOT register a public JSON-schema artifact for the loop-ledger readback in schema-registry.ts",
+              "why": "The loop ledger is a transient readback projection, not a persisted entity. No other include/readback projection (snapshot, readyTasks, subagentReports) is a public JSON-schema artifact, and schema-registry.test.ts pins the public set to the 8 persisted-entity schemas. Registering would break precedent and imply a stable external contract for an explicitly advisory/evidence-only projection. Type + Zod exports (LoopLedgerReadbackSchema, LoopKindSchema, LoopVerdictSchema, LoopSourceRefSchema, summary/entry schemas) are already public from plugin/src/types/index.ts, which is the appropriate public surface for a readback."
+            },
+            {
+              "what": "Updated tdd-contract with one clarifying requirement (rq-TDD012ledgerEvidence)",
+              "why": "The loop-ledger readback surfaces test_runs (as source refs) and a derived retryFailureCount. Without pinning them as evidence-only against the existing TDD authority (testRunRecordedSignal red/green ordering rq-TDD009seq and task.attempts/error_recovery), the readback could be misread as redefining retry semantics. Kept minimal: one requirement, two scenarios; explicitly states it does not broaden TDD enforcement."
+            },
+            {
+              "what": "Did not create docs/specs/subagent-reports.md; updated subagent-reports/spec.json only",
+              "why": "No docs/specs mirror exists for subagent-reports (the repo mirrors are selective/partial; no test references docs/specs/subagent-reports.md). Creating a full new mirror would be broadening. Spec updated; absence of a docs counterpart documented."
+            },
+            {
+              "what": "Appended only the new requirement sections to docs/specs/advance-delivery.md and docs/specs/tdd-contract.md",
+              "why": "Both committed mirrors are partial/stale (advance-delivery.md has 14 of 23 requirements; tdd-contract.md stops at rq-TDD008path). Backfilling unrelated missing requirements is out of scope; appended only the loop-ledger sections in each file's local style and bumped the header version/date to match the spec."
+            },
+            {
+              "what": "Ran pnpm run schemas:generate, which refreshed plugin/schemas/change.schema.json (+88 lines: test_runs field)",
+              "why": "schemas:check reported change.schema.json stale: the implementation task added ChangeSchema.test_runs but did not regenerate the public artifact. The task explicitly instructs to run the generator and never hand-author generated schema content; the refresh is deterministic and loop-ledger-related (test_runs is the evidence source the new specs cite as evidence-only)."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Unrelated pre-existing failure: plugin/src/adv-skill-backed-commands-assets.test.ts pins advance-workflow spec version 1.26.0 but .adv/specs/advance-workflow/spec.json is 1.27.0 at HEAD (advance-workflow untouched by this task). Surfaces as the only red test in the targeted asset run; not loop-ledger-related.",
+            "docs/specs mirrors are partial: advance-delivery.md and tdd-contract.md do not fully mirror their specs (pre-existing), and subagent-reports has no docs/specs mirror. This task appended only the new loop-ledger sections; a full mirror sync is a separate, broader effort."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Added rq-loopLedger01 (include flags, 1-100/default 20, legacy include.ledger unchanged, evidence-only, target_path/terminal-safe), rq-subagentReports23 (report-derived review/harden/verification/ci sources; UNKNOWN->inconclusive, no error_recovery, no retry increment), and rq-TDD012ledgerEvidence (test_runs + retryFailureCount are evidence, not retry authority). Same AC5/AC7 non-authority and evidence-only pattern applied consistently across all three specs and mirrored docs. No other same-pattern gaps in the touched subsystem required changes.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Docs/schema/artifact task complete. Added rq-loopLedger01 (advance-delivery), rq-subagentReports23 (subagent-reports), rq-TDD012ledgerEvidence (tdd-contract) with matching docs/specs mirrors for the two that have them, bumped the three spec versions to patch, refreshed change.schema.json via the generator (test_runs field), and added rq-citation comments to satisfy the spec-citation invariant. All relevant checks green. One unrelated pre-existing asset-test failure (advance-workflow version pin) noted but not fixed.",
+            "suggested_next_action": "Review the 8-file diff, then proceed to the next task. No rebuild needed (comments + artifacts only; no runtime behavior change). Optionally triage the unrelated pre-existing advance-workflow 1.26.0/1.27.0 asset pin as a separate follow-up."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: SpecSchema.safeParse on .adv/specs/{advance-delivery,subagent-reports,tdd-contract}/spec.json"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:generate"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: ./node_modules/.bin/prettier --check src/tools/change.ts src/utils/loop-ledger.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/schema-registry.test.ts src/utils/loop-ledger.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/test-contract-assets.test.ts src/adv-skill-backed-commands-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Specs parse; schemas generated and drift check passed; targeted citation/registry/projector suite passed (16) and change tool suite passed (101). One asset-suite failure is pre-existing: adv-skill-backed-commands-assets expects advance-workflow 1.26.0 while untouched spec is already 1.27.0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-delivery/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+        "docs/specs/advance-delivery.md",
+        "docs/specs/tdd-contract.md",
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/loop-ledger.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-delivery/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+        "docs/specs/advance-delivery.md",
+        "docs/specs/tdd-contract.md",
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/loop-ledger.ts"
+      ],
+      "checkpointSha": "d4ad3484198b470c64e2cfaf56d2a7375b00c548",
+      "completedAt": "2026-07-10T15:49:47.740Z",
+      "completed_at": "2026-07-10T15:49:47.740Z"
+    },
+    {
+      "id": "tk-3667e10e06c3",
+      "title": "Run cross-cutting verification for loop-ledger change",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-10T13:55:01.781Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-52cde4253623"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e45e7e3b8209"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-42fcb03c8554"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T15:49:56.796Z",
+      "verification": "Verification triage bundle persisted: schemas check and typecheck passed; bin/oc-test targeted change/loop-ledger/purity suite passed (114 tests); clean worktree and no diff whitespace errors. Known unrelated asset version-pin failure was not part of this passing targeted set.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "d4ad3484198b470c64e2cfaf56d2a7375b00c548",
+      "completedAt": "2026-07-10T15:53:44.691Z",
+      "completed_at": "2026-07-10T15:53:44.691Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addLoopLedger",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery Opportunity Scout — typed loop ledger for existing ADV loops",
+      "sources": [
+        {
+          "label": "Existing ErrorRecovery/Attempt schema (closest existing loop-record)",
+          "locator": "plugin/src/types/tasks.ts:92-126",
+          "summary": "AttemptSchema (attempt_number, error, diagnosis, fix_tried, strategy_label, outcome, attempted_at) + ErrorRecoverySchema (last_error, retry_count, max_retries, error_class TRANSIENT|SEMANTIC|ENVIRONMENTAL|FATAL, next_strategy, attempts[]). Task-scoped only; already the doom-loop ledger for apply retries."
+        },
+        {
+          "label": "subagent-reports spec — report key + attempt + blocker->error_recovery mapping",
+          "locator": ".adv/specs/subagent-reports/spec.json (rq-subagentReports02.2, 03, 09); plugin/src/temporal/contracts.ts:144 subagentReportKey",
+          "summary": "Reports persisted/deduped by (change_id, scope, agent, attempt). Blockers already map into task error_recovery via signal, not tool heuristic. Reports carry attempt+verification+blockers — a de facto per-loop-iteration record already keyed by attempt."
+        },
+        {
+          "label": "Verification triage error_class divergence",
+          "locator": "plugin/src/types/subagent-reports.ts:475-483 VerificationTriageErrorClassSchema; tasks.ts:119",
+          "summary": "Triage adds UNKNOWN (routing-only, must NOT write task error_recovery). Two error_class enums exist (task 4-value vs triage 5-value) with an explicit non-mapping rule — a ledger must model this boundary, not flatten it."
+        },
+        {
+          "label": "Change workflow is signal/query-only (durable state surface)",
+          "locator": "plugin/src/temporal/messages.ts:98-358; AGENTS.md 'Signal-driven change workflows'",
+          "summary": "State mutated only via signals (testRunRecordedSignal, subagentReportSubmittedSignal, taskUpdatedSignal) read via queries. No defineUpdate. Any durable loop-run state must ride an existing/new signal + query and preserve replay safety."
+        },
+        {
+          "label": "External convergence: loop-ledger is boring/proven shape",
+          "locator": "https://zylos.ai/research/2026-04-26-replayable-agent-runtimes ; github.com/severmarko2-ssap/agentledger-core ; github.com/Keesan12/martin-loop",
+          "summary": "Independent projects converge on append-only run records with objective/verifier/verdict/budget/stop-reason/receipt, projection-rebuilt-from-event-log, and evidence-not-authority. Validates proposal direction; contradicts adding new autonomy."
+        }
+      ],
+      "architecture_assessment": "The proposal's v1 direction — record existing loops as typed run records without adding autonomy — is well-grounded and matches canonical loop-ledger practice. ADV already has three partial loop-record surfaces (task error_recovery.attempts[], attempt-keyed subagent reports, verification triage error_class) that are inconsistent in shape and vocabulary. The highest-value, lowest-risk opportunity is a shared typed loop-run vocabulary that PROJECTS from these existing signals rather than inventing new control flow or a parallel event store. External sources (Zylos 'make the runtime deterministic around nondeterministic intelligence'; agentledger-core append-only + rebuild-projection-from-history) confirm: event log is source of truth, projections rebuildable, compensating-append over history mutation — which aligns with ADV's existing signal/query + downstream-projection model. Two real risks surfaced: (1) error_class vocabulary divergence (4-value task vs 5-value triage with UNKNOWN non-mapping) must be modeled explicitly or the ledger will lie; (2) default-read bloat on long-running changes — must be opt-in/paginated per existing bounded-output constraint.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Proposal direction is sound and externally validated. No blockers to entering discovery/design. Candidates below are opportunities, not corrections."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Projection-from-existing-signals reuses proven state surfaces and preserves replay safety, but requires reconciling three divergent existing shapes (error_recovery, subagent report attempt, triage error_class) into one vocabulary.",
+          "Opt-in/paginated loop reads keep default change reads bounded but add a read-surface decision (new include flag vs new query) that discovery must settle.",
+          "Modeling the UNKNOWN routing-only error_class faithfully adds schema nuance but prevents the ledger from misrepresenting triage evidence as task failure state."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "New parallel append-only event store / JSONL sidecar for loop runs (as in agentledger-core / codex-kernel)",
+            "disposition": "rejected",
+            "rationale": "ADV already has a durable signal-sourced workflow with downstream projection; a second event store duplicates the source-of-truth boundary the proposal says to preserve and risks replay/consistency drift. Project loop runs from existing signals instead."
+          },
+          {
+            "option": "Generalize task error_recovery.attempts[] into the universal loop record",
+            "disposition": "deferred",
+            "rationale": "error_recovery is task-failure-specific and TDD/apply-shaped; change-scoped review/harden/CI loops and verification triage don't fit cleanly. Discovery should decide generalize-vs-adjacent-model; leaning toward a shared LoopRun type that error_recovery can reference, not be replaced by."
+          },
+          {
+            "option": "Record all five loop kinds (apply, review, harden, verification triage, CI repair) in v1",
+            "disposition": "deferred",
+            "rationale": "Proposal explicitly leaves the v1 subset to discovery. Attempt-keyed subagent reports already cover apply/review/harden cheaply; verification triage already emits typed error_class. Start where signals already exist; add CI repair only if a signal source exists."
+          }
+        ],
+        "recommendation": "Enter design with a shared typed LoopRun vocabulary that projects from existing signals (subagent report attempt, testRunRecorded, task error_recovery, verification triage) rather than a new event store. Model error_class divergence and UNKNOWN non-mapping explicitly. Make loop reads opt-in/paginated."
+      },
+      "recommendation": "Adopt candidate C1 (projection-from-existing-signals, low risk, contract-tied) and C2 (opt-in bounded read surface) into the discovery agenda now. Surface C3 (v1 loop-kind subset) and C4 (error_class reconciliation) to the user/orchestrator as design decisions. Defer C5 (pgvector reserved identifiers) as a non-blocking follow-up field-reservation.",
+      "follow_ups": [
+        "CANDIDATE C1 [adopt_now | payoff:high risk:low | contract_tie: 'typed loop-run records' + 'Temporal replay safety']: Project LoopRun records from existing signals (subagentReportSubmittedSignal attempt-keyed, testRunRecordedSignal, taskUpdated error_recovery, verification triage) instead of a new event store. Evidence: messages.ts:200-206, contracts.ts:144, tasks.ts:111-126. Rationale: reuses proven signal/query surface, preserves replay + source-of-truth boundary the proposal mandates; external convergence (Zylos, agentledger-core) confirms projection-from-log is the boring shape.",
+        "CANDIDATE C2 [design_around | payoff:high risk:low | contract_tie: 'bounded tool outputs' constraint]: Expose loop history via opt-in include flag / paginated query on adv_change_show, not default reads. Evidence: proposal Constraints ('tool outputs must remain bounded'); existing include.subagentReports pattern (rq-subagentReports03). Rationale: prevents default-read bloat on long-running changes with many attempts; mirrors existing opt-in readback design.",
+        "CANDIDATE C3 [surface_to_user | payoff:medium risk:medium | contract_tie: untied (v1 scope decision)]: Choose v1 loop-kind subset. Evidence: apply/review/harden already attempt-keyed via subagent reports; verification triage already typed (subagent-reports.ts:475). Rationale: proposal defers subset to discovery; recommend v1 = paths with existing signal sources (apply retries, review/harden remediation, verification triage), defer CI repair unless a signal source exists. User/orchestrator should confirm scope.",
+        "CANDIDATE C4 [surface_to_user | payoff:medium risk:medium | contract_tie: 'no regression of error_recovery compatibility']: Reconcile error_class vocabularies. Evidence: tasks.ts:119 (4-value) vs subagent-reports.ts:475-483 (5-value +UNKNOWN routing-only, must NOT write error_recovery). Rationale: a unified ledger must model UNKNOWN as routing-only or it will misclassify triage evidence as task failure. Needs an explicit design decision, not a silent flatten.",
+        "CANDIDATE C5 [defer | payoff:low risk:low | contract_tie: 'reserve fields for future pgvector retrieval']: Reserve stable loop-run identifiers/reference fields for future pgvector memory without building it. Evidence: proposal Out of Scope + Integration unknowns. Rationale: cheap forward-compat field reservation now avoids a schema break later; keep vector retrieval-only, non-authoritative per Must Not.",
+        "WARNING: lgrep semantic search timed out once during discovery (error_recovery query); fell back to text/symbol/grep search. All candidate evidence is source-cited from direct file reads and text search, not semantic recall."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLoopLedger",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design Leverage Scout — typed loop ledger projection surfaces",
+      "sources": [
+        {
+          "label": "Existing pure task-run-summary projector (reuse candidate for apply_retry)",
+          "locator": "plugin/src/temporal/workflows.ts:527-547 deriveTaskRunSummaryFromState; retryCount reducer at 495-501",
+          "summary": "Pure function over ChangeWorkflowState already emits per-task {taskId,status,startedAt,completedAt,verification,checkpointSha,attempts} where attempts = task.attempts.length + task.error_recovery.attempts.length. This is exactly the apply_retry projection the design proposes to build from scratch."
+        },
+        {
+          "label": "getTaskRunSummaryQuery is live-workflow-only (archived-readback gap)",
+          "locator": "plugin/src/temporal/messages.ts:137; workflows.ts:253,702; workflows.queries.test.ts:165",
+          "summary": "The existing task-run summary is exposed only via wf.defineQuery, which needs a running workflow. Archived/terminal changes cannot query it. AC6 (legacy/archived safe reads) requires the projector run over loaded/disk change state, not the query."
+        },
+        {
+          "label": "Existing subagent report dedupe key (reuse for DDC3)",
+          "locator": "plugin/src/tools/change.ts:111-119 subagentReportReadbackKey → contracts.ts:144 subagentReportKey; consumed at change.ts:807-814",
+          "summary": "include.subagentReports already dedupes sidecar + legacy-task reports by (change_id, taskId, scope, agent, attempt). DDC3 (dedupe by source kind + id/report key + attempt) can reuse this exact helper for review/harden/verification-triage/ci_repair loop kinds rather than a new dedupe."
+        },
+        {
+          "label": "Bounded ring-buffer + verdict/error_class divergence sources",
+          "locator": "plugin/src/temporal/contracts.ts:365-380 (TestRunRecord, ring-buffered last 20); tasks.ts:119 (4-value error_class); subagent-reports.ts:475-483 (5-value +UNKNOWN routing-only)",
+          "summary": "testRuns already ring-buffered to 20/task. Two error_class enums exist with an explicit rule that UNKNOWN never writes task error_recovery. D2/D4 correctly separate verdict from errorClass; UNKNOWN→inconclusive is the exact boundary."
+        },
+        {
+          "label": "External convergence: projection-from-log, evidence-not-authority is the boring shape",
+          "locator": "https://zylos.ai/research/2026-04-26-replayable-agent-runtimes ; github.com/severmarko2-ssap/agentledger-core (append-only + rebuild projection from history)",
+          "summary": "Independent agent-runtime projects converge on rebuildable projections over an authoritative event log with evidence-not-authority loop records. Validates D1 (projection over new store) and D5 (evidence-only). Contradicts adding any new autonomy/store."
+        }
+      ],
+      "architecture_assessment": "The draft design is architecturally sound and low-risk: it correctly chooses projection over a new event store (D1), separates verdict from source error_class (D2/D4), and keeps the ledger evidence-only (D5). The strongest leverage the design under-exploits is an EXISTING pure projector: deriveTaskRunSummaryFromState (workflows.ts:527-547) already computes the apply_retry per-task attempt/status/verification/checkpoint shape as a pure function over ChangeWorkflowState. The design's Implementation Strategy step 3 ('tasks → apply_retry') should reuse/refactor this pure logic rather than write a parallel projector — but it must be lifted to run over LOADED change state, because the current getTaskRunSummaryQuery is a live-workflow query (messages.ts:137) unavailable for archived changes, which would silently break AC6. Similarly, DDC3 dedupe can reuse subagentReportReadbackKey (change.ts:111) verbatim for the report-derived loop kinds. Two edge cases the design should name explicitly: (a) testRuns is already ring-buffered to last 20/task, so 'attempt count' derived from test runs is a floor not a true total for long apply loops — the ledger should count from error_recovery.attempts (unbounded) for authoritative attempt counts and cite testRuns only as evidence refs; (b) the pure projector must live outside utils/context-snapshot-style storage-importing modules to satisfy DDC6 and the existing layer-boundary tests. No blockers; these are refinements that increase reuse and prevent an archived-readback regression.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Draft design is coherent, contract-tied, and externally validated. Candidates are reuse/edge-case refinements, not corrections. One latent AC6 risk (archived readback via live-only query) is flagged as C2 and is design-preventable."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Reusing deriveTaskRunSummaryFromState as the apply_retry projector maximizes reuse and consistency but requires refactoring it from a workflow-query handler into a shared pure helper importable by the tool layer without breaking workflow-bundle boundary tests.",
+          "Deriving attempt COUNT from error_recovery.attempts (unbounded) rather than ring-buffered testRuns (capped at 20) keeps counts authoritative but means testRuns is an evidence ref only, not a loop-iteration source of truth.",
+          "Reusing subagentReportReadbackKey for dedupe across all report-derived loop kinds avoids a second dedupe implementation but couples the ledger's identity model to the report-key contract (acceptable — it is already the persistence dedupe key)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Build a brand-new apply_retry projector independent of deriveTaskRunSummaryFromState",
+            "disposition": "rejected",
+            "rationale": "Duplicates an existing, tested pure projection of the same fields (attempts/status/verification/checkpoint) and risks drift. Refactor-to-share is cheaper and keeps one source of truth for per-task run shape."
+          },
+          {
+            "option": "Expose the ledger by adding/reusing a Temporal workflow query (getTaskRunSummaryQuery / a new loop query)",
+            "disposition": "rejected",
+            "rationale": "Workflow queries require a live workflow and cannot serve archived/terminal changes, silently violating AC6. Projection over loaded change state serves both live and archived reads."
+          },
+          {
+            "option": "Count attempts from state.testRuns ring buffer",
+            "disposition": "rejected",
+            "rationale": "testRuns is ring-buffered to last 20/task (contracts.ts:367), so long apply loops undercount. Use error_recovery.attempts for counts; cite testRuns as bounded evidence refs only."
+          }
+        ],
+        "recommendation": "Enter validator with the draft intact plus five refinements: (C1) reuse deriveTaskRunSummaryFromState as the apply_retry projector by lifting it to a shared pure helper; (C2) run all projectors over loaded change state, never a live-only query, to satisfy AC6; (C3) reuse subagentReportReadbackKey for DDC3 dedupe; (C4) derive attempt counts from error_recovery.attempts and demote testRuns to evidence refs; (C5) place the pure projector to satisfy DDC6/layer-boundary tests."
+      },
+      "recommendation": "Adopt C1, C2, C3, C4 into the design/prep now (all low-risk, contract-tied reuse or AC6-preventive). C5 is a placement constraint the design already implies via DDC6; make it explicit in Affected Components. No new event store, no new autonomy, no new authority — the ledger stays a pure projection/readback over existing records.",
+      "follow_ups": [
+        "CANDIDATE C1 [adopt_now | payoff:high risk:low | contract_tie: 'typed loop-run records' + DDC6 pure-formatter | prior_consideration: NOT named in draft — draft step 3 says 'tasks → apply_retry' generically]: Reuse deriveTaskRunSummaryFromState (workflows.ts:527-547) as the apply_retry projector by extracting it into a shared pure helper. Fate rationale: existing tested pure projection of the same attempt/status/verification/checkpoint fields; refactor-to-share prevents drift and cuts implementation surface.",
+        "CANDIDATE C2 [adopt_now | payoff:high risk:medium | contract_tie: AC6 'legacy/archived read safely' + C1 Temporal replay safety | prior_consideration: draft D1 says 'project from loaded change state' but does NOT flag the live-query archived-readback trap]: Run every loop projector over loaded/disk change state, never over getTaskRunSummaryQuery (messages.ts:137, live-workflow-only). Fate rationale: querying a terminated workflow throws / is unavailable, silently breaking AC6 for archived changes; loaded-state projection serves live + archived uniformly.",
+        "CANDIDATE C3 [adopt_now | payoff:medium risk:low | contract_tie: DDC3 dedupe by source kind+id+attempt | prior_consideration: draft DDC3 specifies the dedupe rule but does not name the existing helper]: Reuse subagentReportReadbackKey (change.ts:111-119) → subagentReportKey for report-derived loop-kind dedupe (review/harden/verification_triage/ci_repair). Fate rationale: it is already the persistence dedupe key ((change_id, taskId, scope, agent, attempt)); reusing it guarantees ledger identity matches stored-report identity.",
+        "CANDIDATE C4 [adopt_now | payoff:medium risk:low | contract_tie: AC1 'attempt count' + C5 no-regression of error_recovery | prior_consideration: draft treats testRuns as a source but does not note its ring-buffer cap]: Derive authoritative apply_retry attempt COUNT from error_recovery.attempts[] (unbounded); demote state.testRuns (ring-buffered to last 20/task, contracts.ts:367) to bounded evidence refs. Fate rationale: test-run buffer undercounts long apply loops; using it for counts would make AC1's attempt count wrong on exactly the loops users most want to inspect.",
+        "CANDIDATE C5 [design_around | payoff:low risk:low | contract_tie: DDC6 layer-boundary + existing context-snapshot.purity test | prior_consideration: draft DDC6 states the constraint abstractly; Affected Components lists types/ + change.ts but not the pure-helper home]: Place the shared loop projector as a pure module (types/ or a pure projection module) that does NOT import storage/tools, mirroring utils/context-snapshot.ts purity. Fate rationale: workflows.ts is workflow-bundle-scoped and change.ts is tool-layer; a mislocated projector will trip workflow-bundle-boundary.test.ts or context-snapshot.purity.test.ts. Make the home explicit in Affected Components."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLoopLedger",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — loop-ledger read model over existing ADV loop evidence",
+      "sources": [
+        {
+          "label": "plugin/src/types/tasks.ts (Task/ErrorRecovery/Attempt schemas)",
+          "locator": "/home/jon/dev/advance/plugin/src/types/tasks.ts:92-243",
+          "summary": "Confirms cited sources exist: error_recovery.attempts[] (AttemptSchema: attempt_number, error, diagnosis, fix_tried, strategy_label, outcome, attempted_at), task.attempts[], task.subagent_reports[]. TaskSchema uses .passthrough() enabling additive forward/backward compat (backs AC6 legacy-safe defaults)."
+        },
+        {
+          "label": "plugin/src/tools/change.ts include block + arg schema",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/change.ts:507-514, 800-821",
+          "summary": "include.ledger ALREADY EXISTS and currently returns output._ledger = null (dead vestige of the retired in-progress task durable-run ledger). include.subagentReports already dedupes sidecar + legacy task reports via subagentReportReadbackKey — a reusable dedupe precedent for the design's 'stable source dedupe' criterion."
+        },
+        {
+          "label": "Retired task-run surface guards",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/change-state.test.ts:602-635 ; /home/jon/dev/advance/plugin/src/__tests__/no-retired-tool-spec-refs.test.ts:11-21",
+          "summary": "taskRuns state was removed (state.not.toHaveProperty('taskRuns')); adv_task_run_status is a retired tool token. Constraint C3 (no task-run revival) is test-enforced. The design's projection over error_recovery/attempts does NOT revive taskRuns, but reuse of the include.ledger name over the retired _ledger slot needs explicit handling."
+        },
+        {
+          "label": "plugin/src/utils/context-snapshot.purity.test.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/context-snapshot.purity.test.ts:10-18",
+          "summary": "Proven precedent for D6 'pure projection, no storage/tool imports': existing purity test asserts context-snapshot.ts does not import ../storage/ or ../tools/. Design's pure-projection-module criterion has a directly copyable enforcement pattern."
+        },
+        {
+          "label": "subagent-reports spec rq-subagentReports07 + verification-triage-bundle schema; plugin/src/types/subagent-reports.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/types/subagent-reports.ts:496-537",
+          "summary": "CI/verification evidence surfaces only via adv-verification-triage-bundle (phase local_verify|ci_check, targets[] command|ci_check, status, error_class, confidence, recommended_next_action). There is NO dedicated ci_repair attempt-count source; ci_repair loop-kind attempt counts are derivable only from repeated triage-bundle attempts, matching the design's D1 'thinner source references' tradeoff and testRuns-are-evidence-refs-only stance."
+        },
+        {
+          "label": "chat-output-display spec (bounded readback) rq-ctxsnap1 / rq-ctxformat",
+          "locator": "adv_spec show chat-output-display v1.6.0",
+          "summary": "Existing bounded-output law: snapshot <=10 lines, deterministic, graceful degradation for missing fields. Design's compact-summary-by-default + bounded-detail (default 20, max 100) is consistent with and does not contradict this spec."
+        },
+        {
+          "label": "Braintrust — Agent observability complete guide 2026",
+          "locator": "https://www.braintrust.dev/articles/agent-observability-complete-guide-2026",
+          "summary": "Canonical pattern: store each step as a typed record with typed error state, retry count, and parent retry context; keep queryable/filterable by error class. Backs D2 (verdict vs errorClass separation) and typed projection over prose."
+        },
+        {
+          "label": "Anthropic Writing tools for agents (via agentpatterns tool-output truncation)",
+          "locator": "https://www.anthropic.com/engineering/writing-tools-for-agents",
+          "summary": "Recommends 'pagination, range selection, filtering, and/or truncation with sensible defaults' for tool output. Backs D3 compact-default + bounded opt-in detail with limit."
+        },
+        {
+          "label": "LoopRails — Failure Recovery for Agent Loops (MAST citation)",
+          "locator": "https://looprails.dev/article-failure-recovery-agent-loops.html",
+          "summary": "Verifier (not the model) gates retry; retries bounded by caps. MAST names weak/missing verification as leading agent-failure cause. Backs D5/AC5 (ledger is evidence-only; existing task/gate/test/contract authorities decide completion) and AC2 (inconclusive is non-authoritative, non-budget-incrementing)."
+        }
+      ],
+      "architecture_assessment": "The design is architecturally sound and materially aligned with both the approved agreement and the existing ADV codebase. It correctly chooses a read-model projection over already-loaded change state (D1/D6) rather than a new event store, preserving Temporal replay safety (C1) and avoiding source divergence. All cited source authorities exist and carry the claimed shape: error_recovery.attempts[], task.attempts[] (AttemptSchema), task.subagent_reports[], change.subagent_reports[], state.testRuns[taskId][] (evidence refs), and adv-verification-triage-bundle reports. The .passthrough() on TaskSchema plus existing legacy-normalization law (subagent-reports rq-subagentReports10) directly support AC6 legacy/archive safety. The verdict-vs-errorClass split (D2) and inconclusive=non-authoritative mapping (AC2) match external best practice (Braintrust typed step records; LoopRails/MAST verifier-gates-retry). Compact-default + bounded opt-in detail (D3) matches Anthropic/agent-observability truncation-with-defaults guidance and the existing chat-output-display bounded-readback law. D6 pure-projection has a directly copyable enforcement precedent (context-snapshot.purity.test.ts). Two cautions, both non-blocking: (1) include.ledger is an EXISTING arg that today returns _ledger=null (a dead vestige of the retired in-progress task durable-run ledger); D3's reuse of include.ledger for the new loop summary is a name/semantics collision the design does not explicitly reconcile, and careless reuse risks appearing to re-surface retired task-run readback (C3 optics). Prep should either introduce a distinct flag (e.g. include.loopLedger) or explicitly retire/repurpose the _ledger slot with a documented decision + test. (2) The ci_repair loop kind lacks a dedicated attempt-count source; only ci_check triage-bundle evidence exists, so ci_repair attempt counts will be derived/thin — consistent with D1's acknowledged tradeoff but should be stated as a known-limited loop kind in v1 rather than implying parity with apply_retry.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No spec-law contradictions and no security/release blockers. Design satisfies AC1-AC7 and constraints C1-C5 as a read-only projection. Two non-blocking cautions to resolve in prep/design finalization: (1) include.ledger flag name/semantics collision with the existing dead _ledger readback slot — reconcile explicitly to avoid retired task-run readback optics (C3). (2) ci_repair loop-kind attempt counts are thin/derived (only ci_check triage-bundle evidence exists) — document as a known-limited v1 loop kind."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Projection over existing state (D1) keeps replay safety and avoids divergence but yields thinner source references for loop kinds whose paths emit less typed evidence (notably ci_repair, which only has ci_check triage-bundle evidence).",
+          "Reusing include.ledger (D3) minimizes new API surface but collides with the existing dead _ledger slot; a distinct flag would be cleaner but adds a new arg. Boring choice: distinct flag + retire the vestige.",
+          "Typed loop schemas + fixtures add schema/spec/test maintenance, but that cost is the accepted price for structural (not prose/heuristic) visibility, consistent with project rule P33.",
+          "Compact-by-default with bounded opt-in detail trades full-trace completeness for routine phase-start compactness (SC3/AC3), aligned with agreement DONT3 (no full-trace dumps by default)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "New primary loop-event store (source-of-truth ledger)",
+            "disposition": "rejected",
+            "rationale": "Agreement scopes v1 to evidence/readback, not new authority; a new mutation/event path risks Temporal replay poisoning (C1) and duplicates existing attempt/report records. Design's D1 correctly rejects this for v1."
+          },
+          {
+            "option": "Live-workflow-query-only readback",
+            "disposition": "rejected",
+            "rationale": "Would break archived/terminal/legacy reads (AC6). Design's D6 projection over already-loaded state is the correct boring choice and mirrors context-snapshot's pure-formatter pattern."
+          },
+          {
+            "option": "Reuse existing include.ledger flag verbatim for loop summary",
+            "disposition": "deferred",
+            "rationale": "Viable but collides with the dead _ledger slot and risks retired-task-run readback optics (C3). Prefer a distinct include.loopLedger flag or an explicit, tested retirement/repurposing of _ledger; resolve in prep."
+          },
+          {
+            "option": "Prose-only / notes-based retry tracking",
+            "disposition": "rejected",
+            "rationale": "Contradicts SC1/SC2 (consistent vocabulary, no scattered prose) and project rule P33 (structural before heuristic). Typed projection is correct."
+          }
+        ],
+        "recommendation": "Proceed to design gate with two prep-scoped resolutions: (1) reconcile the include.ledger name/semantics collision — introduce a distinct opt-in flag (e.g. include.loopLedger) OR explicitly retire/repurpose the existing _ledger=null slot with a documented decision and a guard test, so no appearance of reviving retired task-run readback (C3); (2) mark ci_repair as a known-limited v1 loop kind whose attempt count is derived from ci_check triage-bundle attempts, not authoritative task attempt records. Enforce the pure-projection boundary with a purity test mirroring context-snapshot.purity.test.ts, and add legacy/archive default-safety tests aligned with subagent-reports rq-subagentReports10."
+      },
+      "recommendation": "Design PASSES architecture judgement with CAUTION. It is correct, simple (projection not new store), spec-law compliant, and considers the key alternatives. Resolve two non-blocking items in prep before execution: the include.ledger flag collision (favor a distinct flag + retire the dead _ledger vestige to protect C3) and explicit acknowledgment that ci_repair loop-kind attempt counts are thin/derived. No rewrite needed; no unapproved scope introduced.",
+      "follow_ups": [
+        "Prep: decide include.loopLedger (new flag) vs repurpose existing include.ledger/_ledger vestige; add a guard test either way.",
+        "Prep: add a pure-projection purity test for the new loop-ledger module mirroring context-snapshot.purity.test.ts (no ../storage/ or ../tools/ imports).",
+        "Design/prep: document ci_repair as a known-limited v1 loop kind (attempt count derived from ci_check triage-bundle attempts).",
+        "Prep: add legacy/archive default-safety tests for missing loop fields, aligned with subagent-reports rq-subagentReports10 normalization pattern."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLoopLedger",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLoopLedger",
+      "task_id": "tk-52cde4253623",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-52cde4253623"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/loop-ledger.ts",
+        "plugin/src/utils/loop-ledger.ts",
+        "plugin/src/utils/loop-ledger.test.ts",
+        "plugin/src/utils/loop-ledger.purity.test.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/utils/loop-ledger.test.ts",
+          "exit_code": 0,
+          "summary": "11/11 pass: apply_retry attemptCount (testRuns excluded), done→pass, review/harden verdict mapping, verification_triage + ci_repair, UNKNOWN/inconclusive→inconclusive not counted in retryFailureCount, cross-sidecar dedupe, compact-vs-detail with limit clamp ≤100, retryFailureCount fail-only, schema round-trip."
+        },
+        {
+          "command": "pnpm exec vitest run src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/utils/context-snapshot.purity.test.ts src/temporal/workflow-bundle-boundary.test.ts src/types/subagent-reports.test.ts src/temporal/change-state.test.ts",
+          "exit_code": 0,
+          "summary": "111/111 pass; new purity tests enforce no storage/tools/node imports and zod-only types; workflow-bundle boundary, context-snapshot purity, subagent-reports, and change-state suites unaffected."
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit clean (fixed SubagentReportScope type import source)."
+        },
+        {
+          "command": "pnpm exec eslint src/types/loop-ledger.ts src/utils/loop-ledger.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/types/index.ts",
+          "exit_code": 0,
+          "summary": "ESLint clean on all touched files (removed an unused local)."
+        },
+        {
+          "command": "pnpm exec prettier --check src/types/loop-ledger.ts src/utils/loop-ledger.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/types/index.ts",
+          "exit_code": 0,
+          "summary": "Prettier check passes on all touched files after --write."
+        },
+        {
+          "command": "pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "No schema-registry drift; registry/schemas intentionally untouched (owned by tk-42fcb03c8554)."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Split schemas into plugin/src/types/loop-ledger.ts (zod-only) and the pure projector into plugin/src/utils/loop-ledger.ts",
+          "why": "Matches design D6 and the established pure-projection convention (context-snapshot/buckets/archive-summary); keeps the type module workflow-safe and the projector free of storage/tools/node imports, verified by a dedicated purity test."
+        },
+        {
+          "what": "Granularity: one derived apply_retry entry per task (aggregated attempts); one recorded entry per sub-agent report for review/harden/verification/ci",
+          "why": "Task attempts/error_recovery are the authoritative attempt count (D4/DDC8), while each report is a recorded loop evaluation; reportKey dedupe collapses legacy task+change sidecar duplication (DDC3)."
+        },
+        {
+          "what": "verdict vocabulary (pass/fail/blocked/inconclusive) kept separate from source errorClass; UNKNOWN or status=inconclusive → inconclusive, excluded from retryFailureCount",
+          "why": "Implements D2/AC2/DDC4 so routing-only triage never becomes an authoritative task failure or increments the retry budget; errorClass is preserved on the entry for diagnostics."
+        },
+        {
+          "what": "Loop sources limited to adv-reviewer (phase-driven), adv-scanner-bundle, and adv-verification-triage-bundle; adv-engineer/adv-designer/adv-researcher/adv-tron/adv-visual-review are not emitted as loop entries",
+          "why": "Engineer task work is already represented by apply_retry (attempts + test evidence); the others are not remediation loops. Re-classifying engineer reports without a phase discriminator would risk double-counting/fabrication (D4)."
+        },
+        {
+          "what": "Detail readback clamps limit to a hard ceiling of 100 (default 20) and returns detailsTruncated + detailsLimit; details omitted unless opted in",
+          "why": "Implements DDC1/DDC2 in the pure helper so the boundary is enforced independent of the adv_change_show wiring task."
+        },
+        {
+          "what": "New surface named loopLedger; the retired include.ledger/_ledger vestige left untouched",
+          "why": "Satisfies D3/DDC9/C3 — avoids reviving retired task-run semantics and keeps the new vocabulary unambiguous for the wiring task."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "v1 classifies review_remediation/harden_remediation from adv-reviewer (phase-driven) and adv-scanner-bundle only; adv-engineer remediation reports are intentionally not re-classified (covered by apply_retry). Revisit if a phase discriminator is added to engineer reports.",
+        "ci_repair is report-derived only from ci_check triage bundles; no entry is fabricated when no CI bundle persists (known v1 thinness per design).",
+        "include.ledger/_ledger retired vestige left untouched per D3/DDC9; the new loopLedger surface is wired by tk-e45e7e3b8209."
+      ],
+      "required_main_agent_actions": [
+        "Wire include.loopLedger / loopLedgerDetails / loopLedgerLimit in adv_change_show (tk-e45e7e3b8209) using projectLoopLedger over loaded change state + state.testRuns.",
+        "Publish the loop-ledger readback schema and update specs/docs (tk-42fcb03c8554) only if the readback shape is public."
+      ],
+      "related_scan": "Mirrored the context-snapshot purity pattern with a dedicated loop-ledger.purity.test.ts and reused subagentReportKey for cross-sidecar dedupe consistent with tools/change.ts subagentReportReadbackKey. Sibling pure-projection modules (context-snapshot, buckets, archive-summary) checked — no same-pattern defects to fix.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Loop-ledger v1 schemas + pure projector are implemented and green. New files: plugin/src/types/loop-ledger.ts (LoopKind/LoopVerdict/LoopSourceRef/LoopLedgerEntry/LoopLedgerSummary/LoopLedgerReadback + inferred types, zod-only/workflow-safe) and plugin/src/utils/loop-ledger.ts (projectLoopLedger over already-loaded state; no storage/tools/node imports; enforced by loop-ledger.purity.test.ts). Barrel export added in types/index.ts. Projector derives apply_retry (per-task, attempts from task.attempts + error_recovery.attempts; testRuns attached as evidence refs only, never counted), review_remediation/harden_remediation (adv-reviewer phase-driven + adv-scanner-bundle), verification_triage/ci_repair (adv-verification-triage-bundle phase-driven). UNKNOWN error_class and status=inconclusive map to verdict inconclusive and are excluded from retryFailureCount (fail-only). Dedupe by stable report key across task+change sidecars. Detail opt-in clamps limit to [1,100] (default 20). schema-registry, adv_change_show wiring, specs/docs, and change-state.ts were intentionally NOT touched (owned by later tasks / design says avoid in v1).",
+        "suggested_next_action": "Proceed to tk-e45e7e3b8209: wire adv_change_show include.loopLedger by calling projectLoopLedger(changeState) over the already-loaded Change plus state.testRuns; do not add a live-workflow query so archived/terminal readback stays pure (AC6/DDC7). Then tk-42fcb03c8554 for schema-registry/spec/docs."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/loop-ledger.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/utils/context-snapshot.purity.test.ts src/temporal/workflow-bundle-boundary.test.ts src/types/subagent-reports.test.ts src/temporal/change-state.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/types/loop-ledger.ts src/utils/loop-ledger.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/types/index.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/types/loop-ledger.ts src/utils/loop-ledger.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/types/index.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLoopLedger",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLoopLedger",
+      "task_id": "tk-42fcb03c8554",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-42fcb03c8554"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-delivery/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+        "docs/specs/advance-delivery.md",
+        "docs/specs/tdd-contract.md",
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/loop-ledger.ts"
+      ],
+      "verification": [
+        {
+          "command": "SpecSchema.safeParse on .adv/specs/{advance-delivery,subagent-reports,tdd-contract}/spec.json",
+          "exit_code": 0,
+          "summary": "All three edited specs parse and conform to SpecSchema (VALID)."
+        },
+        {
+          "command": "pnpm run schemas:generate",
+          "exit_code": 0,
+          "summary": "Generated 8 JSON schemas; refreshed plugin/schemas/change.schema.json (+88 lines: test_runs). Not hand-authored."
+        },
+        {
+          "command": "pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Deterministic schema drift check passes; no stale generated artifacts."
+        },
+        {
+          "command": "./node_modules/.bin/prettier --check src/tools/change.ts src/utils/loop-ledger.ts",
+          "exit_code": 0,
+          "summary": "All matched files use Prettier code style (after --write wrapped the loopLedgerLimit describe line)."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/schema-registry.test.ts src/utils/loop-ledger.test.ts",
+          "exit_code": 0,
+          "summary": "3 files / 16 tests passed (citation invariant satisfied by new rq- comments; registry set unchanged; loop-ledger projector green)."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "101 tests passed, including include.loopLedger compact/detail/limit readback cases."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/test-contract-assets.test.ts src/adv-skill-backed-commands-assets.test.ts",
+          "exit_code": 1,
+          "summary": "159 passed, 1 failed: adv-skill-backed-commands-assets 'stage-boundary specs include criteria ownership requirements' expects advance-workflow version 1.26.0 but spec is 1.27.0. Pre-existing, unrelated to this task (advance-workflow untouched). change.test.ts (101) and test-contract-assets passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Did NOT register a public JSON-schema artifact for the loop-ledger readback in schema-registry.ts",
+          "why": "The loop ledger is a transient readback projection, not a persisted entity. No other include/readback projection (snapshot, readyTasks, subagentReports) is a public JSON-schema artifact, and schema-registry.test.ts pins the public set to the 8 persisted-entity schemas. Registering would break precedent and imply a stable external contract for an explicitly advisory/evidence-only projection. Type + Zod exports (LoopLedgerReadbackSchema, LoopKindSchema, LoopVerdictSchema, LoopSourceRefSchema, summary/entry schemas) are already public from plugin/src/types/index.ts, which is the appropriate public surface for a readback."
+        },
+        {
+          "what": "Updated tdd-contract with one clarifying requirement (rq-TDD012ledgerEvidence)",
+          "why": "The loop-ledger readback surfaces test_runs (as source refs) and a derived retryFailureCount. Without pinning them as evidence-only against the existing TDD authority (testRunRecordedSignal red/green ordering rq-TDD009seq and task.attempts/error_recovery), the readback could be misread as redefining retry semantics. Kept minimal: one requirement, two scenarios; explicitly states it does not broaden TDD enforcement."
+        },
+        {
+          "what": "Did not create docs/specs/subagent-reports.md; updated subagent-reports/spec.json only",
+          "why": "No docs/specs mirror exists for subagent-reports (the repo mirrors are selective/partial; no test references docs/specs/subagent-reports.md). Creating a full new mirror would be broadening. Spec updated; absence of a docs counterpart documented."
+        },
+        {
+          "what": "Appended only the new requirement sections to docs/specs/advance-delivery.md and docs/specs/tdd-contract.md",
+          "why": "Both committed mirrors are partial/stale (advance-delivery.md has 14 of 23 requirements; tdd-contract.md stops at rq-TDD008path). Backfilling unrelated missing requirements is out of scope; appended only the loop-ledger sections in each file's local style and bumped the header version/date to match the spec."
+        },
+        {
+          "what": "Ran pnpm run schemas:generate, which refreshed plugin/schemas/change.schema.json (+88 lines: test_runs field)",
+          "why": "schemas:check reported change.schema.json stale: the implementation task added ChangeSchema.test_runs but did not regenerate the public artifact. The task explicitly instructs to run the generator and never hand-author generated schema content; the refresh is deterministic and loop-ledger-related (test_runs is the evidence source the new specs cite as evidence-only)."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Unrelated pre-existing failure: plugin/src/adv-skill-backed-commands-assets.test.ts pins advance-workflow spec version 1.26.0 but .adv/specs/advance-workflow/spec.json is 1.27.0 at HEAD (advance-workflow untouched by this task). Surfaces as the only red test in the targeted asset run; not loop-ledger-related.",
+        "docs/specs mirrors are partial: advance-delivery.md and tdd-contract.md do not fully mirror their specs (pre-existing), and subagent-reports has no docs/specs mirror. This task appended only the new loop-ledger sections; a full mirror sync is a separate, broader effort."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Added rq-loopLedger01 (include flags, 1-100/default 20, legacy include.ledger unchanged, evidence-only, target_path/terminal-safe), rq-subagentReports23 (report-derived review/harden/verification/ci sources; UNKNOWN->inconclusive, no error_recovery, no retry increment), and rq-TDD012ledgerEvidence (test_runs + retryFailureCount are evidence, not retry authority). Same AC5/AC7 non-authority and evidence-only pattern applied consistently across all three specs and mirrored docs. No other same-pattern gaps in the touched subsystem required changes.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Docs/schema/artifact task complete. Added rq-loopLedger01 (advance-delivery), rq-subagentReports23 (subagent-reports), rq-TDD012ledgerEvidence (tdd-contract) with matching docs/specs mirrors for the two that have them, bumped the three spec versions to patch, refreshed change.schema.json via the generator (test_runs field), and added rq-citation comments to satisfy the spec-citation invariant. All relevant checks green. One unrelated pre-existing asset-test failure (advance-workflow version pin) noted but not fixed.",
+        "suggested_next_action": "Review the 8-file diff, then proceed to the next task. No rebuild needed (comments + artifacts only; no runtime behavior change). Optionally triage the unrelated pre-existing advance-workflow 1.26.0/1.27.0 asset pin as a separate follow-up."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: SpecSchema.safeParse on .adv/specs/{advance-delivery,subagent-reports,tdd-contract}/spec.json"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:generate"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: ./node_modules/.bin/prettier --check src/tools/change.ts src/utils/loop-ledger.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/schema-registry.test.ts src/utils/loop-ledger.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/change.test.ts src/tools/test-contract-assets.test.ts src/adv-skill-backed-commands-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLoopLedger",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLoopLedger",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:loop-ledger"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "pnpm run schemas:check",
+          "exit_code": 0
+        },
+        {
+          "kind": "command",
+          "command": "pnpm run typecheck",
+          "exit_code": 0
+        },
+        {
+          "kind": "command",
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts",
+          "exit_code": 0,
+          "duration_ms": 3340
+        },
+        {
+          "kind": "command",
+          "command": "git status --short && git diff --check && git diff --stat",
+          "exit_code": 0
+        },
+        {
+          "kind": "command",
+          "command": "BASE=$(git merge-base HEAD origin/trunk) && git diff --name-status \"$BASE\"..HEAD && git diff --check \"$BASE\"..HEAD",
+          "exit_code": 0
+        }
+      ],
+      "status": "pass",
+      "error_class": "UNKNOWN",
+      "confidence": "high",
+      "evidence_basis": "Schema generation check and TypeScript typecheck passed. Targeted wrapper suite passed: 3 files, 114 tests, 3.34s. Covers opt-in compact versus bounded details, legacy include.ledger null behavior, pure projector/type boundary, task-attempt/test-run evidence mapping, subagent report mapping, UNKNOWN/inconclusive classification without retry-failure increment, and schema-valid projection. Working tree clean; change diff against origin/trunk has no whitespace errors.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "info",
+          "summary": "Required loop-ledger verification passed.",
+          "evidence": [
+            {
+              "label": "schema check",
+              "locator": "command: pnpm run schemas:check",
+              "summary": "tsx scripts/generate-json-schemas.ts --check exited 0."
+            },
+            {
+              "label": "typecheck",
+              "locator": "command: pnpm run typecheck",
+              "summary": "tsc --noEmit exited 0."
+            },
+            {
+              "label": "targeted tests",
+              "locator": "command: bin/oc-test targeted -- src/tools/change.test.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts",
+              "summary": "3 test files and 114 tests passed; duration 3.34s."
+            },
+            {
+              "label": "git cleanliness",
+              "locator": "command: git status --short && git diff --check && git diff --stat",
+              "summary": "No output: clean worktree and no whitespace errors."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "continue",
+      "scope_risk": false,
+      "suggested_handoff": {
+        "summary": "No remediation required; verified loop-ledger implementation is ready for acceptance review.",
+        "in_scope": [
+          "Loop-ledger projection",
+          "adv_change_show readback",
+          "schema/spec alignment"
+        ],
+        "out_of_scope": [
+          "Broad asset-version pin repair"
+        ],
+        "done_when": [
+          "Acceptance review validates contract evidence and evidence-only authority boundaries."
+        ],
+        "verification": [
+          "pnpm run schemas:check",
+          "pnpm run typecheck",
+          "bin/oc-test targeted -- src/tools/change.test.ts src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts"
+        ]
+      },
+      "required_main_agent_actions": [],
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLoopLedger",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLoopLedger",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/utils/loop-ledger.ts",
+          "line": 405,
+          "what": "Loop-ledger readback is implemented as a pure projection over already-loaded change/task/report/test-run state.",
+          "why": "This preserves existing task/gate authorities while making retry/review/harden/verification/CI evidence inspectable through a bounded opt-in read model."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 685,
+          "what": "Normal change output strips test_runs and only exposes loop ledger through explicit include flags.",
+          "why": "This satisfies compact default readback and keeps test_runs as bounded evidence rather than normal change payload."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/utils/loop-ledger.test.ts plugin/src/utils/loop-ledger.purity.test.ts plugin/src/tools/change.test.ts (failed: wrapper runs from plugin cwd; filters used repo-root plugin/ prefix)",
+          "bin/oc-test targeted -- src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/tools/change.test.ts",
+          "pnpm run schemas:check",
+          "pnpm run typecheck"
+        ],
+        "results": "pass",
+        "evidence": "Completed requested review focus under requested logical scope review:loop-ledger. Focused loop-ledger/tool tests passed: 3 files, 114 tests. schemas:check passed with deterministic generated schemas. typecheck passed with tsc --noEmit. Initial targeted test invocation failed only because paths were prefixed with plugin/ while bin/oc-test runs Vitest from plugin/ cwd; rerun with src/... filters passed. Durable report schema rejected custom scope_key review:loop-ledger, so this report uses supported change review scope review:acceptance while preserving review:loop-ledger in evidence."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live adv_change_show include.loopLedger was not invoked in this session because OpenCode loads deployed plugin schema at session start; source behavior verified through unit/tool tests per repo source-vs-dist reload model.",
+        "Durable REVIEWER_REPORT schema currently accepts review:acceptance for change-scoped reviewer reports, not custom review:loop-ledger; requested logical scope is preserved in verification evidence."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with acceptance/release decision using this READY review evidence; no reviewer remediation required."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addLoopLedger",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addLoopLedger",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-suggestion-1",
+          "label": "suggestion",
+          "file": "bin/adv",
+          "line": 1,
+          "what": "`bin/adv slop-scan --json` degrades in this plugin repo because required detectors run from repo root where no pnpm package manifest exists, and there is no visible path-scope flag for changed plugin source.",
+          "why": "The change itself passes targeted tests, schema check, typecheck, lint, format, spec-citation, and workflow-boundary checks, but slop-scan coverage cannot be fully trusted until the scanner supports this repo layout or installed detector dependencies."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "In the Advance plugin repo, `bin/adv slop-scan --json` currently reports SLOP_SCAN_DEGRADED because eslint/knip execute from repo root while the package manifest lives under `plugin/`; use `pnpm --dir plugin run check` and targeted tests as fallback evidence until slop-scan supports the plugin subdirectory layout/path scoping."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git status --short --branch",
+          "git diff --name-status trunk...HEAD",
+          "git diff --stat trunk...HEAD",
+          "git log --oneline trunk..HEAD",
+          "bin/oc-test targeted -- src/utils/loop-ledger.test.ts src/utils/loop-ledger.purity.test.ts src/tools/change.test.ts",
+          "pnpm --dir plugin run schemas:check",
+          "pnpm --dir plugin run typecheck",
+          "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/temporal/workflow-bundle-boundary.test.ts src/temporal/workflows.test.ts",
+          "bin/adv slop-scan --json",
+          "../bin/adv slop-scan --json (from plugin/)",
+          "pnpm --dir plugin run lint",
+          "pnpm --dir plugin run format:check",
+          "git diff --check trunk...HEAD",
+          "pnpm --dir plugin run check",
+          "git status --short --branch"
+        ],
+        "results": "pass",
+        "evidence": "Change has 3 commits over trunk touching loop-ledger source/types, adv_change_show readback, tests, specs/docs, and generated change schema; no production config, migrations, frontend, dependency, or runtime deployment files changed. Targeted tests passed: loop-ledger/purity/change suites 3 files, 114 tests. Spec/workflow checks passed: spec-citation + workflow-bundle-boundary 2 files, 8 tests. schemas:check, typecheck, lint, format:check, full pnpm check, and git diff --check passed. slop-scan produced zero findings but SLOP_SCAN_DEGRADED because eslint/knip ran from repo root without pnpm manifest and ast-grep/jscpd were unavailable; manual plugin lint/check fallback passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "`bin/adv slop-scan --json` coverage degraded for this repo layout/tooling, so slop evidence is fallback-supported by plugin lint/check rather than fully scanner-supported.",
+        "No live deployed plugin validation performed; source-vs-dist reload gotcha means runtime tool behavior requires build/deploy/restart for end-to-end OpenCode invocation."
+      ],
+      "required_main_agent_actions": [
+        "Optional follow-up: improve `bin/adv slop-scan` to support plugin subdirectory package roots or explicit path scoping so required detectors do not degrade in this repo layout.",
+        "If release requires live tool validation, rebuild/deploy plugin and restart OpenCode before invoking `adv_change_show include.loopLedger` through the deployed runtime."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-10T07:09:26.403Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via inline Tier A reply: 'approve'.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "8ac58c0cd3e400cf5e6fc0f031cac0eb2bee62ee6b34c4e67edda6671bcdbc1f",
+        "non_whitespace_chars": 6116,
+        "checked_at": "2026-07-10T07:03:29.992Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-10T13:41:35.102Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved discovery criteria and agreement via inline Tier A reply: 'approve'. Contract minted with 27 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "non_whitespace_chars": 4181,
+        "checked_at": "2026-07-10T07:03:29.993Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-10T13:51:55.858Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded and independently validated by adv-researcher with caution/no blockers; cautions resolved in design by using include.loopLedger and marking ci_repair source as report-derived only.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "af4a4243a985d2bdaa1e8b877281339e4f2749f841283484c8af40d7bfd328cb",
+        "non_whitespace_chars": 11779,
+        "checked_at": "2026-07-10T07:03:29.994Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-10T14:57:37.091Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the validated four-task graph via inline Tier A reply: 'approve and continue'. Strict validation passed; NO_DELTAS warning is addressed by the planned spec/docs task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-10T15:54:11.322Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 planned tasks completed and checkpointed. Loop-ledger projector/readback/spec/schema work verified by typecheck, schemas check, and targeted tests (114 verifier suite; 122 task suite). One unrelated pre-existing asset version-pin failure was identified and not treated as a change regression."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-10T16:10:00.278Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance via inline Tier A reply: 'approve'. Acceptance reviewer READY with 0 blockers/issues; 27-row contract review matrix has 0 failures; executive summary persisted and verified.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "5cd4769b839d1f9f6433b275d0c9f7c516074103b0b265698195e6280fbe2385",
+        "non_whitespace_chars": 2840,
+        "checked_at": "2026-07-10T07:03:29.995Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+      "approvedAt": "2026-07-10T13:41:29.149Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Loop history is inspectable without reading scattered prose, task notes, and raw sub-agent reports.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Retry, inconclusive, blocked, and complete outcomes are distinguishable in a consistent vocabulary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Default change reads remain compact enough for routine ADV phase starts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Existing safety boundaries remain unchanged: user checkpoints, doom-loop escalation, no nested delegation, and no sub-agent orchestration mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Future vector retrieval can reference loop records but cannot decide correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given existing ADV loop evidence from apply, review, harden, verification triage, or CI repair, when loop state is read, then each recorded or derived entry exposes loop kind, producer, evaluator, attempt count, verdict, next action, and stop reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a routing-only or inconclusive verification/CI result, when displayed in loop state, then it is labeled `inconclusive` or equivalent and does not increment task retry-failure budget.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a normal change read without explicit loop-detail opt-in, when loop data exists, then output shows compact summary/latest status only, not full retained attempt history.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given explicit loop-detail opt-in, when loop entries exist, then detailed entries are bounded or paginated and include source references to underlying task/report/test/CI evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a ledger entry with a passing verdict, when task or gate completion is evaluated, then existing task completion, test evidence, contract, report, and gate-readiness checks remain the authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given legacy or archived changes without loop-ledger fields, when read or replayed, then missing fields default safely and existing histories do not fail.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given vector/pgvector retrieval returns a similar past loop, when ADV evaluates current correctness, then retrieved lessons are advisory only and cannot complete tasks/gates or override specs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Temporal replay safety must be preserved through additive, workflow-safe state or derivation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Default readback must remain bounded.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Retired task-run tools must not be revived.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Vector search must not become authoritative for workflow correctness, task/gate completion, security, persistence, or spec compliance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Existing `error_recovery`, subagent report, test-run evidence, and gate-readiness compatibility must not regress.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add new autonomy in v1.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add unbounded retries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not dump full traces by default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not introduce continuous meta-harness self-modification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not let sub-agents mutate orchestration state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Building the pgvector lessons/reflections/reports database itself.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Running golden workflow evals on every change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Enforcing blind evaluator mode for every task.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Continuous meta-harness self-modification or automatic prompt/agent rewrites.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Expanding autonomy beyond existing ADV apply/review/harden/CI remediation rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-10T15:59:10.171Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Acceptance reviewer READY; loop-ledger projector/readback tests cover source-backed history."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Projector tests cover pass, fail, blocked, and inconclusive verdict vocabulary."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test verifies compact _loopLedger omits details unless explicit opt-in."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review found no authority, delegation, or retry-control changes."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Specs state vector retrieval remains advisory-only and out of v1 scope."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "loop-ledger.test covers apply, review, harden, verification triage, CI entries and their fields."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "UNKNOWN/inconclusive mapping and fail-only retryFailureCount covered by loop-ledger tests."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test verifies compact opt-in readback has no details by default."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.test verifies explicit detail opt-in with bounded limit; projector clamps 1-100."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Pure read projection never mutates state; reviewer confirmed no completion authority."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Projector accepts missing optional legacy fields; no live workflow query added to change readback."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "advance-delivery spec explicitly keeps vector retrieval advisory-only."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Zod-only types plus pure projector; purity and workflow-boundary tests pass."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Details are opt-in; default 20 and hard maximum 100 tested."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "New include.loopLedger surface leaves legacy include.ledger/_ledger behavior unchanged."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No vector integration introduced; spec restricts future retrieval to advisory use."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Targeted tests, typecheck, schemas check, and acceptance reviewer all passed."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Readback-only projection adds no autonomous action."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No retry control flow changed; derived retryFailureCount is evidence only."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Full details require explicit opt-in and bounded limit."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No meta-harness or prompt rewrite behavior added."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Subagents only report evidence; no orchestration mutation surface added."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No pgvector database work is included in v1."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No golden workflow evaluation runner added."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No blind evaluator mode implementation added."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No continuous self-modification behavior added."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No autonomy expansion beyond current workflow policies."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given existing ADV loop evidence from apply, review, harden, verification triage, or CI repair, when loop state is read, then each recorded or derived entry exposes loop kind, producer, evaluator, attempt count, verdict, next action, and stop reason.",
+    "Given a routing-only or inconclusive verification/CI result, when displayed in loop state, then it is labeled `inconclusive` or equivalent and does not increment task retry-failure budget.",
+    "Given a normal change read without explicit loop-detail opt-in, when loop data exists, then output shows compact summary/latest status only, not full retained attempt history.",
+    "Given explicit loop-detail opt-in, when loop entries exist, then detailed entries are bounded or paginated and include source references to underlying task/report/test/CI evidence.",
+    "Given a ledger entry with a passing verdict, when task or gate completion is evaluated, then existing task completion, test evidence, contract, report, and gate-readiness checks remain the authority.",
+    "Given legacy or archived changes without loop-ledger fields, when read or replayed, then missing fields default safely and existing histories do not fail.",
+    "Given vector/pgvector retrieval returns a similar past loop, when ADV evaluates current correctness, then retrieved lessons are advisory only and cannot complete tasks/gates or override specs."
+  ],
+  "documents": {
+    "proposal": "# Add Loop Ledger\n\n## Why\n\nAdvance already has retry, remediation, verification, and triage loops across apply, review, harden, CI handling, and sub-agent execution. Those loops work, but their state is spread across prose instructions, task notes, reports, and ad hoc retry metadata.\n\nThe system needs a typed loop controller / loop ledger that makes existing loops explicit: attempt count, producer, evaluator, verdict, findings, budget, stop reason, and next route. First version should add observability and structure without increasing autonomy or spawning more agents.\n\n## What Changes\n\nAdd a structural loop-ledger capability for existing ADV loops. The change should make loop attempts visible and queryable through ADV state/tooling while preserving the current safety model.\n\nThe initial direction is to record loop runs for the highest-value existing retry paths rather than create a new autonomous execution engine. Discovery should determine the exact storage boundary and which paths enter v1.\n\n## User Outcomes\n\n- ADV users can inspect what retry/remediation/verification loops happened during a change without reading scattered prose, task notes, and raw sub-agent reports.\n- ADV users can see why a loop stopped: completed, retry budget exhausted, blocked, routed to another worker, or escalated to the user.\n- ADV users can compare repeated failures and successful recovery paths across changes in a consistent shape.\n- ADV users can later connect loop histories to lessons/reflections/report retrieval without making vector search the authority for workflow correctness.\n\n## Scope\n\n### In Scope\n\n- Define the user-visible behavior for typed loop-run records in existing ADV workflows.\n- Identify existing loop sources that should write ledger entries in v1: apply implementation retries, review remediation, harden remediation, verification triage, CI repair, or another bounded subset chosen during discovery.\n- Make loop state inspectable through appropriate ADV read surfaces.\n- Preserve current ADV safety boundaries: user checkpoints, doom-loop escalation, worker scope locks, no nested delegation, and no automatic gate completion from evaluator prose.\n- Keep vector/pgvector integration as future retrieval input only; structural ADV state remains source of truth for loop correctness.\n\n### Out of Scope\n\n- Building the pgvector lessons/reflections/reports database itself.\n- Running golden workflow evals on every change.\n- Enforcing blind evaluator mode for every task.\n- Continuous meta-harness self-modification or automatic prompt/agent rewrites.\n- Expanding autonomy beyond existing ADV apply/review/harden/CI remediation rules.\n\n### Must Not\n\n- Must not make vector similarity search authoritative for gate completion, task completion, persistence correctness, security, or spec compliance.\n- Must not add unbounded retry loops or remove the existing three-failure doom-loop escalation path.\n- Must not let sub-agents mutate orchestration state directly.\n- Must not make meta-harness review continuous or automatic; it remains periodic, proposal-producing review work.\n\n## Affected Code\n\nLikely affected surfaces, to validate during discovery:\n\n- Workflow/state types and Zod schemas for any loop-run model.\n- Temporal change workflow signal/query surfaces if loop runs become durable workflow state.\n- ADV tool read surfaces such as `adv_change_show`, and possibly task/report surfaces.\n- Existing task `error_recovery` behavior, because it already records doom-loop attempts for task-scoped failures.\n- Sub-agent report consumers, because reports already carry `attempt`, findings, blockers, and verification evidence.\n- Review/harden/apply command contracts and worker packets where loop identity or attempt linkage needs to be explicit.\n- Public JSON schemas if the loop ledger becomes a published API shape.\n\n## Related Repositories\n\nCurrent repo: `advance`.\n\nNo product-linked external repository scope detected in `project.json`. Cross-repo impact is not expected for this proposal, but discovery should verify if the external pgvector memory project is a separate repository or future integration target.\n\n## Constraints\n\n- Specs are law; affected requirements likely live under `advance-workflow`, `advance-delivery`, `subagent-reports`, and `tdd-contract`.\n- Temporal replay safety must be preserved if loop state enters workflow history.\n- Tool outputs must remain bounded; loop history may need pagination or opt-in includes.\n- Existing typed report schemas and task `error_recovery` compatibility must not regress.\n- Proposal does not define engineering acceptance criteria; discovery must firm success criteria and evidence policy.\n\n## Impact\n\nExpected user-facing impact is better debuggability and trust in ADV loops. The change should reduce hidden retry behavior and make blocked/retry outcomes easier to resume, inspect, and learn from.\n\nExpected implementation impact is moderate because it may touch workflow state, schemas, tool readbacks, and command/agent contracts. The initial version should favor recording existing loops over adding new control flow.\n\n## Context\n\nSource-backed observations gathered before proposal:\n\n- `ADV_INSTRUCTIONS.md` defines doom-loop escalation after three failed attempts and records `strategy_label` in `error_recovery.attempts[]`.\n- `subagent-reports` spec requires report persistence keyed by `(change_id, scope, agent, attempt)` and maps task-scoped blockers into task `error_recovery`.\n- `tdd-contract` spec defines `adv_run_test` as primary inline TDD evidence and keeps phase metadata descriptive, not authoritative by itself.\n- Existing active changes focus on performance/timeout work and do not appear to claim loop-ledger semantics.\n\n## Discovery Agenda\n\n### Codebase unknowns\n\n- Determine whether loop records should live in workflow state, task state, report sidecars, a new sidecar, or a hybrid projection.\n- Determine whether existing `error_recovery.attempts[]` can be generalized or should remain task-failure-specific.\n- Identify all current loop-like paths in apply, review, harden, verification triage, and CI handling.\n- Determine the smallest read surface that gives users useful loop visibility without bloating default change reads.\n\n### Ecosystem unknowns\n\n- Check current agent/harness engineering patterns only if they materially affect the design. Known direction is structural loop state, not new agent autonomy.\n- Confirm whether pgvector memory work will expose stable identifiers or references that loop records should reserve fields for.\n\n### Domain unknowns\n\n- Decide which loop kinds users most need to inspect first: implementation retries, verifier triage, review remediation, harden remediation, CI repair, or all of these.\n- Decide retention and display expectations for long-running changes with many loop attempts.\n\n### Integration unknowns\n\n- Determine how loop ledger entries should connect to sub-agent reports, test run evidence, task checkpoints, gate readiness blockers, agenda follow-ups, and future vector-memory retrieval.\n- Determine whether archived changes need loop-ledger summaries in archive bundles or reflections.\n\n## Clarify Resolution Log\n\n- V1 loop visibility: user selected all existing loops.\n- Routing-only/inconclusive failures: user selected show as inconclusive, non-authoritative.\n- Default detail level: user requested emerging best practice research; discovery resolved to summary-by-default with opt-in detailed attempts, preserving error/inconclusive visibility.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Status | Reason |\n| --- | --- | --- |\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`; loaded `adv-opportunity-scout`; no new skill gap. |\n| Prior Research Extension | PASS | Cited `docs/adv-run-test-prep.md`; new finding: current loop-ledger work should include all existing loop types, not only test evidence. |\n| Conflict & Related-Work Scan | PASS | `adv_change_list` found no active semantic conflict; related archived work includes `addAdvVerifier`, `persistPostArchiveSubagent`, and `autoDrivePrArchiveCompletion`; own-change validation only warned `NO_TASKS` and `NO_DELTAS`, expected pre-prep. |\n| Edge Case Investigation | PASS | Edge cases listed below. |\n| Design Question Depth | PASS | Open technical design questions annotated below. |\n| Draft Spec Delta Shapes | PASS | Draft `rq-loopLedger*` deltas below. |\n| Related Pattern Scan | PASS | Existing loop-like surfaces mapped across apply, reports, test evidence, review/harden, and archive conflict handling. |\n| LBP Check | PASS | Evidence supports append-only/typed record with bounded query projection; no added autonomy. |\n| Completeness Verification | PASS | Full problem is cross-cutting loop observability, not only task retry or test evidence. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts` — loaded. Relevant because this change likely touches typed report schemas, tool readback contracts, and command packets.\n- `adv-opportunity-scout` — loaded and applied via researcher scout. Relevant because this is architectural/control-harness discovery.\n\n### Extends\n\n- `docs/adv-run-test-prep.md` found a prior medium-severity gap: `adv_run_test` implied durable evidence but lacked a dedicated evidence ledger, recommending a Temporal-backed lightweight evidence ledger. New finding: `state.testRuns` now exists as structured Temporal test-run evidence, so this change should not duplicate it; it should connect to it as one loop evidence source.\n- No `temp/brainstorm-*.md` files were present.\n\n### Conflict Scan\n\n- Active changes: `optimizeAdapterSurfaces` and `diagnoseArchivedListingTimeout` do not claim loop-ledger semantics.\n- Relevant archived changes: `addAdvVerifier` established verification triage bundle semantics; `persistPostArchiveSubagent` reinforced durable report persistence; `autoDrivePrArchiveCompletion` and `fixPhase9*` contain CI/archive retry surfaces that may be in scope as loop kinds.\n- Agenda overlap: many subagent follow-up items exist, but none are direct blockers for this loop-ledger change. Several indicate recurring need for explicit planning/verification records.\n\n### Current State\n\n- `AttemptSchema` and `ErrorRecoverySchema` already model task retry attempts with diagnosis, strategy label, outcome, and retry budget (`plugin/src/types/tasks.ts:92-126`).\n- `TaskSchema` already carries both `attempts` and `error_recovery` (`plugin/src/types/tasks.ts:189-221`).\n- `TestRunRecordedSignalPayloadSchema` records structured test-run evidence with `runId`, phase, exitCode, classification, command, duration, and quality signals (`plugin/src/types/signals.ts:177-205`).\n- `applyTestRunRecordedToState` stores `state.testRuns[taskId][]` as a ring buffer of the last 20 records (`plugin/src/temporal/change-state.ts:820-844`).\n- `applyTaskCompletedToState` uses test-run evidence to enforce red-before-green ordering (`plugin/src/temporal/change-state.ts:862-902`).\n- `adv_change_show include.ledger` exists in tool schema but currently returns `_ledger = null` (`plugin/src/tools/change.ts:509-513`, `plugin/src/tools/change.ts:800-802`).\n- `getTaskRunSummaryQuery` already derives task summaries and attempt counts from task state (`plugin/src/temporal/workflows.ts:527-547`, `plugin/src/temporal/workflows.ts:702-703`).\n- Review and harden remediation packets carry `ATTEMPT`, but attempt counters mostly live in worker packet identity rather than a unified ADV loop projection.\n- Verification triage bundles are persisted as evidence and are explicitly non-authoritative for task error recovery.\n\n### Edge Cases\n\n1. Duplicate attempt signal after tool retry: ledger must dedupe structurally, like subagent reports dedupe by identity.\n2. Inconclusive verification triage: must appear as inconclusive/non-authoritative and not increment doom-loop retry budget.\n3. Active-to-terminal race: post-archive/post-close report persistence has a disk-projection fallback; loop readback must not require live workflows for archived summaries unless design chooses active-only v1.\n4. Readback bloat: large changes with many attempts must use bounded summary-by-default plus opt-in details.\n5. Temporal replay: additive state only; workflow timestamps must remain deterministic.\n6. Compatibility: do not revive retired `adv_task_run_status` or prior deleted `taskRuns` state shape.\n\n### Open Design Questions\n\n1. Storage boundary for loop entries.\n   - Trust model: agent-only design decision.\n   - Blast radius: replay safety, readback performance, migration compatibility.\n   - Alternatives: derive-only projection from existing state; new `loopLedger` state with signal; hybrid derived summary plus optional source refs.\n   - Recommendation: design around append-only typed records projected from existing signals where possible; add new signal only if derivation cannot represent review/harden/CI attempts.\n\n2. Unified error/result vocabulary.\n   - Trust model: agent-only unless user wants visible labels changed.\n   - Blast radius: contract minting, report parsing, retry budget semantics.\n   - Alternatives: reuse four-value task error classes; add `inconclusive`; distinguish verdict from error class.\n   - Recommendation: separate verdict (`pass|fail|blocked|inconclusive`) from error class; preserve `UNKNOWN` as routing-only/non-authoritative.\n\n3. V1 loop-kind coverage.\n   - Trust model: user-facing scope decision, resolved by user as all existing loops.\n   - Blast radius: implementation size and design complexity.\n   - Alternatives: apply-first, apply+verify, all existing loops.\n   - Decision: all existing loops are in agreement scope, but design may phase implementation behind one schema/read surface if needed without dropping user-visible v1 coverage.\n\n4. Default display policy.\n   - Trust model: joint user/product decision, resolved by user asking for emerging best practice.\n   - Blast radius: noise, context bloat, privacy, debugging usefulness.\n   - External evidence: OpenTelemetry and agent-observability sources converge on structured spans/records with sampling, retention, and summary/detail separation; Zylos distinguishes execution log as source of truth from trace as queryable diagnostic view.\n   - Decision: summary by default; opt-in detail/pagination for attempts; keep failures/inconclusive visible in summary.\n\n### Draft Spec Deltas\n\n- `rq-loopLedger01` — ADV MUST expose a typed loop ledger for existing apply, review, harden, verification triage, and CI repair loops.\n  - Given a change runs one or more existing ADV loop paths,\n  - When loop state is recorded or derived,\n  - Then users can inspect a typed loop summary with kind, producer, evaluator, attempt count, verdict, next action, and stop reason.\n\n- `rq-loopLedger02` — Loop ledger correctness MUST remain structural and non-authoritative for gates unless existing gate/task mechanisms already authorize the transition.\n  - Given a loop ledger entry reports pass or failure,\n  - When task/gate completion is evaluated,\n  - Then existing task, test-run, report, contract, and gate-readiness authorities still decide completion.\n\n- `rq-loopLedger03` — Inconclusive/routing-only evidence MUST be visible without counting as retry-budget failure.\n  - Given a verification triage or CI check is UNKNOWN/inconclusive,\n  - When the ledger summary is rendered,\n  - Then it is shown as inconclusive/non-authoritative and does not increment task doom-loop attempts.\n\n- `rq-loopLedger04` — Loop readback MUST be bounded by default and detailed only on opt-in.\n  - Given a change has many loop entries,\n  - When `adv_change_show` is called without loop-detail opt-in,\n  - Then the response stays compact and includes summary counts/latest status rather than full retained entries.\n\n- `rq-loopLedger05` — Loop records MUST preserve Temporal replay and legacy compatibility.\n  - Given old workflow histories and archived/closed changes,\n  - When new loop-ledger code reads or replays state,\n  - Then missing loop fields default safely, retired task-run tools are not revived, and workflow-safe additive state is preserved.\n\n### Related Pattern Scan\n\nSimilar surfaces found:\n\n- Apply retry/doom-loop protocol in `.opencode/command/adv-apply.md`.\n- Task retry state in `plugin/src/types/tasks.ts`.\n- Test-run evidence ring buffer in `plugin/src/temporal/change-state.ts`.\n- Subagent report attempt dedupe and blocker mapping in `subagent-reports` spec and signal handlers.\n- Review/harden remediation `ATTEMPT` packet anchors in command contracts.\n- Archive conflict loops and Temporal retry wrappers, which are candidate lower-priority loop kinds.\n\n### Completeness Verification\n\n- Problem-completeness: high confidence. The problem is not only missing `_ledger`; it is fragmented loop visibility across task retry, subagent reports, verification triage, review/harden remediation, and CI/archive repair surfaces.\n- Solution-scope: high confidence for discovery. User explicitly wants all existing loops in v1 visibility, but not added autonomy. Design must decide how to implement broad coverage without overcoupling or readback bloat.\n- Sole-entry claim: none. No single chokepoint is claimed yet; design must avoid assuming all loops pass through one tool.\n- Secondary surfaces: in scope as ledger inputs if they represent existing ADV loops; out of scope if they are low-level infrastructure retries that never affect user-facing ADV outcomes.\n\n### LBP Check\n\nLikely best practice is a typed, append-only or derivable execution/loop record with bounded query projection:\n\n- Zylos: execution log is source of truth for recovery/audit; observability trace is queryable diagnostic view; traces must not become only recovery record.\n- OpenTelemetry GenAI conventions: logical operations should be represented as spans and retry context structured.\n- Agent observability sources emphasize typed spans/records, error/retry attributes, trace IDs, and evaluation/diagnostic linkage.\n- Cost/retention sources recommend summary/aggregation by default and detailed traces/logs via sampling or opt-in, preserving failures and high-value traces.\n\nApplicability to Advance: ADV should keep structural Temporal state/specs as authority, expose loop summaries by default, and reserve rich detail for opt-in/paginated readback. Vector/pgvector memory can retrieve similar histories later, but must remain advisory.\n\n### Discovery Opportunity Scout\n\n- Auto-adopted C1: Project `LoopRun` from existing signals/source records where possible, not a separate unowned store.\n- Auto-adopted C2: Use opt-in include/detail/paginated loop reads to protect output budgets.\n- Surfaced/resolved C3: User selected all existing loops for v1 visibility.\n- Surfaced/resolved C4: Inconclusive/routing-only states are shown as non-authoritative, not counted as retry failure.\n- Deferred C5: Reserve pgvector identifier fields only if cheap; vector retrieval remains future/advisory.\n\n### AMBIGUITY ANALYSIS\n\nCoverage: B:C F:C S:C M:C\n\nNo blocking ambiguity findings.\n\nAdvisory M1 MEDIUM Missing Information: exact pgvector identifier shape is unknown.\nEvidence: `Confirm whether pgvector memory work will expose stable identifiers or references that loop records should reserve fields for.`\nReason: future integration exists but does not affect v1 correctness. Carry to design as a reserved-field decision, not discovery blocker.\n\n## Recommended Objectives\n\n1. Provide typed loop visibility for existing ADV loops without adding autonomy.\n2. Preserve existing task/gate/report/test evidence authorities.\n3. Show all existing loop classes in v1 summary: apply, review, harden, verification triage, and CI repair.\n4. Treat inconclusive/routing-only outcomes as visible but non-authoritative.\n5. Keep default readback compact; expose detailed attempts through opt-in/detail/pagination.\n6. Keep vector memory advisory and future-facing.\n",
+    "problemStatement": "Advance already has retry, remediation, verification, and triage loops across apply, review, harden, CI handling, and sub-agent execution. Those loops work, but their state is spread across prose instructions, task notes, reports, and ad hoc retry metadata. The system needs a typed loop controller / loop ledger that makes existing loops explicit: attempt count, producer, evaluator, verdict, findings, budget, stop reason, and next route. First version should add observability and structure without increasing autonomy or spawning more agents.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Make existing ADV retry/remediation/verification loops structurally visible.\n2. Cover all existing user-relevant loop classes in v1: apply, review, harden, verification triage, and CI repair.\n3. Preserve current task/gate/report/test authorities; the ledger is evidence/readback, not new authority.\n4. Keep default output compact; detailed attempts are opt-in and bounded.\n5. Keep pgvector/vector memory advisory only.\n\n## Success Criteria\n\n- SC1: Loop history is inspectable without reading scattered prose, task notes, and raw sub-agent reports.\n- SC2: Retry, inconclusive, blocked, and complete outcomes are distinguishable in a consistent vocabulary.\n- SC3: Default change reads remain compact enough for routine ADV phase starts.\n- SC4: Existing safety boundaries remain unchanged: user checkpoints, doom-loop escalation, no nested delegation, and no sub-agent orchestration mutation.\n- SC5: Future vector retrieval can reference loop records but cannot decide correctness.\n\n## Acceptance Criteria\n\n- AC1: Given existing ADV loop evidence from apply, review, harden, verification triage, or CI repair, when loop state is read, then each recorded or derived entry exposes loop kind, producer, evaluator, attempt count, verdict, next action, and stop reason.\n- AC2: Given a routing-only or inconclusive verification/CI result, when displayed in loop state, then it is labeled `inconclusive` or equivalent and does not increment task retry-failure budget.\n- AC3: Given a normal change read without explicit loop-detail opt-in, when loop data exists, then output shows compact summary/latest status only, not full retained attempt history.\n- AC4: Given explicit loop-detail opt-in, when loop entries exist, then detailed entries are bounded or paginated and include source references to underlying task/report/test/CI evidence.\n- AC5: Given a ledger entry with a passing verdict, when task or gate completion is evaluated, then existing task completion, test evidence, contract, report, and gate-readiness checks remain the authority.\n- AC6: Given legacy or archived changes without loop-ledger fields, when read or replayed, then missing fields default safely and existing histories do not fail.\n- AC7: Given vector/pgvector retrieval returns a similar past loop, when ADV evaluates current correctness, then retrieved lessons are advisory only and cannot complete tasks/gates or override specs.\n\n## Constraints\n\n- C1: Temporal replay safety must be preserved through additive, workflow-safe state or derivation.\n- C2: Default readback must remain bounded.\n- C3: Retired task-run tools must not be revived.\n- C4: Vector search must not become authoritative for workflow correctness, task/gate completion, security, persistence, or spec compliance.\n- C5: Existing `error_recovery`, subagent report, test-run evidence, and gate-readiness compatibility must not regress.\n\n## Avoidances\n\n- DONT1: Do not add new autonomy in v1.\n- DONT2: Do not add unbounded retries.\n- DONT3: Do not dump full traces by default.\n- DONT4: Do not introduce continuous meta-harness self-modification.\n- DONT5: Do not let sub-agents mutate orchestration state.\n\n## Out of Scope\n\n- OOS1: Building the pgvector lessons/reflections/reports database itself.\n- OOS2: Running golden workflow evals on every change.\n- OOS3: Enforcing blind evaluator mode for every task.\n- OOS4: Continuous meta-harness self-modification or automatic prompt/agent rewrites.\n- OOS5: Expanding autonomy beyond existing ADV apply/review/harden/CI remediation rules.\n\n## Preview Applicability\n\nvisual_surface: false\n\nRationale: backend/tooling state and readback only; no browser-visible or visual output behavior is expected.\n\npreview_expectation:\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: no visual route or viewport can be affected by the agreed scope.\n\n## Decisions\n\n### User Decisions\n\n- V1 loop visibility: user selected all existing loops.\n- Routing-only/inconclusive failures: user selected visible as inconclusive and non-authoritative.\n- Default detail level: user requested emerging-best-practice research; discovery resolved to summary-by-default with opt-in detailed attempts, preserving error/inconclusive visibility.\n\n### Agent Decisions (LBP)\n\n- Use structural typed state/projections rather than prose-only retry tracking.\n- Preserve existing evidence authorities; loop ledger does not authorize task or gate completion.\n- Favor bounded summary readback by default with detail opt-in/pagination, aligning with agent observability and OpenTelemetry-style summary/detail patterns.\n- Keep vector/pgvector integration as a future retrieval/reference layer only.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser approved the criteria and agreement via inline Tier A reply: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nImplement a typed loop-ledger read model over existing ADV loop evidence. The ledger is a projection/readback layer, not a new authority path.\n\nThe v1 design uses a source-backed projection strategy:\n\n1. Keep existing authoritative state where it is today:\n   - task retry state: `Task.error_recovery.attempts[]` and `Task.attempts[]`\n   - test evidence: `state.testRuns[taskId][]`\n   - sub-agent evidence: `change.subagent_reports[]` and legacy `task.subagent_reports[]`\n   - verification/CI triage: `adv-verification-triage-bundle` reports with command/check targets\n   - gate/task completion: existing task, contract, report, and gate-readiness checks\n2. Add shared typed read/projection schemas for loop records and summaries.\n3. Populate `adv_change_show` opt-in loop readback from the already-loaded change state; do not require a live workflow query for archived/terminal readback.\n4. Keep summary compact by default; provide detailed attempts only through explicit opt-in with bounded limit.\n5. Keep pgvector/vector-memory fields optional source references only; vector results remain advisory and never authority.\n\nThis avoids a new event store in v1 and avoids changing loop behavior. It makes existing loops visible first.\n\n## Key Decisions\n\n### D1 — Use projection over existing workflow state, not a new primary ledger store\n\nExisting ADV state already records attempts and evidence through workflow-safe signals and typed reports. V1 will project a unified loop view from those existing records rather than adding a new source-of-truth event store.\n\nRationale:\n- Preserves Temporal replay safety by minimizing new mutation paths.\n- Avoids duplicating source records and introducing divergence.\n- Satisfies the agreement wording: entries may be recorded or derived.\n- Matches the current signal/query architecture.\n\nTradeoff:\n- Some loop kinds may have thinner source references until their existing paths emit richer typed evidence.\n- Design accepts this because v1 is observability/readback, not new control flow.\n\n### D2 — Separate `verdict` from `errorClass`\n\nLoop records use a user-visible verdict vocabulary:\n\n- `pass`\n- `fail`\n- `blocked`\n- `inconclusive`\n\nError classification remains source-specific:\n\n- task retry: `TRANSIENT | SEMANTIC | ENVIRONMENTAL | FATAL`\n- verification triage: `SEMANTIC | TRANSIENT | ENVIRONMENTAL | FATAL | UNKNOWN`\n\n`UNKNOWN` maps to `verdict: \"inconclusive\"` and must not increment task retry-failure budget.\n\nRationale:\n- Preserves `error_recovery` compatibility.\n- Prevents routing-only triage evidence from becoming authoritative task failure state.\n- Makes user-visible outcomes consistent across loop kinds.\n\n### D3 — Use a new `loopLedger` include surface, not the retired `_ledger` vestige\n\nAdd a compact loop summary readback and a separate detail opt-in.\n\nProposed include surface:\n\n```ts\ninclude: {\n  loopLedger?: boolean          // compact summary + latest status\n  loopLedgerDetails?: boolean   // bounded detailed entries\n  loopLedgerLimit?: number      // default 20, max 100\n}\n```\n\nDo not reuse `include.ledger` / `_ledger` for the new feature. `include.ledger` already exists as a dead/retired in-progress task durable-run ledger vestige and currently returns `_ledger = null`. Reusing it risks reviving retired task-run semantics and confusing compatibility. Leave it unchanged or explicitly deprecate it in a separate cleanup; this change owns the new `loopLedger` surface.\n\nRationale:\n- Avoids collision with retired `adv_task_run_status` / task-run ledger history.\n- Keeps new semantics clear and testable.\n- Satisfies C3: retired task-run tools must not be revived.\n\n### D4 — Model all existing user-relevant loop classes, but phase source richness\n\nV1 loop kinds:\n\n- `apply_retry`\n- `review_remediation`\n- `harden_remediation`\n- `verification_triage`\n- `ci_repair`\n\nSource mapping:\n\n| Loop kind | Primary source | Notes |\n| --- | --- | --- |\n| `apply_retry` | task `error_recovery.attempts[]`, task `attempts[]` | Authoritative attempt count comes from task attempt records. |\n| `review_remediation` | task/change-scoped `adv-reviewer` or remediation `adv-engineer` reports with phase/scope | Uses report `attempt`, findings, verification. |\n| `harden_remediation` | `adv-reviewer`/`adv-engineer` reports with `phase: harden`, harden scanner bundles | Uses report `attempt`, findings, verification. |\n| `verification_triage` | `adv-verification-triage-bundle` reports with `phase: local_verify` | `UNKNOWN`/inconclusive is non-authoritative. |\n| `ci_repair` | `adv-verification-triage-bundle` reports with `phase: ci_check`, CI target entries | Known-limited in v1: if no persisted CI bundle exists, no fabricated ledger entry. |\n\n`state.testRuns` are evidence/source refs for apply/test work, not the authoritative attempt-count source. They are ring-buffered and can undercount historical attempts.\n\nRationale:\n- Covers user-selected all existing loop classes.\n- Does not fabricate data where an existing path emits no typed evidence.\n- Avoids counting bounded evidence buffers as authoritative retry history.\n\n### D5 — Keep loop ledger evidence-only\n\nLoop ledger records do not complete tasks, gates, contracts, or release checks. They cite sources that existing authorities may already use.\n\nAuthorities remain:\n\n- task status/completion and checkpoint evidence\n- `adv_run_test` / `testRunRecordedSignal` ordering evidence\n- subagent report schemas and report consumers\n- contract review matrix\n- gate-readiness evaluators\n- archive/release verification\n\nRationale:\n- Satisfies AC5 and C4.\n- Prevents accidental self-approval.\n- Keeps vector retrieval advisory only.\n\n### D6 — Build the projector as a pure shared module over loaded state\n\nDo not implement loop readback by querying `getTaskRunSummaryQuery` at read time. That query is live-workflow-only and would not satisfy legacy/archived readback. Instead, extract or mirror its logic into a pure projection module that accepts already-loaded change state.\n\nRationale:\n- Satisfies AC6 for archived/legacy changes.\n- Avoids new Temporal service dependency in readback.\n- Keeps `adv_change_show` target/terminal fallback behavior compatible.\n\n## ADR Drafts\n\nNo ADR required. The design is important but not hard-to-reverse enough to warrant a new ADR: it is an additive read/projection surface over existing records.\n\n## Implementation Strategy\n\n1. Add shared loop-ledger schemas/types.\n   - `LoopKindSchema`\n   - `LoopVerdictSchema`\n   - `LoopSourceRefSchema`\n   - `LoopLedgerEntrySchema`\n   - `LoopLedgerSummarySchema`\n   - `LoopLedgerReadbackSchema`\n2. Add a pure projection module over already-loaded change state.\n   - Candidate home: `plugin/src/utils/loop-ledger.ts` only if it stays pure and imports no storage/tool modules; otherwise a `plugin/src/types/loop-ledger.ts` + `plugin/src/temporal/loop-ledger-projection.ts` split.\n   - Input: loaded `Change` / workflow state-like records.\n   - Output: compact summary and bounded detail list.\n   - No storage reads from pure formatter utilities.\n3. Reuse existing projection/dedupe ideas.\n   - Adapt `deriveTaskRunSummaryFromState` logic for task status/attempt count.\n   - Reuse or extract the `subagentReportReadbackKey` identity logic for report dedupe.\n4. Implement source adapters:\n   - tasks → `apply_retry`\n   - subagent reports → review/harden remediation + verification triage + CI repair\n   - test runs → evidence refs attached to task retry/apply entries, not a duplicate loop kind unless needed for latest status\n5. Wire `adv_change_show include.loopLedger` to return compact loop ledger readback.\n6. Add `include.loopLedgerDetails` and `include.loopLedgerLimit` for bounded detail.\n7. Add schema registry coverage if any readback shape is public.\n8. Update specs/docs/command contracts:\n   - `advance-delivery` for `adv_change_show include.loopLedger` behavior and bounded details\n   - `subagent-reports` if report-derived loop source semantics need explicit law\n   - `tdd-contract` only if test-run source references need clarification; do not change TDD authority\n9. Add regression tests:\n   - projection from task `error_recovery` attempts\n   - projection from review/harden report attempts\n   - projection from verification triage `UNKNOWN` as inconclusive without retry-budget increment\n   - compact vs detailed readback boundaries\n   - legacy change missing loop fields reads safely\n   - archived/terminal readback does not require live workflow-only state where source data exists\n   - dedupe by stable source identity\n   - `include.ledger` remains legacy/unchanged or explicitly deprecated and is not the new loop-ledger path\n\n## LBP Analysis\n\nThe long-term best pattern is a typed execution/loop trace view derived from authoritative source records. External agent-observability guidance converges on structured spans/records, but also separates diagnostic traces from recovery/authority logs. For ADV, Temporal workflow state and typed reports are the authority; the loop ledger is a diagnostic/readback projection.\n\nThis design intentionally avoids:\n\n- a second event store\n- trace dumps by default\n- vector-memory authority\n- new retry behavior\n- new sub-agent powers\n\n## Affected Components\n\n- `plugin/src/types/` — new loop-ledger schemas/types and exports.\n- `plugin/src/utils/` or `plugin/src/temporal/` — pure loop-ledger projection helper, subject to layer-boundary tests.\n- `plugin/src/tools/change.ts` — `adv_change_show include.loopLedger` implementation and optional detail flags.\n- `plugin/src/schema-registry.ts` and `plugin/schemas/` — if new public readback schema is published.\n- `plugin/src/temporal/workflows.ts` — optional refactor to reuse the same pure task-run summary derivation, not required for readback.\n- `plugin/src/temporal/change-state.ts` — avoid in v1 unless derivation proves insufficient; if touched, only additive workflow-safe state.\n- `.adv/specs/advance-delivery/spec.json` — concretize loop ledger readback behavior.\n- `.adv/specs/subagent-reports/spec.json` — clarify report-derived loop-source semantics if needed.\n- `.opencode/command/adv-apply.md`, `adv-review.md`, `adv-harden.md` — only wording updates needed to reference loop ledger readback; no new behavior.\n\n## Design-Derived Criteria\n\nDDC1: Compact loop-ledger readback must be bounded to summary counts, latest status, and source totals unless detail opt-in is present.\n\nDDC2: Detailed loop-ledger readback must enforce a maximum limit no greater than 100 entries per call.\n\nDDC3: Projection helpers must dedupe entries by stable source identity: source kind + source id/report key + attempt number when present.\n\nDDC4: Inconclusive entries must not contribute to retry-failure counts.\n\nDDC5: Projection must tolerate missing legacy fields without throwing.\n\nDDC6: Pure formatting/projection utilities must not import storage/tool modules that would violate existing layer-boundary tests.\n\nDDC7: Readback must not rely on live workflow-only queries for archived or terminal changes.\n\nDDC8: Test-run evidence may be referenced, but ring-buffered `state.testRuns` must not be used as authoritative historical attempt count.\n\nDDC9: The new loop-ledger surface must use `include.loopLedger`; `include.ledger` must not be used to represent the new feature unless a separate compatibility/deprecation change explicitly owns that migration.\n\n## Risks / Mitigations\n\n| Risk | Mitigation |\n| --- | --- |\n| Ledger duplicates source records and drifts | V1 derives from existing sources; no new primary store. |\n| Output bloat | Summary default; detail opt-in with limit. |\n| Inconclusive triage becomes retry failure | Separate verdict from error class; test `UNKNOWN` mapping. |\n| Temporal replay regression | Prefer projection; if state is added, make it optional/additive and workflow-safe. |\n| Legacy or archived changes break readback | Defaults for missing fields; no live-query dependency for readback; archive/terminal fallback tests. |\n| Vector memory becomes implicit authority | Include only optional source/reference fields; AC and tests assert advisory-only. |\n| Test-run buffer undercounts attempts | Use task `error_recovery`/`attempts` for counts; attach test runs as evidence refs only. |\n| Existing `_ledger` vestige creates confusion | New feature uses `loopLedger` naming; add tests that retired task-run tools remain retired. |\n| `ci_repair` source is thin | Treat CI repair as report-derived only when `ci_check` triage bundle evidence exists; do not fabricate entries. |\n\n## Design Leverage Scout\n\nScout ran. Five candidates considered; five auto-adopted/design-around updates incorporated:\n\n- Reuse/extract existing task-run summary projection logic instead of duplicating blindly.\n- Project over loaded state, never live query only, to satisfy archived/legacy readback.\n- Reuse/extract subagent report readback key logic for dedupe.\n- Count authoritative attempts from `error_recovery.attempts[]` / `task.attempts[]`; use `testRuns` as evidence refs only.\n- Place projector in a pure module that respects layer-boundary tests.\n\n## Validator Result\n\nValidator status: caution, no blockers.\n\nCautions:\n\n1. `include.ledger` already exists and returns `_ledger = null`; reusing it would collide with a retired in-progress task durable-run ledger vestige.\n   - Resolution: design revised to use `include.loopLedger`, `include.loopLedgerDetails`, and `include.loopLedgerLimit` instead.\n2. `ci_repair` has no dedicated attempt source beyond `ci_check` verification triage bundle evidence.\n   - Resolution: design marks `ci_repair` as known-limited and report-derived only; no fabricated entries.\n\nValidator recommendation: proceed to design gate after resolving those two prep/design items. Both have been incorporated above.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nAdds an opt-in loop-ledger readback for Advance changes. Routine change reads stay compact; explicit callers can inspect bounded loop details drawn from existing task, report, test, and CI evidence.\n\n## Why It Matters\nMakes retry and remediation history inspectable without treating diagnostic output as workflow authority. This improves reviewability while preserving existing task, gate, test, and contract controls.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Typed loop-ledger schemas and a pure projector for apply retries, review/harden remediation, verification triage, and CI repair evidence.\n2. `adv_change_show` flags: `include.loopLedger`, `include.loopLedgerDetails`, and bounded `include.loopLedgerLimit`.\n3. Bounded `test_runs` evidence projection; it is hidden from normal change output and never counts as authoritative retry state.\n4. Updated delivery, sub-agent-report, and TDD specs plus generated change schema.\n\n## What Was Verified\n- Verdict: READY; acceptance reviewer and hardening reviewer found 0 blockers and 0 issues.\n- Tests: targeted change, loop-ledger, purity, storage-mapping suites passed (114 verifier tests; 122 task verification tests).\n- Checks: `pnpm run check`, `pnpm run schemas:check`, and `pnpm run typecheck` passed during hardening.\n- Preview URL: not_applicable — agreement declares `visual_surface: false`; scope changes backend/tool readback only.\n- Contract matrix: 27 required/recorded rows passed, respected, or explicitly not applicable; 0 failing rows.\n\n## Remaining Concerns\n- Non-blocking repository baseline: `adv-skill-backed-commands-assets.test.ts` pins an already-stale `advance-workflow` version (expects 1.26.0; untouched spec is 1.27.0). It is outside this change and was not treated as a loop-ledger regression.\n\n## Supporting Evidence\n- Tasks: `tk-52cde4253623`, `tk-e45e7e3b8209`, `tk-42fcb03c8554`, `tk-3667e10e06c3`.\n- Review: `adv-reviewer` report `addLoopLedger|change:review:acceptance|adv-reviewer|1` — READY.\n- Hardening: `adv-reviewer` report for `harden:release` — READY.\n- Verification: persisted `adv-verification-triage-bundle` `verifier:loop-ledger` attempt 2.\n- Checkpoints: `803a31a2`, `05fb6c1d`, `d4ad3484`.\n\n## Consequence Context\n1. **Delivered value — pass.** Opt-in typed loop visibility replaces scattered diagnostic lookup; evidence: projector and change-readback tests.\n2. **Enabling-only/follow-up dependency — n/a.** No required child change or runtime dependency; evidence: approved agreement and no required follow-ups.\n3. **Ops readiness — ready.** No production deployment, config, migration, or cleanup action; evidence: hardening diff and release-readiness review.\n4. **Migration/data impact — n/a.** Additive optional `test_runs` read model only; no migration or external data operation; evidence: ChangeSchema and workflow mapping.\n5. **Frontend/preview impact — n/a.** No browser-visible scope; `visual_surface: false` in agreement.\n6. **Collision/release risk — low.** Pure read model and generated schema update; hardening found no issues; evidence: clean diff check and release review.\n7. **Open follow-ups — warning.** Unrelated asset-version pin remains outside scope; no loop-ledger required follow-up.\n8. **Next action — ready.** Archive sign-off can finalize release; evidence: completed contract review matrix and READY hardening report.\n\n## Release Readiness Summary\nRelease-ready for archive sign-off. Hardening found no blockers, no production configuration or migration impact, and no frontend surface. `pnpm run check`, targeted tests, schema validation, and clean-diff checks passed. `bin/adv slop-scan --json` returned no findings but degraded because it ran from the repo root without a pnpm manifest; release confidence relies on the successful plugin checks and targeted tests instead.\n\n1. **Ops readiness — ready.** No deployment, runbook, or cleanup obligation; evidence: hardening diff review.\n2. **Migration/data impact — n/a.** Additive bounded read-model field only; evidence: ChangeSchema and no migration files.\n3. **Frontend/preview impact — n/a.** Non-visual tool/readback scope; evidence: agreement `visual_surface: false`.\n4. **Collision/release risk — low.** Clean `trunk...HEAD` diff check; hardening READY with zero findings.\n5. **Open follow-ups — warning.** Pre-existing asset-version pin remains non-blocking and outside this release.\n6. **Next action — archive sign-off.** User approval may run archive finalization.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-10T15:59:10.171Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Loop history is inspectable without reading scattered prose, task notes, and raw sub-agent reports. | pass | Acceptance reviewer READY; loop-ledger projector/readback tests cover source-backed history. |\n| SC2 | success_criterion | Retry, inconclusive, blocked, and complete outcomes are distinguishable in a consistent vocabulary. | pass | Projector tests cover pass, fail, blocked, and inconclusive verdict vocabulary. |\n| SC3 | success_criterion | Default change reads remain compact enough for routine ADV phase starts. | pass | change.test verifies compact _loopLedger omits details unless explicit opt-in. |\n| SC4 | success_criterion | Existing safety boundaries remain unchanged: user checkpoints, doom-loop escalation, no nested delegation, and no sub-agent orchestration mutation. | pass | Review found no authority, delegation, or retry-control changes. |\n| SC5 | success_criterion | Future vector retrieval can reference loop records but cannot decide correctness. | pass | Specs state vector retrieval remains advisory-only and out of v1 scope. |\n| AC1 | acceptance_criterion | Given existing ADV loop evidence from apply, review, harden, verification triage, or CI repair, when loop state is read, then each recorded or derived entry exposes loop kind, producer, evaluator, attempt count, verdict, next action, and stop reason. | pass | loop-ledger.test covers apply, review, harden, verification triage, CI entries and their fields. |\n| AC2 | acceptance_criterion | Given a routing-only or inconclusive verification/CI result, when displayed in loop state, then it is labeled `inconclusive` or equivalent and does not increment task retry-failure budget. | pass | UNKNOWN/inconclusive mapping and fail-only retryFailureCount covered by loop-ledger tests. |\n| AC3 | acceptance_criterion | Given a normal change read without explicit loop-detail opt-in, when loop data exists, then output shows compact summary/latest status only, not full retained attempt history. | pass | change.test verifies compact opt-in readback has no details by default. |\n| AC4 | acceptance_criterion | Given explicit loop-detail opt-in, when loop entries exist, then detailed entries are bounded or paginated and include source references to underlying task/report/test/CI evidence. | pass | change.test verifies explicit detail opt-in with bounded limit; projector clamps 1-100. |\n| AC5 | acceptance_criterion | Given a ledger entry with a passing verdict, when task or gate completion is evaluated, then existing task completion, test evidence, contract, report, and gate-readiness checks remain the authority. | pass | Pure read projection never mutates state; reviewer confirmed no completion authority. |\n| AC6 | acceptance_criterion | Given legacy or archived changes without loop-ledger fields, when read or replayed, then missing fields default safely and existing histories do not fail. | pass | Projector accepts missing optional legacy fields; no live workflow query added to change readback. |\n| AC7 | acceptance_criterion | Given vector/pgvector retrieval returns a similar past loop, when ADV evaluates current correctness, then retrieved lessons are advisory only and cannot complete tasks/gates or override specs. | pass | advance-delivery spec explicitly keeps vector retrieval advisory-only. |\n| C1 | constraint | Temporal replay safety must be preserved through additive, workflow-safe state or derivation. | respected | Zod-only types plus pure projector; purity and workflow-boundary tests pass. |\n| C2 | constraint | Default readback must remain bounded. | respected | Details are opt-in; default 20 and hard maximum 100 tested. |\n| C3 | constraint | Retired task-run tools must not be revived. | respected | New include.loopLedger surface leaves legacy include.ledger/_ledger behavior unchanged. |\n| C4 | constraint | Vector search must not become authoritative for workflow correctness, task/gate completion, security, persistence, or spec compliance. | respected | No vector integration introduced; spec restricts future retrieval to advisory use. |\n| C5 | constraint | Existing `error_recovery`, subagent report, test-run evidence, and gate-readiness compatibility must not regress. | respected | Targeted tests, typecheck, schemas check, and acceptance reviewer all passed. |\n| DONT1 | avoidance | Do not add new autonomy in v1. | respected | Readback-only projection adds no autonomous action. |\n| DONT2 | avoidance | Do not add unbounded retries. | respected | No retry control flow changed; derived retryFailureCount is evidence only. |\n| DONT3 | avoidance | Do not dump full traces by default. | respected | Full details require explicit opt-in and bounded limit. |\n| DONT4 | avoidance | Do not introduce continuous meta-harness self-modification. | respected | No meta-harness or prompt rewrite behavior added. |\n| DONT5 | avoidance | Do not let sub-agents mutate orchestration state. | respected | Subagents only report evidence; no orchestration mutation surface added. |\n| OOS1 | out_of_scope | Building the pgvector lessons/reflections/reports database itself. | not_applicable | No pgvector database work is included in v1. |\n| OOS2 | out_of_scope | Running golden workflow evals on every change. | not_applicable | No golden workflow evaluation runner added. |\n| OOS3 | out_of_scope | Enforcing blind evaluator mode for every task. | not_applicable | No blind evaluator mode implementation added. |\n| OOS4 | out_of_scope | Continuous meta-harness self-modification or automatic prompt/agent rewrites. | not_applicable | No continuous self-modification behavior added. |\n| OOS5 | out_of_scope | Expanding autonomy beyond existing ADV apply/review/harden/CI remediation rules. | not_applicable | No autonomy expansion beyond current workflow policies. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-10T13:39:18.634Z",
+      "contentHash": "913aca8059a398e629358e47e24452fce1519415cd444a5ca54edc26eb5e98f1",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-10T07:05:41.627Z",
+      "contentHash": "072622e4a35417da64d803336867ea23e74c2839898ce3d61d370802f32c9a32",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-10T13:41:16.531Z",
+      "contentHash": "0a57e79d59a1c5ca2bc12d416633c073925d310d438424ff73a7cfef37193b07",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-10T13:51:48.407Z",
+      "contentHash": "af4a4243a985d2bdaa1e8b877281339e4f2749f841283484c8af40d7bfd328cb",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-10T16:18:29.920Z",
+      "contentHash": "e7c3f6559f1fd2d5e46ce69206b6e0ba361ac20f5a2837b2be7149dd4fefc777",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-10T16:18:29.920Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

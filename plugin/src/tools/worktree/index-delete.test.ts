@@ -395,7 +395,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     );
   });
 
-  it("warns but still removes git worktree when OpenCode workspace cleanup fails", async () => {
+  it("retains the git worktree with a typed blocker when OpenCode workspace cleanup fails", async () => {
     vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
     const branch = "feature/workspace-error";
     const wtPath = addWorktree(repoRoot, branch);
@@ -424,18 +424,88 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     };
 
     await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
-      ok: true,
+      ok: false,
+      error: "WORKSPACE_CLEANUP_FAILED",
       branch,
-      warning: expect.stringContaining(
-        "Failed to delete OpenCode workspace ws-error",
-      ),
+      path: wtPath,
+      reason: expect.stringContaining("ws-error"),
+      hint: expect.stringContaining("adv_worktree_cleanup"),
     });
     expect(deps.log.warn).toHaveBeenCalledWith(
       expect.stringContaining("Failed to delete OpenCode workspace ws-error"),
     );
+    // Fail closed: neither workspace nor git removal occurred; the retained
+    // worktree stays queued as a visible manual-retry pending delete.
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({
+        branch,
+        reason: expect.stringContaining("workspace cleanup failed"),
+        lastErrorClass: "workspace_cleanup_failed",
+        attempts: 0,
+      }),
+    ]);
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
-    ).not.toContain(branch);
+    ).toContain(branch);
+  });
+
+  it("fails closed when workspace ownership is uncertain (list request fails)", async () => {
+    vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+    const branch = "feature/workspace-uncertain";
+    const wtPath = addWorktree(repoRoot, branch);
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("down", { status: 503 }));
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.warpDeps = {
+      serverUrl: new URL("http://127.0.0.1:4096"),
+      fetchImpl,
+    };
+
+    await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
+      ok: false,
+      error: "WORKSPACE_OWNERSHIP_UNCERTAIN",
+      branch,
+      path: wtPath,
+      hint: expect.stringContaining("adv_worktree_cleanup"),
+    });
+    // Uncertain ownership: no git removal and no DELETE call attempted.
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({
+        branch,
+        reason: expect.stringContaining("ownership uncertain"),
+        lastErrorClass: "workspace_ownership_uncertain",
+        attempts: 0,
+      }),
+    ]);
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
+  });
+
+  it("fails closed when the workspace list lookup throws", async () => {
+    vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+    const branch = "feature/workspace-throw";
+    const wtPath = addWorktree(repoRoot, branch);
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("connection refused"));
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.warpDeps = {
+      serverUrl: new URL("http://127.0.0.1:4096"),
+      fetchImpl,
+    };
+
+    await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
+      ok: false,
+      error: "WORKSPACE_OWNERSHIP_UNCERTAIN",
+      branch,
+      path: wtPath,
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
   });
 
   it("HOOK_INTRODUCED_CHANGES — blocks delete when hook creates uncommitted changes", async () => {
@@ -1259,6 +1329,41 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     );
     await expect(getPendingDeletes(deps.database)).resolves.toEqual([
       expect.objectContaining({ branch, attempts: 6 }),
+    ]);
+  });
+
+  it("records an exact typed blocker class for workspace-uncertain retained deletes", async () => {
+    const branch = "change/ws-uncertain";
+    const pendingPath = join(repoRoot, "worktrees", "change", "ws-uncertain");
+    mkdirSync(pendingPath, { recursive: true });
+    const deps = createDrainDeps(pendingPath);
+    await setPendingDelete(
+      deps.database,
+      branch,
+      pendingPath,
+      "workspace ownership uncertain: list request failed",
+    );
+    const deleteWorktree = vi.fn(async () => ({
+      ok: false as const,
+      error: "WORKSPACE_OWNERSHIP_UNCERTAIN" as const,
+      branch,
+      path: pendingPath,
+      reason: "workspace list request failed: 503",
+      hint: "Retry with adv_worktree_cleanup after the OpenCode server responds.",
+    }));
+
+    const result = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+      deleteWorktree,
+    });
+
+    expect(result).toEqual({ removed: 0, retained: 1 });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({
+        branch,
+        lastError: "WORKSPACE_OWNERSHIP_UNCERTAIN",
+        lastErrorClass: "workspace_ownership_uncertain",
+      }),
     ]);
   });
 

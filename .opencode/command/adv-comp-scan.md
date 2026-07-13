@@ -24,7 +24,7 @@ Parse `$ARGUMENTS`:
 
 ---
 ## Phase 0: Load Skill
-`skill("adv-comp-research")` → provides two-mode strategy, auto-mode detection, comparison table format, evidence requirements. If skill is unavailable, continue with the embedded protocol in this command file.
+`skill("adv-comp-research")` → two-mode strategy, auto-mode detection, comparison table format, evidence requirements. Unavailable → use embedded protocol.
 
 ---
 ## Pre-flight

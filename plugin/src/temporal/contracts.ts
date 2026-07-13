@@ -3,8 +3,6 @@ import type {
   ChangeContract,
   Change,
   ChangeOrigin,
-  SubagentAgent,
-  SubagentReportScope,
   ScopedSubagentReport,
   FastFollowOf,
   Gates,
@@ -63,6 +61,7 @@ export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
   tasks: "adv.change.tasks",
   task: "adv.change.task",
   getCurrentBucket: "adv.change.getCurrentBucket",
+  getDirective: "adv.change.getDirective",
   getInvestmentReport: "adv.change.getInvestmentReport",
   getReviewVerification: "adv.change.getReviewVerification",
   getTaskRunSummary: "adv.change.getTaskRunSummary",
@@ -142,24 +141,6 @@ export const EPIC_WORKFLOW_SIGNAL_NAMES = {
   epicArchived: "adv.epic.epicArchived",
   searchAttributesRefreshed: "adv.epic.searchAttributesRefreshed",
 } as const;
-
-export function subagentReportKey(input: {
-  changeId: string;
-  taskId?: string;
-  scope?: SubagentReportScope;
-  agent: SubagentAgent;
-  attempt: number;
-}): string {
-  if (input.taskId) {
-    return `${input.changeId}|${input.taskId}|${input.agent}|${input.attempt}`;
-  }
-  const scopeId = input.scope
-    ? input.scope.kind === "task"
-      ? `task:${input.scope.task_id}`
-      : `change:${input.scope.scope_key}`
-    : "unknown-scope";
-  return `${input.changeId}|${scopeId}|${input.agent}|${input.attempt}`;
-}
 
 export interface ChangeSummaryPayload {
   changeId: string;

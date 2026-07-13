@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { buildCompactionContext } from "./compaction-context";
 import type { GateInfo } from "./context-snapshot";
+import type { WorkflowDirective } from "./workflow-directive";
+import { GATE_ORDER } from "../types";
 
 const baseGates = (executionStatus: string): Record<string, GateInfo> => ({
   proposal: { status: "done" },
@@ -91,5 +93,55 @@ describe("buildCompactionContext stale-ledger remediation", () => {
     });
 
     expect(output).not.toContain("ADV STALE LEDGER REMEDIATION");
+  });
+});
+
+describe("buildCompactionContext directive (AC5)", () => {
+  const gateStatus = GATE_ORDER.reduce(
+    (acc, id) => {
+      acc[id] = "pending";
+      return acc;
+    },
+    {} as Record<(typeof GATE_ORDER)[number], "pending">,
+  );
+
+  const neverStartedDirective: WorkflowDirective = {
+    changeId: "staleLedgerChange",
+    phase: "proposal",
+    gateStatus,
+    action: {
+      kind: "never_started",
+      gateId: "proposal",
+      command: "adv-proposal",
+    },
+    approvalPending: false,
+    blockers: [],
+    canArchive: false,
+    bucket: "never_started",
+  };
+
+  test("renders the Next: orientation line when a directive is provided", () => {
+    const output = buildCompactionContext({
+      change: { id: "staleLedgerChange", title: "Stale ledger change" },
+      tasks: [{ id: "tk-new", title: "New task", status: "pending" }],
+      gates: baseGates("pending"),
+      specs: [],
+      workdir: "/repo",
+      directive: neverStartedDirective,
+    });
+
+    expect(output).toContain("Next: proposal → /adv-proposal");
+  });
+
+  test("omits the Next: line when no directive is provided", () => {
+    const output = buildCompactionContext({
+      change: { id: "staleLedgerChange", title: "Stale ledger change" },
+      tasks: [{ id: "tk-new", title: "New task", status: "pending" }],
+      gates: baseGates("pending"),
+      specs: [],
+      workdir: "/repo",
+    });
+
+    expect(output).not.toContain("Next:");
   });
 });

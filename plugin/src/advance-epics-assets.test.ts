@@ -3,10 +3,12 @@
  *
  * Verifies that command, agent, and documentation contracts reflect the
  * Advance Epics capability: optional Epic membership, advisory order, compact
- * context loading, and the avoidance of project-management workflow clones.
+ * context loading, the avoidance of project-management workflow clones, and
+ * explicit, typed, linked operational-work planning.
  *
  * Citations: SC1, SC2, AC7, AC9, rq-epicCoordinateRepoFreshness01,
- * DONT1, DONT2, DONT3, DONT5, DONT7.
+ * DONT1, DONT2, DONT3, DONT5, DONT7, AC1, AC2, AC3, AC4,
+ * rq-epicOpsPlanning01, DDC1, DDC2, DDC3.
  */
 
 import { describe, expect, test } from "vitest";
@@ -50,6 +52,7 @@ describe("Advance Epics spec documentation", () => {
       "rq-epicRetirement01",
       "rq-epicRetiredListing01",
       "rq-epicRetiredHistory01",
+      "rq-epicOpsPlanning01",
     ]) {
       expect(doc).toContain(reqId);
     }
@@ -556,5 +559,191 @@ describe("Advance Epics ADR", () => {
       /Cross-repo Epic membership is out of scope for v1/i,
     );
     expect(adr).not.toMatch(/future cross-repo Epic design/i);
+  });
+});
+
+describe("Epic operational-work planning drift anchors (AC1-AC4)", () => {
+  // Static instruction/spec wording anchors. These fail the suite if canonical
+  // Epic ops guidance is removed or weakened. They intentionally do NOT
+  // re-execute or re-derive adv_followup_promote / ops_followup runtime
+  // behavior: provenance, release blocking, surviving-obligation handoff, and
+  // child-state release authority remain owned by the advance-workflow
+  // ops-followup laws (rq-opsFollowTrace01, rq-opsFollowRelease01,
+  // rq-opsRunReleaseReadiness01) and their own tests. The Epic requirement
+  // cites those laws by reference rather than duplicating them (DDC2).
+
+  const OPS_EXAMPLES = [
+    "first deployment",
+    "migration",
+    "backfill",
+    "deployment configuration",
+    "monitoring",
+    "cleanup",
+    "teardown",
+  ];
+
+  test("spec.json rq-epicOpsPlanning01 is a MUST that cites (not duplicates) ops-followup law and distinguishes blocks vs release-first handoff", () => {
+    const spec = JSON.parse(readRepoFile(".adv/specs/advance-epics/spec.json"));
+    const req = spec.requirements.find(
+      (r: { id: string }) => r.id === "rq-epicOpsPlanning01",
+    );
+    expect(req).toBeDefined();
+    expect(req.priority).toBe("must");
+    const blob = JSON.stringify(req);
+
+    for (const example of OPS_EXAMPLES) {
+      expect(blob).toContain(example);
+    }
+    // Typed linked route + blocking/non-blocking distinction (DDC1).
+    expect(blob).toContain("adv_followup_promote");
+    expect(blob).toContain("ops_followup_links");
+    expect(blob).toContain("`blocks` relationship");
+    expect(blob).toContain("non-blocking");
+    expect(blob).toContain("release-first");
+    expect(blob).toContain("handoff");
+    // Reference-not-duplication of ops-followup laws (DDC2).
+    expect(blob).toContain("rq-opsFollowTrace01");
+    expect(blob).toContain("rq-opsFollowRelease01");
+    expect(blob).toContain("rq-opsRunReleaseReadiness01");
+    // No new model/validator/enum/gate; order advisory; no deployment exec
+    // (C1/C3/C4, DDC3).
+    expect(blob).toContain(
+      "MUST NOT introduce a new data model, validator, relationship enum, or gate-readiness rule",
+    );
+    expect(blob).toContain("Epic order remains advisory");
+    expect(blob).toContain(
+      "MUST NOT perform deployment execution as an Epic gate",
+    );
+    // Scenarios cover blocking, non-blocking-with-handoff, no-ops-needed, and
+    // the no-execute/no-regate/no-remodel guard.
+    for (const scenario of [
+      "rq-epicOpsPlanning01.1",
+      "rq-epicOpsPlanning01.2",
+      "rq-epicOpsPlanning01.3",
+      "rq-epicOpsPlanning01.4",
+    ]) {
+      expect(blob).toContain(scenario);
+    }
+  });
+
+  test("docs/specs/advance-epics.md mirrors rq-epicOpsPlanning01", () => {
+    const doc = readRepoFile("docs/specs/advance-epics.md");
+    expect(doc).toContain("rq-epicOpsPlanning01");
+    expect(doc).toMatch(
+      /rq-epicOpsPlanning01` \| \*\*Priority:\*\* \*\*\[MUST\]\*\*/,
+    );
+    expect(doc).toContain("adv_followup_promote");
+    expect(doc).toContain("ops_followup_links");
+    expect(doc).toContain("`blocks` relationship");
+    expect(doc).toContain("non-blocking release-first relationship");
+    for (const example of OPS_EXAMPLES) {
+      expect(doc).toContain(example);
+    }
+    for (const scenario of [
+      "rq-epicOpsPlanning01.1",
+      "rq-epicOpsPlanning01.2",
+      "rq-epicOpsPlanning01.3",
+      "rq-epicOpsPlanning01.4",
+    ]) {
+      expect(doc).toContain(scenario);
+    }
+    expect(doc).toContain("rq-opsFollowTrace01");
+    expect(doc).toContain("rq-opsFollowRelease01");
+    expect(doc).toContain("rq-opsRunReleaseReadiness01");
+  });
+
+  test("/adv-epic Phase 1 elicits operational work with named examples and typed direction (AC1)", () => {
+    const content = readRepoFile(".opencode/command/adv-epic.md");
+    expect(content).toMatch(/Assess required operational work/i);
+    for (const example of OPS_EXAMPLES) {
+      expect(content).toContain(example);
+    }
+    expect(content).toContain("adv_followup_promote");
+    expect(content).toContain("ops_followup_links[]");
+    expect(content).toContain("ops_followup");
+    expect(content).toContain("`blocks`");
+    expect(content).toContain("follows_release");
+    expect(content).toContain("monitors");
+    expect(content).toContain("cleanup_after");
+    expect(content).toContain("required_handoff");
+    // Free-text/shell/prose is not the authoritative record.
+    expect(content).toMatch(
+      /use shell entries\/agenda\/prose as the authoritative record for required operational work/i,
+    );
+    expect(content).toMatch(
+      /do not track it in shell entries, agenda text, or prose/i,
+    );
+    // Contextual, not universal; advisory order; no deployment execution.
+    expect(content).toMatch(
+      /do not require an ops follow-up for every Epic, change, or deployment/i,
+    );
+    expect(content).toMatch(/Epic planning never executes deployments/i);
+    expect(content).toMatch(/Epic order remains advisory/i);
+  });
+
+  test("ADV_INSTRUCTIONS.md Epic Context directs typed linked ops follow-up and forbids free-text/shell tracking (AC2)", () => {
+    const instructions = readRepoFile("ADV_INSTRUCTIONS.md");
+    expect(instructions).toMatch(
+      /represent required operational work only through the existing typed path/i,
+    );
+    expect(instructions).toContain("adv_followup_promote");
+    expect(instructions).toContain("ops_followup_links[]");
+    expect(instructions).toMatch(/relevant delivery change/i);
+    expect(instructions).toMatch(/relationship `blocks`/i);
+    expect(instructions).toMatch(/hard release blocker/i);
+    expect(instructions).toMatch(
+      /release-first relationships `follows_release`, `monitors`, or `cleanup_after`/,
+    );
+    expect(instructions).toContain("required_handoff");
+    // Free-text/shell prohibition in both the narrative and the Avoidances list.
+    expect(instructions).toMatch(
+      /Shell entries, agenda items, and free-text prose are discovery aids only, never the authoritative record for required operational work/i,
+    );
+    expect(instructions).toMatch(
+      /Do not use Epic shell entries, agenda items, or free-text prose as the authoritative record for required operational work/i,
+    );
+    // Cites (does not redefine) ops-followup law.
+    expect(instructions).toContain("rq-opsRunReleaseReadiness01");
+    expect(instructions).toContain("rq-opsFollowTrace01");
+    expect(instructions).toContain("rq-opsFollowRelease01");
+    // Non-goals.
+    expect(instructions).toMatch(
+      /Do not infer operational need from Epic metadata/i,
+    );
+    expect(instructions).toMatch(
+      /do not require an ops follow-up for every Epic\/change\/deployment/i,
+    );
+    expect(instructions).toMatch(/do not make Epic order a release gate/i);
+    expect(instructions).toMatch(
+      /do not execute deployments from Epic planning/i,
+    );
+  });
+
+  test("/adv-coordinate surfaces operational-work grounding for existing Epics and routes free-text tracking to typed repair", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    expect(content).toContain("Operational-work grounding");
+    expect(content).toMatch(
+      /Required operational work is represented by typed `ops_followup_links\[\]` from the relevant delivery change \(via `adv_followup_promote`\), not by shell entries, agenda text, or prose/i,
+    );
+    expect(content).toMatch(
+      /`blocks` vs release-first \(`follows_release`\/`monitors`\/`cleanup_after`\) relationship matches the work's release-safety need/i,
+    );
+    // Existing-Epic alignment reminder: cite child/source-of-truth, treat
+    // free-text-only tracking as a judgment_call to repair via typed tool.
+    expect(content).toMatch(
+      /cite the delivery change's `ops_followup_links\[\]`/i,
+    );
+    expect(content).toContain("adv-backed-fact");
+    expect(content).toMatch(/Treat free-text-only operational tracking/i);
+    expect(content).toContain("judgment_call");
+    expect(content).toMatch(
+      /repair through `adv_followup_promote` from the relevant delivery change, never as authoritative proof/i,
+    );
+    expect(content).toMatch(
+      /Use `blocks` when release safety requires completion before release and release-first relationships/i,
+    );
+    expect(content).toMatch(
+      /do not recommend executing deployments from coordination, and do not let Epic order block release/i,
+    );
   });
 });

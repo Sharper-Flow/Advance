@@ -3,8 +3,8 @@
   "name": "tdd-contract",
   "title": "TDD Contract",
   "purpose": "Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.",
-  "version": "1.7.0",
-  "updated_at": "2026-06-22T00:00:00.000Z",
+  "version": "1.7.1",
+  "updated_at": "2026-07-10T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-TDD001inl",
@@ -419,6 +419,46 @@
           "then": [
             "Inline red/green TDD remains the default",
             "The non-code evidence-policy path does not exempt the task from TDD unless it is explicitly and validly reclassified"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD012ledgerEvidence",
+      "title": "Loop-ledger test_runs and retryFailureCount are derived evidence, not retry authority",
+      "body": "The adv_change_show loop-ledger readback (rq-loopLedger01) surfaces test_runs only as source references (kind test_run) and exposes a derived retryFailureCount. Neither is authoritative. The authoritative red/green sequence remains the testRunRecordedSignal record ordering enforced at task completion (rq-TDD009seq), and the authoritative retry/attempt accounting remains task.attempts plus task.error_recovery. test_runs MUST NOT be reinterpreted as attempt counts, and the ledger retryFailureCount MUST NOT redefine or gate the retry budget, task completion, or acceptance. This clarification does not broaden TDD enforcement; it only pins the readback as evidence.",
+      "priority": "must",
+      "tags": [
+        "tdd",
+        "loop-ledger",
+        "evidence",
+        "projection"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-TDD012ledgerEvidence.1",
+          "title": "test_runs are evidence refs, never attempt counts",
+          "given": [
+            "A task has adv_run_test test_runs recorded against it"
+          ],
+          "when": "The loop ledger is projected or task completion is evaluated",
+          "then": [
+            "test_runs appear only as source refs of kind test_run in the ledger",
+            "They are not counted as task retry attempts",
+            "Red/green ordering authority remains testRunRecordedSignal ordering (rq-TDD009seq)"
+          ]
+        },
+        {
+          "id": "rq-TDD012ledgerEvidence.2",
+          "title": "Ledger retryFailureCount does not redefine retry authority",
+          "given": [
+            "The loop ledger reports a retryFailureCount for a change"
+          ],
+          "when": "Task completion, retry budget, or acceptance is evaluated",
+          "then": [
+            "retryFailureCount is treated as derived evidence only",
+            "task.attempts and task.error_recovery remain the authoritative retry accounting",
+            "The ledger value does not gate task completion or acceptance"
           ]
         }
       ]

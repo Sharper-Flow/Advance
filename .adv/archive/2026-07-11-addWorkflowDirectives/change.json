@@ -1,0 +1,1447 @@
+{
+  "id": "addWorkflowDirectives",
+  "title": "Add workflow directives",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-10T23:19:07.515Z",
+  "tasks": [
+    {
+      "id": "tk-83fcef53f7c2",
+      "title": "Implement workflow-safe directive projection",
+      "type": "code",
+      "section": "Directive core",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-10T23:39:38.331Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "AC1",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T23:42:49.020Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkflowDirectives",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkflowDirectives",
+          "task_id": "tk-83fcef53f7c2",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-83fcef53f7c2"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/utils/workflow-directive.ts",
+            "plugin/src/utils/workflow-directive.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm vitest run src/utils/workflow-directive.test.ts",
+              "exit_code": 1,
+              "summary": "RED: module absent — 'Cannot find module ./workflow-directive' (expected fail before implementation)"
+            },
+            {
+              "command": "pnpm vitest run src/utils/workflow-directive.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 18 tests passed (all 7 gates, approval, poisoned_history, missing_workflow, 2+ blockers, GATE_STUCK synthesis, canArchive, never_started idle, archived, unknown recovery, referential transparency)"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit clean across project"
+            },
+            {
+              "command": "pnpm vitest run src/temporal/workflow-bundle-boundary.test.ts src/utils/context-snapshot.purity.test.ts src/utils/buckets.test.ts",
+              "exit_code": 0,
+              "summary": "Workflow bundle boundary + purity + buckets: 15 passed; new util stays workflow-safe"
+            },
+            {
+              "command": "pnpm exec eslint src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts",
+              "exit_code": 0,
+              "summary": "ESLint clean on both new files"
+            },
+            {
+              "command": "pnpm exec prettier --check src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts",
+              "exit_code": 0,
+              "summary": "Prettier clean after --write; final vitest re-run still 18 passed"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Mirrored GATE_COMMAND mapping inline instead of importing getCommandsByGate from manifest.ts",
+              "why": "The directive module must stay workflow-safe (imports from ../types and ../temporal/* only); manifest.ts is not workflow-safe to import. Mapping mirrors getCommandsByGate(gate)[0].name and is documented with the per-gate source."
+            },
+            {
+              "what": "Mapped release gate to adv-archive (not adv-harden)",
+              "why": "Verified: adv-harden has no `gate` field (scope.gates: []), so getCommandsByGate('release') returns [adv-archive]. adv-archive is the release-gate owner."
+            },
+            {
+              "what": "Derived recovery reasons from existing state fields rather than the spec's recoveryMode/recoveryEvidence",
+              "why": "ChangeWorkflowState carries no recoveryMode/recoveryEvidence. Used principled pure signals: poisoned-history regex over signal_rejections, gate stuck_reason, and recovery_audit; terminated+non-terminal status for missing_workflow; unclassifiable recovery_audit for 'unknown'. Keeps the function a pure function of (state, epoch) with no external I/O."
+            },
+            {
+              "what": "never_started fires when no gate has started (all pending) OR bucket === never_started",
+              "why": "Reconciles both stated conditions ('no gates completed yet' and 'only proposal done and idle'). An in_progress proposal counts as started, so the per-gate table routes it to continue, while all-pending and stale-proposal-only both route to never_started."
+            },
+            {
+              "what": "Synthesized a GATE_STUCK blocker for non-poisoned stuck gates",
+              "why": "A stuck gate is a structural blocker; surfacing it makes action.kind 'blocked' for ordinary stalls while letting poisoned stuck_reason route to 'recovery'. Avoids double-counting by excluding stuck gates whose reason matches poisoned evidence."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Wire getWorkflowDirectiveQuery in workflows.ts (state, workflowEpoch) and consolidate nextGate/canArchive (tools/gate.ts ~1023-1040) and getRecommendationForGate (tools/status-enrich.ts ~65-190) onto the directive.",
+            "If callers need an explicit recovery reason (e.g. tool-layer missing_workflow from an unreachable handle), thread an optional recovery hint into a future wrapper without breaking the pure (state, epoch) core."
+          ],
+          "required_main_agent_actions": [
+            "Create/link the follow-up task to wire the query handler and consolidate the two legacy next-gate derivations onto deriveWorkflowDirective (out of this task's scope)."
+          ],
+          "related_scan": "Verified manifest gate→command ownership for all 7 gates (release→adv-archive). No same-pattern defects found in buckets.ts, gate-readiness.ts, or the two derivation sites; they remain as-is per task scope.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added a workflow-safe, pure derive-on-read directive projection. New module plugin/src/utils/workflow-directive.ts exports WorkflowDirective, deriveWorkflowDirective(state, epoch), directiveCtxFromState(state, epoch), and GATE_COMMAND. It mirrors the buckets.ts pattern (directiveCtxFromState bridge + pure derive) and reuses deriveBucket(bucketCtxFromState(...)) for the bucket field. Action precedence: archived > recovery > approval(pendingCheckpoint) > blocked > never_started > continue. canArchive = allGatesSatisfied; phase = first open gate or 'done'/'archived'. IMPORTANT ADAPTATION: the task spec referenced state.recoveryMode/recoveryEvidence fields that do NOT exist on ChangeWorkflowState. Recovery is instead derived purely from real state: poisoned_history from signal_rejections / gate stuck_reason / gate recovery_audit matching isPrecisePoisonedHistoryEvidence; missing_workflow from terminated===true with non-terminal status; unknown from an unclassifiable recovery_audit. Manifest gate→command ownership is mirrored (not imported, to stay workflow-safe); release maps to adv-archive because adv-harden owns no gate (getCommandsByGate('release') === [adv-archive]). All gates verified green; typecheck/eslint/prettier/bundle-boundary clean.",
+            "suggested_next_action": "Wire a getWorkflowDirectiveQuery handler in plugin/src/temporal/workflows.ts (mirror getCurrentBucketQuery at ~lines 693-695) returning deriveWorkflowDirective(state, workflowEpoch), then consolidate the two existing derivations in tools/gate.ts and tools/status-enrich.ts onto the directive."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/utils/workflow-directive.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/utils/workflow-directive.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/temporal/workflow-bundle-boundary.test.ts src/utils/context-snapshot.purity.test.ts src/utils/buckets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "RED: module not found; GREEN: 18 tests passed via adv_run_test. Workflow-bundle-boundary, purity, typecheck, eslint, prettier all clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/workflow-directive.test.ts",
+        "plugin/src/utils/workflow-directive.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/workflow-directive.test.ts",
+        "plugin/src/utils/workflow-directive.ts"
+      ],
+      "checkpointSha": "93b19fd029c09271cc31520c87eff55a0643f9d8",
+      "completedAt": "2026-07-10T23:57:34.359Z",
+      "completed_at": "2026-07-10T23:57:34.359Z"
+    },
+    {
+      "id": "tk-5c08afc4431a",
+      "title": "Consume directives across agent-facing projections",
+      "type": "code",
+      "section": "Directive consumers",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-10T23:39:59.426Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-83fcef53f7c2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC3",
+          "AC5"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-10T23:57:43.666Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkflowDirectives",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkflowDirectives",
+          "task_id": "tk-5c08afc4431a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-5c08afc4431a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/contracts.ts",
+            "plugin/src/temporal/messages.ts",
+            "plugin/src/temporal/workflows.ts",
+            "plugin/src/temporal/workflows.queries.test.ts",
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/tools/gate.ts",
+            "plugin/src/tools/gate.test.ts",
+            "plugin/src/tools/status-enrich.ts",
+            "plugin/src/tools/status-enrich.test.ts",
+            "plugin/src/utils/context-snapshot.ts",
+            "plugin/src/utils/context-snapshot.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/tools/status-enrich.test.ts src/utils/context-snapshot.test.ts src/tools/gate.test.ts",
+              "exit_code": 0,
+              "summary": "RED then GREEN: 3 files, 90 passed. Pre-impl these failed (buildNextGateRecommendationFromDirective missing, Next: line missing, _directive missing)."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/temporal/workflows.queries.test.ts src/temporal/messages.test.ts src/temporal/workflow-bundle-boundary.test.ts src/temporal/workflows.test.ts",
+              "exit_code": 0,
+              "summary": "RED then GREEN: getDirectiveQuery handler resolves with changeId/canArchive/action/gateStatus; query-name contract + workflow-bundle boundary (3.60MB bundle) green."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/status.test.ts src/utils/workflow-directive.test.ts src/utils/compaction-context.test.ts src/storage/context-snapshot-fetch.test.ts src/temporal/change-state.test.ts",
+              "exit_code": 0,
+              "summary": "Regression sweep: 121 passed including status.test.ts (50) exercising directive-based enrichment end-to-end."
+            },
+            {
+              "command": "cd plugin && pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit clean."
+            },
+            {
+              "command": "cd plugin && npx eslint src/tools/gate.ts src/tools/status-enrich.ts src/utils/context-snapshot.ts src/temporal/workflows.ts src/temporal/messages.ts src/temporal/change-state.ts src/temporal/contracts.ts",
+              "exit_code": 0,
+              "summary": "eslint clean (no unused imports after removing allGatesSatisfied/getRecommendationForGate)."
+            },
+            {
+              "command": "cd plugin && npx prettier --check <touched files>",
+              "exit_code": 0,
+              "summary": "prettier --check clean after --write on gate.ts."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Derived the directive locally in gate.ts from reconciled gates + disk change via changeToDirectiveState, rather than adding a 3rd querySignal round-trip for getDirectiveQuery.",
+              "why": "Keeps gate_status a single read path, avoids mock call-order churn in gate.test.ts, and still sources next-action from the single deriveWorkflowDirective projection. The workflow getDirectiveQuery remains authoritative for direct consumers; gate/status derive the same value from the reconciled projection."
+            },
+            {
+              "what": "Replaced getRecommendationForGate with buildNextGateRecommendationFromDirective and removed the old helper.",
+              "why": "Consolidates next-action derivation onto directive.action (gate + command); manifest is now only a fallback for actions carrying a gate but no command (blocked/approval). No external importers of the old helper existed (grep-confirmed)."
+            },
+            {
+              "what": "Context snapshot accepts an optional precomputed directive and renders a compact Next: line, instead of deriving internally.",
+              "why": "Preserves context-snapshot purity (no storage/tools/temporal value imports; purity test still green) and keeps it a formatter over already-loaded data; status-enrich computes the directive once and shares it with both the snapshot and the recency _directive field."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed getRecommendationForGate had no other importers before removal; verified appendClarifyRecommendation still uses GATE_ORDER/isGateSatisfied (imports retained). Checked skipped-gate edge: directive firstOpenGate uses status!==done vs prior isGateSatisfied (done/skipped) — accepted as the consolidated single-projection semantic; status.test.ts (50) shows no regression. Cache-refresh discipline N/A (added a query, not a signal).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "deriveWorkflowDirective is now consumed across all four agent-facing projections: (1) new getDirectiveQuery workflow handler (adv.change.getDirective) registered in workflows.ts mirroring getCurrentBucketQuery; (2) gate status derives nextGate/canArchive from the directive and returns additive _directive; (3) status enrichment builds next-gate recommendations from directive.action and attaches _directive to each recency; (4) context snapshot renders a Next: orientation line from the directive. next-action (nextGate/canArchive/command) now flows through the single directive projection in both gate.ts and status-enrich.ts. New changeToDirectiveState() helper preserves pendingCheckpoint/terminated so tool-side derivation matches the workflow query. No directive state is persisted; no defineUpdate; workflow-bundle boundary green.",
+            "suggested_next_action": "Review diff, then proceed to next task / acceptance. No commits or gate/task mutations performed."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/status-enrich.test.ts src/utils/context-snapshot.test.ts src/tools/gate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/workflows.queries.test.ts src/temporal/messages.test.ts src/temporal/workflow-bundle-boundary.test.ts src/temporal/workflows.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/status.test.ts src/utils/workflow-directive.test.ts src/utils/compaction-context.test.ts src/storage/context-snapshot-fetch.test.ts src/temporal/change-state.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && npx eslint src/tools/gate.ts src/tools/status-enrich.ts src/utils/context-snapshot.ts src/temporal/workflows.ts src/temporal/messages.ts src/temporal/change-state.ts src/temporal/contracts.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: cd plugin && npx prettier --check <touched files>"
+            }
+          ]
+        }
+      ],
+      "verification": "Review remediation: 5 handoff/compaction/recovery call sites now derive+pass directive. never_started action includes command. Full suite 4868/4868 pass. Typecheck, eslint clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/index.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/recovery.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/utils/compaction-context.test.ts",
+        "plugin/src/utils/compaction-context.ts",
+        "plugin/src/utils/workflow-directive.test.ts",
+        "plugin/src/utils/workflow-directive.ts"
+      ],
+      "touched_files": [
+        "plugin/src/index.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/recovery.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/utils/compaction-context.test.ts",
+        "plugin/src/utils/compaction-context.ts",
+        "plugin/src/utils/workflow-directive.test.ts",
+        "plugin/src/utils/workflow-directive.ts"
+      ],
+      "checkpointSha": "4895d2e89d49026b8e51b687ea90abcddfea3660",
+      "completedAt": "2026-07-11T00:57:46.038Z",
+      "completed_at": "2026-07-11T00:57:46.038Z"
+    },
+    {
+      "id": "tk-89ef733809f8",
+      "title": "Verify directive lifecycle integration",
+      "type": "verification",
+      "section": "Integration verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-10T23:40:19.584Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-83fcef53f7c2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5c08afc4431a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-11T00:22:21.465Z",
+      "verification": "Full suite: 4866/4868 pass (2 transient timeouts in untouched files, confirmed flaky by isolated rerun 28/28). Check and build pass clean. Worker bundle compiles with new workflow-directive.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "1f710778ddc68f303e1613c0e8dc9c064920f528",
+      "completedAt": "2026-07-11T00:33:27.833Z",
+      "completed_at": "2026-07-11T00:33:27.833Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkflowDirectives",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:workflow-directives-discovery"
+      },
+      "agent": "adv-researcher",
+      "topic": "Workflow directive algebra: Temporal state, signal/query surface, recovery/gate/nextGate projection, OpenCode output-hook boundary, and test matrix",
+      "sources": [
+        {
+          "label": "deriveBucket state machine (existing directive-like kernel)",
+          "locator": "plugin/src/utils/buckets.ts:34-97",
+          "summary": "Pure Bucket derivation (awaiting_approval|in_flight|stuck|drifting|ready_to_archive|never_started) over ChangeWorkflowState via bucketCtxFromState. Precedent for query-time projection: no persisted field."
+        },
+        {
+          "label": "Workflow computes bucket at query time",
+          "locator": "plugin/src/temporal/workflows.ts:233-235,693-694 and search-attributes.ts:193",
+          "summary": "getCurrentBucketQuery handler returns deriveBucket(bucketCtxFromState(state, workflowEpoch)); also projected to AdvCurrentBucket search attribute. Proves derived-not-stored pattern with a workflow-deterministic epoch."
+        },
+        {
+          "label": "Signal/query-only workflow surface",
+          "locator": "plugin/src/temporal/messages.ts:95-358; AGENTS.md 'Signal-driven change workflows'",
+          "summary": "~70 defineSignal + ~20 defineQuery. No defineUpdate on change-workflow surface. Gate state driven by gateInProgress/gateAwaitingApproval/gateStuck/gateCompleted/gateReentered signals; read via getGateStatusQuery/getStateQuery."
+        },
+        {
+          "label": "ChangeWorkflowState shape + additive-field replay-safety contract",
+          "locator": "plugin/src/temporal/contracts.ts:362-562",
+          "summary": "Durable fields: gates, pendingCheckpoint, terminated, contract, archiveRequest, phase9_status, closure, conformance.lastVerdict, gateCriteria, signal_rejections. Existing extensions annotated 'additive optional — Temporal replay-safe'."
+        },
+        {
+          "label": "Gate types + criteria + readiness blockers",
+          "locator": "plugin/src/types/gates.ts:32-328 (GATE_DEFS, GateStatus, GATE_CRITERIA_DEFINITIONS, GateReadinessBlocker, GATE_WORKTREE_IMPACT)",
+          "summary": "7-gate single-source-of-truth. Gate status enum pending|in_progress|awaiting_approval|stuck|done. Per-gate criteria + typed blockers with code/remediation. Metadata vs worktree_mutation impact classification."
+        },
+        {
+          "label": "Gate readiness evaluator (blocker authority)",
+          "locator": "plugin/src/temporal/gate-readiness.ts:24-121 + GateReadinessResult",
+          "summary": "Deterministic ready/blockers/evidence/warnings over state. priorGateBlockers enforces sequence. ARTIFACT_BACKED_GATES maps gate->artifact evidence. This is the authoritative 'may I transition' function."
+        },
+        {
+          "label": "nextGate/canArchive producer",
+          "locator": "plugin/src/tools/gate.ts:1023-1040",
+          "summary": "gate_status tool derives incomplete=getIncompleteGates, canArchive=allGatesSatisfied, nextGate=incomplete[0]. Independent of status-enrich next-gate logic — the duplication the proposal flags."
+        },
+        {
+          "label": "Independent next-gate recommendation derivation",
+          "locator": "plugin/src/tools/status-enrich.ts:65-190 (getRecommendationForGate, enrichRecentChangeStatus)",
+          "summary": "Second nextGate derivation: GATE_ORDER.find(!isGateSatisfied) + getCommandsByGate -> slash-command recommendation. Confirms two separate next-action derivations exist (gate.ts and status-enrich.ts)."
+        },
+        {
+          "label": "Manifest gate ownership (command->gate authority)",
+          "locator": "plugin/src/manifest.ts:93,120,222,241,260,299,334,491-493 (getCommandsByGate)",
+          "summary": "COMMAND_MANIFEST assigns each /adv-* command a single gate. getCommandsByGate is the deterministic gate->owning-command map; the allowed-next-command source of truth."
+        },
+        {
+          "label": "Recovery classification (poisoned/completed workflow)",
+          "locator": "plugin/src/temporal/recovery-classification.ts:1-83",
+          "summary": "Workflow-safe error-text classifier: isPoisonedHistoryError, isWorkflowCompletedError, recoveryReasonFromError -> 'poisoned_history'|'missing_workflow'. The typed recovery-state vocabulary a directive can surface."
+        },
+        {
+          "label": "OpenCode presentation boundary (the only rendering hook)",
+          "locator": "plugin/src/index.ts:1032-1080; plugin/src/utils/system-block.ts:221-235; __mocks__/opencode-plugin.ts:51-58",
+          "summary": "experimental.chat.system.transform writes a single ordered output.system[0] append (multi-block push breaks OpenAI-compat prefilling). experimental.chat.messages.transform mutates prompt messages. NO outgoing assistant-message interception hook exists."
+        },
+        {
+          "label": "Pure presentation formatter (projection render target)",
+          "locator": "plugin/src/utils/context-snapshot.ts:164-249 + context-snapshot.purity.test.ts",
+          "summary": "buildChangeContextSnapshot is a pure formatter, forbidden from importing storage/tools. Correct home for directive rendering; lifecycle truth stays separate from presentation."
+        },
+        {
+          "label": "Temporal safe-deployment + determinism (external)",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows (versioning.mdx; workflow-definition.md via Context7 /temporalio/documentation)",
+          "summary": "Additive state fields / value changes are replay-safe; changing the sequence of workflow API calls that produce Commands requires patched() versioning; non-deterministic derivation (external calls, DB, LLM) must live in Activities, not the replay path."
+        },
+        {
+          "label": "Existing 'directive-like' bucket test matrix",
+          "locator": "plugin/src/utils/buckets.test.ts:26-100",
+          "summary": "Priority-ordered pure-function tests (pendingCheckpoint over stuck; ready_to_archive; drifting via staleness; never_started). Template for directive determinism/priority tests."
+        }
+      ],
+      "architecture_assessment": "ADV already has every durable input a typed workflow directive needs, plus a proven query-time derivation pattern. deriveBucket (buckets.ts) is a pure state machine over ChangeWorkflowState that the workflow itself computes at query time (workflows.ts:693-694, using a deterministic workflowEpoch) and projects to the AdvCurrentBucket search attribute (search-attributes.ts:193). This is the exact shape a directive should take: derive-not-store. The missing piece is not durable state — it is a single typed WorkflowDirective type that unifies (a) current phase/gate + gate status, (b) allowed next action (today split across gate.ts nextGate/canArchive and status-enrich.ts getRecommendationForGate+getCommandsByGate), (c) approval/recovery/block state (gate status awaiting_approval|stuck, pendingCheckpoint, GateReadinessBlocker[], recovery-classification reason), and (d) required evidence (GATE_CRITERIA_DEFINITIONS + ARTIFACT_BACKED_GATES + GateReadinessResult). Persistence/projection boundary: the directive must be a deterministic PROJECTION over already-persisted signal-driven state — NOT a new persisted field and NOT a defineUpdate mutation. Compute it in a pure workflow-safe module (sibling to buckets.ts, importing only temporal/ + types.ts to satisfy the workflow-bundle boundary), expose via a new additive getDirectiveQuery (replay-safe; additive query handlers don't poison replay), and render through the pure context-snapshot formatter and the single output.system[0] hook. OpenCode exposes NO outgoing-message interception boundary — the strongest enforceable surface is the system-prompt append (system-block.ts) plus tool-output directive fields (gate_status, adv_change_show); host-side enforcement of agent behavior cannot be claimed, matching the proposal constraint. Two real risks: (1) directive derivation must stay pure/deterministic if placed inside the workflow (no Date.now drift — reuse the workflowEpoch pattern buckets.ts already uses); (2) do NOT reintroduce defineUpdate or change the ordered sequence of Command-producing workflow API calls, which would require patched() versioning per Temporal docs.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Direction is sound and low-risk: a typed projection over existing durable state, consumed by existing tool-output and single-system-prompt surfaces. Preserves signal/query-only surface, additive-field replay-safety, manifest gate ownership, and lifecycle/presentation separation. Caveats (not blockers): keep derivation pure/workflow-safe; expose via additive query only; consolidate the two existing next-action derivations to avoid a third divergent one; do not claim host-side enforcement."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Typed directive requires a new Zod-schema'd type + generated JSON schema (schemas:check) and fixture maintenance, versus continued prose/ad-hoc nextGate strings.",
+          "Query-time projection (like deriveBucket) recomputes each read — negligible cost, but means the directive is never a stored source of truth (correct) so consumers must always derive, never cache-then-trust.",
+          "Consolidating gate.ts nextGate/canArchive and status-enrich.ts getRecommendationForGate into one directive derivation touches two existing surfaces; short-term churn for long-term single-source-of-truth.",
+          "OpenCode presentation is limited to one output.system[0] append + tool-output fields; the directive improves orientation but cannot structurally enforce agent compliance (no interception hook)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "New persisted WorkflowDirective field on ChangeWorkflowState set by signals",
+            "disposition": "rejected",
+            "rationale": "Redundant with signal-driven gate/recovery state; risks divergence and adds replay surface. deriveBucket precedent proves derive-at-query-time is the house pattern. Persisting derived data violates single-source-of-truth."
+          },
+          {
+            "option": "defineUpdate-based directive mutation contract",
+            "disposition": "rejected",
+            "rationale": "Proposal constraint + AGENTS.md forbid it; old WorkflowExecutionUpdateAccepted history events poison replay (workflow-bundle-boundary.test enforces signal/query-only). Temporal versioning docs confirm sequence changes need patched()."
+          },
+          {
+            "option": "Directive derived in the tool layer only (no workflow query)",
+            "disposition": "deferred",
+            "rationale": "Viable and simplest first cut (pure fn over getStateQuery result in _adapters/status-enrich), but a workflow getDirectiveQuery + AdvDirective-style search attribute mirrors deriveBucket and enables cross-change visibility. Recommend tool-layer projection first, optional additive query second — both consume the same pure module."
+          },
+          {
+            "option": "LLM/heuristic inference of phase and next action from chat/tool errors",
+            "disposition": "rejected",
+            "rationale": "Explicitly a Must-Not; non-deterministic, not replay-safe, and Temporal docs require non-deterministic work to live outside the replay path. Directive must be structural (P33)."
+          }
+        ],
+        "recommendation": "Adopt a minimal typed directive algebra as a DETERMINISTIC PROJECTION, not new persisted state. (1) Define Zod-schema'd WorkflowDirective { phase: GateId|'done'; gateStatus: pending|in_progress|awaiting_approval|stuck|done; bucket: Bucket; allowedNextAction: { gateId; command } | null (from getCommandsByGate); approval: { required: boolean; kind } derived from awaiting_approval + pendingCheckpoint + planning USER_APPROVED criterion; recovery: null | { reason: 'poisoned_history'|'missing_workflow' } from recovery-classification; blockers: GateReadinessBlocker[] from gate-readiness; requiredEvidence from GATE_CRITERIA_DEFINITIONS + ARTIFACT_BACKED_GATES; canArchive } and generate its JSON schema (pnpm run schemas:generate). (2) Implement deriveDirective(state, epoch) as a pure workflow-safe module beside buckets.ts (imports only temporal/ + types.ts), reusing bucketCtxFromState and the deterministic workflowEpoch — no Date.now/Math.random. (3) Consolidate the two existing next-action derivations (gate.ts nextGate/canArchive and status-enrich.ts getRecommendationForGate) to read from deriveDirective so there is one source of truth. (4) Project via tool outputs first (gate_status, adv_change_show) and render through buildChangeContextSnapshot into the single output.system[0] append; optionally add an additive getDirectiveQuery + directive search attribute mirroring AdvCurrentBucket. (5) Preserve constraints: signal/query-only, no defineUpdate, manifest gate ownership unchanged, lifecycle truth vs presentation separated, no host-enforcement claim."
+      },
+      "recommendation": "Proceed to design. Model the directive as a pure query-time projection over existing durable signal-driven state (deriveBucket is the template), expose it via typed tool-output fields + the single system-prompt append, and consolidate the duplicated nextGate/recommendation derivations. Test matrix (extend buckets.test.ts pattern, priority-ordered pure-fn tests): phase/gate mapping across all 7 gates; gateStatus transitions incl. awaiting_approval and stuck; approval directive (planning USER_APPROVED, pendingCheckpoint, awaiting_approval); recovery directive for poisoned_history and missing_workflow; blockers surfaced from gate-readiness incl. PRIOR_GATE_INCOMPLETE sequence; canArchive at all-done; stale/drifting via deterministic epoch; idempotent re-derivation (same state+epoch => identical directive); replay-safety (additive query/field, no sequence change); and a boundary test asserting the directive module stays workflow-safe (no storage/tools import) mirroring context-snapshot.purity.test.ts and workflow-bundle-boundary.test.ts.",
+      "follow_ups": [
+        "Design should decide tool-layer-only projection vs additive getDirectiveQuery + directive search attribute (recommend tool-layer first, query optional).",
+        "Design should specify the consolidation plan for gate.ts nextGate/canArchive and status-enrich.ts getRecommendationForGate to avoid a third divergent derivation.",
+        "Confirm whether a directive search attribute (AdvDirective-like) is wanted for cross-change WIP visibility, mirroring AdvCurrentBucket."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkflowDirectives",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: workflow directives",
+      "sources": [
+        {
+          "label": "Temporal TypeScript workflow basics",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/basics",
+          "summary": "Workflow sandbox requires deterministic code; external state and side effects belong in Activities; Node/DOM-referencing packages are unsuitable in workflow code."
+        },
+        {
+          "label": "Temporal message passing",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/message-passing",
+          "summary": "Signals mutate workflow state; queries return values; static definitions are recommended when names are known."
+        },
+        {
+          "label": "Temporal versioning",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/versioning",
+          "summary": "Replay-incompatible changes to running workflows require a compatible versioning strategy such as patching or Worker Versioning."
+        },
+        {
+          "label": "Zod v4 documentation",
+          "locator": "https://zod.dev/v4",
+          "summary": "Zod provides parse/safeParse and first-party JSON Schema conversion via z.toJSONSchema."
+        },
+        {
+          "label": "Advance query/signal contract",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/messages.ts",
+          "summary": "Client-side signal/query bindings mirror workflow-local handler tokens and use shared wire-name constants."
+        },
+        {
+          "label": "Advance workflow query handlers",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflows.ts",
+          "summary": "Existing read-only query handlers derive bucket, readiness, investment, review, and task-summary projections from current workflow state."
+        },
+        {
+          "label": "Advance workflow boundary test",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflow-bundle-boundary.test.ts",
+          "summary": "Structural test forbids defineUpdate in workflow-reachable production code and rejects workflow reachability into storage/tools/Node APIs."
+        },
+        {
+          "label": "Advance bucket precedent",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/utils/buckets.ts",
+          "summary": "deriveBucket is a pure projection accepting state-derived context plus explicit time, with a workflow query consumer."
+        },
+        {
+          "label": "Advance status duplication",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/status-enrich.ts",
+          "summary": "Status currently re-derives nextGate and selects command recommendations independently."
+        },
+        {
+          "label": "Advance public schema registry",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/schema-registry.ts",
+          "summary": "Only curated schemas are emitted as public JSON Schema artifacts, through deterministic z.toJSONSchema conversion."
+        }
+      ],
+      "architecture_assessment": "PASS WITH DESIGN REFINEMENTS. Pure derive-on-read is the correct boring design: it matches ADV's existing deriveBucket and other query-time projections, while Temporal states that queries are read-only and signals mutate state (https://docs.temporal.io/develop/typescript/workflows/message-passing; https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflows.ts). Add the directive as a static, additive query using a shared wire-name constant in temporal/contracts.ts plus mirrored definitions in messages.ts/workflows.ts; this preserves the repository's signal/query-only surface (https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/messages.ts; https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflow-bundle-boundary.test.ts). Keep the core directive as TypeScript types and a pure function in workflow-safe code; validate/render it at tool/packet boundaries. I do not know whether importing runtime Zod into this workflow bundle is safe, and current temporal code has no Zod import, so do not add that dependency to the workflow-reachable graph without an explicit bundle-safety proof (https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflow-bundle-boundary.test.ts; https://docs.temporal.io/develop/typescript/workflows/basics). Directive action identity must be a stable domain token (gateId/actionKind), not a command string or manifest object: the workflow boundary forbids tools and the existing status layer owns getCommandsByGate rendering (https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflow-bundle-boundary.test.ts; https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/status-enrich.ts). Bounded leverage: one shared deriver can replace status nextGate recomputation, feed the briefing packet, and reuse the existing table-driven Temporal query test harness; do not index directives as Temporal Search Attributes because they are detailed and mutable presentation/read guidance rather than a demonstrated Visibility filter need (https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflows.queries.test.ts; https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/search-attributes.ts).",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Design direction passes. Caution is non-blocking: specify workflow-safe type/deriver placement, adapter-boundary Zod validation, domain-level action tokens, and additive-query compatibility tests before implementation. No evidence supports adding defineUpdate or persisting a duplicate directive. For already-running workflow histories, query-handler evolution must be tested against replay/legacy fixtures; Temporal requires compatible handling for replay-affecting workflow changes (https://docs.temporal.io/develop/typescript/workflows/versioning)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Query-time derivation eliminates second-truth drift but computes guidance on each read; existing ADV query projections establish this as the local precedent (https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflows.ts).",
+          "A separate typed workflow core plus adapter Zod schema preserves the bundle boundary but requires a small mapping layer and boundary tests (https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflow-bundle-boundary.test.ts; https://zod.dev/v4).",
+          "A domain action token keeps workflow code independent of command rendering but leaves command selection to the tool/presentation plane, where it already resides (https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/status-enrich.ts)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Pure query-time WorkflowDirective projection, schema validation at tool/packet boundary",
+            "disposition": "preferred",
+            "rationale": "Boring, additive, deterministic read model; aligns with Temporal query semantics and existing deriveBucket/query precedent (https://docs.temporal.io/develop/typescript/workflows/message-passing; https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/utils/buckets.ts)."
+          },
+          {
+            "option": "Persist directive in ChangeWorkflowState and update it on every signal",
+            "disposition": "rejected",
+            "rationale": "Creates duplicate derived truth and drift opportunities; contract explicitly avoids it, while current projections already derive on read (https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflows.ts)."
+          },
+          {
+            "option": "Use defineUpdate for directive/readiness retrieval",
+            "disposition": "rejected",
+            "rationale": "A read query is the matching Temporal primitive; ADV's structural boundary explicitly rejects defineUpdate in workflow-reachable code (https://docs.temporal.io/encyclopedia/workflow-message-passing; https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflow-bundle-boundary.test.ts)."
+          },
+          {
+            "option": "Import command manifest and runtime Zod into workflow core",
+            "disposition": "rejected",
+            "rationale": "Command rendering belongs in tools, which workflow code must not reach; Zod runtime bundle safety is unverified in this project (https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflow-bundle-boundary.test.ts; https://docs.temporal.io/develop/typescript/workflows/basics)."
+          },
+          {
+            "option": "Only derive directive in status/briefing tool layer",
+            "disposition": "deferred",
+            "rationale": "Could avoid an additive query, but would weaken the stated durable workflow-oriented contract and duplicate derivation across consumers unless every consumer imports the same pure deriver (https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/tools/status-enrich.ts)."
+          }
+        ],
+        "recommendation": "Implement a workflow-safe `WorkflowDirective` type and `deriveWorkflowDirective(state, epoch)` beside the existing bucket derivation; return domain fields only: phase/currentGate, actionKind, gateId, approval/recovery state, typed blockers, requiredEvidence, and canArchive. Add `getWorkflowDirective` as a static additive query through contracts.ts/messages.ts/workflows.ts. At tool/briefing boundaries, validate the returned object with a Zod schema and map actionKind/gateId to manifest command text. Replace status-enrich's nextGate recomputation with the shared directive; do not persist/index directives, do not import tools/manifest runtime/Zod runtime into workflow-reachable code, and retain existing query names. Add pure exhaustive matrix tests, bundle-boundary tests, legacy/replay fixture tests, and one integration test proving signal -> fresh directive query re-derivation (https://docs.temporal.io/develop/typescript/workflows/message-passing; https://docs.temporal.io/develop/typescript/workflows/versioning; https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/workflows.queries.test.ts)."
+      },
+      "recommendation": "Implement the directive as a pure workflow-safe projection plus additive query, validate it only at adapter/packet boundaries, and make status/briefing consumers share it. Treat the four refinements in validation notes as planning requirements.",
+      "follow_ups": [
+        "Packet warning: TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors were absent. Continued under the user-provided research objective; identity anchors were present.",
+        "Planning should name an explicit directive action algebra and legacy fallback: unknown/legacy state yields recovery/block action, never an executable command.",
+        "Run the existing workflow bundle-boundary and query-handler suites after implementation; use an old-history/replay fixture for compatibility coverage."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkflowDirectives",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkflowDirectives",
+      "task_id": "tk-83fcef53f7c2",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-83fcef53f7c2"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/utils/workflow-directive.ts",
+        "plugin/src/utils/workflow-directive.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm vitest run src/utils/workflow-directive.test.ts",
+          "exit_code": 1,
+          "summary": "RED: module absent — 'Cannot find module ./workflow-directive' (expected fail before implementation)"
+        },
+        {
+          "command": "pnpm vitest run src/utils/workflow-directive.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 18 tests passed (all 7 gates, approval, poisoned_history, missing_workflow, 2+ blockers, GATE_STUCK synthesis, canArchive, never_started idle, archived, unknown recovery, referential transparency)"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit clean across project"
+        },
+        {
+          "command": "pnpm vitest run src/temporal/workflow-bundle-boundary.test.ts src/utils/context-snapshot.purity.test.ts src/utils/buckets.test.ts",
+          "exit_code": 0,
+          "summary": "Workflow bundle boundary + purity + buckets: 15 passed; new util stays workflow-safe"
+        },
+        {
+          "command": "pnpm exec eslint src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts",
+          "exit_code": 0,
+          "summary": "ESLint clean on both new files"
+        },
+        {
+          "command": "pnpm exec prettier --check src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts",
+          "exit_code": 0,
+          "summary": "Prettier clean after --write; final vitest re-run still 18 passed"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Mirrored GATE_COMMAND mapping inline instead of importing getCommandsByGate from manifest.ts",
+          "why": "The directive module must stay workflow-safe (imports from ../types and ../temporal/* only); manifest.ts is not workflow-safe to import. Mapping mirrors getCommandsByGate(gate)[0].name and is documented with the per-gate source."
+        },
+        {
+          "what": "Mapped release gate to adv-archive (not adv-harden)",
+          "why": "Verified: adv-harden has no `gate` field (scope.gates: []), so getCommandsByGate('release') returns [adv-archive]. adv-archive is the release-gate owner."
+        },
+        {
+          "what": "Derived recovery reasons from existing state fields rather than the spec's recoveryMode/recoveryEvidence",
+          "why": "ChangeWorkflowState carries no recoveryMode/recoveryEvidence. Used principled pure signals: poisoned-history regex over signal_rejections, gate stuck_reason, and recovery_audit; terminated+non-terminal status for missing_workflow; unclassifiable recovery_audit for 'unknown'. Keeps the function a pure function of (state, epoch) with no external I/O."
+        },
+        {
+          "what": "never_started fires when no gate has started (all pending) OR bucket === never_started",
+          "why": "Reconciles both stated conditions ('no gates completed yet' and 'only proposal done and idle'). An in_progress proposal counts as started, so the per-gate table routes it to continue, while all-pending and stale-proposal-only both route to never_started."
+        },
+        {
+          "what": "Synthesized a GATE_STUCK blocker for non-poisoned stuck gates",
+          "why": "A stuck gate is a structural blocker; surfacing it makes action.kind 'blocked' for ordinary stalls while letting poisoned stuck_reason route to 'recovery'. Avoids double-counting by excluding stuck gates whose reason matches poisoned evidence."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Wire getWorkflowDirectiveQuery in workflows.ts (state, workflowEpoch) and consolidate nextGate/canArchive (tools/gate.ts ~1023-1040) and getRecommendationForGate (tools/status-enrich.ts ~65-190) onto the directive.",
+        "If callers need an explicit recovery reason (e.g. tool-layer missing_workflow from an unreachable handle), thread an optional recovery hint into a future wrapper without breaking the pure (state, epoch) core."
+      ],
+      "required_main_agent_actions": [
+        "Create/link the follow-up task to wire the query handler and consolidate the two legacy next-gate derivations onto deriveWorkflowDirective (out of this task's scope)."
+      ],
+      "related_scan": "Verified manifest gate→command ownership for all 7 gates (release→adv-archive). No same-pattern defects found in buckets.ts, gate-readiness.ts, or the two derivation sites; they remain as-is per task scope.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added a workflow-safe, pure derive-on-read directive projection. New module plugin/src/utils/workflow-directive.ts exports WorkflowDirective, deriveWorkflowDirective(state, epoch), directiveCtxFromState(state, epoch), and GATE_COMMAND. It mirrors the buckets.ts pattern (directiveCtxFromState bridge + pure derive) and reuses deriveBucket(bucketCtxFromState(...)) for the bucket field. Action precedence: archived > recovery > approval(pendingCheckpoint) > blocked > never_started > continue. canArchive = allGatesSatisfied; phase = first open gate or 'done'/'archived'. IMPORTANT ADAPTATION: the task spec referenced state.recoveryMode/recoveryEvidence fields that do NOT exist on ChangeWorkflowState. Recovery is instead derived purely from real state: poisoned_history from signal_rejections / gate stuck_reason / gate recovery_audit matching isPrecisePoisonedHistoryEvidence; missing_workflow from terminated===true with non-terminal status; unknown from an unclassifiable recovery_audit. Manifest gate→command ownership is mirrored (not imported, to stay workflow-safe); release maps to adv-archive because adv-harden owns no gate (getCommandsByGate('release') === [adv-archive]). All gates verified green; typecheck/eslint/prettier/bundle-boundary clean.",
+        "suggested_next_action": "Wire a getWorkflowDirectiveQuery handler in plugin/src/temporal/workflows.ts (mirror getCurrentBucketQuery at ~lines 693-695) returning deriveWorkflowDirective(state, workflowEpoch), then consolidate the two existing derivations in tools/gate.ts and tools/status-enrich.ts onto the directive."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/utils/workflow-directive.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/utils/workflow-directive.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/temporal/workflow-bundle-boundary.test.ts src/utils/context-snapshot.purity.test.ts src/utils/buckets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec eslint src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkflowDirectives",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkflowDirectives",
+      "task_id": "tk-5c08afc4431a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-5c08afc4431a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/temporal/workflows.queries.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/status-enrich.ts",
+        "plugin/src/tools/status-enrich.test.ts",
+        "plugin/src/utils/context-snapshot.ts",
+        "plugin/src/utils/context-snapshot.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/tools/status-enrich.test.ts src/utils/context-snapshot.test.ts src/tools/gate.test.ts",
+          "exit_code": 0,
+          "summary": "RED then GREEN: 3 files, 90 passed. Pre-impl these failed (buildNextGateRecommendationFromDirective missing, Next: line missing, _directive missing)."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/temporal/workflows.queries.test.ts src/temporal/messages.test.ts src/temporal/workflow-bundle-boundary.test.ts src/temporal/workflows.test.ts",
+          "exit_code": 0,
+          "summary": "RED then GREEN: getDirectiveQuery handler resolves with changeId/canArchive/action/gateStatus; query-name contract + workflow-bundle boundary (3.60MB bundle) green."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/status.test.ts src/utils/workflow-directive.test.ts src/utils/compaction-context.test.ts src/storage/context-snapshot-fetch.test.ts src/temporal/change-state.test.ts",
+          "exit_code": 0,
+          "summary": "Regression sweep: 121 passed including status.test.ts (50) exercising directive-based enrichment end-to-end."
+        },
+        {
+          "command": "cd plugin && pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit clean."
+        },
+        {
+          "command": "cd plugin && npx eslint src/tools/gate.ts src/tools/status-enrich.ts src/utils/context-snapshot.ts src/temporal/workflows.ts src/temporal/messages.ts src/temporal/change-state.ts src/temporal/contracts.ts",
+          "exit_code": 0,
+          "summary": "eslint clean (no unused imports after removing allGatesSatisfied/getRecommendationForGate)."
+        },
+        {
+          "command": "cd plugin && npx prettier --check <touched files>",
+          "exit_code": 0,
+          "summary": "prettier --check clean after --write on gate.ts."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Derived the directive locally in gate.ts from reconciled gates + disk change via changeToDirectiveState, rather than adding a 3rd querySignal round-trip for getDirectiveQuery.",
+          "why": "Keeps gate_status a single read path, avoids mock call-order churn in gate.test.ts, and still sources next-action from the single deriveWorkflowDirective projection. The workflow getDirectiveQuery remains authoritative for direct consumers; gate/status derive the same value from the reconciled projection."
+        },
+        {
+          "what": "Replaced getRecommendationForGate with buildNextGateRecommendationFromDirective and removed the old helper.",
+          "why": "Consolidates next-action derivation onto directive.action (gate + command); manifest is now only a fallback for actions carrying a gate but no command (blocked/approval). No external importers of the old helper existed (grep-confirmed)."
+        },
+        {
+          "what": "Context snapshot accepts an optional precomputed directive and renders a compact Next: line, instead of deriving internally.",
+          "why": "Preserves context-snapshot purity (no storage/tools/temporal value imports; purity test still green) and keeps it a formatter over already-loaded data; status-enrich computes the directive once and shares it with both the snapshot and the recency _directive field."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed getRecommendationForGate had no other importers before removal; verified appendClarifyRecommendation still uses GATE_ORDER/isGateSatisfied (imports retained). Checked skipped-gate edge: directive firstOpenGate uses status!==done vs prior isGateSatisfied (done/skipped) — accepted as the consolidated single-projection semantic; status.test.ts (50) shows no regression. Cache-refresh discipline N/A (added a query, not a signal).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "deriveWorkflowDirective is now consumed across all four agent-facing projections: (1) new getDirectiveQuery workflow handler (adv.change.getDirective) registered in workflows.ts mirroring getCurrentBucketQuery; (2) gate status derives nextGate/canArchive from the directive and returns additive _directive; (3) status enrichment builds next-gate recommendations from directive.action and attaches _directive to each recency; (4) context snapshot renders a Next: orientation line from the directive. next-action (nextGate/canArchive/command) now flows through the single directive projection in both gate.ts and status-enrich.ts. New changeToDirectiveState() helper preserves pendingCheckpoint/terminated so tool-side derivation matches the workflow query. No directive state is persisted; no defineUpdate; workflow-bundle boundary green.",
+        "suggested_next_action": "Review diff, then proceed to next task / acceptance. No commits or gate/task mutations performed."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/status-enrich.test.ts src/utils/context-snapshot.test.ts src/tools/gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/workflows.queries.test.ts src/temporal/messages.test.ts src/temporal/workflow-bundle-boundary.test.ts src/temporal/workflows.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/status.test.ts src/utils/workflow-directive.test.ts src/utils/compaction-context.test.ts src/storage/context-snapshot-fetch.test.ts src/temporal/change-state.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && npx eslint src/tools/gate.ts src/tools/status-enrich.ts src/utils/context-snapshot.ts src/temporal/workflows.ts src/temporal/messages.ts src/temporal/change-state.ts src/temporal/contracts.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: cd plugin && npx prettier --check <touched files>"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkflowDirectives",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkflowDirectives",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [
+        {
+          "id": "review-directive-1",
+          "label": "issue",
+          "file": "plugin/src/utils/workflow-directive.ts",
+          "line": 294,
+          "what": "Derived `never_started` action carries no command.",
+          "why": "The authoritative directive therefore emits `Next: proposal` in the context snapshot instead of the executable `/adv-proposal`; the status-helper unit test hand-constructs a command-bearing never_started action and does not cover the real derivation.",
+          "fix": "Set `command: commandFor(ctx.firstOpenGate)` when present, and add a derivation-to-snapshot/status regression test."
+        },
+        {
+          "id": "review-packet-2",
+          "label": "issue",
+          "file": "plugin/src/tools/change.ts",
+          "line": 223,
+          "what": "Generated lane briefing packets omit the workflow directive entirely.",
+          "why": "The strict contract requires agent packet inclusion, but `buildBriefingPacketForChange` returns no directive and the `include.snapshot` path at lines 791-815 also calls the formatter without one. Reviewer/engineer packets cannot consume the authoritative next action.",
+          "fix": "Derive and attach the directive to the briefing-packet projection (and snapshot path where applicable), then add packet-level assertions for the directive and its next command."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Workflow-safe next-action derivation can remain pure and query-backed, but every agent-facing read projection must consume the same derived object; helper-only tests do not prove packet inclusion."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/utils/workflow-directive.test.ts src/temporal/workflows.queries.test.ts src/tools/gate.test.ts src/tools/status-enrich.test.ts src/utils/context-snapshot.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "109/109 targeted tests passed. Temporal worker bundle compiled successfully during workflow query integration test. Reviewed 13-file change commits; no defineUpdate, directive persistence, or host-enforcement claims found. Workflow-safe imports are limited to types, temporal recovery classification, and bucket derivation."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Existing tests validate pure derivation, Temporal query availability, status projection, and supplied snapshot directives, but not real never_started command derivation or generated briefing-packet inclusion.",
+        "Status and gate consumers derive from projection state rather than querying the workflow directive; this can drift if projection-sidecar coverage expands beyond pendingCheckpoint and terminated."
+      ],
+      "required_main_agent_actions": [
+        "Remediate review-directive-1 and review-packet-2 within existing contract scope, then rerun the targeted suite and the full validation already specified by the change.",
+        "Leave unrelated archive-file baseline divergence untouched; the reviewed implementation itself is the two checkpoint commits (13 source/test files)."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-83fcef53f7c2": [
+      {
+        "runId": "tr_mrflcbew_02f89539",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/utils/workflow-directive.test.ts",
+        "durationMs": 2840.4070899989456,
+        "recordedAt": "2026-07-10T23:52:52.528Z"
+      },
+      {
+        "runId": "tr_mrfle1o1_cf149d4d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/utils/workflow-directive.test.ts",
+        "durationMs": 1704.0172520000488,
+        "recordedAt": "2026-07-10T23:54:13.154Z"
+      },
+      {
+        "runId": "tr_mrflel5q_261af47a",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json 2>&1 | tail -40; echo \"TSC_EXIT=${PIPESTATUS[0]}\"",
+        "durationMs": 8234.616418998688,
+        "recordedAt": "2026-07-10T23:54:38.417Z"
+      },
+      {
+        "runId": "tr_mrflezs7_b8710222",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 8906.082599001005,
+        "recordedAt": "2026-07-10T23:54:57.367Z"
+      },
+      {
+        "runId": "tr_mrflfb4j_2d8a6bd9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/temporal/workflow-bundle-boundary.test.ts src/temporal/workflows.test.ts src/utils/context-snapshot.purity.test.ts src/utils/buckets.test.ts",
+        "durationMs": 1714.10966799967,
+        "recordedAt": "2026-07-10T23:55:12.099Z"
+      },
+      {
+        "runId": "tr_mrflfg7k_4c0d1811",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec eslint src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts",
+        "durationMs": 4474.357466999441,
+        "recordedAt": "2026-07-10T23:55:18.659Z"
+      },
+      {
+        "runId": "tr_mrflfwdw_b2d9eafc",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec prettier --check src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts",
+        "durationMs": 824.2201329991221,
+        "recordedAt": "2026-07-10T23:55:39.619Z"
+      },
+      {
+        "runId": "tr_mrflgdue_5b30ea6c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/utils/workflow-directive.test.ts && pnpm exec prettier --check src/utils/workflow-directive.ts src/utils/workflow-directive.test.ts",
+        "durationMs": 2767.2367940004915,
+        "recordedAt": "2026-07-10T23:56:02.254Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-10T23:29:17.380Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the typed execution-directive proposal: durable agent orientation, allowed-next-action contract, recovery/approval state, and handoff rendering derived from Temporal state.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "95e05e327624fe7867752ec75083555f3246bfd639deccba36e0167111e70501",
+        "non_whitespace_chars": 2991,
+        "checked_at": "2026-07-10T23:19:07.571Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-10T23:35:43.203Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved strict criteria and agreement. Independent research validated pure derive-on-read directive projection, consolidated next action, agent packet enforcement, and Temporal signal/query-only compatibility.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "non_whitespace_chars": 2280,
+        "checked_at": "2026-07-10T23:19:07.572Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-10T23:37:12.720Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Independent validator/scout attempt was cancelled before result and recorded as inconclusive; no contract compromise or user-value tradeoff identified. Design remains bounded by discovery evidence and requires validation coverage in prep.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "314dbfd9f8c8e9794af482d4406953c0769e34e1dc8c2d55038aae59d3cd474e",
+        "non_whitespace_chars": 1658,
+        "checked_at": "2026-07-10T23:19:07.573Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-10T23:42:14.058Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved 3-task graph: directive core (inline), consumers (inline), verification (separate). Validation passed with only non-blocking NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-11T00:34:08.308Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks done. Directive core: 18 TDD tests green. Consumers: 90 targeted + 121 regression tests passed; dual next-action consolidated. Verification: 4866/4868 full suite pass (2 transient timeouts confirmed flaky), check and build clean. Worktree clean; validation passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-11T01:01:43.920Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted. Reviewer APPROVED after remediation; contract matrix 18/18 non-failing; executive summary persisted; preview not applicable for plugin-internal change.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "7fe997fa9045d160d7d13c8b2eb4d16a4e02d95109d66986106ce40499e6aa49",
+        "non_whitespace_chars": 2448,
+        "checked_at": "2026-07-10T23:19:07.574Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+      "approvedAt": "2026-07-10T23:35:23.174Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** Agents receive one directive containing phase, permitted next action, approval/recovery state, blockers, and required evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** Status and gate surfaces derive next action from the same directive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** Legacy and recovery changes obtain directives without chat-history inference.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Directive derivation is deterministic, workflow-safe, and schema-validated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Tests cover seven gates, approval checkpoints, recovery reasons, blockers, `canArchive`, and re-derivation from current state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Existing dual next-action derivations are consolidated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** No `defineUpdate`, persisted duplicate directive truth, or unsupported host-enforcement claim is introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** Agent packets include the directive; user-facing handoff rendering consumes it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** Preserve signal/query-only Temporal workflow surface and deterministic replay.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** Derive directives from durable state at read/query time; do not cache-and-trust a duplicate persisted directive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** Preserve manifest ownership and human approval/release boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** Agent packet plus deterministic tests is the required enforcement target; host UI rendering is optional and must use a supported boundary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1:** Do not infer authoritative phase or next action from chat history or LLM judgment.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2:** Do not use `defineUpdate`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3:** Do not claim outgoing-message host enforcement without a supported OpenCode hook.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1:** Replacing Temporal or the seven-gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2:** Broad OpenCode UI redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3:** Unrelated adapter/detector/performance refactors.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-11T00:58:09.205Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "WorkflowDirective interface in workflow-directive.ts:80-90 contains phase, action (kind/gateId/command/checkpoint), approvalPending, recovery, blockers, canArchive, bucket. All 18 directive tests verify."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "gate.ts:1032 and status-enrich.ts:148 both call deriveWorkflowDirective; getDirectiveQuery in workflows.ts:700 returns same. Dual derivation consolidated."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Recovery derived from durable state (signal_rejections, stuck_reason, recovery_audit, terminated). Legacy state produces safe recovery/blocked directive. Test covers unknown recovery."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Referential transparency test (workflow-directive.test.ts:213-220). Workflow-safe imports only. wf.defineQuery<WorkflowDirective> at boundary. TypeScript shape-validated."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "18 tests: all 7 gates via it.each, approval checkpoint, 3 recovery reasons (poisoned/missing/unknown), 2+ blocker types, GATE_STUCK, canArchive, never_started, archived, referential re-derivation."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "getRecommendationForGate removed; replaced by buildNextGateRecommendationFromDirective. gate.ts nextGate/canArchive derive from directive. No dual derivation remains."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No wf.defineUpdate. No persisted directive field. No outgoing-message host enforcement. Workflow-bundle-boundary test green."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "After remediation: gate.ts, status-enrich.ts, change.ts (show+create), gate completion, recovery handoff, and compaction-context all derive+pass directive. Context snapshot renders Next: line. 8 compaction-context tests include 2 Next:-line tests."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only defineQuery+setHandler added. Workflow-bundle-boundary test confirms no defineUpdate/storage/tools imports."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "deriveWorkflowDirective(state, epoch) is pure; no persistence, no cache. Same pattern as deriveBucket."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "GATE_COMMAND mirrors manifest getCommandsByGate mapping. Release maps to adv-archive. Human approval boundaries unchanged."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Directive in agent packets + tests. No outgoing-message interception. No host enforcement claim."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No LLM calls, no chat-history reads. Recovery derived from durable state fields only."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No wf.defineUpdate anywhere in new code."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No host enforcement claim. Directive is shape-only; rendering is agent-side."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Temporal and 7-gate lifecycle preserved."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No UI changes."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No adapter/detector/performance refactors."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Directive derivation is deterministic, workflow-safe, and schema-validated.",
+    "**AC2:** Tests cover seven gates, approval checkpoints, recovery reasons, blockers, `canArchive`, and re-derivation from current state.",
+    "**AC3:** Existing dual next-action derivations are consolidated.",
+    "**AC4:** No `defineUpdate`, persisted duplicate directive truth, or unsupported host-enforcement claim is introduced.",
+    "**AC5:** Agent packets include the directive; user-facing handoff rendering consumes it."
+  ],
+  "documents": {
+    "proposal": "# Add Workflow Directives\n\n## Why\n\nADV needs an authoritative execution contract for agents, not only prose instructions about lifecycle behavior. Typed directives must tell an agent where work is in the workflow, what it may do next, whether it must wait for a human or recover state, and what proof is needed before a transition.\n\n## What Changes\n\nIntroduce a durable, typed workflow-directive model derived from existing Temporal gate/recovery state. Expose it through agent context and tool outputs, then render both agent orientation and user-facing handoffs from that model.\n\n## User Outcomes\n\n- Operators receive consistent, accurate phase and recovery guidance.\n- Agents can resume work without reconstructing lifecycle position from chat.\n- Approval and archive actions remain clear even after tool timeouts or recovery.\n\n## Affected Code\n\n- Temporal workflow state, signals, queries, and recovery projection.\n- Gate completion/recovery adapters and `nextGate` recommendation logic.\n- Context snapshots, briefing packets, and handoff rendering surfaces.\n- Workflow/agent asset and transition/recovery tests.\n\n## Related Repositories\n\nCurrent Advance repository only.\n\n## Constraints\n\n- Preserve Temporal signal/query-only workflow surface; do not introduce `defineUpdate`.\n- Directives must be deterministic, durable, schema-validated, and derived from state—not chat history or LLM inference.\n- Keep lifecycle truth separate from presentation rendering.\n- Preserve existing command manifest gate ownership and approval authority.\n- Do not claim host-side enforcement unless OpenCode exposes a supported outgoing-message rendering/interception boundary.\n\n## Impact\n\nReduces agent workflow drift and makes recovery/resumption behavior inspectable, deterministic, and testable.\n\n## Context\n\nQuick checks found existing durable pieces but no unified directive type: `gate.ts` owns gate completion/recovery, while `status-enrich.ts` independently derives next-gate recommendations. Web research confirms the architectural direction: Temporal recommends durable state plus signals/queries and concurrency-safe handlers; LangGraph persists typed interrupt payloads; Anthropic distinguishes predefined workflows from model-directed control.\n\n## Discovery Agenda\n\n- Map all current gate, recovery, archive, and checkpoint states to a minimal directive algebra.\n- Determine which directive fields belong inside the Temporal workflow versus deterministic tool-layer projection.\n- Verify Temporal replay, signal ordering, query, and backward-compatible state-evolution requirements.\n- Identify OpenCode-supported structured output/rendering hooks and the strongest enforceable fallback when none exists.\n- Define idempotency, stale-directive, concurrent-signal, missing-workflow, and recovery test scenarios.\n- Resolve overlap boundaries with existing adapter/detector work.\n\n## Scope\n\n### In Scope\n\n- Typed workflow directives, deterministic derivation, persistence/projection, and consumption by agent/context/handoff surfaces.\n- Transition, approval, recovery, and stale-state test coverage.\n\n### Out of Scope\n\n- Replacing Temporal or the existing seven-gate lifecycle.\n- A broad OpenCode UI redesign.\n- Unrelated adapter, detector, or performance refactors.\n\n### Must Not\n\n- Infer authoritative phase/next action from chat history, heuristic LLM classification, or free-text tool errors.\n- Reintroduce `defineUpdate` or weaken approval/release boundaries.",
+    "problemStatement": "## Problem\n\nADV agents lack a single authoritative, typed execution directive derived from durable workflow state. Although gates and `nextGate` exist, agents can infer position from chat history, narrate tool failures without a recovery path, or omit the currently allowed next action.\n\n## Desired outcome\n\nEvery agent turn receives durable pipeline orientation: current phase, allowed next action, approval/recovery/block state, and required evidence. User-facing handoffs render from the same directive.\n\n## Expected scope\n\nTemporal-backed change state, signal/query recovery, manifest/next-gate ownership, briefing packets, handoff rendering, and deterministic transition/recovery tests.",
+    "agreement": "# Agreement: Add Workflow Directives\n\n## Objectives\n\n1. Give every ADV agent durable workflow orientation and an allowed-next-action contract.\n2. Derive all next-action guidance from one deterministic directive projection.\n3. Preserve Temporal replay safety and existing approval authority.\n\n## Success Criteria\n\n- **SC1:** Agents receive one directive containing phase, permitted next action, approval/recovery state, blockers, and required evidence.\n- **SC2:** Status and gate surfaces derive next action from the same directive.\n- **SC3:** Legacy and recovery changes obtain directives without chat-history inference.\n\n## Acceptance Criteria\n\n- **AC1:** Directive derivation is deterministic, workflow-safe, and schema-validated.\n- **AC2:** Tests cover seven gates, approval checkpoints, recovery reasons, blockers, `canArchive`, and re-derivation from current state.\n- **AC3:** Existing dual next-action derivations are consolidated.\n- **AC4:** No `defineUpdate`, persisted duplicate directive truth, or unsupported host-enforcement claim is introduced.\n- **AC5:** Agent packets include the directive; user-facing handoff rendering consumes it.\n\n## Constraints\n\n- **C1:** Preserve signal/query-only Temporal workflow surface and deterministic replay.\n- **C2:** Derive directives from durable state at read/query time; do not cache-and-trust a duplicate persisted directive.\n- **C3:** Preserve manifest ownership and human approval/release boundaries.\n- **C4:** Agent packet plus deterministic tests is the required enforcement target; host UI rendering is optional and must use a supported boundary.\n\n## Avoidances\n\n- **DONT1:** Do not infer authoritative phase or next action from chat history or LLM judgment.\n- **DONT2:** Do not use `defineUpdate`.\n- **DONT3:** Do not claim outgoing-message host enforcement without a supported OpenCode hook.\n\n## Out of Scope\n\n- **OOS1:** Replacing Temporal or the seven-gate lifecycle.\n- **OOS2:** Broad OpenCode UI redesign.\n- **OOS3:** Unrelated adapter/detector/performance refactors.\n\n## Preview Applicability\n\n`visual_surface: false` — no browser-visible product surface. `preview_expectation`: not_applicable.\n\n## Decisions\n\n### User Decisions\n\n- Enforcement target: agent packet plus deterministic tests.\n- Status recommendation consolidation: in scope.\n- Legacy/recovery derivation strategy: agent selects best replay-safe design.\n\n### Agent Decisions (LBP)\n\n- Use a pure query-time projection, mirroring existing `deriveBucket`; avoid persisted directive duplication and `defineUpdate`.\n- Keep any directive type workflow-safe; render at tool/context layer.\n\n## Deferred Questions\n\nNone.",
+    "design": "# Design: Add Workflow Directives\n\n## Architecture Overview\n\nIntroduce `WorkflowDirective` as a pure, schema-validated projection over `ChangeWorkflowState`, following existing `deriveBucket` design. It is derived at query/read time from gate state, readiness blockers, checkpoint/approval state, recovery classification, manifest ownership, and archive evidence.\n\n## Key Decisions\n\n1. Derive, do not persist: existing Temporal state remains truth.\n2. Keep type/deriver workflow-safe and signal/query-only.\n3. Consolidate duplicated next-action derivations.\n4. Separate typed control-plane directive from pure presentation rendering.\n5. Expose directive through additive query/projection without breaking current queries.\n\n## Implementation Strategy\n\nDefine exhaustive directive types; implement `deriveWorkflowDirective(state, epoch)` beside bucket derivation; expose and consume it in gate/status/context/briefing surfaces; add table-driven and integration recovery/concurrency/legacy tests.\n\n## LBP Analysis\n\nDurable state plus typed resume/interrupt payloads align with Temporal and LangGraph. Query-time projection avoids duplicate persisted truth and replay hazards.\n\n## Design-Derived Criteria\n\n- Every action is manifest-owned or explicit recovery.\n- Equal state and epoch derive equal directive.\n- Unknown/legacy state produces safe recovery/block—not inferred execution.\n\n## Risks / Mitigations\n\nAdditive compatibility, deterministic signal ordering tests, and mandatory packet directive fields mitigate state, concurrency, and presentation risks.\n\n## Design Leverage Scout\n\nInconclusive — researcher task was cancelled before result; no unvalidated opportunity adopted.\n\n## Validator\n\nInconclusive — independent validator task was cancelled before result. Design retains discovery-backed Temporal, LangGraph, Anthropic, and repository evidence; re-run validation during prep if needed.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV now provides every agent turn with a typed workflow directive — phase, permitted next action, approval/recovery state, blockers, and evidence — derived deterministically from durable Temporal state. Agents no longer infer lifecycle position from chat history.\n\n## Why It Matters\n\nAgents can resume work after failures, timeouts, or recovery without reconstructing workflow position. User-facing handoffs and agent orientation render from the same authoritative source, preventing phase drift.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Pure `WorkflowDirective` projection (`workflow-directive.ts`) — derive-on-read from `ChangeWorkflowState`, mirroring existing `deriveBucket` pattern.\n2. Workflow query (`getDirectiveQuery`) exposing directive to all consumers.\n3. Gate status, status enrichment, context snapshots, briefing packets, compaction, recovery handoff, and change show/create — all derive next action from the single directive projection via `deriveDirectiveSafe`.\n4. Dual next-action derivation consolidated; `getRecommendationForGate` removed.\n5. 18 table-driven tests covering all gates, approval, recovery reasons, blockers, canArchive, referential transparency, and unknown/legacy safety.\n6. Adaptive context-snapshot budget trim preventing overflow.\n7. Terminal status (closed + archived) routing to safe directive.\n8. CHANGELOG entry and advance-workflow spec section documenting the directive projection.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 blockers after harden remediation.\n- Tests: 4870/4870 full suite pass; 18 directive tests; consumer and integration tests green.\n- Preview URL: not_applicable — no browser-visible surface.\n- Contract matrix: 18/18 rows passed or respected.\n- Merge compatibility: clean dry-run against origin/trunk.\n\n## Remaining Concerns\n\nNone blocking. TypeScript-shape-bounded schema at workflow boundary is acceptable per AC1. The `getDirectiveQuery` handler has no production consumer yet (intentional symmetry with `getCurrentBucketQuery`).\n\n## Supporting Evidence\n\n- Tasks tk-83fcef53f7c2, tk-5c08afc4431a, tk-89ef733809f8 completed with checkpoints.\n- Reviewer: NEEDS_WORK → remediated → APPROVED.\n- Scanner: 92% → AC5 gap closed → full coverage.\n- Harden: closed-status regression fixed, deriveDirectiveSafe wraps all tool-layer sites, budget trim, CHANGELOG + spec added.\n- Checkpoints: 93b19fd0, 1f710778, 4895d2e8, c3aa67d9.\n\n## Consequence Context\n\n1. **Delivered value — pass:** Agents receive durable workflow orientation and allowed-next-action contract. Source: directive module, consumer wiring, tests.\n2. **Enabling-only/follow-up dependency — n/a:** No linked follow-up. Source: change state.\n3. **Ops readiness — pass:** No deployment, migration, or infrastructure changes. Source: code-only change.\n4. **Migration/data impact — n/a:** Directive is pure projection; no persisted state change. Source: derive-on-read design.\n5. **Frontend/preview impact — not_applicable:** No visual surface. Source: agreement preview applicability.\n6. **Collision/release risk — pass:** Reviewer APPROVED; full suite green; merge clean. Source: reviewer report, verification, merge dry-run.\n7. **Open follow-ups — n/a:** None. Source: reports.\n8. **Next action — release sign-off:** Archive proceeds after user approval. Source: workflow.\n\n## Release Readiness Summary\n\n- **Status:** READY.\n- **Documentation hygiene:** pass — CHANGELOG entry and advance-workflow spec section added.\n- **Cleanup:** pass — `getRecommendationForGate` cleanly removed; no orphan callers or stale imports.\n- **Production readiness:** pass — closed-status regression fixed; `deriveDirectiveSafe` wraps all 6 tool-layer sites; adaptive snapshot budget trim; no security/performance concerns.\n- **Deployment readiness:** pass — no env, migration, external service, CI/CD, or infrastructure changes.\n- **Test coverage:** pass — 18 directive tests, consumer tests, full suite 4870/4870 green.\n- **Merge compatibility:** pass — clean dry-run against `origin/trunk`.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-11T00:58:09.205Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** Agents receive one directive containing phase, permitted next action, approval/recovery state, blockers, and required evidence. | pass | WorkflowDirective interface in workflow-directive.ts:80-90 contains phase, action (kind/gateId/command/checkpoint), approvalPending, recovery, blockers, canArchive, bucket. All 18 directive tests verify. |\n| SC2 | success_criterion | **SC2:** Status and gate surfaces derive next action from the same directive. | pass | gate.ts:1032 and status-enrich.ts:148 both call deriveWorkflowDirective; getDirectiveQuery in workflows.ts:700 returns same. Dual derivation consolidated. |\n| SC3 | success_criterion | **SC3:** Legacy and recovery changes obtain directives without chat-history inference. | pass | Recovery derived from durable state (signal_rejections, stuck_reason, recovery_audit, terminated). Legacy state produces safe recovery/blocked directive. Test covers unknown recovery. |\n| AC1 | acceptance_criterion | **AC1:** Directive derivation is deterministic, workflow-safe, and schema-validated. | pass | Referential transparency test (workflow-directive.test.ts:213-220). Workflow-safe imports only. wf.defineQuery<WorkflowDirective> at boundary. TypeScript shape-validated. |\n| AC2 | acceptance_criterion | **AC2:** Tests cover seven gates, approval checkpoints, recovery reasons, blockers, `canArchive`, and re-derivation from current state. | pass | 18 tests: all 7 gates via it.each, approval checkpoint, 3 recovery reasons (poisoned/missing/unknown), 2+ blocker types, GATE_STUCK, canArchive, never_started, archived, referential re-derivation. |\n| AC3 | acceptance_criterion | **AC3:** Existing dual next-action derivations are consolidated. | pass | getRecommendationForGate removed; replaced by buildNextGateRecommendationFromDirective. gate.ts nextGate/canArchive derive from directive. No dual derivation remains. |\n| AC4 | acceptance_criterion | **AC4:** No `defineUpdate`, persisted duplicate directive truth, or unsupported host-enforcement claim is introduced. | pass | No wf.defineUpdate. No persisted directive field. No outgoing-message host enforcement. Workflow-bundle-boundary test green. |\n| AC5 | acceptance_criterion | **AC5:** Agent packets include the directive; user-facing handoff rendering consumes it. | pass | After remediation: gate.ts, status-enrich.ts, change.ts (show+create), gate completion, recovery handoff, and compaction-context all derive+pass directive. Context snapshot renders Next: line. 8 compaction-context tests include 2 Next:-line tests. |\n| C1 | constraint | **C1:** Preserve signal/query-only Temporal workflow surface and deterministic replay. | respected | Only defineQuery+setHandler added. Workflow-bundle-boundary test confirms no defineUpdate/storage/tools imports. |\n| C2 | constraint | **C2:** Derive directives from durable state at read/query time; do not cache-and-trust a duplicate persisted directive. | respected | deriveWorkflowDirective(state, epoch) is pure; no persistence, no cache. Same pattern as deriveBucket. |\n| C3 | constraint | **C3:** Preserve manifest ownership and human approval/release boundaries. | respected | GATE_COMMAND mirrors manifest getCommandsByGate mapping. Release maps to adv-archive. Human approval boundaries unchanged. |\n| C4 | constraint | **C4:** Agent packet plus deterministic tests is the required enforcement target; host UI rendering is optional and must use a supported boundary. | respected | Directive in agent packets + tests. No outgoing-message interception. No host enforcement claim. |\n| DONT1 | avoidance | **DONT1:** Do not infer authoritative phase or next action from chat history or LLM judgment. | respected | No LLM calls, no chat-history reads. Recovery derived from durable state fields only. |\n| DONT2 | avoidance | **DONT2:** Do not use `defineUpdate`. | respected | No wf.defineUpdate anywhere in new code. |\n| DONT3 | avoidance | **DONT3:** Do not claim outgoing-message host enforcement without a supported OpenCode hook. | respected | No host enforcement claim. Directive is shape-only; rendering is agent-side. |\n| OOS1 | out_of_scope | **OOS1:** Replacing Temporal or the seven-gate lifecycle. | not_applicable | Temporal and 7-gate lifecycle preserved. |\n| OOS2 | out_of_scope | **OOS2:** Broad OpenCode UI redesign. | not_applicable | No UI changes. |\n| OOS3 | out_of_scope | **OOS3:** Unrelated adapter/detector/performance refactors. | not_applicable | No adapter/detector/performance refactors. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-10T23:19:07.827Z",
+      "contentHash": "95e05e327624fe7867752ec75083555f3246bfd639deccba36e0167111e70501",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-10T23:19:07.827Z",
+      "contentHash": "58dcfc20417a36d0fbc6c4e4a08a128c13befeb6793c466f4e95bccb42091bcd",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-10T23:35:03.381Z",
+      "contentHash": "90b98362893e56a8092e12794cf8faf0e0672c29287314bee80200d58e000ffc",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-10T23:37:04.513Z",
+      "contentHash": "314dbfd9f8c8e9794af482d4406953c0769e34e1dc8c2d55038aae59d3cd474e",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-11T01:41:12.192Z",
+      "contentHash": "0d6f55ed6c0bd0b38ab0e08ca4430236222115e73c915835e10c4a885da945fd",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-11T01:41:12.192Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

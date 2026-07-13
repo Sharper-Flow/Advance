@@ -1,0 +1,2164 @@
+{
+  "id": "updateArchiveVisibilitySpec",
+  "title": "Update archive visibility spec",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-10T23:33:06.735Z",
+  "tasks": [
+    {
+      "id": "tk-f1f9465ad8b8",
+      "title": "Harden archive route proof regressions",
+      "type": "code",
+      "section": "Archive proof and recovery",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-11T16:11:52.108Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC6"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "OOS2"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateArchiveVisibilitySpec",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateArchiveVisibilitySpec",
+          "task_id": "tk-f1f9465ad8b8",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f1f9465ad8b8"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"route × proof discriminants\"",
+              "exit_code": 0,
+              "summary": "RED-phase record: 6 new discriminant tests pass against existing behavior — typed proof authority already implements all routes; tests are regression locks, no production change needed (runId tr_mrglhi3j_840bb9b8)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: all 166 tests pass across git-finalize, phase9 archive, archive-repair, and status-repair suites (runId tr_mrglik61_60e0d495)"
+            },
+            {
+              "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+              "exit_code": 0,
+              "summary": "VERIFY: plugin typecheck clean (runId tr_mrglj42h_bebbad9e)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added regression-lock tests only; no production code changed",
+              "why": "Audit of resolveReleaseReachability showed blocked, no_remote (both directions), direct (all fallbacks), and pr_auto_merge already covered; only pr_manual, merge_queue proof outcomes, blocked-route I/O short-circuit, and no_remote-unmerged lacked assertions. Prune-first: locking existing correct behavior beats refactoring (respects OOS2, C1)."
+            },
+            {
+              "what": "Blocked-route test asserts zero git/gh I/O via throwing mocks",
+              "why": "AC1/C1 require blocked classification to be structural and side-effect-free; an I/O call would prove the short-circuit regressed."
+            },
+            {
+              "what": "Did not duplicate bundle-present retry ordering tests",
+              "why": "Existing phase9 tests already cover it (existing-bundle retry blocked without evidence, PR-merged pending_merge finalization from bundle, changeTipSha threading, idempotent re-run, gate reconciliation on retry). Verified by reading change.archive-phase9.test.ts rather than re-adding."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned every ReleaseFinalizationRouteName discriminant against resolveReleaseReachability test coverage and the phase9/archive-repair/status-repair suites. Locked the 6 missing cases: blocked (no I/O), no_remote local_unmerged, pr_manual pr_merged, pr_manual pr_unmerged (open PR never reports success), merge_queue pr_merged, merge_queue deleted-branch changeTipSha tree fallback. AC2 bundle-present retry ordering and AC6 repair proof revalidation already have deterministic coverage in change.archive-phase9.test.ts (7 tests), change.archive-repair.test.ts, and change.status-repair.test.ts.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Route×proof discriminant matrix is now fully locked: all 6 finalization routes (no_remote, direct, pr_auto_merge, pr_manual, merge_queue, blocked) have at least one positive-proof and one actionable-failure assertion in git-finalize.test.ts, including deleted-branch tree-SHA fallback for merge_queue. No production code changed — ReleaseReachabilityProof remains the sole typed authority and already behaved correctly; RED-phase run confirmed the new tests pass as regression locks. AC2/AC6 retry and repair coverage pre-existed and passes (166 tests green, typecheck clean).",
+            "suggested_next_action": "Proceed to next ready task (tk-5918decc9b8f terminal worktree cleanup); this task's evidence satisfies DD3 (one assertion per discriminant plus existing bundle-present retry ordering)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"route × proof discriminants\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit -p tsconfig.json"
+            }
+          ]
+        }
+      ],
+      "verification": "Engineer report: 166/166 archive suites and plugin typecheck passed; RED/GREEN evidence recorded.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/utils/workspace-warp.test.ts",
+        "plugin/src/utils/workspace-warp.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/utils/workspace-warp.test.ts",
+        "plugin/src/utils/workspace-warp.ts",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "checkpointSha": "229d48e966d136c68dd413b84c4e3a7379ac691f",
+      "completedAt": "2026-07-11T16:54:54.746Z",
+      "completed_at": "2026-07-11T16:54:54.746Z"
+    },
+    {
+      "id": "tk-5918decc9b8f",
+      "title": "Fail-close terminal worktree cleanup",
+      "type": "code",
+      "section": "Terminal cleanup safety",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-11T16:12:02.267Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "SC3",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C3",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateArchiveVisibilitySpec",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateArchiveVisibilitySpec",
+          "task_id": "tk-5918decc9b8f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-5918decc9b8f"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/utils/workspace-warp.ts",
+            "plugin/src/utils/workspace-warp.test.ts",
+            "plugin/src/tools/worktree/index.ts",
+            "plugin/src/tools/worktree/state.ts",
+            "plugin/src/tools/worktree/index-delete.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts",
+              "exit_code": 1,
+              "summary": "RED: 4 new fail-closed tests failed against fail-open behavior (WORKSPACE_CLEANUP_FAILED / WORKSPACE_OWNERSHIP_UNCERTAIN / typed blocker class)"
+            },
+            {
+              "command": "pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 105 tests pass after fail-closed implementation"
+            },
+            {
+              "command": "pnpm run schemas:check && pnpm run typecheck && pnpm exec tsx scripts/check-test-isolation.ts && pnpm run lint && prettier --check (touched files)",
+              "exit_code": 0,
+              "summary": "Schemas, typecheck, isolation, eslint over src/, and prettier on all touched files pass; 3 unrelated pre-existing prettier-drift files excluded and surfaced"
+            },
+            {
+              "command": "pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts src/tools/adv-worktree.test.ts",
+              "exit_code": 0,
+              "summary": "Final regression pass across lookup, delete, drain, and tool-wrapper suites"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added findWorkspaceByDirectoryChecked returning { ok: true, workspace } | { ok: false, reason }; kept findWorkspaceByDirectory as a back-compat wrapper mapping failure to null",
+              "why": "Preserves existing tests and the rq-warpModeContract05 asset contract while giving the delete path a structural unknown-vs-empty distinction (P33)"
+            },
+            {
+              "what": "Workspace delete failure now fails closed (typed blocker + pending-delete queue) instead of warn-and-continue to git removal",
+              "why": "AC3/DONT2/DONT3: a workspace that could not be deleted still owns the worktree; proceeding to git worktree remove would strand it and downgrade a cleanup error into success"
+            },
+            {
+              "what": "404 on workspace delete remains tolerated",
+              "why": "deleteAdvWorkspace treats 404 as success — the workspace is proven gone, so ownership is certain and git removal is safe"
+            },
+            {
+              "what": "Typed blocker classes (workspace_ownership_uncertain / workspace_cleanup_failed) wired through classifyDeleteResultForPendingDelete and classifyPendingDelete reason fallback",
+              "why": "AC4: retained cleanup must expose an exact typed blocker through drain records, adv_worktree_triage, and adv_status aggregates without new surfaces"
+            },
+            {
+              "what": "Added explicit WORKSPACE_* cases to the legacy worktree_delete tool result switch",
+              "why": "Without them the new blockers fell to the generic default and lost the actionable retry hint (AC4 exact blocker visibility)"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Pre-existing prettier drift on this branch (not touched by this task): plugin/src/adv-autonomy-quality-assets.test.ts, plugin/src/events/events.test.ts, plugin/src/events/terminal.ts — full `pnpm run format:check` fails until the owning task formats them.",
+            "Concurrent worktree modifications not made by this task and left untouched: .adv/specs/advance-workflow/spec.json, docs/specs/advance-workflow.md, plugin/src/tools/archive-helpers/git-finalize.test.ts, plugin/src/workflow-noise-reduction-assets.test.ts."
+          ],
+          "required_main_agent_actions": [
+            "Note the pre-existing prettier drift (3 files) when running full `pnpm run check` for release verification — it is outside this task's scope and may belong to concurrent task tk-f1f9465ad8b8 or an earlier checkpoint."
+          ],
+          "related_scan": "Scanned all consumers of findWorkspaceByDirectory and all AdvWorktreeDeleteResult switches: replaced the sole production lookup call in the delete path, wired new error variants into the legacy worktree_delete switch and drain classification; adv-worktree.ts uses generic JSON formatting and needed no change.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Terminal worktree cleanup now fails closed on workspace ownership uncertainty (lookup failure/non-2xx/malformed list) and on workspace delete failure: advWorktreeDelete returns typed WORKSPACE_OWNERSHIP_UNCERTAIN / WORKSPACE_CLEANUP_FAILED blockers, queues a pending delete (visible via adv_worktree_triage / adv_status classes workspace_ownership_uncertain / workspace_cleanup_failed), and never runs git worktree remove. Centralized deletion authority and fail-closed ownership preserved; 404 workspace delete still tolerated as proven-gone. One pre-existing prettier drift cluster (3 files, not mine) will fail full format:check until its owner formats it.",
+            "suggested_next_action": "Proceed to remaining execution tasks; verification task tk-d8e859110e04 should include the new fail-closed tests as AC3/AC4/SC3 evidence."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check && pnpm run typecheck && pnpm exec tsx scripts/check-test-isolation.ts && pnpm run lint && prettier --check (touched files)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts src/tools/adv-worktree.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Engineer report: 105/105 worktree cleanup tests pass after fail-closed implementation; schemas, typecheck, isolation, eslint, prettier clean on touched files.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "229d48e966d136c68dd413b84c4e3a7379ac691f",
+      "completedAt": "2026-07-11T17:02:52.807Z",
+      "completed_at": "2026-07-11T17:02:52.807Z"
+    },
+    {
+      "id": "tk-9bb515e3cfe3",
+      "title": "Align archive status contract surfaces",
+      "type": "docs",
+      "section": "Status contract alignment",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-11T16:12:10.803Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "SC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateArchiveVisibilitySpec",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateArchiveVisibilitySpec",
+          "task_id": "tk-9bb515e3cfe3",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-9bb515e3cfe3"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-workflow/spec.json",
+            "docs/specs/advance-workflow.md",
+            "plugin/src/workflow-noise-reduction-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts (RED, before law edit)",
+              "exit_code": 1,
+              "summary": "New five-state assertion failed against stale four-state law/mirror text — confirms regression coverage bites"
+            },
+            {
+              "command": "node -e JSON.parse(.adv/specs/advance-workflow/spec.json)",
+              "exit_code": 0,
+              "summary": "spec.json parses cleanly after edit"
+            },
+            {
+              "command": "pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts src/adv-autonomy-quality-assets.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 47/47 tests pass across both archive-visibility asset suites"
+            },
+            {
+              "command": "pnpm exec prettier --check src/workflow-noise-reduction-assets.test.ts && pnpm exec eslint src/workflow-noise-reduction-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Format and lint clean on edited test file"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Rephrased the law clause to '...or failed with reason; every state is nonblocking' instead of the old 'failed with reason and nonblocking marker'",
+              "why": "Old phrasing attached the nonblocking marker only to the failed state; AC5 requires all five states (including activation-pending) to be nonblocking, so the new wording makes nonblocking a property of every enumerated state"
+            },
+            {
+              "what": "Extended the existing 'advance-workflow spec records archive visibility and overlap boundaries' asset test rather than adding a new test file",
+              "why": "SC4 requires law, projection, and regression coverage to share one contract; the existing test already reads both spec.json and docs/specs/advance-workflow.md in one loop, so one assertion covers law and mirror atomically"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Searched all *.md/*.json/*.ts for the stale four-state enumeration ('Local deploy status is shown as', 'ran | not available | not needed'); only spec.json and docs/specs/advance-workflow.md carried it — both fixed. Remaining matches are historical .adv/archive records of the parent change, intentionally untouched.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC5 alignment complete: rq-archiveVisibility01.1 law body and docs/specs mirror now enumerate all five Local deploy states including 'ran; OpenCode activation pending restart' as nonblocking, matching the archive command and terminal templates already aligned by the parent change. Regression assertion added to workflow-noise-reduction-assets.test.ts guards law+mirror against future drift. RED→GREEN cycle recorded; lint, format, and spec.json parse clean. No runtime code touched.",
+            "suggested_next_action": "This docs task is ready for completion evidence; dependent verification task tk-d8e859110e04 proceeds once tk-f1f9465ad8b8 and tk-5918decc9b8f complete."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts (RED, before law edit)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: node -e JSON.parse(.adv/specs/advance-workflow/spec.json)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts src/adv-autonomy-quality-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/workflow-noise-reduction-assets.test.ts && pnpm exec eslint src/workflow-noise-reduction-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Engineer report: 47/47 asset tests pass; spec.json parses; prettier and eslint clean. RED confirmed before law edit, GREEN after.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "229d48e966d136c68dd413b84c4e3a7379ac691f",
+      "completedAt": "2026-07-11T17:03:07.600Z",
+      "completed_at": "2026-07-11T17:03:07.600Z"
+    },
+    {
+      "id": "tk-d8e859110e04",
+      "title": "Verify archive reliability contract",
+      "type": "verification",
+      "section": "Cross-cutting verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-11T16:12:20.944Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f1f9465ad8b8"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5918decc9b8f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9bb515e3cfe3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2"
+        ]
+      },
+      "evidence_policy": "test",
+      "verification": "318/318 tests pass across 8 files; pnpm run check fully green. All AC1–AC7 and SC1–SC4 verified pass with source-backed evidence.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "d3e38d1e3029f77763567cdeef4fe886b3268ac3",
+      "completedAt": "2026-07-11T17:07:17.012Z",
+      "completed_at": "2026-07-11T17:07:17.012Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "tron:archive-visibility-spec"
+      },
+      "agent": "adv-tron",
+      "target": "rq-archiveVisibility01.1 content + Local deploy status-enum consumers + regression assertions",
+      "evidence": [
+        {
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 939,
+          "summary": "rq-archiveVisibility01.1 scenario header"
+        },
+        {
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 944,
+          "summary": "Deploy then-clause: ran | not available | not needed | failed"
+        },
+        {
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 945,
+          "summary": "Reflection then-clause: completed | failed"
+        },
+        {
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 946,
+          "summary": "Negative then-clause: no investment-report noise"
+        },
+        {
+          "file": "docs/specs/advance-workflow.md",
+          "line": 815,
+          "summary": "Human mirror of rq-archiveVisibility01.1"
+        },
+        {
+          "file": "docs/specs/advance-workflow.md",
+          "line": 823,
+          "summary": "Mirror of deploy then-clause"
+        },
+        {
+          "file": "docs/command-voice-standard.md",
+          "line": 356,
+          "summary": "Voice Shipped template: Local deploy phrase"
+        },
+        {
+          "file": "docs/command-voice-standard.md",
+          "line": 384,
+          "summary": "Voice Merged-locally template: Local deploy phrase"
+        },
+        {
+          "file": ".opencode/command/adv-archive.md",
+          "line": 228,
+          "summary": "Phase 8 archive template references phrase"
+        },
+        {
+          "file": ".opencode/command/adv-archive.md",
+          "line": 390,
+          "summary": "Step 5.0 deploy_action: failed"
+        },
+        {
+          "file": ".opencode/command/adv-archive.md",
+          "line": 391,
+          "summary": "Step 5.0 deploy_action: ran"
+        },
+        {
+          "file": ".opencode/command/adv-archive.md",
+          "line": 393,
+          "summary": "Step 5.0 deploy_action: not available | not needed"
+        },
+        {
+          "file": ".opencode/command/adv-archive.md",
+          "line": 395,
+          "summary": "Callout: deploy_action: ran activation semantics"
+        },
+        {
+          "file": ".opencode/command/adv-archive.md",
+          "line": 401,
+          "summary": "Local deploy field variant: ran; OpenCode activation pending restart"
+        },
+        {
+          "file": "plugin/src/workflow-noise-reduction-assets.test.ts",
+          "line": 225,
+          "summary": "Regression: regex for Local deploy phrase"
+        },
+        {
+          "file": "plugin/src/workflow-noise-reduction-assets.test.ts",
+          "line": 237,
+          "summary": "Regression: spec/docs contain rq-archiveVisibility01 + visibility markers"
+        },
+        {
+          "file": "plugin/src/adv-autonomy-quality-assets.test.ts",
+          "line": 251,
+          "summary": "Regression: regex for Local deploy phrase"
+        },
+        {
+          "file": "plugin/src/adv-autonomy-quality-assets.test.ts",
+          "line": 301,
+          "summary": "Regression: regex for activation-pending variant"
+        },
+        {
+          "file": "plugin/src/adv-autonomy-quality-assets.test.ts",
+          "line": 319,
+          "summary": "Regression: toContain Shipped-template phrase"
+        },
+        {
+          "file": "plugin/src/adv-autonomy-quality-assets.test.ts",
+          "line": 322,
+          "summary": "Regression: toContain Merged-locally-template phrase"
+        }
+      ],
+      "findings": [
+        "rq-archiveVisibility01.1 lives at .adv/specs/advance-workflow/spec.json:939-948 with human mirror at docs/specs/advance-workflow.md:815-823.",
+        "Spec then-clause enumerates deploy statuses: ran | not available | not needed | failed: <reason>; nonblocking.",
+        "Spec then-clause enumerates reflection statuses: completed | failed: <reason>; nonblocking.",
+        "Local deploy status enum has zero consumers in plugin/src TypeScript outside *.test.ts — prose-only protocol marker consumed by orchestrator agent when rendering Phase 8 archive report.",
+        "Voice-standard and command prose at docs/command-voice-standard.md:356,384 and .opencode/command/adv-archive.md:228,390-393,401 carry the canonical 5-variant phrase plus the orthogonal activation-pending variant.",
+        "Regression assertions to update if enum reworded: plugin/src/workflow-noise-reduction-assets.test.ts:225,237 and plugin/src/adv-autonomy-quality-assets.test.ts:251,301,319,322.",
+        "Runtime code change required: no — only spec/docs/voice-standard/command-prose plus matching test fixtures move together."
+      ],
+      "hotspots": [],
+      "risks": [
+        "Six test assertions across two files are pinned to exact Local deploy phrases and the rq-archiveVisibility01 ID — silent drift manifests as asset-test failures rather than behavior breaks.",
+        "The 'ran; OpenCode activation pending restart' variant at .opencode/command/adv-archive.md:401 is not enumerated by rq-archiveVisibility01.1 — single-sided rewrite creates command/spec drift."
+      ],
+      "open_questions": [
+        "Should rq-archiveVisibility01.1 explicitly enumerate the activation-pending variant, or is the variant intentionally out-of-scope per rq-archiveVisibility01.3?",
+        "Is the spec text exact-phrase-pinned (current state) or should it tolerate equivalent phrasings so voice-standard refactors do not regress the test?"
+      ],
+      "suggested_next_commands": [
+        "/adv-tron docs/command-voice-standard.md — enumerate every voice-template that mirrors the enum before any spec reword.",
+        "/adv-audit advance-workflow — validate spec↔command↔voice alignment for rq-archiveVisibility01 once prose changes are drafted.",
+        "/adv-tron plugin/src/adv-autonomy-quality-assets.test.ts — plan test fixture edits alongside the prose rewrite so regressions land together."
+      ],
+      "follow_ups": [
+        "[packet-defect] Orchestrator packet omitted TASK_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors; proceeded with prompt-defined scope and bounded evidence collection only.",
+        "[packet-defect] SCOPE KEY and ATTEMPT number not provided; used derived scope_key 'tron:archive-visibility-spec' and attempt=1."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:archive-subsystem-correctness"
+      },
+      "agent": "adv-researcher",
+      "topic": "Archive/release subsystem structural-correctness model assessment",
+      "sources": [
+        {
+          "label": "Reachability proof engine (typed discriminated union)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:341-361 (ReleaseReachabilityProof), :2353-2544 (resolveReleaseReachability)",
+          "summary": "Release completion is decided by a total, discriminated ReleaseReachabilityProof union with 3 reachable proofs (local_merge|origin_default|pr_merged) and 6 unreachable proofs (local_unmerged|origin_unmerged|origin_push_unverified|pr_unmerged|pr_missing_merge_proof|blocked). Route-first (no_remote|direct|pr_* ) then proof-per-route. Structural, not heuristic."
+        },
+        {
+          "label": "Release gate structural enforcement",
+          "locator": "plugin/src/tools/gate.ts:127-333, plugin/src/tools/change/archive-gate.ts:566-668",
+          "summary": "adv_gate_complete release path calls resolveReleaseReachability and refuses completion (RELEASE_REQUIRES_TRUNK_MERGE / CHANGE_BRANCH_NOT_REACHABLE*) unless a reachable proof exists. Canonical evidence string 'Phase 9 finalization shipped;' is structurally required (gate.ts:127), not prose-matched."
+        },
+        {
+          "label": "Recovery model — status repair invariants",
+          "locator": "plugin/src/tools/change.ts:3920-4128 (adv_change_status_repair)",
+          "summary": "Disk-projection status flip gated on 2 real invariants: all 7 gates done + archive bundle present on disk (findArchiveBundle). Requires precise completed/poisoned-workflow OR phase9_status.failed evidence + non-blank recoveryReason. Read-after-write verified (verifyStatusRepairReadAfterWrite). Never pushes/merges."
+        },
+        {
+          "label": "Recovery-consistency + projection-durability spec laws",
+          "locator": ".adv/specs/advance-workflow/spec.json:384-573 (rq-releaseFinalization01), :758-806 (rq-releaseProjectionDurability01), :808-876 (rq-archiveRecoveryConsistency01), :877-930 (rq-releaseRepairRecovery01)",
+          "summary": "Four coordinated MUST requirements make archive success gate on durable release-gate projection proof; recovery must revalidate the SAME origin/default-or-merged-PR proof; failed phase9 without proof fails closed with typed blocker; readback consistency (show archived, in-flight omits, archived includes once) is a spec invariant."
+        },
+        {
+          "label": "Idempotent retry path",
+          "locator": "plugin/src/tools/change/archive-gate.ts:238-431 (reconcileArchivedBundleRetry), .adv/specs/advance-workflow/spec.json:4796-4823 (rq-archiveRetryIdempotence01)",
+          "summary": "Already-archived + bundle-present returns noOp success without repeating finalization/branch-delete/issue-close/cleanup; bundle-only status recovery re-verifies structural Phase 9 evidence before reconciling gate + phase9_status. Squash-merge-safe (changeTipSha threaded so detection survives branch deletion)."
+        },
+        {
+          "label": "Deploy/activation reporting scope (this change's target)",
+          "locator": ".opencode/command/adv-archive.md:386-401, docs/command-voice-standard.md:356,384, plugin/src/adv-autonomy-quality-assets.test.ts:250-323, .adv/specs/advance-workflow/spec.json:939-948",
+          "summary": "Command asset, voice templates, and 6 regression assertions already enumerate the 5-state Local deploy vocabulary including 'ran; OpenCode activation pending restart'. The durable spec law rq-archiveVisibility01.1 (spec.json:944) + human mirror (docs/specs/advance-workflow.md:823) enumerate only 4 states — confirmed one-sided command↔spec drift via grep: 'activation pending restart' has zero matches in spec.json and the mirror."
+        }
+      ],
+      "architecture_assessment": "The archive/release subsystem has a COHERENT structural-correctness model built on P33 (structural-before-heuristic). Its center is a total, typed ReleaseReachabilityProof discriminated union (git-finalize.ts:341-361) that is the single authority consumed identically by three surfaces: (1) forward archive finalization (finalizeRelease / verifyReleaseEvidenceFromMain, archive-gate.ts:544-668), (2) the release gate (gate.ts:269-333), and (3) recovery/retry (reconcileArchivedBundleRetry, adv_change_status_repair). This single-source design means direct-archive, PR-finalization, no_remote, recovery, and status projection cannot disagree about what 'reachable/shipped' means. Failure-mode coverage is strong: every unreachable proof maps to a typed blocker with remediation, recovery paths re-validate the SAME proof rather than trusting prior workflow state (rq-releaseFinalization01.10), and disk-projection recovery is gated on two real shipped invariants (7 gates done + bundle on disk) plus precise poisoned/completed-workflow evidence and read-after-write verification. Squash-merge + branch-deletion survivability is handled content-addressably via persisted changeTipSha (detectSquashMergeByTree). The spec law (rq-releaseFinalization01, rq-releaseProjectionDurability01, rq-archiveRecoveryConsistency01, rq-releaseRepairRecovery01, rq-archiveRetryIdempotence01) is a genuinely testable full-subsystem contract already. The scoped change (updateArchiveVisibilitySpec) targets one narrow, real drift: the 5th Local deploy status 'ran; OpenCode activation pending restart' is present in command/voice/test assets but absent from the durable rq-archiveVisibility01.1 requirement and its human mirror. This is prose-only alignment — zero runtime consumers of the deploy-status enum exist outside test fixtures (confirmed by adv-tron finding + grep). One structural weakness worth flagging: the 5-state deploy-status vocabulary is enforced only by exact-phrase regex assertions across two asset test files (6 pinned assertions), so it is string-brittle rather than schema-backed; any voice-standard reword regresses tests as string mismatch rather than behavior break.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "The archive/release subsystem's structural-correctness model is coherent and testable across direct archive, PR finalization, recovery, status projection, and deploy reporting. The scoped change is correctly narrowed to closing a real one-sided spec↔command drift with no runtime behavior change, matching the design's own out-of-scope constraints. No release-safety blocker found."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Single typed ReleaseReachabilityProof union gives strong cross-surface consistency but concentrates all release-safety semantics in one ~200-line function (resolveReleaseReachability) that every consumer depends on — high blast radius for edits, mitigated by dense test coverage (git-finalize.test.ts exercises every proof branch).",
+          "Deploy-status vocabulary is prose/spec/test-triple-mirrored rather than a shared TypeScript enum, so the scoped change keeps correctness heuristic (exact-phrase regex) not structural (schema). Acceptable because the enum has zero runtime consumers; making it a shared const would be over-engineering for a report-only advisory marker (P19).",
+          "Disk-projection recovery tools (status_repair, archive_repair, poisoned_history modes) trade a small controlled state-bypass surface for liveness when Temporal workflows are completed/poisoned; risk is bounded by mandatory shipped-invariant gates + precise-evidence regex + read-after-write, but each recovery path is a separate audited exception that must stay in sync with the forward proof model."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Leave rq-archiveVisibility01.1 at 4 states (status quo)",
+            "disposition": "rejected",
+            "rationale": "Leaves durable law contradicting shipped command/voice/test assets that already enumerate the 5th state; future spec-driven validation could treat 'ran; OpenCode activation pending restart' as unknown/invalid. Real drift, correctly targeted by the change."
+          },
+          {
+            "option": "Promote the deploy-status vocabulary to a shared TypeScript enum/const consumed by spec-gen and tests",
+            "disposition": "deferred",
+            "rationale": "Would make correctness structural instead of exact-phrase regex, eliminating the 6 brittle assertions. But the enum has no runtime consumer (report-only advisory marker rendered by the orchestrator agent), so this is out of the change's stated scope and risks over-engineering (P19/P29 YAGNI boundary). Worth a follow-up backlog note, not a blocker."
+          },
+          {
+            "option": "Add a separate activation-status report line instead of extending the Local deploy row",
+            "disposition": "rejected",
+            "rationale": "Explicitly rejected in the change's own agreement and by rq-archiveVisibility01 noise-reduction policy (:934) — a separate line reintroduces investment-report-style noise. Extending the existing single row is the correct minimal design."
+          }
+        ],
+        "recommendation": "Proceed with the scoped spec alignment: add 'ran; OpenCode activation pending restart' as the 5th Local deploy status in rq-archiveVisibility01.1 (spec.json:944) and its human mirror (docs/specs/advance-workflow.md:823), and confirm the 6 existing regression assertions still pin the full 5-state phrase. Keep the change spec/projection/test-only with no runtime edit, exactly matching its stated constraints. For a testable full-subsystem contract, the existing rq-releaseFinalization01 + rq-releaseProjectionDurability01 + rq-archiveRecoveryConsistency01 + rq-releaseRepairRecovery01 + rq-archiveRetryIdempotence01 already form one; the only durability weakness is the string-brittle deploy-status vocabulary — recommend a separate backlog item to consider a shared const if the vocabulary churns again, but do NOT expand this change to cover it."
+      },
+      "recommendation": "APPROVE the scoped discovery→design direction. The change correctly targets a real, narrow, one-sided spec↔command drift (5th Local deploy status missing from durable law) with proof: 'activation pending restart' has zero matches in spec.json and docs/specs/advance-workflow.md but is present in adv-archive.md:401, command-voice-standard.md, and 6 regression assertions. Whole-subsystem structural-correctness model is coherent (single typed ReleaseReachabilityProof union authoritative across archive/gate/recovery/projection) and already testable via 5 coordinated MUST requirements. Only non-blocking design note: the deploy-status vocabulary is enforced by exact-phrase regex (string-brittle), not a shared schema/enum — acceptable here (report-only, zero runtime consumers) but a candidate for a future backlog item if it churns.",
+      "follow_ups": [
+        "[packet-defect] Orchestrator packet omitted TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors; proceeded with prompt-defined SCOPE/TASK/EXPECTED OUTPUT and bounded read-only evidence collection.",
+        "[packet-defect] SCOPE KEY and ATTEMPT anchors not provided; used derived scope_key 'researcher:archive-subsystem-correctness' and attempt=1.",
+        "[design-note] Consider a future backlog item to replace the 6 exact-phrase deploy-status regex assertions with a single shared const/enum consumed by spec generation + tests, converting the vocabulary from heuristic (string match) to structural (schema). Out of scope for this change.",
+        "[tooling] lgrep semantic index timed out 3x this session (Voyage API/re-index); fell back to glob/grep/read per lgrep fallback policy. Recommend re-indexing before the next semantic-heavy pass."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "tron:archive-map"
+      },
+      "agent": "adv-tron",
+      "target": "test",
+      "evidence": [
+        {
+          "file": "plugin/src/tools/change.ts",
+          "line": 1,
+          "summary": "x"
+        }
+      ],
+      "findings": [],
+      "hotspots": [],
+      "risks": [],
+      "open_questions": [],
+      "suggested_next_commands": [],
+      "follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Archive-subsystem opportunity scout (discovery)",
+      "sources": [
+        {
+          "label": "change.ts archive orchestration",
+          "locator": "plugin/src/tools/change.ts:2614-2655",
+          "summary": "rq-archiveOrdering01 idempotent bundle-exists retry path referenced in code with NO dedicated *.test.ts assertion (grep rq-archiveOrdering01 over *.test.ts = 0 hits)."
+        },
+        {
+          "label": "archive-gate.ts recovery routing",
+          "locator": "plugin/src/tools/change/archive-gate.ts:737-763,891-928",
+          "summary": "All 3 Temporal interaction points (query/signal/poll) route completed-workflow errors through single recoverReleaseGateIfWorkflowCompleted → recoverReleaseGateViaDiskProjection path. Recovery-call visibility is already coherent, not a gap."
+        },
+        {
+          "label": "git-finalize dynamic-import audit",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts (grep await import = 0)",
+          "summary": "git-finalize.ts has zero dynamic imports; archive dynamic imports live in tool-layer change.ts/archive-gate.ts/recovery.ts (recovery-classification, _recovery-writers, service) — tool layer, not workflow-bundle-reachable. Boundary-guard risk is low."
+        },
+        {
+          "label": "Stale duplicate draft",
+          "locator": "adv_change_show diagnoseArchivedListingTimeout",
+          "summary": "Draft created 2026-07-07, all gates pending, Epic optimizeAdvPerformanceStructure shell, targets #106 archived-listing-timeout already addressed by shipped rq-archiveRetirement01 terminal-list work."
+        },
+        {
+          "label": "rq-archiveVisibility01 consumer audit (prior tron)",
+          "locator": ".adv/specs/advance-workflow/spec.json:939-948 + 6 pinned test assertions",
+          "summary": "Local deploy status enum is prose-only orchestrator marker with zero TS runtime consumers; 6 exact-phrase-pinned assertions across 2 asset test files; activation-pending variant (adv-archive.md:401) not enumerated by rq-archiveVisibility01.1 → single-sided reword = spec/command drift."
+        },
+        {
+          "label": "Release-finalization requirement spread",
+          "locator": "grep rq-releaseFinalization01 across plugin/src = 60+ hits across change.ts, git-finalize.ts, archive-gate.ts, gate.ts, 4 test files",
+          "summary": "rq-releaseFinalization01 is the load-bearing release-proof law cited broadly; cross-spec consolidation is a doc-alignment opportunity, not a runtime gap."
+        }
+      ],
+      "architecture_assessment": "Archive subsystem is well-architected: typed ReleaseReachabilityProof as release authority, fail-closed audited disk-projection recovery routed uniformly through one path across all Temporal interaction points, and correct BEFORE-archive ordering of finalization+release-gate vs status transition (change.ts:2656-2659). The proposal's four flagged risks resolve unevenly against source: (1) rq-archiveOrdering01 deterministic coverage IS a real gap — the ordering/idempotent-retry invariant is referenced in production but has no dedicated test, covered only incidentally via rq-releaseProjectionDurability01; (2) recovery-call visibility is NOT a gap — routing is already single-path and coherent; (3) dynamic-import boundary risk is LOW — git-finalize.ts has no dynamic imports and archive dynamic imports are confined to the tool layer, not workflow-bundle-reachable; (4) cross-spec/prose drift (rq-archiveVisibility01 enum + activation-pending variant) is a real alignment opportunity with brittle exact-phrase test pins. Separately, diagnoseArchivedListingTimeout is a confirmed stale duplicate of shipped work.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No release-safety blocker. Scope is coherent and boundedly de-riskable. Highest-payoff leverage is adding deterministic rq-archiveOrdering01 coverage and lifecycle-closing the stale duplicate draft; both are low-risk auto-adopt. Two of the proposal's four suspected risks (recovery visibility, dynamic-import boundary) are already-covered design constraints rather than gaps — narrowing implementation scope."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Adding rq-archiveOrdering01 tests hardens the idempotent-retry invariant but requires fixture setup for the bundle-exists-status-not-archived recovery sub-case.",
+          "Making rq-archiveVisibility01 assertions phrase-tolerant reduces brittle asset-test failures but weakens exact-wording enforcement of the deploy-status enum.",
+          "Closing diagnoseArchivedListingTimeout removes duplicate backlog noise but requires a user-approved lifecycle action and Epic shell reconciliation."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Treat all 4 proposal-flagged risks as equal code gaps",
+            "disposition": "rejected",
+            "rationale": "Source evidence shows recovery-call visibility and dynamic-import boundary are already-satisfied design constraints; treating them as gaps would inflate scope without payoff."
+          },
+          {
+            "option": "Rewrite rq-archiveVisibility01 deploy enum single-sided in spec only",
+            "disposition": "rejected",
+            "rationale": "adv-archive.md:401 activation-pending variant and 6 pinned test assertions would drift; enum+command+voice+tests must move together."
+          },
+          {
+            "option": "Leave diagnoseArchivedListingTimeout as-is",
+            "disposition": "rejected",
+            "rationale": "Confirmed duplicate of shipped rq-archiveRetirement01 #106 work; leaving it pollutes backlog and Epic roadmap."
+          }
+        ],
+        "recommendation": "Prioritize deterministic rq-archiveOrdering01 regression coverage (auto-adopt) and user-approved closure of the stale duplicate draft (user-surface). De-scope recovery-visibility and dynamic-import guard work to audit-only assertions since source proves them already satisfied. Bundle rq-archiveVisibility01 enum + activation-pending variant + 6 test pins as one aligned prose/test delta."
+      },
+      "recommendation": "Focus execution on the 2 proven gaps (rq-archiveOrdering01 test coverage; stale-draft lifecycle closure) and 1 alignment delta (rq-archiveVisibility01 enum+variant+tests moved together). Downgrade the recovery-visibility and dynamic-import-boundary items from code changes to audit assertions — source proves them already satisfied — narrowing the approved subsystem scope without weakening release proof.",
+      "follow_ups": [
+        "[packet-defect] BRIEFING PACKET declared truncated/unavailable; proceeded with stated prompt scope and bounded ADV-tool + source evidence only.",
+        "rq-archiveVisibility01.1 open question: enumerate the activation-pending variant explicitly or scope it out per rq-archiveVisibility01.3 (design decision for orchestrator)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "tron:worktree-cleanup-diagnosis"
+      },
+      "agent": "adv-tron",
+      "target": "worktree cleanup and deletion call paths, safety checks, queues, tests, and current state",
+      "evidence": [
+        {
+          "file": "plugin/src/tools/worktree/index.ts",
+          "line": 1925,
+          "summary": "advWorktreeDelete entrypoint; 3-condition gate (terminal+merged+clean) at lines 1997-2159; in-use check at line 2187"
+        },
+        {
+          "file": "plugin/src/tools/worktree/index.ts",
+          "line": 2894,
+          "summary": "advWorktreeCleanup entrypoint; defaults forceAttempts to true at line 2921"
+        },
+        {
+          "file": "plugin/src/tools/worktree/index.ts",
+          "line": 2753,
+          "summary": "drainPendingDeletes with MAX_PENDING_DELETE_ATTEMPTS=5 (line 250); CWD check at line 2800; try-delete then incrementAttempts on failure"
+        },
+        {
+          "file": "plugin/src/tools/worktree/in-use.ts",
+          "line": 21,
+          "summary": "isWorktreeInUse: Linux /proc/[pid]/cwd symlink only; returns false on non-Linux; swallows EACCES/ENOENT per-pid"
+        },
+        {
+          "file": "plugin/src/tools/worktree/state.ts",
+          "line": 474,
+          "summary": "classifyPendingDelete in-use keyword matcher maps reason containing 'in use' to worktree_in_use class"
+        },
+        {
+          "file": "plugin/src/tools/worktree/index.ts",
+          "line": 1444,
+          "summary": "cleanupOpenCodeWorkspaceForWorktree: warp workspace cleanup runs AFTER in-use check; deletes the OpenCode workspace even if a stale agent process still references it"
+        },
+        {
+          "file": "plugin/src/tools/worktree/index.ts",
+          "line": 2064,
+          "summary": "force bypass: opts.force + non-reg branch uses verifyNonAdvBranchIntegration (merged-only) bypassing terminal-store check at line 2033"
+        }
+      ],
+      "findings": [
+        "Delete cascade order in advWorktreeDelete (index.ts:1925): registry lookup (1947) -> validateResolvedDeleteWorktreePath (1984) -> 3-condition integration gate (1997-2159) -> pre-hook uncommitted check (2164) -> isWorktreeInUse (2187) -> preDelete hooks (2204) -> post-hook re-check (2244) -> git worktree remove (2310) -> reapEmptyWorktreeParents (2322) -> worktreeDeletedSignal (2334)",
+        "isWorktreeInUse is Linux /proc-only, returns false on non-Linux or when /proc is unreadable; no fdesc/open-handle coverage; tests at in-use.test.ts cover non-Linux, exact-cwd, subdir-cwd, swallowed EACCES, but no fdesc test",
+        "opts.force bypasses UNCOMMITTED_WORK (2173) and HOOK_INTRODUCED_CHANGES (2255) but DOES NOT bypass the CWD-based in-use check at line 2187",
+        "MAX_PENDING_DELETE_ATTEMPTS=5 (index.ts:250); status cleanup uses forceAttempts:false (status.ts:462) so attempts>=5 items get retained without retry; manual tool defaults forceAttempts:true (adv-worktree.ts:2921) and re-attempts increment attempts past the cap (index-delete.test.ts:1218-1225 shows attempts:6 after one forced drain)",
+        "Triage returned 8 orphans: 6 terminal_cleanup_retained (attempts 5-7), 1 missing_from_temporal_unmerged (change/updateZlauncherTitles, 4 unmerged commits, on worktree-adhoc path), 1 missing_from_disk (change/fixDirectArchiveMerge, registry has entry no on-disk). wip_state lists 11 active worktrees showing the disk-missing one still as active",
+        "No structural guard prevents an agent from being asked to delete the worktree it currently occupies; only best-effort protection is isWorktreeInUse CWD check at index.ts:2187",
+        "call sites for advWorktreeCleanup: status.ts:452 with forceAttempts:false; change.ts:3013 archive with forceAttempts:false; manual tool default forceAttempts:true via executeWorktreeCleanup at adv-worktree.ts:2921",
+        "orphan classification at triage.ts:49-57: terminal_cleanup_retained, missing_from_disk, missing_from_temporal_unmerged, dirty_uncommitted_work, archived_not_cleaned, stale_head, missing_from_temporal, registry_missing_change_id",
+        "The 6 retained items with attempts 5-7 imply drainPastMax via force=true retried — past-cap increment is a known behavior at index.ts:510 (recordPendingDeleteFailure appends attempts + 1)",
+        "missing_from_disk allows safe registry entry removal; missing_from_temporal_unmerged requires manual branch review before any delete (orphan rejected at triage.ts:299)"
+      ],
+      "hotspots": [
+        "plugin/src/tools/worktree/index.ts (3310 lines) — single mega-file housing create/delete/cleanup/symlink/copy/warp/portal logic; gate decisions, error classification, in-use probe, opencode cleanup, signal firing all inline",
+        "plugin/src/tools/worktree/in-use.ts — sole in-use detection; Linux /proc/CWD only with no fdesc/lsof coverage; the silent EACCES swallow at line 49 means an unreadable worktree silently treats as not-in-use"
+      ],
+      "risks": [
+        "Best-effort CWD-only in-use check: an agent process with CWD elsewhere (e.g., tmux session, externally launched vim, IDE remote file open) but files open in the worktree registers as not-in-use; delete proceeds and the data could still be referenced (in-use.ts:21-53)",
+        "cleanupOpenCodeWorkspaceForWorktree (index.ts:1444) runs AFTER the in-use check; for a non-CWD-held worktree, the OpenCode workspace is silently deleted, leaving the agent without session context but without an obvious failure",
+        "force + non-registered branch deletion path (index.ts:2064-2091) bypasses the registry-anchored terminal-state safety: force+non-reg uses verifyNonAdvBranchIntegration (merged-only) instead of verifyMissingRegistryChangeBranchIntegration (terminal+merged); under force an agent can delete a branch whose change is still active",
+        "status.ts:452 forceAttempts:false means MAX_PENDING_DELETE_ATTEMPTS=5 acts as a silent cap; the 6 stale retained items will never be re-attempted through /adv-status; manual adv_worktree_cleanup is required and each retry increments attempts",
+        "change/updateZlauncherTitles orphan at worktree-adhoc (not the canonical $ADV_WORKTREE_HOME path); adv_worktree_resume with changeId may not relocate it without force; review of 4 unmerged commits required before any cleanup",
+        "In-use check is CWD-only and silent on EACCES (in-use.ts:48) — degraded graceful-fail-to-not-in-use means hostile or partly-broken systems treat worktrees as safely deletable even when they are not",
+        "orphan change/fixDirectArchiveMerge (registry present, no on-disk) is shown as active in wip_state but missing_from_disk in triage — surface inconsistency could mislead agents operating on stale snapshots"
+      ],
+      "open_questions": [
+        "Does the user have evidence of concrete error messages from past worktree-deletion failures, or is this a forward-looking audit of the surface?",
+        "For each retained terminal_cleanup_retained item with attempts>=5, should the agent first attempt manual cwd-inspection and force-uncommitted reconciliation before retrying cleanup?",
+        "Should change/updateZlauncherTitles be resumed (adv_worktree_resume) for review before any cleanup pass, or abandoned via direct branch deletion with no ADV-owned state?",
+        "Which call site triggered the report (status auto-triggered vs manual user invocation), and did attempts increment past MAX during this run?",
+        "Are there any session/policy reasons isWorktreeInUse should also check OpenCode session workspace ownership, not just /proc/CWD?"
+      ],
+      "suggested_next_commands": [
+        "/adv-tron plugin/src/tools/worktree — bounded deep read on clean-safe-removal contract test coverage and any new attempts-cap escape hatches",
+        "/adv-audit worktree-lifecycle — validate spec-to-impl alignment for the 3-condition gate and WORKTREE_IN_USE behavior",
+        "/adv-tron plugin/src/tools/worktree/in-use.ts — investigate whether fdesc/lsof-based detection should be added for fdesc/leaked-file-handle coverage"
+      ],
+      "follow_ups": [
+        "[packet-defect] Orchestrator packet omitted formal SCOPE KEY, ATTEMPT, TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors; proceeded with the literal packet WORKING DIRECTORY, CHANGE, TASK, and EXPECTED_OUTPUT lines only",
+        "[packet-defect] Identity anchors inferred from prompt scope only; no canonical scope_key was provided in the packet; used tron:worktree-cleanup-diagnosis",
+        "no destructive operations were performed; read-only diagnosis only — no adv_worktree_delete, no adv_worktree_cleanup, no registry or branch mutations were made"
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Archive-subsystem design leverage scouting (simplification, reusable test seams, parallelism, cross-cutting)",
+      "sources": [
+        {
+          "label": "git-finalize.ts ReleaseReachabilityProof + call sites",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:341 (type), :2353 resolveReleaseReachability; called from archive-gate.ts:566, gate.ts:269/298, git-finalize.ts:1716/2297",
+          "summary": "Single typed discriminated-union proof authority (local_merge|origin_default|pr_merged positive; fail-closed negatives). Already reused across 4 finalization/gate sites; mocked consistently in 3 test files. Existing structural release-proof seam — design must reuse, not fork."
+        },
+        {
+          "label": "Shared deletion authority (drainPendingDeletes)",
+          "locator": "plugin/src/tools/worktree/index.ts:2894 advWorktreeCleanup delegates to :2753 drainPendingDeletes; advWorktreeDelete:1925 shares AdvWorktreeDeleteDeps/deleteWorktree",
+          "summary": "advWorktreeCleanup and advWorktreeDelete already route through one deletion authority + one manual-retry queue (drainPendingDeletes). AC4 'shared deletion authority' already satisfied structurally."
+        },
+        {
+          "label": "cleanupBlockers ownership-safety gate",
+          "locator": "plugin/src/tools/worktree/census.ts:133 cleanupBlockers({dirty,merged,live}); :214 cleanupEligible = blockers.length===0; in-use.ts:21 isWorktreeInUse",
+          "summary": "Single machine-checkable, fail-closed safety predicate: any dirty|unmerged|live_session blocks cleanup. AC3/SC3 (never delete under uncertain ownership) already enforced by construction (P33)."
+        },
+        {
+          "label": "Typed triage visibility classes",
+          "locator": "plugin/src/tools/worktree/triage.ts:56 OrphanClass incl. dirty_uncommitted_work + terminal_cleanup_retained; tests triage.test.ts:304/448",
+          "summary": "Retained/dirty cleanup exposed as typed blocker classes (AC4 rq-terminalCleanupVisibility01). Visibility seam already exists and is tested."
+        },
+        {
+          "label": "git-scm canonical primitives",
+          "locator": "https://git-scm.com/docs/git-merge-base ; https://git-scm.com/docs/git-branch",
+          "summary": "git merge-base --is-ancestor (exit 0 = reachable) is the canonical ancestry/reachability primitive; git branch -d is the canonical safe (merged-only) delete. Implementation's origin_default proof + deleteChangeBranch (git-finalize.ts:380) match by-the-book git exactly. Squash-merge tree-SHA detection (detectSquashMergeByTree:40668) is the correct compensating check where --is-ancestor is false but content shipped."
+        },
+        {
+          "label": "Spec warrants already present + structured",
+          "locator": ".adv/specs/advance-workflow/spec.json (rq-releaseFinalization01 +12 subreqs, rq-archiveOrdering01, rq-archiveRecoveryConsistency01, rq-archiveVisibility01); .adv/specs/worktree-lifecycle/spec.json (rq-terminalCleanupSafety01/Visibility01/Lifecycle01)",
+          "summary": "All 7 AC-warranted spec requirements exist with sub-requirements. Change is hardening/alignment, not greenfield; leverage is consolidation + regression coverage, not new law."
+        }
+      ],
+      "architecture_assessment": "The archive subsystem is already well-factored around the exact structural authorities the contract demands. Release proof is a single typed ReleaseReachabilityProof discriminated union reused across 4 finalization/gate call sites and matches canonical git ancestry semantics (merge-base --is-ancestor), with a correct squash-merge tree-SHA compensator. Terminal-cleanup safety is a single fail-closed predicate (cleanupBlockers → cleanupEligible) plus a process/CWD ownership check (isWorktreeInUse), and BOTH cleanup and delete already flow through one shared deletion authority (drainPendingDeletes) with typed triage visibility classes. Given OOS2 forbids broad git-finalize.ts refactoring (88KB/68 symbols) and DONT1 forbids new lifecycle concepts, the highest-leverage design moves are (1) explicitly pin every AC to the EXISTING authority rather than introducing parallel proof/deletion paths, (2) add a shared route-x-proof regression fixture/table so the 8 finalization routes (direct/no-remote/PR/merge-queue/manual-PR/blocked/conflict/deleted-branch) are covered by one parametrized seam instead of duplicated per-route tests, and (3) assert (not refactor) the recovery tools (archive-repair, status-repair) revalidate through resolveReleaseReachability / getArchiveContractProofErrors. Leverage here is subtractive/consolidating, consistent with the simplicity bias and the change's hardening intent.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No design blockers. All contract-warranted authorities and specs exist; scouted leverage is reuse/consolidation within OOS2 and DONT1 boundaries. No new user-facing criteria proposed (respects OUT_OF_SCOPE). Semantic lgrep timed out once; compensated with symbol/grep/read + canonical git docs, so evidence coverage is intact."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Parametrized route-x-proof regression table centralizes coverage and cuts per-route duplication, but a shared fixture can mask a route-specific edge if the table's inputs are under-specified — mitigate by keeping one explicit assertion per FinalizationRoute discriminant.",
+          "Pinning ACs to existing authorities (resolveReleaseReachability, drainPendingDeletes, cleanupBlockers) maximizes reuse and honors OOS2/DONT1, but concentrates blast radius: a change to those functions touches many ACs. Acceptable because they are already the single source of truth and heavily tested.",
+          "Treating recovery-tool proof-revalidation as assertion-only (per approved Agent LBP decision) avoids speculative refactor risk but leaves the dynamic-import/tool-layer structure as-is; documented as an audit assertion, not a redesign."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Introduce a new unified ArchiveReleaseAuthority module consolidating proof + finalization + cleanup",
+            "disposition": "rejected",
+            "rationale": "Violates OOS2 (broad git-finalize.ts refactor) and DONT1 (new lifecycle concept). The single-source authorities already exist and are canonical; a new module adds risk without new correctness."
+          },
+          {
+            "option": "Keep per-route duplicated finalization tests as-is",
+            "disposition": "deferred",
+            "rationale": "Meets AC7 letter but leaves high-maintenance duplication; a parametrized route-x-proof table is the low-risk reusable-seam win. Defer only if planning finds the existing tests already table-driven."
+          },
+          {
+            "option": "Add automatic retry loop for retained cleanup",
+            "disposition": "rejected",
+            "rationale": "Directly forbidden by DONT1. The visible manual-retry queue via drainPendingDeletes is the intended design and already exists."
+          }
+        ],
+        "recommendation": "In design, pin each AC to the existing authority (SC1/AC1 → resolveReleaseReachability ReleaseReachabilityProof union; AC2/AC6 → getArchiveContractProofErrors + resolveReleaseReachability revalidation in archive-repair/status-repair; AC3/AC4/SC3 → cleanupBlockers + isWorktreeInUse + drainPendingDeletes shared authority + triage OrphanClass). Add one parametrized FinalizationRoute-x-ReleaseReachabilityProof regression table as the reusable AC7 seam. Do not introduce new modules or lifecycle concepts."
+      },
+      "recommendation": "Adopt 4 leverage candidates: (1) AUTO-ADOPT — reuse resolveReleaseReachability as the sole release-proof authority for AC1/AC2/AC6 (already 4 call sites, canonical git-aligned). (2) AUTO-ADOPT — route AC3/AC4 through existing drainPendingDeletes shared deletion authority + cleanupBlockers fail-closed predicate + triage typed classes; add no parallel path. (3) AUTO-ADOPT (test seam) — introduce one parametrized FinalizationRoute×proof regression table for AC7 instead of duplicating per-route tests (parallelism/reuse win). (4) USER-SURFACE (minor) — confirm recovery tools revalidate proof as assertion-only vs any structural touch, since it borders OOS2. No cross-cutting refactor is warranted; leverage is consolidation, fully inside OOS2/DONT1.",
+      "follow_ups": [
+        "lgrep_search_semantic timed out (8s) once; used symbol/grep/read + canonical git docs instead. Re-index may help future runs.",
+        "BRIEFING PACKET reported generated-but-truncated by the packet; treated as unavailable — scope/contract/affected-files reconstructed from adv_change_show contract (22 items) and source, which is authoritative here.",
+        "Design phase should verify whether change.archive-phase9.test.ts is already table-driven before adding a new parametrized route table (avoid duplicate seam)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Archive subsystem reliability/alignment design validation",
+      "sources": [
+        {
+          "label": "spec rq-releaseFinalization01 (advance-workflow)",
+          "locator": ".adv/specs/advance-workflow/spec.json:384-568",
+          "summary": "Release completion requires no-remote local proof, post-fetch origin/{default} reachability, or merged PR state across direct, PR, skip, and recovery paths; direct finalization must be awaited to durable shipped-or-failed, no fire-and-forget, no auto-retry. Matches design 'proof before terminal state' + reuse of one proof authority across forward/recovery."
+        },
+        {
+          "label": "spec rq-archiveOrdering01",
+          "locator": ".adv/specs/advance-workflow/spec.json:2748-2781",
+          "summary": "Bundle-present retry is idempotent: skip disk write, proceed to status transition; error output carries full cause chain. Backs AC2 idempotence claim."
+        },
+        {
+          "label": "spec rq-archiveRecoveryConsistency01",
+          "locator": ".adv/specs/advance-workflow/spec.json:809-875",
+          "summary": "Recovery/status-repair must be structural, idempotent, read-after-write verified; failed phase9 without proof returns typed blocker and does not mark archived; status_repair gated by same durable read model as show/list. Backs AC2/AC6 and design DD1 recovery revalidation."
+        },
+        {
+          "label": "spec rq-archiveVisibility01.1",
+          "locator": ".adv/specs/advance-workflow/spec.json:932-976",
+          "summary": "Spec-law scenario enumerates FOUR deploy states (ran | not available | not needed | failed). Fifth nonblocking state 'ran; OpenCode activation pending restart' is NOT yet in the law body — confirming the design's law<->template alignment target is a real drift, not a fabrication."
+        },
+        {
+          "label": "worktree-lifecycle spec rq-terminalCleanupSafety01 / Visibility01 / Lifecycle01",
+          "locator": ".adv/specs/worktree-lifecycle/spec.json",
+          "summary": "advWorktreeDelete is sole deletion authority; census.cleanupEligible is advisory only; unsafe/uncertain candidates retained with typed blocker; manual retry through shared path. Backs AC3/AC4 and design fail-closed cleanup + centralized deletion."
+        },
+        {
+          "label": "source git-finalize.ts proof union + route discriminants",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:344 (proof: local_merge|origin_default|pr_merged), routes no_remote/pr_auto_merge/merge_queue at 41-45, verifyReleaseEvidenceFromMain at 155",
+          "summary": "Single typed release-proof authority already exists and is reused across direct/PR/recovery; no alternate success predicate. Confirms design DD1 reuse claim is source-accurate and requires no new authority."
+        },
+        {
+          "label": "source workflow-bundle-boundary.test.ts",
+          "locator": "plugin/src/temporal/workflow-bundle-boundary.test.ts:126-155",
+          "summary": "Enforced guard: workflow-reachable set must not import storage/, tools/, tool-registry.ts, plugin-init.ts, or node:*. Confirms DD4 boundary is real and currently green; design commits to preserve it (agreement C4)."
+        },
+        {
+          "label": "five-state vocabulary assets + templates",
+          "locator": ".opencode/command/adv-archive.md:228; docs/command-voice-standard.md:356,384; plugin/src/adv-autonomy-quality-assets.test.ts:251,299,319",
+          "summary": "Five-state Local deploy vocabulary (incl. 'ran; OpenCode activation pending restart; nonblocking') already present in command template, voice doc, and asset tests; parent addArchiveDeployCallout BRIEFING_DIGEST confirms intent to extend existing row. Design aligns template+law+tests, does not invent a new report row."
+        }
+      ],
+      "architecture_assessment": "Design is a source-verified reliability/alignment audit that reuses existing structural authorities rather than adding any. (1) Release proof: git-finalize.ts already exposes one typed proof union (local_merge|origin_default|pr_merged) consumed by direct, PR, and recovery paths; rq-releaseFinalization01/.10/.12 already mandate awaited durable terminal + recovery revalidation. Design DD1 (single authority, no alternate predicate) matches source and law exactly. (2) Cleanup safety: worktree-lifecycle spec already makes advWorktreeDelete sole authority, census advisory-only, uncertain/unsafe retained with typed blocker, manual retry via shared path. Design DD2 fail-closed-on-uncertain-ownership + centralized deletion is a coverage/hardening extension, not a new mechanism. (3) Status alignment: the ONE genuine law gap is rq-archiveVisibility01.1 enumerating four deploy states while AC5/template/tests use five; the design correctly targets closing that law<->template<->projection<->mirror drift. This is the change's fast-follow purpose (parent addArchiveDeployCallout introduced the callout; this closes the spec-law tail). (4) Boundary: workflow-bundle-boundary guard is real and green; design commits to keep git/cleanup I/O in tool layers. (5) Regression: route discriminants and proof types already have partial parametrized coverage; DD3's consolidated route×proof table with ≥1 assertion per discriminant is additive. No decision adds authority, retry loop, or broad git-finalize refactor — consistent with C1–C5 and DONT1–DONT4.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Every design authority is source-confirmed present. The only law/artifact delta (four-state vs five-state deploy vocabulary in rq-archiveVisibility01.1) is exactly what the design proposes to align and is backed by existing template/test evidence — so it is a correctly-scoped target, not a design defect. Two non-blocking cautions: (a) rq-archiveVisibility01.1 law body must be updated to include the fifth state or execution will pass tests while leaving law drift the AC5 warrant points at — ensure the spec-delta actually edits the law body, not only templates; (b) DD3 route×proof table must assert the 'blocked' and 'pr_manual' discriminants too, not only the four routes currently in git-finalize.test.ts, to satisfy 'each finalization-route discriminant'. Both are prep/execution concerns, not design-shape blockers."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Reuse-over-refactor keeps the proof/deletion authorities coherent and testable but leaves git-finalize.ts large; design accepts this to avoid churn (C-scope), correct given release-safety criticality.",
+          "Fail-closed cleanup on uncertain ownership can leave more retained worktrees requiring manual retry, trading autonomous cleanup for safety — the right trade given DONT3 and the sole-authority invariant.",
+          "Contract/asset tests assert prose vocabulary across five surfaces, adding maintenance coupling, but that coupling is what prevents silent law<->template drift (AC5)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Introduce a new unified release-completion authority abstraction",
+            "disposition": "rejected",
+            "rationale": "Source already has one typed proof union reused across all paths; a new abstraction would add risk to an irreversible release-safety surface with no correctness gain."
+          },
+          {
+            "option": "Add automatic retry loop for direct-finalization failures",
+            "disposition": "rejected",
+            "rationale": "rq-releaseFinalization01 explicitly forbids auto-retry; recovery is audited/manual. Design correctly avoids it (DONT1)."
+          },
+          {
+            "option": "Documentation-only spec bump (four->five states) without regression coverage",
+            "disposition": "rejected",
+            "rationale": "Problem statement rejects doc-only fixes; without route×proof and ordering regressions the runtime invariants stay unprotected."
+          },
+          {
+            "option": "Broad git-finalize.ts refactor to shrink the file",
+            "disposition": "deferred",
+            "rationale": "OOS2 allows it only if a mapped invariant cannot be addressed otherwise; no such invariant found, so deferral is correct."
+          }
+        ],
+        "recommendation": "Proceed to planning. Bind the spec-delta to actually edit the rq-archiveVisibility01.1 law body to the five-state vocabulary (not only templates/tests), and require the DD3 route×proof regression table to include every discriminant present in git-finalize.ts (no_remote, direct/origin_default, pr_auto_merge, pr_manual, merge_queue, blocked) plus the bundle-present retry ordering case."
+      },
+      "recommendation": "Design PASSES independent validation. It reuses source-confirmed authorities (typed release proof, sole advWorktreeDelete, audited recovery, workflow-bundle boundary) and adds only coverage + a legitimate four->five state law alignment. Two planning-time bindings: (1) spec-delta must edit the law body of rq-archiveVisibility01.1, not just templates; (2) route×proof regression must cover all finalization discriminants incl. blocked/pr_manial and the bundle-present retry ordering.",
+      "follow_ups": [
+        "BRIEFING PACKET transport was truncated (degraded); validation used approved contract/agreement/design content read via adv_change_show include flags and git-tracked specs. Report degradation per packet note.",
+        "Local lgrep semantic search timed out once (8s); fell back to grep/symbol index — no evidence gap."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateArchiveVisibilitySpec",
+      "task_id": "tk-9bb515e3cfe3",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-9bb515e3cfe3"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/workflow-noise-reduction-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts (RED, before law edit)",
+          "exit_code": 1,
+          "summary": "New five-state assertion failed against stale four-state law/mirror text — confirms regression coverage bites"
+        },
+        {
+          "command": "node -e JSON.parse(.adv/specs/advance-workflow/spec.json)",
+          "exit_code": 0,
+          "summary": "spec.json parses cleanly after edit"
+        },
+        {
+          "command": "pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts src/adv-autonomy-quality-assets.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 47/47 tests pass across both archive-visibility asset suites"
+        },
+        {
+          "command": "pnpm exec prettier --check src/workflow-noise-reduction-assets.test.ts && pnpm exec eslint src/workflow-noise-reduction-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Format and lint clean on edited test file"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Rephrased the law clause to '...or failed with reason; every state is nonblocking' instead of the old 'failed with reason and nonblocking marker'",
+          "why": "Old phrasing attached the nonblocking marker only to the failed state; AC5 requires all five states (including activation-pending) to be nonblocking, so the new wording makes nonblocking a property of every enumerated state"
+        },
+        {
+          "what": "Extended the existing 'advance-workflow spec records archive visibility and overlap boundaries' asset test rather than adding a new test file",
+          "why": "SC4 requires law, projection, and regression coverage to share one contract; the existing test already reads both spec.json and docs/specs/advance-workflow.md in one loop, so one assertion covers law and mirror atomically"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Searched all *.md/*.json/*.ts for the stale four-state enumeration ('Local deploy status is shown as', 'ran | not available | not needed'); only spec.json and docs/specs/advance-workflow.md carried it — both fixed. Remaining matches are historical .adv/archive records of the parent change, intentionally untouched.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC5 alignment complete: rq-archiveVisibility01.1 law body and docs/specs mirror now enumerate all five Local deploy states including 'ran; OpenCode activation pending restart' as nonblocking, matching the archive command and terminal templates already aligned by the parent change. Regression assertion added to workflow-noise-reduction-assets.test.ts guards law+mirror against future drift. RED→GREEN cycle recorded; lint, format, and spec.json parse clean. No runtime code touched.",
+        "suggested_next_action": "This docs task is ready for completion evidence; dependent verification task tk-d8e859110e04 proceeds once tk-f1f9465ad8b8 and tk-5918decc9b8f complete."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts (RED, before law edit)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: node -e JSON.parse(.adv/specs/advance-workflow/spec.json)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts src/adv-autonomy-quality-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec prettier --check src/workflow-noise-reduction-assets.test.ts && pnpm exec eslint src/workflow-noise-reduction-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateArchiveVisibilitySpec",
+      "task_id": "tk-f1f9465ad8b8",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f1f9465ad8b8"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"route × proof discriminants\"",
+          "exit_code": 0,
+          "summary": "RED-phase record: 6 new discriminant tests pass against existing behavior — typed proof authority already implements all routes; tests are regression locks, no production change needed (runId tr_mrglhi3j_840bb9b8)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: all 166 tests pass across git-finalize, phase9 archive, archive-repair, and status-repair suites (runId tr_mrglik61_60e0d495)"
+        },
+        {
+          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+          "exit_code": 0,
+          "summary": "VERIFY: plugin typecheck clean (runId tr_mrglj42h_bebbad9e)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added regression-lock tests only; no production code changed",
+          "why": "Audit of resolveReleaseReachability showed blocked, no_remote (both directions), direct (all fallbacks), and pr_auto_merge already covered; only pr_manual, merge_queue proof outcomes, blocked-route I/O short-circuit, and no_remote-unmerged lacked assertions. Prune-first: locking existing correct behavior beats refactoring (respects OOS2, C1)."
+        },
+        {
+          "what": "Blocked-route test asserts zero git/gh I/O via throwing mocks",
+          "why": "AC1/C1 require blocked classification to be structural and side-effect-free; an I/O call would prove the short-circuit regressed."
+        },
+        {
+          "what": "Did not duplicate bundle-present retry ordering tests",
+          "why": "Existing phase9 tests already cover it (existing-bundle retry blocked without evidence, PR-merged pending_merge finalization from bundle, changeTipSha threading, idempotent re-run, gate reconciliation on retry). Verified by reading change.archive-phase9.test.ts rather than re-adding."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned every ReleaseFinalizationRouteName discriminant against resolveReleaseReachability test coverage and the phase9/archive-repair/status-repair suites. Locked the 6 missing cases: blocked (no I/O), no_remote local_unmerged, pr_manual pr_merged, pr_manual pr_unmerged (open PR never reports success), merge_queue pr_merged, merge_queue deleted-branch changeTipSha tree fallback. AC2 bundle-present retry ordering and AC6 repair proof revalidation already have deterministic coverage in change.archive-phase9.test.ts (7 tests), change.archive-repair.test.ts, and change.status-repair.test.ts.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Route×proof discriminant matrix is now fully locked: all 6 finalization routes (no_remote, direct, pr_auto_merge, pr_manual, merge_queue, blocked) have at least one positive-proof and one actionable-failure assertion in git-finalize.test.ts, including deleted-branch tree-SHA fallback for merge_queue. No production code changed — ReleaseReachabilityProof remains the sole typed authority and already behaved correctly; RED-phase run confirmed the new tests pass as regression locks. AC2/AC6 retry and repair coverage pre-existed and passes (166 tests green, typecheck clean).",
+        "suggested_next_action": "Proceed to next ready task (tk-5918decc9b8f terminal worktree cleanup); this task's evidence satisfies DD3 (one assertion per discriminant plus existing bundle-present retry ordering)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"route × proof discriminants\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit -p tsconfig.json"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateArchiveVisibilitySpec",
+      "task_id": "tk-5918decc9b8f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-5918decc9b8f"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/utils/workspace-warp.ts",
+        "plugin/src/utils/workspace-warp.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts",
+          "exit_code": 1,
+          "summary": "RED: 4 new fail-closed tests failed against fail-open behavior (WORKSPACE_CLEANUP_FAILED / WORKSPACE_OWNERSHIP_UNCERTAIN / typed blocker class)"
+        },
+        {
+          "command": "pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 105 tests pass after fail-closed implementation"
+        },
+        {
+          "command": "pnpm run schemas:check && pnpm run typecheck && pnpm exec tsx scripts/check-test-isolation.ts && pnpm run lint && prettier --check (touched files)",
+          "exit_code": 0,
+          "summary": "Schemas, typecheck, isolation, eslint over src/, and prettier on all touched files pass; 3 unrelated pre-existing prettier-drift files excluded and surfaced"
+        },
+        {
+          "command": "pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts src/tools/adv-worktree.test.ts",
+          "exit_code": 0,
+          "summary": "Final regression pass across lookup, delete, drain, and tool-wrapper suites"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added findWorkspaceByDirectoryChecked returning { ok: true, workspace } | { ok: false, reason }; kept findWorkspaceByDirectory as a back-compat wrapper mapping failure to null",
+          "why": "Preserves existing tests and the rq-warpModeContract05 asset contract while giving the delete path a structural unknown-vs-empty distinction (P33)"
+        },
+        {
+          "what": "Workspace delete failure now fails closed (typed blocker + pending-delete queue) instead of warn-and-continue to git removal",
+          "why": "AC3/DONT2/DONT3: a workspace that could not be deleted still owns the worktree; proceeding to git worktree remove would strand it and downgrade a cleanup error into success"
+        },
+        {
+          "what": "404 on workspace delete remains tolerated",
+          "why": "deleteAdvWorkspace treats 404 as success — the workspace is proven gone, so ownership is certain and git removal is safe"
+        },
+        {
+          "what": "Typed blocker classes (workspace_ownership_uncertain / workspace_cleanup_failed) wired through classifyDeleteResultForPendingDelete and classifyPendingDelete reason fallback",
+          "why": "AC4: retained cleanup must expose an exact typed blocker through drain records, adv_worktree_triage, and adv_status aggregates without new surfaces"
+        },
+        {
+          "what": "Added explicit WORKSPACE_* cases to the legacy worktree_delete tool result switch",
+          "why": "Without them the new blockers fell to the generic default and lost the actionable retry hint (AC4 exact blocker visibility)"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Pre-existing prettier drift on this branch (not touched by this task): plugin/src/adv-autonomy-quality-assets.test.ts, plugin/src/events/events.test.ts, plugin/src/events/terminal.ts — full `pnpm run format:check` fails until the owning task formats them.",
+        "Concurrent worktree modifications not made by this task and left untouched: .adv/specs/advance-workflow/spec.json, docs/specs/advance-workflow.md, plugin/src/tools/archive-helpers/git-finalize.test.ts, plugin/src/workflow-noise-reduction-assets.test.ts."
+      ],
+      "required_main_agent_actions": [
+        "Note the pre-existing prettier drift (3 files) when running full `pnpm run check` for release verification — it is outside this task's scope and may belong to concurrent task tk-f1f9465ad8b8 or an earlier checkpoint."
+      ],
+      "related_scan": "Scanned all consumers of findWorkspaceByDirectory and all AdvWorktreeDeleteResult switches: replaced the sole production lookup call in the delete path, wired new error variants into the legacy worktree_delete switch and drain classification; adv-worktree.ts uses generic JSON formatting and needed no change.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Terminal worktree cleanup now fails closed on workspace ownership uncertainty (lookup failure/non-2xx/malformed list) and on workspace delete failure: advWorktreeDelete returns typed WORKSPACE_OWNERSHIP_UNCERTAIN / WORKSPACE_CLEANUP_FAILED blockers, queues a pending delete (visible via adv_worktree_triage / adv_status classes workspace_ownership_uncertain / workspace_cleanup_failed), and never runs git worktree remove. Centralized deletion authority and fail-closed ownership preserved; 404 workspace delete still tolerated as proven-gone. One pre-existing prettier drift cluster (3 files, not mine) will fail full format:check until its owner formats it.",
+        "suggested_next_action": "Proceed to remaining execution tasks; verification task tk-d8e859110e04 should include the new fail-closed tests as AC3/AC4/SC3 evidence."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check && pnpm run typecheck && pnpm exec tsx scripts/check-test-isolation.ts && pnpm run lint && prettier --check (touched files)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts src/tools/adv-worktree.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateArchiveVisibilitySpec",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 3,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "tests-tdd-evidence",
+        "scope-conformance"
+      ],
+      "summary": "All 22 contract items traced. Correctness ship-ready: 0 blockers, 0 issues, 8 suggestions/nits. TDD adequate for all risky code. No scope drift.",
+      "findings": [
+        {
+          "scanner": "correctness",
+          "severity": "suggestion",
+          "summary": "Legacy findWorkspaceByDirectory silently collapses typed failure into null; delete or rename now that only tests use it",
+          "evidence": [
+            {
+              "label": "workspace-warp.ts:344",
+              "locator": "plugin/src/utils/workspace-warp.ts:344",
+              "summary": "Wrapper returns null on {ok:false} — re-introduces fail-open if any future caller uses it"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness",
+          "severity": "suggestion",
+          "summary": "isAdvWorkspaceListItem allows empty-string workspace IDs; add id.length>0 guard",
+          "evidence": [
+            {
+              "label": "workspace-warp.ts:264",
+              "locator": "plugin/src/utils/workspace-warp.ts:264",
+              "summary": "Empty ID matches and triggers DELETE on /experimental/workspace/ which 404s silently"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness",
+          "severity": "suggestion",
+          "summary": "First-failure classification depends on reason-text substring matching; extend setPendingDelete to accept lastErrorClass",
+          "evidence": [
+            {
+              "label": "index.ts:2347 + state.ts:469",
+              "locator": "plugin/src/tools/worktree/index.ts:2347",
+              "summary": "First write lacks lastErrorClass; classifyPendingDelete falls back to reason.includes() which is brittle to text refactors"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness",
+          "severity": "info",
+          "summary": "Unreachable isAdvWorkspaceListItem re-check after .find() predicate; dead defensive check",
+          "evidence": [
+            {
+              "label": "workspace-warp.ts:340",
+              "locator": "plugin/src/utils/workspace-warp.ts:340",
+              "summary": ".find() predicate already validates; false branch unreachable"
+            }
+          ]
+        },
+        {
+          "scanner": "correctness",
+          "severity": "info",
+          "summary": "Test mocks omit directory field on warpDeps fixtures",
+          "evidence": [
+            {
+              "label": "index-delete.test.ts:302",
+              "locator": "plugin/src/tools/worktree/index-delete.test.ts:302",
+              "summary": "directory:undefined in all mock fixtures; production supplies real path"
+            }
+          ]
+        },
+        {
+          "scanner": "tests-tdd",
+          "severity": "info",
+          "summary": "tk-f1f9465ad8b8 has no true RED (regression locks on already-correct behavior); defensible per OOS2",
+          "evidence": [
+            {
+              "label": "git-finalize.test.ts",
+              "locator": "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+              "summary": "6 new tests are regression locks; production code already correct"
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Legacy findWorkspaceByDirectory wrapper: delete or rename once test consumers are migrated",
+        "setPendingDelete: accept lastErrorClass argument to eliminate first-failure substring matching",
+        "Concurrent advWorktreeDelete race for same branch: pre-existing, flagged for future follow-up"
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "updateArchiveVisibilitySpec",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateArchiveVisibilitySpec",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/utils/workspace-warp.ts",
+          "summary": "Removed the fail-open legacy directory lookup wrapper and rejected empty workspace IDs in the list-item type guard.",
+          "verification": "Targeted workspace-warp tests passed, including new empty-ID coverage; typecheck and lint passed."
+        },
+        {
+          "file": "plugin/src/utils/workspace-warp.test.ts",
+          "summary": "Migrated legacy-wrapper fixtures to checked lookup assertions, preserving typed-failure behavior and adding empty-ID coverage.",
+          "verification": "bin/oc-test targeted -- src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts: 48 workspace-warp tests passed."
+        },
+        {
+          "file": "plugin/src/tools/worktree/state.ts",
+          "summary": "Extended setPendingDelete with optional lastErrorClass and persisted supplied first-failure classification.",
+          "verification": "Typecheck and focused ESLint passed."
+        },
+        {
+          "file": "plugin/src/tools/worktree/index.ts",
+          "summary": "Passed typed workspace-cleanup error class into pending-delete creation instead of requiring later reason-text inference.",
+          "verification": "Targeted worktree-delete tests passed."
+        },
+        {
+          "file": "plugin/src/tools/worktree/index-delete.test.ts",
+          "summary": "Asserted stored typed classes for workspace-cleanup and ownership-uncertain first failures.",
+          "verification": "bin/oc-test targeted -- src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts: 58 worktree-delete tests passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "When a failure-class field already exists in retained state, write the known class at the first failure boundary; reserve reason-text classification for legacy records only."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts",
+          "pnpm --dir plugin run typecheck",
+          "pnpm --dir plugin exec eslint src/utils/workspace-warp.ts src/utils/workspace-warp.test.ts src/tools/worktree/index.ts src/tools/worktree/state.ts src/tools/worktree/index-delete.test.ts",
+          "pnpm --dir plugin exec prettier --check src/utils/workspace-warp.ts src/utils/workspace-warp.test.ts src/tools/worktree/index.ts src/tools/worktree/state.ts src/tools/worktree/index-delete.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite passed: 2 files, 106 tests. TypeScript typecheck passed. Focused ESLint and Prettier checks passed. git diff --check passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    }
+  ],
+  "test_runs": {
+    "tk-9bb515e3cfe3": [
+      {
+        "runId": "tr_mrglf328_1d745a4c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/workflow-noise-reduction-assets.test.ts src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 1240.4177510002628,
+        "recordedAt": "2026-07-11T16:42:47.800Z"
+      }
+    ],
+    "tk-f1f9465ad8b8": [
+      {
+        "runId": "tr_mrglhi3j_840bb9b8",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/archive-helpers/git-finalize.test.ts -t \"route × proof discriminants\"",
+        "durationMs": 1397.0581210004166,
+        "recordedAt": "2026-07-11T16:44:40.588Z"
+      },
+      {
+        "runId": "tr_mrgli3n7_66e0f494",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tools/archive-helpers/git-finalize.test.ts plugin/src/tools/change.archive-phase9.test.ts plugin/src/tools/change.archive-repair.test.ts plugin/src/tools/change.status-repair.test.ts",
+        "durationMs": 1048.8963580001146,
+        "assertionDensity": 1.2354651162790697,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-11T16:45:08.526Z"
+      },
+      {
+        "runId": "tr_mrglik61_60e0d495",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-repair.test.ts src/tools/change.status-repair.test.ts",
+        "durationMs": 6151.969407999888,
+        "recordedAt": "2026-07-11T16:45:29.935Z"
+      },
+      {
+        "runId": "tr_mrglj42h_bebbad9e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+        "durationMs": 7971.09973299969,
+        "recordedAt": "2026-07-11T16:45:55.720Z"
+      }
+    ],
+    "tk-5918decc9b8f": [
+      {
+        "runId": "tr_mrglkvst_3463819d",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts",
+        "durationMs": 8957.535600000061,
+        "recordedAt": "2026-07-11T16:47:18.316Z"
+      },
+      {
+        "runId": "tr_mrglohzr_8db134b6",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts",
+        "durationMs": 9303.929059999995,
+        "recordedAt": "2026-07-11T16:50:07.045Z"
+      },
+      {
+        "runId": "tr_mrglqfm9_f1e6b689",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 36552.225638999604,
+        "recordedAt": "2026-07-11T16:51:37.278Z"
+      },
+      {
+        "runId": "tr_mrglrqhl_64c87e32",
+        "phase": "verify",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "pnpm run schemas:check && pnpm run typecheck && tsx scripts/check-test-isolation.ts && pnpm run lint && pnpm exec prettier --check src/utils/workspace-warp.ts src/utils/workspace-warp.test.ts src/tools/worktree/index.ts src/tools/worktree/state.ts src/tools/worktree/index-delete.test.ts",
+        "durationMs": 8810.480688000098,
+        "recordedAt": "2026-07-11T16:52:38.021Z"
+      },
+      {
+        "runId": "tr_mrglsdlk_f0ce5cd9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec tsx scripts/check-test-isolation.ts && pnpm run lint && pnpm exec prettier --check src/utils/workspace-warp.ts src/utils/workspace-warp.test.ts src/tools/worktree/index.ts src/tools/worktree/state.ts src/tools/worktree/index-delete.test.ts",
+        "durationMs": 17117.020685000345,
+        "recordedAt": "2026-07-11T16:53:07.974Z"
+      },
+      {
+        "runId": "tr_mrglsub0_ef802999",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/utils/workspace-warp.test.ts src/tools/worktree/index-delete.test.ts src/tools/adv-worktree.test.ts",
+        "durationMs": 9437.836980999447,
+        "recordedAt": "2026-07-11T16:53:29.627Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-11T15:44:33.421Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved expanded archive-subsystem proposal and invoked discovery.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "e8809ba2d218114cac617ef8cce0afe69c5ab4fb88b18a959443d8d37823a580",
+        "non_whitespace_chars": 5593,
+        "checked_at": "2026-07-10T23:33:06.781Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-11T16:01:27.309Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved strict archive reliability agreement; ChangeContract minted with 22 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "non_whitespace_chars": 4531,
+        "checked_at": "2026-07-10T23:33:06.782Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-11T16:08:53.443Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent design validator passed; design preserves existing structural authorities and binds complete route/proof plus ordering coverage.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "3b55822601ce2c1453816907a09c3a440fb0d24a88c7877679c235cdc70578ad",
+        "non_whitespace_chars": 2078,
+        "checked_at": "2026-07-10T23:33:06.783Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-11T16:36:07.097Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved task graph: three implementation tasks plus dependent cross-contract verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-11T17:07:37.330Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done; 318/318 tests pass; pnpm run check green; verification task confirmed AC1–AC7 and SC1–SC4 pass."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-11T17:26:11.882Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work. Review APPROVED: 0 blockers, 0 issues, 3 suggestions deferred to harden. Contract review matrix 22/22 pass. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "82cb27b833c24ca73638b1079aeb420710c619411aaf8bff2856c5a97ce65ef8",
+        "non_whitespace_chars": 2877,
+        "checked_at": "2026-07-10T23:33:06.784Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "proposal",
+      "reason": "User expanded scope from Local deploy status alignment to ownership of the entire archive subsystem.",
+      "scope_delta": "Audit and harden all current archive entry points, Phase 9 direct/PR finalization, recovery/status projection, conformance/retirement ordering, deploy/activation reporting, specifications, and regression coverage. Preserve structural release-proof and recovery invariants; no unbounded future-risk claim.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-11T15:31:09.033Z",
+      "gates_reset": [
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "fast_follow_of": {
+    "parent_change_id": "addArchiveDeployCallout",
+    "linked_at": "2026-07-10T23:33:06.329Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+      "approvedAt": "2026-07-11T16:01:09.248Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** Every current archive route produces structural release proof or an explicit actionable non-terminal/failed outcome.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** Recovery and retry preserve release safety, idempotence, and durable truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** Terminal cleanup never deletes a worktree or OpenCode workspace under uncertain ownership.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**SC4:** Archive law, projections, reports, and regression coverage share one contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Direct, no-remote, PR, merge-queue, manual-PR, blocked, conflict, and deleted-branch routes complete release only with positive structural proof; otherwise preserve an explicit actionable state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_archive",
+          "spec:rq-releaseFinalization01"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Failed/interrupted archive attempts and bundle-present retries remain idempotent, retain actionable recovery state, and never report release before proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_archive",
+          "tool:adv_change_status_repair",
+          "spec:rq-archiveOrdering01"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Terminal cleanup retains dirty, non-terminal, owned, or ownership-uncertain worktrees; neither workspace nor git removal occurs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_worktree_cleanup",
+          "tool:adv_worktree_delete",
+          "spec:rq-terminalCleanupSafety01"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Retained cleanup exposes an exact typed blocker; exhausted automatic attempts remain a visible manual-retry queue through the shared deletion authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_worktree_triage",
+          "tool:adv_worktree_cleanup",
+          "spec:rq-terminalCleanupVisibility01",
+          "spec:rq-terminalCleanupLifecycle01"
+        ]
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** Local deploy law, projection, mirror, archive command, and terminal templates preserve all five states, including `ran; OpenCode activation pending restart` as nonblocking.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "spec:rq-archiveVisibility01"
+        ]
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** Archive repair/status-repair revalidate structural proof and do not turn stale projection, missing metadata, or branch deletion into false success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_archive_repair",
+          "tool:adv_change_status_repair",
+          "spec:rq-archiveRecoveryConsistency01"
+        ]
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7:** Each changed archive invariant has deterministic regression evidence; unverified operator error text is reported diagnostically, not hardened into a fabricated root cause.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** Release completion requires positive structural proof; no heuristic or detached finalization may substitute.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** Recovery remains explicit, audit-gated, and fail-closed; raw state-file mutation is prohibited.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** Terminal cleanup fails closed when ownership is uncertain and remains a visible manual queue after automatic attempts are exhausted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** Git/GitHub I/O stays in tool/helper layers; Temporal workflow code remains deterministic and bundle-safe.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5:** Implementation changes run from the ADV worktree, not the default checkout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1:** Do not add automatic retry loops or new release lifecycle concepts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2:** Do not swallow finalization/cleanup errors or downgrade failure into success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3:** Do not delete an OpenCode workspace or git worktree under uncertain ownership.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4:** Do not claim the unquoted OpenCode error has a proven root cause.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1:** GitHub branch-protection changes, unrelated workflows, external-project mutation without explicit authority, and undefined future-failure prevention.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2:** Broad `git-finalize.ts` refactoring unless a mapped invariant cannot be safely addressed otherwise.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-11T17:21:34.112Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "git-finalize.test.ts 105 tests + archive-phase9.test.ts 34 tests cover all 6 finalization routes producing positive proof or actionable failure"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "archive-phase9.test.ts + archive-repair.test.ts 12 tests + status-repair.test.ts 15 tests confirm idempotent retry, no release-before-proof"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "workspace-warp.test.ts 47 tests + index-delete.test.ts 58 tests confirm fail-closed on uncertain ownership; no workspace or git removal without safety proof"
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "ChangeContract minted (22 items strict); spec.json law body + docs/specs mirror + command/voice templates all enumerate five states; 318 regression tests green"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "6 new route×proof discriminant tests (git-finalize.test.ts): blocked/no_remote/pr_manual/merge_queue positive and negative proof paths; archive-phase9.test.ts covers direct/PR/blocked/conflict/deleted-branch"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive-phase9.test.ts signal-timeout + terminal-timeout branches; archive-repair.test.ts bundle-present retry idempotence; status-repair.test.ts idempotent recovery — all pre-existing and confirmed green"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "3 new fail-closed tests: workspace cleanup failure 503 (retained), workspace lookup 503 (retained), workspace lookup throw (retained); git worktree remove never called"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Drain classification test: pending-delete record persists with lastErrorClass=workspace_ownership_uncertain; state.ts classifyPendingDelete maps typed classes; triage/status surfaces inherited"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflow-noise-reduction-assets.test.ts five-state regex assertion on spec.json + docs/specs mirror; adv-autonomy-quality-assets.test.ts 33 tests verify command/voice template phrases"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive-repair.test.ts 12 tests revalidate proof; status-repair.test.ts 15 tests; stale projection and missing metadata do not produce false success"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "318 deterministic regression tests across 8 files; pnpm run check green; DONT4 honored — no fabricated root cause"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "ReleaseReachabilityProof remains sole typed authority; no production code changed in git-finalize.ts (OOS2); route×proof tests pin existing correct behavior"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Recovery tools unchanged; audit-gated recovery path preserved; no raw state-file mutation introduced"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "cleanupOpenCodeWorkspaceForWorktree returns typed blocker on uncertainty; advWorktreeDelete never proceeds to git removal; pending-delete queue retains for manual retry"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All Git/GitHub I/O remains in tool/helper layers; workspace-warp.ts HTTP calls in utils; no workflow imports added; bundle-boundary tests green"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All implementation ran from ADV worktree change/updateArchiveVisibilitySpec; trunk stayed on default"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new retry loops or lifecycle concepts added; existing pending-delete drain reused"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Workspace cleanup failures produce typed blockers; no error swallowing; no success downgrade"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "WORKSPACE_OWNERSHIP_UNCERTAIN and WORKSPACE_CLEANUP_FAILED both retain worktree; no removal without ownership proof"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "User-reported OpenCode error classified unverified in discovery; no fabricated root cause in implementation or tests"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No branch-protection, unrelated workflow, or external-project changes; no future-failure prevention claimed"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No git-finalize.ts refactor; only test additions to git-finalize.test.ts"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Direct, no-remote, PR, merge-queue, manual-PR, blocked, conflict, and deleted-branch routes complete release only with positive structural proof; otherwise preserve an explicit actionable state.",
+    "**AC2:** Failed/interrupted archive attempts and bundle-present retries remain idempotent, retain actionable recovery state, and never report release before proof.",
+    "**AC3:** Terminal cleanup retains dirty, non-terminal, owned, or ownership-uncertain worktrees; neither workspace nor git removal occurs.",
+    "**AC4:** Retained cleanup exposes an exact typed blocker; exhausted automatic attempts remain a visible manual-retry queue through the shared deletion authority.",
+    "**AC5:** Local deploy law, projection, mirror, archive command, and terminal templates preserve all five states, including `ran; OpenCode activation pending restart` as nonblocking.",
+    "**AC6:** Archive repair/status-repair revalidate structural proof and do not turn stale projection, missing metadata, or branch deletion into false success.",
+    "**AC7:** Each changed archive invariant has deterministic regression evidence; unverified operator error text is reported diagnostically, not hardened into a fabricated root cause."
+  ],
+  "documents": {
+    "proposal": "# Archive Subsystem Reliability and Alignment\n\n## Why\n\nArchive behavior accumulated repeated failure classes: detached direct finalization, PR/squash proof loss, stale recovery projections, terminal-read pressure, host activation ambiguity, status-law drift, and unsafe terminal-worktree cleanup. Historical changes fixed individual incidents; this change establishes a unified, testable contract across every current archive surface.\n\n### Prior Decisions\n\n- User expanded scope to the entire current archive subsystem.\n- Structural release proof remains authoritative: local merge, origin/default reachability, or merged-PR/tip evidence.\n- Recovery remains explicit, audit-gated, and fail-closed.\n- `ran; OpenCode activation pending restart` is distinct and nonblocking.\n- Worktree deletion fails closed when ownership is uncertain; retained terminal cleanup stays a visible manual queue.\n\n### Rejected Approaches\n\n- Documentation-only claims of runtime reliability.\n- Fire-and-forget finalization, heuristic success, raw state-file mutation, silent recovery, automatic retry, or destructive cleanup under uncertain ownership.\n- Guaranteeing prevention of undefined future failures rather than proving current reachable surfaces.\n\n### Open Questions\n\n- Exact text of the OpenCode deletion error is unavailable. The report is classified `unverified`; the independently proven ownership-safety gap remains in scope.\n\n## What Changes\n\n- Audit all current archive entry points, transitions, Phase-9 routes, recovery paths, conformance, retirement, reports, specs, and tests.\n- Preserve existing proven release/recovery architecture; harden only verified gaps.\n- Add deterministic ordering and status-alignment coverage.\n- Make terminal worktree cleanup fail closed on uncertain ownership and retain typed manual-retry visibility.\n\n## User Outcomes\n\n- Archive operators receive only structurally proven terminal outcomes or actionable non-terminal/failed outcomes.\n- A successful report never hides missing release proof, failed finalization, unactivated host code, unsafe recovery, or uncertain cleanup ownership.\n- Recovery and terminal cleanup use visible supported paths instead of manual state or branch workarounds.\n- Archive behavior, law, templates, and regression tests remain aligned.\n\n## Scope\n\n### In Scope\n\n- `adv_change_archive`, `adv_archive_repair`, and `adv_change_status_repair`.\n- Archive preflight, conformance, spec-delta, retirement, issue-close, worktree cleanup, and Phase-9 ordering.\n- Direct, no-remote, PR, merge-queue, manual-PR, blocked, conflict, and squash-merge/deleted-branch routes.\n- Release reachability proof, durable status projection, audited recovery, poisoned/completed-workflow repair, and target-path safety.\n- Command/voice reports, Local deploy activation state, affected specs/projections/mirrors, and deterministic regression coverage.\n\n### Out of Scope\n\n- New lifecycle concepts, automatic retries, GitHub branch-protection changes, unrelated tool workflows, or unknown future failures.\n- Direct external-project mutations without explicit user approval and typed target-path authority.\n\n### Must Not\n\n- Complete release without positive structural proof.\n- Detach finalization, swallow errors, downgrade failure to success, bypass conformance/recovery authority, or cross Temporal bundle boundaries.\n- Delete a worktree or its OpenCode workspace while ownership is uncertain.\n- Reclassify failure or activation-pending reporting without contract evidence.\n\n## Affected Specs\n\n- `advance-workflow`: `rq-releaseFinalization01`, `rq-releaseProjectionDurability01`, `rq-archiveRecoveryConsistency01`, `rq-releaseRepairRecovery01`, `rq-archiveOrdering01`, `rq-archiveRetirement01`, `rq-archiveVisibility01`.\n- `worktree-lifecycle`: `rq-terminalCleanupSafety01`, `rq-terminalCleanupVisibility01`, `rq-terminalCleanupLifecycle01`.\n- `spec-conformance`: archive conformance-gate cross-link.\n\n## Affected Components and Assets\n\n- Archive/repair/status-repair handlers in `plugin/src/tools/change.ts`.\n- Release proof and Phase-9 route handling in `plugin/src/tools/archive-helpers/git-finalize.ts` and `plugin/src/tools/change/archive-gate.ts`.\n- Recovery probe, classification, audit, and writer modules; Temporal archive signal/activity/state projection.\n- Worktree delete/reaper/in-use detection under `plugin/src/tools/worktree/`.\n- Archive command, terminal voice templates, and archive/recovery/git-finalization/Temporal/worktree test suites.\n\n## Constraints\n\n- Preserve typed release proof and revalidate it on recovery.\n- Preserve all-seven-gates plus archive-bundle status-repair predicates.\n- Keep Git/GitHub I/O in tool/helper layers; keep workflow code deterministic and bundle-safe.\n- Implementation changes use the ADV worktree.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Evidence |\n| --- | --- | --- |\n| Skills Considered | PASS | Loaded `adv-audit` and `adv-arch-detection`; no pending-review skill. |\n| Extends | PASS | Six archived incident changes, parent fast-follow, reflections, source map, and current health. |\n| Conflict Scan | PASS | Strict validation passes; pre-prep `NO_TASKS`/`NO_DELTAS` expected. No active archive-overlap change. |\n| Edge Cases | PASS | Route proof, idempotence, report drift, recovery, and ownership-cleanup cases mapped. |\n| Open Design Questions | PASS | User-facing cleanup choices resolved; technical questions recorded below. |\n| Draft Spec Deltas | PASS | Visibility and worktree-safety deltas drafted; existing ordering law needs direct test coverage. |\n| Related Pattern Scan | PASS | All archive routes, repair tools, workflow boundaries, templates, and worktree deletion paths mapped. |\n| LBP Check | PASS | Retain typed proof/audited recovery; harden proven gaps only. |\n| Completeness Verification | PASS | Multi-entry surface map verified; all secondary surfaces classified. |\n\n### Skills Considered\n\n- `adv-audit` — spec-to-source and requirement/test drift assessment.\n- `adv-arch-detection` — ADV stack structural-boundary assessment.\n- No pending-review global skill found.\n\n### Extends\n\n- `validateReleaseRecovery` — audited recovery-gate trust became shared structural predicate.\n- `fixPhase9SquashMergeRedetect`, `fixPhase9PrDetection`, and `autoDrivePrArchiveCompletion` — merged-PR/default/tip proof, branch-delete survival, and auto-merge handoff.\n- `fixDirectArchiveMerge` — awaited Phase-9 finalization and durable failure recording.\n- `diagnoseArchivedListingTimeout2` — bounded terminal aggregate reads; stale original draft closed as superseded by user approval.\n- `addArchiveDeployCallout` — activation-pending report state; new finding: its durable law still lacks the fifth state.\n- New finding from full subsystem scan: terminal cleanup uses CWD-only ownership detection and can remove an OpenCode workspace after that limited check.\n\n### Conflict Scan\n\n- `adv_change_validate --strict`: pass; `NO_TASKS` and `NO_DELTAS` are expected before planning.\n- No active change overlaps archive reliability scope.\n- `diagnoseArchivedListingTimeout` was stale/duplicate; user approved closure as superseded by archived `diagnoseArchivedListingTimeout2`.\n- Agenda contains archive-adjacent follow-ups; none supersede this change's current contract.\n\n### Current State\n\n- `adv_change_archive` is the main entry; repair and status-repair expose bounded recovery surfaces.\n- Direct finalization is awaited; release proof is a typed discriminated authority reused by forward and recovery paths.\n- Recovery revalidates structural proof and status repair requires all seven gates plus archive bundle presence.\n- Phase-9 direct/no-remote/PR/merge-queue/manual/blocked routes and conflict helpers are mapped with focused tests.\n- `rq-archiveVisibility01.1` has four deploy states while archive/voice surfaces have five.\n- Terminal cleanup deletion is centralized but `isWorktreeInUse` is CWD-only; six terminal cleanup candidates are retained after repeated attempts.\n\n### Edge Cases\n\n1. A branch is auto-deleted after squash merge: merged PR/default/tip proof must still establish release, not branch existence.\n2. Archive bundle exists but workflow/status transition failed: retry must skip duplicate write and prove release before repair.\n3. A deploy ran but host activation awaits restart: report must remain distinct/nonblocking, not collapse into `ran`.\n4. A process owns a candidate worktree through CWD: cleanup retains it without deletion.\n5. Session/workspace ownership cannot be proven through CWD-only inspection: cleanup must fail closed before OpenCode workspace or git removal.\n6. Repeated terminal cleanup failures exceed the automatic cap: blocker/cause must remain visible and manual retry remains bounded.\n\n### Open Design Questions\n\n- **Ownership proof — user-resolved.** Trust: user. Blast radius: destructive worktree/workspace deletion. Alternatives: warn-and-delete (rejected), manual-only deletion (rejected), fail closed on uncertainty (selected).\n- **Retained cleanup policy — user-resolved.** Trust: user. Blast radius: archive cleanup noise versus safe deletion. Alternatives: automatic retry (rejected), stop tracking (rejected), visible manual queue (selected).\n- **Observed OpenCode error — unverified.** Trust: joint. Blast radius: diagnostic accuracy only. Evidence: user reported it occurred “in opencode during archive stage” without exact text. It cannot seed a root-cause criterion; implementation must emit typed causes so future errors are attributable.\n- **Ordering coverage — agent-resolved.** Trust: agent. Blast radius: release safety. Existing `rq-archiveOrdering01` law is sufficient; add direct deterministic tests rather than duplicate lifecycle design.\n- **Dynamic imports/recovery call visibility — agent-resolved.** Trust: agent. Blast radius: bundle/recovery safety. Source audit shows tool-layer imports and a coherent recovery route; retain audit assertions, do not add speculative refactors.\n\n### Draft Spec Deltas\n\n- **Modify `rq-archiveVisibility01.1`:** Given Local deploy is `ran; OpenCode activation pending restart`, when archive status is rendered or validated, then law/projection/mirror recognize it with the other four states and retain nonblocking semantics.\n- **Modify `rq-terminalCleanupSafety01`:** Given terminal cleanup cannot establish candidate ownership safety, when cleanup evaluates the candidate, then it retains a typed blocker and performs neither workspace nor git removal.\n- **Modify `rq-terminalCleanupVisibility01` and `rq-terminalCleanupLifecycle01`:** Given a terminal cleanup attempt is retained or automatic attempts are exhausted, when status/triage/manual cleanup runs, then exact blocker visibility remains available and manual bounded retry uses the shared deletion authority.\n- **No law delta for `rq-archiveOrdering01`:** existing idempotent bundle/retry law stands; direct regression coverage must prove it.\n\n### Related Pattern Scan\n\n- Forward archive, repair, status-repair, release-gate, signal/activity, command/voice, and cleanup reaper paths are in scope.\n- Recovery audit and dynamic tool imports are verified secondary surfaces, retained as audit assertions rather than code-change targets.\n- `git-finalize.ts` complexity is a hotspot but no current correctness failure; refactor is out of scope unless a mapped invariant requires it.\n\n### Completeness Verification\n\n- **Problem completeness — high confidence:** source, spec, historical incident, reflection, health, and worktree-triage evidence cover all current public archive and cleanup entry points. The unquoted OpenCode error remains explicitly unverified.\n- **Solution scope — high confidence:** release-proof, recovery, reports, ordering, and cleanup safety each have a named authority/test surface. No sole-entry claim is used without the multi-entry inventory.\n- **Secondary-surface disposition:** all current archive routes and cleanup triggers are in scope; unrelated lifecycle redesign, retry policy, and broad helper refactor are out with rationale above.\n- **Reproduction classification:** historical incidents are `broken_capability` where archived fixes supply source/test proof; user-reported deletion error is `unverified`; CWD-only ownership weakness is source-verified and may seed criteria.\n\n### LBP Check\n\nKeep the existing architecture: typed reachability proof, awaited finalization, fail-closed audited recovery, and centralized deletion authority. External-solution check skipped: this is internal TypeScript/Temporal architecture with no viable external service alternative.\n\n### Discovery Opportunity Scout\n\n- Trigger: run — broad architecture and contract change.\n- Auto-adopted: direct `rq-archiveOrdering01` regression; audit-only disposition for recovery-call visibility and dynamic-import concerns.\n- User-surfaced/resolved: stale duplicate closure; status enumeration and cleanup ownership choices.\n\n### AMBIGUITY ANALYSIS\n\nM1 MEDIUM Missing Information — exact OpenCode deletion error unavailable.\nEvidence: “in opencode during archive stage”.\nReason: source can prove a safety gap but cannot attribute the observed message.\n\nCoverage: B:C F:C S:C M:P.\n\n### User Decisions\n\n- Entire current archive subsystem is in scope.\n- Cleanup fails closed when ownership is uncertain.\n- Retained cleanup remains a visible manual queue.\n- Stale `diagnoseArchivedListingTimeout` closes as superseded by `diagnoseArchivedListingTimeout2`.",
+    "problemStatement": "## Problem Statement\n\nArchive behavior has accumulated repeated failure classes: detached direct finalization, squash-merged PR proof loss, stale recovery projections, terminal-read pressure, restart-boundary ambiguity, and durable-law drift. Historical fixes addressed individual incidents, but the current archive subsystem needs one source-backed reliability and alignment audit with regression coverage that protects every current public archive path.\n\n## Desired Outcome\n\nEvery current archive path either produces release completion backed by structural proof or an explicit actionable non-terminal/failed outcome. Specifications, command templates, recovery semantics, state projections, and tests describe and enforce the same contract.\n\n## Prior Decisions\n\n- User expanded this change from Local deploy vocabulary alignment to the entire current archive subsystem.\n- Keep structural release proof authoritative: local merge, origin/default reachability, or merged-PR/tip evidence.\n- Keep recovery explicit, audit-gated, and fail-closed.\n- Treat `ran; OpenCode activation pending restart` as a distinct nonblocking advisory state.\n\n## Rejected Approaches\n\n- Claiming a documentation-only update resolves runtime archive defects.\n- Fire-and-forget Phase-9 work, heuristic success, raw ADV state-file repair, or silent recovery.\n- Guaranteeing prevention of unknown future defects rather than proving current reachable surfaces.\n\n## Open Questions\n\n- Which existing structural-risk findings require code changes after the full audit: ordering-invariant coverage, recovery-call visibility, dynamic-import boundary guard, or cross-spec requirement consolidation.\n\n## Constraints\n\n- Scope is every current reachable archive public surface, not unrelated git, workflow, or product behavior.\n- Preserve release-proof, conformance, Temporal bundle, recovery-authorization, and default-worktree invariants.\n- No automatic retry loop or release completion without positive structural proof.\n- If a required invariant cannot be proven, retain the existing fail-closed behavior and report the gap.",
+    "agreement": "# Agreement\n\n## Objectives\n\n- **O1:** Establish a source-backed, testable contract for every current archive public surface.\n- **O2:** Preserve structural release proof and fail-closed recovery while hardening verified coverage and cleanup-safety gaps.\n- **O3:** Align archive specifications, projections, report templates, and regression evidence.\n\n## Success Criteria\n\n- **SC1:** Every current archive route produces structural release proof or an explicit actionable non-terminal/failed outcome.\n- **SC2:** Recovery and retry preserve release safety, idempotence, and durable truth.\n- **SC3:** Terminal cleanup never deletes a worktree or OpenCode workspace under uncertain ownership.\n- **SC4:** Archive law, projections, reports, and regression coverage share one contract.\n\n## Acceptance Criteria\n\n- **AC1:** Direct, no-remote, PR, merge-queue, manual-PR, blocked, conflict, and deleted-branch routes complete release only with positive structural proof; otherwise preserve an explicit actionable state. [warrant: tool:adv_change_archive, spec:rq-releaseFinalization01]\n- **AC2:** Failed/interrupted archive attempts and bundle-present retries remain idempotent, retain actionable recovery state, and never report release before proof. [warrant: tool:adv_change_archive, tool:adv_change_status_repair, spec:rq-archiveOrdering01]\n- **AC3:** Terminal cleanup retains dirty, non-terminal, owned, or ownership-uncertain worktrees; neither workspace nor git removal occurs. [warrant: tool:adv_worktree_cleanup, tool:adv_worktree_delete, spec:rq-terminalCleanupSafety01]\n- **AC4:** Retained cleanup exposes an exact typed blocker; exhausted automatic attempts remain a visible manual-retry queue through the shared deletion authority. [warrant: tool:adv_worktree_triage, tool:adv_worktree_cleanup, spec:rq-terminalCleanupVisibility01, spec:rq-terminalCleanupLifecycle01]\n- **AC5:** Local deploy law, projection, mirror, archive command, and terminal templates preserve all five states, including `ran; OpenCode activation pending restart` as nonblocking. [warrant: spec:rq-archiveVisibility01]\n- **AC6:** Archive repair/status-repair revalidate structural proof and do not turn stale projection, missing metadata, or branch deletion into false success. [warrant: tool:adv_archive_repair, tool:adv_change_status_repair, spec:rq-archiveRecoveryConsistency01]\n- **AC7:** Each changed archive invariant has deterministic regression evidence; unverified operator error text is reported diagnostically, not hardened into a fabricated root cause.\n\n## Constraints\n\n- **C1:** Release completion requires positive structural proof; no heuristic or detached finalization may substitute.\n- **C2:** Recovery remains explicit, audit-gated, and fail-closed; raw state-file mutation is prohibited.\n- **C3:** Terminal cleanup fails closed when ownership is uncertain and remains a visible manual queue after automatic attempts are exhausted.\n- **C4:** Git/GitHub I/O stays in tool/helper layers; Temporal workflow code remains deterministic and bundle-safe.\n- **C5:** Implementation changes run from the ADV worktree, not the default checkout.\n\n## Avoidances\n\n- **DONT1:** Do not add automatic retry loops or new release lifecycle concepts.\n- **DONT2:** Do not swallow finalization/cleanup errors or downgrade failure into success.\n- **DONT3:** Do not delete an OpenCode workspace or git worktree under uncertain ownership.\n- **DONT4:** Do not claim the unquoted OpenCode error has a proven root cause.\n\n## Out of Scope\n\n- **OOS1:** GitHub branch-protection changes, unrelated workflows, external-project mutation without explicit authority, and undefined future-failure prevention.\n- **OOS2:** Broad `git-finalize.ts` refactoring unless a mapped invariant cannot be safely addressed otherwise.\n\n## Preview Applicability\n\n- visual_surface: false\n- exact_route_required: not_applicable\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: Archive, Temporal, Git, CLI, specification, and worktree lifecycle change; no browser-visible output.\n\n## Decisions\n\n### User Decisions\n\n- Entire current archive subsystem is in scope.\n- Cleanup fails closed when ownership is uncertain.\n- Retained terminal cleanup stays a visible manual queue.\n- Stale `diagnoseArchivedListingTimeout` closed as superseded by `diagnoseArchivedListingTimeout2`.\n- Local deployment awaiting OpenCode restart remains distinct and nonblocking.\n\n### Agent Decisions (LBP)\n\n- Retain typed `ReleaseReachabilityProof`, awaited Phase-9 finalization, and audited recovery; source confirms these already provide the correct structural authority.\n- Add direct ordering regression coverage rather than duplicate lifecycle law.\n- Treat recovery-call visibility and tool-layer dynamic imports as audit assertions, not speculative refactors.\n- Treat the user-reported OpenCode error as unverified without exact text; source-verified ownership safety gap remains actionable.\n\n## Deferred Questions\n\n- Exact OpenCode deletion-error text, if later available, may refine diagnostics but does not block the proven ownership-safety work.\n\n## Sign-Off\n\nUser approved acceptance criteria on 2026-07-11.",
+    "design": "# Design\n\n## Architecture Overview\n\nRetain existing structural authorities. `ReleaseReachabilityProof` remains sole release-completion authority across finalization, gate, and recovery. `advWorktreeDelete` remains sole deletion authority; cleanup triggers route through shared pending-delete drain, blocker classification, and typed triage. Archive command/spec/report surfaces become a verified projection of the same approved contract.\n\n## Key Decisions\n\n1. Proof before terminal state.\n2. Fail-closed cleanup before workspace or git removal.\n3. Cross-surface five-state alignment by contract tests.\n4. No new release authority, retry loop, or broad `git-finalize.ts` refactor.\n\n## Implementation Strategy\n\n1. Map ACs to existing authorities and tests.\n2. Add route×proof coverage for `no_remote`, direct/origin-default, `pr_auto_merge`, `pr_manual`, `merge_queue`, and `blocked`, plus bundle-present retry ordering.\n3. Harden cleanup ownership preflight and retained typed-manual queue.\n4. Update visibility/worktree law, projections, mirrors, and static contracts.\n5. Run targeted then full validation.\n\n## LBP Analysis\n\nTyped proof, audited recovery, centralized deletion, and typed triage already supply correct structural authority. Reuse them; harden proven gaps with deterministic tests.\n\n## Design-Derived Criteria\n\n- DD1: One proof authority across all touched forward/recovery paths.\n- DD2: Ownership preflight precedes workspace/git removal; uncertainty retains typed blocker.\n- DD3: At least one assertion per finalization discriminant plus bundle-present retry ordering.\n- DD4: Workflow bundle boundary remains green.\n\n## Risks / Mitigations\n\n- Ownership false negatives: fail closed and test.\n- Unknown retained causes: expose typed blocker; never force delete.\n- Prose drift: test all five states across named consumers.\n- Scope churn: change only proven gaps.\n\n## Design Leverage Scout\n\nAuto-adopted reuse of proof/deletion authorities and parametrized route×proof tests. No refactor or retry loop.\n\n## Independent Validation\n\nValidator: clean pass. Source confirms typed proof, awaited durable finalization, audited recovery, sole deletion authority, and bundle boundary. Required binding: edit `rq-archiveVisibility01.1` law body to five states; cover every route discriminant plus bundle-present retry ordering. Packet transport truncated; validator used source/spec fallback.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nArchive subsystem reliability and alignment change delivers a unified, testable contract across every current archive path. The approver is deciding whether to release code that makes worktree cleanup fail safely, locks all release routes against missing proof, and aligns status law with operational vocabulary.\n\n## Why It Matters\n\nDelivers structural safety: terminal worktree cleanup now fails closed on uncertain ownership instead of proceeding to destructive removal. Release-finalization routes are regression-locked against future drift. The five-state Local deploy vocabulary is now durable law, preventing misalignment between operator reports and spec enforcement.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Route×proof regression matrix: 6 new discriminant tests locking blocked, no-remote, manual-PR, merge-queue, and deleted-branch finalization paths against the typed `ReleaseReachabilityProof` authority\n2. Fail-closed terminal worktree cleanup: workspace ownership uncertainty now blocks both OpenCode-workspace and git-worktree removal with typed `WORKSPACE_OWNERSHIP_UNCERTAIN`/`WORKSPACE_CLEANUP_FAILED` blockers, retained for visible manual retry\n3. Five-state status law: `rq-archiveVisibility01.1` law body, projection, and human mirror now enumerate all five Local deploy states including `ran; OpenCode activation pending restart` as nonblocking\n4. Harden fixes: removed fail-open legacy wrapper, added empty-ID guard, typed first-failure classification\n5. Pre-existing prettier drift on 3 files fixed\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 blockers, 0 issues, 0 unresolved suggestions (all 3 fixed in harden)\n- Tests: 258/258 targeted tests pass after harden fixes; `pnpm run check` fully green\n- Preview URL: not_applicable — no browser-visible output\n- Contract matrix: 22/22 required rows passed or respected; 0 failing\n\n## Remaining Concerns\n\n- Concurrent-delete race is pre-existing and out of scope; flagged as follow-up agenda item\n- User-reported OpenCode deletion error remains unverified without exact text; source-verified ownership safety gap is addressed\n\n## Supporting Evidence\n\n- Tasks: tk-f1f9465ad8b8, tk-5918decc9b8f, tk-9bb515e3cfe3, tk-d8e859110e04 (all done)\n- Commits: 229d48e, d3e38d1, 06ae162\n- Scanner bundles: scanner-bundle:review/attempt-1, reviewer report harden/attempt-1\n- Contract review matrix: 22 rows, 0 failing\n\n## Consequence Context\n\n| Category | Status | Evidence |\n|---|---|---|\n| Delivered value | ready | Fail-closed cleanup prevents destructive worktree removal; route×proof matrix locks release safety; five-state law aligned |\n| Enabling-only/follow-up | n/a | Standalone reliability change; no enabling dependency |\n| Ops readiness | ready | No env/migration/CI changes; pnpm check green; merge compatibility clean |\n| Migration/data impact | n/a | No data migration; spec law text and test assertions only |\n| Frontend/preview impact | n/a | visual_surface: false; no browser-visible output |\n| Collision/release risk | low | Merge compatibility clean; no known branch/scope collision |\n| Open follow-ups | 1 non-blocking | Concurrent-delete race (pre-existing, agenda item ag-M3eSjPqs) |\n| Next action | release → archive | Ready for archive sign-off |\n\n## Release Readiness Summary\n\nHarden status: READY. All 3 review suggestions fixed. Test coverage adequate (258 targeted tests). No AI-slop detected. Documentation aligned. No cleanup candidates. Production readiness: fail-closed design with no security gaps. Deployment readiness: no env/migration/CI changes needed.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-11T17:21:34.112Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** Every current archive route produces structural release proof or an explicit actionable non-terminal/failed outcome. | pass | git-finalize.test.ts 105 tests + archive-phase9.test.ts 34 tests cover all 6 finalization routes producing positive proof or actionable failure |\n| SC2 | success_criterion | **SC2:** Recovery and retry preserve release safety, idempotence, and durable truth. | pass | archive-phase9.test.ts + archive-repair.test.ts 12 tests + status-repair.test.ts 15 tests confirm idempotent retry, no release-before-proof |\n| SC3 | success_criterion | **SC3:** Terminal cleanup never deletes a worktree or OpenCode workspace under uncertain ownership. | pass | workspace-warp.test.ts 47 tests + index-delete.test.ts 58 tests confirm fail-closed on uncertain ownership; no workspace or git removal without safety proof |\n| SC4 | success_criterion | **SC4:** Archive law, projections, reports, and regression coverage share one contract. | pass | ChangeContract minted (22 items strict); spec.json law body + docs/specs mirror + command/voice templates all enumerate five states; 318 regression tests green |\n| AC1 | acceptance_criterion | **AC1:** Direct, no-remote, PR, merge-queue, manual-PR, blocked, conflict, and deleted-branch routes complete release only with positive structural proof; otherwise preserve an explicit actionable state. | pass | 6 new route×proof discriminant tests (git-finalize.test.ts): blocked/no_remote/pr_manual/merge_queue positive and negative proof paths; archive-phase9.test.ts covers direct/PR/blocked/conflict/deleted-branch |\n| AC2 | acceptance_criterion | **AC2:** Failed/interrupted archive attempts and bundle-present retries remain idempotent, retain actionable recovery state, and never report release before proof. | pass | archive-phase9.test.ts signal-timeout + terminal-timeout branches; archive-repair.test.ts bundle-present retry idempotence; status-repair.test.ts idempotent recovery — all pre-existing and confirmed green |\n| AC3 | acceptance_criterion | **AC3:** Terminal cleanup retains dirty, non-terminal, owned, or ownership-uncertain worktrees; neither workspace nor git removal occurs. | pass | 3 new fail-closed tests: workspace cleanup failure 503 (retained), workspace lookup 503 (retained), workspace lookup throw (retained); git worktree remove never called |\n| AC4 | acceptance_criterion | **AC4:** Retained cleanup exposes an exact typed blocker; exhausted automatic attempts remain a visible manual-retry queue through the shared deletion authority. | pass | Drain classification test: pending-delete record persists with lastErrorClass=workspace_ownership_uncertain; state.ts classifyPendingDelete maps typed classes; triage/status surfaces inherited |\n| AC5 | acceptance_criterion | **AC5:** Local deploy law, projection, mirror, archive command, and terminal templates preserve all five states, including `ran; OpenCode activation pending restart` as nonblocking. | pass | workflow-noise-reduction-assets.test.ts five-state regex assertion on spec.json + docs/specs mirror; adv-autonomy-quality-assets.test.ts 33 tests verify command/voice template phrases |\n| AC6 | acceptance_criterion | **AC6:** Archive repair/status-repair revalidate structural proof and do not turn stale projection, missing metadata, or branch deletion into false success. | pass | archive-repair.test.ts 12 tests revalidate proof; status-repair.test.ts 15 tests; stale projection and missing metadata do not produce false success |\n| AC7 | acceptance_criterion | **AC7:** Each changed archive invariant has deterministic regression evidence; unverified operator error text is reported diagnostically, not hardened into a fabricated root cause. | pass | 318 deterministic regression tests across 8 files; pnpm run check green; DONT4 honored — no fabricated root cause |\n| C1 | constraint | **C1:** Release completion requires positive structural proof; no heuristic or detached finalization may substitute. | respected | ReleaseReachabilityProof remains sole typed authority; no production code changed in git-finalize.ts (OOS2); route×proof tests pin existing correct behavior |\n| C2 | constraint | **C2:** Recovery remains explicit, audit-gated, and fail-closed; raw state-file mutation is prohibited. | respected | Recovery tools unchanged; audit-gated recovery path preserved; no raw state-file mutation introduced |\n| C3 | constraint | **C3:** Terminal cleanup fails closed when ownership is uncertain and remains a visible manual queue after automatic attempts are exhausted. | respected | cleanupOpenCodeWorkspaceForWorktree returns typed blocker on uncertainty; advWorktreeDelete never proceeds to git removal; pending-delete queue retains for manual retry |\n| C4 | constraint | **C4:** Git/GitHub I/O stays in tool/helper layers; Temporal workflow code remains deterministic and bundle-safe. | respected | All Git/GitHub I/O remains in tool/helper layers; workspace-warp.ts HTTP calls in utils; no workflow imports added; bundle-boundary tests green |\n| C5 | constraint | **C5:** Implementation changes run from the ADV worktree, not the default checkout. | respected | All implementation ran from ADV worktree change/updateArchiveVisibilitySpec; trunk stayed on default |\n| DONT1 | avoidance | **DONT1:** Do not add automatic retry loops or new release lifecycle concepts. | respected | No new retry loops or lifecycle concepts added; existing pending-delete drain reused |\n| DONT2 | avoidance | **DONT2:** Do not swallow finalization/cleanup errors or downgrade failure into success. | respected | Workspace cleanup failures produce typed blockers; no error swallowing; no success downgrade |\n| DONT3 | avoidance | **DONT3:** Do not delete an OpenCode workspace or git worktree under uncertain ownership. | respected | WORKSPACE_OWNERSHIP_UNCERTAIN and WORKSPACE_CLEANUP_FAILED both retain worktree; no removal without ownership proof |\n| DONT4 | avoidance | **DONT4:** Do not claim the unquoted OpenCode error has a proven root cause. | respected | User-reported OpenCode error classified unverified in discovery; no fabricated root cause in implementation or tests |\n| OOS1 | out_of_scope | **OOS1:** GitHub branch-protection changes, unrelated workflows, external-project mutation without explicit authority, and undefined future-failure prevention. | not_applicable | No branch-protection, unrelated workflow, or external-project changes; no future-failure prevention claimed |\n| OOS2 | out_of_scope | **OOS2:** Broad `git-finalize.ts` refactoring unless a mapped invariant cannot be safely addressed otherwise. | not_applicable | No git-finalize.ts refactor; only test additions to git-finalize.test.ts |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-11T15:57:41.947Z",
+      "contentHash": "a14c486352f0115dccfce1318a55a322d91dfed5d911b12b444695e371ab3e80",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-11T15:42:54.509Z",
+      "contentHash": "9257555aebbf96a34fdb2ca37396659349a674bc32313699f32d31ccaaf2d167",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-11T16:01:03.333Z",
+      "contentHash": "6662d891db939cf0583d9ec26b7d0275255ccc8d43a144a3035ed17258b49380",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-11T16:08:41.634Z",
+      "contentHash": "3b55822601ce2c1453816907a09c3a440fb0d24a88c7877679c235cdc70578ad",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-11T17:34:45.251Z",
+      "contentHash": "29a200533b69ae788cc41d2f23fab9b17e8c8bd5029d2ff5af2457d42b3b62eb",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-11T17:34:45.251Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-11T14:46:27.329Z",
+      "resolved": true,
+      "resolved_at": "2026-07-11T14:50:58.027Z"
+    },
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-11T15:44:20.844Z",
+      "resolved": true,
+      "resolved_at": "2026-07-11T16:01:16.550Z"
+    }
+  ]
+}

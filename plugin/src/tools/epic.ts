@@ -141,6 +141,21 @@ function memberStatusForEntry(entry: Extract<EpicEntry, { kind: "change" }>) {
   };
 }
 
+function terminalProjectionConsistencyFields(
+  entry: Extract<EpicEntry, { kind: "change" }>,
+) {
+  const member_status = memberStatusForEntry(entry);
+  if (entry.membership_status === "terminal") {
+    return { repaired: true, member_status };
+  }
+  return {
+    repaired: false,
+    member_status,
+    warning:
+      "Terminal summary projected, but Epic membership status is not terminal; repair remains required.",
+  };
+}
+
 function formatEpicCompact(epic: import("../types").Epic) {
   const terminalEntries = epic.entries.filter(
     (
@@ -3000,16 +3015,17 @@ export const epicTools = {
                 completedAt,
               }),
             );
+            const consistency =
+              terminalProjectionConsistencyFields(updatedEntry);
             const output = formatToolOutput({
               success: true,
-              repaired: true,
+              ...consistency,
               retargeted: true,
               entry_id: entry.entry_id,
               change_id: new_change_id,
               terminal_summary_projected: true,
               entry: mapEpicEntry(updatedEntry),
               terminal_summary: terminalSummary,
-              member_status: memberStatusForEntry(updatedEntry),
             });
             return formatEpicRoutingOutput(output, routing.owner, childStore);
           }
@@ -3197,13 +3213,13 @@ export const epicTools = {
               completedAt,
             }),
           );
+          const consistency = terminalProjectionConsistencyFields(updatedEntry);
           const output = formatToolOutput({
             success: true,
-            repaired: true,
+            ...consistency,
             terminal_summary_projected: true,
             entry: mapEpicEntry(updatedEntry),
             terminal_summary: terminalSummary,
-            member_status: memberStatusForEntry(updatedEntry),
           });
           return formatEpicRoutingOutput(output, routing.owner, childStore);
         }

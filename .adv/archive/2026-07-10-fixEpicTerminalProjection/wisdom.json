@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-u3YtZG",
+      "type": "gotcha",
+      "content": "In this repo, `pnpm test -- src/temporal/epic-state.test.ts` can still run broader Vitest surfaces and surface unrelated asset failures. For tight task RED/GREEN loops, use `pnpm exec vitest run <file>` through `adv_run_test` for the targeted file, or `bin/oc-test targeted -- <file>` for broader repo-throttled verification.",
+      "source_task": "tk-178aae63de4b",
+      "recorded_at": "2026-07-10T06:20:56.299Z"
+    },
+    {
+      "id": "ws-JTXsGI",
+      "type": "pattern",
+      "content": "For terminal projection/repair tool outputs, keep display health derived from typed `membership_status` and add an explicit warning when a terminal summary returns stale membership. This preserves structural correctness: reducers normalize the happy path, while tools refuse to label inconsistent typed state as repaired/OK by heuristic.",
+      "source_task": "tk-d0ae968b2919",
+      "recorded_at": "2026-07-10T06:24:18.913Z"
+    }
+  ],
+  "count": 2
+}

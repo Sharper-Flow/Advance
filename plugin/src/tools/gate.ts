@@ -17,10 +17,10 @@ import {
   GATE_ORDER,
   canCompleteGate,
   getIncompleteGates,
-  allGatesSatisfied,
   createDefaultGates,
   isMetadataOnlyGate,
   isWorktreeMutationGate,
+  allGatesSatisfied,
 } from "../types";
 import { formatToolOutput } from "../utils/tool-output";
 import { runPrepReadinessChecks } from "../validator/prep-readiness";
@@ -83,7 +83,12 @@ import {
   inspectArtifactActivity,
   writeArtifactActivity,
 } from "../temporal/activities";
-import { changeToWorkflowState } from "../temporal/change-state";
+import {
+  changeToDirectiveState,
+  changeToWorkflowState,
+} from "../temporal/change-state";
+import { deriveDirectiveSafe } from "../utils/workflow-directive";
+import { createLogger } from "../utils/debug-log";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import {
   isPreciseWorkflowRecoveryEvidence,
@@ -95,6 +100,8 @@ import {
   workflowHasPoisonedRecoveryEvidence,
 } from "./recovery-probe";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
+
+const logger = createLogger("gate");
 
 // rq-releaseFinalization01: gate completion confirmation must be durable.
 const MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS = 20;
@@ -755,6 +762,24 @@ async function completeGateAndBuildResponse({
   // string downstream (gate-completion success output, not validation).
   const proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
 
+  // AC5: gate-completion snapshot carries the `Next:` orientation line so the
+  // agent knows which gate/command follows the just-completed gate. Best
+  // effort: a derivation failure must not break gate completion; the snapshot
+  // simply omits the `Next:` line.
+  const directive = deriveDirectiveSafe(
+    changeToDirectiveState({
+      projectId: change.adv_project_id ?? "unknown",
+      change,
+      gates: completedGates,
+    }),
+    Date.now(),
+  );
+  if (!directive) {
+    logger.warn(
+      `deriveWorkflowDirective failed in gate-completion for ${changeId}; snapshot omits Next line`,
+    );
+  }
+
   return formatToolOutput({
     success: true,
     changeId,
@@ -767,6 +792,7 @@ async function completeGateAndBuildResponse({
       proposalText,
       gates: completedGates,
       workdir: store.paths.root,
+      directive,
     }),
     ...(boundaryWarning ? { boundaryWarning } : {}),
     ...extraPayload,
@@ -1023,8 +1049,35 @@ export const gateTools = {
             const normalizedGates =
               (await normalizeGateArtifactEvidenceForReadback(gates)) ?? gates;
             const incomplete = getIncompleteGates(normalizedGates);
-            const canArchive = allGatesSatisfied(normalizedGates);
-            const nextGate = incomplete.length > 0 ? incomplete[0] : null;
+            // Single directive projection: next-action (nextGate/canArchive)
+            // is sourced from deriveWorkflowDirective (via the best-effort
+            // wrapper), the same derivation the workflow's getDirectiveQuery
+            // and status enrichment consume. On derivation failure we fall
+            // back to gate-derived next-action so gate-status stays useful.
+            const directive = deriveDirectiveSafe(
+              changeToDirectiveState({
+                projectId: projectId ?? result.data.adv_project_id ?? "unknown",
+                change: result.data,
+                gates: normalizedGates,
+              }),
+              Date.now(),
+            );
+            if (!directive) {
+              logger.warn(
+                `deriveWorkflowDirective failed in gate-status for ${changeId}; falling back to gate-derived next-action`,
+              );
+            }
+            const fallbackNextGate =
+              incomplete.length > 0 ? incomplete[0] : null;
+            const canArchive = directive
+              ? directive.canArchive
+              : allGatesSatisfied(normalizedGates);
+            const nextGate = directive
+              ? directive.canArchive
+                ? null
+                : ((directive.action.gateId as GateId | undefined) ??
+                  fallbackNextGate)
+              : fallbackNextGate;
 
             return formatToolOutput({
               changeId,
@@ -1032,6 +1085,7 @@ export const gateTools = {
               incomplete,
               canArchive,
               nextGate,
+              ...(directive ? { _directive: directive } : {}),
               ...(gateCriteria ? { gateCriteria } : {}),
               ...(poisonedFallback
                 ? { _recovery: { reason: "poisoned_history" } }
