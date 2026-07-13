@@ -1,0 +1,1466 @@
+{
+  "id": "addReplayReportBounds",
+  "title": "Add replay report bounds",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T01:44:51.916Z",
+  "tasks": [
+    {
+      "id": "tk-86e9bd603c47",
+      "title": "Add controlled replay histories",
+      "type": "code",
+      "section": "Replay coverage",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T03:01:05.318Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addReplayReportBounds",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addReplayReportBounds",
+          "task_id": "tk-86e9bd603c47",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-86e9bd603c47"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+            "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-gate-artifact.history.json",
+            "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-gate-artifact.metadata.json",
+            "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-acceptance.history.json",
+            "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-acceptance.metadata.json",
+            "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.acceptance-executive-summary.history.json",
+            "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.acceptance-executive-summary.metadata.json",
+            "plugin/scripts/gen-replay-fixture.ts",
+            "plugin/scripts/finalize-replay-fixture.ts",
+            "plugin/scripts/check-replay-history.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm test -- src/temporal/__tests__/replay-determinism.test.ts (RED, before fixture files committed)",
+              "exit_code": 1,
+              "summary": "RED: fixtures 1-3 failed ENOENT (files not yet committed); legacy fixture 0 (TMPRL1100) passed, confirming existing coverage intact. runId tr_mrioypmu_abac9358"
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts --reporter=verbose (final GREEN)",
+              "exit_code": 0,
+              "summary": "GREEN: all 4 fixtures pass Worker.runReplayHistory against current workflows.ts (legacy TMPRL1100 + state-backed-gate-artifact + state-backed-acceptance + acceptance-executive-summary). runId tr_mripdxx2_51ade237"
+            },
+            {
+              "command": "for each branch: pnpm exec tsx scripts/check-replay-history.ts <committed history> <workflowId>",
+              "exit_code": 0,
+              "summary": "Each of the 3 committed (sanitized, prettier-formatted) histories independently replays OK via Worker.runReplayHistory, including Path C through the legacy disk-inspect branch."
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit passes."
+            },
+            {
+              "command": "pnpm run lint && pnpm run format:check",
+              "exit_code": 0,
+              "summary": "eslint src/ and prettier --check src/ both pass (fixture JSON formatted via prettier API)."
+            },
+            {
+              "command": "pnpm exec tsx scripts/check-test-isolation.ts",
+              "exit_code": 0,
+              "summary": "Test-isolation checker passes."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Generated histories by driving controlled changeWorkflow executions against the local Temporal dev server instead of hunting for pre-existing histories.",
+              "why": "Default namespace has 24h retention and all 200 listed changeWorkflow executions are RUNNING on current code, so no clean pre-existing Path C (pre-state-backed) history exists; the design explicitly calls for driving controlled executions."
+            },
+            {
+              "what": "Generated Path C (ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH) via a controlled legacy-branch variant (current workflows.ts with the STATE_BACKED_ACCEPTANCE_PROOF_PATCH else-if removed) rather than checking out the old commit.",
+              "why": "The legacy branch is reachable only when the state-backed marker is absent; the pre-state-backed code is ~892 commits back and not independently buildable in-repo. The variant executes the preserved disk-inspect branch verbatim, so the recorded command sequence is authentic, and current code replays it through the legacy path (patch-ordering invariant). Fully documented in metadata provenance."
+            },
+            {
+              "what": "Used stable changeId/workflowId (no timestamps) and seeded state via seedState so only the target gate's gateCompleted signal drives each branch.",
+              "why": "Makes the committed histories reproducible with identity-only sanitization and keeps each history focused on its patch branch (no unrelated gate activity)."
+            },
+            {
+              "what": "Sanitized only the per-worker `identity` field to temporal-cli@replay-host and formatted fixtures through the prettier API in the finalizer.",
+              "why": "Matches the existing fixture convention, keeps histories host-independent, verified replay-safe (each sanitized history re-validated with Worker.runReplayHistory), and makes regeneration produce prettier-compliant output so format:check stays green."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Task tk-6a69a5e89523 (seenReportIds 200-ID FIFO-plus-total bound, AC3/AC4/AC5) is the remaining execution task and is intentionally not touched here.",
+            "Task tk-ceae6f3a6166 (verification) should run the full invariant battery (transition, schema-generation, size-cap, workflow-bundle-boundary, replay) once tk-6a69a5e89523 lands."
+          ],
+          "required_main_agent_actions": [
+            "Commit/checkpoint the staged worktree changes (6 fixture files + extended replay-determinism.test.ts + 3 reproducibility scripts).",
+            "Proceed to task tk-6a69a5e89523 (seenReportIds bound), then tk-ceae6f3a6166 (verification)."
+          ],
+          "related_scan": "Confirmed exactly four patch markers exist in workflows.ts (DISCOVERY_CONTRACT_READINESS already covered by the legacy fixture; the three targeted here now covered). No additional uncovered patch branches remain. No production source files were modified.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-86e9bd603c47 complete (AC1+AC2). Three controlled replay histories were generated by driving real changeWorkflow executions against the local Temporal dev server, exported with `temporal workflow show --output json --no-json-shorthand-payloads`, sanitized (identity only), and committed as paired history/metadata. replay-determinism.test.ts now validates all 4 fixtures (existing legacy TMPRL1100 fixture plus the 3 new) via Worker.runReplayHistory; each new fixture also asserts its branch patch marker is recorded as a core_patch VersionMarker. Path C (ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH) is a legacy branch reachable only without STATE_BACKED_ACCEPTANCE_PROOF_PATCH, so it was generated with a controlled variant workflow (current code minus the state-backed-acceptance else-if); the pre-state-backed code is ~892 commits back and not independently buildable in-repo. Provenance is recorded in each metadata `source`. Reproducibility tooling committed under plugin/scripts/ (gen/finalize/check-replay). No production code changed, so C2/C3 are respected; the seenReportIds bound is the separate task tk-6a69a5e89523. RED (fixtures ENOENT, legacy passed) -> GREEN (4/4 pass) recorded; typecheck, lint, format:check, and check-test-isolation all exit 0. Fixture workflows on the dev server were terminated after export.",
+            "suggested_next_action": "Commit/checkpoint the worktree, then proceed to task tk-6a69a5e89523 (200-ID FIFO+total bound) and finally tk-ceae6f3a6166 (full invariant verification)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test -- src/temporal/__tests__/replay-determinism.test.ts (RED, before fixture files committed)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts --reporter=verbose (final GREEN)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: for each branch: pnpm exec tsx scripts/check-replay-history.ts <committed history> <workflowId>"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint && pnpm run format:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsx scripts/check-test-isolation.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "RED recorded missing-fixture failure; GREEN/final replay verification 4/4 passed. Typecheck, lint, format:check, and test-isolation passed. Histories exported from controlled Temporal workflows and metadata documents provenance.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Implemented reproducible replay coverage for all uncovered patch branches with controlled Temporal runs, sanitized exports, provenance metadata, reusable fixture tooling, and replay-determinism registration. Legacy fixture remains covered.",
+      "filesTouched": [
+        "plugin/scripts/check-replay-history.ts",
+        "plugin/scripts/finalize-replay-fixture.ts",
+        "plugin/scripts/gen-replay-fixture.ts",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.acceptance-executive-summary.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.acceptance-executive-summary.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-acceptance.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-acceptance.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-gate-artifact.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-gate-artifact.metadata.json"
+      ],
+      "touched_files": [
+        "plugin/scripts/check-replay-history.ts",
+        "plugin/scripts/finalize-replay-fixture.ts",
+        "plugin/scripts/gen-replay-fixture.ts",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.acceptance-executive-summary.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.acceptance-executive-summary.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-acceptance.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-acceptance.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-gate-artifact.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-gate-artifact.metadata.json"
+      ],
+      "checkpointSha": "ba95381f33af0f3a9eb062c1513c5dfbba9c9db5",
+      "completedAt": "2026-07-13T04:11:19.678Z",
+      "completed_at": "2026-07-13T04:11:19.678Z",
+      "notes": "Added three controlled exported replay histories and metadata pairs; registered all fixtures. No hand-authored history JSON.",
+      "updatedAt": "2026-07-13T04:11:26.744Z"
+    },
+    {
+      "id": "tk-6a69a5e89523",
+      "title": "Bound report-ID retention across continue-as-new",
+      "type": "code",
+      "section": "Bounded idempotency",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-13T03:01:14.421Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addReplayReportBounds",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addReplayReportBounds",
+          "task_id": "tk-6a69a5e89523",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6a69a5e89523"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/types/changes.ts",
+            "plugin/src/temporal/contracts.ts",
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/temporal/workflows.ts",
+            "plugin/src/types/changes.signal-fields.test.ts",
+            "plugin/src/temporal/change-state.test.ts",
+            "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+            "plugin/schemas/change.schema.json"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/temporal/change-state.test.ts src/types/changes.signal-fields.test.ts",
+              "exit_code": 0,
+              "summary": "49 tests pass (RED→GREEN for 4 new tests)"
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/__tests__/continue-as-new.itest.ts",
+              "exit_code": 0,
+              "summary": "3 tests pass including behavioral CAN round-trip for seenReportIds/seenReportIdsTotal"
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts -t \"continues as new with every declared seedState field\"",
+              "exit_code": 0,
+              "summary": "Exhaustive seed-field coverage test passes with new seenReportIdsTotal field"
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts src/temporal/__tests__/workflow-bundle-imports.test.ts",
+              "exit_code": 0,
+              "summary": "7 tests pass; workflow bundle boundary intact"
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts",
+              "exit_code": 0,
+              "summary": "4 replay fixture tests pass"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript compiles cleanly"
+            },
+            {
+              "command": "pnpm run lint",
+              "exit_code": 0,
+              "summary": "ESLint passes"
+            },
+            {
+              "command": "pnpm run format:check",
+              "exit_code": 0,
+              "summary": "Prettier formatting passes"
+            },
+            {
+              "command": "pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "Generated schemas match Zod definitions"
+            },
+            {
+              "command": "bin/oc-test full",
+              "exit_code": 0,
+              "summary": "4,973 tests pass across 333 files"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Changed duplicate report path to leave seenReportIds completely unchanged",
+              "why": "Design requires 'duplicate paths leave retained IDs and total unchanged'. The previous code re-added evicted IDs to seenReportIds, which would cause unnecessary eviction of other IDs and violate the bound. The sidecar (subagent_reports) remains the authoritative duplicate-detection fallback after FIFO eviction."
+            },
+            {
+              "what": "Added seenReportIdsTotal as additive-optional (undefined by default)",
+              "why": "Replay-safe for histories predating the field, mirroring the signal_rejections_total pattern. Existing workflows without the field continue to replay cleanly; total counts only newly accepted reports after the bound was introduced."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Fixed duplicate-path seenReportIds mutation pattern to prevent unbounded growth; verified no other reducer paths write seenReportIds",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-6a69a5e89523 complete. seenReportIds now bounded to 200 IDs with FIFO eviction; seenReportIdsTotal added as cumulative counter. Both fields survive continue-as-new via seed rehydration and seed writing. Zod schema, contracts, reducer, CAN paths, and JSON schema all updated. Full test suite (4,973 tests) passes.",
+            "suggested_next_action": "Proceed to next task or run full validation for change acceptance"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/change-state.test.ts src/types/changes.signal-fields.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/__tests__/continue-as-new.itest.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts -t \"continues as new with every declared seedState field\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts src/temporal/__tests__/workflow-bundle-imports.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+            }
+          ]
+        }
+      ],
+      "verification": "RED-to-GREEN evidence recorded. 4,973 tests pass; typecheck, lint, format, schemas:check, workflow-bundle-boundary, and replay determinism pass. Covers FIFO overflow, duplicates, sidecar fallback, and CAN round trip.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Bound seenReportIds with a 200-item FIFO and seenReportIdsTotal. Preserved duplicate/sidecar semantics; fixed CAN rehydration and propagation for both fields; regenerated schema and added overflow, duplicate, sidecar, and CAN round-trip tests.",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.signal-fields.test.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.signal-fields.test.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "8b07947f77141366e7dd502728bc8acb772a105d",
+      "completedAt": "2026-07-13T04:30:09.318Z",
+      "completed_at": "2026-07-13T04:30:09.318Z",
+      "notes": "Implemented 200-ID deterministic FIFO retention, cumulative total, schema/contracts, CAN rehydration/seed carry-forward, and focused regression coverage.",
+      "updatedAt": "2026-07-13T04:30:19.431Z"
+    },
+    {
+      "id": "tk-ceae6f3a6166",
+      "title": "Verify replay and report-bound invariants",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-13T03:01:22.249Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-86e9bd603c47"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6a69a5e89523"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T04:30:26.730Z",
+      "verification": "Independent verifier: targeted 63 tests passed; four histories replay, FIFO/duplicate/sidecar/CAN invariants passed; pnpm run schemas:check and pnpm run check passed; worktree clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Recorded independent evidence for all strict-contract criteria: deterministic replay fixtures, 200-ID FIFO and total, duplicate/sidecar behavior, CAN persistence, schema coherence, and workflow-bundle integrity.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8b07947f77141366e7dd502728bc8acb772a105d",
+      "completedAt": "2026-07-13T04:34:58.904Z",
+      "completed_at": "2026-07-13T04:34:58.904Z",
+      "notes": "Independent verification passed: targeted 63 tests, all four replay histories, FIFO/duplicate/sidecar/CAN invariants, schemas, check, and workflow boundaries.",
+      "updatedAt": "2026-07-13T04:35:06.386Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addReplayReportBounds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:replay-fixtures-and-report-bounds"
+      },
+      "agent": "adv-researcher",
+      "topic": "Replay-safe history generation for 3 uncovered patch branches + seenReportIds FIFO retention versioning requirement",
+      "sources": [
+        {
+          "label": "Temporal TS SDK — patched()/deprecatePatch() semantics",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts",
+          "summary": "patched() returns true when NOT replaying (always records a marker in new histories); during replay returns true only if the recorded history contains the same patchId marker, else false. New-code branch must sit at top of if-patched block."
+        },
+        {
+          "label": "Temporal TS SDK — Worker.runReplayHistories / runReplayHistory + JSON loading",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/test/src/test-replay.ts",
+          "summary": "Canonical replay-test harness: load history JSON (JSON.parse) and pass to Worker.runReplayHistories/runReplayHistory with a workflowBundle or workflowsPath. This is exactly the harness replay-determinism.test.ts already uses."
+        },
+        {
+          "label": "Temporal official — Versioning (TypeScript SDK)",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/versioning",
+          "summary": "Non-determinism causes are 'adding, removing, or reordering await calls on Command-producing APIs such as Activities and timers. Each await is a yield point that affects the Command sequence.' Patching is required only for substantive Command-sequence changes."
+        },
+        {
+          "label": "Temporal skill-temporal-developer — versioning reference (safe vs unsafe changes)",
+          "locator": "https://github.com/temporalio/skill-temporal-developer/blob/main/references/core/versioning.md",
+          "summary": "Explicit safe list: 'Changing activity implementations; changing arguments; retry policies; timer durations; adding new signal/query/update handlers (additive changes are safe); bug fixes that don't change Command sequence.' Unsafe list is Command-sequence only. Anti-pattern: 'Patching non-Command changes — unnecessary complexity.'"
+        },
+        {
+          "label": "Temporal Community Forum — internal-only state changes",
+          "locator": "https://community.temporal.io/t/workflow-determinism/4027",
+          "summary": "Maintainer confirmation: 'You can make changes to workflow code which will result in different internal state (different variable values, etc) without necessarily breaking determinism. However, if you were to change the order or type of commands based on that state, then determinism would again be broken.'"
+        },
+        {
+          "label": "Temporal CLI PR #110 — replayable JSON export",
+          "locator": "https://github.com/temporalio/cli/pull/110",
+          "summary": "'temporal workflow show --output json' was made to produce replayable history. --no-json-shorthand-payloads (used by the existing fixture) preserves full payload fidelity for replay."
+        },
+        {
+          "label": "Temporal TS dev guide — durable execution replay testing",
+          "locator": "https://learn.temporal.io/tutorials/typescript/background-check/durable-execution/",
+          "summary": "Official flow: run workflow to completion, `temporal workflow show --workflow-id <id> --output json > history.json`, then Worker.runReplayHistory over the JSON file. Adding activity/await events alters the Event History sequence and requires a fresh exported history."
+        }
+      ],
+      "architecture_assessment": "Two independent sub-questions. (A) Replay fixtures for the 3 uncovered live patch branches (STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH, ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH, STATE_BACKED_ACCEPTANCE_PROOF_PATCH at workflows.ts:975/1062/990). Each patched branch schedules NEW activity commands (writeArtifactActivity, inspectArtifactActivity, state-backed evidence path), so committing a replay fixture requires a real committed history that (1) contains the patch marker and (2) records the post-patch activity command sequence. The reproducible, replay-safe generator is the same one the existing single fixture used: drive a controlled changeWorkflow to the relevant gate on a local Temporal dev server so the new-branch is taken (patched()===true records marker + new activity events), then export via `temporal workflow show --output json --no-json-shorthand-payloads`, sanitize, and assert with Worker.runReplayHistory against ../workflows.ts. Fabricating/hand-editing event JSON is explicitly disallowed by the change's own rollback boundary and would not exercise real determinism. (B) seenReportIds FIFO retention: change-state.ts already carries an exact in-repo precedent — signal_rejections uses `[...existing, x].slice(-SIGNAL_REJECTION_RING_BUFFER_LIMIT)` + signal_rejections_total counter (change-state.ts:281-285), restored across continue-as-new via seedState (workflows.ts:657-661, 1725-1726). seenReportIds should mirror this: bounded slice + seenReportIds_total counter, seeded through continueAsNew (already carried at workflows.ts:1723).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Both design directions are replay-safe and backed by official Temporal semantics plus an exact in-repo precedent. No blocker found. One constraint to honor: the 3 new fixtures must be generated from real controlled workflow runs, not fabricated."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Generating 3 real committed histories requires standing up a local Temporal dev server and driving each patch branch to completion — higher setup cost than authoring JSON, but it is the only source that actually proves determinism and is mandated by the change's own no-fabrication boundary.",
+          "FIFO retention of seenReportIds trades unbounded exact-dedupe memory for a bounded window: after eviction, a very old duplicate report id could re-pass the seenReportIds check. This is mitigated because dedupe is defense-in-depth — the sidecar/task subagent_reports scan (alreadyStoredInSidecar / alreadyStoredOnTask, change-state.ts:1032-1037) remains authoritative for stored reports; seenReportIds is a fast-path guard. Bound must be chosen so realistic in-flight report volume never evicts a still-relevant id.",
+          "Adding seenReportIds to the aggregate-size guard scope (checkAggregateSize currently projects only state.documents, change-state.ts:575-579) would be a behavior change to the size guard; simpler to bound the array by count (ring buffer) than to fold it into byte-cap accounting."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Hand-author/fabricate the 3 replay history JSON files",
+            "disposition": "rejected",
+            "rationale": "Does not exercise real Command-sequence determinism, is explicitly forbidden by the change's Failure/Rollback boundary, and a hand-built history that happens to parse would give false replay confidence."
+          },
+          {
+            "option": "Generate histories from real controlled changeWorkflow runs on a local Temporal dev server, export via `temporal workflow show --output json --no-json-shorthand-payloads`, sanitize, assert with Worker.runReplayHistory",
+            "disposition": "preferred",
+            "rationale": "Matches the already-committed fixture's provenance, is the official Temporal replay-test workflow, and is the only method that proves the post-patch activity command sequence replays against current workflows.ts."
+          },
+          {
+            "option": "Introduce a NEW patch marker for the seenReportIds FIFO retention change",
+            "disposition": "rejected",
+            "rationale": "Bounding an array and adding a counter are internal-state-only changes that do not add/remove/reorder any await/Activity/timer Command. Official Temporal guidance (versioning docs, skill reference safe-list, community forum) states internal-only state changes and additive changes require NO patch; patching non-Command changes is an explicit anti-pattern. The in-repo signal_rejections ring buffer set this precedent and added no patch marker."
+          },
+          {
+            "option": "Bound seenReportIds without a total counter",
+            "disposition": "rejected",
+            "rationale": "The change's success signal requires total-count observability; the signal_rejections_total precedent shows the counter is cheap, continue-as-new-safe, and preserves the ability to detect eviction. Omitting it loses required observability."
+          }
+        ],
+        "recommendation": "Proceed. (1) Generate 3 real committed replay histories on a local Temporal dev server (one per uncovered patch branch), export with `temporal workflow show --output json --no-json-shorthand-payloads`, sanitize, and register them in replay-determinism.test.ts with Worker.runReplayHistory + metadata (covers[]/incidentEventId) exactly like the existing discovery-gate fixture. (2) Implement seenReportIds FIFO retention by mirroring the signal_rejections precedent: slice(-LIMIT) on write + a seenReportIds_total counter, both seeded through continueAsNew. NO new patch marker is required or desirable — it is an internal-state-only change with no Command-sequence impact."
+      },
+      "recommendation": "Replay fixtures: reproduce via real controlled workflow runs → `temporal workflow show --output json --no-json-shorthand-payloads` → sanitize → Worker.runReplayHistory (do not fabricate). seenReportIds bound: mirror the signal_rejections ring-buffer + total-count precedent (change-state.ts:281-285) with continue-as-new seeding; NO new patch marker — it is an internal-state-only change, and patching non-Command changes is an official anti-pattern.",
+      "follow_ups": [
+        "During execution, choose the seenReportIds retention LIMIT above realistic max in-flight report volume so FIFO eviction cannot re-admit a still-relevant duplicate; keep the sidecar/task scan as authoritative dedupe.",
+        "Confirm the local Temporal dev server + `temporal` CLI are available in the execution environment; if history export is blocked, that is a STOP_WHEN source-access blocker per the change's no-fabrication boundary — do not synthesize fixtures."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addReplayReportBounds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Temporal replay-fixture + seenReportIds FIFO-bound design validation",
+      "sources": [
+        {
+          "label": "Temporal TS Versioning (official docs)",
+          "locator": "https://docs.temporal.io/develop/typescript/versioning",
+          "summary": "Patch required only when a change causes non-deterministic replay, i.e. adding/removing/reordering await on Command-producing APIs (activities/timers). Each await is a yield point affecting the Command sequence. Internal state changes that produce no Command require no patch."
+        },
+        {
+          "label": "Temporal TS SDK patched()/deprecatePatch() source",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts",
+          "summary": "patched() inserts a history marker; used to branch Command-producing code. Confirms markers exist to guard Command-sequence divergence, not pure in-memory data-structure changes."
+        },
+        {
+          "label": "Temporal CLI workflow show reference",
+          "locator": "https://docs.temporal.io/cli/command-reference/workflow",
+          "summary": "`temporal workflow show --output json` produces replayable history for SDK replay; `--no-json-shorthand-payloads` emits raw payloads. Both flags in the design's export command are real and correct."
+        },
+        {
+          "label": "Temporal TS dev guide (replay testing)",
+          "locator": "https://learn.temporal.io/tutorials/typescript/background-check/durable-execution/",
+          "summary": "Canonical Worker.runReplayHistory(options, history, workflowId) usage from exported JSON history; adding events that alter the Event-History sequence causes replay failure — validating the fixture-per-branch strategy."
+        },
+        {
+          "label": "Local: workflows.ts CAN seed + hydration (590-672, 1723)",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/workflows.ts",
+          "summary": "seenReportIds is WRITTEN to the CAN seed (1723) and is in the seedState Pick list, but there is NO rehydration line (state.seenReportIds = input.seedState.seenReportIds) in the hydration block; signal_rejections(_total) ARE rehydrated (657-661). Latent pre-existing drop-on-restart bug AC5 must fix."
+        },
+        {
+          "label": "Local: change-state.ts reducer (1031-1060)",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/change-state.ts",
+          "summary": "Two seenReportIds write sites: duplicate/sidecar path (1040-1042) and new-accept path (1060). Both must apply slice(-200); total must increment only on the new-accept path to satisfy AC3/AC4."
+        },
+        {
+          "label": "Local: FIFO-plus-total reference pattern",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/change-state.ts",
+          "summary": "SIGNAL_REJECTION_RING_BUFFER_LIMIT=20 with [...existing, x].slice(-LIMIT) plus signal_rejections_total++ (258,281-285) is the exact established shape the design mirrors; array-based deterministic, no Map/Set."
+        },
+        {
+          "label": "Local: seedState round-trip meta-test (1468-1485)",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/workflows.signal-handlers.test.ts",
+          "summary": "Existing meta-test asserts only the WRITE side (`key: state.key`) — it does not assert rehydration, so it will NOT catch the missing seenReportIds hydration. A behavioral CAN round-trip test is required for AC5."
+        }
+      ],
+      "architecture_assessment": "Design is deterministic and patch-correct. Per official Temporal TS versioning guidance, a patch marker is required only for changes that alter the replay Command sequence (add/remove/reorder await on Command-producing APIs). seenReportIds slice(-200) + integer counter produce no Command and run inside the deterministic reducer, so NO new patch marker is correct (C2 satisfied). The FIFO-plus-total shape correctly mirrors the in-repo signal_rejections/_total ring-buffer precedent. Replay-fixture methodology (drive controlled workflow to each patched branch, export via `temporal workflow show --output json --no-json-shorthand-payloads`, replay via Worker.runReplayHistory) matches official CLI + SDK docs exactly; refusing to hand-author history is the correct determinism-preserving stance. Schema/CAN compatibility is sound EXCEPT one concrete gap: seenReportIds is written to the CAN seed but never rehydrated on restart (signal_rejections is), so AC5 ('CAN carries retained IDs') exposes a real latent drop-on-restart bug that this change must fix by adding the hydration line AND seenReportIdsTotal write+hydration. The existing seedState meta-test only checks the write side and will not catch it, so a behavioral CAN round-trip test is mandatory.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is architecturally sound and aligns with official Temporal TS versioning/replay guidance. No CONFLICT. Two required implementation changes surfaced as caution-level (not blockers, because agreement scope already implies them): (1) MUST add seenReportIds rehydration in workflows.ts hydration block (~657-661 region) mirroring signal_rejections, plus seenReportIdsTotal write (~1723) + hydration — otherwise AC5 CAN-carry cannot pass; the value is currently silently dropped on continue-as-new. (2) MUST apply the 200-slice on BOTH reducer write sites (change-state.ts 1040-1042 duplicate path and 1060 new-accept path), incrementing total only on new-accept, and add a behavioral CAN round-trip test since the existing seedState meta-test (1468-1485) asserts write-only and won't detect missing hydration."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Array slice(-200) with .includes() lookup keeps determinism and mirrors existing pattern but is O(n) per submit; at n=200 this is negligible and correct — a Map/Set would break determinism/CAN-serialization, so the array is the right call.",
+          "FIFO eviction after 200 distinct IDs means very-old duplicate reports could theoretically re-accept once evicted, but the sidecar/task-report dedupe (alreadyStoredInSidecar, 1032-1037) remains the durable backstop, so idempotency for retained reports holds.",
+          "seenReportIdsTotal adds observability without bounding growth; it is a single integer so it is CAN-safe and cheap."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Add a new patch marker for the ID-bound change",
+            "disposition": "rejected",
+            "rationale": "Official Temporal TS versioning docs: patches guard Command-sequence divergence (await on activities/timers). A pure in-memory slice+counter produces no Command, so a marker would be dead weight and pollute history."
+          },
+          {
+            "option": "Persistent Map/Set for seenReportIds lookup",
+            "disposition": "rejected",
+            "rationale": "Non-deterministic iteration/serialization risk across replay and CAN; violates C2 and workflow-determinism constraints. Array-based lookup is the correct deterministic choice."
+          },
+          {
+            "option": "Hand-author replay histories",
+            "disposition": "rejected",
+            "rationale": "Agreement C1 and Temporal replay-test guidance both require real/controlled exported histories; fabricated events risk false determinism confidence."
+          },
+          {
+            "option": "Rely on existing seedState meta-test for CAN coverage",
+            "disposition": "rejected",
+            "rationale": "That test asserts write-side only and cannot detect the missing seenReportIds rehydration; a behavioral CAN round-trip test is required for AC5."
+          }
+        ],
+        "recommendation": "PASS with two mandatory implementation requirements the plan must encode: (1) Fix the CAN rehydration gap — add `state.seenReportIds`/`seenReportIdsTotal` hydration in the workflows.ts seedState block mirroring signal_rejections(_total), plus the seenReportIdsTotal seed write; this is not optional because seenReportIds is currently dropped on continue-as-new. (2) Apply slice(-200) at BOTH reducer write sites (duplicate path 1040-1042 and new-accept path 1060), increment total only on new-accept, and add a behavioral CAN round-trip test plus overflow/duplicate reducer tests since the existing structural meta-test is write-only. No new patch marker (C2) is correct per official guidance."
+      },
+      "recommendation": "PASS — no CONFLICT. Design determinism, patch-lifecycle reasoning (no new marker), fixture validity, and FIFO-plus-total shape all validate against official Temporal TS versioning/replay docs and in-repo precedent. Plan must explicitly cover the seenReportIds CAN rehydration gap (currently written but never rehydrated, unlike signal_rejections), dual reducer write-site slicing, and a behavioral CAN round-trip test (the existing seedState meta-test is write-only and will not catch the gap).",
+      "follow_ups": [
+        "Verify during planning that seenReportIdsTotal is added to both the ChangeWorkflowState schema Pick list (contracts.ts) and the seedState hydration block, not only the CAN seed write.",
+        "Consider a small comment at the reducer noting sidecar dedupe is the durable idempotency backstop once FIFO eviction can drop old IDs."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addReplayReportBounds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addReplayReportBounds",
+      "task_id": "tk-86e9bd603c47",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-86e9bd603c47"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-gate-artifact.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-gate-artifact.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-acceptance.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-acceptance.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.acceptance-executive-summary.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.acceptance-executive-summary.metadata.json",
+        "plugin/scripts/gen-replay-fixture.ts",
+        "plugin/scripts/finalize-replay-fixture.ts",
+        "plugin/scripts/check-replay-history.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm test -- src/temporal/__tests__/replay-determinism.test.ts (RED, before fixture files committed)",
+          "exit_code": 1,
+          "summary": "RED: fixtures 1-3 failed ENOENT (files not yet committed); legacy fixture 0 (TMPRL1100) passed, confirming existing coverage intact. runId tr_mrioypmu_abac9358"
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts --reporter=verbose (final GREEN)",
+          "exit_code": 0,
+          "summary": "GREEN: all 4 fixtures pass Worker.runReplayHistory against current workflows.ts (legacy TMPRL1100 + state-backed-gate-artifact + state-backed-acceptance + acceptance-executive-summary). runId tr_mripdxx2_51ade237"
+        },
+        {
+          "command": "for each branch: pnpm exec tsx scripts/check-replay-history.ts <committed history> <workflowId>",
+          "exit_code": 0,
+          "summary": "Each of the 3 committed (sanitized, prettier-formatted) histories independently replays OK via Worker.runReplayHistory, including Path C through the legacy disk-inspect branch."
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit passes."
+        },
+        {
+          "command": "pnpm run lint && pnpm run format:check",
+          "exit_code": 0,
+          "summary": "eslint src/ and prettier --check src/ both pass (fixture JSON formatted via prettier API)."
+        },
+        {
+          "command": "pnpm exec tsx scripts/check-test-isolation.ts",
+          "exit_code": 0,
+          "summary": "Test-isolation checker passes."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Generated histories by driving controlled changeWorkflow executions against the local Temporal dev server instead of hunting for pre-existing histories.",
+          "why": "Default namespace has 24h retention and all 200 listed changeWorkflow executions are RUNNING on current code, so no clean pre-existing Path C (pre-state-backed) history exists; the design explicitly calls for driving controlled executions."
+        },
+        {
+          "what": "Generated Path C (ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH) via a controlled legacy-branch variant (current workflows.ts with the STATE_BACKED_ACCEPTANCE_PROOF_PATCH else-if removed) rather than checking out the old commit.",
+          "why": "The legacy branch is reachable only when the state-backed marker is absent; the pre-state-backed code is ~892 commits back and not independently buildable in-repo. The variant executes the preserved disk-inspect branch verbatim, so the recorded command sequence is authentic, and current code replays it through the legacy path (patch-ordering invariant). Fully documented in metadata provenance."
+        },
+        {
+          "what": "Used stable changeId/workflowId (no timestamps) and seeded state via seedState so only the target gate's gateCompleted signal drives each branch.",
+          "why": "Makes the committed histories reproducible with identity-only sanitization and keeps each history focused on its patch branch (no unrelated gate activity)."
+        },
+        {
+          "what": "Sanitized only the per-worker `identity` field to temporal-cli@replay-host and formatted fixtures through the prettier API in the finalizer.",
+          "why": "Matches the existing fixture convention, keeps histories host-independent, verified replay-safe (each sanitized history re-validated with Worker.runReplayHistory), and makes regeneration produce prettier-compliant output so format:check stays green."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Task tk-6a69a5e89523 (seenReportIds 200-ID FIFO-plus-total bound, AC3/AC4/AC5) is the remaining execution task and is intentionally not touched here.",
+        "Task tk-ceae6f3a6166 (verification) should run the full invariant battery (transition, schema-generation, size-cap, workflow-bundle-boundary, replay) once tk-6a69a5e89523 lands."
+      ],
+      "required_main_agent_actions": [
+        "Commit/checkpoint the staged worktree changes (6 fixture files + extended replay-determinism.test.ts + 3 reproducibility scripts).",
+        "Proceed to task tk-6a69a5e89523 (seenReportIds bound), then tk-ceae6f3a6166 (verification)."
+      ],
+      "related_scan": "Confirmed exactly four patch markers exist in workflows.ts (DISCOVERY_CONTRACT_READINESS already covered by the legacy fixture; the three targeted here now covered). No additional uncovered patch branches remain. No production source files were modified.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-86e9bd603c47 complete (AC1+AC2). Three controlled replay histories were generated by driving real changeWorkflow executions against the local Temporal dev server, exported with `temporal workflow show --output json --no-json-shorthand-payloads`, sanitized (identity only), and committed as paired history/metadata. replay-determinism.test.ts now validates all 4 fixtures (existing legacy TMPRL1100 fixture plus the 3 new) via Worker.runReplayHistory; each new fixture also asserts its branch patch marker is recorded as a core_patch VersionMarker. Path C (ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH) is a legacy branch reachable only without STATE_BACKED_ACCEPTANCE_PROOF_PATCH, so it was generated with a controlled variant workflow (current code minus the state-backed-acceptance else-if); the pre-state-backed code is ~892 commits back and not independently buildable in-repo. Provenance is recorded in each metadata `source`. Reproducibility tooling committed under plugin/scripts/ (gen/finalize/check-replay). No production code changed, so C2/C3 are respected; the seenReportIds bound is the separate task tk-6a69a5e89523. RED (fixtures ENOENT, legacy passed) -> GREEN (4/4 pass) recorded; typecheck, lint, format:check, and check-test-isolation all exit 0. Fixture workflows on the dev server were terminated after export.",
+        "suggested_next_action": "Commit/checkpoint the worktree, then proceed to task tk-6a69a5e89523 (200-ID FIFO+total bound) and finally tk-ceae6f3a6166 (full invariant verification)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test -- src/temporal/__tests__/replay-determinism.test.ts (RED, before fixture files committed)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts --reporter=verbose (final GREEN)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: for each branch: pnpm exec tsx scripts/check-replay-history.ts <committed history> <workflowId>"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint && pnpm run format:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsx scripts/check-test-isolation.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addReplayReportBounds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addReplayReportBounds",
+      "task_id": "tk-6a69a5e89523",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6a69a5e89523"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/types/changes.signal-fields.test.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/schemas/change.schema.json"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/temporal/change-state.test.ts src/types/changes.signal-fields.test.ts",
+          "exit_code": 0,
+          "summary": "49 tests pass (RED→GREEN for 4 new tests)"
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/__tests__/continue-as-new.itest.ts",
+          "exit_code": 0,
+          "summary": "3 tests pass including behavioral CAN round-trip for seenReportIds/seenReportIdsTotal"
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts -t \"continues as new with every declared seedState field\"",
+          "exit_code": 0,
+          "summary": "Exhaustive seed-field coverage test passes with new seenReportIdsTotal field"
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts src/temporal/__tests__/workflow-bundle-imports.test.ts",
+          "exit_code": 0,
+          "summary": "7 tests pass; workflow bundle boundary intact"
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts",
+          "exit_code": 0,
+          "summary": "4 replay fixture tests pass"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript compiles cleanly"
+        },
+        {
+          "command": "pnpm run lint",
+          "exit_code": 0,
+          "summary": "ESLint passes"
+        },
+        {
+          "command": "pnpm run format:check",
+          "exit_code": 0,
+          "summary": "Prettier formatting passes"
+        },
+        {
+          "command": "pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Generated schemas match Zod definitions"
+        },
+        {
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "summary": "4,973 tests pass across 333 files"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Changed duplicate report path to leave seenReportIds completely unchanged",
+          "why": "Design requires 'duplicate paths leave retained IDs and total unchanged'. The previous code re-added evicted IDs to seenReportIds, which would cause unnecessary eviction of other IDs and violate the bound. The sidecar (subagent_reports) remains the authoritative duplicate-detection fallback after FIFO eviction."
+        },
+        {
+          "what": "Added seenReportIdsTotal as additive-optional (undefined by default)",
+          "why": "Replay-safe for histories predating the field, mirroring the signal_rejections_total pattern. Existing workflows without the field continue to replay cleanly; total counts only newly accepted reports after the bound was introduced."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Fixed duplicate-path seenReportIds mutation pattern to prevent unbounded growth; verified no other reducer paths write seenReportIds",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-6a69a5e89523 complete. seenReportIds now bounded to 200 IDs with FIFO eviction; seenReportIdsTotal added as cumulative counter. Both fields survive continue-as-new via seed rehydration and seed writing. Zod schema, contracts, reducer, CAN paths, and JSON schema all updated. Full test suite (4,973 tests) passes.",
+        "suggested_next_action": "Proceed to next task or run full validation for change acceptance"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/change-state.test.ts src/types/changes.signal-fields.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/__tests__/continue-as-new.itest.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts -t \"continues as new with every declared seedState field\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts src/temporal/__tests__/workflow-bundle-imports.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test full"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addReplayReportBounds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addReplayReportBounds",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For Temporal patch replay coverage, commit controlled real-history exports with metadata that names the patch ID, replay branch, and minimal sanitization; validate every pair through Worker.runReplayHistory."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/__tests__/continue-as-new.itest.ts src/temporal/__tests__/replay-determinism.test.ts src/types/changes.signal-fields.test.ts",
+          "bin/oc-test targeted -- src/temporal/workflow-bundle-boundary.test.ts",
+          "pnpm --dir plugin run check",
+          "pnpm --dir plugin run build:worker",
+          "git diff --check trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite: 4 files / 56 tests passed, including all four replay fixtures, FIFO/total, duplicate sidecar-after-eviction, and CAN round-trip tests. Workflow bundle-boundary: 6 tests passed. Schema check, typecheck, isolation/lockfile checks, lint, formatting, and Temporal worker build passed. git diff --check passed; worktree clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Regenerating fixture histories requires the documented local Temporal dev server and temporal CLI; committed fixture metadata preserves the exact controlled-history/export sequence."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addReplayReportBounds",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addReplayReportBounds",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "release-branch-1",
+          "label": "blocker",
+          "what": "Final branch is not based on current origin/trunk: HEAD 8b07947f and origin/trunk 35a4bd07 diverge from merge-base bd1c5c3f; branch is 2 commits ahead and 8 commits behind.",
+          "why": "Release/archival must validate the branch that will merge. Current local proof predates eight trunk commits, so merge/rebase conflicts and post-integration behavior remain unverified.",
+          "fix": "Rebase or merge current origin/trunk into change/addReplayReportBounds in its ADV worktree, resolve any conflicts, then rerun release verification."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "provenance-praise-1",
+          "label": "praise",
+          "file": "plugin/scripts/finalize-replay-fixture.ts",
+          "line": 13,
+          "what": "Fixture finalizer records controlled-history generation, exact Temporal export invocation, identity-only sanitization, target marker, and branch-specific coverage.",
+          "why": "Provides auditable, repeatable provenance for all three new replay histories."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "Release hardening should compare against origin/trunk (the repository default branch), not origin/main; the latter is absent here and can hide a stale release branch."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git status --short && git diff --check",
+          "git merge-base --is-ancestor trunk HEAD; git rev-list --left-right --count trunk...HEAD",
+          "bin/oc-test full",
+          "pnpm run check && pnpm run build",
+          "git fsck --no-dangling"
+        ],
+        "results": "pass",
+        "evidence": "Worktree clean; git diff --check and git fsck passed. Full suite passed: 333 files, 4,973 tests. check passed schemas:check, typecheck, test-isolation, lockfile policy, lint, and format; build and Temporal worker bundle passed. Contract/static scan found no changed patch marker, command-producing API, Map/Set, nondeterministic workflow call, threshold/cap, signal, or query alteration. However ancestry check proves release branch is stale: 2 ahead / 8 behind trunk."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Release branch does not include eight origin/trunk commits, so its current test/build proof is not final integration proof.",
+        "No post-reconciliation CI/merge evidence exists yet; release remains pending."
+      ],
+      "required_main_agent_actions": [
+        "Reconcile change/addReplayReportBounds with current origin/trunk in the ADV-managed worktree; do not archive the unreconciled branch.",
+        "After reconciliation, rerun `bin/oc-test full` and `pnpm run check && pnpm run build`, inspect the final diff, then push/open or update the release PR and obtain its terminal CI/merge evidence before archive."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addReplayReportBounds",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addReplayReportBounds",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "release-readiness-1",
+          "label": "blocker",
+          "file": "plugin/src/tool-name-assets.test.ts",
+          "what": "Required release check fails Prettier validation on this trunk-reconciled file and plugin/src/utils/tool-arg-preflight.test.ts.",
+          "why": "`pnpm --dir plugin run check` exits 1, so release/archival verification is not green. Both files are unchanged by this change relative to origin/trunk, establishing a reconciled upstream formatting baseline failure rather than change-specific drift.",
+          "fix": "Restore formatting in the appropriate upstream/trunk hygiene scope, then rerun `pnpm --dir plugin run check` before release/archive."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "provenance-praise-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/__tests__/replay/histories/addReplayReportBounds.state-backed-gate-artifact.metadata.json",
+          "line": 5,
+          "what": "All three new replay fixture metadata files record controlled Temporal export commands, sanitation, patch coverage, and exact incident evidence.",
+          "why": "Provides reproducible provenance without hand-authored event histories, satisfying the change's fixture constraint."
+        },
+        {
+          "id": "reconciliation-praise-1",
+          "label": "praise",
+          "file": "plugin/src/temporal/change-state.ts",
+          "line": 1061,
+          "what": "Bounded FIFO retention and cumulative counting remain structural and directly covered by reducer plus continue-as-new tests.",
+          "why": "Preserves deterministic report idempotency while capping retained state at 200 IDs."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When invoking root bin/oc-test, its target paths are resolved inside plugin/; pass src/... paths, not plugin/src/... paths."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/__tests__/replay-determinism.test.ts src/temporal/__tests__/continue-as-new.itest.ts src/types/changes.signal-fields.test.ts",
+          "pnpm --dir plugin run build:worker",
+          "pnpm --dir plugin run check",
+          "git merge-base --is-ancestor origin/trunk HEAD && git diff --check origin/trunk...HEAD"
+        ],
+        "results": "fail",
+        "evidence": "Release-targeted verification passed: 4 files, 56 tests; all four replay histories ran through Worker.runReplayHistory; both continue-as-new cases passed; build:worker passed. HEAD f7c6a68 merges origin/trunk (35a4bd07), git status is clean, origin/trunk is an ancestor, and diff --check passed. Full check failed only Prettier on plugin/src/tool-name-assets.test.ts and plugin/src/utils/tool-arg-preflight.test.ts; both are identical to origin/trunk, so failure is upstream baseline, not this change."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Archive readiness remains blocked until the upstream formatting baseline is made green and release check reruns.",
+        "No unscoped formatting edits were applied to trunk-derived files."
+      ],
+      "required_main_agent_actions": [
+        "Resolve the origin/trunk Prettier failures in plugin/src/tool-name-assets.test.ts and plugin/src/utils/tool-arg-preflight.test.ts in the appropriate hygiene scope; they are outside this change's replay/report-bound contract.",
+        "After baseline repair is reconciled, rerun `pnpm --dir plugin run check` and release hardening before completing release/archive.",
+        "Do not revisit replay fixtures, FIFO-plus-total state handling, schema projection, or continue-as-new plumbing unless the rerun exposes a new regression."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addReplayReportBounds",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addReplayReportBounds",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "Replay-release hardening stays evidence-backed when committed histories carry reproducible controlled-workflow export provenance, branch-specific coverage, marker assertions, and Worker.runReplayHistory coverage."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm --dir plugin run check",
+          "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/change-state.test.ts src/types/changes.signal-fields.test.ts",
+          "bin/oc-test targeted -- src/temporal/__tests__/continue-as-new.itest.ts",
+          "git diff --check origin/trunk...HEAD",
+          "git status --porcelain"
+        ],
+        "results": "pass",
+        "evidence": "check passed schemas:check, typecheck, isolation/lockfile checks, lint, and Prettier format check. Targeted suite passed 53 tests: four Worker.runReplayHistory fixtures, 45 reducer tests including FIFO/total/duplicate paths, and four schema-field tests. Continue-as-new integration passed 3 tests, including preservation of seenReportIds and seenReportIdsTotal. Final diff checks and porcelain status were empty. The initial targeted invocation used repo-prefixed paths although oc-test runs from plugin/, exited 1 without discovering tests; corrected path invocation passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Release gate remains pending; proceed with normal release/archive orchestration. No reviewer remediation or contract re-entry needed.",
+        "Do not revisit replay fixture provenance, FIFO bound, signal/query contracts, or formatting-only commit 9e94940c unless a new release-stage failure supplies contrary evidence."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-86e9bd603c47": [
+      {
+        "runId": "tr_mrio3bh1_76cbab27",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm test -- src/temporal/__tests__/replay-determinism.test.ts",
+        "durationMs": 123553.7415040005,
+        "recordedAt": "2026-07-13T03:33:10.061Z"
+      },
+      {
+        "runId": "tr_mrioypmu_abac9358",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm test -- src/temporal/__tests__/replay-determinism.test.ts",
+        "durationMs": 123656.28027700074,
+        "recordedAt": "2026-07-13T03:57:34.732Z"
+      },
+      {
+        "runId": "tr_mrip3wg7_2b8b9031",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm test -- src/temporal/__tests__/replay-determinism.test.ts",
+        "durationMs": 115683.48789799958,
+        "recordedAt": "2026-07-13T04:01:36.826Z"
+      },
+      {
+        "runId": "tr_mripdxx2_51ade237",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/__tests__/replay-determinism.test.ts --reporter=verbose",
+        "durationMs": 9224.980479000136,
+        "recordedAt": "2026-07-13T04:09:25.301Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T01:47:03.086Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved implementation scope: replay-history fixtures plus deterministic seenReportIds bounds; snapshot/projection and ready-task performance work remains deferred pending measurement.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "88fe39ff55ba340f0f961eaa2bd48b9c135592b6bf54dab80a194ee67e86620b",
+        "non_whitespace_chars": 1544,
+        "checked_at": "2026-07-13T01:44:51.955Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T02:56:24.797Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved strict agreement: three reproducible replay fixtures and a 200-ID deterministic FIFO-plus-total bound; no new patch marker and no unmeasured performance optimization.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "non_whitespace_chars": 2253,
+        "checked_at": "2026-07-13T01:44:51.956Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:00:50.476Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent Temporal validator PASS. Design includes required CAN rehydration fix, 200-ID FIFO-plus-total semantics, no patch marker, controlled-history fixture provenance, and behavioral CAN round-trip verification.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "8fdb90857bfc66cdcbf054a4c379736d9c61c2030fab871533a074c4245d28cb",
+        "non_whitespace_chars": 1834,
+        "checked_at": "2026-07-13T01:44:51.957Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:15:57.020Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved three-task graph: controlled replay fixtures, 200-ID FIFO-plus-total/CAN state, then full invariant verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T04:35:33.803Z",
+      "completed_by": "agent",
+      "approval_evidence": "All tasks checkpointed done. Independent verification passed targeted 63 tests and structural checks; strict validation passed with only non-blocking NO_DELTAS."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T12:42:15.214Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved delivered replay coverage and report-ID bounds. Independent review READY; all 12 strict-contract matrix rows pass, respected, or out-of-scope.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ebe4ff73c3999e1f630cff617ac45a3106ef7ee9b348198aba367809001f27ab",
+        "non_whitespace_chars": 1321,
+        "checked_at": "2026-07-13T01:44:51.958Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "deepScanTemporalWorkflowHot",
+    "linked_at": "2026-07-13T01:44:51.110Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "deepScanTemporalWorkflowHot"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+      "approvedAt": "2026-07-13T02:33:04.792Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Add three committed replay-history/metadata pairs for `STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH`, `ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH`, and `STATE_BACKED_ACCEPTANCE_PROOF_PATCH`; each records a reproducible source and a branch-specific coverage statement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Extend `replay-determinism.test.ts` so every committed history is validated by `Worker.runReplayHistory`; existing legacy fixture coverage remains intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`seenReportIds` retains only the 200 most-recent distinct report IDs in FIFO order, while `seenReportIdsTotal` tracks every accepted distinct report ID cumulatively.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Duplicate report submission does not append, evict, or increment `seenReportIdsTotal`; sidecar-backed duplicate protection remains intact after FIFO eviction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Continue-as-new carries both retained IDs and cumulative total; transition, schema-generation, size-cap, workflow-bundle-boundary, and replay verification pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Replay fixtures must come from a reproducible real or controlled Temporal test-workflow history exported with `temporal workflow show --output json --no-json-shorthand-payloads`, then sanitized and committed. Never fabricate event history.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "The ID-bound is internal deterministic state only. Do not add a Temporal patch marker, command-producing API call, or nondeterministic data structure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve report-key byte format, existing signal/query contracts, handler drain, continue-as-new threshold, and payload caps.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Mirror the established FIFO-plus-total shape; retain exactly 200 IDs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Snapshot/projection clone replacement or benchmark work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Ready-task indexing or other readiness performance changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Aggregate-cap, continue-as-new threshold, handler, signal/query, or patch lifecycle redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T04:39:43.312Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Three controlled exported history/metadata pairs committed with branch-specific provenance; reviewer READY."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "replay-determinism registry runs all four histories through Worker.runReplayHistory; targeted suite passed."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reducer tests prove FIFO retention of newest 200 distinct IDs and cumulative total."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tests prove duplicate no-op and sidecar-backed duplicate protection after FIFO eviction."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "CAN round-trip, schema/check, workflow bundle, replay, and targeted verification all passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_audit",
+          "evidence": "Metadata records controlled Temporal workflow export provenance; reviewer verified no hand-authored history."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review found no new patch marker, command-producing API, Map/Set, or nondeterministic structure."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer verified report-key, signals/queries, handler drain, CAN threshold, and caps unchanged."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation uses exact 200-item FIFO-plus-total shape with regression coverage."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No snapshot/projection clone or benchmark work."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No ready-task or readiness performance change."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No aggregate-cap, threshold, handler, signal/query, or patch redesign."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Add three committed replay-history/metadata pairs for `STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH`, `ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH`, and `STATE_BACKED_ACCEPTANCE_PROOF_PATCH`; each records a reproducible source and a branch-specific coverage statement.",
+    "Extend `replay-determinism.test.ts` so every committed history is validated by `Worker.runReplayHistory`; existing legacy fixture coverage remains intact.",
+    "`seenReportIds` retains only the 200 most-recent distinct report IDs in FIFO order, while `seenReportIdsTotal` tracks every accepted distinct report ID cumulatively.",
+    "Duplicate report submission does not append, evict, or increment `seenReportIdsTotal`; sidecar-backed duplicate protection remains intact after FIFO eviction.",
+    "Continue-as-new carries both retained IDs and cumulative total; transition, schema-generation, size-cap, workflow-bundle-boundary, and replay verification pass."
+  ],
+  "documents": {
+    "proposal": "# Add replay report bounds\n\n## Intent\n\nStrengthen Temporal workflow evolution safety by adding replay fixtures for uncovered live patch branches and bounding idempotency report IDs across continue-as-new.\n\n## Scope\n\n- `plugin/src/temporal/__tests__/replay-determinism.test.ts` and `plugin/src/temporal/__tests__/replay/histories/`: add deterministic replay histories plus metadata for the three uncovered live patch branches, validated by existing `Worker.runReplayHistory` coverage.\n- `plugin/src/temporal/change-state.ts`, `plugin/src/temporal/contracts.ts`, and `plugin/src/temporal/workflows.ts`: bound `seenReportIds` with deterministic FIFO retention and total-count observability; carry bounded state through continue-as-new.\n- Focused Temporal transition, replay, size-cap, and workflow-bundle-boundary tests.\n\n## Failure and Rollback Boundaries\n\n- A patch fixture must be sourced from a reproducible real or controlled test workflow history. If no valid history can be produced for a patch branch, do not fabricate a fixture or weaken patch lifecycle behavior; record the blocking source gap.\n- Any report-ID bound must preserve duplicate-report rejection, state ordering, and continue-as-new semantics. A failing replay/transition/size-cap test blocks the change; no threshold, signal/query, or patch-marker behavior change is allowed as workaround.\n\n## Explicitly Deferred\n\nSnapshot/projection clone optimization and ready-task indexing remain measurement-first candidates; they are not part of this change.\n\n## Evidence\n\nIndependent local/official investigation confirmed the replay-fixture gap and unbounded report-ID growth. The archived `deepScanTemporalWorkflowHot` assessment contains exact source locations and verification constraints.",
+    "problemStatement": "## Problem\n\nThree live Temporal patch branches lack committed replay-history coverage, which blocks safe future patch deprecation. Separately, `seenReportIds` grows without bound and survives continue-as-new while remaining outside the aggregate-size guard.\n\n## Success Signal\n\nReplay coverage and bounded report-ID behavior are implemented only with deterministic, replay-safe fixtures and state-transition evidence.",
+    "agreement": "# Agreement\n\n## Objective\n\nClose verified Temporal workflow evolution and idempotency-growth gaps without changing command sequencing, signal/query contracts, continue-as-new thresholds, or payload caps.\n\n## Acceptance Criteria\n\n1. Add three committed replay-history/metadata pairs for `STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH`, `ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH`, and `STATE_BACKED_ACCEPTANCE_PROOF_PATCH`; each records a reproducible source and a branch-specific coverage statement.\n2. Extend `replay-determinism.test.ts` so every committed history is validated by `Worker.runReplayHistory`; existing legacy fixture coverage remains intact.\n3. `seenReportIds` retains only the 200 most-recent distinct report IDs in FIFO order, while `seenReportIdsTotal` tracks every accepted distinct report ID cumulatively.\n4. Duplicate report submission does not append, evict, or increment `seenReportIdsTotal`; sidecar-backed duplicate protection remains intact after FIFO eviction.\n5. Continue-as-new carries both retained IDs and cumulative total; transition, schema-generation, size-cap, workflow-bundle-boundary, and replay verification pass.\n\n## Constraints\n\n- Replay fixtures must come from a reproducible real or controlled Temporal test-workflow history exported with `temporal workflow show --output json --no-json-shorthand-payloads`, then sanitized and committed. Never fabricate event history.\n- The ID-bound is internal deterministic state only. Do not add a Temporal patch marker, command-producing API call, or nondeterministic data structure.\n- Preserve report-key byte format, existing signal/query contracts, handler drain, continue-as-new threshold, and payload caps.\n- Mirror the established FIFO-plus-total shape; retain exactly 200 IDs.\n\n## Stop Condition\n\nIf valid controlled/real histories for any target patch branch cannot be generated and exported reproducibly, stop that fixture path and surface the source-access blocker. Do not fake coverage or weaken patch lifecycle semantics.\n\n## Out of Scope\n\n- Snapshot/projection clone replacement or benchmark work.\n- Ready-task indexing or other readiness performance changes.\n- Aggregate-cap, continue-as-new threshold, handler, signal/query, or patch lifecycle redesign.\n\n## Discovery Evidence\n\nOfficial Temporal TypeScript versioning guidance confirms this internal array bound needs no patch marker because it changes no command sequence. Local analysis found one existing fixture, three uncovered patch paths, a reusable FIFO-plus-total pattern, and the sole `seenReportIds` mutation/CAN-seed paths.",
+    "design": "# Design\n\n## Replay Fixture Path\n\nDrive controlled `changeWorkflow` executions to each target patched branch on a local Temporal test environment. Export each completed workflow using `temporal workflow show --output json --no-json-shorthand-payloads`, sanitize the export, commit history plus branch-specific metadata, and register it in `replay-determinism.test.ts`. The existing test harness remains sole replay executor through `Worker.runReplayHistory`.\n\nNo event history is hand-authored. If a target branch cannot be reached and exported reproducibly, stop that fixture path rather than claim coverage.\n\n## Report-ID Bound\n\nAdd `SEEN_REPORT_IDS_RING_BUFFER_LIMIT = 200` next to the established signal-rejection limit. In both reducer write paths, retain IDs in input order with `slice(-200)`. Increment `seenReportIdsTotal` only for a newly accepted report; duplicate paths leave retained IDs and total unchanged. Keep array-based deterministic lookup; do not introduce a persistent Map/Set.\n\nAdd optional `seenReportIdsTotal` to state/schema/contracts. Rehydrate both `seenReportIds` and `seenReportIdsTotal` from continue-as-new seed, then preserve both in seed construction. Local validation found existing IDs are written to the seed but not rehydrated; this change fixes that in-scope gap. The work is internal state-only and makes no command/signal/query sequence change, so no Temporal patch marker is added.\n\n## Verification Strategy\n\n- Replay: branch-specific fixture metadata and `Worker.runReplayHistory` for all four histories.\n- Reducer: distinct overflow retains newest 200 in FIFO order; total counts all accepted IDs; duplicate and sidecar-backed duplicate behavior remains unchanged.\n- CAN: behavioral round-trip test for rehydrated IDs + total, alongside exhaustive seed-field coverage.\n- Boundaries: schema generation/check, typecheck, workflow bundle boundary, existing transition/replay suites.\n\n## Guardrails\n\nDo not change report-key construction, aggregate payload cap, continue-as-new threshold/drain, patch lifecycle, handler behavior, or performance work deferred by agreement.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nReplay safety now covers every live workflow patch branch, and sub-agent report idempotency state is bounded across continue-as-new.\n\n## What Changed\n\n- Added three controlled exported replay histories with provenance metadata; four histories now replay through `Worker.runReplayHistory`.\n- Added deterministic 200-ID FIFO `seenReportIds`, cumulative `seenReportIdsTotal`, and CAN rehydration/seed propagation.\n- Preserved duplicate and sidecar-backed dedup semantics after eviction.\n- Added reproducibility scripts, schema/contracts, and focused regression coverage.\n- Included approved formatting-only remediation for two upstream test files.\n\n## Verification\n\n- Acceptance review: READY; no findings.\n- Final hardening: READY; clean branch.\n- `pnpm --dir plugin run check`: passed.\n- Replay/state/schema targeted tests: 53 passing; CAN integration: 3 passing.\n- Earlier full suite: 4,973 passing.\n\n## Release Readiness Summary\n\n- Delivered value: safe patch evolution coverage and bounded idempotency growth.\n- Release risk: low; no blocker or migration/ops/frontend impact.\n- Collision risk: resolved by trunk reconciliation; formatting remediation verified.\n- Follow-ups: snapshot/projection and ready-task performance remain deliberately deferred pending measurement.\n- Archive action: safe after user sign-off.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T04:39:43.312Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Add three committed replay-history/metadata pairs for `STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH`, `ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH`, and `STATE_BACKED_ACCEPTANCE_PROOF_PATCH`; each records a reproducible source and a branch-specific coverage statement. | pass | Three controlled exported history/metadata pairs committed with branch-specific provenance; reviewer READY. |\n| AC2 | acceptance_criterion | Extend `replay-determinism.test.ts` so every committed history is validated by `Worker.runReplayHistory`; existing legacy fixture coverage remains intact. | pass | replay-determinism registry runs all four histories through Worker.runReplayHistory; targeted suite passed. |\n| AC3 | acceptance_criterion | `seenReportIds` retains only the 200 most-recent distinct report IDs in FIFO order, while `seenReportIdsTotal` tracks every accepted distinct report ID cumulatively. | pass | Reducer tests prove FIFO retention of newest 200 distinct IDs and cumulative total. |\n| AC4 | acceptance_criterion | Duplicate report submission does not append, evict, or increment `seenReportIdsTotal`; sidecar-backed duplicate protection remains intact after FIFO eviction. | pass | Tests prove duplicate no-op and sidecar-backed duplicate protection after FIFO eviction. |\n| AC5 | acceptance_criterion | Continue-as-new carries both retained IDs and cumulative total; transition, schema-generation, size-cap, workflow-bundle-boundary, and replay verification pass. | pass | CAN round-trip, schema/check, workflow bundle, replay, and targeted verification all passed. |\n| C1 | constraint | Replay fixtures must come from a reproducible real or controlled Temporal test-workflow history exported with `temporal workflow show --output json --no-json-shorthand-payloads`, then sanitized and committed. Never fabricate event history. | respected | Metadata records controlled Temporal workflow export provenance; reviewer verified no hand-authored history. |\n| C2 | constraint | The ID-bound is internal deterministic state only. Do not add a Temporal patch marker, command-producing API call, or nondeterministic data structure. | respected | Review found no new patch marker, command-producing API, Map/Set, or nondeterministic structure. |\n| C3 | constraint | Preserve report-key byte format, existing signal/query contracts, handler drain, continue-as-new threshold, and payload caps. | respected | Reviewer verified report-key, signals/queries, handler drain, CAN threshold, and caps unchanged. |\n| C4 | constraint | Mirror the established FIFO-plus-total shape; retain exactly 200 IDs. | respected | Implementation uses exact 200-item FIFO-plus-total shape with regression coverage. |\n| OOS1 | out_of_scope | Snapshot/projection clone replacement or benchmark work. | not_applicable | No snapshot/projection clone or benchmark work. |\n| OOS2 | out_of_scope | Ready-task indexing or other readiness performance changes. | not_applicable | No ready-task or readiness performance change. |\n| OOS3 | out_of_scope | Aggregate-cap, continue-as-new threshold, handler, signal/query, or patch lifecycle redesign. | not_applicable | No aggregate-cap, threshold, handler, signal/query, or patch redesign. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T01:45:08.385Z",
+      "contentHash": "88fe39ff55ba340f0f961eaa2bd48b9c135592b6bf54dab80a194ee67e86620b",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T01:44:51.974Z",
+      "contentHash": "5d78a454665ad7702d160eaa8726f80ba220968af5bc03509cb137c06ef6cdd8",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T02:32:01.659Z",
+      "contentHash": "91af989337ba7dca892c346a751a911e97d5c765355d6f154b1e536ddf9a6b74",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T02:59:58.707Z",
+      "contentHash": "8fdb90857bfc66cdcbf054a4c379736d9c61c2030fab871533a074c4245d28cb",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T16:08:55.387Z",
+      "contentHash": "e94a06affcb27fa6c1197f2b3d7fd643f76f6cbb455424457861f91b2bb6d416",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T16:08:55.387Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
