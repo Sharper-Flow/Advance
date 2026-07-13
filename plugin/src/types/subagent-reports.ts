@@ -167,6 +167,38 @@ export type DesignConcernDisposition = z.infer<
   typeof DesignConcernDispositionSchema
 >;
 
+/**
+ * Typed disposition of a verification-evidence gap (an unresolved
+ * `verification_missing` / `verification_mismatch` consumer warning) on a
+ * completed task with a proof-bearing evidence policy. Recorded via
+ * verificationEvidenceDispositionedSignal and read by the gate-readiness
+ * evaluator to clear an otherwise-blocking VERIFICATION_EVIDENCE_MISSING
+ * blocker.
+ *
+ * Mirrors the design-concern disposition mechanics: latest disposition wins
+ * for a given (taskId, concernKey), and there is intentionally no
+ * `accepted_debt` verb — a verification gap is either re-verified (newer
+ * warning-free report), dispositioned with evidence, or routed out via
+ * split / fast-follow. It is never silently grandfathered.
+ */
+export const VerificationEvidenceDispositionSchema = z
+  .object({
+    taskId: z.string().trim().min(1),
+    concernKey: z.string().trim().min(1),
+    disposition: z.enum([
+      "fixed",
+      "rejected_with_evidence",
+      "split",
+      "fast_follow",
+    ]),
+    evidence: z.string().trim().min(1),
+    dispositionedAt: z.string().trim().min(1),
+  })
+  .strict();
+export type VerificationEvidenceDisposition = z.infer<
+  typeof VerificationEvidenceDispositionSchema
+>;
+
 export const EngineerSubagentReportSchema =
   TaskScopedBaseSubagentReportSchema.extend({
     agent: z.literal("adv-engineer"),

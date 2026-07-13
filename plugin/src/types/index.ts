@@ -145,6 +145,8 @@ export {
   type RequiredFollowUp,
   DesignConcernDispositionSchema,
   type DesignConcernDisposition,
+  VerificationEvidenceDispositionSchema,
+  type VerificationEvidenceDisposition,
   EngineerSubagentReportSchema,
   DesignerDesignDimensionSchema,
   DesignerDesignDimensionsSchema,

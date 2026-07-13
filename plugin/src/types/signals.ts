@@ -27,6 +27,7 @@ import { TaskStructuredOutputSchema } from "./task-output";
 import {
   DesignConcernDispositionSchema,
   ScopedSubagentReportSchema,
+  VerificationEvidenceDispositionSchema,
 } from "./subagent-reports";
 import {
   ChangeContractSchema,
@@ -220,6 +221,16 @@ export const DesignConcernDispositionedSignalPayloadSchema =
   DesignConcernDispositionSchema;
 export type DesignConcernDispositionedSignalPayload = z.infer<
   typeof DesignConcernDispositionedSignalPayloadSchema
+>;
+
+// Records a typed disposition for a verification-evidence gap so the
+// gate-readiness evaluator can clear an otherwise-blocking
+// VERIFICATION_EVIDENCE_MISSING blocker. The payload is the disposition record
+// itself (latest-wins per (taskId, concernKey)).
+export const VerificationEvidenceDispositionedSignalPayloadSchema =
+  VerificationEvidenceDispositionSchema;
+export type VerificationEvidenceDispositionedSignalPayload = z.infer<
+  typeof VerificationEvidenceDispositionedSignalPayloadSchema
 >;
 
 export const TaskBlockedSignalPayloadSchema = z.object({

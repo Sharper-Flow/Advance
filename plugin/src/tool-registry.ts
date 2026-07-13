@@ -36,6 +36,7 @@ import { followupTools } from "./tools/followup";
 import { opsEvidenceTools } from "./tools/ops-evidence";
 import { contractTools } from "./tools/contract";
 import { designConcernTools } from "./tools/design-concern";
+import { verificationEvidenceTools } from "./tools/verification-evidence";
 import { taskTools } from "./tools/task";
 import { subagentReportTools } from "./tools/subagent-report";
 import { wisdomTools } from "./tools/wisdom";
@@ -506,6 +507,11 @@ export function createToolMap(
       "adv_design_concern_disposition",
       store,
     ),
+    adv_verification_evidence_disposition: bindTool(
+      verificationEvidenceTools.adv_verification_evidence_disposition,
+      "adv_verification_evidence_disposition",
+      store,
+    ),
 
     // Task Tools
     adv_task_show: bindTool(taskTools.adv_task_show, "adv_task_show", store),
@@ -908,6 +914,7 @@ export function getToolSurface(): Map<string, Set<string>> {
     opsEvidenceTools,
     contractTools,
     designConcernTools,
+    verificationEvidenceTools,
     taskTools,
     subagentReportTools,
     wisdomTools,
@@ -983,6 +990,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_contract_mint",
   "adv_contract_review_matrix_set",
   "adv_design_concern_disposition",
+  "adv_verification_evidence_disposition",
   "adv_task_show",
   "adv_task_list",
   "adv_task_ready",

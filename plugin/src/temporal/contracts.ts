@@ -88,6 +88,8 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   taskBlocked: "adv.change.taskBlocked",
   taskCancelled: "adv.change.taskCancelled",
   designConcernDispositioned: "adv.change.designConcernDispositioned",
+  verificationEvidenceDispositioned:
+    "adv.change.verificationEvidenceDispositioned",
   gateInProgress: "adv.change.gateInProgress",
   gateAwaitingApproval: "adv.change.gateAwaitingApproval",
   gateStuck: "adv.change.gateStuck",
@@ -263,6 +265,7 @@ export interface ChangeWorkflowInput {
       | "scope_worktrees"
       | "seenReportIds"
       | "design_concern_dispositions"
+      | "verification_evidence_dispositions"
       | "signal_rejections"
       | "signal_rejections_total"
       | "ops_followup"
@@ -374,6 +377,14 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * predating this extension replay cleanly with it undefined.
    */
   design_concern_dispositions?: import("../types").DesignConcernDisposition[];
+  /**
+   * Typed dispositions of verification-evidence gaps on completed tasks with
+   * proof-bearing evidence policies. Read by the gate-readiness evaluator to
+   * clear an otherwise-blocking VERIFICATION_EVIDENCE_MISSING blocker. Additive
+   * optional field — Temporal replay-safe; histories predating this extension
+   * replay cleanly with it undefined.
+   */
+  verification_evidence_dispositions?: import("../types").VerificationEvidenceDisposition[];
   deltas: import("../types").Change["deltas"];
   wisdom: import("../types").WisdomEntry[];
   gates: Gates;

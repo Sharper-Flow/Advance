@@ -56,6 +56,7 @@ import {
   applyOpsRunUpsertedToState,
   applyOriginRepairedToState,
   applyDesignConcernDispositionedToState,
+  applyVerificationEvidenceDispositionedToState,
   applyOpsFollowupSeededToState,
   applyProblemStatementUpdatedToState,
   applyProposalUpdatedToState,
@@ -329,6 +330,9 @@ const taskCancelledSignal = wf.defineSignal<
 const designConcernDispositionedSignal = wf.defineSignal<
   [import("../types").DesignConcernDispositionedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.designConcernDispositioned);
+const verificationEvidenceDispositionedSignal = wf.defineSignal<
+  [import("../types").VerificationEvidenceDispositionedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.verificationEvidenceDispositioned);
 const gateInProgressSignal = wf.defineSignal<
   [import("../types").GateInProgressSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.gateInProgress);
@@ -652,6 +656,11 @@ export async function changeWorkflow(
     if (input.seedState.design_concern_dispositions) {
       state.design_concern_dispositions = [
         ...input.seedState.design_concern_dispositions,
+      ];
+    }
+    if (input.seedState.verification_evidence_dispositions) {
+      state.verification_evidence_dispositions = [
+        ...input.seedState.verification_evidence_dispositions,
       ];
     }
     if (input.seedState.signal_rejections) {
@@ -1331,6 +1340,12 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    verificationEvidenceDispositionedSignal,
+    signalMutation("verificationEvidenceDispositioned", (payload) =>
+      applyVerificationEvidenceDispositionedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     gateInProgressSignal,
     signalMutation("gateInProgress", (payload) =>
       applyGateInProgressToState(state, payload),
@@ -1722,6 +1737,11 @@ export async function changeWorkflow(
       scope_worktrees: state.scope_worktrees,
       seenReportIds: state.seenReportIds,
       design_concern_dispositions: state.design_concern_dispositions,
+      // Continue-as-new seed must persist every seedState Pick key as a
+      // single-line `key: state.key` entry (workflows.signal-handlers structural
+      // invariant). This key exceeds the 80-col wrap, so hold it on one line.
+      // prettier-ignore
+      verification_evidence_dispositions: state.verification_evidence_dispositions,
       signal_rejections: state.signal_rejections,
       signal_rejections_total: state.signal_rejections_total,
       ops_followup: state.ops_followup,

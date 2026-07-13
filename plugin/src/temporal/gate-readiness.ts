@@ -1,6 +1,7 @@
 import {
   GATE_ORDER,
   GateArtifactEvidenceSchema,
+  type ContractEvidencePolicy,
   type DesignConcernDisposition,
   type DesignerSubagentReport,
   type GateArtifactEvidence,
@@ -10,6 +11,8 @@ import {
   type OpsFollowupLink,
   type OpsRelationship,
   type OpsFollowupStatus,
+  type ScopedSubagentReport,
+  type VerificationEvidenceDisposition,
 } from "../types";
 import type { ChangeWorkflowState } from "./contracts";
 import { isFailingContractReviewStatus } from "./recovery-classification";
@@ -615,6 +618,104 @@ export function checkUnresolvedDesignConcerns(
   return blockers;
 }
 
+// strengthenAgentEvidence AC1/AC2: Structural verification-evidence blocker.
+//
+// Reports stay submit-time advisory (warnings only — no hard block at submit,
+// DONT3). At acceptance/release readiness, inspect each COMPLETED task's latest
+// task-scoped report per agent and its typed evidence_policy. For proof-bearing
+// policies (test, static_check, review, artifact_reference), an unresolved
+// verification_missing / verification_mismatch consumer warning becomes a typed
+// VERIFICATION_EVIDENCE_MISSING blocker (SC1: acceptance cannot report full
+// verification when required durable proof is absent). Non-proof policies
+// (source_citation, source_audit, rubric_review, stakeholder_acceptance,
+// design_proof, not_applicable) stay warn-first so valid non-code/source
+// workflows do not regress (SC4 / AC2).
+//
+// A blocker clears only through (a) a newer warning-free report for that agent
+// (latest-wins durable evidence), or (b) a typed disposition for
+// (taskId, "verification") — never silently (no grandfathering). The check is
+// NOT bypassed by compatibilityReason, mirroring checkUnresolvedDesignConcerns.
+const VERIFICATION_BLOCKING_POLICIES: ContractEvidencePolicy[] = [
+  "test",
+  "static_check",
+  "review",
+  "artifact_reference",
+];
+
+const VERIFICATION_WARNING_KINDS = new Set([
+  "verification_missing",
+  "verification_mismatch",
+]);
+
+const VERIFICATION_CONCERN_KEY = "verification";
+
+function verificationReportTaskId(
+  report: ScopedSubagentReport,
+): string | undefined {
+  if (typeof report.scope === "object" && report.scope?.kind === "task") {
+    return report.scope.task_id;
+  }
+  return (report as { task_id?: string }).task_id;
+}
+
+// Latest task-scoped report per agent for a task (latest-wins by attempt so a
+// newer warning-free report supersedes an older warning-bearing one).
+function latestVerificationReportsForTask(
+  state: ChangeWorkflowState,
+  taskId: string,
+): ScopedSubagentReport[] {
+  const latestByAgent = new Map<string, ScopedSubagentReport>();
+  for (const report of state.subagent_reports ?? []) {
+    if (verificationReportTaskId(report) !== taskId) continue;
+    const existing = latestByAgent.get(report.agent);
+    if (!existing || report.attempt > existing.attempt) {
+      latestByAgent.set(report.agent, report);
+    }
+  }
+  return [...latestByAgent.values()];
+}
+
+export function checkUnresolvedVerificationEvidence(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateReadinessBlocker[] {
+  if (gateId !== "acceptance" && gateId !== "release") return [];
+
+  const dispositions: VerificationEvidenceDisposition[] =
+    state.verification_evidence_dispositions ?? [];
+  const isDispositioned = (taskId: string): boolean =>
+    dispositions.some(
+      (d) => d.taskId === taskId && d.concernKey === VERIFICATION_CONCERN_KEY,
+    );
+
+  const blockers: GateReadinessBlocker[] = [];
+  for (const task of state.tasks) {
+    if (task.status !== "done") continue;
+    const policy = task.evidence_policy;
+    if (!policy || !VERIFICATION_BLOCKING_POLICIES.includes(policy)) continue;
+    if (isDispositioned(task.id)) continue;
+
+    const warnings = latestVerificationReportsForTask(state, task.id).flatMap(
+      (report) =>
+        (report.consumer_warnings ?? []).filter((warning) =>
+          VERIFICATION_WARNING_KINDS.has(warning.kind),
+        ),
+    );
+    if (warnings.length === 0) continue;
+
+    const kinds = [...new Set(warnings.map((w) => w.kind))].join(", ");
+    blockers.push(
+      makeBlocker({
+        code: "VERIFICATION_EVIDENCE_MISSING",
+        gateId,
+        message: `Completed task ${task.id} (evidence_policy: ${policy}) has unresolved verification evidence: ${kinds}.`,
+        remediation: `Re-run adv_run_test and submit an updated task report so the latest report is warning-free, or record a typed disposition via adv_verification_evidence_disposition (taskId: ${task.id}, concernKey: ${VERIFICATION_CONCERN_KEY}).`,
+      }),
+    );
+  }
+  return blockers;
+}
+
 function hasCompleteOpsProof(link: OpsFollowupLink): boolean {
   const resolution = link.resolution;
   if (!resolution) return false;
@@ -834,6 +935,7 @@ export function evaluateGateReadiness(
       blockers.push(...acceptanceContractBlockers(state, gateId));
     }
     blockers.push(...checkUnresolvedDesignConcerns(state, gateId));
+    blockers.push(...checkUnresolvedVerificationEvidence(state, gateId));
   }
 
   if (gateId === "release") {
@@ -841,6 +943,7 @@ export function evaluateGateReadiness(
     blockers.push(...checkRequiredObligationRouting(state, gateId));
     blockers.push(...checkOpsFollowupReleaseBlockers(state, gateId));
     blockers.push(...checkUnresolvedDesignConcerns(state, gateId));
+    blockers.push(...checkUnresolvedVerificationEvidence(state, gateId));
   }
 
   const warnings = artifactCascadeWarnings(state, gateId);

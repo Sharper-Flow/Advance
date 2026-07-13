@@ -28,7 +28,12 @@
  *   terminal/dominant and invalidates stale active cache entries there.
  */
 import type { Store } from "../storage/store-types";
-import type { Change, DesignConcernDisposition, Gates } from "../types";
+import type {
+  Change,
+  DesignConcernDisposition,
+  Gates,
+  VerificationEvidenceDisposition,
+} from "../types";
 import { saveChange } from "../storage/json";
 import type { ArtifactMetadata } from "../temporal/contracts";
 import { subagentReportKey } from "../types/subagent-reports";
@@ -220,6 +225,50 @@ export async function saveRecoveredDesignConcernDisposition(input: {
   const updated = {
     ...input.change,
     design_concern_dispositions: [
+      ...next,
+      {
+        ...input.disposition,
+        recovery_audit: {
+          reason: input.authorization.reason,
+          evidence: input.authorization.evidence,
+          recovered_at: new Date().toISOString(),
+        },
+      },
+    ],
+  } as Change;
+  await saveChange(input.store.paths.changes, updated);
+  return updated;
+}
+
+/**
+ * Record a typed verification-evidence disposition on the disk projection when
+ * the owning change workflow is already completed and cannot accept the normal
+ * `verificationEvidenceDispositionedSignal`.
+ *
+ * The same latest-wins semantics as
+ * `applyVerificationEvidenceDispositionedToState` are preserved for
+ * `(taskId, concernKey)`. This is intentionally disk-direct: completed-workflow
+ * recovery must not call `store.changes.save` because that can route back
+ * through the workflow being recovered.
+ */
+export async function saveRecoveredVerificationEvidenceDisposition(input: {
+  store: Store;
+  change: Change;
+  authorization: RecoveryWriteAuthorization;
+  disposition: VerificationEvidenceDisposition;
+}): Promise<Change> {
+  assertRecoveryAuthorization(input.authorization);
+  const existing = input.change.verification_evidence_dispositions ?? [];
+  const next = existing.filter(
+    (d) =>
+      !(
+        d.taskId === input.disposition.taskId &&
+        d.concernKey === input.disposition.concernKey
+      ),
+  );
+  const updated = {
+    ...input.change,
+    verification_evidence_dispositions: [
       ...next,
       {
         ...input.disposition,

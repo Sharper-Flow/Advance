@@ -16,6 +16,7 @@ import { TaskSchema } from "./tasks";
 import {
   DesignConcernDispositionSchema,
   ScopedSubagentReportSchema,
+  VerificationEvidenceDispositionSchema,
 } from "./subagent-reports";
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
@@ -1004,6 +1005,16 @@ export const ChangeSchema = z
      */
     design_concern_dispositions: z
       .array(DesignConcernDispositionSchema)
+      .optional(),
+
+    /**
+     * Typed dispositions for verification-evidence gaps on completed tasks
+     * with proof-bearing evidence policies. Persisted on the change projection
+     * so workflow re-seed / continue-as-new preserve the structural
+     * acceptance/release gate clearing state.
+     */
+    verification_evidence_dispositions: z
+      .array(VerificationEvidenceDispositionSchema)
       .optional(),
 
     /**
