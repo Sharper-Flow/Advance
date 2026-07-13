@@ -4,9 +4,6 @@ description: "Implement change with TDD, retry on failure, and final verificatio
 phaseGoal: "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure."
 ---
 
-<!-- manifest: adv-apply · gate: execution · requiresChangeId: true · prereqs: [adv-prep] · scope: reads[specs, proposal, tasks, codebase] · modifies[tasks, codebase] -->
-<!-- rq-subagentReports14 -->
-
 # ADV Apply — Produce Deliverables with TDD and Retry
 
 Implement an ADV change using TDD. Produce the agreed deliverables — code, docs, ops changes, or verification artifacts — and pursue every task to completion.
@@ -19,7 +16,7 @@ Implement an ADV change using TDD. Produce the agreed deliverables — code, doc
 | 🔁 Doom Loop     | 3 genuine fix attempts failed with documented diagnosis |
 | 🌍 Environmental | Missing external dependency → escalate immediately      |
 
-Cross-repo tasks: switch `workdir` to target path. "Different repo" is × never a valid exit. Product-linked tasks must respect `scope_repos`; record wisdom from the executing repo so entries keep `origin_repo_id`, `origin_repo_project_id`, `origin_repo_path`, and `product_id`.
+Cross-repo tasks: see § Cross-Repo Execution below. Product-linked tasks must respect `scope_repos`; record wisdom from the executing repo so entries keep `origin_repo_id`, `origin_repo_project_id`, `origin_repo_path`, and `product_id`.
 
 Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status: cancelled` is rejected.
 | × Bad | ✓ Good |
@@ -64,12 +61,7 @@ Reusable implementation methodology for ADV apply workflows. Provides the TDD wo
 
 #### TDD Work Loop
 
-| Phase   | Action                                                                            | Evidence                       |
-| ------- | --------------------------------------------------------------------------------- | ------------------------------ |
-| Red     | Write failing test using editing tool → `adv_run_test phase:'red'` → show failure | Test output with exit code ≠ 0 |
-| Green   | Implement using editing tool → `adv_run_test phase:'green'` → show pass           | Test output with exit code 0   |
-| Verify  | Optional final check → `adv_run_test phase:'verify'`                              | Test output + result fields    |
-| Trivial | Set `tdd_intent: "not_applicable"`                                                | Rationale in task notes        |
+The Red/Green/Verify/Trivial sequence and per-phase evidence formats are defined in Phase 3 § Task Flow below (steps 3b, 3c, 3c.3, and § Trivial Tasks at the end of this command).
 
 `adv_run_test phase` is descriptive metadata, not gate enforcement. Use `passed`, `classification`, and `exitCode` as command-result evidence.
 
@@ -79,18 +71,11 @@ Reusable implementation methodology for ADV apply workflows. Provides the TDD wo
 
 #### Retry Protocol
 
-| Error type    | Examples                               | Action                      |
-| ------------- | -------------------------------------- | --------------------------- |
-| SEMANTIC      | Type errors, test failures, logic bugs | Diagnose → Fix → Retry (3×) |
-| TRANSIENT     | Network timeout, flaky test            | Wait 5s → Retry once        |
-| ENVIRONMENTAL | Missing dep, config not found          | Escalate immediately        |
-
-Before any retry: emit diagnosis with root cause analysis and planned approach. Each attempt must have a different strategy.
+See § Retry Protocol below (canonical) for the SEMANTIC / TRANSIENT / ENVIRONMENTAL classification table, diagnosis requirement, recording contract, and budget-exhaustion flow.
 
 #### Task Completion Rules
 
-- Verify build/tests/lint pass after each task
-- Mark done only after incremental verification passes
+- Run incremental verification before checkpoint (Phase 3 step 3c.4)
 - Use `adv_task_show` for per-task context refresh (not `adv_change_show`)
 - Use task IDs only in TodoWrite
 
@@ -102,9 +87,6 @@ Before any retry: emit diagnosis with root cause analysis and planned approach. 
 - **No workflow sequencing** — command owns phase ordering and task loop
 
 ### Scope Expansion During Execution
-
-<!-- rq-scopeDiscoveryProtocol01 -->
-<!-- rq-scopeFollowupSchema01 -->
 
 If new objectives or acceptance criteria are discovered during execution that were not part of the original agreement, do NOT silently fold them into current task graph. Instead, apply the **scope-discovery protocol** from `docs/scope-discovery-protocol.md`:
 
@@ -143,8 +125,6 @@ If `adv_worktree_create` unavailable → hard block: `[ADV:BLOCKED] Worktree too
 4. When deleting later, pass `branch: "change/{change-id}"` to `adv_worktree_delete`
 
 ### Post-Creation Path Verification
-
-<!-- rq-pathVerification01 -->
 
 After worktree creation, verify that task-referenced paths exist in the worktree. This prevents the recurring class of errors where the agent reads files from its main-checkout context but the worktree (forked from the default branch) lacks them — or the paths were constructed from assumed project structure not actual files.
 
@@ -315,11 +295,9 @@ Verify that the prep gate was completed with user approval. The prep gate is the
 
 ## Phase 2: Display Contract
 
-<!-- rq-scopeFollowupSurfacing01 -->
-
 Emit a purpose line: `Working on: {change-id}`. State is visible via `_contextSnapshot` and `adv_change_show` — do not duplicate it in a banner.
 
-Retry policy (advisory): SEMANTIC 3 retries, TRANSIENT 1 retry + 5s delay, ENVIRONMENTAL immediate escalation.
+Retry policy (advisory): see § Retry Protocol below.
 
 Proceed directly to Phase 3 — do NOT ask for approval to begin work. Execution-start approval is NOT a sanctioned human checkpoint under `rq-autonomy01`. Scope and criteria were signed off at the Agreement gate; the prep gate confirms the plan is ready for execution.
 
@@ -362,9 +340,6 @@ Ask via `question` tool: Provide hint (Recommended), Take over task, Void contra
 ---
 
 ## Phase 3: TDD Work Loop
-
-<!-- rq-TDD008path -->
-<!-- rq-taskRunLedger01 -->
 
 ### Context Freshness (MANDATORY)
 
@@ -618,8 +593,6 @@ DESIGN EXCERPT: {relevant section if task references design}
 EXPECTED OUTPUT: implement the UI/component task, run tests, call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md
 ```
 
-<!-- rq-delDefaults08 -->
-
 The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). The packet adds `VISUAL_CONTEXT`, `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `VISUAL_CONTEXT` must use existing agreement/design/task/project/preview sources or explicit unavailable markers with reasons; it must not fabricate style context. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.
 
 ### Task Flow
@@ -638,7 +611,7 @@ The Designer Apply Context Packet uses the same identity anchors as the Apply Co
 
 **3c.3. Verify Phase (optional):** Run final task-scope check with `adv_run_test phase:'verify'` when distinct from green evidence. Phase is descriptive metadata, not gate enforcement.
 
-**3c.4. Incremental Verification:** Run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass.
+**3c.4. Incremental Verification:** After EACH task run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass. Incremental verification runs BEFORE the checkpoint so the checkpoint represents verified task state. Post-checkpoint fix-ups are not expected by design — verification must pass before committing.
 
 **3c.5. Checkpoint:** Call `adv_task_checkpoint` with:
 
@@ -679,10 +652,6 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 - Asking whether to continue, proceed, or move on between tasks
 - "Good stopping point" / "Natural checkpoint"
 - Any reason not enumerated in the Allowed exit conditions above
-
-### Incremental Verification
-
-After EACH task: run build/tests/lint → if fails: retry protocol → only mark complete after pass. Incremental verification runs BEFORE the checkpoint (step 3c.4) so the checkpoint represents verified task state. Post-checkpoint fix-ups are not expected by design — verification must pass before committing.
 
 ---
 

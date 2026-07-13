@@ -2,7 +2,6 @@
 name: adv-improve
 description: Suggest targeted improvements to existing specs or implementation
 ---
-<!-- manifest: adv-improve · requiresChangeId: false -->
 
 # ADV Improve — Analyze Improvement Opportunities
 

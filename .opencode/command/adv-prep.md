@@ -4,13 +4,9 @@ description: "Analyze gaps and synthesize tasks from approved agreement plus val
 phaseGoal: "Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation."
 ---
 
-## <!-- manifest: adv-prep · gate: planning · requiresChangeId: true · prereqs: [adv-design] · scope: reads[specs, proposal, codebase] · modifies[tasks, proposal] -->
-
 # ADV Prep — Pre-Implementation Gap Analysis
 
 Analyze change for implementation-readiness gaps (tasks, sequencing, cross-cutting concerns, contract traceability) → add them via ADV tools. Uses 4-Step Gap Analysis to map approved criteria/design into tasks; prep does not firm criteria. Runs **inline** — no sub-agents.
-
-<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 rq-stagePrepNoCriteriaFirming01 rq-prepArtifactExcerpt01 rq-PR007coc -->
 
 ## Command Boundary
 
@@ -29,8 +25,6 @@ $ARGUMENTS
 ---
 
 ## Phase 0: Embedded Methodology
-
-<!-- rq-noSourceChecklistReads01 -->
 
 ### Prep Methodology
 
@@ -91,8 +85,6 @@ Doctor-Lite: check cross-repo routing completeness — flag MUST gap if `target_
 
 ## Phase 2: Gap Analysis + Task Synthesis
 
-<!-- rq-prep-synth1 -->
-
 Run 4-Step Gap Analysis (desired state → current state → gap → action plan) using the embedded methodology above:
 
 1. **Agreement/design coverage** — approved criteria + validated design mapped to tasks (from embedded methodology)
@@ -107,8 +99,6 @@ Prioritize gaps via MoSCoW. Proceed immediately — invocation is implicit appro
 Fix gaps: `adv_task_add` for missing tasks, `adv_task_cancel` (with approval) for absorption/merges, document N/A for non-applicable concerns. Assign `metadata.tdd_intent` to every task.
 
 ### Non-Code Deliverable Evidence Policy
-
-<!-- rq-prepNonCodeEvidence01 -->
 
 For tasks whose deliverable is non-code (`docs`, `research`, `approval`, `verification`, `ops`, writing, analysis, design improvement, competitive research), set a machine-readable `evidence_policy` and trace the task to approved contract items instead of forcing fake red/green TDD.
 

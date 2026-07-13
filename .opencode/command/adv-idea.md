@@ -3,8 +3,6 @@ name: adv-idea
 description: "Explore rough ideas before drafting a proposal"
 ---
 
-<!-- manifest: adv-idea · gate: · requiresChangeId: false · scope: reads[specs, codebase, sub-agent output] -->
-
 # ADV Idea — Collaborative Ideation Before Proposal
 
 Shape a vague idea into a proposal-ready summary. Fully collaborative; read-only for ADV state.

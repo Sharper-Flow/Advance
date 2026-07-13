@@ -3,8 +3,6 @@ name: adv-slop-scan
 description: Scan slop, deletion safety, and detector coverage
 ---
 
-<!-- manifest: adv-slop-scan · requiresChangeId: false -->
-
 # ADV Slop Scan
 
 > **SUB-AGENT CONTEXT**: Return findings directly. Skip status markers.
@@ -42,17 +40,6 @@ Fallback: run AST/regex checks from `slop-smells.yaml`, then first-level `explor
 6. Record `{workdir}` via `pwd`. Include `WORKING DIRECTORY: {workdir}` in Phase 1 commands and sub-agent prompts.
 7. Display scope: file count, path, phases, options. Stop if 0 files.
 ## Phase 1: Automatable Detection
-
-<!-- rq-ss001 -->
-<!-- rq-ss002 -->
-<!-- rq-ss003 -->
-<!-- rq-ss004 -->
-<!-- rq-ss005 -->
-<!-- rq-ss006 -->
-<!-- rq-ss009 -->
-<!-- rq-ss010 -->
-<!-- rq-ss011 -->
-<!-- rq-ss012 -->
 
 Run deterministic checks through the typed `bin/adv slop-scan [path] --json` runner when CLI execution is available. The runner owns Phase 1 JSON facts, detector coverage, threshold parsing, and prominent warnings; chat output is a view over `slop_scan_report.v1`, not a separate truth source.
 
@@ -134,7 +121,6 @@ Also include smell definitions for category, file list, novelty check, and these
 
 ### Context Boundary (Non-Scannable)
 
-<!-- rq-ss008 -->
 Context packet text is orientation only, not a finding location. Every finding must cite a target source file and line or scoped source evidence. Do NOT emit findings against CHANGE, AFFECTED FILES summaries, TASK EVIDENCE SUMMARY, examples, or fixture descriptions.
 
 Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 findings only and suggest `--phase 1` or retry. If Phase 1 required coverage has `SLOP_SCAN_DEGRADED`, do not start Phase 2.
@@ -152,7 +138,6 @@ Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 fin
 
 Always include compact coverage in text output: `run`, `skipped`, `degraded`, `failed`, `timed_out`, `unavailable`, and `externally_covered` detectors; phase coverage; method coverage. Empty findings still report coverage.
 
-<!-- rq-ss007 -->
 Text output: `SLOP SCAN REPORT` for successful scans or `SLOP SCAN FAILED` for required degraded coverage, scope, languages, prominent coverage warnings for important failed/missing detectors, severity/category summaries, detector coverage, findings (`id`, `file:line`, description, fix, evidence). No findings + complete coverage → `[OK] No slop detected.` No findings + required degraded coverage → print the failed required detectors and do not print `[OK]`.
 
 JSON output: `schema_version: "slop_scan_report.v1"`, `generated_at`, `scope`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields + `grouping` + `actionability`, `coverage.detectors[]`, and `coverage.falsePositiveProtections`. Required degraded coverage additionally includes `failure.code: "SLOP_SCAN_DEGRADED"`, `failure.message`, and `failure.failedDetectors[]`. `coverage.detectors[].state: 'run' | 'skipped' | 'degraded' | 'failed' | 'timed_out' | 'unavailable' | 'externally_covered'`. `grouping: 'actionable' | 'low-confidence' | 'user-review'`; `actionability: 'blocking' | 'actionable' | 'review_required' | 'non_blocking'`.

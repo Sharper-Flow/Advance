@@ -4,8 +4,6 @@ description: Gather Epic goals before typed creation
 requiresChangeId: false
 ---
 
-<!-- manifest: adv-epic · requiresChangeId: false · scope: reads[specs, epics, changes, backlog] · creates[epic] · modifies[epic] -->
-
 # ADV Epic — Goal-First Epic Creation
 
 Create/update an ADV Epic through a collaborative goal-first workflow. Epics are initiative containers; membership optional, order advisory.
@@ -40,7 +38,6 @@ Create/update an ADV Epic through a collaborative goal-first workflow. Epics are
    - constraints and explicit non-goals
    - optional initial roadmap entries
 3. If the request is clearly one change rather than an initiative, recommend `/adv-proposal` instead of forcing an Epic.
-<!-- rq-epicOpsPlanning01 -->
 4. Assess required operational work (contextual — only when the initiative's delivery changes need it). Ask whether any planned entry introduces operational delivery work such as first deployment, migration, backfill, deployment configuration, monitoring, cleanup, or teardown. This is a human/agent judgment, not an Epic-metadata heuristic: do not require an ops follow-up for every Epic, change, or deployment.
    - When required operational work is identified, do not track it in shell entries, agenda text, or prose. Plan to represent it through the existing typed path from the relevant delivery change: `adv_followup_promote` creates or links an ops follow-up change with an `ops_followup` profile, and the delivery change records the outbound `ops_followup_links[]` edge. Use `blocks` when release safety requires completion before release; use `follows_release`, `monitors`, or `cleanup_after` for release-first follow-through (non-blocking unless `required_handoff` is recorded).
    - Epic planning never executes deployments. Production execution stays governed by the existing ops runbook and approval requirements on the child ops change. Epic order remains advisory and never blocks release.

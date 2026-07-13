@@ -3,8 +3,6 @@ name: adv-problem
 description: "Triage issues before fixing or drafting a proposal"
 ---
 
-<!-- manifest: adv-problem · gate:  · requiresChangeId: false · scope: reads[specs, codebase, sub-agent output, user uploads] -->
-
 # ADV Problem — Collaborative Issue Triage Before Fix
 
 Investigate a bug, failure, or confusing behavior before deciding whether it is a trivial direct fix or proposal-sized change. Fully collaborative. Read-only with respect to ADV state.

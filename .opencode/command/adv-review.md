@@ -3,7 +3,6 @@ name: adv-review
 description: "Review code for correctness, security, and architecture; emit REVIEW_FINDINGS"
 phaseGoal: "Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift."
 ---
-<!-- manifest: adv-review · gate: acceptance · requiresChangeId: true · prereqs: [adv-apply] · scope: reads[specs, proposal, tasks, codebase] · modifies[proposal] -->
 # ADV Review — Acceptance-Stage Deliverable Review
 Orchestrate multi-dimensional review of the delivered work. Command is part of the acceptance stage, emits `REVIEW_FINDINGS`, and now carries the post-execution acceptance/sign-off flow directly.
 ## Exits
@@ -22,7 +21,6 @@ Orchestrate multi-dimensional review of the delivered work. Command is part of t
 2. If empty → `adv_change_list` → auto-select or `question` tool
 
 ## Phase 0: Embedded Methodology
-<!-- rq-R3v13wR1 -->
 
 ### Review Methodology
 
@@ -279,7 +277,6 @@ Example shape:
 
 ---
 ## Phase 5: Remediation (if issues found)
-<!-- rq-remediation01 -->
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
@@ -398,7 +395,6 @@ After remediation fixes are applied, re-verify affected dimensions before recomp
 
 ---
 ## Phase 6: Final Report
-<!-- rq-touchedScope01 -->
 ### Report
 Emit a structured final report using ordered and nested lists:
 
@@ -420,8 +416,6 @@ Group findings by severity tier. Within each tier, order by file path for scanab
 
 ### Contract Review Matrix
 
-<!-- rq-acceptanceEvidenceTiming01 rq-acceptanceRecovery01 -->
-
 If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off by calling `adv_contract_review_matrix_set`. The tool validates rows against existing contract item IDs and persists through the `contractReviewMatrixSetSignal`-backed mutation path. This is the first required proof write in the no-late-homework sequence: proof required for acceptance must exist before the approval prompt, not after.
 
 Rules:
@@ -436,8 +430,6 @@ Rules:
 - For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence`, then complete the gate with `compatibilityReason: "..."`, `recoveryEvidence`, `recoveryReason`, and `priorApprovalEvidence` after the inline acceptance checkpoint when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
 
 #### Non-Code Evidence Policy in the Review Matrix
-
-<!-- rq-subagentNonCodeEvidence01 -->
 
 For each non-code task, create or verify `contract.reviewMatrix` rows using the task's `evidence_policy`:
 
@@ -461,8 +453,6 @@ For ops/enabler changes, acceptance proof must inspect `ops_followup` source sta
 - Evidence in the review matrix must be bounded and secret-safe; cite run IDs/artifact pointers/summaries, not raw prod logs or credentials.
 
 #### Designer Concern Enforcement (structural)
-
-<!-- rq-designQualityEvidence01 -->
 
 Design-quality enforcement is STRUCTURAL, not reviewer-prose. The gate-readiness evaluator (`checkUnresolvedDesignConcerns`) reads persisted `adv-designer` reports from change state and emits a `DESIGN_CONCERN_UNRESOLVED` blocker that blocks the acceptance and release gates while the latest designer report for any task has an undispositioned `design_dimensions` concern or `neighboring_recommendation`. You cannot complete acceptance while that blocker is present — this is enforced by code, not by remembering to look.
 

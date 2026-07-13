@@ -2,8 +2,6 @@
 name: adv-audit
 description: Detect drift between specs and current implementation
 ---
-<!-- manifest: adv-audit · requiresChangeId: false -->
-<!-- rq-ambiguityScan01 rq-ambiguityScan02 rq-ambiguityScan03 rq-ambiguityScan04 rq-ambiguityScan05 -->
 # ADV Audit — Spec/Implementation Alignment Check
 
 Multi-phase spec/implementation drift audit using sub-agents + quality gates; command owns orchestration + metadata write.
@@ -37,7 +35,6 @@ Parse `$ARGUMENTS`: `capability` optional, `--json`, `--all` default, `--strict`
 Use skill thresholds. Standard: HIGH drift 0, MEDIUM drift ≤3, orphaned code ≤3 files, conflicts 0, coverage ≥80%, CRITICAL ambiguity 0, HIGH ambiguity ≤3. `--strict`: all drift/conflict/orphan/ambiguity thresholds 0, coverage 100%.
 
 Ambiguity gates honor `clarify_enforcement` flag (read from project config or spec context):
-<!-- rq-clarifyEnforcementAudit01 -->
 - `off` — skip ambiguity detection entirely
 - `advisory` — include findings in report; do not affect health status
 - `strict` — enforce ambiguity gates (CRITICAL and HIGH thresholds apply)

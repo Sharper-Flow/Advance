@@ -2,7 +2,6 @@
 name: adv-refactor
 description: Refresh a stale proposal or batch-refresh the oldest 30% of active changes
 ---
-<!-- manifest: adv-refactor · requiresChangeId: false · prereqs: [adv-proposal] -->
 # ADV Refactor — Refresh Stale Proposals
 
 Bidirectional reconciliation: update stale change proposals to match current codebase reality.

@@ -2,7 +2,6 @@
 name: adv-clarify
 description: Ask clarifying questions to resolve ambiguous requirements
 ---
-<!-- manifest: adv-clarify · requiresChangeId: false · prereqs: [adv-proposal] -->
 # ADV Clarify — Cross-Stage Requirements Clarification
 
 Resolve hidden assumptions, edge cases, acceptance criteria, and decision gaps across proposal, discovery, agreement, and design.

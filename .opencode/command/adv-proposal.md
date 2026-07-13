@@ -4,15 +4,11 @@ description: "Extract problem statement, user outcomes, and constraints without 
 phaseGoal: "Clarify the problem, user needs, and high-level user outcomes. Establish what and why — no engineering AC and no how."
 ---
 
-<!-- manifest: adv-proposal · gate: proposal · requiresChangeId: false · scope: reads[specs] -->
-
 # ADV Proposal — Establish the Problem Statement
 
 Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full proposal with implementation-free User Outcomes and ambiguity scan). **Fully collaborative** — user shapes every decision. Proposal does NOT require testable success criteria; discovery firms engineering AC/SC.
 
 ## Command Boundary
-
-<!-- rq-prop-neg1 -->
 
 **Produces:** Confirmed problem statement, initial change scaffold, and proposal artifact needed to begin discovery.
 
@@ -28,7 +24,6 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
 
 1. **Verify ADV tools are live** — call `adv_status` once. If it returns `ADV_PLUGIN_INIT_FAILED`, stop immediately, report the `error` + `remediation` fields verbatim, and ask user how to proceed. × Do NOT self-block by declaring adv\_\* tools "unavailable" based on prior assumption — verify first.
 2. **Resolve summary from `$ARGUMENTS`**:
-   <!-- rq-issueChangeLinkage01 -->
    - **Roadmap-origin path (`#N` positional)** — if the first token in `$ARGUMENTS` matches `/^#(\d+)\b/` (rq-issueChangeLinkage01):
      - Run `gh issue view <N> --json title,body,labels,number,state`. On non-zero exit, abort with the exact stderr + hint to run `gh auth status` and verify the issue exists. Do **not** create a partial change.
      - Run the issue body through `sanitizeRoadmapOrigin()` (`plugin/src/utils/roadmap-origin-sanitize.ts`) to strip ADV scoring trailers per `rq-roadmapOriginSanitize01`. Surface any `warnings` from the sanitizer in change context for human review.
@@ -48,8 +43,6 @@ If `project.json` has `product`, mention product-linked context in proposal: cur
 ---
 
 ## Phase 1: Problem Statement Agreement
-
-<!-- rq-prop-context2 -->
 
 Before creating artifacts:
 
@@ -91,7 +84,6 @@ After confirmation:
 5. Determine cross-repo scope autonomously from code paths/interfaces/config; ask only if boundary ambiguity changes the intended outcome
 6. Run proposal checklist quality gate; refine autonomously unless refinement would change confirmed intent
 7. **Phase 2.5: Build Scope Section** — Build `## Scope` section in proposal.md with `### In Scope`, `### Out of Scope`, and `### Must Not` subsections. Must Not captures negative constraints — things the implementation must actively avoid even within scope. `"None identified"` is valid content. Surface to user inline if In Scope or Out of Scope are empty or missing — block gate completion until populated. Missing Must Not produces HIGH finding but does NOT block gate. Backwards-compat: if proposal gate already done (re-entry case), skip rebuilding (treat as legacy).
-<!-- rq-prop-scope1 -->
 8. **Phase 2.6: Run B/F/S Ambiguity Scan** — Read full proposal.md content. Apply 3-category scan per `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
    - B (Boundaries) — check for `### Out of Scope` content and `### Must Not` subsection. Missing Must Not → HIGH finding (does NOT block gate). `"None identified"` accepted as valid content.
    - F (Functional Scope) — check that `## User Outcomes` exists and is implementation-free; this does NOT require testable success criteria
@@ -149,8 +141,6 @@ Want to stop here? Reply `stop` or `defer`.
 ---
 
 ## Output
-
-<!-- rq-prop-out1 -->
 
 Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
 
