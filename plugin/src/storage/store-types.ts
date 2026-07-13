@@ -41,6 +41,27 @@ export interface ResolvedChangeList {
   hydrationStats?: import("../types").HydrationStats;
 }
 
+/**
+ * Bounded read options for `Store.status()` (fixChangeListTimeouts KD4).
+ *
+ * - `recentLimit` moves the summary bound upstream into the resolver so
+ *   deep per-change hydration stops at the limit instead of hydrating
+ *   every candidate and slicing afterwards. When the bound truncates
+ *   candidates the result carries typed degradation (warnings +
+ *   hydrationStats.boundedOmitted); counts/recency stay complete only
+ *   when every candidate resolves within the bound.
+ * - `deadline` lets a caller share one request-scoped aggregate deadline
+ *   across the status read. Stores create their own per-call deadline
+ *   when it is absent.
+ *
+ * Both fields are optional; stores that cannot honor them (disk
+ * fallback, target-path snapshots) ignore them safely.
+ */
+export interface StatusReadOptions {
+  recentLimit?: number;
+  deadline?: import("../temporal/retry-wrapper").TemporalReadDeadline;
+}
+
 export interface ProductOriginTags {
   product_id?: string;
   origin_repo_id?: string;
@@ -340,7 +361,7 @@ export interface Store {
   };
 
   // Status
-  status: () => Promise<ProjectStatus>;
+  status: (options?: StatusReadOptions) => Promise<ProjectStatus>;
 
   // Epics
   epics: {

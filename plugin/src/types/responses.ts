@@ -35,7 +35,8 @@ export type TerminalSource =
 export type TerminalWarningCode =
   | "TERMINAL_SOURCE_DEGRADED"
   | "TERMINAL_CANDIDATE_OMITTED"
-  | "SOURCE_DEADLINE_EXCEEDED";
+  | "SOURCE_DEADLINE_EXCEEDED"
+  | "SOURCE_BOUND_EXCEEDED";
 
 export interface TerminalWarning {
   code: TerminalWarningCode;
@@ -76,6 +77,13 @@ export interface HydrationStats {
    * explicitly degraded — never a complete-looking partial.
    */
   deadlineExceeded?: boolean;
+  /**
+   * Candidates truncated by a caller-supplied read bound (e.g. the
+   * summary recent limit) before hydration. Present only when the bound
+   * cut candidates; counts/recency derived from such a result are
+   * explicitly incomplete.
+   */
+  boundedOmitted?: number;
 }
 
 export interface ChangeListResponse {
@@ -157,4 +165,20 @@ export interface ProjectStatus {
     recent: ChangeRecency[];
   };
   recommendations: string[];
+  /**
+   * Request-local resolved change documents keyed by canonical id
+   * (fixChangeListTimeouts KD4). Transport-only: lets `adv_status`
+   * enrichment reuse already-hydrated documents/proposal projections
+   * instead of issuing duplicate per-change reads. Callers MUST strip
+   * this field before serializing tool output; it is never truth beyond
+   * the single status read that produced it.
+   */
+  resolvedChanges?: ReadonlyMap<string, import("./changes").Change>;
+  /**
+   * Typed degradation from bounded/deadline-limited status resolution
+   * (C2). Present only when the result is incomplete.
+   */
+  warnings?: TerminalWarning[];
+  /** Hydration/degradation statistics for the status read, when any. */
+  hydrationStats?: HydrationStats;
 }

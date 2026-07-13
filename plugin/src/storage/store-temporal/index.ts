@@ -769,6 +769,7 @@ export function createTemporalStoreBackend(
       includeClosed?: boolean;
     },
     deadline: TemporalReadDeadline = createTemporalReadDeadline(),
+    options?: { candidateLimit?: number },
   ): Promise<import("../store-types").ResolvedChangeList> => {
     const wantsTerminalStatuses = Boolean(
       filter?.includeArchived || filter?.includeClosed,
@@ -792,7 +793,7 @@ export function createTemporalStoreBackend(
       terminal: boolean;
       source?: "workflow" | "disk" | "archive" | "retired_projection";
       omitted: boolean;
-      omissionReason?: "load_failed" | "deadline";
+      omissionReason?: "load_failed" | "deadline" | "bounded";
     };
     const candidateResolutions: CandidateResolution[] = [];
 
@@ -888,6 +889,42 @@ export function createTemporalStoreBackend(
       new Set([...memoIds, ...visibilityIds, ...diskIds, ...archiveIds]),
     );
     const archiveIdSet = new Set(archiveIds);
+
+    // Caller-supplied read bound (fixChangeListTimeouts KD4 / AC3): the
+    // summary view bounds deep hydration UPSTREAM instead of hydrating
+    // every candidate and slicing the output afterwards. Memo-warm
+    // candidates sort by recency first so the bounded set is the most
+    // recent one rather than an arbitrary enumeration prefix; candidates
+    // without a memo signal keep their (stable) enumeration order. The
+    // truncated tail becomes typed bounded omissions — never silently
+    // dropped, never counted as complete (C2).
+    const candidateLimit = options?.candidateLimit;
+    let hydrationIds = changeIds;
+    if (candidateLimit !== undefined && changeIds.length > candidateLimit) {
+      const memoActivity = new Map(
+        memoAll.map((summary) => [summary.id, summary.lastActivityAt] as const),
+      );
+      const ordered = [...changeIds].sort((a, b) => {
+        const aActivity = memoActivity.get(a);
+        const bActivity = memoActivity.get(b);
+        if (aActivity && bActivity) {
+          const cmp = bActivity.localeCompare(aActivity);
+          return cmp !== 0 ? cmp : a.localeCompare(b);
+        }
+        if (aActivity) return -1;
+        if (bActivity) return 1;
+        return 0;
+      });
+      hydrationIds = ordered.slice(0, candidateLimit);
+      for (const changeId of ordered.slice(candidateLimit)) {
+        candidateResolutions.push({
+          id: changeId,
+          terminal: archiveIdSet.has(changeId),
+          omitted: true,
+          omissionReason: "bounded",
+        });
+      }
+    }
 
     // Batch size for loading changes — balances Temporal query parallelism
     // against memory usage. 20 keeps per-batch latency under ~200ms with
@@ -1062,12 +1099,12 @@ export function createTemporalStoreBackend(
       return {};
     };
 
-    for (let i = 0; i < changeIds.length; i += CHANGE_LIST_BATCH_SIZE) {
+    for (let i = 0; i < hydrationIds.length; i += CHANGE_LIST_BATCH_SIZE) {
       // Batch admission: no new load work begins after expiry. Remaining
       // candidates become typed omissions rather than hanging the read.
       if (expired()) {
         markDeadline("workflow_query");
-        for (const changeId of changeIds.slice(i)) {
+        for (const changeId of hydrationIds.slice(i)) {
           candidateResolutions.push({
             id: changeId,
             terminal: archiveIdSet.has(changeId),
@@ -1077,7 +1114,7 @@ export function createTemporalStoreBackend(
         }
         break;
       }
-      const batch = changeIds.slice(i, i + CHANGE_LIST_BATCH_SIZE);
+      const batch = hydrationIds.slice(i, i + CHANGE_LIST_BATCH_SIZE);
       const loaded = await Promise.all(batch.map(loadCandidate));
       for (const entry of loaded) {
         if (entry.change) changes.push(entry.change);
@@ -1112,7 +1149,11 @@ export function createTemporalStoreBackend(
     // load chain for classification only).
 
     const terminalResolutions = candidateResolutions.filter((r) => r.terminal);
-    const omittedResolutions = terminalResolutions.filter((r) => r.omitted);
+    // Bounded omissions carry their own warning code; they must not
+    // inflate the terminal load-failure omission count.
+    const omittedResolutions = terminalResolutions.filter(
+      (r) => r.omitted && r.omissionReason !== "bounded",
+    );
     const omitted = omittedResolutions.length;
     const terminalFromArchive = terminalResolutions.filter(
       (r) => !r.omitted && r.source === "archive",
@@ -1125,6 +1166,9 @@ export function createTemporalStoreBackend(
     ).length;
     const deadlineOmissions = candidateResolutions.filter(
       (r) => r.omitted && r.omissionReason === "deadline",
+    );
+    const boundedOmissions = candidateResolutions.filter(
+      (r) => r.omitted && r.omissionReason === "bounded",
     );
 
     const warnings: TerminalWarning[] = [];
@@ -1169,9 +1213,21 @@ export function createTemporalStoreBackend(
         });
       }
     }
+    // Caller-bound truncation is typed on BOTH active and terminal paths:
+    // a bound-truncated result must never look complete (C2), and counts/
+    // recency derived from it are explicitly partial (KD4 risk row).
+    if (boundedOmissions.length > 0) {
+      warnings.push({
+        code: "SOURCE_BOUND_EXCEEDED" as TerminalWarningCode,
+        source: "workflow_query",
+        message: `Read bound (${candidateLimit} candidate(s)) truncated ${boundedOmissions.length} candidate(s); counts and recency are incomplete.`,
+        omittedCount: boundedOmissions.length,
+        omittedIds: boundedOmissions.map((r) => r.id).slice(0, 20),
+      });
+    }
 
     // Active/default path: no terminal degraded metadata (preserved
-    // compatibility), but deadline degradation is always surfaced.
+    // compatibility), but deadline and bound degradation always surface.
     if (!wantsTerminalStatuses) {
       if (warnings.length === 0) {
         return { changes: resolvedChanges };
@@ -1180,8 +1236,13 @@ export function createTemporalStoreBackend(
         changes: resolvedChanges,
         warnings,
         hydrationStats: {
-          deadlineExceeded: true,
-          omitted: deadlineOmissions.length,
+          ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
+          ...(deadlineOmissions.length > 0
+            ? { omitted: deadlineOmissions.length }
+            : {}),
+          ...(boundedOmissions.length > 0
+            ? { boundedOmitted: boundedOmissions.length }
+            : {}),
         },
       };
     }
@@ -1193,6 +1254,9 @@ export function createTemporalStoreBackend(
       terminalFromWorkflow,
       omitted,
       ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
+      ...(boundedOmissions.length > 0
+        ? { boundedOmitted: boundedOmissions.length }
+        : {}),
     };
 
     return {
@@ -1204,18 +1268,34 @@ export function createTemporalStoreBackend(
     };
   };
 
-  const buildTemporalStatus = async (): Promise<ProjectStatus> => {
+  const buildTemporalStatus = async (
+    options?: import("../store-types").StatusReadOptions,
+  ): Promise<ProjectStatus> => {
     // P2.2: status no longer routes through legacy.status(). Specs come
     // from listSpecsActivity (disk read), changes come from Temporal-derived
     // listResolvedChanges, recommendations are an empty array (the doctor-
     // prefixed recs were generated by corruption-recovery.ts which is
     // deleted in P2.7 — no longer relevant in Temporal-only mode).
+    //
+    // One request-scoped aggregate deadline covers this status read
+    // (KD1/KD5); callers may share their own via options. The summary
+    // bound (recentLimit) travels into the resolver as a candidate limit
+    // so deep hydration stops at the bound instead of hydrating every
+    // candidate and slicing afterwards (KD4 / AC3).
+    const deadline = options?.deadline ?? createTemporalReadDeadline();
     const specsResult = await listSpecsActivity({
       specsDir: legacy.paths.specs,
     });
     const specCapabilities = specsResult.ok ? specsResult.specs : [];
 
-    const { changes } = await listResolvedChanges();
+    const resolved = await listResolvedChanges(
+      undefined,
+      deadline,
+      options?.recentLimit !== undefined
+        ? { candidateLimit: options.recentLimit }
+        : undefined,
+    );
+    const { changes, warnings, hydrationStats } = resolved;
     const now = new Date();
     const byStatus: Record<ChangeStatus, number> = {
       draft: 0,
@@ -1229,7 +1309,7 @@ export function createTemporalStoreBackend(
       byStatus[change.status]++;
     }
 
-    const recent = changes
+    const sortedRecent = changes
       .filter(
         (change) => change.status !== "archived" && change.status !== "closed",
       )
@@ -1247,6 +1327,14 @@ export function createTemporalStoreBackend(
         const cmp = b.lastActivityAt.localeCompare(a.lastActivityAt);
         return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
       });
+    // Defensive projection bound: the resolver already bounded candidates
+    // when recentLimit was supplied, so this slice is a no-op on that
+    // path; it keeps the read model honest for any future caller that
+    // passes a limit without resolver support.
+    const recent =
+      options?.recentLimit !== undefined
+        ? sortedRecent.slice(0, options.recentLimit)
+        : sortedRecent;
 
     return {
       specs: {
@@ -1259,6 +1347,13 @@ export function createTemporalStoreBackend(
         recent,
       },
       recommendations: [],
+      // Request-local resolved documents for enrichment reuse (KD4/AC4).
+      // Transport-only; adv_status strips this before serializing output.
+      resolvedChanges: new Map(
+        changes.map((change) => [change.id, change] as const),
+      ),
+      ...(warnings && warnings.length > 0 ? { warnings } : {}),
+      ...(hydrationStats ? { hydrationStats } : {}),
     };
   };
 
@@ -1375,7 +1470,7 @@ export function createTemporalStoreBackend(
     tasks: createTaskOps(deps),
     gates: createGateOps(deps),
     wisdom: createWisdomOps(deps),
-    status: async () => buildTemporalStatus(),
+    status: async (options) => buildTemporalStatus(options),
     epics: createEpicOps(deps),
   };
 
