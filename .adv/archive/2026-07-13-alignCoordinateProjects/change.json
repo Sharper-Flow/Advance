@@ -1,0 +1,1530 @@
+{
+  "id": "alignCoordinateProjects",
+  "title": "Align coordinate projects",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T00:30:03.404Z",
+  "tasks": [
+    {
+      "id": "tk-f8596108f315",
+      "title": "Update coordinate project inventory contract",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T00:55:13.447Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T00:57:35.692Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "alignCoordinateProjects",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/alignCoordinateProjects",
+          "task_id": "tk-f8596108f315",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f8596108f315"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/command/adv-coordinate.md",
+            ".adv/specs/advance-epics/spec.json",
+            "docs/specs/advance-epics.md",
+            "plugin/src/advance-epics-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+              "exit_code": 1,
+              "summary": "RED phase: 4/5 new tests fail as expected before implementation; pre-existing failure confirmed"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+              "exit_code": 1,
+              "summary": "GREEN phase: 63/64 tests pass; only pre-existing 'keeps initial entries optional' failure remains (unrelated to changes, confirmed via git stash)"
+            },
+            {
+              "command": "pnpm run schemas:check && pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "Schema generation check and TypeScript typecheck both pass"
+            },
+            {
+              "command": "bin/oc-test smoke",
+              "exit_code": 0,
+              "summary": "Smoke test suite passes (formatting, schemas, typecheck, isolation, lockfile, lint, format checks)"
+            },
+            {
+              "command": "pnpm test",
+              "exit_code": 1,
+              "summary": "Full test suite: 4910/4915 pass; 5 pre-existing failures all unrelated to changes (adv-epic initial entries phrase, AGENTS.md content drift, spec-citation for rq-temporalTsDeterminismDocs01, conformance timeout)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added new requirement rq-epicCoordinateProjectInventory01 instead of modifying existing rq-epicCoordinateCommand01 or rq-epicCoordinateRepoFreshness01",
+              "why": "The new requirement covers distinct cross-project inventory behavior that is orthogonal to the existing read-first/approval-gated and repository-freshness requirements. A separate requirement keeps concerns isolated and makes the new behavior independently testable."
+            },
+            {
+              "what": "Did not modify plugin/src/manifest.ts",
+              "why": "The adv-coordinate scope already includes 'changes' in its reads array, so no manifest update was necessary for the new adv_change_list usage."
+            },
+            {
+              "what": "Used JSON.stringify escaping for spec JSON test assertions (e.g., scope: \\\\\"product\\\\\")",
+              "why": "JSON.stringify re-escapes quotes in string values, so tests against the parsed spec JSON must expect the escaped form. Docs and command file tests use unescaped strings since they read plain text."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified no other spec JSON requirements or command files need the same project inventory pattern. The /adv-epic command already uses adv_change_list for overlap scanning but does not need complete-pagination or cross-project inventory changes.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Updated /adv-coordinate project inventory contract: added rq-epicCoordinateProjectInventory01 to spec JSON and docs, restructured Phase 1 in command file to inventory participating projects via adv_change_list with complete pagination before Epic-dependent alignment, added explicit target_path guidance with freshness_limited/judgment_call fallback for cross-project conclusions, and updated no-active-Epics condition to follow complete project-change reporting. All 4 new tests pass; 63/64 tests pass in advance-epics-assets.test.ts (1 pre-existing failure unrelated to changes). schemas:check, typecheck, and smoke tests all pass.",
+            "suggested_next_action": "Review diff and proceed to next task or gate"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check && pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm test"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "alignCoordinateProjects",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/alignCoordinateProjects",
+          "task_id": "tk-f8596108f315",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f8596108f315"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/command/adv-coordinate.md",
+            "plugin/src/manifest.ts",
+            "plugin/src/advance-epics-assets.test.ts",
+            "README.md",
+            "ADV_INSTRUCTIONS.md",
+            "SETUP.md",
+            "docs/cli-surface-matrix.md"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+              "exit_code": 1,
+              "summary": "RED phase: 5 new tests fail as expected before fixes (Phase 7 rows, Final Report rows, manifest description, frontmatter description, user-facing title/body/boundary) plus 1 pre-existing failure"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+              "exit_code": 1,
+              "summary": "GREEN phase: 68/69 pass; only pre-existing unrelated '/adv-epic keeps initial entries optional' failure remains (confirmed at baseline via git stash)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts -t adv-coordinate",
+              "exit_code": 0,
+              "summary": "All 16 adv-coordinate-focused tests pass"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/manifest.test.ts",
+              "exit_code": 0,
+              "summary": "All 40 manifest tests pass including voice standard enforcement (strong verb, 5–14 words, no banned phrases)"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/manifest-doc-drift.test.ts",
+              "exit_code": 0,
+              "summary": "All 17 manifest-doc-drift tests pass after updating README.md and ADV_INSTRUCTIONS.md description tables"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/cli-surface-matrix.test.ts src/tool-name-assets.test.ts src/adv-stability-docs-assets.test.ts src/adv-instructions-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/adv-stability-crosscut.test.ts",
+              "exit_code": 0,
+              "summary": "All 92 related asset/stability tests pass"
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck clean"
+            },
+            {
+              "command": "bin/oc-test smoke",
+              "exit_code": 0,
+              "summary": "Smoke suite passes: schemas:check, typecheck, test-isolation, lockfile-policy, lint, format, smoke tests (62/62)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "New description: 'Audit project changes, Epic alignment, sequencing, and membership health' (9 words)",
+              "why": "Satisfies manifest voice standard enforcement: starts with strong verb 'Audit', word count 9 within 5–14 range, no banned phrases. Reflects 'project changes plus Epics' per finding."
+            },
+            {
+              "what": "Updated README.md, ADV_INSTRUCTIONS.md, SETUP.md description tables",
+              "why": "manifest-doc-drift.test.ts enforces doc tables match manifest description exactly; updates were required to keep drift tests green."
+            },
+            {
+              "what": "Updated docs/cli-surface-matrix.md capability blurb to 'Project-change and Epic-set audit'",
+              "why": "User-facing blurb described Epic-only; aligned per finding while preserving the agent-workflow-only classification."
+            },
+            {
+              "what": "Did NOT modify .adv/specs/advance-epics/spec.json or docs/specs/advance-epics.md",
+              "why": "Spec body for rq-epicCoordinateProjectInventory01 already lists all four AC3 inventory rows from prior attempt; this remediation covers command/manifest/doc surfaces only."
+            },
+            {
+              "what": "Did NOT modify .adv/archive/2026-06-27-addAdvCoordinateCommand/ files",
+              "why": "Historical change audit records — not live user-facing surfaces. Modifying them would falsify the archived audit trail."
+            },
+            {
+              "what": "Preserved label spelling boundary (adv-backed-fact hyphen in command file, adv_backed_fact underscore in spec)",
+              "why": "Prompt explicitly required keeping existing command/spec label spelling boundary."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned plugin/src/, .opencode/, docs/, .adv/ for 'Audit Epic alignment' and 'Epic coordination report' — remaining hits confined to .adv/archive/2026-06-27-addAdvCoordinateCommand/ (historical change audit, not live) and plugin/dist/chunk-4MPA5TGC.js (built output, regenerated by pnpm run build). Verified tool-name-assets.test.ts does not assert on description. Verified manifest-doc-drift.test.ts only enforces README.md and ADV_INSTRUCTIONS.md (SETUP.md updated for consistency per campsite rule).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Remediated all 3 in-scope review findings: (1) Phase 7 report inventory now lists Projects scanned, Changes by project, Epics scanned, entries scanned (was only Epics+entries); Final Report also updated. (2) Command frontmatter/title/body/boundary, manifest description, README/ADV_INSTRUCTIONS/SETUP description tables, and docs/cli-surface-matrix.md blurb all now describe project changes plus Epics; manifest scope.modifies/creates/gates remain empty (no mutation scope). (3) Added 5 new anchoring tests in advance-epics-assets.test.ts: Phase 7 AC3 rows, Final Report AC3 rows, manifest description alignment, manifest no-mutation scope boundary, and user-facing title/body/boundary alignment. 68/69 tests pass; the 1 failure is pre-existing and unrelated (adv-epic 'keeps initial entries optional' — confirmed at baseline via git stash). schemas:check, typecheck, lint, format, smoke, and all doc-drift/manifest/cli-surface tests pass. Description 'Audit project changes, Epic alignment, sequencing, and membership health' (9 words, starts with strong verb) satisfies voice standard enforcement.",
+            "suggested_next_action": "Reviewer should verify the 5 new anchoring tests cover AC3 and the description alignment; then proceed to acceptance or next review pass."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts -t adv-coordinate"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/manifest.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/manifest-doc-drift.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/cli-surface-matrix.test.ts src/tool-name-assets.test.ts src/adv-stability-docs-assets.test.ts src/adv-instructions-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/adv-stability-crosscut.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "alignCoordinateProjects",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/alignCoordinateProjects",
+          "task_id": "tk-f8596108f315",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f8596108f315"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "NEEDS_WORK",
+          "blocking_findings": [
+            {
+              "id": "unrelated-adv-epic-asset-1",
+              "label": "issue",
+              "file": ".opencode/command/adv-epic.md",
+              "line": 67,
+              "what": "Focused asset suite has one pre-existing /adv-epic wording assertion failure.",
+              "why": "`keeps initial entries optional and mutations typed` expects `initial (roadmap )?entries are optional`; command says `Initial entries optional`, so the suite remains red although all 68 other tests pass. `git diff --unified=0` confirms the failing assertion at test line 428 and this command file were not changed by this change.",
+              "fix": "Resolve separately by aligning existing /adv-epic prose or its established assertion; not changed in this scoped review."
+            }
+          ],
+          "nonblocking_findings": [
+            {
+              "id": "review-praise-1",
+              "label": "praise",
+              "file": ".opencode/command/adv-coordinate.md",
+              "line": 43,
+              "what": "Project inventory contract is explicit and ordered before Epic-dependent work.",
+              "why": "Phase 1 requires typed `adv_change_list` complete pagination, explicit `scope: \"product\"`/`target_path`, no path inference, degraded `freshness_limited`/`judgment_call` labels, and no-active-Epics after inventory. Phase 7 and Final Report both enumerate all four required inventory fields."
+            },
+            {
+              "id": "review-praise-2",
+              "label": "praise",
+              "file": "plugin/src/advance-epics-assets.test.ts",
+              "line": 152,
+              "what": "New asset coverage checks requirement, spec mirror, command ordering/sections, and manifest no-mutation boundary.",
+              "why": "Tests are localized, use existing asset-test style, and avoid runtime additions; diff is limited to specification, command/docs, manifest wording, and asset tests."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "convention",
+              "content": "For command-only ADV contract changes, pair requirement/spec mirroring tests with command-section ordering assertions and manifest scope assertions; retain strict labels by surface (`adv_backed_fact` in spec/docs, `adv-backed-fact` in user command)."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- plugin/src/advance-epics-assets.test.ts",
+              "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+              "pnpm --dir plugin run check",
+              "git diff --check"
+            ],
+            "results": "fail",
+            "evidence": "First targeted invocation used a root-relative filter while oc-test runs Vitest from plugin/, yielding deterministic `No test files found`. Corrected filter ran 69 tests: 68 passed; one unrelated existing /adv-epic assertion failed at plugin/src/advance-epics-assets.test.ts:428. All newly added project-inventory tests passed. `pnpm --dir plugin run check` completed schemas, typecheck, isolation, lockfile, lint, and format checks successfully; `git diff --check` had no output."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Focused asset suite remains red due to the separately pre-existing /adv-epic wording assertion.",
+            "Review was limited to command/spec/docs/manifest/assets; no runtime tool or CLI implementation changed in the diff."
+          ],
+          "required_main_agent_actions": [
+            "Classify and resolve the unrelated /adv-epic asset assertion separately before claiming a fully green focused suite.",
+            "No corrective change is required for alignCoordinateProjects: reviewed contract paths cover the requested project pagination, explicit product/target-path rules, degraded labels, report inventory fields, no-active-Epics ordering, per-surface fact labels, public descriptions, and preserved no-mutation/advisory boundaries."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- plugin/src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --check"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "alignCoordinateProjects",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/alignCoordinateProjects",
+          "task_id": "tk-f8596108f315",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f8596108f315"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "baseline-adv-epic-optional-entries-1",
+              "label": "suggestion",
+              "file": "plugin/src/advance-epics-assets.test.ts",
+              "line": 428,
+              "what": "Existing /adv-epic assertion expects the literal wording “initial (roadmap) entries are optional”; current unrelated command wording is “Initial entries optional”.",
+              "why": "The targeted suite has one unrelated baseline failure. All 11 project-inventory and /adv-coordinate assertions introduced for this change passed."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "git diff --check",
+              "bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            ],
+            "results": "fail",
+            "evidence": "git diff --check passed. Targeted suite: 68 passed, 1 failed. All change-scoped project-inventory and /adv-coordinate assertions passed, including spec JSON, mirrored docs, command inventory ordering, no-active-Epics reporting, Phase 7/final inventory rows, manifest description/scope, and user-facing contract. Sole failure is unrelated existing /adv-epic wording assertion at plugin/src/advance-epics-assets.test.ts:428."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Unrelated baseline test failure remains: /adv-epic initial-entry wording mismatch at plugin/src/advance-epics-assets.test.ts:428; it is outside this change diff and does not invalidate alignment-contract coverage."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+            }
+          ]
+        }
+      ],
+      "error_recovery": {
+        "last_error": ".opencode/command/adv-epic.md :67 Focused asset suite has one pre-existing /adv-epic wording assertion failure.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": ".opencode/command/adv-epic.md :67 Focused asset suite has one pre-existing /adv-epic wording assertion failure.",
+            "diagnosis": "`keeps initial entries optional and mutations typed` expects `initial (roadmap )?entries are optional`; command says `Initial entries optional`, so the suite remains red although all 68 other tests pass. `git diff --unified=0` confirms the failing assertion at test line 428 and this command file were not changed by this change.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-07-13T01:36:03.119Z"
+          }
+        ]
+      },
+      "verification": "`bin/oc-test smoke` passed. Focused `advance-epics-assets.test.ts`: 68/69 pass; remaining /adv-epic initial-entries assertion at line 428 is confirmed unrelated baseline. Independent reviewer superseding verdict READY; git diff --check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Expanded /adv-coordinate from Epic-only to project-change plus Epic coordination. Added typed complete-pagination inventory, explicit product/target-path and degradation rules, no-Epic continuation, report rows, new spec requirement and rendered docs, public descriptions, and asset-test anchors. Preserved command/spec evidence-label spelling boundary and no-mutation contract.",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        ".opencode/command/adv-coordinate.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "SETUP.md",
+        "docs/cli-surface-matrix.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-epics/spec.json",
+        ".opencode/command/adv-coordinate.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "SETUP.md",
+        "docs/cli-surface-matrix.md",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "1b191d4ecf368cfd61555007952284abfc964453",
+      "completedAt": "2026-07-13T01:38:41.011Z",
+      "completed_at": "2026-07-13T01:38:41.011Z",
+      "notes": "Checkpoint committed as 1b191d4ecf368cfd61555007952284abfc964453. Smoke passed; focused suite has one confirmed unrelated baseline /adv-epic assertion failure; independent review READY.",
+      "updatedAt": "2026-07-13T01:38:50.702Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "alignCoordinateProjects",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:coordinate-project-inventory-design"
+      },
+      "agent": "adv-researcher",
+      "topic": "Per-project change inventory in /adv-coordinate: reuse typed reads vs new aggregation tool",
+      "sources": [
+        {
+          "label": ".opencode/command/adv-coordinate.md (command contract)",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-coordinate.md",
+          "summary": "Read-first, approval-gated Epic audit. Phase 1 inventory already lists adv_change_show for linked changes; manifest scope declares reads[specs,epics,changes]. No project-wide change inventory step yet; freshness/evidence classification (repo_backed_fact/adv-backed-fact/judgment_call/freshness_limited) already established."
+        },
+        {
+          "label": "plugin/src/tools/change.ts adv_change_list (lines 347-504)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/change.ts",
+          "summary": "adv_change_list already supports status filter incl. 'in-flight' union, includeArchived/includeClosed (terminal), scope repo|product (filterChangesForProductScope), target_path (cross-project disk snapshot + _projectContext), sort recency|stalest, pagination, and per-change Epic annotation {id,title,entry_id} from epic_membership. Covers every stated constraint."
+        },
+        {
+          "label": "plugin/src/tools/backlog.ts adv_wip_state (lines 246-368)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/backlog.ts",
+          "summary": "Existing single-call aggregator precedent: joins active changes + worktrees + peer sessions with per-source Promise.allSettled isolation and warnings[]. But it calls store.changes.list({}) with no product/target_path/status/Epic-join and no per-project fan-out; it is single-project WIP, not project+Epic coordination."
+        },
+        {
+          "label": ".adv/specs/advance-epics spec rq-epicCoordinateCommand01 / rq-epicCoordinateRepoFreshness01 / rq-epicOrderAdvisory01 / rq-epicChangeContext01",
+          "locator": "adv_spec show advance-epics",
+          "summary": "Coordination MUST be read-first, approval-gated, add no new planning primitive, no CLI mutation verb, no direct ADV-state edits. Order advisory. Change surfaces already carry compact Epic membership context. Freshness spec already mandates evidence classification labels."
+        },
+        {
+          "label": "plugin/src/advance-epics-assets.test.ts /adv-coordinate contract tests (lines 151-233, 722+)",
+          "locator": "/home/jon/dev/advance/plugin/src/advance-epics-assets.test.ts",
+          "summary": "Asset tests are prose-anchor assertions over the command markdown (tool-name presence, freshness anchors, evidence labels, advisory-order guards). Adding a project-change inventory phase is provable by extending these string-anchor tests + manifest description parity — no new runtime tool test surface required for the reuse path."
+        }
+      ],
+      "architecture_assessment": "The proposal's per-project change inventory need is already fully served by the existing typed read tool adv_change_list, which supports status (incl. in-flight union), terminal inclusion, product scope, cross-project target_path with _projectContext, staleness/recency sort, and per-change Epic membership annotation. adv_change_show fills member-change/artifact detail on demand. The command manifest already declares reads[changes]; only the command prose lacks an explicit project-inventory phase. A new aggregation tool would duplicate adv_change_list + adv_epic_list join logic in TypeScript, add a schema/test/registry maintenance surface, and risk the spec's 'no new planning primitive' guardrail — without adding capability the two typed reads plus prose orchestration cannot already express. The existing adv_wip_state precedent is single-project WIP, not a project+Epic coordination join, so it is a pattern reference but not a drop-in.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Reuse-typed-reads-in-command-prose approach is consistent with spec (read-first, approval-gated, no new primitive/CLI verb), with the manifest scope (reads[specs,epics,changes]), and with the constraint set (target_path, product scope, evidence labels, optional Epic membership, advisory order all already supported by adv_change_list). No architectural blocker."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Reuse (prose orchestration over adv_change_list + adv_epic_list + adv_change_show): zero new runtime tool surface, no schema/registry churn, provable via existing string-anchor asset tests; but the join/classification logic lives in agent prose rather than typed code, so correctness of the per-project inventory is instruction-enforced, not machine-enforced.",
+          "New aggregation tool (e.g. adv_coordinate_state): machine-enforced typed join and deterministic per-source isolation (adv_wip_state pattern); but adds a Zod schema, tool-registry binding, response type, test suite, and CLI-bridge parity obligation, duplicates adv_change_list filtering, and risks the spec 'adds no new planning primitive' guardrail unless scoped strictly as a read aggregator.",
+          "Evidence classification (repo_backed_fact/adv-backed-fact/judgment_call/freshness_limited) is already an established command-prose contract; keeping the new inventory inside that same prose contract is more locality-consistent than splitting classification between a typed tool and prose."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Reuse adv_change_list (+ adv_epic_list + adv_change_show) inside expanded command prose",
+            "disposition": "preferred",
+            "rationale": "All constraints (in-flight/terminal status, product scope, target_path per-project reads, Epic membership annotation, advisory order) are already supported by adv_change_list; boring, no new surface, satisfies 'no new planning primitive'; provable by extending existing asset tests + manifest description parity."
+          },
+          {
+            "option": "Introduce a new adv_coordinate_state read-only aggregation tool joining changes+Epics per project",
+            "disposition": "rejected",
+            "rationale": "Adds schema/registry/test/CLI-bridge maintenance and duplicates adv_change_list, without a capability the two existing typed reads cannot already express in prose. Only justified if a future need for deterministic machine-checked cross-project coordination invariants emerges (P33) — not present in current AC."
+          },
+          {
+            "option": "Extend adv_wip_state to include Epics + product/target_path fan-out",
+            "disposition": "deferred",
+            "rationale": "adv_wip_state is a single-project WIP aggregator (worktrees+sessions+changes) with no product/target_path/Epic join; overloading it would broaden an unrelated tool's contract and blur its rq-backlogCoord04 purpose. Reject for this change; revisit only if a unified WIP+coordination surface is separately motivated."
+          }
+        ],
+        "recommendation": "Adopt the reuse approach: expand /adv-coordinate prose with an explicit per-project change-inventory phase (Phase 1.5 or inside Phase 1) driven by adv_change_list (status 'in-flight' + includeArchived/includeClosed for terminal context, scope 'product' when product-linked, target_path per participating project) and adv_change_show for member/artifact detail, reusing the existing four evidence labels and advisory-order guard. Do NOT add a new aggregation tool. Keep manifest description in parity and prove via extended advance-epics-assets.test.ts string-anchor tests."
+      },
+      "recommendation": "Reuse typed ADV read tools (adv_change_list primary, adv_change_show for detail, adv_epic_list/adv_epic_show for Epic side) inside expanded /adv-coordinate command prose. No new aggregation tool. adv_change_list already covers target_path, product scope, in-flight/terminal status, staleness sort, and Epic membership annotation; a new tool would duplicate it and risk the spec's no-new-primitive guardrail. Enforce project-only vs Epic-backed vs cross-project classification via the existing evidence labels; keep advisory order non-blocking; prove with the existing asset-test pattern + manifest parity.",
+      "follow_ups": [
+        "Design phase: ensure the new inventory phase explicitly reports the no-active-Epics observation independently of change inventory (AC requires a complete report even with zero active Epics).",
+        "Confirm during design whether cross-project coordination should fan out adv_change_list per participating target_path or rely solely on scope:'product'; document which participating-project set the command enumerates and how it is discovered."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "alignCoordinateProjects",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage scout — align coordinate projects (design mode)",
+      "sources": [
+        {
+          "label": "adv_change_list typed contract",
+          "locator": "plugin/src/tools/change.ts:347-504",
+          "summary": "adv_change_list already exposes target_path (disk-snapshot cross-project), scope: repo|product, in-flight status union, and compact epic membership projection (epic {id,title,entry_id} at 452-458). Confirms design reuse claim; no new aggregation tool needed."
+        },
+        {
+          "label": "product-scope silent degradation",
+          "locator": "plugin/src/tools/change/create-clarify.ts:854-901",
+          "summary": "filterChangesForProductScope returns changes unchanged when productContext is absent or mode==single_repo (line 864); productContextOutput returns undefined for single_repo (line 888). scope:'product' on a non-product-linked project silently yields repo-only results with NO _productContext marker."
+        },
+        {
+          "label": "current command no-Epic early exit",
+          "locator": ".opencode/command/adv-coordinate.md:54",
+          "summary": "Existing Phase 1 says 'If no active Epics exist, report No active Epics. No coordination actions. and stop' — exits before any project-change inventory. This is the exact defect AC5 targets."
+        },
+        {
+          "label": "current report row coverage gap",
+          "locator": ".opencode/command/adv-coordinate.md:170,229",
+          "summary": "Report inventory rows list only 'Epics scanned' and 'entries scanned' — no Projects scanned / Changes by project rows. Confirms AC3 gap and that DDC3 literal-anchor tests are needed to prevent drift."
+        },
+        {
+          "label": "Phase 1 typed-tool table",
+          "locator": ".opencode/command/adv-coordinate.md:43-62",
+          "summary": "Phase 1 tool table lists adv_epic_list/show, adv_change_show, adv_spec but NOT adv_change_list. AC1 requires naming adv_change_list in the inventory; the table is the single insertion point."
+        }
+      ],
+      "architecture_assessment": "The draft design is architecturally sound and correctly boring: it composes existing typed read contracts (adv_change_list scope/target_path/epic_membership + adv_epic_list/show) at the command-report layer rather than minting a new aggregation tool. Every load-bearing reuse claim is source-verified. The LBP analysis and DONT1/DONT2 rejections are correct — adv_change_list genuinely owns cross-project/scope/epic-membership semantics, so a new aggregator would create a second coordination truth source with no unmet-behavior payoff. The design's main under-specified seam is evidence honesty when scope:'product' silently degrades to repo-only on non-product-linked projects (verified at create-clarify.ts:864/888): without an explicit label rule, an AC4 'adv-backed-fact' could overstate coverage. Leverage points are all low-risk, contract-tied refinements — not architecture revisions. No blockers.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design composition verified against source. Reuse of adv_change_list scope/target_path/epic_membership confirmed (change.ts:347-504). No-Epic early-exit defect (adv-coordinate.md:54) and missing report rows (170,229) confirm the AC5/AC3 gaps the design closes. One design-around refinement recommended (product-scope degradation labeling) but it does not block the design gate."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Command-level report join keeps one source of truth but places the project-only vs Epic-linked classification in prose/tests rather than a typed projection; drift risk is mitigated only by DDC3 literal-anchor asset tests.",
+          "Reusing adv_change_list inherits its silent scope:'product' degradation on single_repo projects; honest evidence labeling must be authored, not inherited.",
+          "Two parallel evidence streams (change + Epic) per project add report verbosity for many-project/product runs with no pagination guidance in the draft."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "New adv_coordinate_state aggregation tool (DONT1)",
+            "disposition": "rejected",
+            "rationale": "Duplicates adv_change_list scope/target_path/epic_membership contracts; adds schema/registry/version surface and a second coordination truth source for zero unmet behavior. Source confirms adv_change_list already returns compact epic context (change.ts:452-458)."
+          },
+          {
+            "option": "Extend adv_wip_state (DONT2)",
+            "disposition": "rejected",
+            "rationale": "adv_wip_state is a single-project WIP aggregator without the required cross-project scope/target_path + Epic coordination contract. Correct rejection."
+          },
+          {
+            "option": "Add explicit product-scope-degradation evidence rule to the command (this scout's design-around)",
+            "disposition": "preferred",
+            "rationale": "filterChangesForProductScope silently returns repo-only + undefined _productContext on single_repo projects (create-clarify.ts:864,888). A one-line command rule mapping missing _productContext under requested scope:'product' to a freshness_limited/judgment_call label closes the AC4 honesty gap at near-zero cost."
+          }
+        ],
+        "recommendation": "Proceed with the design as the LBP path. Adopt candidate 1 (name adv_change_list in the Phase 1 tool table) and candidate 2 (product-scope degradation evidence-label rule) as design_around refinements; surface candidate 3 (per-project stream bound) to the user; defer candidates 4-5."
+      },
+      "recommendation": "SCOUT VERDICT — 5 candidates (design mode). ADOPT/DESIGN-AROUND now: (1) Add adv_change_list to the Phase 1 tool table (adv-coordinate.md:43-62) — AC1 requires it be named and it is currently absent; low risk, contract_tied. (2) Add an explicit evidence-label rule: when a run requests scope:'product' but the response lacks _productContext (single_repo project), classify coverage as freshness_limited or judgment_call, never adv-backed-fact — closes the verified silent-degradation honesty gap (create-clarify.ts:864,888) tied to AC2/AC4; low risk, design_around. SURFACE to user: (3) Bound the two per-project evidence streams for many-project/product runs (reuse adv_change_list status:'in-flight' + limit; state a per-project cap) — untied verbosity/latency tradeoff, medium payoff. DEFER/FOLLOW-UP: (4) Reuse adv_change_list sort:'stalest' to order Changes-by-project rows so staleness surfaces first — nice-to-have, follow_up. (5) Reuse the epic {id,title,entry_id} projection already on adv_change_list output to derive project-only vs Epic-linked classification WITHOUT extra adv_change_show calls (change.ts:452-458) — this is a low-risk simplification the design's 'report-prose join' already implies; make it explicit in design to avoid unnecessary adv_change_show fan-out, design_around.",
+      "follow_ups": [
+        "Candidate 5 refinement: design should explicitly state the project-only/Epic-linked classification is derived from the adv_change_list epic projection (change.ts:452-458), not from per-change adv_change_show, to prevent unnecessary N+1 detail reads.",
+        "Candidate 2: AC4 label taxonomy should gain an explicit mapping for 'requested product scope but project is single_repo' → freshness_limited/judgment_call."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "alignCoordinateProjects",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — extend /adv-coordinate to inventory project changes alongside Epics",
+      "sources": [
+        {
+          "label": "advance-epics spec law rq-epicCoordinateCommand01 + rq-epicCoordinateRepoFreshness01",
+          "locator": "adv_spec show advance-epics (v1.12.0)",
+          "summary": "Coordination command MUST be read-first, approval-gated, order advisory, no new planning primitive / CLI mutation verb / direct ADV state edits. Freshness law defines the four evidence labels and requires freshness before repo-dependent conclusions. Design's additive project-change inventory does not violate these; it extends scope without adding a mutation surface."
+        },
+        {
+          "label": "adv_change_list implementation",
+          "locator": "plugin/src/tools/change.ts:347-504",
+          "summary": "Confirms adv_change_list supports status in-flight (draft+pending+active union), scope repo|product, target_path snapshot read, and compact epic projection {id,title,entry_id}. Design's reuse claim (derive project-only vs Epic-linked from list membership projection to avoid N+1) is source-accurate."
+        },
+        {
+          "label": "manifest coordinate scope",
+          "locator": "plugin/src/manifest.ts:404-417",
+          "summary": "adv-coordinate already declares reads:[specs,epics,changes]. Design's claim that manifest already includes changes read scope is accurate; only human-readable description needs updating."
+        },
+        {
+          "label": "current command Phase 1",
+          "locator": ".opencode/command/adv-coordinate.md:43-62",
+          "summary": "Phase 1 currently inventories Epics only; if-no-Epics early exit at line 54 stops before any change reporting. Design's AC5 relocation of no-Epic exit after change inventory is required and correctly identified."
+        },
+        {
+          "label": "existing asset tests",
+          "locator": "plugin/src/advance-epics-assets.test.ts:151-234",
+          "summary": "Existing /adv-coordinate contract tests assert typed Epic reads, approval gating, advisory order, four evidence labels. Design's AC6 adds four project-change path anchors in the same file — correct extension point, no new test infra."
+        },
+        {
+          "label": "evidence-label hyphenation split (recurring hazard)",
+          "locator": ".opencode/command/adv-coordinate.md:101 vs docs/specs/advance-epics.md:202,241 and multiple archives (2026-07-05 updateCoordinateFreshness, 2026-07-07 scopeTriageBugs BRIEFING_DIGEST)",
+          "summary": "Command file MUST use hyphenated adv-backed-fact because tool-name-assets.test.ts flags any adv_* token that is not a registered callable tool. Spec law text (spec.json + docs/specs mirror) uses underscored adv_backed_fact. This split has caused a documented recurring pre-existing test failure. Design edits BOTH the command and spec law but never names this constraint — an implementer writing fresh label text into spec.json risks introducing the same failure, or writing adv_backed_fact into the command file which tool-name-assets.test.ts will flag."
+        }
+      ],
+      "architecture_assessment": "Design is architecturally sound and simplicity-biased. It composes three existing typed read contracts (adv_change_list with scope/target_path/compact-epic projection + selective adv_change_show; adv_epic_list/show) and joins them only in command report prose, adding zero runtime tool/schema/CLI surface. This is the boring, proven pattern consistent with the existing coordinate command (prose orchestration + spec law + asset tests) and correctly rejects both aggregator alternatives (DONT1 adv_coordinate_state, DONT2 adv_wip_state) per rq-epicCoordinateCommand01.4 'adds no new planning primitive.' All six ACs map to verifiable command/manifest/spec/asset-test anchors. The AC5 no-Epic-exit relocation and the honest product-scope-degradation labeling (never adv-backed-fact when product context unavailable) are correct and source-grounded. The one gap: the design does not name the adv-backed-fact (command, hyphenated) vs adv_backed_fact (spec law, underscored) split enforced by tool-name-assets.test.ts. Because this change edits both surfaces and this exact split is a documented recurring failure across multiple archives, the omission is a real implementation hazard that should be pinned before prep. Not a design-shape defect; a missing constraint the implementer must carry.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Design shape, spec-law compliance, and all cited source claims verified accurate. Caution is for one un-named cross-file constraint: the evidence-label hyphenation split (command uses adv-backed-fact; spec.json/doc mirror use adv_backed_fact) enforced by tool-name-assets.test.ts, which is a documented recurring failure. Design edits both surfaces but never states which form each surface must use. Pin this in prep/tasks (do not write adv_backed_fact into the command file; preserve underscored form in spec law; consider adding a targeted assertion). Secondary: the design's own deferred cross-project fan-out question (bounded vs full pagination) must be resolved with the user before prep, as design already states."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Prose-command orchestration keeps zero new runtime surface but relies on deterministic asset-test text anchors to prevent drift; correctness of the workflow is enforced by spec law + literal-text asset tests rather than a runtime type. Design mitigates via AC6 four-path anchors and spec-law extension (P33-consistent).",
+          "Reusing adv_change_list compact epic projection avoids N+1 adv_change_show reads but means project-only vs Epic-linked classification depends on the list projection being present; adv_change_show is reserved for required detail only — acceptable and matches the tool's real shape.",
+          "Editing spec.json + docs/specs mirror + command file together maximizes structural testability but crosses the label-hyphenation boundary where the command and spec law intentionally diverge; the more surfaces touched, the higher the divergence-drift risk if the constraint is not pinned."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "New adv_coordinate_state aggregation tool (DONT1)",
+            "disposition": "rejected",
+            "rationale": "Duplicates adv_change_list contract, adds schema/registry/version maintenance, creates a second source of coordination truth, and violates rq-epicCoordinateCommand01.4. Design correctly rejects."
+          },
+          {
+            "option": "Extend adv_wip_state (DONT2)",
+            "disposition": "rejected",
+            "rationale": "adv_wip_state is a single-project WIP aggregator (changes+worktrees+sessions) and does not carry the cross-project/product-scope + Epic coordination contract required here. Correct rejection."
+          },
+          {
+            "option": "Leave spec.json untouched, change only command + tests",
+            "disposition": "deferred",
+            "rationale": "Would minimize the label-hyphenation risk surface, but P33 favors making the new project-change coordination behavior structural in tracked spec law rather than prose-only. Design's 'only necessary spec law' scoping is the right call provided the hyphenation constraint is pinned; a pure prose-only change would be weaker."
+          }
+        ],
+        "recommendation": "Proceed to prep. The design is correct, simple, spec-law-compliant, and source-accurate. Before/at planning, add one explicit constraint to the design or first task: the evidence-label token MUST stay hyphenated (adv-backed-fact) in .opencode/command/adv-coordinate.md (tool-name-assets.test.ts flags unregistered adv_* tokens) and underscored (adv_backed_fact) in spec.json + docs/specs/advance-epics.md; do not cross them. Optionally add a targeted asset assertion so the split is machine-checked instead of tribal. Also resolve the deferred cross-project fan-out question (fixed bounded inventory vs full pagination) with the user before prep, as the design already flags."
+      },
+      "recommendation": "CAUTION (pass-with-condition): approve the design shape; require the label-hyphenation cross-file constraint to be pinned in prep/tasks and the cross-project fan-out pagination question resolved with the user before planning. No aggregator, no new tool/schema/CLI — all correct.",
+      "follow_ups": [
+        "Pin evidence-label hyphenation constraint (adv-backed-fact in command file; adv_backed_fact in spec law) into design or first task; tool-name-assets.test.ts enforces this and it is a documented recurring failure.",
+        "Resolve deferred cross-project fan-out: fixed bounded inventory vs full pagination — user decision before prep (design-flagged)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "alignCoordinateProjects",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/alignCoordinateProjects",
+      "task_id": "tk-f8596108f315",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f8596108f315"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/command/adv-coordinate.md",
+        ".adv/specs/advance-epics/spec.json",
+        "docs/specs/advance-epics.md",
+        "plugin/src/advance-epics-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+          "exit_code": 1,
+          "summary": "RED phase: 4/5 new tests fail as expected before implementation; pre-existing failure confirmed"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+          "exit_code": 1,
+          "summary": "GREEN phase: 63/64 tests pass; only pre-existing 'keeps initial entries optional' failure remains (unrelated to changes, confirmed via git stash)"
+        },
+        {
+          "command": "pnpm run schemas:check && pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "Schema generation check and TypeScript typecheck both pass"
+        },
+        {
+          "command": "bin/oc-test smoke",
+          "exit_code": 0,
+          "summary": "Smoke test suite passes (formatting, schemas, typecheck, isolation, lockfile, lint, format checks)"
+        },
+        {
+          "command": "pnpm test",
+          "exit_code": 1,
+          "summary": "Full test suite: 4910/4915 pass; 5 pre-existing failures all unrelated to changes (adv-epic initial entries phrase, AGENTS.md content drift, spec-citation for rq-temporalTsDeterminismDocs01, conformance timeout)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added new requirement rq-epicCoordinateProjectInventory01 instead of modifying existing rq-epicCoordinateCommand01 or rq-epicCoordinateRepoFreshness01",
+          "why": "The new requirement covers distinct cross-project inventory behavior that is orthogonal to the existing read-first/approval-gated and repository-freshness requirements. A separate requirement keeps concerns isolated and makes the new behavior independently testable."
+        },
+        {
+          "what": "Did not modify plugin/src/manifest.ts",
+          "why": "The adv-coordinate scope already includes 'changes' in its reads array, so no manifest update was necessary for the new adv_change_list usage."
+        },
+        {
+          "what": "Used JSON.stringify escaping for spec JSON test assertions (e.g., scope: \\\\\"product\\\\\")",
+          "why": "JSON.stringify re-escapes quotes in string values, so tests against the parsed spec JSON must expect the escaped form. Docs and command file tests use unescaped strings since they read plain text."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified no other spec JSON requirements or command files need the same project inventory pattern. The /adv-epic command already uses adv_change_list for overlap scanning but does not need complete-pagination or cross-project inventory changes.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Updated /adv-coordinate project inventory contract: added rq-epicCoordinateProjectInventory01 to spec JSON and docs, restructured Phase 1 in command file to inventory participating projects via adv_change_list with complete pagination before Epic-dependent alignment, added explicit target_path guidance with freshness_limited/judgment_call fallback for cross-project conclusions, and updated no-active-Epics condition to follow complete project-change reporting. All 4 new tests pass; 63/64 tests pass in advance-epics-assets.test.ts (1 pre-existing failure unrelated to changes). schemas:check, typecheck, and smoke tests all pass.",
+        "suggested_next_action": "Review diff and proceed to next task or gate"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run schemas:check && pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm test"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "alignCoordinateProjects",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/alignCoordinateProjects",
+      "task_id": "tk-f8596108f315",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f8596108f315"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/command/adv-coordinate.md",
+        "plugin/src/manifest.ts",
+        "plugin/src/advance-epics-assets.test.ts",
+        "README.md",
+        "ADV_INSTRUCTIONS.md",
+        "SETUP.md",
+        "docs/cli-surface-matrix.md"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+          "exit_code": 1,
+          "summary": "RED phase: 5 new tests fail as expected before fixes (Phase 7 rows, Final Report rows, manifest description, frontmatter description, user-facing title/body/boundary) plus 1 pre-existing failure"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+          "exit_code": 1,
+          "summary": "GREEN phase: 68/69 pass; only pre-existing unrelated '/adv-epic keeps initial entries optional' failure remains (confirmed at baseline via git stash)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts -t adv-coordinate",
+          "exit_code": 0,
+          "summary": "All 16 adv-coordinate-focused tests pass"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/manifest.test.ts",
+          "exit_code": 0,
+          "summary": "All 40 manifest tests pass including voice standard enforcement (strong verb, 5–14 words, no banned phrases)"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/manifest-doc-drift.test.ts",
+          "exit_code": 0,
+          "summary": "All 17 manifest-doc-drift tests pass after updating README.md and ADV_INSTRUCTIONS.md description tables"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/cli-surface-matrix.test.ts src/tool-name-assets.test.ts src/adv-stability-docs-assets.test.ts src/adv-instructions-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/adv-stability-crosscut.test.ts",
+          "exit_code": 0,
+          "summary": "All 92 related asset/stability tests pass"
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck clean"
+        },
+        {
+          "command": "bin/oc-test smoke",
+          "exit_code": 0,
+          "summary": "Smoke suite passes: schemas:check, typecheck, test-isolation, lockfile-policy, lint, format, smoke tests (62/62)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "New description: 'Audit project changes, Epic alignment, sequencing, and membership health' (9 words)",
+          "why": "Satisfies manifest voice standard enforcement: starts with strong verb 'Audit', word count 9 within 5–14 range, no banned phrases. Reflects 'project changes plus Epics' per finding."
+        },
+        {
+          "what": "Updated README.md, ADV_INSTRUCTIONS.md, SETUP.md description tables",
+          "why": "manifest-doc-drift.test.ts enforces doc tables match manifest description exactly; updates were required to keep drift tests green."
+        },
+        {
+          "what": "Updated docs/cli-surface-matrix.md capability blurb to 'Project-change and Epic-set audit'",
+          "why": "User-facing blurb described Epic-only; aligned per finding while preserving the agent-workflow-only classification."
+        },
+        {
+          "what": "Did NOT modify .adv/specs/advance-epics/spec.json or docs/specs/advance-epics.md",
+          "why": "Spec body for rq-epicCoordinateProjectInventory01 already lists all four AC3 inventory rows from prior attempt; this remediation covers command/manifest/doc surfaces only."
+        },
+        {
+          "what": "Did NOT modify .adv/archive/2026-06-27-addAdvCoordinateCommand/ files",
+          "why": "Historical change audit records — not live user-facing surfaces. Modifying them would falsify the archived audit trail."
+        },
+        {
+          "what": "Preserved label spelling boundary (adv-backed-fact hyphen in command file, adv_backed_fact underscore in spec)",
+          "why": "Prompt explicitly required keeping existing command/spec label spelling boundary."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned plugin/src/, .opencode/, docs/, .adv/ for 'Audit Epic alignment' and 'Epic coordination report' — remaining hits confined to .adv/archive/2026-06-27-addAdvCoordinateCommand/ (historical change audit, not live) and plugin/dist/chunk-4MPA5TGC.js (built output, regenerated by pnpm run build). Verified tool-name-assets.test.ts does not assert on description. Verified manifest-doc-drift.test.ts only enforces README.md and ADV_INSTRUCTIONS.md (SETUP.md updated for consistency per campsite rule).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Remediated all 3 in-scope review findings: (1) Phase 7 report inventory now lists Projects scanned, Changes by project, Epics scanned, entries scanned (was only Epics+entries); Final Report also updated. (2) Command frontmatter/title/body/boundary, manifest description, README/ADV_INSTRUCTIONS/SETUP description tables, and docs/cli-surface-matrix.md blurb all now describe project changes plus Epics; manifest scope.modifies/creates/gates remain empty (no mutation scope). (3) Added 5 new anchoring tests in advance-epics-assets.test.ts: Phase 7 AC3 rows, Final Report AC3 rows, manifest description alignment, manifest no-mutation scope boundary, and user-facing title/body/boundary alignment. 68/69 tests pass; the 1 failure is pre-existing and unrelated (adv-epic 'keeps initial entries optional' — confirmed at baseline via git stash). schemas:check, typecheck, lint, format, smoke, and all doc-drift/manifest/cli-surface tests pass. Description 'Audit project changes, Epic alignment, sequencing, and membership health' (9 words, starts with strong verb) satisfies voice standard enforcement.",
+        "suggested_next_action": "Reviewer should verify the 5 new anchoring tests cover AC3 and the description alignment; then proceed to acceptance or next review pass."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts -t adv-coordinate"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/manifest.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/manifest-doc-drift.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/cli-surface-matrix.test.ts src/tool-name-assets.test.ts src/adv-stability-docs-assets.test.ts src/adv-instructions-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/adv-stability-crosscut.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test smoke"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "alignCoordinateProjects",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/alignCoordinateProjects",
+      "task_id": "tk-f8596108f315",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f8596108f315"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [
+        {
+          "id": "unrelated-adv-epic-asset-1",
+          "label": "issue",
+          "file": ".opencode/command/adv-epic.md",
+          "line": 67,
+          "what": "Focused asset suite has one pre-existing /adv-epic wording assertion failure.",
+          "why": "`keeps initial entries optional and mutations typed` expects `initial (roadmap )?entries are optional`; command says `Initial entries optional`, so the suite remains red although all 68 other tests pass. `git diff --unified=0` confirms the failing assertion at test line 428 and this command file were not changed by this change.",
+          "fix": "Resolve separately by aligning existing /adv-epic prose or its established assertion; not changed in this scoped review."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": ".opencode/command/adv-coordinate.md",
+          "line": 43,
+          "what": "Project inventory contract is explicit and ordered before Epic-dependent work.",
+          "why": "Phase 1 requires typed `adv_change_list` complete pagination, explicit `scope: \"product\"`/`target_path`, no path inference, degraded `freshness_limited`/`judgment_call` labels, and no-active-Epics after inventory. Phase 7 and Final Report both enumerate all four required inventory fields."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/advance-epics-assets.test.ts",
+          "line": 152,
+          "what": "New asset coverage checks requirement, spec mirror, command ordering/sections, and manifest no-mutation boundary.",
+          "why": "Tests are localized, use existing asset-test style, and avoid runtime additions; diff is limited to specification, command/docs, manifest wording, and asset tests."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "For command-only ADV contract changes, pair requirement/spec mirroring tests with command-section ordering assertions and manifest scope assertions; retain strict labels by surface (`adv_backed_fact` in spec/docs, `adv-backed-fact` in user command)."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/advance-epics-assets.test.ts",
+          "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+          "pnpm --dir plugin run check",
+          "git diff --check"
+        ],
+        "results": "fail",
+        "evidence": "First targeted invocation used a root-relative filter while oc-test runs Vitest from plugin/, yielding deterministic `No test files found`. Corrected filter ran 69 tests: 68 passed; one unrelated existing /adv-epic assertion failed at plugin/src/advance-epics-assets.test.ts:428. All newly added project-inventory tests passed. `pnpm --dir plugin run check` completed schemas, typecheck, isolation, lockfile, lint, and format checks successfully; `git diff --check` had no output."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Focused asset suite remains red due to the separately pre-existing /adv-epic wording assertion.",
+        "Review was limited to command/spec/docs/manifest/assets; no runtime tool or CLI implementation changed in the diff."
+      ],
+      "required_main_agent_actions": [
+        "Classify and resolve the unrelated /adv-epic asset assertion separately before claiming a fully green focused suite.",
+        "No corrective change is required for alignCoordinateProjects: reviewed contract paths cover the requested project pagination, explicit product/target-path rules, degraded labels, report inventory fields, no-active-Epics ordering, per-surface fact labels, public descriptions, and preserved no-mutation/advisory boundaries."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- plugin/src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "alignCoordinateProjects",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/alignCoordinateProjects",
+      "task_id": "tk-f8596108f315",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f8596108f315"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "baseline-adv-epic-optional-entries-1",
+          "label": "suggestion",
+          "file": "plugin/src/advance-epics-assets.test.ts",
+          "line": 428,
+          "what": "Existing /adv-epic assertion expects the literal wording “initial (roadmap) entries are optional”; current unrelated command wording is “Initial entries optional”.",
+          "why": "The targeted suite has one unrelated baseline failure. All 11 project-inventory and /adv-coordinate assertions introduced for this change passed."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git diff --check",
+          "bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        ],
+        "results": "fail",
+        "evidence": "git diff --check passed. Targeted suite: 68 passed, 1 failed. All change-scoped project-inventory and /adv-coordinate assertions passed, including spec JSON, mirrored docs, command inventory ordering, no-active-Epics reporting, Phase 7/final inventory rows, manifest description/scope, and user-facing contract. Sole failure is unrelated existing /adv-epic wording assertion at plugin/src/advance-epics-assets.test.ts:428."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Unrelated baseline test failure remains: /adv-epic initial-entry wording mismatch at plugin/src/advance-epics-assets.test.ts:428; it is outside this change diff and does not invalidate alignment-contract coverage."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/advance-epics-assets.test.ts"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-f8596108f315": [
+      {
+        "runId": "tr_mriiogtw_2c297bbc",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/advance-epics-assets.test.ts",
+        "durationMs": 2242.625105000101,
+        "assertionDensity": 2.984251968503937,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-13T01:01:39.058Z"
+      },
+      {
+        "runId": "tr_mriioqms_dce1cc1f",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+        "durationMs": 4179.135054999962,
+        "recordedAt": "2026-07-13T01:01:51.744Z"
+      },
+      {
+        "runId": "tr_mriiu5kg_cb115a56",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+        "durationMs": 4478.206665999722,
+        "recordedAt": "2026-07-13T01:06:04.399Z"
+      },
+      {
+        "runId": "tr_mriivae1_5ecf83aa",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+        "durationMs": 4498.701758000068,
+        "recordedAt": "2026-07-13T01:06:57.295Z"
+      },
+      {
+        "runId": "tr_mriivyp6_f6ae450a",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+        "durationMs": 3913.306491999887,
+        "recordedAt": "2026-07-13T01:07:28.794Z"
+      },
+      {
+        "runId": "tr_mriiwf0s_320544d9",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+        "durationMs": 4120.736347999889,
+        "recordedAt": "2026-07-13T01:07:49.950Z"
+      },
+      {
+        "runId": "tr_mriix6x1_13eab8d0",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+        "durationMs": 4003.9475940000266,
+        "recordedAt": "2026-07-13T01:08:26.101Z"
+      },
+      {
+        "runId": "tr_mriiyqcd_a59a1c21",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test smoke",
+        "durationMs": 43195.39121600008,
+        "recordedAt": "2026-07-13T01:09:37.933Z"
+      },
+      {
+        "runId": "tr_mriiz2v4_59f07394",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+        "durationMs": 5559.225585999899,
+        "recordedAt": "2026-07-13T01:09:54.225Z"
+      },
+      {
+        "runId": "tr_mrijrnv3_b2192c66",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts",
+        "durationMs": 4296.328615999781,
+        "recordedAt": "2026-07-13T01:32:07.743Z"
+      },
+      {
+        "runId": "tr_mrijstuq_e787e3a2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test smoke",
+        "durationMs": 43029.18701899983,
+        "recordedAt": "2026-07-13T01:33:02.165Z"
+      },
+      {
+        "runId": "tr_mrik1d40_46cae6ba",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts -t adv-coordinate",
+        "durationMs": 3987.4037910001352,
+        "recordedAt": "2026-07-13T01:39:40.382Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:36:13.404Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved proposal in chat: “approve proposal”.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "faf03b6083fe56109e5a7bb4bd02912c0c98d92753e12dda289f852fc5c1fe3d",
+        "non_whitespace_chars": 1751,
+        "checked_at": "2026-07-13T00:30:03.445Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:41:19.254Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed; agreement approved by user in chat: “approve agreement”. Typed ChangeContract minted from agreement.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "non_whitespace_chars": 3276,
+        "checked_at": "2026-07-13T00:30:03.446Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:54:44.839Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Independent validator returned caution, advisory-only with no blockers. User selected complete pagination for every participating project's in-flight change inventory.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "4a0ce32377d688a37e318927192d8f0161d64f216cb5ad607fe030c01a508c1c",
+        "non_whitespace_chars": 6033,
+        "checked_at": "2026-07-13T00:30:03.447Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:57:16.253Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep plan in chat: “approve”. One task covers contract AC1–AC6 and constraints C1–C4; strict validation passed with non-blocking NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T01:39:09.802Z",
+      "completed_by": "agent",
+      "approval_evidence": "All planned tasks complete and checkpointed. Smoke verification passed; change-scoped project inventory assertions pass. Focused suite retains one confirmed unrelated baseline /adv-epic wording assertion failure. Independent reviewer READY."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T01:44:34.323Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work in chat: “accept”. Contract review matrix has 13 rows and zero failures; executive summary persisted with consequence context; review verdict READY.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "96a121e91d8092897941ff2e66b9752a158ef83d1620fd51d41a3f990b069e77",
+        "non_whitespace_chars": 2543,
+        "checked_at": "2026-07-13T00:30:03.448Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+      "approvedAt": "2026-07-13T00:39:30.886Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** When `/adv-coordinate` runs for a participating project, its Phase 1 inventory names `adv_change_list` and records that project's in-flight changes before Phase 4 alignment conclusions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** When a project is product-linked or a cross-project target is participating, the command specifies the typed `scope: \"product\"` or `target_path` read needed to inventory that project's changes; no filesystem ADV-state read is specified.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** The coordination report inventory contains explicit rows for `Projects scanned`, `Changes by project`, `Epics scanned`, and `entries scanned`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Alignment findings classify each change-related conclusion as one of `repo_backed_fact`, `adv-backed-fact`, `judgment_call`, or `freshness_limited`; an Epic entry order finding remains advisory and cannot block a change gate, task, promotion, or progress.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** A project with zero active Epics still produces a complete project-change coordination report and the explicit observation `No active Epics`; it does not stop before reporting project changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** Focused automated tests assert all four paths: project-only, Epic-linked, no-active-Epic, and multi-project/product or target-path coordination.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** Reuse typed `adv_change_list` for inventory and `adv_change_show` only for required detail; reuse `adv_epic_list` and `adv_epic_show` for Epics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** Do not introduce a new coordination aggregation tool, a CLI mutation verb, direct ADV-state filesystem access, mandatory Epic membership, or automatic enrollment.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** Durable Epic mutations remain explicit-user-approved and use existing typed Epic tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** Repository freshness restrictions and evidence labels already required by the Epic coordination law remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1:** Changing Epic entity schemas, membership semantics, or one-Epic-per-change invariant.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2:** Implementing new durable coordination mutations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3:** Changing repository freshness mechanics beyond adapting report coverage to project-change findings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T01:39:59.087Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`bin/oc-test targeted -- src/advance-epics-assets.test.ts -t adv-coordinate` passed: 16 assertions; command Phase 1 requires typed adv_change_list complete pagination before Epic-dependent alignment."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Same 16 passing command/spec assertions cover typed scope:\"product\", explicit target_path, no inferred paths, and degraded context labels."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Same 16 passing assertions cover Phase 7 and Final Report rows: Projects scanned, Changes by project, Epics scanned, entries scanned."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passing command/spec assertions cover evidence-label spelling by consumer and preserve advisory order/no-mutation boundary."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passing ordering assertion verifies No active Epics occurs after project-change inventory."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused adv-coordinate filter passed 16 assertions covering project inventory, Epic-linked context, no-active-Epic ordering, and product/target-path behavior."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewed diff uses existing adv_change_list/adv_change_show/adv_epic_list/adv_epic_show names in command prose; no tool implementation changed."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Manifest scope remains read-only for adv-coordinate; reviewer READY report confirms no new runtime tool, CLI mutation, direct state access, mandatory membership, or auto-enrollment."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review confirms existing approval-gated typed Epic mutation instructions remain unchanged."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review confirms repository freshness and four-label evidence requirements remain present; product-context degradation is explicitly constrained."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No Epic entity schema, membership semantic, or one-Epic-per-change change was made."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No durable coordination mutation implementation was added."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Repository freshness mechanics were not changed; only report coverage was extended."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** When `/adv-coordinate` runs for a participating project, its Phase 1 inventory names `adv_change_list` and records that project's in-flight changes before Phase 4 alignment conclusions.",
+    "**AC2:** When a project is product-linked or a cross-project target is participating, the command specifies the typed `scope: \"product\"` or `target_path` read needed to inventory that project's changes; no filesystem ADV-state read is specified.",
+    "**AC3:** The coordination report inventory contains explicit rows for `Projects scanned`, `Changes by project`, `Epics scanned`, and `entries scanned`.",
+    "**AC4:** Alignment findings classify each change-related conclusion as one of `repo_backed_fact`, `adv-backed-fact`, `judgment_call`, or `freshness_limited`; an Epic entry order finding remains advisory and cannot block a change gate, task, promotion, or progress.",
+    "**AC5:** A project with zero active Epics still produces a complete project-change coordination report and the explicit observation `No active Epics`; it does not stop before reporting project changes.",
+    "**AC6:** Focused automated tests assert all four paths: project-only, Epic-linked, no-active-Epic, and multi-project/product or target-path coordination."
+  ],
+  "documents": {
+    "proposal": "# Align coordinate projects\n\n## Problem\n`/adv-coordinate` currently audits Epic alignment, sequencing, and membership health. It must also align each participating project's change state; otherwise coordination can miss active, stale, overlapping, or terminal work outside an Epic.\n\n## Objective\nExtend `/adv-coordinate` to build a single evidence-backed coordination view for each participating project: project changes plus Epics, with member-change context where present.\n\n## Scope\n- `.opencode/command/adv-coordinate.md`: expand workflow contract and report shape.\n- `plugin/src/manifest.ts`: keep command description aligned with behavior.\n- `plugin/src/advance-epics-assets.test.ts` and focused command/spec tests: prove project-change and Epic coordination paths.\n- `.adv/specs/advance-epics/spec.json` and rendered spec documentation when the capability law changes.\n\n## Constraints\n- Use typed ADV reads for both changes and Epics; no direct ADV-state edits.\n- Epic order remains advisory, never a gate for changes, tasks, or promotion.\n- Projects without active Epics remain valid coordination participants and explicitly report that state.\n- Durable mutations remain explicit-user-approval and typed-tool only.\n\n## Initial acceptance criteria\n- Given one or more participating ADV projects, coordination inventories each project's relevant in-flight changes and active Epics before conclusions.\n- The report includes project change status, relevant origin/lineage or Epic membership context, and Epic status/member context when present.\n- The report distinguishes project-only findings, Epic-backed findings, and cross-project findings with an evidence classification.\n- Coordination considers Epic membership and advisory entry order but does not block change progress based on order.\n- A project with no active Epics produces a complete coordination report and an explicit no-active-Epics observation.\n- Automated tests cover project-only, Epic-linked, no-Epic, and multi-project coordination paths.",
+    "problemStatement": "`/adv-coordinate` currently needs to align project-level changes and Epic state together. Coordination output and decisions must account for both work scopes so cross-project planning does not overlook Epic membership, ordering, or terminal status.",
+    "agreement": "# Agreement — Align coordinate projects\n\n## Decision\nReuse existing typed reads in `/adv-coordinate`; do not add an aggregation tool. The command will inventory change state for every participating project, then align that evidence with Epic evidence in one report.\n\n## Objectives\n- **SC1:** Every coordination run covers all participating projects' relevant changes and active Epics before it reaches alignment conclusions.\n- **SC2:** Reports let a reader distinguish project-only work from Epic-linked work and trace linked changes to their Epic context.\n- **SC3:** Existing Epic coordination safety remains intact: read-first, evidence-labelled, approval-gated typed mutations, optional membership, and advisory ordering.\n\n## Acceptance criteria\n- **AC1:** When `/adv-coordinate` runs for a participating project, its Phase 1 inventory names `adv_change_list` and records that project's in-flight changes before Phase 4 alignment conclusions.\n- **AC2:** When a project is product-linked or a cross-project target is participating, the command specifies the typed `scope: \"product\"` or `target_path` read needed to inventory that project's changes; no filesystem ADV-state read is specified.\n- **AC3:** The coordination report inventory contains explicit rows for `Projects scanned`, `Changes by project`, `Epics scanned`, and `entries scanned`.\n- **AC4:** Alignment findings classify each change-related conclusion as one of `repo_backed_fact`, `adv-backed-fact`, `judgment_call`, or `freshness_limited`; an Epic entry order finding remains advisory and cannot block a change gate, task, promotion, or progress.\n- **AC5:** A project with zero active Epics still produces a complete project-change coordination report and the explicit observation `No active Epics`; it does not stop before reporting project changes.\n- **AC6:** Focused automated tests assert all four paths: project-only, Epic-linked, no-active-Epic, and multi-project/product or target-path coordination.\n\n## Constraints\n- **C1:** Reuse typed `adv_change_list` for inventory and `adv_change_show` only for required detail; reuse `adv_epic_list` and `adv_epic_show` for Epics.\n- **C2:** Do not introduce a new coordination aggregation tool, a CLI mutation verb, direct ADV-state filesystem access, mandatory Epic membership, or automatic enrollment.\n- **C3:** Durable Epic mutations remain explicit-user-approved and use existing typed Epic tools.\n- **C4:** Repository freshness restrictions and evidence labels already required by the Epic coordination law remain unchanged.\n\n## Alternatives considered\n- **DONT1:** Do not add a new `adv_coordinate_state` aggregation tool. It duplicates `adv_change_list`, expands schemas/registry/test surface, and risks a new planning primitive without covering unmet behavior.\n- **DONT2:** Do not extend `adv_wip_state`; it is a single-project WIP aggregator and does not provide the required cross-project/Epic coordination contract.\n\n## Out of scope\n- **OOS1:** Changing Epic entity schemas, membership semantics, or one-Epic-per-change invariant.\n- **OOS2:** Implementing new durable coordination mutations.\n- **OOS3:** Changing repository freshness mechanics beyond adapting report coverage to project-change findings.\n\n## Evidence\n- Existing command Phase 1 inventories Epics and linked changes only; it has no project-change inventory row (`.opencode/command/adv-coordinate.md:43-62`).\n- The manifest already declares `changes` in the command read scope (`plugin/src/manifest.ts:404-417`).\n- `adv_change_list` already supports in-flight status, `scope`, `target_path`, and compact Epic membership context (`plugin/src/tools/change.ts:347-504`).\n- Existing asset tests cover the command contract at `plugin/src/advance-epics-assets.test.ts:151-234`.",
+    "design": "# Design — Align coordinate projects\n\n## Architecture overview\n`/adv-coordinate` remains a workflow-only, read-first orchestrator. Its inventory phase becomes two parallel typed evidence streams for every participating project:\n\n1. **Change stream:** `adv_change_list` inventories every in-flight change through complete pagination. Classify project-only versus Epic-linked directly from its compact Epic membership projection; use `adv_change_show` only for evidence necessary to support a finding.\n2. **Epic stream:** `adv_epic_list` inventories active Epics, then `adv_epic_show view: \"full\"` provides entries, advisory order, and membership health.\n\nThe command joins these streams only in report prose. It does not persist a derived coordination record or add a runtime aggregation tool.\n\n## Key decisions\n\n### Reuse existing typed reads\n`adv_change_list` already provides the needed status, scope, target-project, and compact Epic context. Extending the command contract preserves one source of truth for change visibility and avoids a duplicate coordination data model.\n\n### Complete project inventory before Epic-dependent conclusions\nFor every participating project, Phase 1 paginates `adv_change_list` until all in-flight changes are inventoried, then records changes-by-project before Epic inventory. A project with no active Epics reports `No active Epics` only after its complete change inventory; it remains a complete coordination subject.\n\n### Make scope-degradation evidence honest\nFor product-scope inventory, the report must distinguish a product-linked response from a repo-only degradation. If the expected product context is unavailable, it must label any affected cross-project conclusion `freshness_limited` or `judgment_call`, never `adv-backed-fact`. Explicit `target_path` reads remain scoped to known participating projects; paths are never inferred.\n\n### Preserve evidence-label spelling per consumer\nCommand prose and its asset tests use `adv-backed-fact`; spec JSON and rendered spec use `adv_backed_fact`. Each surface keeps its existing spelling. Focused tests must assert the command token without normalizing the spec token.\n\n### Preserve current mutation and evidence boundaries\nChange findings use the existing four labels: `repo_backed_fact`, `adv-backed-fact`, `judgment_call`, and `freshness_limited`. Existing repository-freshness requirements apply before conclusions based on repository state. Only existing typed Epic tools perform approved durable actions.\n\n## Interfaces and affected components\n- `.opencode/command/adv-coordinate.md`\n  - Expand title, command boundary, nearby-command clarification, Phase 1 inventory, Phase 4 alignment, Phase 7 report, final report, and key tools.\n  - Add exact typed-read guidance for `adv_change_list`, complete pagination, `scope: \"product\"`, `target_path`, product-context degradation, and no-Epic continuation without inventing a mutation interface.\n- `plugin/src/manifest.ts`\n  - Update human-readable description to include project changes and Epics; retain declared `changes` read scope.\n- `plugin/src/advance-epics-assets.test.ts`\n  - Add deterministic command-text anchors for typed project change inventory, complete pagination, report rows, no-Epic behavior, evidence labels/advisory order, cross-project scope guidance, and degradation labeling.\n- `.adv/specs/advance-epics/spec.json` and rendered documentation\n  - Add/adjust capability law only where needed to make project-change coordination structural and testable; retain its underscored evidence-label spelling.\n\n## Implementation strategy\n1. Update capability law and rendered specification to require complete paginated project-change inventory together with Epic inventory, explicit no-Epic behavior, and evidence-labelled report coverage.\n2. Update command read-first inventory, alignment, report, and final-report sections. Reuse named typed tools; do not change runtime tool registration.\n3. Update manifest wording and focused asset tests in the same patch; assert command/spec label spelling at their consumer boundary.\n4. Run focused asset/spec tests, then repository check as scope permits.\n\n## LBP analysis\nThe long-term path is composition of existing typed read contracts rather than a new aggregator. `adv_change_list` already owns cross-project/scope semantics and compact Epic membership projection; `adv_epic_list/show` own Epic state. A command-level report join is constrained, visible, and has no persistence correctness responsibility. A new aggregation tool would duplicate contracts, require schema/version maintenance, and create a second source of coordination truth. Complete pagination preserves the agreement's all-relevant-changes intent without a silent report cap.\n\n## Design-derived criteria\n- **DDC1:** All command examples for change inventory name typed ADV tools; zero examples instruct direct ADV-state filesystem access.\n- **DDC2:** Every project-scope finding in the command report has one of the four existing evidence labels; absent expected product context cannot support an `adv-backed-fact` cross-project conclusion.\n- **DDC3:** Command asset tests assert all four required paths with literal text anchors, preventing prose/manifest drift.\n- **DDC4:** No new `plugin/src/tools/*` coordination tool, schema registry entry, or CLI mutation verb is added.\n- **DDC5:** Command and spec assertions preserve their respective evidence-label spellings (`adv-backed-fact` and `adv_backed_fact`).\n- **DDC6:** The command specifies complete pagination for each participating project's in-flight change inventory.\n\n## Risks and mitigations\n- **Cross-project fan-out cost:** complete pagination is user-approved; constrain fan-out to known participating projects and do not infer paths.\n- **No-Epic early exit:** relocate the condition so it follows project-change inventory; test it.\n- **Prose-only orchestration drift:** anchor workflow behavior in tracked spec law and deterministic asset tests.\n- **Cross-file label mismatch:** preserve each consumer's established spelling with targeted assertions.\n- **Overstating change evidence:** require existing evidence labels, repository freshness classification, and product-context degradation labeling.\n\n## Design Leverage Scout\n- Candidates considered: 5.\n- Design-around adopted: 3 — name `adv_change_list` in Phase 1; label product-scope degradation honestly; derive project-only/Epic-linked from list membership projection to avoid N+1 reads.\n- User decision adopted: complete pagination for every participating project's in-flight changes.\n- Deferred: stale-first row ordering is non-contractual.\n\n## Independent validation\nValidator: caution (advisory only), high confidence, low risk.\n- Reuse of typed reads and command-level composition is correct and spec-compatible.\n- Required implementation guard: preserve hyphenated command evidence labels and underscored spec evidence labels.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n`/adv-coordinate` now coordinates each participating project's in-flight changes alongside active Epics. The release decision is whether to ship this documentation-and-contract expansion with one unrelated existing asset-test failure recorded as non-blocking.\n\n## Why It Matters\nCoordination no longer stops at Epic state: project-only work, Epic-linked work, no-Epic projects, and explicit cross-project reads are represented in the same read-first process.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Expanded `/adv-coordinate` to inventory all participating projects' in-flight changes through complete typed pagination before Epic-dependent alignment.\n2. Added explicit product-scope, target-path, no-inferred-path, degraded-context, no-active-Epic, and report-inventory guidance.\n3. Added a typed Epic capability requirement, rendered spec documentation, aligned command descriptions, and deterministic asset-test coverage.\n\n## What Was Verified\n- Review verdict: READY; no in-scope blockers.\n- Tests: `bin/oc-test smoke` passed. `bin/oc-test targeted -- src/advance-epics-assets.test.ts -t adv-coordinate` passed 16 assertions.\n- Build: plugin and Temporal worker build passed during hardening.\n- Preview URL: not_applicable — command/spec/docs/test contract change; no browser-visible surface.\n- Contract matrix: 13/13 rows passed, respected, or explicitly not applicable.\n\n## Remaining Concerns\n- Non-blocking: full `advance-epics-assets.test.ts` retains an unrelated existing `/adv-epic` wording assertion at line 428 (68/69 overall). Change-scoped 16 assertions pass.\n\n## Supporting Evidence\n- Task `tk-f8596108f315`, checkpoint `1b191d4ecf368cfd61555007952284abfc964453`.\n- Independent review and harden verdicts: READY.\n- Smoke verification and focused asset-test evidence recorded through `adv_run_test`.\n- Contract review matrix: 13 rows, zero failing rows.\n\n## Consequence Context\n1. **Delivered value — ready:** Project changes and Epics now share one coordination contract; source: approved agreement AC1–AC6 and task implementation summary.\n2. **Enabling-only/follow-up dependency — n/a:** No downstream delivery or ops follow-up is required; source: task and reviewer reports.\n3. **Ops readiness — ready:** No deploy, production config, migration, or external operational action is required; hardening review is READY.\n4. **Migration/data impact — n/a:** No runtime data, persistence, or migration behavior changed; source: task scope and reviewed diff.\n5. **Frontend/preview impact — n/a:** No browser-visible surface changed; Preview URL: not_applicable.\n6. **Collision/release risk — warning:** One unrelated baseline `/adv-epic` asset assertion remains red; source: focused-suite evidence and reviewer report.\n7. **Open follow-ups — n/a:** No required follow-up or ops obligation was produced; source: sub-agent reports.\n8. **Next action — pending release sign-off:** User approval archives the change and finalizes release evidence.\n\n## Release Readiness Summary\n- **Status:** READY.\n- **Hardening:** focused contract tests, smoke checks, schema/type/lint/format, plugin build, and Temporal worker build passed.\n- **Operational impact:** no runtime tool, CLI mutation, Temporal workflow, migration, data path, environment variable, or deployment change.\n- **Residual risk:** the unrelated existing `/adv-epic` wording assertion remains red in the full asset suite; it is outside this diff and change-scoped assertions pass.\n- **Archive readiness:** clean worktree and checkpointed branch ready for release finalization.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T01:39:59.087Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1:** When `/adv-coordinate` runs for a participating project, its Phase 1 inventory names `adv_change_list` and records that project's in-flight changes before Phase 4 alignment conclusions. | pass | `bin/oc-test targeted -- src/advance-epics-assets.test.ts -t adv-coordinate` passed: 16 assertions; command Phase 1 requires typed adv_change_list complete pagination before Epic-dependent alignment. |\n| AC2 | acceptance_criterion | **AC2:** When a project is product-linked or a cross-project target is participating, the command specifies the typed `scope: \"product\"` or `target_path` read needed to inventory that project's changes; no filesystem ADV-state read is specified. | pass | Same 16 passing command/spec assertions cover typed scope:\"product\", explicit target_path, no inferred paths, and degraded context labels. |\n| AC3 | acceptance_criterion | **AC3:** The coordination report inventory contains explicit rows for `Projects scanned`, `Changes by project`, `Epics scanned`, and `entries scanned`. | pass | Same 16 passing assertions cover Phase 7 and Final Report rows: Projects scanned, Changes by project, Epics scanned, entries scanned. |\n| AC4 | acceptance_criterion | **AC4:** Alignment findings classify each change-related conclusion as one of `repo_backed_fact`, `adv-backed-fact`, `judgment_call`, or `freshness_limited`; an Epic entry order finding remains advisory and cannot block a change gate, task, promotion, or progress. | pass | Passing command/spec assertions cover evidence-label spelling by consumer and preserve advisory order/no-mutation boundary. |\n| AC5 | acceptance_criterion | **AC5:** A project with zero active Epics still produces a complete project-change coordination report and the explicit observation `No active Epics`; it does not stop before reporting project changes. | pass | Passing ordering assertion verifies No active Epics occurs after project-change inventory. |\n| AC6 | acceptance_criterion | **AC6:** Focused automated tests assert all four paths: project-only, Epic-linked, no-active-Epic, and multi-project/product or target-path coordination. | pass | Focused adv-coordinate filter passed 16 assertions covering project inventory, Epic-linked context, no-active-Epic ordering, and product/target-path behavior. |\n| C1 | constraint | **C1:** Reuse typed `adv_change_list` for inventory and `adv_change_show` only for required detail; reuse `adv_epic_list` and `adv_epic_show` for Epics. | respected | Reviewed diff uses existing adv_change_list/adv_change_show/adv_epic_list/adv_epic_show names in command prose; no tool implementation changed. |\n| C2 | constraint | **C2:** Do not introduce a new coordination aggregation tool, a CLI mutation verb, direct ADV-state filesystem access, mandatory Epic membership, or automatic enrollment. | respected | Manifest scope remains read-only for adv-coordinate; reviewer READY report confirms no new runtime tool, CLI mutation, direct state access, mandatory membership, or auto-enrollment. |\n| C3 | constraint | **C3:** Durable Epic mutations remain explicit-user-approved and use existing typed Epic tools. | respected | Review confirms existing approval-gated typed Epic mutation instructions remain unchanged. |\n| C4 | constraint | **C4:** Repository freshness restrictions and evidence labels already required by the Epic coordination law remain unchanged. | respected | Review confirms repository freshness and four-label evidence requirements remain present; product-context degradation is explicitly constrained. |\n| OOS1 | out_of_scope | **OOS1:** Changing Epic entity schemas, membership semantics, or one-Epic-per-change invariant. | not_applicable | No Epic entity schema, membership semantic, or one-Epic-per-change change was made. |\n| OOS2 | out_of_scope | **OOS2:** Implementing new durable coordination mutations. | not_applicable | No durable coordination mutation implementation was added. |\n| OOS3 | out_of_scope | **OOS3:** Changing repository freshness mechanics beyond adapting report coverage to project-change findings. | not_applicable | Repository freshness mechanics were not changed; only report coverage was extended. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T00:30:54.813Z",
+      "contentHash": "faf03b6083fe56109e5a7bb4bd02912c0c98d92753e12dda289f852fc5c1fe3d",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T00:30:03.473Z",
+      "contentHash": "edc3e58f5c5b4b651ce6ba1a15ebd64658ac0ac8fe94e619edc36fa7d26184dd",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T00:39:30.886Z",
+      "contentHash": "b2c96c91f0b64d92f6e54ebbb916885c3ff7651fc3b3e52816128b330735b4ef",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T00:54:33.072Z",
+      "contentHash": "4a0ce32377d688a37e318927192d8f0161d64f216cb5ad607fe030c01a508c1c",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T01:49:19.804Z",
+      "contentHash": "c608635bb69b8ec60c9dcc49a34e45153586c509b73571539b364bcfca2989d4",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T01:49:19.804Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
