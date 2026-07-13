@@ -8,6 +8,7 @@ import {
   classifyTemporalError,
   collectErrorText,
   type TemporalErrorClass,
+  type TemporalReadDeadline,
   withTemporalRetry,
 } from "../../temporal/retry-wrapper";
 import { recoveryReasonFromError } from "../../temporal/recovery-classification";
@@ -201,6 +202,12 @@ export interface RunTemporalOptions {
   opType?: string;
   /** Per-attempt timeout in milliseconds. Omit for long-running ops. */
   timeoutMs?: number;
+  /**
+   * Request-scoped aggregate deadline (KD1). Attempt timeouts and
+   * retry/backoff admission are capped to its remaining budget.
+   * Read-only paths only — mutation callers omit this.
+   */
+  deadline?: TemporalReadDeadline;
 }
 
 export async function runTemporal<T>(
@@ -210,6 +217,7 @@ export async function runTemporal<T>(
   return withTemporalRetry(op, {
     opType: options?.opType,
     timeoutMs: options?.timeoutMs,
+    deadline: options?.deadline,
     onTransientFailure: makeReconnectingHook(),
   });
 }
@@ -226,13 +234,35 @@ export async function runTemporal<T>(
  */
 const QUERY_TIMEOUT_MS = 5_000;
 
+export interface RunTemporalQueryOptions {
+  /**
+   * Request-scoped aggregate deadline. The effective per-attempt
+   * timeout becomes `min(QUERY_TIMEOUT_MS, remaining budget)` and no
+   * retry/backoff begins after expiry.
+   */
+  deadline?: TemporalReadDeadline;
+}
+
 /**
  * Thin alias for query calls. Preserves backward compat with existing
  * shard callers. `runTemporal` is the single implementation entry point.
  */
-export async function runTemporalQuery<T>(op: () => Promise<T>): Promise<T> {
-  return runTemporal(op, { timeoutMs: QUERY_TIMEOUT_MS });
+export async function runTemporalQuery<T>(
+  op: () => Promise<T>,
+  options?: RunTemporalQueryOptions,
+): Promise<T> {
+  return runTemporal(op, {
+    timeoutMs: QUERY_TIMEOUT_MS,
+    deadline: options?.deadline,
+  });
 }
+
+export {
+  createTemporalReadDeadline,
+  remainingDeadlineMs,
+  TEMPORAL_READ_DEADLINE_BUDGET_MS,
+  type TemporalReadDeadline,
+} from "../../temporal/retry-wrapper";
 
 const GENERIC_QUERY_FAILURE_RE = /Failed to query Workflow|query Workflow/i;
 const POISONED_WORKFLOW_EVIDENCE_RE =
