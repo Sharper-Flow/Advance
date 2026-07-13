@@ -308,6 +308,11 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     origin_source_artifact: { blank: "omit" },
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
+    // rq-toolPlaceholderPolicy01.5 / tk-2b89b9cf3042: optional .positive()
+    // int placeholder. Strict-mode providers fill with 0; normalize to
+    // omitted so the cross-field origin matrix and Zod .positive() never
+    // see the placeholder.
+    origin_issue_number: { zero: "omit" },
   },
   adv_followup_promote: {
     source_report_key: { blank: "omit" },
@@ -328,6 +333,149 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     batch: { blank: "omit" },
     next_step: { blank: "omit" },
     completion_signal: { blank: "omit" },
+  },
+  // tk-2b89b9cf3042: verified top-level strict-mode placeholder policy groups.
+  // Zero omission only for the three positive-int optionals below; blank
+  // omission for adv_ops_run_evidence_add optional evidence fields and the
+  // twelve registered Epic tools' optional string / target-routing fields.
+  adv_backlog_state: {
+    // rq-toolPlaceholderPolicy01.5: strict-mode providers fill optional
+    // .positive() ints with 0. top is a feature-slice limit; 0 means
+    // "no limit provided", so normalize to omitted.
+    top: { zero: "omit" },
+  },
+  adv_roadmap: {
+    // Same zero-placeholder rationale as adv_backlog_state.top.
+    top: { zero: "omit" },
+  },
+  adv_ops_run_evidence_add: {
+    // Optional ops-run-evidence context fields. Strict-mode providers fill
+    // optional strings with ""; normalize to omitted so the handler treats
+    // them as not provided. Required/audit fields (changeId, runId,
+    // step_kind, env, status, summary, artifact, next_status) keep their
+    // Zod-required semantics and are intentionally left without a policy.
+    step_id: { blank: "omit" },
+    batch: { blank: "omit" },
+    completion_signal: { blank: "omit" },
+    health_verification: { blank: "omit" },
+    rollback_or_cleanup_disposition: { blank: "omit" },
+  },
+  adv_epic_create: {
+    owner_project_id: { blank: "omit" },
+    owner_repo_id: { blank: "omit" },
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_show: {
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_list: {
+    // tk-6ff82311335f: optional .positive() page limit; strict-mode 0 → omit.
+    limit: { zero: "omit" },
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_update: {
+    title: { blank: "omit" },
+    narrative: { blank: "omit" },
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_add_shell: {
+    backlog_ref: { blank: "omit" },
+    title: { blank: "omit" },
+    success_hint: { blank: "omit" },
+    entry_id: { blank: "omit" },
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_promote_shell: {
+    change_id: { blank: "omit" },
+    promoted_by: { blank: "omit" },
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_link_change: {
+    title: { blank: "omit" },
+    entry_id: { blank: "omit" },
+    repo_id: { blank: "omit" },
+    linked_by: { blank: "omit" },
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_unlink_change: {
+    entry_id: { blank: "omit" },
+    change_id: { blank: "omit" },
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_move_change: {
+    from_entry_id: { blank: "omit" },
+    to_entry_id: { blank: "omit" },
+    repo_id: { blank: "omit" },
+    moved_by: { blank: "omit" },
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_repair_membership: {
+    // epic_id is optional only because mode='refresh_search_attributes'
+    // requires it to be omitted; for all other modes the handler validates
+    // presence. Blank normalizes to omitted so the handler can apply its
+    // contextual requirement checks (rq-toolPlaceholderPolicy01.6 style).
+    epic_id: { blank: "omit" },
+    entry_id: { blank: "omit" },
+    change_id: { blank: "omit" },
+    new_change_id: { blank: "omit" },
+    new_title: { blank: "omit" },
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_reorder: {
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  adv_epic_retire: {
+    retired_by: { blank: "omit" },
+    epic_owner_target_path: { blank: "omit" },
+    epic_owner_target_confirmed: { blank: "omit" },
+    epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  // tk-6ff82311335f: read-tool page-limit fields surfaced by the schema-backed
+  // coverage guard. Each is an optional .positive() int; strict-mode providers
+  // fill it with 0 instead of omitting. 0 means "no limit provided" for these
+  // read tools, so normalize to omitted before Zod .positive() sees it.
+  adv_backlog_list: {
+    tail_limit: { zero: "omit" },
+  },
+  adv_project_wisdom_list: {
+    maxEntries: { zero: "omit" },
+  },
+  adv_reflection_list: {
+    maxEntries: { zero: "omit" },
   },
 };
 
