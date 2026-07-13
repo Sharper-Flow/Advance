@@ -27,10 +27,9 @@ describe("adv-arch-scan structural correctness assets", () => {
     );
   });
 
-  test("command cites rq-archp33 and scans structural correctness boundaries", () => {
+  test("command scans structural correctness boundaries (P33)", () => {
     const content = readFileSync(COMMAND_PATH, "utf8");
 
-    expect(content).toContain("<!-- rq-archp33 -->");
     expect(content).toContain("Structural Correctness Boundary Checks (P33)");
     expect(content).toContain("parser/schema/allowlist recognition");
     expect(content).toContain("Gate/spec/compliance boundaries");
@@ -86,8 +85,6 @@ describe("adv-arch-scan structural correctness assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-archstack02");
-    expect(command).toContain("<!-- rq-archstack01 -->");
-    expect(command).toContain("<!-- rq-archstack02 -->");
     expect(command).toContain("Stack Packs");
     expect(command).toContain("ADV stack pack");
     expect(command).toContain("TypeScript/Bun/OpenCode plugin/Temporal");
@@ -107,7 +104,6 @@ describe("adv-arch-scan structural correctness assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-archcov01");
-    expect(command).toContain("<!-- rq-archcov01 -->");
     expect(command).toContain("Architecture Scanner Coverage Report");
     expect(command).toContain("coverage.detectedStacks");
     expect(command).toContain("coverage.appliedPacks");

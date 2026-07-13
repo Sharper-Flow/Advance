@@ -367,7 +367,8 @@ describe("ambiguity taxonomy spec assets", () => {
     );
     expect(design).toContain("adv_change_reenter");
     expect(prep).toContain("does not firm criteria");
-    expect(prep).toContain("rq-stagePrepNoCriteriaFirming01");
+    expect(prep).toContain("prep does not firm criteria");
+    expect(prep).toContain("map approved criteria/design into tasks");
     expect(clarify).toContain("## Findings-Driven Mode");
     expect(proposalChecklist).toContain("## Ambiguity Scan (B/F/S)");
     expect(discoverChecklist).toContain("## Ambiguity Analysis Protocol");

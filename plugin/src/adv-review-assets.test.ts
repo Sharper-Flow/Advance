@@ -57,7 +57,9 @@ describe("adv-review non-code evidence policy surface", () => {
 
   test("contract review matrix evaluates non-code evidence policies", () => {
     expect(command).toContain("Non-Code Evidence Policy in the Review Matrix");
-    expect(command).toContain("rq-subagentNonCodeEvidence01");
+    expect(command).toContain(
+      "For each non-code task, create or verify `contract.reviewMatrix` rows",
+    );
   });
 
   test("requires pass/fail status per applicable AC/SC", () => {
