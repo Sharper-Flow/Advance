@@ -86,6 +86,15 @@ function pathFromRoot(
 }
 
 describe("workflow bundle transitive boundary", () => {
+  /**
+   * Requirement anchors: rq-temporalTsDeterminismDocs01 and rq-changeWorkflowSignalOnly01.
+   *
+   * Temporal TypeScript determinism: the SDK sandbox patches `Date.now()`,
+   * `new Date()`, and `Math.random()` to deterministic replay-safe values,
+   * so workflow code may use them directly. The change-workflow surface is
+   * signal-only: `defineUpdate` is rejected in workflow-reachable production
+   * code.
+   */
   it("detects forbidden update-surface declarations without flagging deterministic Date/random APIs", () => {
     expect(
       forbiddenWorkflowSurfaceUsages(
