@@ -80,6 +80,12 @@ export class TemporalQueryTimeoutError extends Error {
  * thread it into every Temporal query attempt; the retry wrapper caps
  * per-attempt timeouts and retry/backoff admission to the remaining
  * budget so a slow candidate can never outlive the request.
+ *
+ * rq-boundedAuthoritativeRead01: authoritative list/status reads resolve
+ * inside this single request-scoped 8s aggregate deadline and return a
+ * complete or explicitly degraded result — never an unclassified
+ * whole-tool ToolExecutionTimeout and never a worker-restart or
+ * timeout-ceiling-increase workaround.
  */
 export const TEMPORAL_READ_DEADLINE_BUDGET_MS = 8_000;
 

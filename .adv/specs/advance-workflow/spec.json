@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.27.0",
-  "updated_at": "2026-07-08T22:00:00.000Z",
+  "version": "1.28.0",
+  "updated_at": "2026-07-12T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -1341,6 +1341,174 @@
           "then": [
             "The active-list fast path remains distinct from terminal-list reconciliation",
             "Broader status health TTL or worktree cleanup behavior is not introduced unless it shares the terminal-list primitive"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-boundedAuthoritativeRead01",
+      "title": "Authoritative Change Reads Bound to an 8-Second Aggregate Deadline",
+      "body": "Authoritative change-read surfaces (`adv_change_list`, `adv_status`) MUST resolve state inside a single request-scoped 8,000 ms aggregate deadline (`TEMPORAL_READ_DEADLINE_BUDGET_MS`). The deadline context is created per request (`createTemporalReadDeadline`) and threaded through source enumeration, archive pre-scan, candidate hydration, fallback classification, and Temporal retry/query admission; it is never shared across projects or calls. A result is complete only when every required source and candidate resolves before expiry; otherwise it is explicitly degraded and names the incomplete candidates or sources through typed metadata (`SOURCE_DEADLINE_EXCEEDED`, `hydrationStats.deadlineExceeded`, `omittedIds`), and MUST never claim completeness or let a caller infer completeness from row count or cache warmth. `safeExecute` remains outer containment (defense in depth), not the normal timeout-control mechanism; the existing `TemporalQueryTimeoutError`/retry machinery is extended with remaining-budget admission rather than replaced by a second timer abstraction. This requirement generalizes the terminal degradation semantics of `rq-terminalAggregateRead01` to the authoritative read path while preserving existing terminal warning codes (`TERMINAL_SOURCE_DEGRADED`, `TERMINAL_CANDIDATE_OMITTED`) and the active fast path (`rq-activeListFastPath01`) unchanged. No worker restart, poisoned-workflow mutation, or timeout-ceiling increase may be used as a read-path workaround. Deadline behavior MUST be proven with deterministic tests that use controlled timers/promises, not elapsed wall-clock timing.",
+      "priority": "must",
+      "tags": ["workflow", "read-model", "performance", "degraded", "deadline"],
+      "scenarios": [
+        {
+          "id": "rq-boundedAuthoritativeRead01.1",
+          "title": "Slow candidate or source degrades explicitly within the aggregate deadline",
+          "given": [
+            "adv_change_list or adv_status is resolving authoritative change state",
+            "One or more candidate workflows or sources exceed the internal read budget"
+          ],
+          "when": "The aggregate 8-second internal deadline is reached",
+          "then": [
+            "The read returns within the 8-second aggregate deadline",
+            "The response carries typed degraded metadata (SOURCE_DEADLINE_EXCEEDED, hydrationStats.deadlineExceeded) naming the incomplete candidates or sources via omittedIds",
+            "The result never claims completeness",
+            "The read does not fail only as an unclassified whole-tool ToolExecutionTimeout"
+          ]
+        },
+        {
+          "id": "rq-boundedAuthoritativeRead01.2",
+          "title": "Fully-resolved reads stay complete and preserve the fast path",
+          "given": [
+            "All required sources and candidates resolve within the aggregate deadline"
+          ],
+          "when": "adv_change_list or adv_status runs",
+          "then": [
+            "The read returns a complete result preserving existing authoritative state",
+            "The active summary/memo fast path (rq-activeListFastPath01) is preserved",
+            "No deadline degradation metadata is emitted"
+          ]
+        },
+        {
+          "id": "rq-boundedAuthoritativeRead01.3",
+          "title": "safeExecute is containment and deadline tests are deterministic",
+          "given": [
+            "The bounded read path and its tests are implemented"
+          ],
+          "when": "Timeout behavior is exercised",
+          "then": [
+            "safeExecute remains outer containment, not the normal timeout-control path",
+            "No worker restart, poisoned-workflow mutation, or timeout-ceiling increase is used as a read-path workaround",
+            "Deadline tests use controlled timers/promises and assert typed results rather than elapsed wall-clock timing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-readSourceAttribution01",
+      "title": "Archive and Visibility Read Sources Are Bounded and Attributed",
+      "body": "Archive and Visibility candidate sources MUST be included in the aggregate deadline and source-classification design (`rq-boundedAuthoritativeRead01`). Visibility enumeration, active-disk enumeration, archive enumeration, archive-bundle pre-scan, candidate hydration, and fallback reads MUST check the shared deadline before admission and after completion. When a source is slow, fails, or reaches the deadline, the result MUST identify that source in typed degraded evidence and MUST stop further unbounded source work. The archive-inventory × candidate scan MUST be bounded with per-iteration admission checks; no unbounded archive-inventory × candidate scan is allowed. Existing terminal source-failure warnings stay terminal-only, while deadline and bound degradation are typed on both active and terminal paths.",
+      "priority": "must",
+      "tags": ["workflow", "read-model", "archive", "visibility", "degraded"],
+      "scenarios": [
+        {
+          "id": "rq-readSourceAttribution01.1",
+          "title": "Slow or failed Visibility/Archive source is named in degraded evidence",
+          "given": [
+            "Archive inventory or Visibility pagination contributes candidates to an authoritative read"
+          ],
+          "when": "That source is slow, fails, or reaches the aggregate deadline",
+          "then": [
+            "The result identifies the source in typed degraded evidence (SOURCE_DEADLINE_EXCEEDED with omittedIds)",
+            "Further unbounded source work stops",
+            "Successfully resolved rows are still returned"
+          ]
+        },
+        {
+          "id": "rq-readSourceAttribution01.2",
+          "title": "Archive inventory x candidate scan is bounded",
+          "given": [
+            "An authoritative read must reconcile archive inventory against candidates"
+          ],
+          "when": "The archive-bundle pre-scan and archive-inventory x candidate scan run",
+          "then": [
+            "Each iteration performs a deadline admission check",
+            "The scan is bounded and records omissionReason 'deadline' on expiry",
+            "No unbounded archive-inventory x candidate scan is performed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-summaryReadBound01",
+      "title": "Summary Status Bounds Deep Hydration and Reuses Request-Local Documents",
+      "body": "`adv_status` with `view: \"summary\"` MUST apply the existing `STATUS_SUMMARY_RECENT_LIMIT` bound before non-required deep hydration, artifact reads, or recent-change enrichment, truncating the tail with typed bounded degradation (`SOURCE_BOUND_EXCEEDED`, `hydrationStats.boundedOmitted`, `omittedIds`) rather than paying full hydration cost. The bound is applied in the shared resolver (`listResolvedChanges` candidateLimit) with memo-recency ordering so the bounded recent set stays meaningful; complete summary counts/recency semantics are preserved when data resolves within the bound, and otherwise the result publishes explicit degradation instead of inaccurate totals. Changes already hydrated during the request MUST be reused for recent-change, proposal-derived, product-scope, and fast-follow context via a request-local resolved-document map that is transport-only and stripped before serialization; the request MUST NOT issue a duplicate per-change Temporal read or `readArtifact` call for an already-resolved row. This requirement governs change-resolution ordering and complements the provider-group planning of `rq-statusSummaryLazy01` (advance-meta); full views retain their explicit behavior but share the aggregate deadline.",
+      "priority": "must",
+      "tags": ["status", "read-model", "performance", "degraded"],
+      "scenarios": [
+        {
+          "id": "rq-summaryReadBound01.1",
+          "title": "Summary applies the recent-limit bound before deep hydration",
+          "given": [
+            "adv_status is called with view: \"summary\""
+          ],
+          "when": "Status resolution starts",
+          "then": [
+            "The STATUS_SUMMARY_RECENT_LIMIT bound is applied before non-required deep hydration, artifact reads, or recent-change enrichment",
+            "The truncated tail is reported as typed bounded degradation (SOURCE_BOUND_EXCEEDED, hydrationStats.boundedOmitted, omittedIds)",
+            "A bound-truncated result never looks complete"
+          ]
+        },
+        {
+          "id": "rq-summaryReadBound01.2",
+          "title": "Already-hydrated changes are not re-read",
+          "given": [
+            "A change was hydrated for the status request"
+          ],
+          "when": "Recent-change, proposal-derived, product-scope, or fast-follow context renders",
+          "then": [
+            "The request reuses the hydrated document/projection from the request-local resolved map",
+            "No duplicate per-change Temporal read or readArtifact call is issued for the already-resolved row",
+            "A regression test verifies the call count"
+          ]
+        },
+        {
+          "id": "rq-summaryReadBound01.3",
+          "title": "Complete summary semantics preserved within the bound",
+          "given": [
+            "Summary-relevant data resolves within the applied bound"
+          ],
+          "when": "The summary projection is built",
+          "then": [
+            "Counts and recency remain complete and accurate",
+            "The request-local resolved map is transport-only and stripped before serialization",
+            "When a bounded source cannot establish complete semantics, explicit degradation is published instead of inaccurate totals"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-readCacheAdvisory01",
+      "title": "List and Status Read Cache Is Advisory, Never the Authoritative Truth Source",
+      "body": "Change/task/gate state MUST remain authoritative for `adv_change_list` and `adv_status`; TTL cache data MUST NOT become the primary list/status truth source for lifecycle, gate, or task state. The memo/summary fast path (`rq-activeListFastPath01`) serves only rows that were resolved authoritatively for the request or remain valid projections; warm memo/summary rows MAY still be served after deadline expiry, but the result MUST then be marked degraded and never complete. Completeness MUST never be inferred from cache warmth or row count. This requirement scopes the change-read cache and is distinct from the bounded health-probe cache of `rq-statusProbeCache01` (advance-meta), which governs diagnostic probes only.",
+      "priority": "must",
+      "tags": ["workflow", "read-model", "cache", "authoritative"],
+      "scenarios": [
+        {
+          "id": "rq-readCacheAdvisory01.1",
+          "title": "TTL cache is not the primary list/status truth source",
+          "given": [
+            "adv_change_list or adv_status resolves lifecycle, gate, or task state"
+          ],
+          "when": "A TTL or memo cache holds candidate row data",
+          "then": [
+            "The cache does not become the primary list/status truth source for lifecycle, gate, or task state",
+            "Authoritative change/task/gate state remains the source of truth",
+            "Completeness is not inferred from cache warmth"
+          ]
+        },
+        {
+          "id": "rq-readCacheAdvisory01.2",
+          "title": "Warm fast-path rows served after expiry stay degraded",
+          "given": [
+            "The aggregate deadline expired while warm memo/summary fast-path rows are available"
+          ],
+          "when": "The read returns",
+          "then": [
+            "Warm memo/summary rows may still be served",
+            "The result is marked degraded, never complete",
+            "Completeness is not inferred from row count or cache warmth"
           ]
         }
       ]

@@ -430,6 +430,9 @@ export function createTemporalStoreBackend(
 
     // The scan below is the archive-inventory × candidate product (DONT3):
     // once the aggregate deadline is exhausted it must not begin.
+    // rq-readSourceAttribution01: archive/visibility candidate sources are
+    // bounded and attributed — per-iteration deadline admission, typed source
+    // degradation naming the incomplete source, and no unbounded scan.
     if (deadline && remainingDeadlineMs(deadline) <= 0) return null;
 
     let archiveDirs: string[];

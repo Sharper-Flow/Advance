@@ -258,6 +258,9 @@ export const statusTools = {
           // only as an output slice afterwards. Full views pass no bound
           // and keep complete resolution semantics under the shared
           // per-call aggregate deadline.
+          // rq-summaryReadBound01: summary applies STATUS_SUMMARY_RECENT_LIMIT
+          // before non-required deep hydration/artifact reads/enrichment and
+          // reuses request-local resolved documents instead of re-reading them.
           const statusReadOptions: StatusReadOptions | undefined =
             view === "summary"
               ? { recentLimit: STATUS_SUMMARY_RECENT_LIMIT }

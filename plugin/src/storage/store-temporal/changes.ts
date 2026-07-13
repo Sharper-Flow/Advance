@@ -788,6 +788,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     // this summary/memo/cache path. Terminal reconciliation is only
     // invoked when the filter explicitly asks for archived/closed rows
     // or when content filters require full state.
+    //
+    // rq-readCacheAdvisory01: the memo/summary/cache fast path is advisory,
+    // never the primary list/status truth source for lifecycle/gate/task
+    // state; warm rows served after deadline expiry stay degraded, and
+    // completeness is never inferred from cache warmth or row count.
     listSummary: async (filter) => {
       // Request-scoped aggregate deadline (KD1). One budget covers
       // source enumeration, the archive-bundle pre-scan, and every
