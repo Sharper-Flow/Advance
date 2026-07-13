@@ -72,6 +72,7 @@ import {
 import {
   buildChangeRecency,
   computeLastActivity,
+  firstOpenGate,
   type Store,
   type SearchResult,
 } from "./store-types";
@@ -321,6 +322,8 @@ export async function createDiskStore(
             id: c.id,
             title: c.title,
             status: c.status,
+            currentGate: firstOpenGate(c.gates),
+            lifecycleState: c.lifecycleState,
             created_at: c.created_at,
             lastActivityAt: computeLastActivity(c),
             taskCount: c.tasks.length,

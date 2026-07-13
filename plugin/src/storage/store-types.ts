@@ -24,6 +24,7 @@ import type {
   Cancellation,
   TddReclassification,
   Gates,
+  GateCompletion,
   GateId,
   BulkCloseResult,
   Epic,
@@ -32,6 +33,7 @@ import type {
   EpicMembershipStatus,
   RetiredEpicProjection,
 } from "../types";
+import type { GateProgress } from "./store-temporal-memo";
 import type { ProjectPaths, LoadResult } from "./json";
 import type { ProductContext } from "./product-context";
 
@@ -525,6 +527,34 @@ export interface SearchResult {
   requirement: string;
   title: string;
   match: string;
+}
+
+/**
+ * First non-done gate in GATE_ORDER, or "done" when every gate is complete.
+ * Accepts both the full `Gates` map (object completions from hydrated
+ * changes) and the summary `GateProgress` projection (string status values
+ * from the ChangeSummaryMemo read model). Mirrors the `currentGate`
+ * derivation used for the AdvCurrentGate search attribute: only
+ * `status === "done"` advances. Missing gates data means nothing has
+ * completed, so the first gate is current.
+ */
+export function firstOpenGate(
+  gates: Gates | GateProgress | undefined,
+): GateId | "done" {
+  if (!gates) return GATE_ORDER[0];
+  // GateId is `string` at the type level (GATE_IDS is a string tuple), and
+  // GateProgress is a concrete interface without an index signature — so
+  // access goes through one contained, runtime-safe cast. Every GATE_ORDER
+  // key exists on both shapes by construction; missing keys read as
+  // undefined and count as not-done.
+  const byGate = gates as Record<string, GateCompletion | string | undefined>;
+  for (const gateId of GATE_ORDER) {
+    const gate = byGate[gateId];
+    const done =
+      typeof gate === "string" ? gate === "done" : gate?.status === "done";
+    if (!done) return gateId;
+  }
+  return "done";
 }
 
 export function computeLastActivity(change: Change): string {

@@ -1653,6 +1653,111 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.warnings).toBeUndefined();
       expect(parsed.hydrationStats).toBeUndefined();
     });
+
+    describe("adv_change_list phase projection", () => {
+      const phaseRow = (overrides: Record<string, unknown>) => ({
+        id: "row",
+        title: "Row",
+        status: "draft",
+        created_at: "2026-01-01T00:00:00Z",
+        lastActivityAt: "2026-01-01T01:00:00Z",
+        taskCount: 0,
+        completedTasks: 0,
+        ...overrides,
+      });
+
+      test("renders distinct phase for never-started, mid-execution, and release-complete-but-open changes", async () => {
+        const store = createMockStore();
+        store.changes.listSummary = vi.fn().mockResolvedValue({
+          changes: [
+            phaseRow({
+              id: "fresh-change",
+              currentGate: "proposal",
+              lifecycleState: "open",
+            }),
+            phaseRow({
+              id: "mid-change",
+              currentGate: "execution",
+              lifecycleState: "open",
+            }),
+            phaseRow({
+              id: "wedged-change",
+              currentGate: "done",
+              lifecycleState: "open",
+            }),
+          ],
+        });
+
+        const result = await changeTools.adv_change_list.execute({}, store);
+        const parsed = JSON.parse(result);
+        expect(parsed.changes).toHaveLength(3);
+        const byId = Object.fromEntries(
+          parsed.changes.map((c: { id: string; phase?: string }) => [
+            c.id,
+            c.phase,
+          ]),
+        );
+        // All three rows share status "draft" (the permanent-draft wedge);
+        // phase is what distinguishes real progress. status is unchanged.
+        for (const c of parsed.changes) expect(c.status).toBe("draft");
+        expect(byId["fresh-change"]).toBe("proposal");
+        expect(byId["mid-change"]).toBe("execution");
+        expect(byId["wedged-change"]).toBe("released");
+        expect(new Set(Object.values(byId)).size).toBe(3);
+        // Gate/lifecycle hints are internal plumbing; only phase is exposed.
+        for (const c of parsed.changes) {
+          expect(c.currentGate).toBeUndefined();
+          expect(c.lifecycleState).toBeUndefined();
+        }
+      });
+
+      test("terminal lifecycle states render as their own phase", async () => {
+        const store = createMockStore();
+        store.changes.listSummary = vi.fn().mockResolvedValue({
+          changes: [
+            phaseRow({
+              id: "archived-change",
+              status: "archived",
+              currentGate: "done",
+              lifecycleState: "archived",
+            }),
+            phaseRow({
+              id: "closed-change",
+              status: "closed",
+              currentGate: "proposal",
+              lifecycleState: "closed",
+            }),
+          ],
+        });
+
+        const result = await changeTools.adv_change_list.execute(
+          { includeArchived: true, includeClosed: true },
+          store,
+        );
+        const parsed = JSON.parse(result);
+        const byId = Object.fromEntries(
+          parsed.changes.map((c: { id: string; phase?: string }) => [
+            c.id,
+            c.phase,
+          ]),
+        );
+        expect(byId["archived-change"]).toBe("archived");
+        expect(byId["closed-change"]).toBe("closed");
+      });
+
+      test("omits phase rather than fabricating progress when the store row lacks a gate hint", async () => {
+        const store = createMockStore();
+        store.changes.listSummary = vi.fn().mockResolvedValue({
+          changes: [phaseRow({ id: "legacy-row", lifecycleState: "open" })],
+        });
+
+        const result = await changeTools.adv_change_list.execute({}, store);
+        const parsed = JSON.parse(result);
+        expect(parsed.changes).toHaveLength(1);
+        expect(parsed.changes[0].status).toBe("draft");
+        expect("phase" in parsed.changes[0]).toBe(false);
+      });
+    });
   });
 
   describe("target_path artifact readback/update authority (AC1/AC2)", () => {
