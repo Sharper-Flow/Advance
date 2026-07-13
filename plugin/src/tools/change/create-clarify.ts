@@ -16,6 +16,10 @@ import {
   type ClarifyFindingSnapshot,
 } from "../../types";
 import type { ChangeCreateInitialMetadata, Store } from "../../storage/store";
+import type {
+  ConflictInventory,
+  ConflictInventoryEntry,
+} from "../../validator/types";
 import { generateChangeId } from "../../utils/change-id";
 import { isSyntheticValidationDraftPattern } from "../../utils/synthetic-fixture-detector";
 import { createLogger } from "../../utils/debug-log";
@@ -906,6 +910,11 @@ export function productContextOutput(
  * current root is a git worktree, this also computes merge-base-aware spec
  * divergence against the default branch so validation can warn only on real
  * branch-local spec changes.
+ *
+ * Builds a typed conflict inventory (complete paginated change inventory
+ * with Epic/member context and explicit completeness state) to replace the
+ * legacy adv_agenda_list-based conflict scan. Active changes and Epic
+ * members are authoritative; archived changes are related context only.
  */
 export async function loadValidationContext(
   store: Store,
@@ -918,6 +927,7 @@ export async function loadValidationContext(
     title: string;
     capabilities: string[];
   }[];
+  conflictInventory: ConflictInventory;
   proposalText: string;
   changedSpecFiles: string[] | null | undefined;
 }> {
@@ -929,32 +939,89 @@ export async function loadValidationContext(
       specs.push(specResult.data);
     }
   }
-  const changeList = await store.changes.list({ includeArchived: false });
-  const activeChanges = changeList.changes
-    .filter((c) => c.id !== changeId)
-    .map((c) => ({ id: c.id, title: c.title, capabilities: [] as string[] }));
-  for (const activeChange of activeChanges) {
-    // Fix 5 (rq fixMultiSessionTemporalState / AC7): a peer change whose
-    // Temporal workflow was evicted/terminated (its disk projection may
-    // still exist) makes store.changes.get throw WorkflowNotFoundError when
-    // disk re-seed also fails. A dangling peer must NOT block a healthy
-    // change's validate/archive — listResolvedChanges already tolerates this
-    // in the list path; this is the matching guard for the validation-context
-    // read path. Skip the unrecoverable peer: it contributes no known
-    // capabilities to conflict detection. This guard intentionally only
-    // tolerates per-peer hydration failures and never suppresses validation
-    // errors for the target change (constraint C5).
-    try {
-      const fullChangeResult = await store.changes.get(activeChange.id);
-      if (fullChangeResult.success && fullChangeResult.data) {
-        activeChange.capabilities = Object.keys(fullChangeResult.data.deltas);
+
+  // Build typed conflict inventory with complete enumeration
+  const inventoryEntries: ConflictInventoryEntry[] = [];
+  const inventoryWarnings: string[] = [];
+  let inventoryCompleteness: ConflictInventory["completeness"] = "complete";
+
+  // Load all changes (active + archived) for complete inventory
+  const changeList = await store.changes.list({
+    includeArchived: true,
+    includeClosed: true,
+  });
+
+  for (const changeSummary of changeList.changes) {
+    const isOwnChange = changeSummary.id === changeId;
+    const isArchived =
+      changeSummary.status === "archived" || changeSummary.status === "closed";
+
+    const entry: ConflictInventoryEntry = {
+      id: changeSummary.id,
+      title: changeSummary.title,
+      status: changeSummary.status,
+      capabilities: [],
+      isArchived,
+      isOwnChange,
+      ...(changeSummary.epic_membership
+        ? {
+            epic: {
+              id: changeSummary.epic_membership.epic_id,
+              title: changeSummary.epic_membership.title,
+              entry_id: changeSummary.epic_membership.entry_id,
+            },
+          }
+        : {}),
+    };
+
+    // Hydrate capabilities for non-archived, non-own changes
+    if (!isArchived && !isOwnChange) {
+      try {
+        const fullChangeResult = await store.changes.get(changeSummary.id);
+        if (fullChangeResult.success && fullChangeResult.data) {
+          entry.capabilities = Object.keys(fullChangeResult.data.deltas);
+        } else {
+          inventoryWarnings.push(
+            `Peer change ${changeSummary.id} could not be hydrated (no data)`,
+          );
+          inventoryCompleteness = "degraded";
+        }
+      } catch (err) {
+        inventoryWarnings.push(
+          `Peer change ${changeSummary.id} workflow unavailable: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        inventoryCompleteness = "degraded";
       }
+    }
+
+    inventoryEntries.push(entry);
+  }
+
+  // If the store itself is unreachable, mark blocked
+  if (changeList.changes.length === 0 && inventoryWarnings.length === 0) {
+    try {
+      await store.changes.list({});
     } catch (err) {
-      logger.warn(
-        `Validation context: skipping peer change ${activeChange.id} (workflow unavailable): ${err instanceof Error ? err.message : String(err)}`,
+      inventoryWarnings.push(
+        `Change inventory source unreachable: ${err instanceof Error ? err.message : String(err)}`,
       );
+      inventoryCompleteness = "blocked";
     }
   }
+
+  const conflictInventory: ConflictInventory = {
+    entries: inventoryEntries,
+    completeness: inventoryCompleteness,
+    warnings: inventoryWarnings,
+    source: "change-inventory",
+    ownChangeId: changeId,
+  };
+
+  // Legacy activeChanges array (non-archived, non-own, hydrated capabilities)
+  const activeChanges = inventoryEntries
+    .filter((e) => !e.isArchived && !e.isOwnChange)
+    .map((e) => ({ id: e.id, title: e.title, capabilities: e.capabilities }));
+
   const { content: proposalText } = await loadProposalForContext(
     store,
     changeId,
@@ -975,7 +1042,13 @@ export async function loadValidationContext(
   } catch {
     // best-effort only — changedSpecFiles stays undefined (not in worktree)
   }
-  return { specs, activeChanges, proposalText, changedSpecFiles };
+  return {
+    specs,
+    activeChanges,
+    conflictInventory,
+    proposalText,
+    changedSpecFiles,
+  };
 }
 /**
  * Compute spec files that differ between current HEAD and the merge-base

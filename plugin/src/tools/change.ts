@@ -2297,12 +2297,18 @@ export const changeTools = {
         return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
       const change = result.data;
-      const { specs, activeChanges, proposalText, changedSpecFiles } =
-        await loadValidationContext(store, changeId, change.title);
-      // Run full validation with active changes for conflict detection
+      const {
+        specs,
+        activeChanges,
+        conflictInventory,
+        proposalText,
+        changedSpecFiles,
+      } = await loadValidationContext(store, changeId, change.title);
+      // Run full validation with typed conflict inventory for conflict detection
       const validationResult = await validateChange(change, {
         specs,
         activeChanges,
+        conflictInventory,
         proposalText,
         changedSpecFiles,
       });
@@ -2515,6 +2521,7 @@ export const changeTools = {
           validationResult = await validateChange(change, {
             specs: validationContext.specs,
             activeChanges: validationContext.activeChanges,
+            conflictInventory: validationContext.conflictInventory,
             proposalText: validationContext.proposalText,
             changedSpecFiles: validationContext.changedSpecFiles,
           });

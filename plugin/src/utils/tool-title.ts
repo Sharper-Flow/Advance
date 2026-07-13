@@ -121,6 +121,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_epic_retire: (args) => write(`Retire Epic${suffix(args, "epic_id")}`),
   adv_followup_promote: (args) =>
     write(`Promote follow-up${suffix(args, "source_change_id")}`),
+  adv_report_followup_promote: (args) =>
+    write(`Promote report follow-up${suffix(args, "source_change_id")}`),
   adv_ops_evidence_add: (args) =>
     write(`Add ops evidence${suffix(args, "changeId")}`),
   adv_ops_run_upsert: (args) =>
@@ -152,6 +154,15 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
       action === "dry_run"
         ? `Dry-run store consolidation${suffix(args, "source_project_id")}`
         : "Scan orphan stores",
+    );
+  },
+  adv_store_cleanup: (args) => {
+    const action = typeof args.action === "string" ? args.action : "scan";
+    if (action === "execute") return operator("Execute legacy agenda cleanup");
+    return read(
+      action === "dry_run"
+        ? "Dry-run legacy agenda cleanup"
+        : "Scan stores for legacy agenda",
     );
   },
   adv_agenda_list: () => read("List agenda"),

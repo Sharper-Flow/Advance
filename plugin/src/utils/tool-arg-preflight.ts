@@ -287,6 +287,11 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     data_home_root: { blank: "omit" },
     approvalEvidence: { blank: "reject" }, // audit
   },
+  adv_store_cleanup: {
+    data_home_root: { blank: "omit" },
+    dry_run_plan_hash: { blank: "reject" }, // required for execute
+    approvalEvidence: { blank: "reject" }, // audit
+  },
   adv_status: {
     target_path: { blank: "omit" },
   },
@@ -321,6 +326,12 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     source_task_id: { blank: "omit" },
     capability: { blank: "omit" },
     proposal: { blank: "omit" },
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+  },
+  adv_report_followup_promote: {
+    source_report_key: { blank: "omit" },
+    capability: { blank: "omit" },
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
   },

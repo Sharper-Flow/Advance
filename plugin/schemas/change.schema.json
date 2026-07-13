@@ -851,6 +851,33 @@
     "fast_follow_of": {
       "additionalProperties": false,
       "properties": {
+        "followup_ref": {
+          "additionalProperties": false,
+          "properties": {
+            "index": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "follow_ups",
+                "required_follow_ups"
+              ],
+              "type": "string"
+            },
+            "report_key": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "report_key",
+            "kind",
+            "index"
+          ],
+          "type": "object"
+        },
         "linked_at": {
           "type": "string"
         },
@@ -6117,6 +6144,33 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "followup_ref": {
+            "additionalProperties": false,
+            "properties": {
+              "index": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "kind": {
+                "enum": [
+                  "follow_ups",
+                  "required_follow_ups"
+                ],
+                "type": "string"
+              },
+              "report_key": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "report_key",
+              "kind",
+              "index"
+            ],
+            "type": "object"
           },
           "id": {
             "type": "string"

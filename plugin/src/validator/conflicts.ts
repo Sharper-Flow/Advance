@@ -249,10 +249,14 @@ function checkSpecsExist(
 }
 
 /**
- * Check for overlapping capabilities with other active changes
+ * Check for overlapping capabilities with other active changes.
  *
  * When multiple changes touch the same capability, there's potential for
  * merge conflicts when archiving. This check warns about such overlaps.
+ *
+ * Uses the typed conflict inventory when present (preferred), falling back
+ * to the legacy activeChanges array. The inventory carries explicit
+ * completeness state (complete / degraded / blocked) and Epic context.
  */
 function checkChangeConflicts(
   change: Change,
@@ -260,6 +264,12 @@ function checkChangeConflicts(
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
+  // Prefer typed conflict inventory when available
+  if (context.conflictInventory) {
+    return checkChangeConflictsFromInventory(change, context.conflictInventory);
+  }
+
+  // Legacy fallback: activeChanges array
   if (!context.activeChanges || context.activeChanges.length === 0) {
     return issues;
   }
@@ -288,6 +298,114 @@ function checkChangeConflicts(
           otherChangeTitle: otherChange.title,
           overlappingCapabilities: overlapping,
         },
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Check for overlapping capabilities using the typed conflict inventory.
+ *
+ * Active changes and Epic members are authoritative; archived changes are
+ * related context only. The inventory's completeness state determines
+ * whether a clean no-conflict result is possible.
+ */
+function checkChangeConflictsFromInventory(
+  change: Change,
+  inventory: import("./types").ConflictInventory,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  // Blocked inventory → no reliable conflict detection possible
+  if (inventory.completeness === "blocked") {
+    issues.push({
+      code: ValidationCodes.CONFLICT_INVENTORY_BLOCKED,
+      severity: "error",
+      message:
+        "Conflict inventory is blocked — no reliable conflict detection possible. " +
+        (inventory.warnings.length > 0
+          ? `Reasons: ${inventory.warnings.join("; ")}`
+          : "Inventory source unreachable or failed."),
+      path: "deltas",
+      details: {
+        completeness: inventory.completeness,
+        source: inventory.source,
+        warnings: inventory.warnings,
+      },
+    });
+    // Still run per-entry checks with whatever entries are available
+  }
+
+  // Degraded inventory → warn but proceed
+  if (inventory.completeness === "degraded") {
+    issues.push({
+      code: ValidationCodes.CONFLICT_INVENTORY_DEGRADED,
+      severity: "warning",
+      message:
+        "Conflict inventory is degraded — some changes could not be fully hydrated. " +
+        (inventory.warnings.length > 0
+          ? `Reasons: ${inventory.warnings.join("; ")}`
+          : "Partial data only."),
+      path: "deltas",
+      details: {
+        completeness: inventory.completeness,
+        source: inventory.source,
+        warnings: inventory.warnings,
+      },
+    });
+  }
+
+  // Emit each inventory warning as a distinct validation warning
+  for (const warning of inventory.warnings) {
+    issues.push({
+      code: ValidationCodes.CONFLICT_INVENTORY_WARNING,
+      severity: "warning",
+      message: `Conflict inventory warning: ${warning}`,
+      path: "deltas",
+      details: {
+        source: inventory.source,
+        warning,
+      },
+    });
+  }
+
+  // Get capabilities this change touches
+  const thisCapabilities = new Set(Object.keys(change.deltas));
+
+  // Check against other changes in the inventory
+  for (const entry of inventory.entries) {
+    // Skip self
+    if (entry.isOwnChange || entry.id === change.id) continue;
+
+    // Archived changes are related context, not authority
+    if (entry.isArchived) continue;
+
+    // Find overlapping capabilities
+    const overlapping = entry.capabilities.filter((cap) =>
+      thisCapabilities.has(cap),
+    );
+
+    if (overlapping.length > 0) {
+      const details: Record<string, unknown> = {
+        otherChangeId: entry.id,
+        otherChangeTitle: entry.title,
+        otherChangeStatus: entry.status,
+        overlappingCapabilities: overlapping,
+        source: inventory.source,
+      };
+      if (entry.epic) {
+        details.epicId = entry.epic.id;
+        details.epicTitle = entry.epic.title;
+        details.epicEntryId = entry.epic.entry_id;
+      }
+      issues.push({
+        code: ValidationCodes.OVERLAPPING_CAPABILITY,
+        severity: "warning",
+        message: `Change "${entry.title}" (${entry.id}) also modifies: ${overlapping.join(", ")}`,
+        path: "deltas",
+        details,
       });
     }
   }

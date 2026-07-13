@@ -15,6 +15,7 @@ import { ContractEvidencePolicySchema } from "./evidence-policy";
 import { TaskSchema } from "./tasks";
 import {
   DesignConcernDispositionSchema,
+  ReportFollowUpRefSchema,
   ScopedSubagentReportSchema,
 } from "./subagent-reports";
 import { DeltaSchema } from "./specs";
@@ -325,6 +326,12 @@ export const FastFollowOfSchema = z.object({
   parent_change_id: z.string(),
   /** ISO8601 timestamp when the fast-follow link was established */
   linked_at: z.string(),
+  /**
+   * Structural reference to the report follow-up that motivated this
+   * fast-follow child. Present when the child was created as the
+   * post-planning owner of a promoted report follow-up.
+   */
+  followup_ref: ReportFollowUpRefSchema.optional(),
 });
 
 export type FastFollowOf = z.infer<typeof FastFollowOfSchema>;

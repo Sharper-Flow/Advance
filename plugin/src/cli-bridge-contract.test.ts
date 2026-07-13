@@ -157,6 +157,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_epic_reorder",
       "adv_epic_retire",
       "adv_followup_promote",
+      "adv_report_followup_promote",
       "adv_ops_evidence_add",
       "adv_ops_run_upsert",
       "adv_ops_run_evidence_add",
@@ -203,6 +204,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_session_show",
       "adv_snapshot_health",
       "adv_store_consolidate",
+      "adv_store_cleanup",
     ];
     expect(ADV_TOOL_NAMES).toEqual(frozen);
   });

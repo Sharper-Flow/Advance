@@ -80,6 +80,7 @@
 | `adv_temporal_diagnose` | `mcp+cli-additive` | Add CLI `doctor`; MCP kept for in-recovery use |
 | `adv_snapshot_health` | `mcp+cli-additive` | CLI scan additive; repair remains approval-gated MCP-only |
 | `adv_store_consolidate` | `keep-mcp-only` | Ops recovery tool; scan/dry_run read-only, execute approval-gated |
+| `adv_store_cleanup` | `keep-mcp-only` | Maintenance-only legacy agenda cleanup; scan/dry_run read-only, execute approval-gated |
 | `adv_session_list` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_session_show` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_worktree_triage` | `mcp+cli-additive` | Human inventory/report; additive CLI output |
@@ -105,6 +106,7 @@
 | `adv_change_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_forget` | `keep-mcp-only` | Session pointer clear (in-memory only) |
 | `adv_followup_promote` | `no-cli-dangerous` | Promotes a linked ops follow-up change; mutation |
+| `adv_report_followup_promote` | `no-cli-dangerous` | Promotes a report follow-up into a task or fast-follow child; mutation |
 | `adv_ops_evidence_add` | `no-cli-dangerous` | Appends ops evidence and updates follow-up status; mutation |
 | `adv_change_bulk_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_archive` | `no-cli-dangerous` | Archive mutation + spec delta |

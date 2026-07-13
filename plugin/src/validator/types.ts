@@ -66,6 +66,9 @@ export const ValidationCodes = {
 
   // Change-to-change conflicts
   OVERLAPPING_CAPABILITY: "OVERLAPPING_CAPABILITY",
+  CONFLICT_INVENTORY_BLOCKED: "CONFLICT_INVENTORY_BLOCKED",
+  CONFLICT_INVENTORY_DEGRADED: "CONFLICT_INVENTORY_DEGRADED",
+  CONFLICT_INVENTORY_WARNING: "CONFLICT_INVENTORY_WARNING",
 
   // Spec divergence (merge-base-aware)
   SPEC_DIVERGED: "SPEC_DIVERGED",
@@ -95,8 +98,10 @@ export interface ValidationContext {
   existingRequirementIds: Set<string>;
   /** Requirements that reference other requirements */
   requirementReferences: Map<string, string[]>;
-  /** Other active changes (for conflict detection) */
+  /** Other active changes (for conflict detection) — legacy path */
   activeChanges?: ActiveChange[];
+  /** Typed conflict inventory (preferred over activeChanges when present) */
+  conflictInventory?: ConflictInventory;
 }
 
 export interface ActiveChange {
@@ -104,6 +109,61 @@ export interface ActiveChange {
   title: string;
   /** Capabilities this change touches (has deltas for) */
   capabilities: string[];
+}
+
+// =============================================================================
+// Conflict Inventory (Typed Change Inventory for Conflict Detection)
+// =============================================================================
+
+/**
+ * Typed entry in the conflict inventory representing a single change.
+ * Active changes and Epic members are authoritative; archived changes are
+ * related context only.
+ */
+export interface ConflictInventoryEntry {
+  id: string;
+  title: string;
+  status: string;
+  /** Capabilities this change touches (has deltas for) */
+  capabilities: string[];
+  /** Epic membership context when the change belongs to an Epic */
+  epic?: {
+    id: string;
+    title: string;
+    entry_id: string;
+  };
+  /** Whether this entry is archived (related context, not authority) */
+  isArchived: boolean;
+  /** Whether this entry is the change currently being validated */
+  isOwnChange: boolean;
+}
+
+/**
+ * Explicit completeness state for the conflict inventory.
+ *
+ * - complete: All changes were enumerated and hydrated successfully.
+ * - degraded: Some changes could not be fully hydrated (e.g. Temporal workflow
+ *   evicted); conflict detection proceeds but with reduced confidence.
+ * - blocked: The inventory source failed or was unreachable; no reliable
+ *   conflict detection is possible.
+ */
+export type ConflictInventoryCompleteness = "complete" | "degraded" | "blocked";
+
+/**
+ * Complete paginated typed change inventory used for conflict detection.
+ * Replaces the legacy adv_agenda_list-based conflict scan.
+ */
+export interface ConflictInventory {
+  /** All enumerated changes (active + archived) */
+  entries: ConflictInventoryEntry[];
+  /** Explicit completeness state */
+  completeness: ConflictInventoryCompleteness;
+  /** Non-fatal warnings encountered during inventory construction */
+  warnings: string[];
+  /** Source identifier for auditability */
+  source: string;
+  /** The change ID being validated (own-change) */
+  ownChangeId: string;
 }
 
 export interface ExistingSpec {

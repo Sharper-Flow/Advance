@@ -33,6 +33,7 @@ import { backlogTools } from "./tools/backlog";
 import { backlogShellTools } from "./tools/backlog-shell";
 import { changeTools } from "./tools/change";
 import { followupTools } from "./tools/followup";
+import { reportFollowupTools } from "./tools/report-followup";
 import { opsEvidenceTools } from "./tools/ops-evidence";
 import { contractTools } from "./tools/contract";
 import { designConcernTools } from "./tools/design-concern";
@@ -54,6 +55,7 @@ import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionTools } from "./tools/adv-session";
 import { epicTools } from "./tools/epic";
 import { storeConsolidateTools } from "./tools/store-consolidate";
+import { storeCleanupTools } from "./tools/store-cleanup";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -473,6 +475,13 @@ export function createToolMap(
       store,
     ),
 
+    // Report Follow-Up Promotion Tool
+    adv_report_followup_promote: bindTool(
+      reportFollowupTools.adv_report_followup_promote,
+      "adv_report_followup_promote",
+      store,
+    ),
+
     // Ops Evidence Append Tool
     adv_ops_evidence_add: bindTool(
       opsEvidenceTools.adv_ops_evidence_add,
@@ -609,6 +618,13 @@ export function createToolMap(
     adv_store_consolidate: bindTool(
       storeConsolidateTools.adv_store_consolidate,
       "adv_store_consolidate",
+      store,
+    ),
+
+    // Store Cleanup Tool — legacy Agenda cleanup (scan/dry_run read-only; execute approval-gated)
+    adv_store_cleanup: bindTool(
+      storeCleanupTools.adv_store_cleanup,
+      "adv_store_cleanup",
       store,
     ),
 
@@ -905,6 +921,7 @@ export function getToolSurface(): Map<string, Set<string>> {
     backlogTools,
     changeTools,
     followupTools,
+    reportFollowupTools,
     opsEvidenceTools,
     contractTools,
     designConcernTools,
@@ -977,6 +994,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_epic_reorder",
   "adv_epic_retire",
   "adv_followup_promote",
+  "adv_report_followup_promote",
   "adv_ops_evidence_add",
   "adv_ops_run_upsert",
   "adv_ops_run_evidence_add",
@@ -1023,6 +1041,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_session_show",
   "adv_snapshot_health",
   "adv_store_consolidate",
+  "adv_store_cleanup",
 ] as const;
 
 /**
