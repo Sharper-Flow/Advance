@@ -54,6 +54,7 @@ describe("Advance Epics spec documentation", () => {
       "rq-epicRetiredListing01",
       "rq-epicRetiredHistory01",
       "rq-epicOpsPlanning01",
+      "rq-epicFastFollowLineage01",
     ]) {
       expect(doc).toContain(reqId);
     }

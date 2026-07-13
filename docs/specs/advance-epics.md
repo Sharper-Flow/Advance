@@ -433,6 +433,57 @@ When a change belongs to an Epic, change show/status/resume surfaces MUST surfac
 
 ---
 
+### Epic Show Projects Advisory Fast-Follow Lineage from Child fast_follow_of
+
+**ID:** `rq-epicFastFollowLineage01` | **Priority:** **[MUST]**
+
+When an Epic entry references a child change that carries typed `fast_follow_of` metadata, `adv_epic_show` MUST render a bounded, additive `fast_follow_lineage` projection on that entry containing the source change ID, the source task ID when known (derived from `followup_ref.report_key` task scope, else null), a `non_blocking_advisory` classification, and the fast-follow `linked_at` timestamp. The projection MUST be advisory-only: it MUST NOT create Epic task ownership, MUST NOT introduce a dependency enum, MUST NOT change task readiness behavior, MUST NOT alter Epic order, and MUST NOT affect release or gate eligibility. Shell entries and entries whose child change has no `fast_follow_of` (or cannot be loaded) MUST render without the lineage field. The projection MUST be bounded by the number of change entries in the rendered Epic view and MUST cache per-child-change reads within a single render call. Operational work continues to flow through typed `ops_followup_links`; this projection is reserved for non-operational advisory fast-follow children.
+
+**Tags:** `epics`, `fast-follow`, `lineage`, `projection`, `advisory`
+
+#### Scenarios
+
+**Epic change entry renders fast-follow lineage when child has fast_follow_of** (`rq-epicFastFollowLineage01.1`)
+
+**Given:**
+- An Epic entry references a child change with typed fast_follow_of metadata
+- The fast_follow_of carries parent_change_id, linked_at, and an optional followup_ref
+
+**When:** adv_epic_show renders the Epic
+
+**Then:**
+- The entry includes fast_follow_lineage with source_change_id equal to parent_change_id
+- fast_follow_lineage.classification is 'non_blocking_advisory'
+- fast_follow_lineage.linked_at matches the child fast_follow_of.linked_at
+- fast_follow_lineage.source_task_id equals the task id embedded in followup_ref.report_key when the report scope is task-level, otherwise null
+
+**Entries without fast_follow_of render unchanged** (`rq-epicFastFollowLineage01.2`)
+
+**Given:**
+- An Epic entry references a child change without fast_follow_of
+- Or the child change fails to load
+
+**When:** adv_epic_show renders the Epic
+
+**Then:**
+- The entry renders without a fast_follow_lineage field
+- Existing entry fields, order, and member_status are unchanged
+- adv_epic_show still returns success
+
+**Lineage projection is bounded and additive** (`rq-epicFastFollowLineage01.3`)
+
+**Given:**
+- An Epic has both shell and change entries, with at least one fast-follow child
+
+**When:** adv_epic_show renders the Epic
+
+**Then:**
+- Shell entries never receive a fast_follow_lineage field
+- Per-render store reads are bounded by unique child change_id values
+- No Epic entry order, progress, or release/gate behavior is altered by the projection
+
+---
+
 ### ADV Next-Work Selection Can Operate from Epics
 
 **ID:** `rq-epicNextWork01` | **Priority:** **[SHOULD]**
