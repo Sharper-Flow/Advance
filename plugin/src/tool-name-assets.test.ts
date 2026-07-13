@@ -83,4 +83,16 @@ describe("tool-name assets", () => {
   test("canonical tool list does not include a standalone adv_briefing_packet tool", () => {
     expect(ADV_TOOL_NAMES).not.toContain("adv_briefing_packet");
   });
+
+  test("Episode recall policy is scoped, advisory, and read-only", () => {
+    const orchestrator = readRepoFile(".opencode/agents/adv.md");
+    const researcher = readRepoFile(".opencode/agents/adv-researcher.md");
+
+    for (const content of [orchestrator, researcher]) {
+      expect(content).toMatch(/^\s{2}episode_recall: true$/m);
+      expect(content).toContain("top_k: 5");
+      expect(content).toMatch(/advisory/i);
+      expect(content).not.toMatch(/^\s{2}episode_(?:remember|forget|stats): true$/m);
+    }
+  });
 });
