@@ -31,6 +31,41 @@ import { createChangeOps } from "./changes";
 import { ChangeSummaryMemo } from "../store-temporal-memo";
 import { TEMPORAL_READ_DEADLINE_BUDGET_MS } from "./shared";
 
+/**
+ * Path-scoped `listChangeDirs` slowdown map (AC1 / AC5 / C2 disk-deadline
+ * tests). Entries map an absolute directory path to a fake-timer delay in
+ * milliseconds; when a path is present the mock waits that long before
+ * delegating to the real `listChangeDirs`. Default behaviour is an
+ * unmodified pass-through, so every existing test in this file keeps
+ * working without opt-in.
+ *
+ * Using a delay LONGER than `TEMPORAL_READ_DEADLINE_BUDGET_MS` simulates
+ * the slow-NFS / hung-FUSE failure mode without forcing the test itself
+ * to hang when the deadline wrapper is absent (RED) — the mock still
+ * resolves once fake time advances past the delay, so the post-fix
+ * assertions can run.
+ */
+const SLOW_LIST_CHANGE_DIRS = new Map<string, number>();
+
+vi.mock("../json", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../json")>();
+  return {
+    ...actual,
+    listChangeDirs: async (path: string): Promise<string[]> => {
+      const delay = SLOW_LIST_CHANGE_DIRS.get(path);
+      if (delay !== undefined) {
+        // Look up setTimeout at call time so vitest's fake-timer install
+        // (in beforeEach) is observed; binding it at mock-factory time
+        // would capture the real timer and break advanceTimersByTimeAsync.
+        await new Promise<void>((resolve) => {
+          globalThis.setTimeout(resolve, delay);
+        });
+      }
+      return actual.listChangeDirs(path);
+    },
+  };
+});
+
 function workflowNotFoundError(): Error {
   return new Error(
     "Workflow execution not found for workflowId: change-project-1-test",
@@ -119,9 +154,11 @@ describe("bounded one-pass change-list resolution", () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    SLOW_LIST_CHANGE_DIRS.clear();
   });
 
   afterEach(async () => {
+    SLOW_LIST_CHANGE_DIRS.clear();
     vi.useRealTimers();
     if (tempDir) await cleanupTempDir(tempDir);
     tempDir = undefined;
@@ -280,24 +317,28 @@ describe("bounded one-pass change-list resolution", () => {
 
     const result = await store.changes.list({ includeArchived: true });
 
-    // Budget was already gone when the pre-scan and candidate loop would
-    // have started: no fallback disk reads were attempted and the result
-    // is explicitly degraded (DONT3 / C2).
+    // Budget was already gone when the pre-scan, archive enumeration,
+    // and candidate loop would have started: no fallback disk reads
+    // were attempted and the result is explicitly degraded (DONT3 / C2).
+    // With AC1/AC5 the archive enumeration itself is deadline-gated, so
+    // the archived candidate is never even discovered — the result
+    // surfaces typed per-source deadline degradation rather than a
+    // candidate-level omission.
     expect(archiveGetCalls).toBe(0);
     expect(result.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: "SOURCE_DEADLINE_EXCEEDED",
+          source: "visibility",
         }),
         expect.objectContaining({
-          code: "TERMINAL_CANDIDATE_OMITTED",
-          omittedCount: 1,
+          code: "SOURCE_DEADLINE_EXCEEDED",
+          source: "archive",
         }),
       ]),
     );
     expect(result.hydrationStats).toMatchObject({
       deadlineExceeded: true,
-      omitted: 1,
     });
   });
 
@@ -486,4 +527,213 @@ describe("bounded one-pass change-list resolution", () => {
       omitted: 1,
     });
   }, 15_000);
+
+  it("returns typed deadline degradation when active-disk listChangeDirs hangs (AC1/AC5)", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("activeOne"));
+
+    let queryCount = 0;
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              queryCount += 1;
+              return workflowStateFor(activeChange("activeOne"));
+            },
+          }),
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/activeOne" };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    // Hang the active-disk enumeration past the aggregate budget.
+    // Visibility still resolves so the failure attribution is specific
+    // to the active-disk source.
+    SLOW_LIST_CHANGE_DIRS.set(
+      legacy.paths.changes,
+      TEMPORAL_READ_DEADLINE_BUDGET_MS + 2_000,
+    );
+
+    const pending = store.changes.list({});
+    // Settle async work in rounds (see archive test for rationale):
+    // the mock's slow-read setTimeout is scheduled only after earlier
+    // awaits resolve, so one advanceTimersByTimeAsync may miss it.
+    let settled = false;
+    void pending.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    for (let i = 0; i < 10 && !settled; i++) {
+      await vi.runAllTimersAsync();
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+    const result = await pending;
+
+    // Typed source-specific deadline degradation on the active path —
+    // never a silent complete-looking result (C2/AC5).
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "SOURCE_DEADLINE_EXCEEDED",
+          source: "active_disk",
+        }),
+      ]),
+    );
+    expect(result.hydrationStats).toMatchObject({
+      deadlineExceeded: true,
+    });
+
+    // Subsequent unbounded work is stopped: once the aggregate budget is
+    // gone, no hydration queries may begin — the visibility-discovered
+    // candidate is a typed deadline omission rather than a fresh load.
+    expect(queryCount).toBe(0);
+    expect(result.changes.map((c) => c.id)).not.toContain("activeOne");
+  });
+
+  it("returns typed deadline degradation when archive listChangeDirs hangs (AC1/AC5)", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("activeOne"));
+    await writeArchiveBundle(tempDir, archivedChange("archivedOne"));
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => workflowStateFor(activeChange("activeOne")),
+          }),
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/activeOne" };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    // Hang only the archive enumeration. Active-disk and visibility
+    // resolve normally, isolating archive-specific deadline attribution.
+    SLOW_LIST_CHANGE_DIRS.set(
+      legacy.paths.archive,
+      TEMPORAL_READ_DEADLINE_BUDGET_MS + 2_000,
+    );
+
+    const pending = store.changes.list({ includeArchived: true });
+    // Settle async work in rounds: the archive mock's slow-read
+    // setTimeout is only scheduled once earlier awaits (visibility,
+    // active-disk enumeration) have resolved, so a single
+    // runAllTimersAsync may return before the slow-read timer exists.
+    // Looping keeps advancing until the pending read either resolves
+    // (unfixed RED path) or the aggregate deadline wrapper rejects
+    // (GREEN path).
+    let settled = false;
+    void pending.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    for (let i = 0; i < 10 && !settled; i++) {
+      await vi.runAllTimersAsync();
+      // Yield to the microtask queue so real fs.promises callbacks
+      // queued via process.nextTick can run between fake-timer rounds.
+      // (process.nextTick is NOT faked by default; setImmediate IS.)
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+    const result = await pending;
+
+    // Archive-source deadline is typed with source identity; the active
+    // row that did resolve still surfaces (compatibility), but the
+    // result is explicitly degraded — never a silent complete (C2/AC5).
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "SOURCE_DEADLINE_EXCEEDED",
+          source: "archive",
+        }),
+      ]),
+    );
+    expect(result.hydrationStats).toMatchObject({
+      deadlineExceeded: true,
+    });
+    // The archived candidate could not be admitted once the budget was
+    // gone — typed incompleteness rather than a hang or silent drop.
+    expect(result.changes.map((c) => c.id)).not.toContain("archivedOne");
+  });
+
+  it("preserves compatibility: fast active-disk and archive enumeration emits no deadline degradation", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("fastActive"));
+    await writeArchiveBundle(tempDir, archivedChange("fastArchived"));
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => workflowStateFor(activeChange("fastActive")),
+          }),
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/fastActive" };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    // No entry in SLOW_LIST_CHANGE_DIRS — disk enumeration resolves
+    // immediately. Both paths must produce a clean, complete result.
+    const activeResult = await store.changes.list({});
+    expect(activeResult.changes.map((c) => c.id)).toContain("fastActive");
+    expect(activeResult.warnings).toBeUndefined();
+
+    const terminalResult = await store.changes.list({
+      includeArchived: true,
+    });
+    expect(terminalResult.changes.map((c) => c.id).sort()).toEqual([
+      "fastActive",
+      "fastArchived",
+    ]);
+    expect(terminalResult.warnings).toBeUndefined();
+    expect(
+      (terminalResult.hydrationStats as { deadlineExceeded?: boolean })
+        ?.deadlineExceeded,
+    ).toBeFalsy();
+  });
 });

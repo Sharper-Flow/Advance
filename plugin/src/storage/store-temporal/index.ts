@@ -854,19 +854,29 @@ export function createTemporalStoreBackend(
       }
     }
 
-    // Disk enumeration is bounded local I/O (one readdir per path). It
-    // stays available even after Temporal-side degradation so omission
-    // evidence can name candidates precisely; the deadline gates the
-    // potentially-unbounded stages — network enumeration above, the
-    // archive-bundle pre-scan loop, and per-candidate hydration below.
+    // Disk enumeration is typically fast local I/O (one readdir per path)
+    // but can hang on slow network/FUSE/NFS-backed project roots or
+    // transiently-stalled filesystems. Route it through the same
+    // aggregate-deadline admission gate as visibility (AC1/AC5/C2) so a
+    // slow readdir degrades with typed source-specific incompleteness
+    // rather than outliving the request budget. Disk still stays
+    // available as an omission-evidence source on Temporal-side
+    // degradation; the deadline gates the potentially-unbounded stages.
     let diskIds: string[] = [];
     try {
-      diskIds = await listChangeDirs(legacy.paths.changes);
+      diskIds = await raceWithTemporalDeadline(
+        listChangeDirs(legacy.paths.changes),
+        deadline,
+      );
     } catch (err) {
+      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
       logger.warn(
-        `Disk listChangeDirs failed: ${err instanceof Error ? err.message : String(err)}`,
+        `Disk listChangeDirs ${
+          hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+        }: ${err instanceof Error ? err.message : String(err)}`,
       );
       degradedSources.add("active_disk");
+      if (hitDeadline) markDeadline("active_disk");
     }
 
     // (4) Archive bundles — required when caller asks for terminal statuses.
@@ -879,12 +889,20 @@ export function createTemporalStoreBackend(
     let archiveIds: string[] = [];
     if (wantsTerminalStatuses && legacy.paths.archive) {
       try {
-        archiveIds = await listChangeDirs(legacy.paths.archive);
+        archiveIds = await raceWithTemporalDeadline(
+          listChangeDirs(legacy.paths.archive),
+          deadline,
+        );
       } catch (err) {
+        const hitDeadline =
+          err instanceof TemporalQueryTimeoutError || expired();
         logger.warn(
-          `Disk listChangeDirs(archive) failed: ${err instanceof Error ? err.message : String(err)}`,
+          `Disk listChangeDirs(archive) ${
+            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+          }: ${err instanceof Error ? err.message : String(err)}`,
         );
         degradedSources.add("archive");
+        if (hitDeadline) markDeadline("archive");
       }
     }
 
