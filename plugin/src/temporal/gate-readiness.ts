@@ -619,6 +619,7 @@ export function checkUnresolvedDesignConcerns(
 }
 
 // strengthenAgentEvidence AC1/AC2: Structural verification-evidence blocker.
+// rq-verificationEvidence01
 //
 // Reports stay submit-time advisory (warnings only — no hard block at submit,
 // DONT3). At acceptance/release readiness, inspect each COMPLETED task's latest
