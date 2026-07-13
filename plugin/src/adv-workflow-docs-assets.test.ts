@@ -18,10 +18,7 @@ import { join, resolve } from "path";
 const REPO_ROOT = resolve(__dirname, "../..");
 
 describe("docs/adv-workflow.md asset contract", () => {
-  const content = readFileSync(
-    join(REPO_ROOT, "docs/adv-workflow.md"),
-    "utf8",
-  );
+  const content = readFileSync(join(REPO_ROOT, "docs/adv-workflow.md"), "utf8");
 
   it("does not claim proposal gate produces success criteria", () => {
     expect(content).not.toContain("success criteria");
@@ -42,10 +39,7 @@ describe("docs/adv-workflow.md asset contract", () => {
 });
 
 describe("docs/adv-gates.md Per-Gate Line-Item Map", () => {
-  const content = readFileSync(
-    join(REPO_ROOT, "docs/adv-gates.md"),
-    "utf8",
-  );
+  const content = readFileSync(join(REPO_ROOT, "docs/adv-gates.md"), "utf8");
 
   it("contains the map section header", () => {
     expect(content).toContain("## Per-Gate Line-Item Map");
