@@ -166,3 +166,71 @@ describe("store-disk — bounded warnings + monotonic IDs", () => {
     expect(result.data).toBeNull();
   });
 });
+
+describe("store-disk — bundle-dominant terminal self-heal (rq-terminalProjectionTruth01)", () => {
+  // Helper: write a minimal archive bundle for a change id under <dir>/.adv/archive/.
+  async function writeArchiveBundle(
+    dir: string,
+    changeId: string,
+    overrides: Partial<import("../types").Change> = {},
+  ): Promise<void> {
+    const archiveEntry = join(dir, ".adv/archive", `2026-07-13-${changeId}`);
+    await mkdir(archiveEntry, { recursive: true });
+    const now = new Date().toISOString();
+    const change: import("../types").Change = {
+      id: changeId,
+      title: `Archived ${changeId}`,
+      status: "archived",
+      lifecycleState: "archived",
+      created_at: now,
+      tasks: [],
+      gates: {},
+      deltas: {},
+      wisdom: [],
+      subagent_reports: [],
+      ...overrides,
+    } as import("../types").Change;
+    await writeFile(join(archiveEntry, "change.json"), JSON.stringify(change));
+  }
+
+  test("changes.get self-heals to archived when no active record exists but bundle is present", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    await writeArchiveBundle(dir, "wedgeNoActive");
+
+    const result = await store.changes.get("wedgeNoActive");
+
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("wedgeNoActive");
+    expect(result.data?.status).toBe("archived");
+  });
+
+  test("changes.get forces archived when active record exists with stale status but bundle is present", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    // Create an active record (status defaults to draft/pending via create).
+    const created = await store.changes.create("Wedge Stale Active", {
+      capability: "test-capability",
+      artifacts: { proposal: "# P\n" },
+    });
+    // Write a bundle for the SAME id — simulates terminal-signal loss after
+    // bundle write (active record still present, status never flipped).
+    await writeArchiveBundle(dir, created.changeId);
+
+    const result = await store.changes.get(created.changeId);
+
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe(created.changeId);
+    expect(result.data?.status).toBe("archived");
+  });
+
+  test("changes.get still returns 'Change not found' when neither active record nor bundle exists", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+
+    const result = await store.changes.get("trulyMissing");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Change not found");
+  });
+});
