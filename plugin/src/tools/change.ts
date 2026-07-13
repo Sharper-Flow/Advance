@@ -445,6 +445,15 @@ export const changeTools = {
       },
       store: Store,
     ) => {
+      // Reject "active"/"pending" at the boundary — they are never stored on
+      // changes and would silently return an empty list. The Zod schema also
+      // rejects them at parse time; this check is defense-in-depth for direct
+      // handler invocation (tests, internal callers).
+      if (status === "active" || status === "pending") {
+        return formatToolOutput({
+          error: `status: "${status}" is not a valid filter for adv_change_list. "active" and "pending" are never stored on changes. Use "in-flight" (or no status filter) for open changes; "archived"/"closed" for terminal changes.`,
+        });
+      }
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {

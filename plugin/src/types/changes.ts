@@ -81,11 +81,19 @@ export type ChangeLifecycleState = z.infer<typeof ChangeLifecycleStateSchema>;
 /**
  * Filter-only status value for adv_change_list.
  * "in-flight" is a union filter (draft + pending + active), not a stored status.
+ * "active" and "pending" are never stored on changes; they are rejected with
+ * a hint to use "in-flight" (or no status filter) for open changes.
  */
-export const ChangeListStatusFilterSchema = z.union([
-  ChangeStatusSchema,
-  z.literal("in-flight"),
-]);
+export const ChangeListStatusFilterSchema = z
+  .union([ChangeStatusSchema, z.literal("in-flight")])
+  .superRefine((value, ctx) => {
+    if (value === "active" || value === "pending") {
+      ctx.addIssue({
+        code: "custom",
+        message: `"${value}" is never stored on changes. Use "in-flight" (or no status filter) for open changes; "archived"/"closed" for terminal changes.`,
+      });
+    }
+  });
 
 const ChangeClosureReasonSchema = z.enum([
   "cancelled",
