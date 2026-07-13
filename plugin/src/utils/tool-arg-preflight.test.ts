@@ -286,6 +286,31 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     policy: "zero",
     action: "omit",
   },
+  // tk-6ff82311335f: read-tool page-limit fields surfaced by the coverage guard.
+  {
+    toolName: "adv_backlog_list",
+    field: "tail_limit",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    toolName: "adv_epic_list",
+    field: "limit",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    toolName: "adv_project_wisdom_list",
+    field: "maxEntries",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    toolName: "adv_reflection_list",
+    field: "maxEntries",
+    policy: "zero",
+    action: "omit",
+  },
   {
     toolName: "adv_ops_run_evidence_add",
     field: "step_id",
@@ -1489,6 +1514,64 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
       evidence: "real evidence",
     },
   },
+  // tk-6ff82311335f: read-tool page-limit fields — zero placeholder omits,
+  // non-zero value preserved (AC3/AC4).
+  {
+    label: "zero backlog-list tail limit normalizes to omitted",
+    toolName: "adv_backlog_list",
+    rawArgs: { tail_limit: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero backlog-list tail limit preserved",
+    toolName: "adv_backlog_list",
+    rawArgs: { tail_limit: 500 },
+    ok: true,
+    normalizedArgs: { tail_limit: 500 },
+  },
+  {
+    label: "zero epic-list limit normalizes to omitted",
+    toolName: "adv_epic_list",
+    rawArgs: { limit: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero epic-list limit preserved",
+    toolName: "adv_epic_list",
+    rawArgs: { limit: 25 },
+    ok: true,
+    normalizedArgs: { limit: 25 },
+  },
+  {
+    label: "zero project-wisdom-list maxEntries normalizes to omitted",
+    toolName: "adv_project_wisdom_list",
+    rawArgs: { maxEntries: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero project-wisdom-list maxEntries preserved",
+    toolName: "adv_project_wisdom_list",
+    rawArgs: { maxEntries: 10 },
+    ok: true,
+    normalizedArgs: { maxEntries: 10 },
+  },
+  {
+    label: "zero reflection-list maxEntries normalizes to omitted",
+    toolName: "adv_reflection_list",
+    rawArgs: { maxEntries: 0 },
+    ok: true,
+    normalizedArgs: {},
+  },
+  {
+    label: "non-zero reflection-list maxEntries preserved",
+    toolName: "adv_reflection_list",
+    rawArgs: { maxEntries: 8 },
+    ok: true,
+    normalizedArgs: { maxEntries: 8 },
+  },
 ];
 
 describe("tool arg preflight", () => {
@@ -1533,6 +1616,57 @@ describe("tool arg preflight", () => {
             ).toBe(true);
           }
         }
+      } finally {
+        store.close();
+        await cleanupTempDir(mapTempDir);
+        await cleanupTempDir(storeTempDir);
+      }
+    });
+
+    test("optional top-level strict-mode placeholders have reviewed omission coverage", async () => {
+      const storeTempDir = await createTempDir();
+      const mapTempDir = await createTempDir();
+      const store = await createLegacyStore(storeTempDir);
+      await store.init();
+
+      try {
+        const map = createToolMap(store, mapTempDir, store.paths.agenda) as Record<
+          string,
+          { args?: Record<string, { safeParse?: (value: unknown) => { success: boolean } }> }
+        >;
+        const policies = listToolArgFieldPolicies();
+        const reviewed = new Set(
+          AUDITED_PREFLIGHT_POLICY_REQUIREMENTS.filter(
+            (requirement) => requirement.action === "omit",
+          ).map((requirement) => `${requirement.toolName}.${requirement.field}.${requirement.policy}`),
+        );
+        const reviewedExceptions = new Set<string>();
+        const uncovered: string[] = [];
+
+        for (const [toolName, tool] of Object.entries(map)) {
+          for (const [field, schema] of Object.entries(tool.args ?? {})) {
+            const parse = schema.safeParse;
+            if (!parse || !parse(undefined).success) continue;
+
+            const blankCandidate = parse("x").success && !parse(" ").success;
+            const zeroCandidate = parse(1).success && !parse(0).success;
+            for (const policy of [
+              ...(blankCandidate ? ["blank"] : []),
+              ...(zeroCandidate ? ["zero"] : []),
+            ] as const) {
+              const key = `${toolName}.${field}.${policy}`;
+              if (reviewedExceptions.has(key)) continue;
+              if (!(reviewed.has(key) && policies[toolName]?.[field]?.[policy] === "omit")) {
+                uncovered.push(key);
+              }
+            }
+          }
+        }
+
+        expect(
+          uncovered.sort(),
+          `optional top-level blank/zero-rejecting fields without a reviewed omission policy or exception:\n${uncovered.join("\n")}`,
+        ).toEqual([]);
       } finally {
         store.close();
         await cleanupTempDir(mapTempDir);

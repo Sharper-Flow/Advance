@@ -373,6 +373,8 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     epic_owner_confirmationEvidence: { blank: "omit" },
   },
   adv_epic_list: {
+    // tk-6ff82311335f: optional .positive() page limit; strict-mode 0 → omit.
+    limit: { zero: "omit" },
     epic_owner_target_path: { blank: "omit" },
     epic_owner_target_confirmed: { blank: "omit" },
     epic_owner_confirmationEvidence: { blank: "omit" },
@@ -461,6 +463,19 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     epic_owner_target_path: { blank: "omit" },
     epic_owner_target_confirmed: { blank: "omit" },
     epic_owner_confirmationEvidence: { blank: "omit" },
+  },
+  // tk-6ff82311335f: read-tool page-limit fields surfaced by the schema-backed
+  // coverage guard. Each is an optional .positive() int; strict-mode providers
+  // fill it with 0 instead of omitting. 0 means "no limit provided" for these
+  // read tools, so normalize to omitted before Zod .positive() sees it.
+  adv_backlog_list: {
+    tail_limit: { zero: "omit" },
+  },
+  adv_project_wisdom_list: {
+    maxEntries: { zero: "omit" },
+  },
+  adv_reflection_list: {
+    maxEntries: { zero: "omit" },
   },
 };
 
