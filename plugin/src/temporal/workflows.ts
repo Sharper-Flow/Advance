@@ -649,6 +649,12 @@ export async function changeWorkflow(
     if (input.seedState.scope_worktrees) {
       state.scope_worktrees = { ...input.seedState.scope_worktrees };
     }
+    if (input.seedState.seenReportIds) {
+      state.seenReportIds = [...input.seedState.seenReportIds];
+    }
+    if (typeof input.seedState.seenReportIdsTotal === "number") {
+      state.seenReportIdsTotal = input.seedState.seenReportIdsTotal;
+    }
     if (input.seedState.design_concern_dispositions) {
       state.design_concern_dispositions = [
         ...input.seedState.design_concern_dispositions,
@@ -1721,6 +1727,7 @@ export async function changeWorkflow(
       target_worktree_path: state.target_worktree_path,
       scope_worktrees: state.scope_worktrees,
       seenReportIds: state.seenReportIds,
+      seenReportIdsTotal: state.seenReportIdsTotal,
       design_concern_dispositions: state.design_concern_dispositions,
       signal_rejections: state.signal_rejections,
       signal_rejections_total: state.signal_rejections_total,

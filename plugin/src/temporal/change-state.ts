@@ -170,6 +170,7 @@ export function changeSeedStateFromChange(
     target_worktree_path: safeChange.target_worktree_path,
     scope_worktrees: safeChange.scope_worktrees,
     seenReportIds: safeChange.seenReportIds,
+    seenReportIdsTotal: safeChange.seenReportIdsTotal,
     design_concern_dispositions: safeChange.design_concern_dispositions,
     signal_rejections: safeChange.signal_rejections,
     signal_rejections_total: safeChange.signal_rejections_total,
@@ -256,6 +257,7 @@ export function applyOriginRepairedToState(
 }
 
 export const SIGNAL_REJECTION_RING_BUFFER_LIMIT = 20;
+export const SEEN_REPORT_IDS_RING_BUFFER_LIMIT = 200;
 
 export function applySignalRejectionToState(
   state: ChangeWorkflowState,
@@ -1037,9 +1039,7 @@ export function applySubagentReportSubmittedToState(
   );
 
   if (seenReportIds.includes(reportId) || alreadyStoredInSidecar) {
-    state.seenReportIds = seenReportIds.includes(reportId)
-      ? seenReportIds
-      : [...seenReportIds, reportId];
+    // Duplicate: leave retained IDs and cumulative total unchanged.
     if (task && taskScoped && !alreadyStoredOnTask) {
       task.subagent_reports = [
         ...(task.subagent_reports ?? []),
@@ -1057,7 +1057,10 @@ export function applySubagentReportSubmittedToState(
       payload.report as NonNullable<Task["subagent_reports"]>[number],
     ];
   }
-  state.seenReportIds = [...seenReportIds, reportId];
+  state.seenReportIds = [...seenReportIds, reportId].slice(
+    -SEEN_REPORT_IDS_RING_BUFFER_LIMIT,
+  );
+  state.seenReportIdsTotal = (state.seenReportIdsTotal ?? 0) + 1;
 
   const blockers = blockerSummary(payload.report);
   if (task && blockers) {

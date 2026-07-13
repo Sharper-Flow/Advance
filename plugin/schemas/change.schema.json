@@ -3159,6 +3159,9 @@
       },
       "type": "array"
     },
+    "seenReportIdsTotal": {
+      "type": "number"
+    },
     "signal_rejections": {
       "items": {
         "additionalProperties": false,
