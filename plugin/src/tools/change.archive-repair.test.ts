@@ -641,6 +641,42 @@ describe("adv_archive_repair", () => {
     expect(unmerged.status).toBe("active");
   });
 
+  test("reconcile reports an unreadable candidate without mutating it", async () => {
+    const unreadable = {
+      ...archivedChange("unreadable"),
+      status: "active",
+      gates: doneGates(),
+    } as Change;
+    const store = createMockStore([unreadable]);
+    (store.changes.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error("disk projection unavailable"),
+    );
+
+    const result = await changeTools.adv_archive_repair.execute(
+      {
+        action: "reconcile",
+        approvedByUser: true,
+        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        recoveryReason:
+          "bundle is durable but terminal archive projection is wedged",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.results).toEqual([
+      expect.objectContaining({
+        changeId: "unreadable",
+        disposition: "skipped_unreadable_change",
+        detail: "disk projection unavailable",
+      }),
+    ]);
+    expect(mocks.findArchiveBundle).not.toHaveBeenCalled();
+    expect(mocks.saveRecoveredChangeStatus).not.toHaveBeenCalled();
+    expect(unreadable.status).toBe("active");
+  });
+
   test("non-regression: direct-archive cleanup gate keeps archiveMode === direct check", async () => {
     // This is a source-level guard to ensure the direct-mode archive cleanup
     // gate at change.ts:4436-4441 is not accidentally removed. The actual

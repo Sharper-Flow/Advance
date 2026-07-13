@@ -3272,7 +3272,18 @@ export const changeTools = {
           // change before evaluating gates or writing recovery state; a stale
           // or unavailable record is a non-mutating disposition, never a
           // reason to infer shipment from the summary.
-          const loaded = await store.changes.get(candidate.id);
+          let loaded: Awaited<ReturnType<Store["changes"]["get"]>>;
+          try {
+            loaded = await store.changes.get(candidate.id);
+          } catch (error) {
+            results.push({
+              changeId: candidate.id,
+              fromStatus: candidate.status,
+              disposition: "skipped_unreadable_change",
+              detail: error instanceof Error ? error.message : String(error),
+            });
+            continue;
+          }
           if (!loaded.success || !loaded.data) {
             results.push({
               changeId: candidate.id,
