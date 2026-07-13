@@ -36,6 +36,8 @@ import {
   ConsolidationReportSchema,
   ConsolidationLedgerRowSchema,
   CONSOLIDATION_LEDGER_FILENAME,
+  DEFAULT_EPIC_QUERY_TIMEOUT_MS,
+  EpicQueryTimeoutError,
   type ConsolidationLedgerRow,
 } from "./store-consolidate";
 import type { Store } from "../storage/store";
@@ -1304,6 +1306,154 @@ describe("executeConsolidation", () => {
       // Terminal items still applied (they precede the live phase).
       const termOutcome = report.outcomes?.find((o) => o.item_id === "term-a");
       expect(termOutcome?.status).toBe("applied");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("bounded source-Epic query: a hung query times out into a typed actionable failed outcome and the losing rejection is observed", async () => {
+    const { root, targetPath } = await makeExecFixture({
+      source: { changes: [{ id: "term-a", status: "archived" }] },
+    });
+    try {
+      // Deferred the test controls: simulates a Temporal WorkflowHandle.query
+      // that never answers within the host-side bound and only settles (with a
+      // rejection) AFTER the deadline has already failed the item.
+      let rejectQuery: ((e: unknown) => void) | null = null;
+      let queryCalls = 0;
+      const hung = new Promise<EpicWorkflowState | null>((_res, rej) => {
+        rejectQuery = rej;
+      });
+      const report = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: listSourceLiveEpics,
+        deps: {
+          queryLiveEpicState: async () => {
+            queryCalls += 1;
+            return hung;
+          },
+          epicQueryTimeoutMs: 5,
+        },
+      });
+      expect(queryCalls).toBe(1);
+      // The deadline already failed the item. Now settle the losing query with
+      // a rejection: if the bound did not observe it, this rejects unhandled
+      // and Vitest fails the test.
+      rejectQuery!(new Error("late temporal query failure"));
+      await new Promise((r) => setImmediate(r));
+
+      expect(report.success).toBe(false);
+      const epicOutcome = report.outcomes?.find(
+        (o) => o.item_id === "epic-live-a",
+      );
+      expect(epicOutcome?.status).toBe("failed");
+      // Typed + actionable: names the Epic, the timeout, and the remediation.
+      expect(epicOutcome?.error).toContain("epic-live-a");
+      expect(epicOutcome?.error).toMatch(/timed out/i);
+      expect(epicOutcome?.error).toMatch(
+        /recreate the Epic manually|restore|restart/i,
+      );
+      // Not coerced to null: a null state would surface the distinct
+      // "state unavailable" message, not a timeout.
+      expect(epicOutcome?.error).not.toMatch(/state unavailable/i);
+      // Terminal-first ordering preserved: term-a applied before the live phase.
+      expect(report.outcomes?.find((o) => o.item_id === "term-a")?.status).toBe(
+        "applied",
+      );
+      // Ledger-after-success: the failed epic wrote NO ledger row.
+      const rows = await readLedgerRows(targetPath);
+      expect(rows.find((r) => r.item_id === "epic-live-a")).toBeUndefined();
+      expect(rows.find((r) => r.item_id === "term-a")).toBeDefined();
+      ConsolidationReportSchema.parse(report);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 3000);
+
+  test("default source-Epic query bound is within 6–8s and below the 10s tool boundary", () => {
+    expect(DEFAULT_EPIC_QUERY_TIMEOUT_MS).toBeGreaterThanOrEqual(6_000);
+    expect(DEFAULT_EPIC_QUERY_TIMEOUT_MS).toBeLessThanOrEqual(8_000);
+    expect(DEFAULT_EPIC_QUERY_TIMEOUT_MS).toBeLessThan(10_000);
+  });
+
+  test("EpicQueryTimeoutError is typed and actionable, carrying the Epic ID", () => {
+    const err = new EpicQueryTimeoutError("epic-live-a", 7_000);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.name).toBe("EpicQueryTimeoutError");
+    expect(err.epicId).toBe("epic-live-a");
+    expect(err.timeoutMs).toBe(7_000);
+    expect(err.message).toContain("epic-live-a");
+    expect(err.message).toMatch(/timed out/i);
+    // Actionable: points the operator at a concrete remediation path.
+    expect(err.message).toMatch(/recreate the Epic manually|restore|restart/i);
+    // Distinct from the null-coercion path: never reads as "not found".
+    expect(err.message).not.toMatch(/not found/i);
+  });
+
+  test("bounded source-Epic query: a query resolving before the deadline still applies (no false timeout)", async () => {
+    const { root, targetPath } = await makeExecFixture({
+      source: { changes: [{ id: "term-a", status: "archived" }] },
+    });
+    try {
+      const epicState = {
+        projectId: EXEC_SOURCE,
+        epicId: "epic-live-a",
+        title: "Epic A",
+        narrative: "Narrative",
+        initializedAt: "2026-06-01T00:00:00.000Z",
+        id: "epic-live-a",
+        status: "active",
+        epic: {
+          id: "epic-live-a",
+          title: "Epic A",
+          narrative: "Narrative",
+          entries: [],
+          progress: {
+            status: "active",
+            total_entries: 0,
+            completed_entries: 0,
+            active_entries: 0,
+            next_entry_id: null,
+            updated_at: "2026-06-02T00:00:00.000Z",
+          },
+          created_at: "2026-06-01T00:00:00.000Z",
+          updated_at: "2026-06-02T00:00:00.000Z",
+          version: 1,
+        },
+        idempotencyLedger: {},
+        lastSignalAt: "2026-06-02T00:00:00.000Z",
+      } as unknown as EpicWorkflowState;
+      let recreated: EpicWorkflowInput | null = null;
+      const report = await executeConsolidation({
+        sourceProjectId: EXEC_SOURCE,
+        targetProjectId: EXEC_TARGET,
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test approval",
+        listLiveEpicIds: listSourceLiveEpics,
+        deps: {
+          queryLiveEpicState: async () => epicState,
+          recreateLiveEpic: async (input) => {
+            recreated = input;
+          },
+          // Tiny bound; the query resolves immediately, so it must NOT time out.
+          epicQueryTimeoutMs: 50,
+        },
+      });
+      expect(report.success).toBe(true);
+      expect(recreated).not.toBeNull();
+      expect(
+        report.outcomes?.find((o) => o.item_id === "epic-live-a")?.status,
+      ).toBe("applied");
+      expect(
+        (await readLedgerRows(targetPath)).find(
+          (r) => r.item_id === "epic-live-a",
+        )?.item_kind,
+      ).toBe("epic_live");
     } finally {
       await rm(root, { recursive: true, force: true });
     }
