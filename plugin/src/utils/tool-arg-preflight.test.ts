@@ -1630,15 +1630,27 @@ describe("tool arg preflight", () => {
       await store.init();
 
       try {
-        const map = createToolMap(store, mapTempDir, store.paths.agenda) as Record<
+        const map = createToolMap(
+          store,
+          mapTempDir,
+          store.paths.agenda,
+        ) as Record<
           string,
-          { args?: Record<string, { safeParse?: (value: unknown) => { success: boolean } }> }
+          {
+            args?: Record<
+              string,
+              { safeParse?: (value: unknown) => { success: boolean } }
+            >;
+          }
         >;
         const policies = listToolArgFieldPolicies();
         const reviewed = new Set(
           AUDITED_PREFLIGHT_POLICY_REQUIREMENTS.filter(
             (requirement) => requirement.action === "omit",
-          ).map((requirement) => `${requirement.toolName}.${requirement.field}.${requirement.policy}`),
+          ).map(
+            (requirement) =>
+              `${requirement.toolName}.${requirement.field}.${requirement.policy}`,
+          ),
         );
         const reviewedExceptions = new Set<string>();
         const uncovered: string[] = [];
@@ -1656,7 +1668,12 @@ describe("tool arg preflight", () => {
             ] as const) {
               const key = `${toolName}.${field}.${policy}`;
               if (reviewedExceptions.has(key)) continue;
-              if (!(reviewed.has(key) && policies[toolName]?.[field]?.[policy] === "omit")) {
+              if (
+                !(
+                  reviewed.has(key) &&
+                  policies[toolName]?.[field]?.[policy] === "omit"
+                )
+              ) {
                 uncovered.push(key);
               }
             }
