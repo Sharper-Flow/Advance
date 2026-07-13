@@ -1,0 +1,28 @@
+# Acceptance
+
+Reviewed at: 2026-07-13T20:59:48.385Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| SC1 | success_criterion | **SC1:** A change whose archive bundle is durably written resolves as `archived` on ADV reads (show/list/reflect) even when the terminal status signal was lost and no healthy workflow exists — correct with no operator action. | pass | Focused verifier suite: store-disk self-heal and status-readback coverage passed (194 tests). |
+| SC2 | success_criterion | **SC2:** An audited recovery/reconcile path brings any bundle-present, terminal-interrupted change to a consistent archived projection (read-after-write parity) and can reconcile the existing stuck-at-release cluster, without force-archiving changes whose archive is genuinely incomplete. | pass | Acceptance reviewer READY; audited bundle/gates/merge reconcile path and readback checked. |
+| SC3 | success_criterion | **SC3:** `adv_change_archive` interrupted past bundle write returns a typed, idempotent "still finalizing / re-run to reconcile" result instead of a bare `ToolExecutionTimeout`; a re-run safely reaches `archived`. | pass | Archive timeout classifier tests plus phase9 idempotent re-run test passed. |
+| SC4 | success_criterion | **SC4:** Behavior is locked by a regression test simulating terminal-signal loss after bundle write. | pass | Archive phase9 terminal-loss regression passed in focused verifier suite. |
+| AC1 | acceptance_criterion | **AC1:** Given a bundle-present change whose status was never flipped, `adv_change_show`, `adv_change_list` with `status: archived`, and `adv_reflect` all report it `archived` (read-after-write parity), on both native and `target_path` routing. | pass | store-disk and temporal readback tests passed; bundle-dominant archived parity covered. |
+| AC2 | acceptance_criterion | **AC2:** An audited recovery path reconciles a bundle-present, terminal-interrupted change to `archived` from on-disk evidence (bundle present + all gates done) without requiring a loadable/healthy workflow record; it refuses changes lacking a durable bundle or completed gates. | pass | change.status-repair tests passed, including durable bundle-dominant no-workflow resolution. |
+| AC3 | acceptance_criterion | **AC3:** A reconcile operation over the stuck-at-release set repairs only genuinely-shipped-but-wedged changes (bundle present + gates done + branch merged) and leaves not-yet-archived changes untouched, reporting each disposition. | pass | change.archive-repair tests cover only shipped repair and incomplete/no-bundle/unmerged/unreadable skips. |
+| AC4 | acceptance_criterion | **AC4:** `adv_change_archive` interrupted past bundle write returns a typed in-progress/reconcile result (not a bare `ToolExecutionTimeout`); re-running `adv_change_archive` is idempotent and reaches `archived`. | pass | archive-timeout and archive-phase9 tests passed; typed still_finalizing and idempotent re-run covered. |
+| AC5 | acceptance_criterion | **AC5:** A regression test simulates terminal-signal loss after bundle write and asserts `archived` read-after-write parity across show/list/reflect. | pass | Focused verifier suite passed the terminal-loss/archive readback regression surface. |
+| AC6 | acceptance_criterion | **AC6:** No self-heal/recovery path weakens existing structural blockers or writes ADV external state files outside the audited recovery writer. | pass | Recovery writes route through saveRecoveredChangeStatus; acceptance review found no direct external-state write bypass. |
+| C1 | constraint | Preserve bundle-first archive ordering (rq-archiveRetirement01); do not write status before the bundle. | respected | Archive write flow unchanged; timeout handling occurs at tool wrapper after durable-bundle probe. |
+| C2 | constraint | Recovery must be audited/typed (evidence + reason), consistent with existing poisoned-history recovery discipline. | respected | Reconcile requires approvedByUser, approvalEvidence, recoveryReason, and passes authorization to audited writer. |
+| C3 | constraint | Do not force-archive changes whose archive is genuinely incomplete (no durable bundle, gates not done, or branch not merged). | respected | Reconcile test verifies no mutation for incomplete gates, missing bundle, unmerged branch, and unreadable records. |
+| C4 | constraint | Keep changes within the ADV plugin; no Temporal worker-supervision redesign. | respected | Diff limited to plugin archive/read/recovery tool surfaces; no worker-supervision changes. |
+| DONT1 | avoidance | Do not resurrect the active change record after the archived transition (rq-archiveRetirement01.2). | respected | Bundle-aware reads are read-only; no active record resurrection path added. |
+| DONT2 | avoidance | Do not mask real archive failures as success — reconcile only when the shipped invariant (bundle + gates + merge) holds. | respected | Timeout typing declines without a durable bundle; reconcile skips candidates missing any shipped invariant. |
+| DONT3 | avoidance | Do not bypass the audited recovery writer with ad-hoc external-state disk writes (rq-archiveRecoveryConsistency01.4). | respected | Reconcile uses saveRecoveredChangeStatus; reviewer inspected direct-write boundary. |
+| OOS1 | out_of_scope | The broader sub-agent report-transport `WorkflowNotFoundError` fragility (separate change unless design proves a shared root cause). | not_applicable | Report-transport fragility remains excluded by approved scope. |
+| OOS2 | out_of_scope | General Temporal worker supervision / restart redesign. | not_applicable | No Temporal worker supervision or restart redesign included. |
+
