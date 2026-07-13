@@ -34,6 +34,8 @@ bin/oc-test full
 
 - Keep tests that create changes or access worktree/data-home state isolated with `createTempDir`, `tmpdir`, `os.tmpdir`, or `XDG_DATA_HOME`; the isolation checker enforces this outside its small explicit allowlist.
 - `plugin/src/temporal/workflows.ts` is the worker-bundle root. Its static import graph must not reach `storage/`, `tools/`, `tool-registry.ts`, `plugin-init.ts`, or `node:*`; do not add `defineUpdate` handlers to workflow-reachable code.
+- Temporal TypeScript determinism: the SDK sandbox patches `Date.now()`, `new Date()`, and `Math.random()` to deterministic replay-safe values, so workflow code may use them directly; route workflow timers/waits through Temporal workflow APIs such as `sleep()` or `condition()`, never host timers. This official SDK determinism behavior is distinct from the project-specific signal-only change-workflow surface (no `defineUpdate`). <!-- rq-temporalTsDeterminismDocs01 -->
+
 - `utils/context-snapshot.ts` is a pure formatter. Persistence-backed loading belongs in `storage/context-snapshot-fetch.ts`.
 - Zod schemas are authoritative. Public JSON schemas originate in `src/schema-registry.ts`, generated deterministically via Zod v4 `z.toJSONSchema()`; run `pnpm run schemas:generate` after public Zod changes and keep `pnpm run schemas:check` green.
 - Tool-argument schemas use the intentional `as any` SDK-boundary cast in `tool-registry.ts`; do not remove it. Add tools through their `src/tools/*` group and its export rather than wiring handlers directly in `index.ts`.
