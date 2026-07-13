@@ -70,6 +70,25 @@ export const ChangeStatusSchema = z.enum([
 
 export type ChangeStatus = z.infer<typeof ChangeStatusSchema>;
 
+/**
+ * Normalize legacy stored change statuses to the modern draft-only open set.
+ *
+ * `active` and `pending` were historically stored on change records, but no
+ * code path writes them anymore — open changes are `draft` and open-claim
+ * authority lives in `AdvLifecycleState` (see fixChangeStatusHonesty design).
+ * Legacy or poisoned disk/seed state must still load (C4), so both values
+ * map to `"draft"`. Any other value passes through unchanged so schema
+ * validation can still reject genuine garbage.
+ *
+ * Applied at the change-record load path (storage/json.ts, before
+ * `ChangeSchema.parse`) and at workflow-seed boundaries
+ * (changeSeedStateFromChange + changeWorkflow seed application).
+ */
+export function normalizeLegacyChangeStatus(status: unknown): unknown {
+  if (status === "active" || status === "pending") return "draft";
+  return status;
+}
+
 export const ChangeLifecycleStateSchema = z.enum([
   "open",
   "archived",

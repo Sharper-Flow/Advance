@@ -287,6 +287,7 @@ export {
 export {
   ChangeStatusSchema,
   type ChangeStatus,
+  normalizeLegacyChangeStatus,
   ChangeLifecycleStateSchema,
   type ChangeLifecycleState,
   ChangeListStatusFilterSchema,

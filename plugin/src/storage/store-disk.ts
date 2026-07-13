@@ -490,10 +490,7 @@ export async function createDiskStore(
               message: `Bulk close aborted: change "${id}" not found.`,
             };
           }
-          if (
-            result.data.status !== "draft" &&
-            result.data.status !== "pending"
-          ) {
+          if (result.data.status !== "draft") {
             return {
               success: false,
               closed: 0,
@@ -1066,7 +1063,11 @@ export async function createDiskStore(
         archived: 0,
         closed: 0,
       };
-      for (const change of changes) byStatus[change.status]++;
+      for (const change of changes) {
+        // Finite-accumulation guard: stay NaN-safe even if a status key is
+        // ever missing from the initializer above (e.g. enum narrowing).
+        byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
+      }
       const now = new Date();
       const recent = changes
         .filter(

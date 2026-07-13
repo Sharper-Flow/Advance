@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtemp, mkdir, writeFile } from "fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createDiskStore } from "./store-disk";
@@ -164,5 +164,39 @@ describe("store-disk — bounded warnings + monotonic IDs", () => {
     const result = await store.epics.get("nonExistentEpic");
     expect(result.success).toBe(true);
     expect(result.data).toBeNull();
+  });
+
+  test("status() normalizes legacy on-disk status and keeps byStatus counts finite", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    await store.changes.create("First Change", {
+      capability: "test-capability",
+      artifacts: { proposal: "# Proposal\n" },
+    });
+    const second = await store.changes.create("Second Change", {
+      capability: "test-capability",
+      artifacts: { proposal: "# Proposal\n" },
+    });
+
+    // Poison one on-disk record with a legacy stored status. No code path
+    // writes "active" anymore; the load-path normalizer maps it to "draft"
+    // so status views never see the legacy value.
+    const poisonedPath = join(
+      dir,
+      ".adv/changes",
+      second.changeId,
+      "change.json",
+    );
+    const raw = JSON.parse(await readFile(poisonedPath, "utf-8"));
+    raw.status = "active";
+    await writeFile(poisonedPath, JSON.stringify(raw, null, 2));
+
+    const status = await store.status();
+
+    expect(status.changes.byStatus.draft).toBe(2);
+    expect(status.changes.byStatus.active).toBe(0);
+    const counts = Object.values(status.changes.byStatus);
+    expect(counts.every(Number.isFinite)).toBe(true);
+    expect(counts.reduce((sum, n) => sum + n, 0)).toBe(2);
   });
 });

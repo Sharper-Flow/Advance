@@ -56,7 +56,10 @@ import type {
   WorktreeSetupFailedSignalPayload,
 } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
-import { normalizePersistedSubagentReportState } from "../types";
+import {
+  normalizePersistedSubagentReportState,
+  normalizeLegacyChangeStatus,
+} from "../types";
 import { subagentReportKey } from "../types/subagent-reports";
 import { describePayloadDigest } from "./digest";
 import type {
@@ -142,12 +145,14 @@ export function changeSeedStateFromChange(
 ): NonNullable<ChangeWorkflowInput["seedState"]> {
   const [normalizedChange] = normalizePersistedSubagentReportState(change);
   const safeChange = normalizedChange as Change;
+  // Legacy stored statuses ("active"/"pending") never reach workflow state:
+  // they normalize to "draft" (the open status) at the seed boundary.
+  const status = normalizeLegacyChangeStatus(safeChange.status) as ChangeStatus;
 
   return {
-    status: safeChange.status,
+    status,
     lifecycleState:
-      safeChange.lifecycleState ??
-      normalizeChangeLifecycleState(safeChange.status),
+      safeChange.lifecycleState ?? normalizeChangeLifecycleState(status),
     tasks: safeChange.tasks ?? [],
     subagent_reports: safeChange.subagent_reports ?? [],
     deltas: safeChange.deltas ?? {},

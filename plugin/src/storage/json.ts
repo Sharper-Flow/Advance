@@ -13,6 +13,7 @@ import {
   ChangeSchema,
   ProjectConfigSchema,
   normalizePersistedSubagentReportState,
+  normalizeLegacyChangeStatus,
 } from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
@@ -120,6 +121,34 @@ function normalizeLegacyGateData(value: unknown): [unknown, boolean] {
     return [out, changed];
   }
 
+  return [value, false];
+}
+
+/**
+ * Normalize the change record's OWN root `status` before schema validation.
+ *
+ * `active` and `pending` were historically stored on change records but no
+ * code path writes them anymore (open changes are `draft`; open-claim
+ * authority is `AdvLifecycleState`). Legacy or poisoned change.json files
+ * must still load (C4), so both values map to `"draft"` via
+ * `normalizeLegacyChangeStatus`.
+ *
+ * Deliberately SHALLOW: only the record's own `status` key is touched. Gate
+ * records legitimately carry `status: "pending"` — recursing (as
+ * `normalizeLegacyGateData` does for gate-shaped values) would corrupt them.
+ *
+ * When the normalizer touches a file, `loadChange` writes the normalized
+ * form back to disk atomically so subsequent loads are no-ops.
+ */
+function normalizeLegacyChangeRootStatus(value: unknown): [unknown, boolean] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return [value, false];
+  }
+  const record = value as Record<string, unknown>;
+  const normalizedStatus = normalizeLegacyChangeStatus(record.status);
+  if (normalizedStatus !== record.status) {
+    return [{ ...record, status: normalizedStatus }, true];
+  }
   return [value, false];
 }
 
@@ -451,9 +480,11 @@ export async function loadChange(
     const content = await readFile(changePath, "utf-8");
     const parsed = JSON.parse(content);
     const [gateNormalized, gateChanged] = normalizeLegacyGateData(parsed);
-    const [normalized, reportChanged] =
+    const [reportNormalized, reportChanged] =
       normalizePersistedSubagentReportState(gateNormalized);
-    const changed = gateChanged || reportChanged;
+    const [normalized, statusChanged] =
+      normalizeLegacyChangeRootStatus(reportNormalized);
+    const changed = gateChanged || reportChanged || statusChanged;
 
     if (changed) {
       await atomicWriteFile(changePath, JSON.stringify(normalized, null, 2));

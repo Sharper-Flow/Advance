@@ -1339,7 +1339,9 @@ export function createTemporalStoreBackend(
     };
 
     for (const change of changes) {
-      byStatus[change.status]++;
+      // Finite-accumulation guard: stay NaN-safe even if a status key is
+      // ever missing from the initializer above (e.g. enum narrowing).
+      byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
     }
 
     const sortedRecent = changes

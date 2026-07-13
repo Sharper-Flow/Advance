@@ -1,7 +1,8 @@
 import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 import { deriveWorkflowDirective } from "../utils/workflow-directive";
-import type { GateReadinessBlocker } from "../types";
+import type { ChangeStatus, GateReadinessBlocker } from "../types";
+import { normalizeLegacyChangeStatus } from "../types";
 import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ARTIFACT_BACKED_GATES,
@@ -575,7 +576,13 @@ export async function changeWorkflow(
   state.projectionChangesDir = input.projectionChangesDir;
   state.archiveProjects = input.archiveProjects;
   if (input.seedState) {
-    if (input.seedState.status) state.status = input.seedState.status;
+    // Legacy stored statuses ("active"/"pending") never enter workflow
+    // state — they normalize to "draft" at the seed boundary, matching the
+    // disk load path (storage/json.ts) and changeSeedStateFromChange.
+    if (input.seedState.status)
+      state.status = normalizeLegacyChangeStatus(
+        input.seedState.status,
+      ) as ChangeStatus;
     state.lifecycleState =
       input.seedState.lifecycleState ??
       normalizeChangeLifecycleState(state.status);
