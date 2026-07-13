@@ -2,7 +2,6 @@
 name: adv-arch-scan
 description: Scan architecture stack packs, coverage, and heuristic fallbacks
 ---
-<!-- manifest: adv-arch-scan · requiresChangeId: false -->
 # ADV Architecture Scan
 > **SUB-AGENT CONTEXT**: Return findings directly. Skip status markers.
 
@@ -35,9 +34,6 @@ Parse `$ARGUMENTS`:
 
 ---
 ## Phase 1: Stack Packs (Known Stacks)
-<!-- rq-archp33 -->
-<!-- rq-archstack01 -->
-<!-- rq-archstack02 -->
 
 Run stack-specific tools when stack is in the Stack Packs matrix before research fallback or generic AI heuristic fallback:
 
@@ -94,7 +90,6 @@ Timeout or heuristic failure → keep deterministic/research findings, record th
 
 ---
 ## Phase 4: Report Generation
-<!-- rq-archcov01 -->
 
 ### Architecture Scanner Coverage Report
 

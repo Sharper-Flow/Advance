@@ -4,8 +4,6 @@ description: "Produce a structured two-plane reflection report for an archived c
 phaseGoal: "Synthesize post-completion learnings into a durable reflection artifact for process improvement."
 ---
 
-<!-- manifest: adv-reflect · gate: none · requiresChangeId: true · prereqs: [adv-archive] · scope: reads[change, tasks, wisdom, local-metrics] · modifies[reflections.jsonl, archive/REFLECTION.md] -->
-
 # ADV Reflect — Two-Plane Reflection Report
 
 Produce two-plane reflection for archived change: project execution + system friction. Reflection is informational and non-blocking from `/adv-archive`.

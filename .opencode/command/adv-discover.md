@@ -3,8 +3,6 @@ name: adv-discover
 description: Gather context, analyze current state, identify objectives, and obtain user agreement
 ---
 
-<!-- manifest: adv-discover · gate: discovery · requiresChangeId: true · prereqs: [adv-proposal] · scope: reads[specs, proposal, codebase] · modifies[proposal] -->
-
 # ADV Discover — Establish Discovery Findings
 
 Gather current-state evidence needed to move from proposal into a shared agreement. Command completes the `discovery` gate and carries the full user-facing discovery + agreement flow. Discovery owns firming design-independent behavioral acceptance criteria and success criteria.
@@ -34,8 +32,6 @@ $ARGUMENTS
 
 #### Purpose
 
-<!-- rq-noSourceChecklistReads01 -->
-
 Embedded protocol below owns discovery step rules, edge cases, and output sections. This command owns orchestration.
 
 #### Discovery Protocol (9 Steps)
@@ -55,8 +51,6 @@ Every `/adv-discover` invocation must execute these 9 protocol steps and emit a 
 | 9   | **Completeness Verification** (Phase 1.8)          | Completeness Verification | Always-on problem-completeness + solution-scope checks; sole-entry blocking; secondary-surface disposition                      |
 
 After all 9 steps, emit a **Discovery Checklist** table listing each step with PASS/SKIP + reason.
-
-<!-- rq-disc01 -->
 
 #### Constraints
 
@@ -122,8 +116,6 @@ If `adv_change_show` reveals `epic_membership`:
 
 ## Phase 1.5: Skill Discovery + Gap-Triggered Creation
 
-<!-- rq-disc02 -->
-
 Execute skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`, then check for skill gaps and pending reviews.
 
 ### Step 1: Pending-Review Scan
@@ -142,13 +134,9 @@ Search trusted skill directories → match `keywords` against tech stack/domain 
 
 ### Step 3: Gap Detection + Creation
 
-<!-- rq-sc01 -->
-
 If no matching skill was found for a domain clearly relevant to change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for the full trigger conditions, naming convention, assembly template, and creation flow.
 
 **Creation sub-flow (only if gap detected):**
-
-<!-- rq-sc02 -->
 
 1. Research domain using Context7, Exa, and searchcode. Use Exa for candidate repo discovery, then `searchcode_code_search` / `searchcode_code_get_file` for in-repo implementation evidence.
 2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
@@ -156,7 +144,6 @@ If no matching skill was found for a domain clearly relevant to change's **core 
 4. Skip if file already exists → report "skill already exists: agent-{domain}"
 5. Load via `skill("agent-{domain}")` and apply guidance in current workflow
 6. Emit `[ADV:SKILL_CREATED]` with skill name, domain, and brief description
-<!-- rq-sc03 -->
 
 **Output:** "Skills Considered" section listing each examined skill, match assessment, action taken, and any gap detection/creation results.
 
@@ -172,8 +159,6 @@ If no matching skill was found for a domain clearly relevant to change's **core 
 
 ## Phase 1.6: Conflict & Related-Work Scan
 
-<!-- rq-disc04 -->
-
 Execute all three tools and report findings in a "Conflict Scan" section:
 
 1. `adv_change_list includeArchived: true` → surface related active and archived changes
@@ -186,8 +171,6 @@ For relevant archived changes, use `adv_change_show` to inspect their tasks and 
 
 ## Phase 1.7: P25 Related-Pattern Scan
 
-<!-- rq-disc08 -->
-
 Per rule P25 (related-scan): identify the class of bug/gap being addressed, then scan for similar patterns elsewhere in the codebase.
 
 **Output:** "Related Pattern Scan" section listing similar patterns with file references, or explicitly stating "no similar patterns found".
@@ -199,8 +182,6 @@ Per rule P25 (related-scan): identify the class of bug/gap being addressed, then
 ---
 
 ## Phase 1.8: Completeness Verification
-
-<!-- rq-disc13 rq-disc14 -->
 
 Always-on discipline ensuring discovery captured the **full problem** and **full intended solution scope**, not only a first-found symptom or single code path. This step runs in **every** discovery — it is not gated behind a trigger condition. Only the depth of any codebase surface scan scales to what the completeness question demands (preserving proportionality for narrow changes).
 
@@ -283,8 +264,6 @@ Build a compact discovery report. The output MUST contain these sections (order 
 | **Recommended Objectives** | Numbered list for the agreement phase                                                                                                  |
 | **AMBIGUITY ANALYSIS**     | Finding table: B/F/S/M findings (required v1) + optional D/X/Q/I/E/C/T findings; severity column; evidence quotes; coverage report row |
 
-<!-- rq-disc07 -->
-
 ### Ambiguity Analysis
 
 Run a structured ambiguity scan using the taxonomy from `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
@@ -309,8 +288,6 @@ If scan is clean: emit `### AMBIGUITY ANALYSIS — no ambiguity findings. Covera
 
 ### Prior Research Extension
 
-<!-- rq-disc03 -->
-
 Search these locations for prior artifacts:
 
 - `temp/*.md` — brainstorm or prep documents
@@ -327,8 +304,6 @@ Search these locations for prior artifacts:
 
 ### Edge Case Investigation
 
-<!-- rq-disc05 -->
-
 For each gap identified:
 
 - Document ≥2 edge cases or failure modes
@@ -336,8 +311,6 @@ For each gap identified:
 - Structural gaps (no logic) may be marked "Edge cases: N/A — structural" with rationale
 
 ### Design Question Depth
-
-<!-- rq-disc06 -->
 
 Each open design question MUST include:
 
@@ -352,8 +325,6 @@ Each open design question MUST include:
 If 2+ viable approaches have user-value tradeoffs, run the inline Tradeoff Prioritizer Protocol from `ADV_INSTRUCTIONS.md` and produce criteria-based comparison before asking the user. If only one viable approach remains after evidence, record why.
 
 ### External-Solution Check (gated)
-
-<!-- rq-disc10 -->
 
 Required when proposal's Discovery Agenda contains ecosystem unknowns OR an open design question lists external tools / libraries / services as a realistic option.
 
@@ -399,8 +370,6 @@ Update proposal artifact with the discovery findings so the sign-off flow can pr
 ---
 
 ## Phase 3.5: Discovery Opportunity Scout
-
-<!-- rq-discOpportunityScout01 -->
 
 Run a trigger-based Discovery Opportunity Scout pass after current-state research and before agreement formation when Trigger Conditions apply. The scout identifies missed opportunities: alternative approaches, overlooked patterns, gaps in objectives/AC, and unconsidered edge cases.
 
@@ -463,8 +432,6 @@ EXPECTED OUTPUT: return ScoutCandidate rows and call adv_subagent_report_submit 
 ---
 
 ## Phase 4: Present Agreement Draft + Resolve Questions
-
-<!-- rq-disc11 -->
 
 - Load the refreshed discovery context from proposal findings
 - Extract objectives, constraints, avoidances, open questions, draft acceptance criteria, and success criteria. Proposal `## User Outcomes` may seed this work, but discovery owns making criteria design-independent, behavioral, and user-confirmed.

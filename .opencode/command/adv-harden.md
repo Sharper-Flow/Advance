@@ -4,11 +4,7 @@ description: "Detect low-quality code, verify test coverage, clean up; block arc
 phaseGoal: "Verify production-readiness. Auto-fix scoped issues. Stop on drift."
 ---
 
-<!-- manifest: adv-harden · requiresChangeId: true · prereqs: [adv-review] · scope: reads[specs, proposal, tasks, codebase] · modifies[codebase] -->
-
 # ADV Harden — Release-Stage Quality Analysis
-
-<!-- rq-requiredObligation01 rq-requiredObligation02 -->
 
 Orchestrate multi-dimensional hardening via sub-agents. Command is part of the release stage and **blocks archive if actionable `REVIEW_FINDINGS` are unresolved.**
 
@@ -407,7 +403,6 @@ If no blocker/high findings remain → require evidence-backed clean verdict wit
 ---
 
 ## Phase 3: Remediation
-<!-- rq-remediation01 -->
 
 If READY → skip to cleanup.
 
@@ -549,7 +544,6 @@ Aggregate cleanup candidates from scanner + session artifacts. Display preview l
 ---
 
 ## Final Report
-<!-- rq-touchedScope01 -->
 
 ### Mark Harden Gate
 

@@ -2,7 +2,6 @@
 name: adv-cleanup
 description: Triage stale, abandoned, duplicate, and ready-to-archive active changes
 ---
-<!-- manifest: adv-cleanup · requiresChangeId: false -->
 # ADV Cleanup — Active State Triage
 
 Dry-run by default: scan active ADV changes, bucket candidates, report actions. `--execute` applies only after per-bucket Tier B approval. Runs inline; no sub-agents.

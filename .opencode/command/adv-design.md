@@ -3,8 +3,6 @@ name: adv-design
 description: Validate architecture decisions, produce implementation strategy, and present design for user review
 ---
 
-<!-- manifest: adv-design · gate: design · requiresChangeId: true · prereqs: [adv-discover] · scope: reads[specs, proposal, codebase] · modifies[proposal] -->
-
 # ADV Design — Produce the Design Artifact
 
 Convert the confirmed agreement into a concrete technical design. Command completes the `design` gate and now prepares planning directly. Design may add design-derived technical criteria; it must not invent new user-facing acceptance criteria.
@@ -58,8 +56,6 @@ Criteria boundary:
 - Design MUST NOT invent new user-facing acceptance criteria.
 - If design invalidates an approved AC/SC, treat discovery re-entry as routine: call `adv_change_reenter fromGate: "discovery"` with the criteria delta, then rerun discovery/design/prep. Do not silently rewrite agreement criteria in design.
 
-<!-- rq-domainContextADR01 -->
-
 > **ADR rubric (sparingly):** When recording a key decision, check the 3-criteria rubric: (1) hard-to-reverse, (2) surprising-without-context, (3) result-of-real-tradeoff. If all three are met, draft an ADR at `docs/adr/NNNN-slug.md` (numbering sequential, slug 3-5 hyphenated words). See `.adv/specs/domain-context/ADR-FORMAT.md` for format and `.adv/specs/domain-context/spec.json` (`rq-domainContextADR01`) for consumer contract. ADR drafts are advisory; they don't gate-block.
 
 Keep the design actionable for `/adv-prep`; it should explain why the plan is correct, not what files exist.
@@ -67,8 +63,6 @@ Keep the design actionable for `/adv-prep`; it should explain why the plan is co
 ---
 
 ## Phase 2.5: Design Leverage Scout
-
-<!-- rq-designOpportunityScout01 -->
 
 Run a mandatory bounded leverage-scout pass after draft design and before independent validation (Phase 3.5). The scout identifies leverage points: shortcuts, reusable components, parallelism opportunities, simplification paths, and cross-cutting improvements.
 

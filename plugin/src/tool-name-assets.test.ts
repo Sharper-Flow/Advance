@@ -92,7 +92,9 @@ describe("tool-name assets", () => {
       expect(content).toMatch(/^\s{2}episode_recall: true$/m);
       expect(content).toContain("top_k: 5");
       expect(content).toMatch(/advisory/i);
-      expect(content).not.toMatch(/^\s{2}episode_(?:remember|forget|stats): true$/m);
+      expect(content).not.toMatch(
+        /^\s{2}episode_(?:remember|forget|stats): true$/m,
+      );
     }
   });
 });

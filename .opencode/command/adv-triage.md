@@ -2,7 +2,6 @@
 name: adv-triage
 description: Triage backlog sources, reconcile into GH issues, apply bug priority labels, regenerate ROADMAP.md
 ---
-<!-- manifest: adv-triage · requiresChangeId: false -->
 # ADV Triage — Backlog Reconciliation, Bug Priority, Roadmap Regen
 
 Reconcile backlog sources into GH issues, apply `priority:*` labels to bugs autonomously, and regenerate `ROADMAP.md`. Roadmap issue flow uses GH Projects v2 as truth. `ROADMAP.md` = generated mirror, committed and pushed at end. User questions gather bug context only; the agent owns priority assignment.

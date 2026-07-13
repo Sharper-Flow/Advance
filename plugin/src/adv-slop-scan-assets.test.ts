@@ -125,7 +125,6 @@ describe("adv-slop-scan anti-recursion assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss009");
-    expect(command).toContain("<!-- rq-ss009 -->");
     expect(command).toContain("Structural Correctness Bypass (QUAL-012)");
     expect(command).toContain(
       "Heuristics used only for discovery/ranking/triage/advisory notes are not findings",
@@ -188,7 +187,6 @@ describe("adv-slop-scan anti-recursion assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss010");
-    expect(command).toContain("<!-- rq-ss010 -->");
     expect(command).toContain("Deletion Candidate Taxonomy");
     for (const subtype of [
       "unused dependency",
@@ -216,7 +214,6 @@ describe("adv-slop-scan anti-recursion assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss011");
-    expect(command).toContain("<!-- rq-ss011 -->");
     expect(command).toContain("Deletion Safety / Actionability Boundary");
     expect(command).toContain("low-confidence / user-review");
     expect(command).toContain(
@@ -235,7 +232,6 @@ describe("adv-slop-scan anti-recursion assets", () => {
     };
 
     expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss012");
-    expect(command).toContain("<!-- rq-ss012 -->");
     expect(command).toContain("Scanner Coverage Report");
     expect(command).toContain("coverage.detectors[]");
     expect(command).toContain("externally_covered");

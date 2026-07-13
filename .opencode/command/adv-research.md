@@ -3,7 +3,6 @@ name: adv-research
 description: "Produce a defined, fully-researched proposed plan ready for user approval"
 phaseGoal: "Produce a defined, fully-researched proposed plan ready for user approval. Validate the how."
 ---
-<!-- manifest: adv-research · requiresChangeId: false · prereqs: [adv-proposal] · scope: reads[specs, proposal, codebase] · modifies[proposal] -->
 
 # ADV Research — Architectural Decision Validation
 
@@ -380,8 +379,6 @@ If **Request additional research**: collect specific areas → re-run relevant p
 ## Phase 8: Completion
 
 Mark gate: `adv_gate_complete changeId: {change-id} gateId: research`
-
-
 
 **Auto-continue:** After user approval, immediately begin `/adv-prep` (or `/adv-design` if design gate is incomplete) inline. Do not stop or ask "shall I proceed?" — user's approval is the go-ahead.
 

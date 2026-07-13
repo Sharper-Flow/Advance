@@ -2,7 +2,6 @@
 name: adv-comp-scan
 description: Scan competitor capabilities against this project for competitive intelligence
 ---
-<!-- manifest: adv-comp-scan · requiresChangeId: false -->
 # ADV Competitive Intelligence Scan
 > **SUB-AGENT CONTEXT**: Return findings directly. Skip status markers.
 

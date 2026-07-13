@@ -4,8 +4,6 @@ description: Capture future work before it becomes an Epic or change
 requiresChangeId: false
 ---
 
-<!-- manifest: adv-backlog · requiresChangeId: false · scope: reads[backlog, epics] · creates[backlog_item] · modifies[backlog_item] -->
-
 <!--
   Spec citations:
     rq-backlogDurability01, rq-backlogFormat01, rq-backlogLifecycle01,
