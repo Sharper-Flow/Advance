@@ -1,0 +1,2098 @@
+{
+  "id": "removeCommandTraceTags",
+  "title": "Remove command trace tags",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T02:56:06.993Z",
+  "tasks": [
+    {
+      "id": "tk-3e6ea446b6fa",
+      "title": "Preserve command requirement citations",
+      "type": "code",
+      "section": "Citation preservation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T03:30:22.077Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C3"
+        ],
+        "not_applicable_reason": "Adds or relocates deterministic requirement-citation comments; no runtime logic changes require Red/Green."
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T03:36:15.645Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "removeCommandTraceTags",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+          "task_id": "tk-3e6ea446b6fa",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3e6ea446b6fa"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/command-requirement-citations.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm vitest run src/command-requirement-citations.test.ts src/__tests__/spec-citation-invariant.test.ts",
+              "exit_code": 0,
+              "summary": "5/5 tests pass: 3 new citation-preservation tests + 2 invariant tests. Invariant confirms all 390 requirements have external citations."
+            },
+            {
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript compiles with no errors"
+            },
+            {
+              "command": "pnpm eslint src/command-requirement-citations.test.ts",
+              "exit_code": 0,
+              "summary": "No lint errors in new file"
+            },
+            {
+              "command": "pnpm prettier --check src/command-requirement-citations.test.ts",
+              "exit_code": 0,
+              "summary": "New file passes format check"
+            },
+            {
+              "command": "Simulation: strip all rq- tags from .opencode/command/adv-*.md in /tmp copy, run invariant",
+              "exit_code": 0,
+              "summary": "Invariant passes even with all command tags removed (proves preservation is sufficient)"
+            },
+            {
+              "command": "Negative control: remove new file from simulation, run invariant",
+              "exit_code": 1,
+              "summary": "Invariant fails with 37 uncited requirements (proves new file is necessary)"
+            },
+            {
+              "command": "adv_run_test (attempted)",
+              "exit_code": -1,
+              "summary": "Temporal worker down; adv_run_test unavailable. Used bash-based vitest instead."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Created single dedicated test file instead of scattering comments across existing asset tests",
+              "why": "OUT_OF_SCOPE explicitly excludes rewriting asset-test behavior anchors; a new file is surgical, reviewable, and maintains clear separation between citation preservation and behavior tests"
+            },
+            {
+              "what": "Included 7 IDs with non-command citations (skills/docs/CHANGELOG) in addition to the 37 strictly command-only IDs",
+              "why": "Defense-in-depth: these IDs lack executable-source citations; if prose citations are removed later, the invariant would break. Task scope says 'durable executable source/test comments'"
+            },
+            {
+              "what": "Added regression test asserting each preserved ID exists in its spec.json with matching title",
+              "why": "Prevents citation rot: if a requirement is deleted or renamed, the test fails and reminds maintainers to clean up the preserved citation"
+            },
+            {
+              "what": "Excluded 4 dangling non-spec IDs (rq-issueChangeLinkage01/02, rq-pathVerification01, rq-taskRunLedger01)",
+              "why": "These IDs are not in any spec.json, so the invariant does not require them. They are dead references in command files, best handled during command-tag removal cleanup"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Update asset tests asserting `expect(command).toContain(\"<!-- rq-XXX -->\")` when command tags are removed (e.g. adv-slop-scan-assets.test.ts has such assertions for rq-ss009-012)",
+            "Clean up 4 dangling rq- IDs in command files: rq-issueChangeLinkage01, rq-issueChangeLinkage02, rq-pathVerification01, rq-taskRunLedger01 (not present in any spec.json)",
+            "Fix pre-existing format issue on plugin/src/tool-name-assets.test.ts (unrelated to this change)"
+          ],
+          "required_main_agent_actions": [
+            "Consider updating asset tests that assert command trace tags exist (will fail when tags are removed)",
+            "Review whether the 4 dangling rq- IDs should be removed from command files during tag cleanup"
+          ],
+          "related_scan": "Scanned all rq- citations across .opencode/command/, plugin/src/, .opencode/ (non-command), skills/, docs/, ADV_INSTRUCTIONS.md, AGENTS.md, CHANGELOG.md. Verified 44 spec IDs lacked plugin/src citations before fix; all 44 now have them. Confirmed no other citation surfaces missed. Checked scenario sub-IDs (rq-foo01.1) — parent requirements already covered.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "All 44 command-only spec requirement citations preserved in plugin/src/command-requirement-citations.test.ts. Invariant passes with and without command tags (verified via simulation). adv_run_test unavailable (Temporal worker down); bash-based vitest used instead. 4 dangling non-spec rq- IDs noted for cleanup.",
+            "suggested_next_action": "Proceed to command-tag removal task. The invariant is now protected; asset tests asserting `<!-- rq-XXX -->` will need updating in a follow-up task (out of this scope)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/command-requirement-citations.test.ts src/__tests__/spec-citation-invariant.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm eslint src/command-requirement-citations.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm prettier --check src/command-requirement-citations.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: Simulation: strip all rq- tags from .opencode/command/adv-*.md in /tmp copy, run invariant"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: Negative control: remove new file from simulation, run invariant"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: adv_run_test (attempted)"
+            }
+          ]
+        }
+      ],
+      "verification": "Worker report: citation preservation test suite and spec-citation invariant passed (5/5); typecheck, lint, and format passed. Static inventory preserves 44 previously command-only requirement citations.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/command-requirement-citations.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/command-requirement-citations.test.ts"
+      ],
+      "checkpointSha": "ca6397bdd8144b4ae1dee833e829982477ecb192",
+      "completedAt": "2026-07-13T03:56:38.102Z",
+      "completed_at": "2026-07-13T03:56:38.102Z"
+    },
+    {
+      "id": "tk-efd4b1712e3a",
+      "title": "Replace command trace-tag test anchors",
+      "type": "code",
+      "section": "Behavioral test anchors",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-13T03:30:37.222Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C3"
+        ],
+        "verifies": [
+          "SC2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T03:56:55.052Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "removeCommandTraceTags",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+          "task_id": "tk-efd4b1712e3a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-efd4b1712e3a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/adv-slop-scan-assets.test.ts",
+            "plugin/src/adv-arch-scan-assets.test.ts",
+            "plugin/src/adv-review-assets.test.ts",
+            "plugin/src/adv-prep-assets.test.ts",
+            "plugin/src/adv-skill-backed-commands-assets.test.ts",
+            "plugin/src/__tests__/human-checkpoints-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Baseline: 107/107 tests pass across the 6 in-scope files. runId=tr_mrip56nd_37f9fef2"
+            },
+            {
+              "command": "pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts (phase=red)",
+              "exit_code": 1,
+              "summary": "RED: meta-test failed with all 12 expected command-file trace-tag assertion violations. runId=tr_mrip70vv_4c84646c"
+            },
+            {
+              "command": "pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts (phase=green)",
+              "exit_code": 0,
+              "summary": "GREEN: meta-test passes 3/3 after replacing all 12 command-file trace-tag assertions. runId=tr_mripaxab_1524546a"
+            },
+            {
+              "command": "pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts (phase=green)",
+              "exit_code": 0,
+              "summary": "GREEN: 107/107 affected tests still pass after replacing tag assertions with substantive anchors. runId=tr_mripb72p_1429696f"
+            },
+            {
+              "command": "pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts (phase=verify)",
+              "exit_code": 0,
+              "summary": "Final verify: 107/107 tests pass; temporary meta-test deleted. runId=tr_mripc5gl_e47b37b4"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Replaced command-file `<!-- rq-… -->` and `rq-{id}` literal assertions by removing the tag line and relying on the existing adjacent substantive heading/rule assertions in the same test; added one extra rule-level anchor in 4 tests where the tag was the only non-heading behavioral probe.",
+              "why": "Each removed tag was already paired with a substantive heading assertion in the same test, so deleting the tag line is the minimal change that keeps SC2 (tests still fail if the substantive behavior is removed). Adding a second rule-level assertion in adv-review, adv-prep, skill-backed-commands, and human-checkpoints strengthens coverage where the tag was previously the only rule-level probe."
+            },
+            {
+              "what": "Used a temporary TDD meta-test (plugin/src/__tests__/__tmp_trace_tag_migration.test.ts) to drive RED/GREEN, then deleted it after GREEN.",
+              "why": "The task explicitly requires a RED phase; the meta-test approach proved the 12 target assertions existed before the refactor and were absent after, satisfying TDD verification without polluting the committed test suite."
+            },
+            {
+              "what": "Excluded `rq-archp33` from the meta-test forbidden-pattern list.",
+              "why": "The same `expect(content).toContain(\"<!-- rq-archp33 -->\")` shape is used for both the command-file assertion (line 33, removed) and the skill-file assertion (line 44, preserved). The meta-test already covers skill preservation separately; listing rq-archp33 would produce a false positive on the intentionally retained skill assertion."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Run `pnpm run check` from `plugin/` after the sibling comment-removal task lands to satisfy AC4 (out of scope for this task which only edits tests)."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned all 6 in-scope test files for every `rq-` reference and classified each as command-file HTML-comment, skill-file (preserved), spec/JSON lookup (not an assertion), or agent-file assertion (out of scope). Only the 12 command-file trace-tag assertions were replaced. Verified by grep that no `expect(command|content|prep).toContain(\"<!-- rq-… -->\" )` or `expect(command|content|prep).toContain(\"rq-…\")` remains in the six files (excluding skill-file targets).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "All 12 command-file trace-tag assertions in the 6 in-scope test files have been replaced with substantive anchors (adjacent headings/rules already present in the same tests; 3 tests received an extra rule-level anchor to keep SC2 coverage strong: adv-review-assets, adv-prep-assets, adv-skill-backed-commands-assets, human-checkpoints-assets). Skill-file trace assertions at adv-slop-scan-assets.test.ts:133 and adv-arch-scan-assets.test.ts:44 are preserved unchanged per OUT_OF_SCOPE. All 107 tests in the affected set pass. No command files, specs, runtime code, or skill files were touched.",
+            "suggested_next_action": "Proceed to the sibling task that removes `<!-- rq-… -->` and `<!-- manifest: … -->` comments from `.opencode/command/adv-*.md`. The test suite now relies exclusively on substantive anchors, so that removal will not regress coverage. After comment removal, run the six affected asset tests plus `pnpm run check` for full AC4 verification."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts (phase=red)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts (phase=green)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts (phase=green)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts (phase=verify)"
+            }
+          ]
+        }
+      ],
+      "verification": "TDD evidence: RED tr_mrip70vv_4c84646c; GREEN tr_mripaxab_1524546a; full affected asset tests 107/107 pass, tr_mripc5gl_e47b37b4. Replaced 12 command-file trace assertions; preserved skill-file trace assertions.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/__tests__/human-checkpoints-assets.test.ts",
+        "plugin/src/adv-arch-scan-assets.test.ts",
+        "plugin/src/adv-prep-assets.test.ts",
+        "plugin/src/adv-review-assets.test.ts",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/adv-slop-scan-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/__tests__/human-checkpoints-assets.test.ts",
+        "plugin/src/adv-arch-scan-assets.test.ts",
+        "plugin/src/adv-prep-assets.test.ts",
+        "plugin/src/adv-review-assets.test.ts",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/adv-slop-scan-assets.test.ts"
+      ],
+      "checkpointSha": "b3e2a36c9e15d8de978bcd536290ce0b4ec8ad69",
+      "completedAt": "2026-07-13T04:09:42.069Z",
+      "completed_at": "2026-07-13T04:09:42.069Z"
+    },
+    {
+      "id": "tk-8d329e96a86a",
+      "title": "Clean production ADV command contracts",
+      "type": "docs",
+      "section": "Command cleanup",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-13T03:30:48.832Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3e6ea446b6fa"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-efd4b1712e3a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "SC1",
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT3"
+        ],
+        "not_applicable_reason": "Edits command Markdown contracts only; correctness is proven by deterministic absence checks and asset tests."
+      },
+      "evidence_policy": "static_check",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T04:09:57.518Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "removeCommandTraceTags",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+          "task_id": "tk-8d329e96a86a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8d329e96a86a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/command/adv-apply.md",
+            ".opencode/command/adv-arch-scan.md",
+            ".opencode/command/adv-archive.md",
+            ".opencode/command/adv-audit.md",
+            ".opencode/command/adv-backlog.md",
+            ".opencode/command/adv-clarify.md",
+            ".opencode/command/adv-cleanup.md",
+            ".opencode/command/adv-comp-scan.md",
+            ".opencode/command/adv-coordinate.md",
+            ".opencode/command/adv-design.md",
+            ".opencode/command/adv-discover.md",
+            ".opencode/command/adv-epic.md",
+            ".opencode/command/adv-harden.md",
+            ".opencode/command/adv-idea.md",
+            ".opencode/command/adv-improve.md",
+            ".opencode/command/adv-optimizer.md",
+            ".opencode/command/adv-prep.md",
+            ".opencode/command/adv-problem.md",
+            ".opencode/command/adv-proposal.md",
+            ".opencode/command/adv-refactor.md",
+            ".opencode/command/adv-reflect.md",
+            ".opencode/command/adv-research.md",
+            ".opencode/command/adv-review.md",
+            ".opencode/command/adv-roadmap.md",
+            ".opencode/command/adv-slop-scan.md",
+            ".opencode/command/adv-status.md",
+            ".opencode/command/adv-task.md",
+            ".opencode/command/adv-triage.md",
+            ".opencode/command/adv-tron.md",
+            ".opencode/command/adv-validate.md",
+            "plugin/src/adv-prep-assets.test.ts",
+            "plugin/src/tool-name-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "grep -c '<!-- rq-\\|<!-- manifest:' .opencode/command/adv-*.md | grep -v ':0$'",
+              "exit_code": 0,
+              "summary": "AC1 PASS: zero `<!-- rq-` and zero `<!-- manifest:` matches across all 30 adv-*.md command files (100 comment lines removed)."
+            },
+            {
+              "command": "head -12 .opencode/command/adv-prep.md",
+              "exit_code": 0,
+              "summary": "adv-prep.md heading repaired: malformed `## <!-- manifest… -->` line replaced; file now has clean `# ADV Prep` heading directly after frontmatter."
+            },
+            {
+              "command": "pnpm vitest run src/command-requirement-citations.test.ts src/__tests__/spec-citation-invariant.test.ts src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts",
+              "exit_code": 0,
+              "summary": "8/8 test files pass, 112/112 tests. Citation-preservation + spec-citation-invariant suites confirm all 390 spec requirements retain executable-source citations after command-tag removal. Affected command-asset tests (slop-scan, arch-scan, review, prep, skill-backed-commands, human-checkpoints) all pass with substantive anchors."
+            },
+            {
+              "command": "pnpm vitest run src/briefing-packets-command-assets.test.ts src/commands-spine-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts src/adv-autonomy-quality-assets.test.ts src/adv-designer-assets.test.ts src/adv-engineer-assets.test.ts src/advance-epics-assets.test.ts src/approval-consequence-context-assets.test.ts src/archive-release-finalization-assets.test.ts src/checkpoint-surface-drift.test.ts src/delegation-matrix.test.ts src/handoff-footer-drift.test.ts src/ops-follow-up-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/scope-discovery-assets.test.ts src/todowrite-projection-assets.test.ts src/workflow-noise-reduction-assets.test.ts src/adv-ci-waiter-assets.test.ts",
+              "exit_code": 0,
+              "summary": "19/19 test files pass, 360/360 tests. Broader command-asset sweep (briefing packets, command spine, manifest doc-drift, manifest, autonomy/designer/engineer/epics assets, approval/archive/checkpoint/delegation/handoff/ops/scope/todowrite/workflow-noise/ci-waiter assets) all green — confirms no test asserts on removed comments or removed duplicate sections."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "AC4 PASS: schemas:check, typecheck, test-isolation check, lockfile-policy check, eslint, and prettier format:check all pass. Initial run failed on two pre-existing prettier violations (plugin/src/adv-prep-assets.test.ts, plugin/src/tool-name-assets.test.ts); fixed with prettier --write; re-run clean."
+            },
+            {
+              "command": "pnpm vitest run src/adv-prep-assets.test.ts src/tool-name-assets.test.ts",
+              "exit_code": 0,
+              "summary": "2/2 test files pass, 11/11 tests after prettier format fix — confirms formatting-only change, no behavior regression."
+            },
+            {
+              "command": "grep -n 'Incremental Verification\\|Retry Protocol\\|TDD Work Loop\\|Trivial Tasks\\|Cross-Repo Execution' .opencode/command/adv-apply.md",
+              "exit_code": 0,
+              "summary": "SC3 structural verification: each of the 5 categories (cross-repo, TDD lifecycle, retry, incremental verification, trivial tasks) now has exactly ONE canonical block in adv-apply.md; all other mentions are one-line pointers to the canonical section. Phase 3 detailed rules preserved; Phase 0 duplicates replaced by precise local references."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used a Node script for the mechanical comment-strip across 30 files instead of 100 individual edit calls",
+              "why": "Deterministic regex `^\\s*<!--\\s*(rq-|manifest:)[\\s\\S]*?-->\\s*$` guarantees exact-match removal; collapsing consecutive blank lines after strip preserves markdown heading-adjacency rules. Faster and more reliable than per-file edits."
+            },
+            {
+              "what": "Removed adv-prep.md line 7 `## <!-- manifest… -->` entirely rather than only the comment",
+              "why": "The `## ` heading prefix paired with the comment produced a malformed empty heading. Removing the whole line restores the canonical `# ADV Prep` title as the first heading directly after frontmatter."
+            },
+            {
+              "what": "Replaced Phase 0 § TDD Work Loop table + § Retry Protocol table with one-line pointers to Phase 3 / § Retry Protocol (canonical)",
+              "why": "SC3 prohibits separate duplicate blocks. Phase 3 is the detailed canonical source per DONE_WHEN. The Phase 0 paragraphs preserve the unique adv_run_test phase-metadata semantics, rq-TDD009seq ordering enforcement, and rq-TDD010qual advisory signals (none of which duplicate Phase 3)."
+            },
+            {
+              "what": "Folded standalone § Incremental Verification section into Phase 3 step 3c.4",
+              "why": "Step 3c.4 is the inline step in the TDD loop sequence; the standalone section was nearly word-for-word duplicate. Enriched step 3c.4 with the unique 'post-checkpoint fix-ups are not expected by design' sentence so no content is lost."
+            },
+            {
+              "what": "Trimmed Task Completion Policy cross-repo paragraph to keep only product-linked wisdom guidance",
+              "why": "The 'switch workdir' and 'never a valid exit' phrasing is canonical in § Cross-Repo Execution and the ×Bad/✓Good quick-ref table; the product-linked scope_repos / origin_repo_* wisdom fields are unique to this paragraph and must be preserved."
+            },
+            {
+              "what": "Applied prettier --write to plugin/src/adv-prep-assets.test.ts and plugin/src/tool-name-assets.test.ts",
+              "why": "AC4 requires `pnpm run check` exit 0. Both files had pre-existing prettier violations (one from prior task tk-efd4b1712e3a's checkpoint, one flagged by prior task as unrelated follow-up). Pure formatting fixes; no test logic changed; all 11 tests in both files still pass."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "plugin/src/tool-name-assets.test.ts prettier format fix",
+              "plugin/src/adv-prep-assets.test.ts prettier format fix"
+            ],
+            "details": "plugin/src/tool-name-assets.test.ts had a pre-existing prettier format violation flagged by prior task tk-efd4b1712e3a as unrelated to this change. plugin/src/adv-prep-assets.test.ts had a prettier violation introduced by prior task tk-efd4b1712e3a's checkpoint. Both blocked AC4 (`pnpm run check` exit 0). Applied `prettier --write` to both — pure whitespace/format changes, no test logic altered. Both files pass all 11 of their tests after the fix.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned all 31 .opencode/command/adv-*.md files for `<!-- rq-` and `<!-- manifest:` patterns. Confirmed 30 files affected (all except adv-epic.md which had both types already covered by the 30-file regex pass — verified by final grep showing 0 matches across all 31 files). ship.md also has a `<!-- manifest: … -->` comment but is NOT an adv-*.md file and is therefore OUT_OF_SCOPE per IN_SCOPE declaration. Scanned plugin/src for tests asserting on the removed Phase 0 § TDD Work Loop table, § Retry Protocol table, § Incremental Verification section, § Trivial Tasks, § Cross-Repo Execution headings — zero matches. Scanned for tests asserting on `<!-- rq-… -->` or `<!-- manifest:` literals in command files — zero matches (prior task tk-efd4b1712e3a already replaced all 12 such assertions).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "All 30 .opencode/command/adv-*.md files stripped of internal `<!-- rq-… -->` and `<!-- manifest: … -->` comments (100 lines removed). adv-prep.md malformed `## <!-- manifest… -->` heading repaired to clean `# ADV Prep`. adv-apply.md consolidated per SC3: Phase 0 § TDD Work Loop table, § Retry Protocol table, and two Task Completion Rules bullets replaced with one-line pointers to canonical sections; § Incremental Verification standalone section folded into Phase 3 step 3c.4 preserving the unique 'post-checkpoint fix-ups' design note; Phase 2 retry advisory line and Task Completion Policy cross-repo paragraph trimmed to pointers. AC1/AC3/SC1/SC3 satisfied; AC4 satisfied via `pnpm run check` exit 0. Two pre-existing prettier format failures on plugin/src/adv-prep-assets.test.ts (from prior task tk-efd4b1712e3a) and plugin/src/tool-name-assets.test.ts (flagged by prior task as unrelated follow-up) were repaired with prettier --write — pure formatting, no behavior change; required to satisfy AC4.",
+            "suggested_next_action": "Proceed to verification task tk-8952d6e7ce72. After merge, no runtime/deploy impact — command prompts are loaded at OpenCode session start from deployed plugin dist; no deploy needed for this change since commands live in .opencode/command/, not plugin/src."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "adv_run_test unavailable during this session (Temporal worker); used bash-based pnpm vitest run instead, matching prior task convention."
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -c '<!-- rq-\\|<!-- manifest:' .opencode/command/adv-*.md | grep -v ':0$'"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: head -12 .opencode/command/adv-prep.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/command-requirement-citations.test.ts src/__tests__/spec-citation-invariant.test.ts src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/briefing-packets-command-assets.test.ts src/commands-spine-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts src/adv-autonomy-quality-assets.test.ts src/adv-designer-assets.test.ts src/adv-engineer-assets.test.ts src/advance-epics-assets.test.ts src/approval-consequence-context-assets.test.ts src/archive-release-finalization-assets.test.ts src/checkpoint-surface-drift.test.ts src/delegation-matrix.test.ts src/handoff-footer-drift.test.ts src/ops-follow-up-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/scope-discovery-assets.test.ts src/todowrite-projection-assets.test.ts src/workflow-noise-reduction-assets.test.ts src/adv-ci-waiter-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/adv-prep-assets.test.ts src/tool-name-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: grep -n 'Incremental Verification\\|Retry Protocol\\|TDD Work Loop\\|Trivial Tasks\\|Cross-Repo Execution' .opencode/command/adv-apply.md"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "removeCommandTraceTags",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+          "task_id": "tk-8d329e96a86a",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8d329e96a86a"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tool-name-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "git diff plugin/src/tool-name-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Confirmed pre-revert diff was formatting-only (single line-wrap on an expect().not.toMatch call); safe to revert."
+            },
+            {
+              "command": "git restore --source=HEAD -- plugin/src/tool-name-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Reverted plugin/src/tool-name-assets.test.ts to task baseline (HEAD)."
+            },
+            {
+              "command": "git diff --name-only | grep -c '^plugin/src/tool-name-assets.test.ts$' || echo ABSENT",
+              "exit_code": 0,
+              "summary": "grep count = 0; file absent from git diff --name-only — DONE_WHEN satisfied."
+            },
+            {
+              "command": "git diff --name-only",
+              "exit_code": 0,
+              "summary": "Post-revert diff lists only the 29 intended command files plus plugin/src/adv-prep-assets.test.ts; tool-name-assets.test.ts no longer present."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used `git restore --source=HEAD -- plugin/src/tool-name-assets.test.ts` to revert",
+              "why": "Single-file revert to baseline; safer than editing the diff manually because the change was formatting-only and HEAD is the authoritative baseline."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed all 29 command files and plugin/src/adv-prep-assets.test.ts remain modified — no other test files drifted into the diff.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Scope violation from attempt 1 reverted: plugin/src/tool-name-assets.test.ts now matches task baseline (confirmed absent from git diff --name-only). All 30 intended edits (29 .opencode/command/*.md + plugin/src/adv-prep-assets.test.ts) are retained. No content, behavior, or test-rewrite changes were made.",
+            "suggested_next_action": "Re-verify task tk-8d329e96a86a: re-run plugin/src/adv-prep-assets.test.ts and any command-contract checks, then mark task done if green."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff plugin/src/tool-name-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git restore --source=HEAD -- plugin/src/tool-name-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --name-only | grep -c '^plugin/src/tool-name-assets.test.ts$' || echo ABSENT"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --name-only"
+            }
+          ]
+        }
+      ],
+      "verification": "Zero `<!-- rq-` and `<!-- manifest:` matches across 30 adv command files. Citation and command-asset tests pass; pnpm run check passes. adv-prep heading repaired; adv-apply duplicate categories consolidated with Phase 3 canonical detail retained.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "32e12875e844ae6051ee5285e214714c45aac96d",
+      "completedAt": "2026-07-13T04:27:16.749Z",
+      "completed_at": "2026-07-13T04:27:16.749Z"
+    },
+    {
+      "id": "tk-8952d6e7ce72",
+      "title": "Verify command cleanup end-to-end",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-13T03:30:57.299Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8d329e96a86a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T04:27:28.869Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "removeCommandTraceTags",
+          "attempt": 3,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+          "task_id": "tk-8952d6e7ce72",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8952d6e7ce72"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tool-name-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "npx prettier --check src/tool-name-assets.test.ts (before)",
+              "exit_code": 1,
+              "summary": "Confirmed pre-existing formatting violation on the in-scope file (justified the write step)."
+            },
+            {
+              "command": "git diff plugin/src/tool-name-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Diff is whitespace-only: single long `expect(content).not.toMatch(/.../)` line wrapped across three lines; no logic, identifier, or regex change (1 file, +3/-1)."
+            },
+            {
+              "command": "pnpm vitest run src/tool-name-assets.test.ts",
+              "exit_code": 0,
+              "summary": "All 5 tests in the file pass (15ms)."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, and format:check all pass; 'All matched files use Prettier code style!'"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Applied npx prettier --write to the single in-scope file rather than editing manually.",
+              "why": "Prettier is the authoritative formatter; running it directly guarantees the resulting formatting matches what format:check will accept, eliminating trial-and-error risk."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified no other in-scope file needed formatting by running pnpm run format:check across src/ — all matched files use Prettier code style.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Prettier reformatted plugin/src/tool-name-assets.test.ts (line-wrap of long regex matcher, whitespace-only). Targeted vitest passes 5/5 and pnpm run check is green across schemas/typecheck/isolation/lockfile/lint/format. AC4 formatting blocker resolved.",
+            "suggested_next_action": "Mark task tk-8952d6e7ce72 done and proceed with AC4 acceptance evidence."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: npx prettier --check src/tool-name-assets.test.ts (before)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff plugin/src/tool-name-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/tool-name-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Final verification: command trace/manifest absence check passed; citation and command-asset tests passed (112/112); pnpm run check passed after user-approved whitespace-only Prettier fix; tool-name asset test passed 5/5 (adv_run_test tr_mrj7piqp_b96e3cd5).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tool-name-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-name-assets.test.ts"
+      ],
+      "checkpointSha": "480f6c0ccf8f641b7372f5718643cdc35c2e830e",
+      "completedAt": "2026-07-13T12:44:03.466Z",
+      "completed_at": "2026-07-13T12:44:03.466Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — remove command trace tags",
+      "sources": [
+        {
+          "label": "spec-citation-invariant.test.ts (CI-blocking invariant)",
+          "locator": "plugin/src/__tests__/spec-citation-invariant.test.ts:93-198",
+          "summary": "Every active spec requirement must have >=1 external citation in plugin/src/**, .opencode/**, skills/**, docs/ (excl specs), ADV_INSTRUCTIONS.md, AGENTS.md, or CHANGELOG.md. Command files (.opencode/**/*.md) are a primary citation source. Removing <!-- rq- --> comments deletes citations; any rq-ID cited ONLY in a command comment becomes uncited and fails this test under pnpm test/CI."
+        },
+        {
+          "label": "rq-prop-neg1 is command-comment-only cited (proven orphan case)",
+          "locator": ".opencode/command/adv-proposal.md:15 vs .adv/specs/adv-proposal/spec.json:72 + docs/specs/adv-proposal.md:94",
+          "summary": "grep shows rq-prop-neg1 external citation = ONLY the command <!-- rq-prop-neg1 --> comment. spec.json is own-def (excluded), docs/specs is auto-mirror (excluded). Removal orphans it and breaks the citation invariant."
+        },
+        {
+          "label": "Historical precedent — same failure already occurred",
+          "locator": ".adv/archive/2026-05-07-retireinvestmentgovernancedead/change.json:213-215",
+          "summary": "A prior change stripped rq-prep-out1/scope1/neg1 citations from adv-prep.md and had to RESTORE them ('T04 had stripped them with Phase J'). Confirms bulk command-comment removal has orphaned command-only-cited requirements in this exact repo before."
+        },
+        {
+          "label": "Unlisted asset tests asserting command-file rq- literals",
+          "locator": "adv-review-assets.test.ts:60; adv-prep-assets.test.ts:20; adv-skill-backed-commands-assets.test.ts:370; __tests__/human-checkpoints-assets.test.ts:117",
+          "summary": "Four asset tests read command files and assert bare rq- strings: adv-review.md/rq-subagentNonCodeEvidence01, adv-prep.md/rq-prepNonCodeEvidence01, adv-prep.md/rq-stagePrepNoCriteriaFirming01, adv-archive.md/rq-extConfGate01. AC1 comment removal breaks all four. Design 'Affected Components' lists none of them."
+        },
+        {
+          "label": "Named asset tests — command-vs-skill assertion split",
+          "locator": "adv-slop-scan-assets.test.ts:128,134,191,219,238; adv-arch-scan-assets.test.ts:33,45,89,90,110",
+          "summary": "Command-file rq-literal assertions = 4 (slop: 128,191,219,238) + 4 (arch: 33,89,90,110) = 8, not the 'seven' the design claims. Lines slop:134 and arch:45 assert against SKILL files (out of scope per C3/OOS2) and MUST be preserved."
+        },
+        {
+          "label": "Manifest comment has no runtime/test consumer (design claim verified)",
+          "locator": "plugin/src/manifest-doc-drift.test.ts:16,47-52,140,235",
+          "summary": "manifest-doc-drift reads COMMAND_MANIFEST from plugin/src/manifest.ts and frontmatter description — NOT the <!-- manifest: --> HTML comment. Confirms design claim that no parser/test consumes the manifest comment. Runtime manifest is a separate untouched artifact."
+        },
+        {
+          "label": "adv-prep manifest comment embedded in a heading (repair required)",
+          "locator": ".opencode/command/adv-prep.md:7",
+          "summary": "Line is '## <!-- manifest: ... -->'. Naive comment deletion leaves a bare '## ' empty heading. Proposal checklist noted 'malformed adv-prep heading' but design.md Implementation Strategy/Risks do not include an explicit heading-repair step."
+        },
+        {
+          "label": "pnpm run check excludes tests",
+          "locator": "plugin/package.json:21 (check) vs :28 (test)",
+          "summary": "check = schemas:check+typecheck+isolation+lockfile+lint+format:check, NO tests. spec-citation-invariant and the asset tests run only under pnpm test/CI. AC4's 'targeted affected tests and pnpm run check' therefore does NOT structurally guarantee CI green unless the affected-test set is complete — which it is not."
+        }
+      ],
+      "architecture_assessment": "Design direction (strip internal trace/manifest HTML comments from command prompts, keep each command a standalone contract, replace literal-tag test assertions with substantive behavioral anchors, no spec/schema/runtime changes) is sound and boring — correct for the objective. However the design is INCOMPLETE against its own contract in a way that guarantees CI failure. (1) spec-citation-invariant.test.ts is a hard CI invariant treating .opencode/**/*.md as a first-class requirement citation source. 71 <!-- rq- --> comments span 12 command files; at least one requirement (rq-prop-neg1) is cited ONLY in its command comment, and this repo has already suffered and repaired this exact orphaning (archive 2026-05-07). The design mentions spec-citation-invariant only as a possible wording update, not as the structural orphaning risk it is, and includes no step to enumerate command-only-cited rq-IDs and preserve an alternate citation. (2) The design's 'Affected Components' undercounts: it names slop-scan + arch-scan asset tests but omits four additional asset tests (adv-review, adv-prep x2, human-checkpoints) that assert command-file rq- literals and will break under AC1. (3) The literal-assertion count is 8 command-file assertions, not the stated 'seven', and two same-named assertions target SKILL files that are out of scope and must be preserved. (4) adv-prep.md:7 embeds the manifest comment in a Markdown heading; removal needs explicit heading repair not called out in Implementation Strategy. (5) AC4 pairs 'targeted affected tests' with 'pnpm run check', but check runs no tests, so the acceptance gate does not structurally force the full test/CI pass that would catch the orphaning — the affected-test enumeration must be exhaustive.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          "spec-citation-invariant orphaning: removing 71 <!-- rq- --> command comments will make command-only-cited requirements (proven: rq-prop-neg1) uncited, failing plugin/src/__tests__/spec-citation-invariant.test.ts under pnpm test/CI. Design has no step to enumerate command-only-cited rq-IDs and guarantee each retains an alternate citation (code comment, skill, docs-non-mirror, or inline command prose). This exact failure was previously hit and repaired in archive 2026-05-07-retireinvestmentgovernancedead.",
+          "Incomplete affected-test scope vs AC1/AC4: four unlisted asset tests assert command-file rq- literals and will fail on removal — adv-review-assets.test.ts:60 (rq-subagentNonCodeEvidence01), adv-prep-assets.test.ts:20 (rq-prepNonCodeEvidence01), adv-skill-backed-commands-assets.test.ts:370 (rq-stagePrepNoCriteriaFirming01), __tests__/human-checkpoints-assets.test.ts:117 (rq-extConfGate01). Design 'Affected Components' lists none of them.",
+          "AC4 does not structurally force the invariant/asset test coverage: pnpm run check (package.json:21) runs no tests. Unless 'targeted affected tests' is expanded to include spec-citation-invariant.test.ts plus all six command-rq asset tests (2 named + 4 unlisted), the acceptance criteria can pass while CI (pnpm test) fails."
+        ],
+        "notes": "Two additional required (non-blocking-verdict but must-fix) items: (a) literal-assertion count is 8 command-file assertions not 'seven', and slop-scan-assets:134 / arch-scan-assets:45 assert SKILL-file rq- literals that are OUT OF SCOPE (C3/OOS2) and MUST be preserved — do not blanket-edit both assertions in each test; (b) adv-prep.md:7 manifest comment is embedded in a '## ' heading and needs explicit heading repair. Design core direction is otherwise correct; failures are completeness/blast-radius omissions, not wrong strategy."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "Removing internal trace citations improves prompt signal-to-noise but removes the only external citation for some spec requirements, coupling prompt cleanup to the spec-citation-invariant enforcement path.",
+          "Keeping commands standalone (no cross-command abstraction, C2) is correct for independent loadability but means citation-preservation must be handled per-command rather than via a shared mechanism.",
+          "Replacing rq-literal test assertions with behavioral anchors strengthens tests against label churn (DONT2/SC2) but requires care not to touch the co-located skill-file assertions that remain in scope for their own files."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Bulk-remove all <!-- rq- --> and <!-- manifest: --> then fix whatever tests go red (current design)",
+            "disposition": "rejected",
+            "rationale": "Reactive fixing misses the spec-citation-invariant orphaning class (some rq-IDs lose their ONLY citation) and understates the affected-test set; it repeats the 2026-05-07 archive failure and cannot satisfy AC1+AC4+CI together as scoped."
+          },
+          {
+            "option": "Enumerate command-only-cited rq-IDs first; for each, ensure a durable alternate citation survives (inline command prose already citing the ID, a plugin/src code/test comment, a skill, or non-mirror docs) before deleting the trace comment; expand affected-test list to the exhaustive command-rq set + spec-citation-invariant",
+            "disposition": "preferred",
+            "rationale": "Structural (P33): makes AC1 removal provably safe against the machine-checked citation invariant and the asset suite, rather than discovering orphans at CI. Keeps commands standalone (C2) and scope to command files + directly affected tests (C3)."
+          },
+          {
+            "option": "Convert command <!-- rq- --> comments to inline prose citations instead of deleting (retain requirement traceability in-prompt)",
+            "disposition": "rejected",
+            "rationale": "Violates AC1 (zero rq- matches) and DONT1 (no substitute internal bookkeeping prose). Not the user's chosen direction."
+          }
+        ],
+        "recommendation": "Re-enter design (or hold at design) to add: (1) a citation-preservation step — build the set of rq-IDs whose only external citation is a command <!-- rq- --> comment (spec.json own-def and docs/specs mirror excluded per the invariant), and for each guarantee a surviving alternate citation before removal, OR add its citation to a spec test/code comment; (2) an exhaustive affected-test list including plugin/src/__tests__/spec-citation-invariant.test.ts and all six command-rq asset tests (adv-slop-scan-assets, adv-arch-scan-assets, adv-review-assets, adv-prep-assets, adv-skill-backed-commands-assets, __tests__/human-checkpoints-assets), preserving the skill-file assertions at slop-scan-assets:134 and arch-scan-assets:45; (3) explicit adv-prep.md:7 heading repair; (4) correct the literal-assertion count (8 command-file assertions) and make AC4/verification run pnpm test (not only pnpm run check) for the affected set so CI parity is structurally enforced."
+      },
+      "recommendation": "FAIL — do not complete the design gate as written. The strategy is correct but the design under-scopes blast radius and omits the spec-citation-invariant orphaning risk, which will fail CI (pnpm test) even if AC4's literal gates pass. Add citation-preservation, exhaustive affected-test enumeration (incl. spec-citation-invariant + 4 unlisted command-rq asset tests), skill-assertion preservation, adv-prep heading repair, and count correction before proceeding.",
+      "follow_ups": [
+        "Design mentions spec-citation-invariant only for possible wording update; escalate it to a first-class blocker in Implementation Strategy.",
+        "Consider tightening AC4 to require pnpm test (affected set) explicitly, since pnpm run check runs no tests."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation-revision"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation (revision) — remove command trace/manifest tags",
+      "sources": [
+        {
+          "label": "Change design + agreement + contract",
+          "locator": "adv_change_show removeCommandTraceTags include:{design,agreement}",
+          "summary": "Revised design adopts citation-preservation, exhaustive six-file asset-test conversion, adv-prep manifest-heading repair, and separate test+check verification. Contract items AC1-AC4, SC1-SC3, C1-C3, DONT1-3, OOS1-2 approved."
+        },
+        {
+          "label": "spec-citation-invariant.test.ts",
+          "locator": "plugin/src/__tests__/spec-citation-invariant.test.ts:96-145,169-198",
+          "summary": "Invariant searches plugin/src, .opencode, skills, docs (excluding docs/specs) plus ADV_INSTRUCTIONS/AGENTS/CHANGELOG. A requirement cited ONLY in its command file + own spec.json + docs/specs mirror becomes orphaned when the command tag is removed. Confirms the orphan-risk mechanism the revision must guard."
+        },
+        {
+          "label": "Command-only requirement grep",
+          "locator": "grep rq-prop-neg1 / // rq-prop-neg1 across repo",
+          "summary": "rq-prop-neg1 (and peers rq-prop-scope1, rq-prop-out1, rq-prop-context2, rq-ss001-007, rq-archp33, rq-disc*) have NO executable // rq- source citation; their only non-spec, non-docs/specs citation is the command file. Bulk deletion without relocation orphans them → invariant fails. Revision step 2 (add // rq-{id} before deletion, verify invariant) closes this exactly."
+        },
+        {
+          "label": "plugin/package.json check script",
+          "locator": "plugin/package.json:21,28",
+          "summary": "'check' = schemas:check + typecheck + isolation + lockfile + lint + format:check; it does NOT run vitest. Prior AC4-verification-gap finding is factually correct. Revision step 6 runs affected asset tests + citation invariant SEPARATELY from pnpm run check, closing the gap."
+        },
+        {
+          "label": "Command-tag asset test assertions",
+          "locator": "adv-arch-scan-assets.test.ts:33,45,89,90,110; adv-slop-scan-assets.test.ts:128,134,191,219,238; adv-review-assets.test.ts:60; __tests__/human-checkpoints-assets.test.ts:117",
+          "summary": "Command-file <!-- rq- --> / trace-ID literal assertions exist across arch-scan, slop-scan, review, and human-checkpoint asset tests. slop-scan line 134 asserts a SKILL-file tag (rq-ss009) that must be preserved. Revision's six-file conversion set (slop, arch, review, prep, skill-backed, human-checkpoint) with skill-tag preservation is complete and correctly scoped."
+        },
+        {
+          "label": "manifest-doc-drift.test.ts",
+          "locator": "plugin/src/manifest-doc-drift.test.ts:47-52,130-131",
+          "summary": "Parses YAML frontmatter 'description:' field, NOT the <!-- manifest: --> HTML comment (the two 'manifest' matches are error-string literals). Removing manifest comments does not break this test. Its exclusion from the affected-list is correct — no false gap."
+        },
+        {
+          "label": "advance-epics-assets.test.ts frontmatter check",
+          "locator": "plugin/src/advance-epics-assets.test.ts:380-386; adv-epic.md:4,7",
+          "summary": "Test extracts frontmatter via /^---\\n...---/ and asserts requiresChangeId:false against adv-epic.md line 4 (inside YAML frontmatter), not the line-7 manifest comment. Removing manifest comments is safe here — no additional affected test."
+        },
+        {
+          "label": "adv-prep.md malformed heading",
+          "locator": ".opencode/command/adv-prep.md:7",
+          "summary": "Line 7 is '## <!-- manifest: ... -->' — manifest comment prefixed by a '## ' heading marker. Removing the comment leaves a bare empty '## ' heading. Revision step 4 explicitly repairs this."
+        }
+      ],
+      "architecture_assessment": "The revision is structurally sound and preserves every contract obligation. The prior fail had two root causes: (1) bulk command-tag deletion would orphan command-only requirement IDs under spec-citation-invariant.test.ts (verified: rq-prop-neg1 and peers have no executable // rq- citation, only command-file + own spec.json + excluded docs/specs mirror); (2) AC4 under-verification because pnpm run check does not run vitest (verified in package.json). The revision addresses both structurally: mandatory pre-deletion citation relocation with invariant re-verification (closes orphan risk, preserving SC-style traceability without prompt-embedded labels), and a separate test+invariant run distinct from pnpm run check (closes AC4 gap). The six-file asset-test conversion set is exhaustive for command-file tag assertions (arch-scan, slop-scan, review, human-checkpoint confirmed asserting command tags; prep listed defensively; skill-backed listed for skill-tag preservation). Skill-file tag assertions (rq-ss009 at slop-scan:134) are correctly carved out. manifest-doc-drift and advance-epics tests read YAML frontmatter, not manifest HTML comments, so manifest-comment removal does not break them — their exclusion is correct, not a gap. adv-prep.md line-7 malformed heading repair is captured. Constraints C1-C3 (no spec/schema/runtime/gate change, no cross-command abstraction, edits limited to command files + directly affected tests) are respected: adding // rq-{id} to affected test/source files is within C3 and is an accepted invariant citation source. No user-facing outcome, AC, or avoidance is compromised.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Revision preserves all contract obligations. Orphan-invariant risk and AC4 verification gap from attempt-1 are structurally closed and locally verified. Non-blocking watch-items for execution: (a) each relocated // rq-{id} citation must be durable/meaningful, not a bare label dump adjacent to unrelated code (respects DONT1 — do not replace trace labels with different internal bookkeeping prose); prefer citing from the asset test that already protects the behavior. (b) Re-run spec-citation-invariant.test.ts AFTER command-tag removal, not only before, to catch any ID whose sole surviving citation was the deleted tag. (c) Converted behavioral anchors must target stable visible headings/rules (SC2 negative-mutation intent), not merely drop the assertion (DONT2)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Relocating command-only citations into test/source // rq- comments trades one traceability surface (prompt HTML comment) for another (executable citation) — net positive since it removes prompt noise and keeps a machine-checkable enforcement path, but requires care that relocated comments are meaningful, not label dumps (DONT1).",
+          "Converting tag-literal assertions to behavioral-heading assertions strengthens regression intent (fails on real behavior removal) but slightly increases coupling to visible heading wording; mitigated by choosing stable headings.",
+          "Running affected tests separately from pnpm run check adds an explicit verification step the CI check script omits; correct for AC4 but relies on the executor actually invoking the test suite, not just check."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Bulk-delete all command tags, rely on pnpm run check only (attempt-1 shape)",
+            "disposition": "rejected",
+            "rationale": "Orphans command-only requirement IDs → spec-citation-invariant fails; pnpm run check does not run that test so the failure is invisible until full test run. Verified against package.json and the invariant test."
+          },
+          {
+            "option": "Keep manifest comments, remove only rq- tags",
+            "disposition": "rejected",
+            "rationale": "User approved manifest removal; audit found no runtime/test parser of the manifest HTML comment (manifest-doc-drift reads frontmatter). Retaining them would leave the SC1 objective partially unmet."
+          },
+          {
+            "option": "Relocate citations into docs/ instead of test/source",
+            "disposition": "deferred",
+            "rationale": "Invariant accepts docs/ (non-specs) citations, but test/source citation is closer to enforcement and better satisfies structural-correctness intent; docs-only relocation is a valid fallback if a requirement has no natural executable home."
+          }
+        ],
+        "recommendation": "Proceed to planning. Design is contract-preserving and structurally closes the attempt-1 fail. In execution, enforce: pre- AND post-deletion invariant runs, meaningful (non-dump) relocated // rq- citations preferably from the protecting asset test, behavioral anchors bound to stable headings, and an explicit affected-test suite run in addition to pnpm run check."
+      },
+      "recommendation": "validation.status=pass. Approve the revised design for the design gate. Executor must (1) add durable // rq-{id} citations for every command-only requirement and re-verify spec-citation-invariant.test.ts both before and after tag removal; (2) convert command-file tag assertions to stable-heading behavioral anchors across the six asset-test files while preserving skill-file tag assertions; (3) repair adv-prep.md line-7 heading; (4) run the affected asset tests + citation invariant SEPARATELY from pnpm run check to satisfy AC4.",
+      "follow_ups": [
+        "Execution watch-item: run spec-citation-invariant.test.ts AFTER command-tag removal (not only before) to catch any ID whose sole citation was the removed tag.",
+        "Execution watch-item: ensure relocated // rq-{id} citations are behaviorally meaningful (cite from the protecting test/source), honoring DONT1/DONT2."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+      "task_id": "tk-3e6ea446b6fa",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3e6ea446b6fa"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/command-requirement-citations.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm vitest run src/command-requirement-citations.test.ts src/__tests__/spec-citation-invariant.test.ts",
+          "exit_code": 0,
+          "summary": "5/5 tests pass: 3 new citation-preservation tests + 2 invariant tests. Invariant confirms all 390 requirements have external citations."
+        },
+        {
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript compiles with no errors"
+        },
+        {
+          "command": "pnpm eslint src/command-requirement-citations.test.ts",
+          "exit_code": 0,
+          "summary": "No lint errors in new file"
+        },
+        {
+          "command": "pnpm prettier --check src/command-requirement-citations.test.ts",
+          "exit_code": 0,
+          "summary": "New file passes format check"
+        },
+        {
+          "command": "Simulation: strip all rq- tags from .opencode/command/adv-*.md in /tmp copy, run invariant",
+          "exit_code": 0,
+          "summary": "Invariant passes even with all command tags removed (proves preservation is sufficient)"
+        },
+        {
+          "command": "Negative control: remove new file from simulation, run invariant",
+          "exit_code": 1,
+          "summary": "Invariant fails with 37 uncited requirements (proves new file is necessary)"
+        },
+        {
+          "command": "adv_run_test (attempted)",
+          "exit_code": -1,
+          "summary": "Temporal worker down; adv_run_test unavailable. Used bash-based vitest instead."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Created single dedicated test file instead of scattering comments across existing asset tests",
+          "why": "OUT_OF_SCOPE explicitly excludes rewriting asset-test behavior anchors; a new file is surgical, reviewable, and maintains clear separation between citation preservation and behavior tests"
+        },
+        {
+          "what": "Included 7 IDs with non-command citations (skills/docs/CHANGELOG) in addition to the 37 strictly command-only IDs",
+          "why": "Defense-in-depth: these IDs lack executable-source citations; if prose citations are removed later, the invariant would break. Task scope says 'durable executable source/test comments'"
+        },
+        {
+          "what": "Added regression test asserting each preserved ID exists in its spec.json with matching title",
+          "why": "Prevents citation rot: if a requirement is deleted or renamed, the test fails and reminds maintainers to clean up the preserved citation"
+        },
+        {
+          "what": "Excluded 4 dangling non-spec IDs (rq-issueChangeLinkage01/02, rq-pathVerification01, rq-taskRunLedger01)",
+          "why": "These IDs are not in any spec.json, so the invariant does not require them. They are dead references in command files, best handled during command-tag removal cleanup"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Update asset tests asserting `expect(command).toContain(\"<!-- rq-XXX -->\")` when command tags are removed (e.g. adv-slop-scan-assets.test.ts has such assertions for rq-ss009-012)",
+        "Clean up 4 dangling rq- IDs in command files: rq-issueChangeLinkage01, rq-issueChangeLinkage02, rq-pathVerification01, rq-taskRunLedger01 (not present in any spec.json)",
+        "Fix pre-existing format issue on plugin/src/tool-name-assets.test.ts (unrelated to this change)"
+      ],
+      "required_main_agent_actions": [
+        "Consider updating asset tests that assert command trace tags exist (will fail when tags are removed)",
+        "Review whether the 4 dangling rq- IDs should be removed from command files during tag cleanup"
+      ],
+      "related_scan": "Scanned all rq- citations across .opencode/command/, plugin/src/, .opencode/ (non-command), skills/, docs/, ADV_INSTRUCTIONS.md, AGENTS.md, CHANGELOG.md. Verified 44 spec IDs lacked plugin/src citations before fix; all 44 now have them. Confirmed no other citation surfaces missed. Checked scenario sub-IDs (rq-foo01.1) — parent requirements already covered.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "All 44 command-only spec requirement citations preserved in plugin/src/command-requirement-citations.test.ts. Invariant passes with and without command tags (verified via simulation). adv_run_test unavailable (Temporal worker down); bash-based vitest used instead. 4 dangling non-spec rq- IDs noted for cleanup.",
+        "suggested_next_action": "Proceed to command-tag removal task. The invariant is now protected; asset tests asserting `<!-- rq-XXX -->` will need updating in a follow-up task (out of this scope)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/command-requirement-citations.test.ts src/__tests__/spec-citation-invariant.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm eslint src/command-requirement-citations.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm prettier --check src/command-requirement-citations.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: Simulation: strip all rq- tags from .opencode/command/adv-*.md in /tmp copy, run invariant"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: Negative control: remove new file from simulation, run invariant"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: adv_run_test (attempted)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+      "task_id": "tk-efd4b1712e3a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-efd4b1712e3a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/adv-slop-scan-assets.test.ts",
+        "plugin/src/adv-arch-scan-assets.test.ts",
+        "plugin/src/adv-review-assets.test.ts",
+        "plugin/src/adv-prep-assets.test.ts",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/__tests__/human-checkpoints-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Baseline: 107/107 tests pass across the 6 in-scope files. runId=tr_mrip56nd_37f9fef2"
+        },
+        {
+          "command": "pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts (phase=red)",
+          "exit_code": 1,
+          "summary": "RED: meta-test failed with all 12 expected command-file trace-tag assertion violations. runId=tr_mrip70vv_4c84646c"
+        },
+        {
+          "command": "pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts (phase=green)",
+          "exit_code": 0,
+          "summary": "GREEN: meta-test passes 3/3 after replacing all 12 command-file trace-tag assertions. runId=tr_mripaxab_1524546a"
+        },
+        {
+          "command": "pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts (phase=green)",
+          "exit_code": 0,
+          "summary": "GREEN: 107/107 affected tests still pass after replacing tag assertions with substantive anchors. runId=tr_mripb72p_1429696f"
+        },
+        {
+          "command": "pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts (phase=verify)",
+          "exit_code": 0,
+          "summary": "Final verify: 107/107 tests pass; temporary meta-test deleted. runId=tr_mripc5gl_e47b37b4"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Replaced command-file `<!-- rq-… -->` and `rq-{id}` literal assertions by removing the tag line and relying on the existing adjacent substantive heading/rule assertions in the same test; added one extra rule-level anchor in 4 tests where the tag was the only non-heading behavioral probe.",
+          "why": "Each removed tag was already paired with a substantive heading assertion in the same test, so deleting the tag line is the minimal change that keeps SC2 (tests still fail if the substantive behavior is removed). Adding a second rule-level assertion in adv-review, adv-prep, skill-backed-commands, and human-checkpoints strengthens coverage where the tag was previously the only rule-level probe."
+        },
+        {
+          "what": "Used a temporary TDD meta-test (plugin/src/__tests__/__tmp_trace_tag_migration.test.ts) to drive RED/GREEN, then deleted it after GREEN.",
+          "why": "The task explicitly requires a RED phase; the meta-test approach proved the 12 target assertions existed before the refactor and were absent after, satisfying TDD verification without polluting the committed test suite."
+        },
+        {
+          "what": "Excluded `rq-archp33` from the meta-test forbidden-pattern list.",
+          "why": "The same `expect(content).toContain(\"<!-- rq-archp33 -->\")` shape is used for both the command-file assertion (line 33, removed) and the skill-file assertion (line 44, preserved). The meta-test already covers skill preservation separately; listing rq-archp33 would produce a false positive on the intentionally retained skill assertion."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Run `pnpm run check` from `plugin/` after the sibling comment-removal task lands to satisfy AC4 (out of scope for this task which only edits tests)."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned all 6 in-scope test files for every `rq-` reference and classified each as command-file HTML-comment, skill-file (preserved), spec/JSON lookup (not an assertion), or agent-file assertion (out of scope). Only the 12 command-file trace-tag assertions were replaced. Verified by grep that no `expect(command|content|prep).toContain(\"<!-- rq-… -->\" )` or `expect(command|content|prep).toContain(\"rq-…\")` remains in the six files (excluding skill-file targets).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "All 12 command-file trace-tag assertions in the 6 in-scope test files have been replaced with substantive anchors (adjacent headings/rules already present in the same tests; 3 tests received an extra rule-level anchor to keep SC2 coverage strong: adv-review-assets, adv-prep-assets, adv-skill-backed-commands-assets, human-checkpoints-assets). Skill-file trace assertions at adv-slop-scan-assets.test.ts:133 and adv-arch-scan-assets.test.ts:44 are preserved unchanged per OUT_OF_SCOPE. All 107 tests in the affected set pass. No command files, specs, runtime code, or skill files were touched.",
+        "suggested_next_action": "Proceed to the sibling task that removes `<!-- rq-… -->` and `<!-- manifest: … -->` comments from `.opencode/command/adv-*.md`. The test suite now relies exclusively on substantive anchors, so that removal will not regress coverage. After comment removal, run the six affected asset tests plus `pnpm run check` for full AC4 verification."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts (phase=red)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts (phase=green)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts (phase=green)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts (phase=verify)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+      "task_id": "tk-8d329e96a86a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8d329e96a86a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-arch-scan.md",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-audit.md",
+        ".opencode/command/adv-backlog.md",
+        ".opencode/command/adv-clarify.md",
+        ".opencode/command/adv-cleanup.md",
+        ".opencode/command/adv-comp-scan.md",
+        ".opencode/command/adv-coordinate.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-epic.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-idea.md",
+        ".opencode/command/adv-improve.md",
+        ".opencode/command/adv-optimizer.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-problem.md",
+        ".opencode/command/adv-proposal.md",
+        ".opencode/command/adv-refactor.md",
+        ".opencode/command/adv-reflect.md",
+        ".opencode/command/adv-research.md",
+        ".opencode/command/adv-review.md",
+        ".opencode/command/adv-roadmap.md",
+        ".opencode/command/adv-slop-scan.md",
+        ".opencode/command/adv-status.md",
+        ".opencode/command/adv-task.md",
+        ".opencode/command/adv-triage.md",
+        ".opencode/command/adv-tron.md",
+        ".opencode/command/adv-validate.md",
+        "plugin/src/adv-prep-assets.test.ts",
+        "plugin/src/tool-name-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "grep -c '<!-- rq-\\|<!-- manifest:' .opencode/command/adv-*.md | grep -v ':0$'",
+          "exit_code": 0,
+          "summary": "AC1 PASS: zero `<!-- rq-` and zero `<!-- manifest:` matches across all 30 adv-*.md command files (100 comment lines removed)."
+        },
+        {
+          "command": "head -12 .opencode/command/adv-prep.md",
+          "exit_code": 0,
+          "summary": "adv-prep.md heading repaired: malformed `## <!-- manifest… -->` line replaced; file now has clean `# ADV Prep` heading directly after frontmatter."
+        },
+        {
+          "command": "pnpm vitest run src/command-requirement-citations.test.ts src/__tests__/spec-citation-invariant.test.ts src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts",
+          "exit_code": 0,
+          "summary": "8/8 test files pass, 112/112 tests. Citation-preservation + spec-citation-invariant suites confirm all 390 spec requirements retain executable-source citations after command-tag removal. Affected command-asset tests (slop-scan, arch-scan, review, prep, skill-backed-commands, human-checkpoints) all pass with substantive anchors."
+        },
+        {
+          "command": "pnpm vitest run src/briefing-packets-command-assets.test.ts src/commands-spine-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts src/adv-autonomy-quality-assets.test.ts src/adv-designer-assets.test.ts src/adv-engineer-assets.test.ts src/advance-epics-assets.test.ts src/approval-consequence-context-assets.test.ts src/archive-release-finalization-assets.test.ts src/checkpoint-surface-drift.test.ts src/delegation-matrix.test.ts src/handoff-footer-drift.test.ts src/ops-follow-up-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/scope-discovery-assets.test.ts src/todowrite-projection-assets.test.ts src/workflow-noise-reduction-assets.test.ts src/adv-ci-waiter-assets.test.ts",
+          "exit_code": 0,
+          "summary": "19/19 test files pass, 360/360 tests. Broader command-asset sweep (briefing packets, command spine, manifest doc-drift, manifest, autonomy/designer/engineer/epics assets, approval/archive/checkpoint/delegation/handoff/ops/scope/todowrite/workflow-noise/ci-waiter assets) all green — confirms no test asserts on removed comments or removed duplicate sections."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "AC4 PASS: schemas:check, typecheck, test-isolation check, lockfile-policy check, eslint, and prettier format:check all pass. Initial run failed on two pre-existing prettier violations (plugin/src/adv-prep-assets.test.ts, plugin/src/tool-name-assets.test.ts); fixed with prettier --write; re-run clean."
+        },
+        {
+          "command": "pnpm vitest run src/adv-prep-assets.test.ts src/tool-name-assets.test.ts",
+          "exit_code": 0,
+          "summary": "2/2 test files pass, 11/11 tests after prettier format fix — confirms formatting-only change, no behavior regression."
+        },
+        {
+          "command": "grep -n 'Incremental Verification\\|Retry Protocol\\|TDD Work Loop\\|Trivial Tasks\\|Cross-Repo Execution' .opencode/command/adv-apply.md",
+          "exit_code": 0,
+          "summary": "SC3 structural verification: each of the 5 categories (cross-repo, TDD lifecycle, retry, incremental verification, trivial tasks) now has exactly ONE canonical block in adv-apply.md; all other mentions are one-line pointers to the canonical section. Phase 3 detailed rules preserved; Phase 0 duplicates replaced by precise local references."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used a Node script for the mechanical comment-strip across 30 files instead of 100 individual edit calls",
+          "why": "Deterministic regex `^\\s*<!--\\s*(rq-|manifest:)[\\s\\S]*?-->\\s*$` guarantees exact-match removal; collapsing consecutive blank lines after strip preserves markdown heading-adjacency rules. Faster and more reliable than per-file edits."
+        },
+        {
+          "what": "Removed adv-prep.md line 7 `## <!-- manifest… -->` entirely rather than only the comment",
+          "why": "The `## ` heading prefix paired with the comment produced a malformed empty heading. Removing the whole line restores the canonical `# ADV Prep` title as the first heading directly after frontmatter."
+        },
+        {
+          "what": "Replaced Phase 0 § TDD Work Loop table + § Retry Protocol table with one-line pointers to Phase 3 / § Retry Protocol (canonical)",
+          "why": "SC3 prohibits separate duplicate blocks. Phase 3 is the detailed canonical source per DONE_WHEN. The Phase 0 paragraphs preserve the unique adv_run_test phase-metadata semantics, rq-TDD009seq ordering enforcement, and rq-TDD010qual advisory signals (none of which duplicate Phase 3)."
+        },
+        {
+          "what": "Folded standalone § Incremental Verification section into Phase 3 step 3c.4",
+          "why": "Step 3c.4 is the inline step in the TDD loop sequence; the standalone section was nearly word-for-word duplicate. Enriched step 3c.4 with the unique 'post-checkpoint fix-ups are not expected by design' sentence so no content is lost."
+        },
+        {
+          "what": "Trimmed Task Completion Policy cross-repo paragraph to keep only product-linked wisdom guidance",
+          "why": "The 'switch workdir' and 'never a valid exit' phrasing is canonical in § Cross-Repo Execution and the ×Bad/✓Good quick-ref table; the product-linked scope_repos / origin_repo_* wisdom fields are unique to this paragraph and must be preserved."
+        },
+        {
+          "what": "Applied prettier --write to plugin/src/adv-prep-assets.test.ts and plugin/src/tool-name-assets.test.ts",
+          "why": "AC4 requires `pnpm run check` exit 0. Both files had pre-existing prettier violations (one from prior task tk-efd4b1712e3a's checkpoint, one flagged by prior task as unrelated follow-up). Pure formatting fixes; no test logic changed; all 11 tests in both files still pass."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "plugin/src/tool-name-assets.test.ts prettier format fix",
+          "plugin/src/adv-prep-assets.test.ts prettier format fix"
+        ],
+        "details": "plugin/src/tool-name-assets.test.ts had a pre-existing prettier format violation flagged by prior task tk-efd4b1712e3a as unrelated to this change. plugin/src/adv-prep-assets.test.ts had a prettier violation introduced by prior task tk-efd4b1712e3a's checkpoint. Both blocked AC4 (`pnpm run check` exit 0). Applied `prettier --write` to both — pure whitespace/format changes, no test logic altered. Both files pass all 11 of their tests after the fix.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned all 31 .opencode/command/adv-*.md files for `<!-- rq-` and `<!-- manifest:` patterns. Confirmed 30 files affected (all except adv-epic.md which had both types already covered by the 30-file regex pass — verified by final grep showing 0 matches across all 31 files). ship.md also has a `<!-- manifest: … -->` comment but is NOT an adv-*.md file and is therefore OUT_OF_SCOPE per IN_SCOPE declaration. Scanned plugin/src for tests asserting on the removed Phase 0 § TDD Work Loop table, § Retry Protocol table, § Incremental Verification section, § Trivial Tasks, § Cross-Repo Execution headings — zero matches. Scanned for tests asserting on `<!-- rq-… -->` or `<!-- manifest:` literals in command files — zero matches (prior task tk-efd4b1712e3a already replaced all 12 such assertions).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "All 30 .opencode/command/adv-*.md files stripped of internal `<!-- rq-… -->` and `<!-- manifest: … -->` comments (100 lines removed). adv-prep.md malformed `## <!-- manifest… -->` heading repaired to clean `# ADV Prep`. adv-apply.md consolidated per SC3: Phase 0 § TDD Work Loop table, § Retry Protocol table, and two Task Completion Rules bullets replaced with one-line pointers to canonical sections; § Incremental Verification standalone section folded into Phase 3 step 3c.4 preserving the unique 'post-checkpoint fix-ups' design note; Phase 2 retry advisory line and Task Completion Policy cross-repo paragraph trimmed to pointers. AC1/AC3/SC1/SC3 satisfied; AC4 satisfied via `pnpm run check` exit 0. Two pre-existing prettier format failures on plugin/src/adv-prep-assets.test.ts (from prior task tk-efd4b1712e3a) and plugin/src/tool-name-assets.test.ts (flagged by prior task as unrelated follow-up) were repaired with prettier --write — pure formatting, no behavior change; required to satisfy AC4.",
+        "suggested_next_action": "Proceed to verification task tk-8952d6e7ce72. After merge, no runtime/deploy impact — command prompts are loaded at OpenCode session start from deployed plugin dist; no deploy needed for this change since commands live in .opencode/command/, not plugin/src."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "adv_run_test unavailable during this session (Temporal worker); used bash-based pnpm vitest run instead, matching prior task convention."
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -c '<!-- rq-\\|<!-- manifest:' .opencode/command/adv-*.md | grep -v ':0$'"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: head -12 .opencode/command/adv-prep.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/command-requirement-citations.test.ts src/__tests__/spec-citation-invariant.test.ts src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/briefing-packets-command-assets.test.ts src/commands-spine-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts src/adv-autonomy-quality-assets.test.ts src/adv-designer-assets.test.ts src/adv-engineer-assets.test.ts src/advance-epics-assets.test.ts src/approval-consequence-context-assets.test.ts src/archive-release-finalization-assets.test.ts src/checkpoint-surface-drift.test.ts src/delegation-matrix.test.ts src/handoff-footer-drift.test.ts src/ops-follow-up-assets.test.ts src/orchestrator-ops-delegation-assets.test.ts src/scope-discovery-assets.test.ts src/todowrite-projection-assets.test.ts src/workflow-noise-reduction-assets.test.ts src/adv-ci-waiter-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/adv-prep-assets.test.ts src/tool-name-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: grep -n 'Incremental Verification\\|Retry Protocol\\|TDD Work Loop\\|Trivial Tasks\\|Cross-Repo Execution' .opencode/command/adv-apply.md"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+      "task_id": "tk-8d329e96a86a",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8d329e96a86a"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tool-name-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "git diff plugin/src/tool-name-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Confirmed pre-revert diff was formatting-only (single line-wrap on an expect().not.toMatch call); safe to revert."
+        },
+        {
+          "command": "git restore --source=HEAD -- plugin/src/tool-name-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Reverted plugin/src/tool-name-assets.test.ts to task baseline (HEAD)."
+        },
+        {
+          "command": "git diff --name-only | grep -c '^plugin/src/tool-name-assets.test.ts$' || echo ABSENT",
+          "exit_code": 0,
+          "summary": "grep count = 0; file absent from git diff --name-only — DONE_WHEN satisfied."
+        },
+        {
+          "command": "git diff --name-only",
+          "exit_code": 0,
+          "summary": "Post-revert diff lists only the 29 intended command files plus plugin/src/adv-prep-assets.test.ts; tool-name-assets.test.ts no longer present."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used `git restore --source=HEAD -- plugin/src/tool-name-assets.test.ts` to revert",
+          "why": "Single-file revert to baseline; safer than editing the diff manually because the change was formatting-only and HEAD is the authoritative baseline."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed all 29 command files and plugin/src/adv-prep-assets.test.ts remain modified — no other test files drifted into the diff.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Scope violation from attempt 1 reverted: plugin/src/tool-name-assets.test.ts now matches task baseline (confirmed absent from git diff --name-only). All 30 intended edits (29 .opencode/command/*.md + plugin/src/adv-prep-assets.test.ts) are retained. No content, behavior, or test-rewrite changes were made.",
+        "suggested_next_action": "Re-verify task tk-8d329e96a86a: re-run plugin/src/adv-prep-assets.test.ts and any command-contract checks, then mark task done if green."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff plugin/src/tool-name-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git restore --source=HEAD -- plugin/src/tool-name-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --name-only | grep -c '^plugin/src/tool-name-assets.test.ts$' || echo ABSENT"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --name-only"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+      "task_id": "tk-8952d6e7ce72",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8952d6e7ce72"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tool-name-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "npx prettier --check src/tool-name-assets.test.ts (before)",
+          "exit_code": 1,
+          "summary": "Confirmed pre-existing formatting violation on the in-scope file (justified the write step)."
+        },
+        {
+          "command": "git diff plugin/src/tool-name-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Diff is whitespace-only: single long `expect(content).not.toMatch(/.../)` line wrapped across three lines; no logic, identifier, or regex change (1 file, +3/-1)."
+        },
+        {
+          "command": "pnpm vitest run src/tool-name-assets.test.ts",
+          "exit_code": 0,
+          "summary": "All 5 tests in the file pass (15ms)."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, check-test-isolation, check-lockfile-policy, lint, and format:check all pass; 'All matched files use Prettier code style!'"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Applied npx prettier --write to the single in-scope file rather than editing manually.",
+          "why": "Prettier is the authoritative formatter; running it directly guarantees the resulting formatting matches what format:check will accept, eliminating trial-and-error risk."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified no other in-scope file needed formatting by running pnpm run format:check across src/ — all matched files use Prettier code style.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Prettier reformatted plugin/src/tool-name-assets.test.ts (line-wrap of long regex matcher, whitespace-only). Targeted vitest passes 5/5 and pnpm run check is green across schemas/typecheck/isolation/lockfile/lint/format. AC4 formatting blocker resolved.",
+        "suggested_next_action": "Mark task tk-8952d6e7ce72 done and proceed with AC4 acceptance evidence."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: npx prettier --check src/tool-name-assets.test.ts (before)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff plugin/src/tool-name-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm vitest run src/tool-name-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "packet-defect-1",
+          "label": "blocker",
+          "what": "Context Packet omits required SCOPE KEY identity anchor for independent change-level review.",
+          "why": "Reviewer identity validation requires SCOPE KEY plus PHASE and ATTEMPT for independent review summaries; analysis must not begin without it.",
+          "fix": "Main agent must regenerate the briefing/context packet with SCOPE KEY: review:acceptance (or the intended independent review scope key)."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "No repository analysis or edits performed: identity-anchor validation failed before scope lock."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No acceptance review evidence was produced because the packet lacks its required SCOPE KEY identity anchor."
+      ],
+      "required_main_agent_actions": [
+        "Regenerate and delegate a complete independent review packet containing SCOPE KEY, PHASE, and ATTEMPT; retain the supplied WORKING DIRECTORY and contract anchors."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "CONFLICT",
+      "blocking_findings": [
+        {
+          "id": "contract-c3-ac4-1",
+          "label": "blocker",
+          "file": "plugin/src/tool-name-assets.test.ts",
+          "line": 95,
+          "what": "`pnpm run check` only passes when this unrelated tool-name asset test retains a Prettier-only formatting diff.",
+          "why": "Restoring the file to its trunk content complies with C3's command-files/directly-affected-tests limit, but `pnpm --dir plugin run check` then exits 1. Retaining the formatting-only change satisfies AC4 but violates C3.",
+          "fix": "Do not apply without contract decision: amend C3 to allow this isolated formatting normalization, or explicitly accept the AC4 failure and remove it."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tool-name-assets.test.ts",
+          "summary": "Removed the unrelated formatting-only diff to restore the C3 file-scope boundary.",
+          "verification": "Targeted affected suites still passed; subsequent `pnpm --dir plugin run check` failed only Prettier on this restored trunk formatting."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A strict full-format check can force unrelated baseline formatting edits; a change contract that limits files must explicitly permit such normalization or keep the check result as a known blocker."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/command-requirement-citations.test.ts src/__tests__/spec-citation-invariant.test.ts src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "fail",
+        "evidence": "Targeted suite passed: 8 files, 112 tests. `pnpm --dir plugin run check` reached Prettier and failed solely at `src/tool-name-assets.test.ts`; initial root-prefixed targeted invocation was corrected because the test runner executes from `plugin/`."
+      },
+      "scope_drift": {
+        "items": [
+          "AC4",
+          "C3"
+        ],
+        "details": "The branch's only non-command/non-direct-test edit is a Prettier-only normalization in `plugin/src/tool-name-assets.test.ts`. Keeping it makes AC4 pass but violates C3; reverting it restores C3 but makes AC4 fail. No safe in-scope implementation satisfies both without an approved contract decision.",
+        "recommendation": "stop_and_report"
+      },
+      "risks": [
+        "Acceptance cannot be approved while AC4/C3 conflict remains unresolved.",
+        "The targeted asset suites emit existing advisory command-line-budget warnings; they are warn-only and did not fail."
+      ],
+      "required_main_agent_actions": [
+        "Present the AC4/C3 scope-drift finding to the user via Tier A inline approval per docs/scope-discovery-protocol.md.",
+        "On approve, amend C3 to permit the isolated Prettier normalization, reenter from discovery, restore the formatter change, then rerun `pnpm --dir plugin run check`.",
+        "On split, create a fast-follow change for repository-wide/baseline formatting policy and keep this change constrained; AC4 remains blocked until a user-approved verification approach is agreed.",
+        "On reject, retain the C3-compliant revert and record AC4 as unmet/rejected with evidence; do not claim acceptance."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tool-name-assets.test.ts",
+          "summary": "Restored the user-approved Prettier multiline assertion formatting from commit 480f6c0ccf8f641b7372f5718643cdc35c2e830e; no test logic changed.",
+          "verification": "`pnpm run check` passed, including Prettier; final diff against commit 480f6c0 for this file is empty."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "When an acceptance formatting check requires a whitespace-only change in a directly affected test, retain the approved formatted form and validate it against the approved checkpoint commit before final review."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts src/command-requirement-citations.test.ts src/tool-name-assets.test.ts",
+          "pnpm run check",
+          "git status --short && git diff --check && git diff --quiet 480f6c0ccf8f641b7372f5718643cdc35c2e830e -- plugin/src/tool-name-assets.test.ts && ! rg -n '<!-- (rq-|manifest:)' .opencode/command/adv-*.md"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite: 8 files / 115 tests passed. `pnpm run check` passed schemas, typecheck, isolation/lockfile checks, lint, and Prettier. Final worktree is clean, has no diff from approved commit 480f6c0 for tool-name-assets, and command trace/manifest search returned zero matches. Review confirms substantive slop/architecture anchors, citation preservation coverage, and adv-apply’s local-reference consolidation retain TDD, retry, cross-repo, verification, and task semantics."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Acceptance review complete. Do not revisit plugin/src/tool-name-assets.test.ts formatting; it exactly matches the approved checkpoint.",
+        "Proceed with normal acceptance evidence synthesis and gate workflow; no contract issue remains."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCommandTraceTags",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCommandTraceTags",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "When removing prompt-only requirement markers, preserve each command-only requirement as executable-source/test citation and verify both the command-comment absence glob and spec-citation invariant."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm --dir plugin run check",
+          "bin/oc-test targeted -- src/command-requirement-citations.test.ts src/tool-name-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-prep-assets.test.ts src/adv-review-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/adv-slop-scan-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts",
+          "bin/oc-test targeted -- src/command-requirement-citations.test.ts src/__tests__/spec-citation-invariant.test.ts",
+          "rg -n --glob 'adv-*.md' '<!-- (?:manifest:|rq-)' .opencode/command (expected zero matches)",
+          "git diff --check $(git merge-base origin/trunk HEAD)..HEAD",
+          "git status --short (expected empty)"
+        ],
+        "results": "pass",
+        "evidence": "pnpm check passed schemas, typecheck, isolation/lockfile checks, ESLint, and Prettier. Eight affected command/citation suites passed (115 tests). Citation preservation plus spec-citation invariant passed (5 tests). Exact AC1 glob returned zero target ADV-command trace/manifest comments; diff check and final worktree status were clean. The asset suite emitted existing warn-only command-token-budget baselines; no test failure or change-specific release risk."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Command-token-budget baseline warnings remain advisory and pre-existing; 15 command files exceed historical baseline tolerance, but affected tests pass and this change does not worsen the condition."
+      ],
+      "required_main_agent_actions": [
+        "Consume this hardening evidence for release readiness; no scoped remediation is required.",
+        "Do not revisit non-ADV .opencode/command/ship.md manifest metadata: AC1 deliberately scopes the removal to adv-*.md files."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-efd4b1712e3a": [
+      {
+        "runId": "tr_mrip4wpj_75847ba6",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run plugin/src/adv-slop-scan-assets.test.ts plugin/src/adv-arch-scan-assets.test.ts plugin/src/adv-review-assets.test.ts plugin/src/adv-prep-assets.test.ts plugin/src/adv-skill-backed-commands-assets.test.ts plugin/src/__tests__/human-checkpoints-assets.test.ts",
+        "durationMs": 1174.6065689995885,
+        "assertionDensity": 4.323529411764706,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-13T04:02:23.835Z"
+      },
+      {
+        "runId": "tr_mrip56nd_37f9fef2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts",
+        "durationMs": 1331.621636999771,
+        "recordedAt": "2026-07-13T04:02:36.696Z"
+      },
+      {
+        "runId": "tr_mrip6m6y_77b92faf",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts",
+        "durationMs": 3045.6346570001915,
+        "recordedAt": "2026-07-13T04:03:43.665Z"
+      },
+      {
+        "runId": "tr_mrip70vv_4c84646c",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts",
+        "durationMs": 1473.2899669995531,
+        "recordedAt": "2026-07-13T04:04:02.567Z"
+      },
+      {
+        "runId": "tr_mripa26l_3d8b77f4",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts",
+        "durationMs": 1233.5331129999831,
+        "recordedAt": "2026-07-13T04:06:24.227Z"
+      },
+      {
+        "runId": "tr_mripaxab_1524546a",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/__tests__/__tmp_trace_tag_migration.test.ts",
+        "durationMs": 1289.3779309997335,
+        "recordedAt": "2026-07-13T04:07:04.512Z"
+      },
+      {
+        "runId": "tr_mripb72p_1429696f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts",
+        "durationMs": 1280.3933319998905,
+        "recordedAt": "2026-07-13T04:07:17.185Z"
+      },
+      {
+        "runId": "tr_mripc5gl_e47b37b4",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/adv-slop-scan-assets.test.ts src/adv-arch-scan-assets.test.ts src/adv-review-assets.test.ts src/adv-prep-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/human-checkpoints-assets.test.ts",
+        "durationMs": 1508.0790659999475,
+        "recordedAt": "2026-07-13T04:08:01.783Z"
+      }
+    ],
+    "tk-8952d6e7ce72": [
+      {
+        "runId": "tr_mrj7piqp_b96e3cd5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm vitest run src/tool-name-assets.test.ts",
+        "durationMs": 4577.688528001308,
+        "recordedAt": "2026-07-13T12:42:18.627Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:00:30.856Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed proposal with: approve.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "1ed92be9ad620816d2ebe22e77e3677d67d04bd9cfb6f463bf959b31905b2f6e",
+        "non_whitespace_chars": 567,
+        "checked_at": "2026-07-13T02:56:07.039Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:20:43.468Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved by user: remove manifests; consolidate only within commands; tests retain substantive behavior anchors. Contract minted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "non_whitespace_chars": 1993,
+        "checked_at": "2026-07-13T02:56:07.040Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:29:32.566Z",
+      "completed_by": "agent",
+      "approval_evidence": "Revised design independently validated by adv-researcher (pass, high confidence). Citation preservation and exhaustive affected-test coverage added; no user-value tradeoff or contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "2d1840355ac20d3bd36eebee988b30bc020c36b11a0add9f5ddef6db6299e988",
+        "non_whitespace_chars": 4071,
+        "checked_at": "2026-07-13T02:56:07.041Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:35:49.155Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved task graph with `approve`."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T12:44:30.396Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks checkpointed and worktree clean. Command trace/manifest absence, citation invariant, command-asset tests, and pnpm run check verified; user approved one whitespace-only formatting remediation required by format check."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T16:02:58.227Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work with `approve` after READY review.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "7cbb1ff16fdb37774208ae806f890c9b5060d699d38fa89f01a0b070b7dba9a0",
+        "non_whitespace_chars": 1352,
+        "checked_at": "2026-07-13T02:56:07.042Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+      "approvedAt": "2026-07-13T03:20:33.748Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1 — Comment removal:** A search of `.opencode/command/adv-*.md` returns zero matches for `<!-- rq-` and `<!-- manifest:`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2 — Behavioral anchors:** The directly affected slop-scan and architecture-scan asset tests assert substantive headings or rules rather than `<!-- rq-… -->` literals and pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3 — In-command consolidation:** Confirmed repeated operational guidance in affected commands is represented once per command or replaced by a precise local reference; gate ownership, tool calls, retry budgets, and task semantics remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4 — Verification:** Targeted affected tests and `pnpm run check` exit 0.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** ADV command prompts expose no internal requirement-trace or manifest HTML comments.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** Command-asset regression tests fail when substantive protected behavior is removed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** `adv-apply.md` no longer has separate duplicate blocks for retry policy, cross-repo execution, TDD lifecycle, incremental verification, or trivial-task handling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Retain spec laws, tool schemas, runtime behavior, and gate ownership unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not introduce cross-command template abstraction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Limit edits to ADV command files and directly affected tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not replace trace labels with different internal bookkeeping prose.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not weaken test coverage by merely deleting tag assertions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not remove standalone command guidance solely because a similar rule exists in another command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Changes to `.adv/specs/`, Temporal workflows, tool schemas, or gate contracts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Non-command instruction surfaces, agents, skills, and deployment behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T12:53:13.188Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Acceptance reviewer: deterministic scan found zero `<!-- rq-` and `<!-- manifest:` matches across `.opencode/command/adv-*.md`."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Acceptance reviewer: targeted citation and six command-asset suites passed; substantive anchors replaced command tag assertions."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Acceptance reviewer inspected adv-apply consolidation: five categories retain one canonical detailed block with local pointers."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Acceptance reviewer ran `pnpm run check` successfully after the user-approved whitespace-only Prettier fix."
+        },
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer confirmed command trace and manifest HTML comments are absent from all target ADV commands."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer confirmed asset tests now assert substantive command behavior; skill-file citation assertions remain intact."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer confirmed retry, cross-repo, TDD lifecycle, incremental verification, and trivial-task guidance each have a canonical location in adv-apply."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Diff review and passing checks show no spec, schema, runtime, tool, or gate changes."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Diff review confirms no cross-command abstraction was introduced."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Changes are command contracts, directly affected test/citation coverage, plus explicitly user-approved whitespace-only formatter remediation."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Removed command bookkeeping comments rather than substituting new prompt labels."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Tag-literal assertions were replaced with substantive behavior anchors; coverage was retained."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only intra-command repetition was consolidated; each command remains self-contained."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No spec, Temporal workflow, schema, tool, or gate-contract changes."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No agent, skill, deployment, or other non-command instruction-surface changes."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1 — Comment removal:** A search of `.opencode/command/adv-*.md` returns zero matches for `<!-- rq-` and `<!-- manifest:`.",
+    "**AC2 — Behavioral anchors:** The directly affected slop-scan and architecture-scan asset tests assert substantive headings or rules rather than `<!-- rq-… -->` literals and pass.",
+    "**AC3 — In-command consolidation:** Confirmed repeated operational guidance in affected commands is represented once per command or replaced by a precise local reference; gate ownership, tool calls, retry budgets, and task semantics remain unchanged.",
+    "**AC4 — Verification:** Targeted affected tests and `pnpm run check` exit 0."
+  ],
+  "documents": {
+    "proposal": "# Remove command trace tags\n\n## Goal\nRemove internal HTML trace and manifest comments from ADV command prompts and consolidate confirmed redundant guidance within each command, without changing command behavior.\n\n## Discovery findings\n- Audit found 71 `<!-- rq-… -->` trace-comment lines across 12 `.opencode/command/adv-*.md` files. They are internal requirement citations; requirement law remains in `.adv/specs/` and executable source.\n- Audit found 31 `<!-- manifest: … -->` header comments. No parser or test consumes them; user chose removal.\n- Seven asset-test assertions require replacement because they assert trace-tag literals. Tests will instead assert substantive behavior text.\n- `adv-apply.md` contains confirmed internal duplicate blocks: retry policy, cross-repo execution, TDD lifecycle, incremental verification, and trivial-task handling.\n- Cross-command templates remain intentionally duplicated so each slash command remains self-contained; user excluded cross-command abstraction.\n\n## Discovery checklist\n| Step | Result |\n| --- | --- |\n| Skills considered | PASS — `adv-instructions-audit` loaded; command prose requires executable anchors. |\n| Prior research | PASS — no applicable prior research artifact found. |\n| Conflict scan | PASS — no related active change identified; own validation has only expected pre-prep warnings. |\n| Edge cases | PASS — multi-ID trace comments; asset tests anchored to tags; manifest removal from malformed `adv-prep` heading. |\n| Design questions | PASS — user chose manifest removal, within-command deduplication, substantive test anchors. |\n| Draft spec deltas | PASS — none required; spec laws and executable code citations remain unchanged. |\n| Related-pattern scan | PASS — audited every ADV command, not only `adv-apply`. |\n| LBP check | PASS — internal prompt contracts should contain operational instructions, not requirement bookkeeping. |\n| Completeness verification | PASS — scoped to ADV command prompts and affected asset tests; no cross-command abstraction claimed. |\n\n## Scope\n- Remove `<!-- rq-… -->` and `<!-- manifest: … -->` comments from `.opencode/command/adv-*.md`.\n- Replace affected literal-tag asset assertions with substantive behavior assertions.\n- Remove confirmed duplicate guidance within individual commands, beginning with `adv-apply`.\n\n## Out of scope\n- Requirement/spec changes, tool schemas, gate ownership, or runtime behavior.\n- Cross-command template abstraction or editing non-command instruction surfaces.",
+    "problemStatement": "Production ADV command prompts expose internal requirement-trace comments and repeat operational guidance, increasing prompt size and making command contracts harder to maintain.",
+    "agreement": "# Agreement — Remove command trace tags\n\n## Objectives\n1. Keep production ADV command prompts focused on executable operational guidance.\n2. Preserve behavioral regression coverage without internal requirement-label assertions.\n3. Consolidate confirmed redundant guidance within individual commands while retaining each command as a standalone contract.\n\n## Acceptance Criteria\n- **AC1 — Comment removal:** A search of `.opencode/command/adv-*.md` returns zero matches for `<!-- rq-` and `<!-- manifest:`.\n- **AC2 — Behavioral anchors:** The directly affected slop-scan and architecture-scan asset tests assert substantive headings or rules rather than `<!-- rq-… -->` literals and pass.\n- **AC3 — In-command consolidation:** Confirmed repeated operational guidance in affected commands is represented once per command or replaced by a precise local reference; gate ownership, tool calls, retry budgets, and task semantics remain unchanged.\n- **AC4 — Verification:** Targeted affected tests and `pnpm run check` exit 0.\n\n## Success Criteria\n- **SC1:** ADV command prompts expose no internal requirement-trace or manifest HTML comments.\n- **SC2:** Command-asset regression tests fail when substantive protected behavior is removed.\n- **SC3:** `adv-apply.md` no longer has separate duplicate blocks for retry policy, cross-repo execution, TDD lifecycle, incremental verification, or trivial-task handling.\n\n## Constraints\n- Retain spec laws, tool schemas, runtime behavior, and gate ownership unchanged.\n- Do not introduce cross-command template abstraction.\n- Limit edits to ADV command files and directly affected tests.\n\n## Avoidances\n- Do not replace trace labels with different internal bookkeeping prose.\n- Do not weaken test coverage by merely deleting tag assertions.\n- Do not remove standalone command guidance solely because a similar rule exists in another command.\n\n## Out of Scope\n- Changes to `.adv/specs/`, Temporal workflows, tool schemas, or gate contracts.\n- Non-command instruction surfaces, agents, skills, and deployment behavior.\n\n## Preview applicability\n- `visual_surface: false`\n- `preview_expectation: not_applicable`\n\n## Approval evidence\nUser approved the agreement on 2026-07-13 after choosing: remove manifests, within-command-only de-duplication, and substantive behavior test anchors.",
+    "design": "# Design — Remove command trace tags\n\n## Architecture Overview\nCommand files remain standalone Markdown contracts. Remove internal HTML comments directly from `.opencode/command/adv-*.md`; preserve YAML front matter and operational prose. Requirement traceability must remain structurally verifiable through executable source/test citations, not runtime prompt text.\n\n## Key Decisions\n1. Remove both `<!-- rq-… -->` and `<!-- manifest: … -->` comments. Audit found no runtime parser or test consumer for manifests; user approved removal.\n2. Before deleting a trace tag, prove its requirement has a surviving `// rq-{id}` citation in executable source or add one in directly affected test source. No command-only citation may be orphaned.\n3. Replace every command-file trace-literal asset assertion with an assertion for the substantive heading/rule it protects. Preserve unrelated skill-file trace assertions.\n4. Consolidate only duplicate guidance inside a single command. Do not factor shared templates across commands because each command must remain independently loadable.\n5. In `adv-apply.md`, retain detailed Phase 3 execution instructions and replace earlier duplicate methodology blocks with short local references where needed.\n\n## Implementation Strategy\n1. Enumerate all command trace IDs and deterministically classify each as already source-cited, command-only, or obsolete scenario label.\n2. Add alternate source/test citations for every command-only requirement ID, then verify the citation invariant before deleting any command tag.\n3. Update the complete affected asset-test set: slop-scan, architecture-scan, review, prep, skill-backed-command, and human-checkpoint assets. Convert only command-file tag checks to behavioral assertions; preserve skill-file checks.\n4. Remove trace and manifest comments from every `adv-*.md` command and repair `adv-prep.md` line 7 so its former manifest heading leaves no empty/invalid heading.\n5. Consolidate confirmed duplicate blocks in `adv-apply.md` without altering tool names, phase ownership, retry limits, or required evidence.\n6. Run deterministic comment/citation checks, all directly affected asset tests, the citation invariant, and `pnpm run check`.\n\n## Affected Components\n- `.opencode/command/adv-*.md`\n- `plugin/src/adv-slop-scan-assets.test.ts`\n- `plugin/src/adv-arch-scan-assets.test.ts`\n- `plugin/src/adv-review-assets.test.ts`\n- `plugin/src/adv-prep-assets.test.ts`\n- `plugin/src/adv-skill-backed-commands-assets.test.ts`\n- `plugin/src/__tests__/human-checkpoints-assets.test.ts`\n- `plugin/src/__tests__/spec-citation-invariant.test.ts`\n- Directly affected source/test file(s) needed for any command-only `// rq-{id}` citation.\n\n## Design-Derived Criteria\n- Search-based absence check must use a deterministic command-file glob and exact comment prefixes.\n- Citation classification must show zero command-only requirement IDs before tag deletion.\n- Behavioral test anchors must identify a stable visible heading/rule, not an internal requirement ID.\n- De-duplication may remove prose only when remaining text fully retains the required operational rule.\n\n## LBP Analysis\nPrompt contracts should expose instructions relevant to runtime execution. Internal tracking labels create noise and a second source of truth. Structural test/source citations preserve the intended behavior without exposing labels in prompts.\n\n## Risks / Mitigations\n- **Risk:** Removing a sole command citation breaks the spec-citation invariant. **Mitigation:** enumerate and preserve an alternate source/test citation first.\n- **Risk:** Removing tags breaks incomplete asset-test coverage. **Mitigation:** update the exhaustive six-file command-asset test set; leave skill-file checks untouched.\n- **Risk:** Deduplication deletes a required nuance. **Mitigation:** retain detailed Phase 3 instructions and review each removed block against its surviving local reference.\n- **Risk:** Broad text removal touches non-command docs. **Mitigation:** scope edits to `adv-*.md` and directly affected test/source files only.\n\n## Design Leverage Scout\nSkipped — trivial internal prompt cleanup; no external architecture, product, or reusable-component opportunity surface.\n\n## Design Validation\nIndependent `adv-researcher` validation initially returned `fail` (high confidence): a bulk deletion would orphan `rq-prop-neg1`, miss four command-asset tests, and leave AC4 under-verified because `pnpm run check` does not run tests. This revised design adopts the validator's citation-preservation, exhaustive-anchor, and test-suite requirements. No agreement criterion, user-facing outcome, or constraint is compromised.",
+    "executiveSummary": "# Executive Summary — Remove command trace tags\n\n## Outcome\nADV production command prompts no longer expose internal requirement-trace or manifest HTML comments. `adv-apply` now points repeated guidance to one canonical detailed section instead of repeating full operational blocks.\n\n## Value\nCommands are shorter and clearer for runtime use while requirement traceability remains structurally protected in executable test/source citations.\n\n## What changed\n- Removed 100 internal HTML comment lines from 30 `.opencode/command/adv-*.md` files.\n- Repaired the malformed former manifest heading in `adv-prep.md`.\n- Replaced command tag-literal asset assertions with substantive behavior anchors; preserved skill-file citation assertions.\n- Added a citation-preservation test surface for previously command-only requirement IDs.\n- Consolidated duplicate retry, cross-repo, TDD, incremental-verification, and trivial-task guidance within `adv-apply.md`.\n- Applied one user-approved whitespace-only Prettier correction required for the mandated format check.\n\n## Verification\n- Acceptance reviewer verdict: READY.\n- Command trace/manifest absence scan: pass.\n- Citation and affected command-asset suites: pass.\n- `pnpm run check`: pass.\n- All four planned tasks checkpointed; worktree clean.\n\n## Release Readiness Summary\n- Harden reviewer verdict: READY.\n- `pnpm run check` passed.\n- 115 affected command/citation tests passed; citation invariant suite passed.\n- Target command scan found zero trace/manifest HTML comments.\n- Diff check and worktree cleanliness passed.\n- No runtime deployment, migration, data, frontend preview, or operational follow-up is required.\n\n## Risks / Follow-ups\n- No remaining acceptance or release blockers.\n- Skill-file requirement citation assertions intentionally remain; they are not runtime command text.\n- Non-ADV `ship.md` manifest remains intentionally out of scope.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T12:53:13.188Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1 — Comment removal:** A search of `.opencode/command/adv-*.md` returns zero matches for `<!-- rq-` and `<!-- manifest:`. | pass | Acceptance reviewer: deterministic scan found zero `<!-- rq-` and `<!-- manifest:` matches across `.opencode/command/adv-*.md`. |\n| AC2 | acceptance_criterion | **AC2 — Behavioral anchors:** The directly affected slop-scan and architecture-scan asset tests assert substantive headings or rules rather than `<!-- rq-… -->` literals and pass. | pass | Acceptance reviewer: targeted citation and six command-asset suites passed; substantive anchors replaced command tag assertions. |\n| AC3 | acceptance_criterion | **AC3 — In-command consolidation:** Confirmed repeated operational guidance in affected commands is represented once per command or replaced by a precise local reference; gate ownership, tool calls, retry budgets, and task semantics remain unchanged. | pass | Acceptance reviewer inspected adv-apply consolidation: five categories retain one canonical detailed block with local pointers. |\n| AC4 | acceptance_criterion | **AC4 — Verification:** Targeted affected tests and `pnpm run check` exit 0. | pass | Acceptance reviewer ran `pnpm run check` successfully after the user-approved whitespace-only Prettier fix. |\n| SC1 | success_criterion | **SC1:** ADV command prompts expose no internal requirement-trace or manifest HTML comments. | pass | Reviewer confirmed command trace and manifest HTML comments are absent from all target ADV commands. |\n| SC2 | success_criterion | **SC2:** Command-asset regression tests fail when substantive protected behavior is removed. | pass | Reviewer confirmed asset tests now assert substantive command behavior; skill-file citation assertions remain intact. |\n| SC3 | success_criterion | **SC3:** `adv-apply.md` no longer has separate duplicate blocks for retry policy, cross-repo execution, TDD lifecycle, incremental verification, or trivial-task handling. | pass | Reviewer confirmed retry, cross-repo, TDD lifecycle, incremental verification, and trivial-task guidance each have a canonical location in adv-apply. |\n| C1 | constraint | Retain spec laws, tool schemas, runtime behavior, and gate ownership unchanged. | respected | Diff review and passing checks show no spec, schema, runtime, tool, or gate changes. |\n| C2 | constraint | Do not introduce cross-command template abstraction. | respected | Diff review confirms no cross-command abstraction was introduced. |\n| C3 | constraint | Limit edits to ADV command files and directly affected tests. | respected | Changes are command contracts, directly affected test/citation coverage, plus explicitly user-approved whitespace-only formatter remediation. |\n| DONT1 | avoidance | Do not replace trace labels with different internal bookkeeping prose. | respected | Removed command bookkeeping comments rather than substituting new prompt labels. |\n| DONT2 | avoidance | Do not weaken test coverage by merely deleting tag assertions. | respected | Tag-literal assertions were replaced with substantive behavior anchors; coverage was retained. |\n| DONT3 | avoidance | Do not remove standalone command guidance solely because a similar rule exists in another command. | respected | Only intra-command repetition was consolidated; each command remains self-contained. |\n| OOS1 | out_of_scope | Changes to `.adv/specs/`, Temporal workflows, tool schemas, or gate contracts. | not_applicable | No spec, Temporal workflow, schema, tool, or gate-contract changes. |\n| OOS2 | out_of_scope | Non-command instruction surfaces, agents, skills, and deployment behavior. | not_applicable | No agent, skill, deployment, or other non-command instruction-surface changes. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T03:16:46.676Z",
+      "contentHash": "4492ce62c0d7f1f53d886e1e7b6dc573aa307b2f65b8554fdb469b77ac576fb7",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T02:56:07.069Z",
+      "contentHash": "233c529ef13b76474be7ce6ce315f3847c52a7a4bc0c9ee645847229d51d4336",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T03:20:23.873Z",
+      "contentHash": "e037a22acbdb903232da405d453e719a6361a3e9313ad953b1e6c41ad904180e",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T03:26:21.507Z",
+      "contentHash": "2d1840355ac20d3bd36eebee988b30bc020c36b11a0add9f5ddef6db6299e988",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T16:07:49.241Z",
+      "contentHash": "135b4f76db45fb72e6286105b832b84b2a03e4f997ece48b06a390334ede19b4",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T16:07:49.241Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
