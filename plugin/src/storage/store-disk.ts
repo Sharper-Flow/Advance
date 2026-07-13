@@ -73,6 +73,7 @@ import {
 import {
   buildChangeRecency,
   computeLastActivity,
+  firstOpenGate,
   type Store,
   type SearchResult,
 } from "./store-types";
@@ -322,6 +323,8 @@ export async function createDiskStore(
             id: c.id,
             title: c.title,
             status: c.status,
+            currentGate: firstOpenGate(c.gates),
+            lifecycleState: c.lifecycleState,
             created_at: c.created_at,
             lastActivityAt: computeLastActivity(c),
             taskCount: c.tasks.length,
@@ -523,10 +526,7 @@ export async function createDiskStore(
               message: `Bulk close aborted: change "${id}" not found.`,
             };
           }
-          if (
-            result.data.status !== "draft" &&
-            result.data.status !== "pending"
-          ) {
+          if (result.data.status !== "draft") {
             return {
               success: false,
               closed: 0,
@@ -1094,12 +1094,14 @@ export async function createDiskStore(
       }
       const byStatus: Record<ChangeStatus, number> = {
         draft: 0,
-        pending: 0,
-        active: 0,
         archived: 0,
         closed: 0,
       };
-      for (const change of changes) byStatus[change.status]++;
+      for (const change of changes) {
+        // Finite-accumulation guard: stay NaN-safe even if a status key is
+        // ever missing from the initializer above (e.g. enum narrowing).
+        byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
+      }
       const now = new Date();
       const recent = changes
         .filter(

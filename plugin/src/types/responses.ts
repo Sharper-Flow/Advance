@@ -7,11 +7,13 @@
 
 import type { Task } from "./tasks";
 import type {
+  ChangeLifecycleState,
   ChangeStatus,
   FastFollowOf,
   OpsFollowupLink,
   OpsFollowupProfile,
 } from "./changes";
+import type { GateId } from "./gates";
 
 // =============================================================================
 // Tool Response Types
@@ -91,6 +93,15 @@ export interface ChangeListResponse {
     id: string;
     title: string;
     status: ChangeStatus;
+    /**
+     * First non-done gate in gate order, or "done" when all gates are
+     * complete. Additive gate-progress hint used by adv_change_list to
+     * derive the per-row `phase` (legacy status stays "draft" for every
+     * open change, so it cannot convey progress).
+     */
+    currentGate: GateId | "done";
+    /** Lifecycle authority (open/archived/closed); optional on legacy rows. */
+    lifecycleState?: ChangeLifecycleState;
     created_at: string;
     lastActivityAt: string;
     taskCount: number;

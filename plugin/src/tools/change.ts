@@ -22,6 +22,7 @@ import {
   type GateId,
   type ArtifactKind,
   type Change,
+  type ChangeLifecycleState,
   type ChangeRepoScope,
   type ScopedSubagentReport,
   type BriefingPacketLane,
@@ -297,7 +298,10 @@ import {
 } from "../utils/tool-formatters";
 import { checkRequirementSmells } from "../validator/prep-readiness";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
-import { changeToDirectiveState } from "../temporal/change-state";
+import {
+  changeToDirectiveState,
+  normalizeChangeLifecycleState,
+} from "../temporal/change-state";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
 import {
   renderBriefingPacket,
@@ -340,6 +344,38 @@ import {
   getCheckedOutChangeBranches,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
+
+// =============================================================================
+// adv_change_list phase derivation
+// =============================================================================
+
+/**
+ * Progress phase rendered on adv_change_list rows. Open changes report the
+ * current gate; "released" marks the all-gates-done-but-still-open wedge
+ * (release gate complete, archive not yet finalized), kept distinct from the
+ * in-flight "release" gate; terminal lifecycle states report themselves.
+ */
+type ChangePhase = GateId | "released" | "archived" | "closed";
+
+/**
+ * Derive a row's progress phase from the store-supplied gate/lifecycle hints.
+ * Pure derivation over the list read model — no workflow state, no signals.
+ * Rows from legacy/mock stores that lack a gate hint omit `phase` entirely
+ * rather than fabricating progress from the permanently-"draft" status.
+ */
+function deriveChangePhase(row: {
+  status: Change["status"];
+  lifecycleState?: ChangeLifecycleState;
+  currentGate?: GateId | "done";
+}): ChangePhase | undefined {
+  const lifecycle =
+    row.lifecycleState ?? normalizeChangeLifecycleState(row.status);
+  if (lifecycle === "archived") return "archived";
+  if (lifecycle === "closed") return "closed";
+  if (row.currentGate === undefined) return undefined;
+  return row.currentGate === "done" ? "released" : row.currentGate;
+}
+
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -349,7 +385,7 @@ export const changeTools = {
       "List active changes with optional filtering, recency enrichment, and sorting",
     args: {
       status: ChangeListStatusFilterSchema.optional().describe(
-        'Filter by status. Use "in-flight" for the union of draft + pending + active.',
+        'Filter by status. Use "in-flight" for open changes (draft).',
       ),
       includeArchived: z
         .boolean()
@@ -409,6 +445,15 @@ export const changeTools = {
       },
       store: Store,
     ) => {
+      // Reject "active"/"pending" at the boundary — they are never stored on
+      // changes and would silently return an empty list. The Zod schema also
+      // rejects them at parse time; this check is defense-in-depth for direct
+      // handler invocation (tests, internal callers).
+      if (status === "active" || status === "pending") {
+        return formatToolOutput({
+          error: `status: "${status}" is not a valid filter for adv_change_list. "active" and "pending" are never stored on changes. Use "in-flight" (or no status filter) for open changes; "archived"/"closed" for terminal changes.`,
+        });
+      }
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
@@ -433,13 +478,22 @@ export const changeTools = {
           // Enrich with last-activity data from the store-computed timestamp.
           const now = new Date();
           const withLastActivity = result.changes.map((change) => {
+            // currentGate/lifecycleState are internal derivation hints for
+            // `phase`; only the derived phase is exposed on the row.
+            const { currentGate, lifecycleState, ...row } = change;
+            const phase = deriveChangePhase({
+              status: change.status,
+              lifecycleState,
+              currentGate,
+            });
             const lastActivityAt = new Date(change.lastActivityAt);
             const minutesSince = Math.max(
               0,
               Math.floor((now.getTime() - lastActivityAt.getTime()) / 60000),
             );
             return {
-              ...change,
+              ...row,
+              ...(phase ? { phase } : {}),
               lastActivity: change.lastActivityAt,
               lastActivityAgeMinutes: minutesSince,
               ...(change.fast_follow_of
@@ -464,7 +518,7 @@ export const changeTools = {
             scope,
           );
           if (status === "in-flight") {
-            const inFlightStatuses = new Set(["draft", "pending", "active"]);
+            const inFlightStatuses = new Set(["draft"]);
             filtered = filtered.filter((c) => inFlightStatuses.has(c.status));
           }
           // Sort: stalest (asc by lastActivity) or recency (desc by lastActivity)

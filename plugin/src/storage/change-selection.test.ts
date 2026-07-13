@@ -116,27 +116,6 @@ describe("resolveChangeSelection — explicit", () => {
     }
   });
 
-  test("rejects active status", async () => {
-    const deps = makeDeps(
-      { changes: [] },
-      {
-        "chg-a": {
-          success: true,
-          data: mockChange({ id: "chg-a", status: "active" }),
-        },
-      },
-    );
-    const result = await resolveChangeSelection(
-      { kind: "explicit", changeIds: ["chg-a"] },
-      deps,
-    );
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toContain("SELECTION_ERROR");
-      expect(result.error).toContain("active");
-    }
-  });
-
   test("rejects archived status", async () => {
     const deps = makeDeps(
       { changes: [] },
@@ -179,13 +158,13 @@ describe("resolveChangeSelection — explicit", () => {
     }
   });
 
-  test("accepts pending status", async () => {
+  test("accepts draft status", async () => {
     const deps = makeDeps(
       { changes: [] },
       {
         "chg-a": {
           success: true,
-          data: mockChange({ id: "chg-a", status: "pending" }),
+          data: mockChange({ id: "chg-a", status: "draft" }),
         },
       },
     );

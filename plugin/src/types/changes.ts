@@ -61,14 +61,31 @@ type _ValidationResult = z.infer<typeof ValidationResultSchema>;
 // =============================================================================
 
 export const ChangeStatusSchema = z.enum([
-  "draft", // Being written
-  "pending", // Awaiting approval
-  "active", // In progress
+  "draft", // Open — being written or in progress (see AdvLifecycleState for open-claim authority)
   "archived", // Completed and promoted
   "closed", // Retired without completion
 ]);
 
 export type ChangeStatus = z.infer<typeof ChangeStatusSchema>;
+
+/**
+ * Normalize legacy stored change statuses to the modern draft-only open set.
+ *
+ * `active` and `pending` were historically stored on change records, but no
+ * code path writes them anymore — open changes are `draft` and open-claim
+ * authority lives in `AdvLifecycleState` (see fixChangeStatusHonesty design).
+ * Legacy or poisoned disk/seed state must still load (C4), so both values
+ * map to `"draft"`. Any other value passes through unchanged so schema
+ * validation can still reject genuine garbage.
+ *
+ * Applied at the change-record load path (storage/json.ts, before
+ * `ChangeSchema.parse`) and at workflow-seed boundaries
+ * (changeSeedStateFromChange + changeWorkflow seed application).
+ */
+export function normalizeLegacyChangeStatus(status: unknown): unknown {
+  if (status === "active" || status === "pending") return "draft";
+  return status;
+}
 
 export const ChangeLifecycleStateSchema = z.enum([
   "open",
@@ -80,12 +97,29 @@ export type ChangeLifecycleState = z.infer<typeof ChangeLifecycleStateSchema>;
 
 /**
  * Filter-only status value for adv_change_list.
- * "in-flight" is a union filter (draft + pending + active), not a stored status.
+ * "in-flight" is a union filter for open changes (draft), not a stored status.
+ * "active" and "pending" are never stored on changes; they are rejected with
+ * a hint to use "in-flight" (or no status filter) for open changes.
+ *
+ * The legacy open spellings ("active"/"pending") are union members only so the
+ * superRefine below can intercept them with an actionable hint — they always
+ * fail validation and are never valid output.
  */
-export const ChangeListStatusFilterSchema = z.union([
-  ChangeStatusSchema,
-  z.literal("in-flight"),
-]);
+export const ChangeListStatusFilterSchema = z
+  .union([
+    ChangeStatusSchema,
+    z.literal("in-flight"),
+    z.literal("active"),
+    z.literal("pending"),
+  ])
+  .superRefine((value, ctx) => {
+    if (value === "active" || value === "pending") {
+      ctx.addIssue({
+        code: "custom",
+        message: `"${value}" is never stored on changes. Use "in-flight" (or no status filter) for open changes; "archived"/"closed" for terminal changes.`,
+      });
+    }
+  });
 
 const ChangeClosureReasonSchema = z.enum([
   "cancelled",

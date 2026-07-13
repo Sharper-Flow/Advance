@@ -430,7 +430,9 @@ describe("createTemporalStoreBackend change projection fallback", () => {
 
     expect(result.success).toBe(true);
     expect(result.data?.id).toBe("activePoisonedReseedFail");
-    expect(result.data?.status).toBe("active");
+    // Legacy stored "active" normalizes to "draft" at the disk load path
+    // (loadChange); the poisoned-history disk fallback inherits it.
+    expect(result.data?.status).toBe("draft");
     const recovered = result.data as Change & {
       _source?: string;
       _recovery?: { mode?: string; reason?: string };
@@ -463,15 +465,18 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     const result = await store.changes.get("activeDiskOnlyRead");
 
     expect(result.success).toBe(true);
+    // Legacy stored "active" normalizes to "draft" at the disk load path
+    // (loadChange) and the seed boundary (changeSeedStateFromChange) — the
+    // re-seeded workflow state never carries the legacy status.
     expect(result.data).toMatchObject({
       id: "activeDiskOnlyRead",
-      status: "active",
+      status: "draft",
     });
     expect(startInputs()).toHaveLength(1);
     expect(startInputs()[0]).toEqual(
       expect.objectContaining({
         changeId: "activeDiskOnlyRead",
-        seedState: expect.objectContaining({ status: "active" }),
+        seedState: expect.objectContaining({ status: "draft" }),
       }),
     );
   });

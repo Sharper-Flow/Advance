@@ -409,6 +409,57 @@ describe("Change Operations", () => {
     expect(rewritten.gates.proposal.absorbed_completions).toBeUndefined();
   });
 
+  test('loadChange normalizes legacy root status "active" to "draft" before validation', async () => {
+    const changesDir = join(tempDir, ".adv/changes");
+    const changePath = join(changesDir, "addFeature/change.json");
+    const raw = JSON.parse(await readFile(changePath, "utf-8"));
+
+    // Legacy/poisoned disk state: root status "active" is no longer written
+    // by any code path but must still load (C4). Gates legitimately carry
+    // status "pending" — the normalizer must NOT recurse into them.
+    raw.status = "active";
+    raw.gates = {
+      proposal: { status: "pending" },
+      discovery: { status: "pending" },
+      design: { status: "pending" },
+      planning: { status: "pending" },
+      execution: { status: "pending" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
+    };
+    await writeFile(changePath, JSON.stringify(raw, null, 2));
+
+    const result = await loadChange(changesDir, "addFeature");
+
+    expect(result.success).toBe(true);
+    expect(result.data!.status).toBe("draft");
+    // Gate statuses are a different domain — untouched by root normalization.
+    expect(result.data!.gates.proposal.status).toBe("pending");
+    expect(result.data!.gates.release.status).toBe("pending");
+
+    // The normalized form is persisted so subsequent loads are no-ops.
+    const rewritten = JSON.parse(await readFile(changePath, "utf-8"));
+    expect(rewritten.status).toBe("draft");
+    expect(rewritten.gates.proposal.status).toBe("pending");
+  });
+
+  test('loadChange normalizes legacy root status "pending" to "draft" before validation', async () => {
+    const changesDir = join(tempDir, ".adv/changes");
+    const changePath = join(changesDir, "addFeature/change.json");
+    const raw = JSON.parse(await readFile(changePath, "utf-8"));
+
+    raw.status = "pending";
+    await writeFile(changePath, JSON.stringify(raw, null, 2));
+
+    const result = await loadChange(changesDir, "addFeature");
+
+    expect(result.success).toBe(true);
+    expect(result.data!.status).toBe("draft");
+
+    const rewritten = JSON.parse(await readFile(changePath, "utf-8"));
+    expect(rewritten.status).toBe("draft");
+  });
+
   test("loadChange normalizes legacy task sub-agent reports before validation", async () => {
     const changesDir = join(tempDir, ".adv/changes");
     const changePath = join(changesDir, "addFeature/change.json");

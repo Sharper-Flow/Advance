@@ -162,8 +162,6 @@ async function loadStatusWithBootstrapRetry(
         active: 0,
         byStatus: {
           draft: 0,
-          pending: 0,
-          active: 0,
           archived: 0,
           closed: 0,
         },
@@ -456,11 +454,7 @@ export const statusTools = {
               async () => {
                 let primaryAssigned = false;
                 for (const rc of recentChanges) {
-                  const isPrimary =
-                    !primaryAssigned &&
-                    (rc.status === "active" ||
-                      rc.status === "draft" ||
-                      rc.status === "pending");
+                  const isPrimary = !primaryAssigned && rc.status === "draft";
                   if (isPrimary) primaryAssigned = true;
                   await enrichRecentChangeStatus(
                     rc,

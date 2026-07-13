@@ -5,6 +5,8 @@ import {
   type ChangeClosure,
   type BulkCloseResult,
   type Change,
+  type ChangeLifecycleState,
+  type GateId,
   type TerminalSource,
   type TerminalWarning,
 } from "../../types";
@@ -27,7 +29,7 @@ import {
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { hasArchiveBundle, listChangeDirs, removeChangeDir } from "../json";
 import { filterChanges } from "../content-search";
-import { computeLastActivity } from "../store-types";
+import { computeLastActivity, firstOpenGate } from "../store-types";
 import {
   runTemporal,
   getGuardedChangeHandle,
@@ -431,6 +433,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           id: change.id,
           title: change.title,
           status: change.status,
+          currentGate: firstOpenGate(change.gates),
+          lifecycleState: change.lifecycleState,
           created_at: change.created_at,
           lastActivityAt: computeLastActivity(change),
           taskCount: change.tasks.length,
@@ -609,10 +613,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             message: `Bulk close aborted: Change "${id}" not found.`,
           };
         }
-        if (
-          change.data.status !== "draft" &&
-          change.data.status !== "pending"
-        ) {
+        if (change.data.status !== "draft") {
           return {
             success: false,
             closed: 0,
@@ -624,7 +625,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
                   ? `Protected status "${change.data!.status}"`
                   : "Aborted due to sibling failure",
             })),
-            message: `Bulk close aborted: Change "${id}" has protected status "${change.data.status}". Only draft or pending changes can be bulk-closed.`,
+            message: `Bulk close aborted: Change "${id}" has protected status "${change.data.status}". Only draft changes can be bulk-closed.`,
           };
         }
       }
@@ -862,6 +863,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             id: change.id,
             title: change.title,
             status: change.status,
+            currentGate: firstOpenGate(change.gates),
+            lifecycleState: change.lifecycleState,
             created_at: change.created_at,
             lastActivityAt: computeLastActivity(change),
             taskCount: change.tasks.length,
@@ -1016,6 +1019,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         id: string;
         title: string;
         status: Change["status"];
+        currentGate: GateId | "done";
+        lifecycleState?: ChangeLifecycleState;
         created_at: string;
         lastActivityAt: string;
         taskCount: number;
@@ -1036,6 +1041,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             id: cached.id,
             title: cached.title,
             status: cached.status,
+            currentGate: firstOpenGate(cached.gates),
+            lifecycleState: cached.lifecycleState,
             created_at: cached.created_at,
             lastActivityAt: computeLastActivity(cached),
             taskCount: cached.tasks.length,
@@ -1056,6 +1063,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             id: summary.id,
             title: summary.title,
             status: summary.status,
+            currentGate: firstOpenGate(summary.gateProgress),
+            lifecycleState: summary.lifecycleState,
             created_at: summary.lastActivityAt,
             lastActivityAt: summary.lastActivityAt,
             taskCount: summary.taskCounts.total,
@@ -1089,6 +1098,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
               id: change.id,
               title: change.title,
               status: change.status,
+              currentGate: firstOpenGate(change.gates),
+              lifecycleState: change.lifecycleState,
               created_at: change.created_at,
               lastActivityAt: computeLastActivity(change),
               taskCount: change.tasks.length,

@@ -114,7 +114,12 @@ describe("change-state pure mutation helpers", () => {
     expect(state.lifecycleState).toBe("open");
   });
 
-  it("seeds lifecycle state from legacy status when missing", () => {
+  it('normalizes legacy stored "active" status to draft when seeding from a change', () => {
+    // Legacy/poisoned change records may carry stored "active"/"pending"
+    // statuses that no code path writes anymore (open changes are "draft";
+    // lifecycle authority is AdvLifecycleState). Seeding must never carry
+    // them into workflow state. `as unknown as Change` keeps this fixture
+    // valid after the stored-status enum is narrowed.
     const change = {
       id: "legacy-active-change",
       title: "Legacy active change",
@@ -122,11 +127,27 @@ describe("change-state pure mutation helpers", () => {
       created_at: "2026-06-25T00:00:00.000Z",
       tasks: [],
       deltas: {},
-    } satisfies Change;
+    } as unknown as Change;
 
     const seed = changeSeedStateFromChange(change);
 
-    expect(seed.status).toBe("active");
+    expect(seed.status).toBe("draft");
+    expect(seed.lifecycleState).toBe("open");
+  });
+
+  it('normalizes legacy stored "pending" status to draft when seeding from a change', () => {
+    const change = {
+      id: "legacy-pending-change",
+      title: "Legacy pending change",
+      status: "pending",
+      created_at: "2026-06-25T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+    } as unknown as Change;
+
+    const seed = changeSeedStateFromChange(change);
+
+    expect(seed.status).toBe("draft");
     expect(seed.lifecycleState).toBe("open");
   });
 

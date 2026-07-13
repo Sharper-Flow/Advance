@@ -18,15 +18,11 @@ import {
 } from "./lifecycle-visibility";
 
 /**
- * Legacy statuses treated as open for compatibility. Default membership reads
- * are lifecycle-based; pass `null` to disable filtering entirely (e.g. for
- * archive sweeps).
+ * Legacy statuses treated as open for compatibility. `draft` is the only open
+ * status; default membership reads are lifecycle-based. Pass `null` to disable
+ * filtering entirely (e.g. for archive sweeps).
  */
-const DEFAULT_STATUSES: readonly ChangeStatus[] = [
-  "draft",
-  "pending",
-  "active",
-];
+const DEFAULT_STATUSES: readonly ChangeStatus[] = ["draft"];
 
 const CHANGE_WORKFLOW_PREFIX = "adv/change/";
 

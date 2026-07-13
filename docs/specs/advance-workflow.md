@@ -2738,16 +2738,16 @@ experimental.session.compacting must use buildChangeContextSnapshot to produce i
 
 **ID:** `rq-changeLifecycleState01` | **Priority:** **[MUST]**
 
-Change workflow state MUST persist lifecycleState as the canonical terminal/open lifecycle value: open, archived, or closed. Legacy compatibility status values such as draft, pending, and active MUST normalize to lifecycleState open on read/projection; archived and closed normalize to their matching lifecycle states. Change.status MUST NOT mirror the current gate and MUST NOT be the authority for open-change, claim, worktree-owner, or terminal filtering. Gate progress remains represented by the seven gate records and current-gate search attributes.
+Change workflow state MUST persist lifecycleState as the canonical terminal/open lifecycle value: open, archived, or closed. The stored ChangeStatus enum's lifecycle-reachable set is draft, archived, and closed; pending and active are NOT lifecycle-reachable for change workflows and are removed from the stored enum, surviving only as legacy disk values that MUST normalize to lifecycleState open on read/projection. Archived and closed normalize to their matching lifecycle states. AdvChangeStatus is compatibility/read-model metadata and MUST NOT be the open-claim authority; the sole open-claim authority is AdvLifecycleState = "open" AND ExecutionStatus = "Running". Change.status MUST NOT mirror the current gate and MUST NOT be the authority for open-change, claim, worktree-owner, or terminal filtering. Gate progress remains represented by the seven gate records and current-gate search attributes.
 
 **Tags:** `workflow`, `lifecycle`, `visibility`
 
 #### Scenarios
 
-**Legacy open statuses normalize to open lifecycle** (`rq-changeLifecycleState01.1`)
+**Legacy and stored open statuses normalize to open lifecycle** (`rq-changeLifecycleState01.1`)
 
 **Given:**
-- A change workflow or local projection has legacy status draft, pending, or active
+- A change workflow or local projection has the stored open status draft or a legacy status pending or active (removed from the stored enum)
 
 **When:** The change is read or projected into search attributes
 
@@ -2767,6 +2767,18 @@ Change workflow state MUST persist lifecycleState as the canonical terminal/open
 - The change is excluded from open results
 - A stale AdvChangeStatus value cannot make the change appear open
 - ExecutionStatus = "Running" or an equivalent terminal guard protects Visibility reads from stale completed workflow attributes
+
+**Stored ChangeStatus reachable set excludes pending and active** (`rq-changeLifecycleState01.3`)
+
+**Given:**
+- The ChangeStatusSchema stored enum for change workflows
+
+**When:** A change workflow status is assigned, read, or validated
+
+**Then:**
+- The only lifecycle-reachable stored statuses are draft, archived, and closed
+- pending and active are not assignable stored statuses; they exist only as legacy disk values that normalize to draft/open on load
+- The open-claim authority is AdvLifecycleState = "open" AND ExecutionStatus = "Running", never AdvChangeStatus
 
 ---
 

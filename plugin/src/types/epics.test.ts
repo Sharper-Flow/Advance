@@ -651,7 +651,7 @@ describe("Epic schema foundation", () => {
       const change = {
         id: "epicChildChange",
         title: "Epic child change",
-        status: "active",
+        status: "draft",
         gates: {},
         tasks: [],
         created_at: "2026-06-24T00:00:00.000Z",
@@ -675,7 +675,7 @@ describe("Epic schema foundation", () => {
       const change = {
         id: "badEpicChildChange",
         title: "Bad epic child change",
-        status: "active",
+        status: "draft",
         gates: {},
         tasks: [],
         created_at: "2026-06-24T00:00:00.000Z",
@@ -696,7 +696,7 @@ describe("Epic schema foundation", () => {
       const change = {
         id: "singleEpicChange",
         title: "Single Epic change",
-        status: "active",
+        status: "draft",
         gates: {},
         tasks: [],
         created_at: "2026-06-24T00:00:00.000Z",

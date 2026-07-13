@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-1pNI2t",
+      "type": "gotcha",
+      "content": "GateId types as plain `string` (GATE_IDS is cast to `[string, ...string[]]` before z.enum), so `Record<GateId, X>` / mapped types over GateId become true string-index-signature types. Concrete interfaces without index signatures (e.g. GateProgress in store-temporal-memo.ts) are NOT assignable to them, and `gates[gateId]` indexing fails on unions. Fix pattern: accept a union of the concrete shapes (Gates | GateProgress) and index through one contained, documented `as Record<string, ...>` cast (see firstOpenGate in storage/store-types.ts).",
+      "source_task": "tk-1b5a4b031bf2",
+      "recorded_at": "2026-07-13T20:06:36.864Z"
+    }
+  ],
+  "count": 1
+}
