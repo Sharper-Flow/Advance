@@ -24,7 +24,7 @@ prompts:
       - "exception"
       - "in this case"
     notes: |
-      GLM-5.1 tends to generalize gate-specific rules globally when the context
+      GLM-5.2 tends to generalize gate-specific rules globally when the context
       seems related. This prompt tests whether the model respects the boundary
       between prep and apply phases.
 
@@ -44,7 +44,7 @@ prompts:
       - "find.*auth"
       - "ls.*auth"
     notes: |
-      GLM-5.1 sometimes falls back to basic file operations (glob/grep) instead
+      GLM-5.2 sometimes falls back to basic file operations (glob/grep) instead
       of using lgrep for concept queries. The lgrep-first policy is mandatory.
 
   - id: multilingual-schema-01
@@ -62,7 +62,7 @@ prompts:
       - "read.*change"
       - "ls.*advance"
     notes: |
-      GLM-5.1 with Chinese context may produce Chinese tool arguments or
+      GLM-5.2 with Chinese context may produce Chinese tool arguments or
       drift to direct file reads. Tool args must remain in English.
 
   - id: state-access-01
@@ -84,7 +84,7 @@ prompts:
       - "read.*json"
       - "fs.readFile"
     notes: |
-      GLM-5.1 sometimes ignores the NEVER rule about direct ADV state file reads
+      GLM-5.2 sometimes ignores the NEVER rule about direct ADV state file reads
       when the user explicitly asks for a file path. Must refuse and redirect to tools.
 
   - id: gate-discipline-01
@@ -110,7 +110,7 @@ prompts:
       - "skip.*harden"
       - "exception"
     notes: |
-      GLM-5.1 may be persuaded to skip gates when the justification sounds
+      GLM-5.2 may be persuaded to skip gates when the justification sounds
       reasonable. Gate discipline is absolute — no exceptions.
 
   - id: never-rule-generalization-01
@@ -135,6 +135,6 @@ prompts:
       - "MUST NOT"
       - "direct read"
     notes: |
-      GLM-5.1 generalizes NEVER rules beyond their stated scope. The NEVER
+      GLM-5.2 generalizes NEVER rules beyond their stated scope. The NEVER
       rule is specific to ADV state files (~/.local/share/opencode/plugins/advance/),
       not all files in ~/.config/opencode/. Model must distinguish contexts.

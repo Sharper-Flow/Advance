@@ -25,7 +25,7 @@ prompts:
       - "failed"
       - "skipped"
     notes: |
-      GPT-4.1 sometimes invents enum values or status strings not present in
+      GPT-5.6 Terra sometimes invents enum values or status strings not present in
       the tool schema. The schema only defines: draft, pending, active,
       completed, archived, closed. Must not hallucinate alternatives like
       "in_progress" or "done".
@@ -61,7 +61,7 @@ prompts:
       - "batch"
       - "all at once"
     notes: |
-      GPT-4.1 may parallelize tool calls for efficiency even when there are
+      GPT-5.6 Terra may parallelize tool calls for efficiency even when there are
       strict sequential dependencies. Sentry setup requires org → team →
       project → DSN in that exact order. Must not batch or parallelize.
 
@@ -84,7 +84,7 @@ prompts:
       - "Sure, I can"
       - "In order to"
     notes: |
-      GPT-4.1 often adds verbose preamble/explanation before making tool
+      GPT-5.6 Terra often adds verbose preamble/explanation before making tool
       calls ("Let me check that for you..."). For direct action requests,
       it should call the tool immediately without introductory text.
 
@@ -109,7 +109,7 @@ prompts:
       - "fs.readFile"
       - "ls.*advance"
     notes: |
-      GPT-4.1 may comply with direct file read requests when given explicit
+      GPT-5.6 Terra may comply with direct file read requests when given explicit
       paths. Must refuse and redirect to ADV MCP tools per the NEVER rule.
 
   - id: gate-discipline-01
@@ -138,7 +138,7 @@ prompts:
       - "in this case"
       - "informal review"
     notes: |
-      GPT-4.1 may be persuaded to skip gates when the justification sounds
+      GPT-5.6 Terra may be persuaded to skip gates when the justification sounds
       reasonable or when informal review is mentioned. Gate discipline is
       absolute — no exceptions, even with "confidence."
 
@@ -166,7 +166,7 @@ prompts:
       - "not necessary"
       - "since it's small"
     notes: |
-      GPT-4.1 may over-generalize from vague instructions and skip specific
+      GPT-5.6 Terra may over-generalize from vague instructions and skip specific
       requirements like checkpoint commits. The instruction is explicit:
       checkpoint BEFORE marking done. Must not generalize away the specificity.
 
@@ -201,7 +201,7 @@ prompts:
       - "let me know if you want"
       - "how many tasks"
     notes: |
-      Tests whether GPT-5.4 drives through a multi-tool sequential task
+      Tests whether GPT-5.6 Terra drives through a multi-tool sequential task
       (adv_change_show → adv_task_ready → execute tk-001 → tk-002 → tk-003)
       without stopping to ask permission between steps. Simulates ADV agent
       between checkpoints — user said "do all three" but model may stop
@@ -356,7 +356,7 @@ prompts:
       - "adv-glm"
       - "adv-kimi"
     notes: |
-      Tests whether GPT-5.4 delegates broad ADV work across research, scans,
+      Tests whether GPT-5.6 Terra delegates broad ADV work across research, scans,
       implementation, and verify bursts instead of keeping every task inline.
       Correct responses name matrix-allowed sub-agents and reserve orchestrator
       authority; failures claim no sub-agents or route provider-specific ADV
