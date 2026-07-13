@@ -255,6 +255,66 @@ The `/adv-coordinate` command MUST establish and report repository freshness bef
 
 ---
 
+### Epic Coordination Inventories Participating Projects Before Epic-Dependent Alignment
+
+**ID:** `rq-epicCoordinateProjectInventory01` | **Priority:** **[MUST]**
+
+The `/adv-coordinate` command MUST inventory every participating project's in-flight changes using typed `adv_change_list` with complete pagination before Epic-dependent alignment. The command MUST describe typed `scope: "product"` and explicit `target_path` for cross-project reads and MUST NOT infer target paths. When expected product context is unavailable, cross-project conclusions MUST be classified as `freshness_limited` or `judgment_call`, never `adv_backed_fact`. The no-active-Epics condition MUST follow complete project-change reporting, and the coordination report MUST include Projects scanned, Changes by project, Epics scanned, and entries scanned. Optional Epic membership, advisory Epic order, existing approval-gated mutations, and repository freshness requirements MUST be preserved.
+
+**Tags:** `epics`, `command`, `coordination`, `project-inventory`, `cross-project`
+
+#### Scenarios
+
+**Project inventory precedes Epic-dependent alignment** (`rq-epicCoordinateProjectInventory01.1`)
+
+**Given:**
+- One or more participating projects contain in-flight changes
+
+**When:** `/adv-coordinate` prepares alignment, sequencing, or overlap findings
+
+**Then:**
+- Every participating project's in-flight changes are inventoried via typed adv_change_list with complete pagination
+- Project inventory completes before Epic-dependent alignment is analyzed
+- The report includes Projects scanned and Changes by project
+
+**Cross-project reads use explicit target_path and product scope** (`rq-epicCoordinateProjectInventory01.2`)
+
+**Given:**
+- The coordination report needs cross-project evidence
+
+**When:** `/adv-coordinate` reads changes or Epics outside the current project
+
+**Then:**
+- Typed scope: "product" and explicit target_path are described
+- Target paths are not inferred from context
+- Missing product context causes cross-project conclusions to be freshness_limited or judgment_call
+
+**No-active-Epics condition follows complete project-change reporting** (`rq-epicCoordinateProjectInventory01.3`)
+
+**Given:**
+- Project inventory completes with zero active Epics
+
+**When:** `/adv-coordinate` reports its findings
+
+**Then:**
+- The report includes Projects scanned, Changes by project, Epics scanned, and entries scanned
+- The no-active-Epics message follows complete project-change reporting
+- Coordination stops without proposing Epic mutations
+
+**Project inventory preserves existing coordination constraints** (`rq-epicCoordinateProjectInventory01.4`)
+
+**Given:**
+- The `/adv-coordinate` command is implemented
+
+**When:** Command assets and behavior are inspected
+
+**Then:**
+- Epic membership remains optional and order remains advisory
+- Existing approval-gated mutations and repository freshness requirements are preserved
+- No new runtime tool, CLI mutation verb, or direct ADV-state filesystem access is introduced
+
+---
+
 ### Shell Promotion Replaces the Shell Row with Exactly One Linked Change
 
 **ID:** `rq-epicPromotion01` | **Priority:** **[MUST]**

@@ -1,13 +1,13 @@
 ---
 name: adv-coordinate
-description: Audit Epic alignment, sequencing, and membership health
+description: Audit project changes, Epic alignment, sequencing, and membership health
 ---
 
 <!-- manifest: adv-coordinate · requiresChangeId: false · scope: reads[specs, epics, changes] -->
 
-# ADV Coordinate — Epic Alignment and Sequencing Audit
+# ADV Coordinate — Project Change and Epic Alignment Audit
 
-Run a read-first coordination pass across active Epics and current repository evidence. Produce a repository freshness, overlap, alignment, sequencing, dependency, and membership-health report; apply durable Epic actions only after explicit approval through typed Epic tools.
+Run a read-first coordination pass across each participating project's in-flight changes, active Epics, and current repository evidence. Produce a repository freshness, project-change inventory, overlap, alignment, sequencing, dependency, and membership-health report; apply durable Epic actions only after explicit approval through typed Epic tools.
 
 <UserRequest>
   $ARGUMENTS
@@ -15,7 +15,7 @@ Run a read-first coordination pass across active Epics and current repository ev
 
 ## Command Boundary
 
-**Produces:** Epic coordination report, repository freshness summary, current repository overlap findings, ownership-boundary findings, narrative accuracy findings, cross-Epic dependency notes, advisory sequencing recommendations, membership-health findings, and approved action results.
+**Produces:** Project-change and Epic coordination report, repository freshness summary, current repository overlap findings, ownership-boundary findings, narrative accuracy findings, cross-Epic dependency notes, advisory sequencing recommendations, membership-health findings, and approved action results.
 
 **× MUST NOT:** create tasks, complete gates, add CLI mutation verbs, make Epic membership mandatory, auto-enroll changes into Epics, treat Epic order as blocking, add Jira-like assignments/estimates/sprints/boards/ownership workflow, mutate without explicit approval, access ADV external state through filesystem paths, merge, rebase, checkout, reset, clean, stash, or mutate product code.
 
@@ -26,7 +26,7 @@ Run a read-first coordination pass across active Epics and current repository ev
 | Command | Relationship |
 |---|---|
 | `/adv-epic` | Creates or updates one Epic after goal-first confirmation. |
-| `/adv-coordinate` | Audits active Epics as a set and proposes coordination actions. |
+| `/adv-coordinate` | Audits each participating project's in-flight changes plus active Epics as a set and proposes coordination actions. |
 | `/adv-cleanup` | Triages active changes; does not mutate Epic roadmap structure. |
 | `bin/adv epic list --json` | Read-only CLI list; no CLI mutation verbs. |
 
@@ -40,22 +40,29 @@ Epic membership remains optional; order stays advisory — may guide display/nex
 
 ---
 
-## Phase 1: Inventory (Read-First)
+## Phase 1: Project and Epic Inventory (Read-First)
+
+Inventory every participating project's in-flight changes using typed `adv_change_list` with complete pagination before Epic-dependent alignment. Describe typed `scope: "product"` and explicit `target_path`; do not infer target paths. When expected product context is unavailable, cross-project conclusions must be `freshness_limited` or `judgment_call`, never `adv-backed-fact`.
 
 Use typed tools only:
 
 | Purpose | Tool |
 |---|---|
+| List in-flight changes across participating projects | `adv_change_list` with complete pagination |
 | List active Epics | `adv_epic_list` |
 | Inspect each Epic fully | `adv_epic_show view: "full"` |
 | Inspect linked changes when needed | `adv_change_show` |
 | Check relevant spec law | `adv_spec` |
 
-If no active Epics exist, report `No active Epics. No coordination actions.` and stop.
+If no active Epics exist, report project inventory first, then `No active Epics. No coordination actions.` and stop.
 
-Record for each Epic:
+Record:
 
-- Epic ID, title, narrative, version, derived scope label.
+- Projects scanned
+- Changes by project
+- Epics scanned
+- Entries scanned
+- For each Epic: Epic ID, title, narrative, version, derived scope label.
 - Entries, order, kind (`shell` or `change`), title, success hint, member status.
 - Terminal summaries or compact history when available.
 - Health signals including `target_unreachable`, `projection_pending`, `projection_stale`, or missing child state.
@@ -167,7 +174,7 @@ Do not silently mutate. Repairs require `evidence`; target-routed repairs follow
 
 Emit grouped report:
 
-- Inventory summary: Epics scanned, entries scanned, health counts.
+- Inventory summary: Projects scanned, Changes by project, Epics scanned, entries scanned, health counts.
 - Repository freshness summary: current branch, HEAD SHA, default/upstream relation, remote freshness, ahead/behind state, and dirty work risk where available.
 - Current repository overlap findings: `repo_backed_fact`, `adv-backed-fact`, `judgment_call`, and `freshness_limited` counts and evidence.
 - Alignment findings: clear-cut vs judgment calls.
@@ -226,7 +233,10 @@ Apply action groups atomically where the tool supports it. If one approved actio
 
 Emit:
 
+- Projects scanned.
+- Changes by project.
 - Epics scanned.
+- Entries scanned.
 - Findings by category.
 - Actions approved/applied/skipped/failed.
 - Remaining judgment calls.
