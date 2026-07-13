@@ -403,7 +403,8 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-coordinate": {
     name: "adv-coordinate",
-    description: "Audit Epic alignment, sequencing, and membership health",
+    description:
+      "Audit project changes, Epic alignment, sequencing, and membership health",
     phase: "advanced",
     requiresChangeId: false,
     prerequisites: [],

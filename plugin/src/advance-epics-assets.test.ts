@@ -15,6 +15,7 @@ import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, resolve } from "path";
 import { ADV_TOOL_NAMES } from "./tool-registry";
+import { COMMAND_MANIFEST } from "./manifest";
 import { epicTools } from "./tools/epic";
 
 const REPO_ROOT = resolve(__dirname, "../..");
@@ -148,6 +149,123 @@ describe("Advance Epics spec documentation", () => {
   });
 });
 
+describe("/adv-coordinate project inventory contract", () => {
+  test("spec.json documents project inventory with typed adv_change_list and complete pagination", () => {
+    const spec = JSON.parse(readRepoFile(".adv/specs/advance-epics/spec.json"));
+    const req = spec.requirements.find(
+      (r: { id: string }) => r.id === "rq-epicCoordinateProjectInventory01",
+    );
+    expect(req).toBeDefined();
+    expect(req.priority).toBe("must");
+    const blob = JSON.stringify(req);
+    expect(blob).toContain("adv_change_list");
+    expect(blob).toContain("complete pagination");
+    expect(blob).toContain('scope: \\"product\\"');
+    expect(blob).toContain("target_path");
+    expect(blob).toContain("MUST NOT infer target paths");
+    expect(blob).toContain("freshness_limited");
+    expect(blob).toContain("judgment_call");
+    expect(blob).toContain("adv_backed_fact");
+    expect(blob).toContain("Projects scanned");
+    expect(blob).toContain("Changes by project");
+    expect(blob).toContain("Epics scanned");
+    expect(blob).toContain("entries scanned");
+    expect(blob).toContain("no-active-Epics condition");
+    for (const scenario of [
+      "rq-epicCoordinateProjectInventory01.1",
+      "rq-epicCoordinateProjectInventory01.2",
+      "rq-epicCoordinateProjectInventory01.3",
+      "rq-epicCoordinateProjectInventory01.4",
+    ]) {
+      expect(blob).toContain(scenario);
+    }
+  });
+
+  test("docs/specs/advance-epics.md mirrors rq-epicCoordinateProjectInventory01", () => {
+    const doc = readRepoFile("docs/specs/advance-epics.md");
+    expect(doc).toContain("rq-epicCoordinateProjectInventory01");
+    expect(doc).toMatch(
+      /rq-epicCoordinateProjectInventory01` \| \*\*Priority:\*\* \*\*\[MUST\]\*\*/,
+    );
+    expect(doc).toContain("adv_change_list");
+    expect(doc).toContain("complete pagination");
+    expect(doc).toContain('scope: "product"');
+    expect(doc).toContain("target_path");
+    expect(doc).toContain("adv_backed_fact");
+    expect(doc).toContain("Projects scanned");
+    expect(doc).toContain("Changes by project");
+    expect(doc).toContain("Epics scanned");
+    expect(doc).toContain("entries scanned");
+  });
+
+  test("/adv-coordinate command file inventories project changes before Epic alignment", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    expect(content).toContain("adv_change_list");
+    expect(content).toContain("complete pagination");
+    expect(content).toContain('scope: "product"');
+    expect(content).toContain("target_path");
+    expect(content).toMatch(/do not infer target paths/i);
+    expect(content).toMatch(/freshness_limited|judgment_call/i);
+    expect(content).toContain("adv-backed-fact");
+    expect(content).toContain("Projects scanned");
+    expect(content).toContain("Changes by project");
+    expect(content).toContain("Epics scanned");
+    expect(content).toContain("entries scanned");
+    expect(content).toContain("No active Epics");
+  });
+
+  test("/adv-coordinate no-active-Epics condition follows complete project-change reporting", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    const projectInventoryIndex = content.indexOf("adv_change_list");
+    const noActiveEpicsIndex = content.indexOf("No active Epics");
+    expect(projectInventoryIndex).toBeGreaterThan(-1);
+    expect(noActiveEpicsIndex).toBeGreaterThan(projectInventoryIndex);
+  });
+
+  test("/adv-coordinate Phase 7 report inventory lists all four AC3 rows", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    const phase7Index = content.indexOf("## Phase 7:");
+    const phase8Index = content.indexOf("## Phase 8:");
+    expect(phase7Index).toBeGreaterThan(-1);
+    expect(phase8Index).toBeGreaterThan(phase7Index);
+    const phase7Section = content.slice(phase7Index, phase8Index);
+    expect(phase7Section).toContain("Projects scanned");
+    expect(phase7Section).toContain("Changes by project");
+    expect(phase7Section).toContain("Epics scanned");
+    expect(phase7Section).toMatch(/entries scanned/i);
+  });
+
+  test("/adv-coordinate Final Report inventory lists all four AC3 rows", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    const finalReportIndex = content.indexOf("## Final Report");
+    expect(finalReportIndex).toBeGreaterThan(-1);
+    const finalSection = content.slice(finalReportIndex);
+    expect(finalSection).toContain("Projects scanned");
+    expect(finalSection).toContain("Changes by project");
+    expect(finalSection).toContain("Epics scanned");
+    expect(finalSection).toMatch(/entries scanned/i);
+  });
+
+  test("/adv-coordinate manifest description reflects project changes plus Epics", () => {
+    const def = COMMAND_MANIFEST["adv-coordinate"];
+    expect(def).toBeDefined();
+    expect(def.description).toMatch(/project changes?/i);
+    expect(def.description).toMatch(/Epic/);
+  });
+
+  test("/adv-coordinate manifest scope preserves no-mutation boundary", () => {
+    const def = COMMAND_MANIFEST["adv-coordinate"];
+    expect(def).toBeDefined();
+    expect(def.scope).toBeDefined();
+    expect(def.scope!.creates).toEqual([]);
+    expect(def.scope!.modifies).toEqual([]);
+    expect(def.scope!.gates).toEqual([]);
+    expect(def.scope!.reads).toEqual(
+      expect.arrayContaining(["specs", "epics", "changes"]),
+    );
+  });
+});
+
 describe("/adv-coordinate command contract", () => {
   const commandPath = join(REPO_ROOT, ".opencode/command/adv-coordinate.md");
 
@@ -158,7 +276,7 @@ describe("/adv-coordinate command contract", () => {
 
     expect(frontmatter).toContain("name: adv-coordinate");
     expect(frontmatter).toContain(
-      "description: Audit Epic alignment, sequencing, and membership health",
+      "description: Audit project changes, Epic alignment, sequencing, and membership health",
     );
     expect(content).toMatch(/\*\*Gate:\*\*\s*None|Gate:\s*None/i);
   });
@@ -176,6 +294,26 @@ describe("/adv-coordinate command contract", () => {
     expect(content).toMatch(/sequencing/i);
     expect(content).toMatch(/capstone/i);
     expect(content).toMatch(/membership health|health/i);
+  });
+
+  test("user-facing title, body, and boundary reflect project changes plus Epics", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    // Title
+    expect(content).toMatch(
+      /^# ADV Coordinate — .*(project changes?|Project [Cc]hanges?).*Epic.*$/m,
+    );
+    // Lead body paragraph
+    expect(content).toMatch(
+      /read-first coordination pass[\s\S]{0,400}project'?s in-flight changes?/i,
+    );
+    // Boundary "Produces:" line
+    expect(content).toMatch(
+      /\*\*Produces:\*\*[^\n]*[Pp]roject[ -][Cc]hange[^\n]*Epic/,
+    );
+    // Boundary vs Nearby Commands adv-coordinate row
+    expect(content).toMatch(
+      /\| `\/adv-coordinate` \|[^\n]*(project changes?|in-flight changes?)[^\n]*Epic/i,
+    );
   });
 
   test("approval-gates typed Epic mutations", () => {
