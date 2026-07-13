@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-to5s7w",
+      "type": "gotcha",
+      "content": "Temporal TypeScript WorkflowHandle.query has no per-call timeout. Host-tool time budgets can expire while queries retry; bound the injected query seam below the tool deadline, throw a distinct per-item error, observe late rejection, and await shared connection teardown. Dedicated module-mocked lifecycle tests are needed to prove close is awaited before the operation returns.",
+      "source_task": "tk-36ce494039f7",
+      "recorded_at": "2026-07-13T04:00:58.670Z"
+    }
+  ],
+  "count": 1
+}
