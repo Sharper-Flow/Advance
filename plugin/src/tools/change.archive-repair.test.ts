@@ -1,6 +1,6 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { changeTools } from "./change";
-import type { Change } from "../types";
+import type { Change, Gates } from "../types";
 import type { Store } from "../storage/store";
 
 const mocks = vi.hoisted(() => ({
@@ -42,6 +42,8 @@ const mocks = vi.hoisted(() => ({
     localDeleted: true,
     remoteDeleted: true,
   })),
+  findArchiveBundle: vi.fn(),
+  saveRecoveredChangeStatus: vi.fn(),
 }));
 
 vi.mock("./archive-helpers/git-finalize", async () => {
@@ -59,6 +61,39 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     deleteChangeBranch: mocks.deleteChangeBranch,
   };
 });
+
+vi.mock("../archive", async () => {
+  const actual =
+    await vi.importActual<typeof import("../archive")>("../archive");
+  return { ...actual, findArchiveBundle: mocks.findArchiveBundle };
+});
+
+vi.mock("./_recovery-writers", async () => {
+  const actual = await vi.importActual<typeof import("./_recovery-writers")>(
+    "./_recovery-writers",
+  );
+  return {
+    ...actual,
+    saveRecoveredChangeStatus: mocks.saveRecoveredChangeStatus,
+  };
+});
+
+function doneGates(): Gates {
+  const done = {
+    status: "done" as const,
+    completed_at: "2026-01-01T00:00:00Z",
+    completed_by: "agent",
+  };
+  return {
+    proposal: { ...done },
+    discovery: { ...done },
+    design: { ...done },
+    planning: { ...done },
+    execution: { ...done },
+    acceptance: { ...done },
+    release: { ...done },
+  } as Gates;
+}
 
 function archivedChange(id: string): Change {
   return {
@@ -117,6 +152,13 @@ function createMockStore(
 describe("adv_archive_repair", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.findArchiveBundle.mockResolvedValue(null);
+    mocks.saveRecoveredChangeStatus.mockImplementation(
+      async (input: { change: Change; status: Change["status"] }) => {
+        input.change.status = input.status;
+        return input.change;
+      },
+    );
   });
 
   test("scan lists archived origin change branches not reachable from origin/default", async () => {
@@ -487,6 +529,116 @@ describe("adv_archive_repair", () => {
     expect(parsed.success).toBe(false);
     expect(parsed.error).toContain("not archived or was not found");
     expect(mocks.detectArchivedMergedBranches).not.toHaveBeenCalled();
+  });
+
+  test("reconcile repairs only bundle-present, fully-gated, merged release-stuck changes", async () => {
+    const shipped = {
+      ...archivedChange("shipped"),
+      status: "active",
+      gates: doneGates(),
+    } as Change;
+    const incomplete = {
+      ...archivedChange("incomplete"),
+      status: "active",
+      gates: {
+        ...doneGates(),
+        release: { status: "pending" },
+      },
+    } as Change;
+    const noBundle = {
+      ...archivedChange("no-bundle"),
+      status: "active",
+      gates: doneGates(),
+    } as Change;
+    const unmerged = {
+      ...archivedChange("unmerged"),
+      status: "active",
+      gates: doneGates(),
+    } as Change;
+    const changes = [shipped, incomplete, noBundle, unmerged];
+    const store = createMockStore(changes);
+    (store.changes.list as ReturnType<typeof vi.fn>).mockImplementation(
+      async ({ status }: { status?: string } = {}) => ({
+        changes:
+          status === "archived"
+            ? changes.filter((change) => change.status === "archived")
+            : changes.filter(
+                (change) =>
+                  change.status !== "archived" && change.status !== "closed",
+              ),
+      }),
+    );
+    mocks.findArchiveBundle.mockImplementation(async (_dir, changeId) =>
+      ["shipped", "unmerged"].includes(changeId)
+        ? `/tmp/.adv/archive/${changeId}`
+        : null,
+    );
+    mocks.detectArchivedMergedBranches.mockReturnValueOnce({
+      status: "ok",
+      branches: [
+        {
+          changeId: "shipped",
+          branch: "change/shipped",
+          localSha: "abc",
+          mergeProof: { kind: "tree-identical", trunkCommitSha: "def" },
+        },
+      ],
+    });
+
+    const result = await changeTools.adv_archive_repair.execute(
+      {
+        action: "reconcile",
+        approvedByUser: true,
+        approvalEvidence: "WorkflowNotFoundError + operator approved",
+        recoveryReason:
+          "bundle is durable but terminal archive projection is wedged",
+      } as never,
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.summary).toMatchObject({
+      total: 4,
+      repaired: 1,
+      skipped: 3,
+      failed: 0,
+    });
+    expect(parsed.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          changeId: "shipped",
+          disposition: "repaired",
+        }),
+        expect.objectContaining({
+          changeId: "incomplete",
+          disposition: "skipped_incomplete_gates",
+        }),
+        expect.objectContaining({
+          changeId: "no-bundle",
+          disposition: "skipped_no_bundle",
+        }),
+        expect.objectContaining({
+          changeId: "unmerged",
+          disposition: "skipped_unmerged_branch",
+        }),
+      ]),
+    );
+    expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(1);
+    expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        store,
+        change: shipped,
+        status: "archived",
+        authorization: expect.objectContaining({
+          reason: "bundle is durable but terminal archive projection is wedged",
+          evidence: "WorkflowNotFoundError + operator approved",
+        }),
+      }),
+    );
+    expect(incomplete.status).toBe("active");
+    expect(noBundle.status).toBe("active");
+    expect(unmerged.status).toBe("active");
   });
 
   test("non-regression: direct-archive cleanup gate keeps archiveMode === direct check", async () => {
