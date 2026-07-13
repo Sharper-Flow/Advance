@@ -1,0 +1,875 @@
+{
+  "id": "alignProviderEvalTargets",
+  "title": "Align provider eval targets",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T01:15:12.981Z",
+  "tasks": [
+    {
+      "id": "tk-a2890b25108e",
+      "title": "Align provider-eval model targets and prompt labels",
+      "type": "code",
+      "section": "Provider evaluation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T01:51:13.561Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T03:00:59.252Z",
+      "verification": "`bun test scripts/provider-eval.test.ts` passed: 8 tests covering exact canonical targets, prompt mapping, hint mapping, and no second GPT target. Worker returned source-backed update summary after report transport failure.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7084883a790acbff6d552bc5a4101581d6aac4fe",
+      "completedAt": "2026-07-13T03:24:03.380Z",
+      "completed_at": "2026-07-13T03:24:03.380Z"
+    },
+    {
+      "id": "tk-2b89b9cf3042",
+      "title": "Normalize verified top-level strict-mode placeholders",
+      "type": "code",
+      "section": "Strict-mode preflight",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-13T01:51:23.333Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC3"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C3",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T03:00:59.296Z",
+      "verification": "`pnpm vitest run src/utils/tool-arg-preflight.test.ts` passed: 99 tests. Worker RED/GREEN/typecheck/lint evidence returned inline after report transport failure.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "scripts/provider-eval-prompts/claude.yaml",
+        "scripts/provider-eval-prompts/glm.yaml",
+        "scripts/provider-eval-prompts/gpt.yaml",
+        "scripts/provider-eval-prompts/kimi.yaml",
+        "scripts/provider-eval.test.ts",
+        "scripts/provider-eval.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "scripts/provider-eval-prompts/claude.yaml",
+        "scripts/provider-eval-prompts/glm.yaml",
+        "scripts/provider-eval-prompts/gpt.yaml",
+        "scripts/provider-eval-prompts/kimi.yaml",
+        "scripts/provider-eval.test.ts",
+        "scripts/provider-eval.ts"
+      ],
+      "checkpointSha": "7084883a790acbff6d552bc5a4101581d6aac4fe",
+      "completedAt": "2026-07-13T03:23:30.203Z",
+      "completed_at": "2026-07-13T03:23:30.203Z"
+    },
+    {
+      "id": "tk-6ff82311335f",
+      "title": "Guard strict-mode policy coverage",
+      "type": "code",
+      "section": "Strict-mode preflight",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-13T01:51:37.539Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2b89b9cf3042"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4"
+        ],
+        "verifies": [
+          "SC4",
+          "AC4"
+        ],
+        "respects": [
+          "C3",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T03:24:26.064Z",
+      "verification": "Global schema-backed coverage guard added over registered top-level args with reviewed omission set; 4 completing zero-omit policies added (adv_backlog_list.tail_limit, adv_epic_list.limit, adv_project_wisdom_list.maxEntries, adv_reflection_list.maxEntries). RED runId tr_mrinvh8y (guard failed, exit 1) → GREEN runId tr_mrioetbr (100/100 pass). `pnpm run typecheck` clean; eslint clean. lastRedRunId=tr_mrinvh8y_d9400920 lastGreenRunId=tr_mrioetbr_73903893",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "b0312da09fdda88e9f85d42962ef19b3dca11069",
+      "completedAt": "2026-07-13T03:42:43.722Z",
+      "completed_at": "2026-07-13T03:42:43.722Z"
+    },
+    {
+      "id": "tk-88c68912b848",
+      "title": "Verify provider targets and strict-mode boundaries",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-13T01:51:51.982Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a2890b25108e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2b89b9cf3042"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6ff82311335f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T03:42:52.497Z",
+      "verification": "Consolidated verification GREEN. `bun test scripts/provider-eval.test.ts` 8/8 (AC1/AC2/SC1/SC2: exact canonical targets, prompt+hint mapping preserved, no second GPT target). `pnpm vitest run tool-arg-preflight + epic + roadmap + backlog + tool-registry` 261/261 (AC3/AC4/AC5/SC3/SC4: full-coverage guard, 19 policy groups, non-placeholder preservation, required-field rejection intact, related tools unaffected). AC6: provider-eval validates config before any OpenRouter call; no remote mutation occurs in tests. Run IDs tr_mriog254 (preflight suites), tr_mriog0jc (provider-eval).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "b0312da09fdda88e9f85d42962ef19b3dca11069",
+      "completedAt": "2026-07-13T03:43:22.501Z",
+      "completed_at": "2026-07-13T03:43:22.501Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "alignProviderEvalTargets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: provider evaluation targets and strict-mode preflight policy",
+      "sources": [
+        {
+          "label": "OpenRouter GPT Terra",
+          "locator": "https://openrouter.ai/openai/gpt-5.6-terra",
+          "summary": "Verified canonical GPT target slug."
+        },
+        {
+          "label": "OpenRouter GLM 5.2",
+          "locator": "https://openrouter.ai/z-ai/glm-5.2",
+          "summary": "Verified canonical GLM target slug."
+        },
+        {
+          "label": "OpenRouter Kimi K2.7 Code",
+          "locator": "https://openrouter.ai/moonshotai/kimi-k2.7-code",
+          "summary": "Verified canonical Kimi target slug."
+        },
+        {
+          "label": "OpenRouter Claude Opus 4.8",
+          "locator": "https://openrouter.ai/anthropic/claude-opus-4.8",
+          "summary": "Verified canonical Claude target slug."
+        },
+        {
+          "label": "Provider eval implementation",
+          "locator": "scripts/provider-eval.ts:126-167",
+          "summary": "Harness calls OpenRouter directly and owns provider model configuration."
+        },
+        {
+          "label": "Preflight implementation and tests",
+          "locator": "plugin/src/utils/tool-arg-preflight.ts:19-325; plugin/src/utils/tool-arg-preflight.test.ts:637-708",
+          "summary": "Existing table-driven policy and drift-guard architecture."
+        }
+      ],
+      "architecture_assessment": "The design extends the existing deterministic provider map and table-driven FIELD_POLICIES pattern. Direct OpenRouter calls require canonical OpenRouter slugs rather than OpenCode routing identifiers. Prompt label updates preserve scoring structure. No architectural deviation found.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All four model slugs verified. Explicit top-level omission policies and a schema-backed coverage guard are consistent with existing preflight architecture; nested report normalization remains correctly excluded."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Pinned model slugs require manual version updates but preserve reproducible evaluation.",
+          "Terra prioritizes observed-runtime fidelity over Sol flagship coverage."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Use OpenCode routing IDs directly",
+            "disposition": "rejected",
+            "rationale": "The evaluation harness calls OpenRouter directly; coding-plan identifiers are not canonical OpenRouter slugs."
+          },
+          {
+            "option": "Use floating latest aliases",
+            "disposition": "rejected",
+            "rationale": "Aliases silently retarget historical evaluations and break reproducibility."
+          },
+          {
+            "option": "Add nested report normalization now",
+            "disposition": "rejected",
+            "rationale": "Nested payload handling needs a structural policy extension and is explicitly out of scope."
+          }
+        ],
+        "recommendation": "Proceed with the approved design. Preserve required-field rejection and keep the new omission coverage top-level and schema-backed."
+      },
+      "recommendation": "Proceed. Use dotted Claude and `z-ai` GLM OpenRouter slugs; preserve prompt scenario structures and required-field rejection.",
+      "follow_ups": [
+        "Plan a separate nested `adv_subagent_report_submit.report` placeholder-normalization design.",
+        "Create a separate Toolbox change for Caveman `lite` mode."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Worker report transport initially failed from its worktree with WorkflowNotFoundError; orchestrator persisted this source-backed validator report through the target store."
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "alignProviderEvalTargets",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/alignProviderEvalTargets",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 5,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance"
+      ],
+      "summary": "Bounded config + validation-hardening change. All contract items traced to passing tests. Provider targets updated to exact canonical OpenRouter slugs with prompt structure preserved; strict-mode preflight coverage completed to 19 groups with a global schema-backed guard; required audit/approval/identity/command/content fields still reject blanks; nested report payload untouched. No security surface introduced (preflight only tightens/normalizes input at the tool boundary; no auth/secrets/persistence changes). 269 tests green, typecheck + lint clean.",
+      "findings": [],
+      "follow_ups": [
+        "Nested adv_subagent_report_submit.report placeholder normalization (separate structural design).",
+        "Caveman lite mode (separate Toolbox change)."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-2b89b9cf3042": [
+      {
+        "runId": "tr_mrinpgmr_a3437925",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/utils/tool-arg-preflight.test.ts",
+        "durationMs": 1108.3808919992298,
+        "recordedAt": "2026-07-13T03:22:23.561Z"
+      },
+      {
+        "runId": "tr_mrinpwnj_cd0835f0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/utils/tool-arg-preflight.test.ts",
+        "durationMs": 4433.281932000071,
+        "recordedAt": "2026-07-13T03:22:44.285Z"
+      }
+    ],
+    "tk-a2890b25108e": [
+      {
+        "runId": "tr_mrinq3h6_d323564c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test scripts/provider-eval.test.ts",
+        "durationMs": 63.03981200046837,
+        "recordedAt": "2026-07-13T03:22:53.129Z"
+      }
+    ],
+    "tk-6ff82311335f": [
+      {
+        "runId": "tr_mrinvh8y_d9400920",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/utils/tool-arg-preflight.test.ts",
+        "durationMs": 5367.5168949998915,
+        "recordedAt": "2026-07-13T03:27:04.257Z"
+      },
+      {
+        "runId": "tr_mrioetbr_73903893",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/utils/tool-arg-preflight.test.ts",
+        "durationMs": 4891.048077000305,
+        "recordedAt": "2026-07-13T03:42:06.380Z"
+      }
+    ],
+    "tk-88c68912b848": [
+      {
+        "runId": "tr_mriog0jc_cad022be",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test scripts/provider-eval.test.ts",
+        "durationMs": 81.28727300092578,
+        "recordedAt": "2026-07-13T03:43:02.388Z"
+      },
+      {
+        "runId": "tr_mriog254_d09d5d5b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/utils/tool-arg-preflight.test.ts src/tools/epic.test.ts src/tools/roadmap.test.ts src/tools/backlog.test.ts src/tool-registry.test.ts",
+        "durationMs": 4768.543543998152,
+        "recordedAt": "2026-07-13T03:43:04.455Z"
+      },
+      {
+        "runId": "tr_mrioql9i_0dc2d1b2",
+        "phase": "verify",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- run src/utils/tool-arg-preflight.test.ts src/tool-registry.test.ts src/tools/epic.test.ts src/tools/backlog.test.ts src/tools/roadmap.test.ts src/tools/ops-evidence.test.ts",
+        "durationMs": 13.267618998885155,
+        "recordedAt": "2026-07-13T03:51:15.814Z"
+      },
+      {
+        "runId": "tr_mrior0i7_d8224485",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/utils/tool-arg-preflight.test.ts src/tool-registry.test.ts src/tools/epic.test.ts src/tools/backlog.test.ts src/tools/roadmap.test.ts src/tools/ops-evidence.test.ts",
+        "durationMs": 5275.842668000609,
+        "recordedAt": "2026-07-13T03:51:35.557Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T01:22:21.905Z",
+      "completed_by": "user",
+      "approval_evidence": "User invoked the displayed continuation command `/adv-discover alignProviderEvalTargets`, which is explicit proposal approval.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "7bab73ea95f24db870225187417c51e50b61da3987ce637ebd85826fcbfa5537",
+        "non_whitespace_chars": 1055,
+        "checked_at": "2026-07-13T01:15:13.014Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:38:53.594Z",
+      "completed_by": "user",
+      "approval_evidence": "Re-entry AC3/AC5 revision approved by user `go`. Contract re-minted with complete-rule AC3 and structural coverage-guard AC5.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "non_whitespace_chars": 4075,
+        "checked_at": "2026-07-13T01:15:13.017Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:39:31.424Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design substance unchanged from the previously validated architecture; the AC3/AC5 revision made the schema-backed guard global-authoritative and added four same-class read-tool limit fields the guard surfaced. No new architecture; prior validator clean pass still applies.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "05d180aed42e1de532485b98ae042985537f1b4acb34e92285b549a267fed109",
+        "non_whitespace_chars": 3893,
+        "checked_at": "2026-07-13T01:15:13.018Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:40:00.714Z",
+      "completed_by": "user",
+      "approval_evidence": "Re-entry planning: existing 4-task graph preserved. Guard task (tk-c) now owns the four coverage-completing policies plus the global guard. tk-a/tk-b remain done and checkpointed."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:43:35.591Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done and checkpointed. Provider-eval targets/labels aligned (8/8), 19-group strict-mode placeholder coverage with global schema-backed guard (261/261 preflight+related), typecheck+lint clean. Two engineer workers hit report-transport WorkflowNotFoundError; orchestrator verified and checkpointed inline with source-backed evidence."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:50:32.599Z",
+      "completed_by": "user",
+      "approval_evidence": "User replied `approve` at the acceptance checkpoint. Review APPROVED with 0 findings; contract review matrix 17/17 pass, executive summary persisted with content-hash metadata; preview not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "004c40268c79246426ad043bc6583a0507df972c6a4916dcf3bfb99565aa3d55",
+        "non_whitespace_chars": 3060,
+        "checked_at": "2026-07-13T01:15:13.019Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Coverage guard (SC4) revealed AC3's enumerated 15-group list is under-inclusive: four more optional positive-int read-tool limit fields (adv_backlog_list.tail_limit, adv_epic_list.limit, adv_project_wisdom_list.maxEntries, adv_reflection_list.maxEntries) are the same strict-mode zero-placeholder deadlock class. Reframe AC3 from an instance list into the complete rule so contract matches the global guard.",
+      "scope_delta": "AC3 expands from 15 enumerated groups to the complete set of optional top-level blank/zero-rejecting fields (19 groups). No new objective; SC3 unchanged.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-13T03:37:26.108Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-07-13T01:15:11.006Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+      "approvedAt": "2026-07-13T03:38:47.688Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** Provider evaluation selects the current GPT Terra, GLM, Kimi Code, and Claude Opus targets through explicit canonical OpenRouter slugs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** Each provider evaluation prompt accurately identifies the model its run evaluates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** Valid strict-mode calls with optional top-level blank or zero placeholders reach their handlers after normalization, while required audit, approval, identity, command, and content fields remain rejected when blank.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "**SC4:** Targeted tests protect every changed policy group and fail when a new optional top-level `.min(1)` string or positive integer lacks a corresponding omission policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** `scripts/provider-eval.ts` contains exactly these pairs: GPT `openai/gpt-5.6-terra` / `GPT-5.6 Terra`; GLM `z-ai/glm-5.2` / `GLM-5.2`; Kimi `moonshotai/kimi-k2.7-code` / `Kimi K2.7 Code`; Claude `anthropic/claude-opus-4.8` / `Claude Opus 4.8`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** `scripts/provider-eval-prompts/{gpt,glm,kimi,claude}.yaml` contain no stale selected-model labels and retain their existing provider target, prompt ID, and behavioral scenario structure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Preflight omits blank/zero placeholders for the complete set of optional top-level fields that reject their blank/zero value — not a fixed subset. This includes the originally verified groups (`adv_change_repair_origin.origin_issue_number`, `adv_backlog_state.top`, `adv_roadmap.top`, `adv_ops_run_evidence_add` optional fields, and the twelve Epic-tool groups) plus the read-tool limit fields surfaced by the coverage guard (`adv_backlog_list.tail_limit`, `adv_epic_list.limit`, `adv_project_wisdom_list.maxEntries`, `adv_reflection_list.maxEntries`). The coverage guard (AC5) is the structural authority on completeness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Tests prove non-blank/non-zero optional values are preserved and required semantic fields continue to reject blank values.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** A deterministic schema-backed coverage guard scans every registered top-level tool argument and fails when any optional field that rejects its blank/zero placeholder lacks an omission policy or a reviewed exception. It must not use source-text/regex inference and must not inspect nested `adv_subagent_report_submit.report` payloads. No nested report normalization behavior is introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_subagent_report_submit#report"
+        ]
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** A model-ID or validation failure blocks task completion and leaves no remote/provider state mutated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Use concrete OpenRouter slugs; do not use floating aliases.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve existing provider-to-hint and provider-to-prompt mappings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep strict-mode normalization table-driven and top-level only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not alter live model routing, provider hints, or Caveman configuration in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not change required audit, approval, identity, command, or content fields from reject to omit.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not treat a top-level policy as a fix for nested `report` values.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not add a second GPT evaluation target.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T03:48:13.976Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "provider-eval.ts PROVIDERS uses canonical OpenRouter slugs; bun test scripts/provider-eval.test.ts 8/8 (tr_mriog0jc)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Four prompt YAMLs relabeled to selected models; provider-eval.test.ts asserts prompt_files preserved; diff shows only notes labels changed."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "tool-arg-preflight.test.ts regression matrix: strict-mode blank/zero placeholders normalize; required audit/approval/identity/command/content fields still reject blanks (tr_mriog254)."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Global schema-backed coverage guard recorded RED tr_mrinvh8y (exit 1, surfaced 4 uncovered fields) then GREEN tr_mrioetbr after coverage completed."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "provider-eval.test.ts asserts exact pairs: openai/gpt-5.6-terra/GPT-5.6 Terra; z-ai/glm-5.2/GLM-5.2; moonshotai/kimi-k2.7-code/Kimi K2.7 Code; anthropic/claude-opus-4.8/Claude Opus 4.8. 8/8."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Diff shows only notes selected-model labels updated; prompt IDs/targets/expected+forbidden patterns unchanged; provider-eval.test.ts asserts prompt_files preserved."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "FIELD_POLICIES now covers 19 groups incl. adv_backlog_list.tail_limit, adv_epic_list.limit, adv_project_wisdom_list.maxEntries, adv_reflection_list.maxEntries; coverage guard passes (tr_mrioetbr)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression matrix includes non-zero preservation cases (tail_limit 500, limit 25, maxEntries 10/8) and required-field blank-rejection controls; 100/100 preflight tests."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Guard scans registered top-level args via schema safeParse (no regex), excludes nested report; no nested-report policy added; drift guard test confirms live-arg references."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "provider-eval.ts validates PROVIDERS config before any OpenRouter network call; guard/tests are read-only; no remote mutation occurs during verification."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All four model_ids are concrete dotted OpenRouter slugs; no latest aliases in diff."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "hint_file and prompt_files unchanged in diff; provider-eval.test.ts asserts hint/prompt mappings preserved."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All additions are top-level FIELD_POLICIES table entries; no nested traversal; guard is top-level schema scan."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Diff touches only provider-eval.ts, prompt YAMLs, and tool-arg-preflight.{ts,test.ts}; no live routing config, provider-hint files, or Caveman config changed."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No required audit/approval/identity/command/content field flipped to omit; blank-still-rejects controls pass; only optional fields added."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No policy added for adv_subagent_report_submit.report; guard explicitly excludes nested report payloads."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "provider-eval.test.ts 'no second GPT target exists' passes; single gpt entry in PROVIDERS."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** `scripts/provider-eval.ts` contains exactly these pairs: GPT `openai/gpt-5.6-terra` / `GPT-5.6 Terra`; GLM `z-ai/glm-5.2` / `GLM-5.2`; Kimi `moonshotai/kimi-k2.7-code` / `Kimi K2.7 Code`; Claude `anthropic/claude-opus-4.8` / `Claude Opus 4.8`.",
+    "**AC2:** `scripts/provider-eval-prompts/{gpt,glm,kimi,claude}.yaml` contain no stale selected-model labels and retain their existing provider target, prompt ID, and behavioral scenario structure.",
+    "**AC3:** Preflight omits blank/zero placeholders for the complete set of optional top-level fields that reject their blank/zero value — not a fixed subset. This includes the originally verified groups (`adv_change_repair_origin.origin_issue_number`, `adv_backlog_state.top`, `adv_roadmap.top`, `adv_ops_run_evidence_add` optional fields, and the twelve Epic-tool groups) plus the read-tool limit fields surfaced by the coverage guard (`adv_backlog_list.tail_limit`, `adv_epic_list.limit`, `adv_project_wisdom_list.maxEntries`, `adv_reflection_list.maxEntries`). The coverage guard (AC5) is the structural authority on completeness.",
+    "**AC4:** Tests prove non-blank/non-zero optional values are preserved and required semantic fields continue to reject blank values.",
+    "**AC5:** A deterministic schema-backed coverage guard scans every registered top-level tool argument and fails when any optional field that rejects its blank/zero placeholder lacks an omission policy or a reviewed exception. It must not use source-text/regex inference and must not inspect nested `adv_subagent_report_submit.report` payloads. No nested report normalization behavior is introduced.",
+    "**AC6:** A model-ID or validation failure blocks task completion and leaves no remote/provider state mutated."
+  ],
+  "documents": {
+    "proposal": "# Align provider evaluation targets\n\n## Problem\nProvider evaluation uses stale OpenRouter model IDs and stale model labels in provider-specific evaluation prompts. Its results do not represent models currently routed for ADV work. Strict-mode providers also encounter top-level optional-field placeholder deadlocks in selected tools.\n\n## Scope\n- Update `scripts/provider-eval.ts` model IDs and display names for GPT, GLM, Kimi, and Claude.\n- Update stale model-name references in `scripts/provider-eval-prompts/{gpt,glm,kimi,claude}.yaml`.\n- Normalize the 15 verified top-level strict-mode optional blank/zero placeholder groups in preflight.\n- Add regression coverage for all changed normalization policies and an inverse coverage guard for future optional-field gaps.\n\n## Out of scope\n- Live OpenCode model-routing configuration.\n- Provider-hint behavior.\n- Provider-eval harness redesign, a second GPT target, or floating `latest` aliases.\n- Nested `adv_subagent_report_submit.report` placeholder normalization; it needs a separate structural nested-policy design.\n- Caveman integration and mode configuration; user selected a separate Toolbox `lite` mode change.\n\n## Discovery Findings\n\n### Skills Considered\n- `adv-agent-tool-contracts`: no match; no agent/tool contract change.\n- `adv-instructions-audit`: no match; no instruction-prose change.\n- `adv-worktree`: deferred to execution; no discovery guidance needed.\n\n### Extends\nNo durable prior research artifact found. Current-state evidence: `scripts/provider-eval.ts:142-167`, `docs/provider-agent-assembly.md:66-78`, provider prompt YAML files, `plugin/src/utils/tool-arg-preflight.ts`, and active routing at `~/.config/opencode/opencode.jsonc`.\n\nNew findings: all four provider prompts contain stale model labels; preflight lacks 15 verified top-level strict-mode placeholder policy groups. The nested subagent-report payload is a separate structural gap.\n\n### Conflict Scan\n- Active Advance changes: no active change overlaps provider evaluation or tool-argument preflight.\n- Source-project agenda: no provider-eval target item found.\n- `adv_change_validate` does not accept `target_path`; target-project validation could not run cross-project. Source scan found no conflict.\n\n### Current State\n- The evaluation script calls OpenRouter directly and uses one concrete model slug per provider.\n- Active routing uses GPT-5.6 Terra/Sol, GLM-5.2, Kimi K2.7 Code, and Claude Opus 4.8.\n- OpenCode routing IDs for GLM/Kimi differ from OpenRouter canonical slugs; copying them verbatim would be invalid.\n- Preflight is top-level only. Missing blank/zero policies allow strict-mode placeholders to fail Zod before contextual validation.\n\n### Edge Cases\n1. OpenCode routing IDs may not be valid OpenRouter slugs; use canonical OpenRouter IDs only.\n2. Terra and Sol are valid GPT targets. Terra is selected for diagnostic fidelity; adding Sol creates a second-target harness change.\n3. Updating only `PROVIDERS` leaves prompt narratives incorrect; update all four prompt files together.\n4. Blank placeholders are safe to omit only for truly optional fields; audit, approval, identity, and required command/content fields remain rejected.\n5. Empty top-level values and nested `report` values need different handling; do not solve nested payloads with a misleading top-level policy.\n\n### Open Design Questions\nNo unresolved question. GPT Terra choice and strict-mode boundary are user-confirmed. The nested subagent-report gap remains an explicit separate follow-up because correct handling requires a structural nested policy.\n\n### Draft Spec Deltas\nNo spec deltas required. This corrects deterministic evaluation configuration and preflight behavior under existing placeholder-policy requirements.\n\n### Related Pattern Scan\n- `scripts/provider-eval-prompts/{gpt,glm,kimi,claude}.yaml` contain stale model names and are in scope.\n- `plugin/src/overlay-sync-assets.test.ts` has a GLM-5.1 runtime fixture, out of scope: not a provider-eval target.\n- All 15 verified top-level gaps share the same policy pattern: optional `.min(1)` strings need blank omission, optional positive integers need zero omission.\n\n### Completeness Verification\n- Problem completeness: high confidence. Evaluation config, all provider-eval prompt labels, and top-level preflight policy gaps are the complete in-scope surfaces found.\n- Solution scope: high confidence. These surfaces are in scope; live routing, provider hints, runtime fixtures, nested reports, and Caveman mode are explicitly separated.\n- Sole-entry claim: verified for evaluation target selection (`scripts/provider-eval.ts` `PROVIDERS`). Secondary prompt files and preflight policy table are in scope.\n\n### LBP Check\nPinned canonical OpenRouter slugs preserve reproducible evaluations. Placeholder normalization remains table-driven at the preflight boundary; nested reports require a separate structural extension rather than heuristic recursion. External alternatives are not relevant.\n\n### Recommended Objectives\n1. Align provider-eval targets and prompt labels with active runtime generations.\n2. Preserve deterministic canonical OpenRouter identifiers.\n3. Eliminate verified top-level strict-mode optional-placeholder deadlocks without weakening semantic validation.\n\n### AMBIGUITY ANALYSIS\nNo blocking ambiguity findings. Coverage: B:C F:C S:C M:C.\n\n## Success Criteria\n- GPT evaluates `openai/gpt-5.6-terra`; GLM, Kimi, and Claude evaluate `z-ai/glm-5.2`, `moonshotai/kimi-k2.7-code`, and `anthropic/claude-opus-4.8`.\n- Every provider-eval prompt identifies its selected model accurately.\n- Every verified top-level strict-mode placeholder group normalizes before Zod while required semantic fields retain rejection behavior.\n- Regression coverage detects a future uncovered optional blank/zero field.",
+    "problemStatement": "`scripts/provider-eval.ts` evaluates stale model generations (GPT-5.4, GLM-5.1, Kimi K2.6, Claude Sonnet 4) rather than the models currently routed for ADV work. Results therefore do not measure the runtime behavior under investigation.",
+    "agreement": "# Agreement\n\n## Objectives\n1. Align provider-eval targets and prompt labels with models currently used by ADV.\n2. Preserve reproducible evaluation through pinned canonical OpenRouter slugs.\n3. Remove verified top-level strict-mode optional placeholder deadlocks without weakening required semantic validation.\n\n## Success Criteria\n1. **SC1:** Provider evaluation selects the current GPT Terra, GLM, Kimi Code, and Claude Opus targets through explicit canonical OpenRouter slugs.\n2. **SC2:** Each provider evaluation prompt accurately identifies the model its run evaluates.\n3. **SC3:** Valid strict-mode calls with optional top-level blank or zero placeholders reach their handlers after normalization, while required audit, approval, identity, command, and content fields remain rejected when blank.\n4. **SC4:** Targeted tests protect every changed policy group and fail when a new optional top-level `.min(1)` string or positive integer lacks a corresponding omission policy.\n\n## Acceptance Criteria\n1. **AC1:** `scripts/provider-eval.ts` contains exactly these pairs: GPT `openai/gpt-5.6-terra` / `GPT-5.6 Terra`; GLM `z-ai/glm-5.2` / `GLM-5.2`; Kimi `moonshotai/kimi-k2.7-code` / `Kimi K2.7 Code`; Claude `anthropic/claude-opus-4.8` / `Claude Opus 4.8`.\n2. **AC2:** `scripts/provider-eval-prompts/{gpt,glm,kimi,claude}.yaml` contain no stale selected-model labels and retain their existing provider target, prompt ID, and behavioral scenario structure.\n3. **AC3:** Preflight omits blank/zero placeholders for the complete set of optional top-level fields that reject their blank/zero value — not a fixed subset. This includes the originally verified groups (`adv_change_repair_origin.origin_issue_number`, `adv_backlog_state.top`, `adv_roadmap.top`, `adv_ops_run_evidence_add` optional fields, and the twelve Epic-tool groups) plus the read-tool limit fields surfaced by the coverage guard (`adv_backlog_list.tail_limit`, `adv_epic_list.limit`, `adv_project_wisdom_list.maxEntries`, `adv_reflection_list.maxEntries`). The coverage guard (AC5) is the structural authority on completeness.\n4. **AC4:** Tests prove non-blank/non-zero optional values are preserved and required semantic fields continue to reject blank values.\n5. **AC5:** A deterministic schema-backed coverage guard scans every registered top-level tool argument and fails when any optional field that rejects its blank/zero placeholder lacks an omission policy or a reviewed exception. It must not use source-text/regex inference and must not inspect nested `adv_subagent_report_submit.report` payloads. No nested report normalization behavior is introduced. [warrant: tool:adv_subagent_report_submit#report]\n6. **AC6:** A model-ID or validation failure blocks task completion and leaves no remote/provider state mutated.\n\n## Constraints\n1. Use concrete OpenRouter slugs; do not use floating aliases.\n2. Preserve existing provider-to-hint and provider-to-prompt mappings.\n3. Keep strict-mode normalization table-driven and top-level only.\n4. Do not alter live model routing, provider hints, or Caveman configuration in this change.\n\n## Avoidances\n1. Do not change required audit, approval, identity, command, or content fields from reject to omit.\n2. Do not treat a top-level policy as a fix for nested `report` values.\n3. Do not add a second GPT evaluation target.\n\n## Preview Applicability\n- visual_surface: false\n- rationale: script configuration and tool-boundary validation only.\n- preview_expectation: exact_route_required: not_applicable; data_state_expectation: not_applicable; viewport_expectation: not_applicable.\n\n## Decisions\n### User Decisions\n- Cross-project origin from Toolbox to Advance is confirmed.\n- GPT evaluation prioritizes Terra runtime fidelity.\n- Include verified top-level strict-mode normalization gaps; keep nested report normalization separate.\n- Lower Caveman to `lite` through a separate Toolbox change.\n- After the coverage guard surfaced 4 additional same-class read-tool limit fields, expand AC3 from the 15-group instance list into the complete rule; the global guard is the completeness authority.\n\n### Agent Decisions (LBP)\n- Use canonical OpenRouter IDs because the evaluation harness calls OpenRouter directly.\n- Keep policy coverage additive and table-driven; the inverse coverage guard enforces completeness across the whole registry.\n- Validation is read-only; failures stop completion rather than retrying or mutating provider state.\n\n## Deferred Questions\n- None.\n\n## Sign-Off\nAcceptance criteria approved by user: `approve` at the discovery criteria checkpoint on 2026-07-13; AC3/AC5 revision approved by user `go` after the coverage-guard completeness finding.",
+    "design": "# Design\n\n## Architecture Overview\nTwo deterministic configuration boundaries change:\n1. `scripts/provider-eval.ts` maps each provider to the canonical OpenRouter model it evaluates.\n2. `tool-arg-preflight.ts` maps known top-level strict-mode placeholders to omission before Zod validation.\n\nProvider prompt YAML labels are metadata coupled to the selected provider target and move with the configuration. No live routing, provider hint, remote provider, or nested report payload changes.\n\n## Key Decisions\n1. **Canonical OpenRouter slugs** — use OpenRouter IDs because the evaluation script calls OpenRouter directly; do not copy OpenCode coding-plan IDs.\n2. **GPT-5.6 Terra** — selected for behavioral fidelity to the observed current ADV workload; Sol remains out of scope.\n3. **Table-driven top-level normalization** — add explicit `blank: \"omit\"` / `zero: \"omit\"` policies for the complete set of optional top-level fields that reject their placeholder. Preserve existing required-field rejection.\n4. **Global schema-backed coverage guard** — the guard scans every registered top-level tool arg and enforces that any optional blank/zero-rejecting field has an omission policy or reviewed exception. Completeness is structural, not an enumerated instance list.\n5. **Nested reports excluded** — `adv_subagent_report_submit.report` requires a structural nested-policy design, not an ineffective top-level entry, and the guard must not inspect it.\n\nNo ADR: decisions are local, reversible configuration/validation policy changes without a cross-system tradeoff.\n\n## Implementation Strategy\n1. Update the four `PROVIDERS` entries and their names in `scripts/provider-eval.ts`.\n2. Replace stale selected-model references in four provider-eval prompt YAML files without changing prompt IDs, targets, or scenarios.\n3. Add omission policies for the complete optional blank/zero-rejecting top-level set: the originally verified groups plus the four read-tool limit fields (`adv_backlog_list.tail_limit`, `adv_epic_list.limit`, `adv_project_wisdom_list.maxEntries`, `adv_reflection_list.maxEntries`).\n4. Extend the data-driven preflight regression matrix with minimal valid placeholder payloads plus preservation/rejection cases.\n5. Add the deterministic schema-backed coverage guard over registered top-level args with an explicit reviewed exception set. No text/regex inference; no nested `report` inspection.\n\n## Affected Components\n- `scripts/provider-eval.ts`\n- `scripts/provider-eval-prompts/{gpt,glm,kimi,claude}.yaml`\n- `plugin/src/utils/tool-arg-preflight.ts`\n- `plugin/src/utils/tool-arg-preflight.test.ts`\n\n## LBP Analysis\nPinned model IDs make evaluation reproducible. A global schema-backed guard enforcing complete coverage prevents the next strict-mode deadlock structurally, rather than freezing an arbitrary field count. All scanned fields are optional, so omitting a blank/zero placeholder is always safe (handler default applies).\n\n## Design-Derived Criteria\n1. Every optional top-level blank/zero-rejecting field must carry an omission policy or a reviewed exception; the guard is the authority.\n2. Each new policy group needs a data-driven strict-mode regression case and a non-placeholder preservation case.\n3. No policy or guard logic may target nested `report` fields or relax existing reject policies.\n\n## Risks / Mitigations\n- **Wrong model slug:** validated against official OpenRouter model pages; completion blocks on validation failure.\n- **Over-normalization:** additions restricted to optional fields identified structurally by schema; required-field rejection tested.\n- **Guard drift:** global guard fails when any future optional blank/zero-rejecting field lacks coverage.\n- **Prompt drift:** retain existing YAML prompt IDs, targets, and scenarios; labels only.\n\n## Design Leverage Scout\nSkipped — narrow configuration and boundary-policy correction.\n\n## Independent Validation\nValidator: clean pass (high confidence, low risk). All four canonical OpenRouter slugs verified; direct-call evaluation requires public slugs; table-driven top-level policies and a deterministic schema-backed coverage guard are consistent with existing preflight architecture; nested report normalization correctly excluded. Re-entry note: the guard architecture the validator approved is unchanged; the AC3/AC5 revision made the guard global-authoritative and added four same-class read-tool limit fields the guard itself surfaced — no new architecture.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nThis change makes the ADV provider-evaluation harness test the models actually in use today, and closes a whole class of tool-call failures where strict-mode GPT sessions could deadlock on placeholder values. The approver is signing off on a self-contained tooling/quality fix with no production or user-facing surface.\n\n## Why It Matters\nProvider evaluations were scoring stale model generations, so their results did not reflect current ADV behavior — the diagnostic that motivated this work. Separately, strict-mode providers (notably GPT) fill unused optional fields with blank/zero placeholders, which could reject valid tool calls; this change normalizes those away for every affected optional field and adds a guard that prevents the gap from silently reopening.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Provider-evaluation targets and prompt labels updated to the current models (GPT-5.6 Terra, GLM-5.2, Kimi K2.7 Code, Claude Opus 4.8), using pinned canonical identifiers so results stay reproducible.\n2. Strict-mode placeholder handling completed across all affected optional tool fields (19 groups), so blank/zero placeholders no longer block valid calls while required audit/approval/identity fields still reject blanks.\n3. A structural coverage guard (schema-backed test) that fails if any future optional field lacks placeholder handling — it caught 4 fields the manual audit missed.\n\n## What Was Verified\n- Verdict: APPROVED with 0 findings (0 blockers, 0 issues).\n- Tests: 276 green at release gate — provider-eval config (8), preflight incl. coverage guard (100), epic/roadmap/backlog/tool-registry/ops-evidence (168). Typecheck + lint clean. TDD RED→GREEN recorded on the guard.\n- Preview URL: not_applicable — script configuration and tool-boundary validation only; no front-end or visual output (contract matrix C-rows respected).\n- Contract matrix: 17/17 required rows pass/respected, 0 failing.\n\n## Remaining Concerns\nNone blocking. Two non-blocking follow-ups queued as agenda items: nested `adv_subagent_report_submit.report` placeholder normalization (separate structural design); Caveman `lite` mode (separate Toolbox change).\n\n## Supporting Evidence\n- Tasks: tk-a2890b25108e (targets/labels), tk-2b89b9cf3042 (policies), tk-6ff82311335f (guard), tk-88c68912b848 (verification).\n- Run IDs: tr_mriog0jc (provider-eval), tr_mrior0i7 (release-gate sweep), tr_mrinvh8y→tr_mrioetbr (guard RED→GREEN).\n- Design validation: adv-researcher clean pass (all 4 OpenRouter slugs verified against official model pages).\n- Contract review matrix: 17 rows, 0 failing.\n\n## Consequence Context\n1. Delivered value: pass — eval harness now reflects current models; strict-mode placeholder deadlock class closed with a regression guard.\n2. Enabling-only/follow-up dependency: n/a — self-contained; no downstream change depends on this to ship (source: agreement scope, no ops_followup links).\n3. Ops readiness: pass — no deploy/migration/production steps in scope; plugin build/deploy is the normal out-of-change toolbox step.\n4. Migration/data impact: n/a — no schema, storage, or data migration; source: diff touches only scripts + preflight util.\n5. Frontend/preview impact: not_applicable — visual_surface false; no browser-visible output.\n6. Collision/release risk: low — merge dry-run into origin/trunk clean; 8 files, no live routing/hint config touched.\n7. Open follow-ups: 2 non-blocking agenda items (nested report normalization; Caveman lite).\n8. Next action: archive sign-off.\n\n## Release Readiness Summary\nReady to ship. This is a self-contained tooling and tool-boundary quality fix: the provider-evaluation harness now targets current models, and strict-mode placeholder handling is complete and guarded against regression. No production, data, or user-facing surface is affected.\n\n- Test coverage: pass — 276 tests green at release gate across preflight and every tool touched by the new policies; guard has recorded RED→GREEN evidence.\n- AI-slop: pass — additions are declarative policy-table entries plus one schema-backed test; no placeholders, type erosion, or debug residue (verified).\n- Documentation hygiene: n/a — no user-facing docs affected; rationale captured in agreement/design artifacts.\n- Production readiness: pass — preflight change is additive and backward-compatible (only omits placeholders for optional fields); required audit/approval/identity/command/content fields still reject blanks.\n- Deployment readiness: n/a — no env vars, migrations, external services, or CI/CD changes; deployed behavior updates via the normal toolbox plugin build/deploy outside this change's scope.\n- Cleanup: pass — no temp files or debug code; measurement-time debug line removed and confirmed absent from the diff.\n\n### Approval Consequence Context (release)\n1. Delivered value: pass — current-model eval fidelity + closed strict-mode deadlock class with regression guard (source: contract matrix 17/17, tr_mrior0i7).\n2. Enabling-only/follow-up dependency: n/a — self-contained (source: agreement scope, no ops_followup links).\n3. Ops readiness: pass — no deploy/migration/production steps in scope (source: diff = scripts + preflight util only).\n4. Migration/data impact: n/a — no schema/storage/data changes (source: diff).\n5. Frontend/preview impact: not_applicable — visual_surface false (source: agreement Preview Applicability, matrix).\n6. Collision/release risk: low — clean merge dry-run into origin/trunk; no live routing/hint/Caveman config touched (source: merge --no-commit --no-ff clean; C4 respected).\n7. Open follow-ups: 2 non-blocking agenda items (nested report normalization; Caveman lite) — neither blocks release.\n8. Next action: `/adv-archive alignProviderEvalTargets`.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T03:48:13.976Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** Provider evaluation selects the current GPT Terra, GLM, Kimi Code, and Claude Opus targets through explicit canonical OpenRouter slugs. | pass | provider-eval.ts PROVIDERS uses canonical OpenRouter slugs; bun test scripts/provider-eval.test.ts 8/8 (tr_mriog0jc). |\n| SC2 | success_criterion | **SC2:** Each provider evaluation prompt accurately identifies the model its run evaluates. | pass | Four prompt YAMLs relabeled to selected models; provider-eval.test.ts asserts prompt_files preserved; diff shows only notes labels changed. |\n| SC3 | success_criterion | **SC3:** Valid strict-mode calls with optional top-level blank or zero placeholders reach their handlers after normalization, while required audit, approval, identity, command, and content fields remain rejected when blank. | pass | tool-arg-preflight.test.ts regression matrix: strict-mode blank/zero placeholders normalize; required audit/approval/identity/command/content fields still reject blanks (tr_mriog254). |\n| SC4 | success_criterion | **SC4:** Targeted tests protect every changed policy group and fail when a new optional top-level `.min(1)` string or positive integer lacks a corresponding omission policy. | pass | Global schema-backed coverage guard recorded RED tr_mrinvh8y (exit 1, surfaced 4 uncovered fields) then GREEN tr_mrioetbr after coverage completed. |\n| AC1 | acceptance_criterion | **AC1:** `scripts/provider-eval.ts` contains exactly these pairs: GPT `openai/gpt-5.6-terra` / `GPT-5.6 Terra`; GLM `z-ai/glm-5.2` / `GLM-5.2`; Kimi `moonshotai/kimi-k2.7-code` / `Kimi K2.7 Code`; Claude `anthropic/claude-opus-4.8` / `Claude Opus 4.8`. | pass | provider-eval.test.ts asserts exact pairs: openai/gpt-5.6-terra/GPT-5.6 Terra; z-ai/glm-5.2/GLM-5.2; moonshotai/kimi-k2.7-code/Kimi K2.7 Code; anthropic/claude-opus-4.8/Claude Opus 4.8. 8/8. |\n| AC2 | acceptance_criterion | **AC2:** `scripts/provider-eval-prompts/{gpt,glm,kimi,claude}.yaml` contain no stale selected-model labels and retain their existing provider target, prompt ID, and behavioral scenario structure. | pass | Diff shows only notes selected-model labels updated; prompt IDs/targets/expected+forbidden patterns unchanged; provider-eval.test.ts asserts prompt_files preserved. |\n| AC3 | acceptance_criterion | **AC3:** Preflight omits blank/zero placeholders for the complete set of optional top-level fields that reject their blank/zero value — not a fixed subset. This includes the originally verified groups (`adv_change_repair_origin.origin_issue_number`, `adv_backlog_state.top`, `adv_roadmap.top`, `adv_ops_run_evidence_add` optional fields, and the twelve Epic-tool groups) plus the read-tool limit fields surfaced by the coverage guard (`adv_backlog_list.tail_limit`, `adv_epic_list.limit`, `adv_project_wisdom_list.maxEntries`, `adv_reflection_list.maxEntries`). The coverage guard (AC5) is the structural authority on completeness. | pass | FIELD_POLICIES now covers 19 groups incl. adv_backlog_list.tail_limit, adv_epic_list.limit, adv_project_wisdom_list.maxEntries, adv_reflection_list.maxEntries; coverage guard passes (tr_mrioetbr). |\n| AC4 | acceptance_criterion | **AC4:** Tests prove non-blank/non-zero optional values are preserved and required semantic fields continue to reject blank values. | pass | Regression matrix includes non-zero preservation cases (tail_limit 500, limit 25, maxEntries 10/8) and required-field blank-rejection controls; 100/100 preflight tests. |\n| AC5 | acceptance_criterion | **AC5:** A deterministic schema-backed coverage guard scans every registered top-level tool argument and fails when any optional field that rejects its blank/zero placeholder lacks an omission policy or a reviewed exception. It must not use source-text/regex inference and must not inspect nested `adv_subagent_report_submit.report` payloads. No nested report normalization behavior is introduced. | pass | Guard scans registered top-level args via schema safeParse (no regex), excludes nested report; no nested-report policy added; drift guard test confirms live-arg references. |\n| AC6 | acceptance_criterion | **AC6:** A model-ID or validation failure blocks task completion and leaves no remote/provider state mutated. | pass | provider-eval.ts validates PROVIDERS config before any OpenRouter network call; guard/tests are read-only; no remote mutation occurs during verification. |\n| C1 | constraint | Use concrete OpenRouter slugs; do not use floating aliases. | respected | All four model_ids are concrete dotted OpenRouter slugs; no latest aliases in diff. |\n| C2 | constraint | Preserve existing provider-to-hint and provider-to-prompt mappings. | respected | hint_file and prompt_files unchanged in diff; provider-eval.test.ts asserts hint/prompt mappings preserved. |\n| C3 | constraint | Keep strict-mode normalization table-driven and top-level only. | respected | All additions are top-level FIELD_POLICIES table entries; no nested traversal; guard is top-level schema scan. |\n| C4 | constraint | Do not alter live model routing, provider hints, or Caveman configuration in this change. | respected | Diff touches only provider-eval.ts, prompt YAMLs, and tool-arg-preflight.{ts,test.ts}; no live routing config, provider-hint files, or Caveman config changed. |\n| DONT1 | avoidance | Do not change required audit, approval, identity, command, or content fields from reject to omit. | respected | No required audit/approval/identity/command/content field flipped to omit; blank-still-rejects controls pass; only optional fields added. |\n| DONT2 | avoidance | Do not treat a top-level policy as a fix for nested `report` values. | respected | No policy added for adv_subagent_report_submit.report; guard explicitly excludes nested report payloads. |\n| DONT3 | avoidance | Do not add a second GPT evaluation target. | respected | provider-eval.test.ts 'no second GPT target exists' passes; single gpt entry in PROVIDERS. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T01:33:03.428Z",
+      "contentHash": "28816ffdc2dcb5b76073215cb523be451699f360f85f45b938c0b1962942b627",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T01:15:13.047Z",
+      "contentHash": "56b6de926bb6fc17b48c748b65fe40aae5a922fab74f10bd4f81048aeaf85ac8",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T03:38:42.308Z",
+      "contentHash": "82b9353d30dfa01278e15beda8f05d75de7f64065c58386076ab0c8c89d47577",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T03:39:21.097Z",
+      "contentHash": "05d180aed42e1de532485b98ae042985537f1b4acb34e92285b549a267fed109",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T03:52:26.376Z",
+      "contentHash": "ec84dd9695e0cb87ede4f0527beb213de48fccd84b1cd53ed9ae39dabcff74a8",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T03:52:26.376Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

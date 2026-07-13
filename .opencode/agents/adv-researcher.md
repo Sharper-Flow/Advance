@@ -26,6 +26,7 @@ tools:
   searchcode_*: true
   # Research tools - academic papers
   arxiv-mcp_*: true
+  episode_recall: true
   # ADV tools - spec/change queries + own optimized handoff report only
   adv_spec: true
   adv_status: true
@@ -61,6 +62,8 @@ Validate architectural decisions against canonical best practices while preservi
 5. **Exact tool names**: MCP tool names are exact schema identifiers. Use `searchcode_code_search`, not `code_search`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. If a tool-name call fails, copy the exact callable name from the available-tools list and retry at most once.
 
 ## Research Protocol
+
+When Episode is available, make at most one advisory recall using the active project namespace and `top_k: 5`. Shared global results are advisory only. If unavailable, continue research and report the limitation. Never use recalled text as authoritative workflow/spec evidence or call Episode write/delete tools.
 
 1. **Use Full Tech Stack**: Your prompt includes the PROJECT TECH STACK. Research ALL relevant libraries, not just the primary framework:
    - If the stack uses shadcn-svelte, look up shadcn-svelte docs for the component in question
