@@ -49,9 +49,22 @@ export const BriefingFactOutcomeSchema = z.enum([
   "epic_terminal_note",
   "archive_only_evidence",
   "unresolved_action",
+  "research_citation",
 ]);
 
 export type BriefingFactOutcome = z.infer<typeof BriefingFactOutcomeSchema>;
+
+/**
+ * Bounded rendering cap for `research_citation` facts derived from a single
+ * `adv-researcher` report's `sources` array. The first
+ * RESEARCH_CITATION_RENDER_LIMIT sources render as durable facts in stable
+ * report order; any remaining sources are summarized by exactly one
+ * deterministic omission marker (source_label `sources.omitted`).
+ *
+ * The bound is structural, not a heuristic ranking: order is preserved and
+ * no sources are dropped silently. See strengthenAgentEvidence AC4/SC3/C5/DONT4.
+ */
+export const RESEARCH_CITATION_RENDER_LIMIT = 3;
 
 export const BriefingFactSchema = z
   .object({

@@ -82,6 +82,7 @@ describe("Briefing packet type foundations", () => {
       "epic_terminal_note",
       "archive_only_evidence",
       "unresolved_action",
+      "research_citation",
     ]);
   });
 

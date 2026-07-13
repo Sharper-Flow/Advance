@@ -12,6 +12,7 @@ import { readFileSync } from "fs";
 import { join, resolve } from "path";
 import {
   getSubagentReportPacketAnchors,
+  SUBAGENT_REPORT_PACKET_ANCHORS,
   SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
 } from "./types";
 
@@ -250,4 +251,83 @@ describe("briefing packet agent consumption", () => {
       );
     },
   );
+});
+
+// =============================================================================
+// AC5 — Pin strict-identity vs warn-first-context anchor boundary.
+//
+// The packet-contract asset tests already verify that warn-first anchors
+// appear in packet fenced blocks. The assertions below additionally pin the
+// exact tier membership so an accidental strictening of the warn-first set
+// (or demotion of an identity anchor) becomes a test failure rather than a
+// silent protocol change. See strengthenAgentEvidence AC5 / DONT1.
+// =============================================================================
+
+describe("packet anchor tier boundary (AC5/DONT1)", () => {
+  test("strict identity anchor vocabulary is exactly the field-source set", () => {
+    expect(Object.values(SUBAGENT_REPORT_PACKET_ANCHORS).sort()).toEqual(
+      [
+        "ATTEMPT",
+        "CHANGE",
+        "PHASE",
+        "SCOPE KEY",
+        "TASK",
+        "WORKING DIRECTORY",
+      ].sort(),
+    );
+  });
+
+  test("warn-first anchor vocabulary is exactly the pinned context set", () => {
+    expect([...SUBAGENT_WARN_FIRST_PACKET_ANCHORS]).toEqual([
+      "TASK_SCOPE",
+      "IN_SCOPE",
+      "OUT_OF_SCOPE",
+      "DONE_WHEN",
+      "STOP_WHEN",
+      "VERIFICATION",
+    ]);
+  });
+
+  test("strict and warn-first anchor sets are disjoint", () => {
+    const strict = new Set(Object.values(SUBAGENT_REPORT_PACKET_ANCHORS));
+    for (const anchor of SUBAGENT_WARN_FIRST_PACKET_ANCHORS) {
+      expect(strict.has(anchor)).toBe(false);
+    }
+  });
+
+  test.each([
+    "adv-engineer",
+    "adv-reviewer",
+    "adv-designer",
+    "adv-researcher",
+    "adv-scanner-bundle",
+    "adv-verification-triage-bundle",
+  ] as const)("%s identity anchors include no warn-first anchor", (agent) => {
+    const identityAnchors = getSubagentReportPacketAnchors(agent);
+    for (const anchor of SUBAGENT_WARN_FIRST_PACKET_ANCHORS) {
+      expect(
+        identityAnchors,
+        `${agent} identity anchors must not include warn-first ${anchor}`,
+      ).not.toContain(anchor);
+    }
+  });
+
+  test("engineer agent file pins warn-first anchors as warn-first (not strict)", () => {
+    const content = readAgent("adv-engineer.md");
+    expect(content).toContain("warn-first");
+    expect(content).toContain(
+      "Missing new non-identity anchors are warn-first rollout defects",
+    );
+    // Strict identity anchors must NOT be described as warn-first.
+    const scopeLockSection =
+      content
+        .split("## Scope Lock")[1]
+        ?.split("## Working Directory Lock")[0] ?? "";
+    expect(scopeLockSection).toContain("TASK_SCOPE:");
+    expect(scopeLockSection).toContain("IN_SCOPE:");
+    expect(scopeLockSection).toContain("OUT_OF_SCOPE:");
+    expect(scopeLockSection).toContain("DONE_WHEN:");
+    expect(scopeLockSection).toContain("STOP_WHEN:");
+    expect(scopeLockSection).toContain("VERIFICATION:");
+  });
 });

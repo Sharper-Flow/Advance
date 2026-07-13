@@ -14,8 +14,12 @@
  *   - wisdom_candidate          → reviewer wisdom_candidates
  *   - spec_delta_candidate      → explicit typed facts only
  *   - epic_terminal_note        → supplied Epic membership context
+ *   - research_citation         → first RESEARCH_CITATION_RENDER_LIMIT
+ *                                 adv-researcher sources (stable order)
+ *                                 plus one deterministic omission marker
+ *                                 when sources exceed the bound
  *   - archive_only_evidence     → decisions, changes_made, verification,
- *                                 findings, risks, sources,
+ *                                 findings, risks,
  *                                 architecture_assessment
  *   - unresolved_action         → required_main_agent_actions, blockers,
  *                                 scope_drift, open_questions,
@@ -30,6 +34,7 @@ import {
   type ChangeScopedReviewerSubagentReport,
   type DesignerSubagentReport,
   type EngineerSubagentReport,
+  RESEARCH_CITATION_RENDER_LIMIT,
   type ResearcherSubagentReport,
   type ReviewerSubagentReport,
   type ScannerBundleSubagentReport,
@@ -341,13 +346,32 @@ function classifyChangeScopedReport(
   // Researcher
   if (report.agent === "adv-researcher") {
     const researcherReport = report as ResearcherSubagentReport;
-    for (const source of researcherReport.sources) {
+    // AC4/SC3/C5/DONT4: render the first RESEARCH_CITATION_RENDER_LIMIT
+    // sources in stable report order as typed research_citation facts. When
+    // sources exceed the bound, render exactly one deterministic omission
+    // marker so engineers see the truncation without packet bloat. No
+    // adoption, usage, delivery, or click telemetry is emitted.
+    const kept = researcherReport.sources.slice(
+      0,
+      RESEARCH_CITATION_RENDER_LIMIT,
+    );
+    for (const source of kept) {
       addFact(
         facts,
         report,
-        "archive_only_evidence",
+        "research_citation",
         "sources",
-        `${source.label}: ${source.summary}`,
+        `${source.label}: ${source.summary} (${source.locator})`,
+      );
+    }
+    const omittedCount = researcherReport.sources.length - kept.length;
+    if (omittedCount > 0) {
+      addFact(
+        facts,
+        report,
+        "research_citation",
+        "sources.omitted",
+        `${omittedCount} additional source${omittedCount === 1 ? "" : "s"} omitted (bounded to first ${RESEARCH_CITATION_RENDER_LIMIT})`,
       );
     }
     addFact(

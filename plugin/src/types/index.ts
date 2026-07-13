@@ -228,6 +228,7 @@ export {
   BRIEFING_PACKET_LANE_TO_AGENT,
   BriefingFactOutcomeSchema,
   type BriefingFactOutcome,
+  RESEARCH_CITATION_RENDER_LIMIT,
   BriefingFactSchema,
   type BriefingFact,
   BriefingPacketSectionKindSchema,

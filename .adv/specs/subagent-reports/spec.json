@@ -3,8 +3,8 @@
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
-  "version": "1.7.2",
-  "updated_at": "2026-07-10T00:00:00.000Z",
+  "version": "1.7.3",
+  "updated_at": "2026-07-13T00:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
@@ -800,6 +800,29 @@
           "given": ["A briefing packet is requested for the archive lane"],
           "when": "The lane is classified",
           "then": ["The archive lane does not map to a persisted sub-agent report agent", "Archive digest anchors are deterministic and terminal-state focused"]
+        },
+        {
+          "id": "rq-subagentReports21.4",
+          "title": "Researcher sources render as bounded stable-order research_citation facts",
+          "given": ["An adv-researcher report contains a non-empty sources array"],
+          "when": "The briefing fact classifier processes the report",
+          "then": [
+            "The first RESEARCH_CITATION_RENDER_LIMIT sources render as research_citation facts in stable report order",
+            "Exactly one deterministic omission marker fact is rendered when sources exceed the bound",
+            "No adoption, usage, delivery, click, or other telemetry is emitted",
+            "research_citation facts are distinct from archive_only_evidence, unresolved_action, and transient_prompt_context"
+          ]
+        },
+        {
+          "id": "rq-subagentReports21.5",
+          "title": "Strict identity and warn-first context anchor boundary is pinned",
+          "given": ["Packet-contract asset tests run against command/agent assets"],
+          "when": "Anchor tier membership is asserted",
+          "then": [
+            "Identity anchors (CHANGE, TASK, ATTEMPT, WORKING DIRECTORY, plus agent-specific PHASE / SCOPE KEY) remain strict",
+            "TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION remain warn-first",
+            "Strict and warn-first anchor sets are disjoint and the boundary is test-pinned"
+          ]
         }
       ]
     },
