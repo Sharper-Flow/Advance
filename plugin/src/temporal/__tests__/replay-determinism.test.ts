@@ -16,9 +16,24 @@ interface ReplayFixtureMetadata {
   eventCount: number;
   incidentEventId: string;
   incidentEventType: string;
+  /** Patch marker id (core_patch VersionMarker) the history records, when any. */
+  patchMarker?: string;
 }
 
-const replayFixtures = [
+interface ReplayFixture {
+  metadataUrl: URL;
+  historyUrl: URL;
+  /**
+   * Patch marker id the committed history must record as a core_patch
+   * VersionMarker. Omit for pre-patch legacy histories (which instead prove
+   * the current patched code replays a history that predates the marker).
+   */
+  patchMarker?: string;
+  /** Substring the metadata `covers[]` must include (branch-specific coverage). */
+  coversIncludes: string;
+}
+
+const replayFixtures: ReplayFixture[] = [
   {
     // Protects DISCOVERY_CONTRACT_READINESS_PATCH in workflows.ts. Keep this
     // fixture while pre-contract discovery histories can still replay through
@@ -31,6 +46,56 @@ const replayFixtures = [
       "./replay/histories/fixGateAutoWorktree.discovery-gate-tmprl1100.history.json",
       import.meta.url,
     ),
+    // Pre-patch poisoned history: no marker; it proves the patched code
+    // replays a TMPRL1100 discovery-gate history deterministically.
+    coversIncludes: "TMPRL1100",
+  },
+  {
+    // STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH (state-backed-gate-artifact-proof-v1):
+    // new history completing the proposal gate via state-backed artifact
+    // evidence, recording the patch marker before deriving evidence from
+    // state.documents without disk inspection.
+    metadataUrl: new URL(
+      "./replay/histories/addReplayReportBounds.state-backed-gate-artifact.metadata.json",
+      import.meta.url,
+    ),
+    historyUrl: new URL(
+      "./replay/histories/addReplayReportBounds.state-backed-gate-artifact.history.json",
+      import.meta.url,
+    ),
+    patchMarker: "state-backed-gate-artifact-proof-v1",
+    coversIncludes: "STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH",
+  },
+  {
+    // STATE_BACKED_ACCEPTANCE_PROOF_PATCH (state-backed-acceptance-proof-v1):
+    // new history completing the acceptance gate via state-backed acceptance
+    // proof, materializing executive-summary.md and acceptance.md.
+    metadataUrl: new URL(
+      "./replay/histories/addReplayReportBounds.state-backed-acceptance.metadata.json",
+      import.meta.url,
+    ),
+    historyUrl: new URL(
+      "./replay/histories/addReplayReportBounds.state-backed-acceptance.history.json",
+      import.meta.url,
+    ),
+    patchMarker: "state-backed-acceptance-proof-v1",
+    coversIncludes: "STATE_BACKED_ACCEPTANCE_PROOF_PATCH",
+  },
+  {
+    // ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH (acceptance-executive-summary-proof-v1):
+    // legacy history completing the acceptance gate via the disk-inspect
+    // branch; current code replays it through the legacy path because the
+    // STATE_BACKED_ACCEPTANCE_PROOF_PATCH marker is absent.
+    metadataUrl: new URL(
+      "./replay/histories/addReplayReportBounds.acceptance-executive-summary.metadata.json",
+      import.meta.url,
+    ),
+    historyUrl: new URL(
+      "./replay/histories/addReplayReportBounds.acceptance-executive-summary.history.json",
+      import.meta.url,
+    ),
+    patchMarker: "acceptance-executive-summary-proof-v1",
+    coversIncludes: "ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH",
   },
 ];
 
@@ -38,14 +103,43 @@ async function readJson<T>(url: URL): Promise<T> {
   return JSON.parse(await readFile(url, "utf8")) as T;
 }
 
+interface ReplayHistoryEvent {
+  eventId: string;
+  eventType: string;
+  markerRecordedEventAttributes?: {
+    markerName?: string;
+    details?: Record<string, { payloads?: Array<{ data?: string }> }>;
+  };
+}
+
+/** Decode the core_patch VersionMarker patch id from a MARKER_RECORDED event. */
+function markerPatchId(event: ReplayHistoryEvent): string | undefined {
+  const details = event.markerRecordedEventAttributes?.details;
+  if (!details) return undefined;
+  for (const value of Object.values(details)) {
+    for (const payload of value.payloads ?? []) {
+      if (!payload.data) continue;
+      try {
+        const decoded = JSON.parse(
+          Buffer.from(payload.data, "base64").toString("utf8"),
+        ) as { id?: string };
+        if (typeof decoded.id === "string") return decoded.id;
+      } catch {
+        // Not a JSON payload; skip.
+      }
+    }
+  }
+  return undefined;
+}
+
 describe("changeWorkflow replay determinism", () => {
   it.each(replayFixtures)(
     "replays committed history fixture %#",
-    async ({ metadataUrl, historyUrl }) => {
+    async ({ metadataUrl, historyUrl, patchMarker, coversIncludes }) => {
       const metadata = await readJson<ReplayFixtureMetadata>(metadataUrl);
-      const history = await readJson<{
-        events: Array<{ eventId: string; eventType: string }>;
-      }>(historyUrl);
+      const history = await readJson<{ events: ReplayHistoryEvent[] }>(
+        historyUrl,
+      );
 
       expect(metadata.workflowType).toBe("changeWorkflow");
       expect(history.events).toHaveLength(metadata.eventCount);
@@ -55,7 +149,16 @@ describe("changeWorkflow replay determinism", () => {
           eventType: metadata.incidentEventType,
         }),
       );
-      expect(metadata.covers.join("\n")).toContain("TMPRL1100");
+      expect(metadata.covers.join("\n")).toContain(coversIncludes);
+
+      if (patchMarker) {
+        // Branch-specific coverage: the committed history must record the
+        // target patch marker as a core_patch VersionMarker.
+        const recordedMarkers = history.events
+          .filter((e) => e.eventType === "EVENT_TYPE_MARKER_RECORDED")
+          .map(markerPatchId);
+        expect(recordedMarkers).toContain(patchMarker);
+      }
 
       await Worker.runReplayHistory(
         {

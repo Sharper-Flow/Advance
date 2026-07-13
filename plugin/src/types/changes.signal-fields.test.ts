@@ -36,12 +36,23 @@ describe("ChangeSchema signal-rejection sidecar fields", () => {
     const result = ChangeSchema.parse({
       ...minimalValidChange,
       seenReportIds: ["r1", "r2"],
+      seenReportIdsTotal: 2,
       signal_rejections: [validRejection],
       signal_rejections_total: 1,
     });
     expect(result.seenReportIds).toEqual(["r1", "r2"]);
+    expect(result.seenReportIdsTotal).toBe(2);
     expect(result.signal_rejections).toEqual([validRejection]);
     expect(result.signal_rejections_total).toBe(1);
+  });
+
+  test("rejects non-number seenReportIdsTotal (typed, not passthrough)", () => {
+    expect(() =>
+      ChangeSchema.parse({
+        ...minimalValidChange,
+        seenReportIdsTotal: "not-a-number",
+      }),
+    ).toThrow();
   });
 
   test("rejects non-number signal_rejections_total (typed, not passthrough)", () => {

@@ -993,9 +993,13 @@ export const ChangeSchema = z
     /**
      * Idempotency keys for sub-agent reports already folded into workflow
      * state. Workflow-state projection persisted on the change snapshot
-     * (referenced by subagent-reports spec).
+     * (referenced by subagent-reports spec). Bounded to the most recent 200
+     * distinct IDs in FIFO order.
      */
     seenReportIds: z.array(z.string()).optional(),
+
+    /** Cumulative count of every accepted distinct report ID. */
+    seenReportIdsTotal: z.number().optional(),
 
     /**
      * Typed dispositions for adv-designer design concerns. Persisted on the

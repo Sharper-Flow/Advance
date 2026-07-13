@@ -25,13 +25,13 @@ import type { ChangeWorkflowInput } from "./contracts";
 
 const sourcePath = fileURLToPath(new URL("./change-state.ts", import.meta.url));
 
-function makeEngineerReport(changeId: string, taskId: string) {
+function makeEngineerReport(changeId: string, taskId: string, attempt = 1) {
   return {
     schema_version: "1.0" as const,
     change_id: changeId,
     task_id: taskId,
     scope: { kind: "task" as const, task_id: taskId },
-    attempt: 1,
+    attempt,
     agent: "adv-engineer" as const,
     status: "complete" as const,
     files_touched: ["plugin/src/temporal/change-state.ts"],
@@ -316,6 +316,125 @@ describe("change-state pure mutation helpers", () => {
     expect(state.seenReportIds).toEqual([
       "sidecar-change-report-test|change:researcher:temporal-docs|adv-researcher|1",
     ]);
+  });
+
+  it("bounds seenReportIds to 200 IDs with FIFO eviction and cumulative total", () => {
+    const state = createChangeWorkflowState({
+      changeId: "overflow-test",
+      title: "Overflow test",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-report",
+        title: "Report task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+
+    for (let i = 1; i <= 201; i++) {
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-report",
+        report: makeEngineerReport("overflow-test", "tk-report", i),
+        submittedAt: `2026-05-06T00:00:${String(i).padStart(2, "0")}.000Z`,
+      });
+    }
+
+    expect(state.seenReportIds).toHaveLength(200);
+    expect(state.seenReportIdsTotal).toBe(201);
+    expect(state.seenReportIds?.[0]).toBe(
+      "overflow-test|tk-report|adv-engineer|2",
+    );
+    expect(state.seenReportIds?.at(-1)).toBe(
+      "overflow-test|tk-report|adv-engineer|201",
+    );
+  });
+
+  it("duplicate report does not append, evict, or increment seenReportIdsTotal", () => {
+    const state = createChangeWorkflowState({
+      changeId: "dup-test",
+      title: "Duplicate test",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-report",
+        title: "Report task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+
+    const payload = {
+      taskId: "tk-report",
+      report: makeEngineerReport("dup-test", "tk-report"),
+      submittedAt: "2026-05-06T00:00:02.000Z",
+    };
+
+    applySubagentReportSubmittedToState(state, payload);
+    applySubagentReportSubmittedToState(state, {
+      ...payload,
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    expect(state.seenReportIds).toHaveLength(1);
+    expect(state.seenReportIdsTotal).toBe(1);
+  });
+
+  it("sidecar-backed duplicate protection remains intact after FIFO eviction", () => {
+    const state = createChangeWorkflowState({
+      changeId: "evict-test",
+      title: "Eviction test",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-report",
+        title: "Report task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+
+    const firstReport = makeEngineerReport("evict-test", "tk-report", 1);
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-report",
+      report: firstReport,
+      submittedAt: "2026-05-06T00:00:01.000Z",
+    });
+
+    for (let i = 2; i <= 201; i++) {
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-report",
+        report: makeEngineerReport("evict-test", "tk-report", i),
+        submittedAt: `2026-05-06T00:00:${String(i).padStart(2, "0")}.000Z`,
+      });
+    }
+
+    expect(state.seenReportIds).not.toContain(
+      "evict-test|tk-report|adv-engineer|1",
+    );
+    expect(state.seenReportIds).toHaveLength(200);
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-report",
+      report: firstReport,
+      submittedAt: "2026-05-06T00:00:04.000Z",
+    });
+
+    expect(state.subagent_reports).toHaveLength(201);
+    expect(state.seenReportIds).toHaveLength(200);
+    expect(state.seenReportIdsTotal).toBe(201);
   });
 
   it("normalizes legacy sub-agent reports when seeding workflow state", () => {
