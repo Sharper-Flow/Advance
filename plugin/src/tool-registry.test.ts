@@ -555,6 +555,27 @@ describe("safeExecute timeout overrides for slow-subprocess tools", () => {
     expect(value).toBeGreaterThan(300_000);
     expect(block!).toContain("onToolTimeout");
   });
+
+  // fixTemporalTimeoutsWorker AC1: adv_gate_complete must declare a
+  // moderate-tier timeoutMs override (Temporal signal under worker
+  // contention sometimes exceeds the default 10s) plus an onToolTimeout
+  // classifier so the caller sees an advisory "may have landed — verify
+  // via adv_gate_status" result instead of a bare ToolExecutionTimeout.
+  test("adv_gate_complete registers safeExecute with timeoutMs override > 10s + onToolTimeout classifier", () => {
+    const block = extractRegistrationBlock(registrySrc, "adv_gate_complete");
+    expect(
+      block,
+      "adv_gate_complete registration block not found",
+    ).not.toBeNull();
+    expect(block!).toMatch(/timeoutMs:\s*\d/);
+    const valueMatch = block!.match(/timeoutMs:\s*(\d[\d_]*)/);
+    expect(valueMatch).toBeTruthy();
+    const value = Number(valueMatch![1].replace(/_/g, ""));
+    // Must exceed the 10s default (gate signal is lighter than archive's
+    // git finalization, so the ceiling stays moderate).
+    expect(value).toBeGreaterThan(10_000);
+    expect(block!).toContain("onToolTimeout");
+  });
 });
 
 describe("rq-zodParseValidation01 — runtime Zod schema validation at SDK boundary", () => {
