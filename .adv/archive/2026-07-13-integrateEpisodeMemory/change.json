@@ -1,0 +1,721 @@
+{
+  "id": "integrateEpisodeMemory",
+  "title": "Integrate Episode Memory",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T01:03:31.179Z",
+  "tasks": [
+    {
+      "id": "tk-cc6e742fded2",
+      "title": "Implement scoped Episode recall policy",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T01:42:45.313Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T01:46:03.165Z",
+      "verification": "RED: tr_mrilzm1v_6244b5a2 failed expected Episode policy assertion. GREEN: tr_mrim071f_f87d2160 passed 5 tests. VERIFY: tr_mrim0mch_ec534d9a passed diff check and targeted asset test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv.md",
+        "plugin/src/tool-name-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv.md",
+        "plugin/src/tool-name-assets.test.ts"
+      ],
+      "checkpointSha": "f84d02f63734a88cd11455c01973b9938b8dbbe1",
+      "completedAt": "2026-07-13T02:36:11.115Z",
+      "completed_at": "2026-07-13T02:36:11.115Z"
+    },
+    {
+      "id": "tk-38608e746e8e",
+      "title": "Verify Episode policy integration",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-13T01:42:54.960Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cc6e742fded2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T02:36:32.484Z",
+      "verification": "Full suite passed after compression repair: tr_mrimbmjn_57de6deb.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md"
+      ],
+      "checkpointSha": "3aff3799efd3cdbe9c20f2a1410f9dd2a03ae33a",
+      "completedAt": "2026-07-13T02:43:53.363Z",
+      "completed_at": "2026-07-13T02:43:53.363Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "integrateEpisodeMemory",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Episode decision-memory integration — design validation",
+      "sources": [
+        {
+          "label": "Episode MCP episode_recall tool schema (in-scope tool contract)",
+          "locator": "mcp tool: mcp_Episode_recall",
+          "summary": "Native recall exposes namespace (nullable) + query (required) + top_k (nullable, default 8), returns hits with similarity score. namespace searches 'its memories plus the shared global namespace'. Confirms native namespace/top_k support; no wrapper needed. top_k<=5 is a valid subset of default 8."
+        },
+        {
+          "label": "ADV agent grant mechanism + asset-test pattern",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-reviewer-asset.test.ts:52-74,100-120",
+          "summary": "Agent tool grants live in .opencode/agents/*.md YAML frontmatter tools: block. getToolGrant() asserts true/false/absent. Negative-grant pattern (=== null, task:false, 'NO orchestration mutations') is idiomatic — directly supports forbidden episode_remember/forget/stats grant tests."
+        },
+        {
+          "label": "Structural asset-test convention (source-owned instructions)",
+          "locator": "/home/jon/dev/advance/plugin/src/adv-instructions-assets.test.ts:21-72",
+          "summary": "56+ *-assets.test.ts use readFileSync + regex to assert required clauses present and forbidden phrasing absent on source-owned markdown. Design's 'source-owned instructions + structural asset tests prove required grant/clauses and forbidden direct-write grant' maps exactly onto this established pattern."
+        },
+        {
+          "label": "Researcher agent lifecycle role + MCP grant model",
+          "locator": "/home/jon/dev/advance/SETUP.md:284,300-303",
+          "summary": "adv-researcher runs /adv-discover, /adv-design, /adv-research and receives per-agent MCP grants (Context7, Exa, lgrep). Confirms discovery + adv-researcher are the correct read-only recall grant surfaces."
+        },
+        {
+          "label": "No pre-existing Episode references in advance source",
+          "locator": "grep Episode /home/jon/dev/advance -> no files",
+          "summary": "Net-new integration; no prior grant to extend. No deploy-side MCP registration in advance/scripts, consistent with 'deploy does not register service' (host/user-owned MCP registration per global config)."
+        }
+      ],
+      "architecture_assessment": "Design is a minimal, boring, structurally-correct integration. It grants exactly one net-new read-only capability (episode_recall) to the two lifecycle surfaces (discovery command + adv-researcher) that already own research context loads, using native Episode semantics (namespace + top_k<=5) with no wrapper — matching the established per-agent MCP grant model. Forbidden write/delete grants (episode_remember/forget/stats) and the source-owned-instructions + structural-asset-test enforcement both map directly onto idiomatic ADV conventions (getToolGrant negative assertions; readFileSync+regex clause tests). Outage tolerance (skip recall, bounded warning, never block gates) is the correct posture because ADV does not own the Episode service lifecycle, and advisory recall cannot authorize workflow state — preserving structural correctness (P33). Existing wisdom/reflection ingestion stays on the ordinary write path, unchanged. One minor semantic gap: native episode_recall folds the shared 'global' namespace into any namespaced search, so 'active-project scope' is not strict single-namespace isolation; low-risk for advisory recall but should be acknowledged in design/agreement wording.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No blockers. All seven core design claims verified against source and native tool semantics (see sources). Single non-blocking caution: native episode_recall automatically includes the shared 'global' namespace alongside the active-project namespace (per episode_recall schema). Agreement states 'active-project scope'; design should explicitly acknowledge global-namespace inclusion rather than imply strict isolation. Impact is low because recall is advisory read-only and cannot authorize workflow state. Recommend a one-line design/agreement note plus an asset-test clause pinning namespace=activeProject and top_k<=5 so future drift toward omitted-namespace (all-namespace) recall is caught."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Native-semantics/no-wrapper keeps blast radius minimal and avoids an abstraction layer, but couples ADV recall behavior to Episode's namespace folding (global always included) — accepted because recall is advisory-only.",
+          "Read-only grant with no ADV-owned service registration keeps deploy simple and outage-tolerant, but means recall silently degrades when the host MCP is absent; mitigated by the bounded warning + never-block-gates clause.",
+          "Structural asset tests + source-owned instructions give machine-checkable enforcement of required/forbidden grants and clauses, at the cost of asset-test maintenance when agent frontmatter evolves — consistent with 56+ existing asset tests."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Wrapper tool around episode_recall to hard-enforce single-namespace + top_k cap",
+            "disposition": "rejected",
+            "rationale": "Adds an abstraction layer and a second maintenance surface for behavior native Episode already provides (namespace + top_k). Simplicity bias (P19) favors native semantics; the residual global-namespace folding is low-risk for advisory recall and better documented than wrapped."
+          },
+          {
+            "option": "Grant episode_remember for direct high-signal contributions now",
+            "disposition": "rejected",
+            "rationale": "Agreement explicitly defers direct-write policy and forbids sensitive direct contributions; existing wisdom/reflection ingestion is the ordinary write path. Excluding write/delete/stats grants keeps the surface read-only and structurally safe."
+          },
+          {
+            "option": "Prompt-only instruction to 'use episode_recall in discovery' without asset tests",
+            "disposition": "rejected",
+            "rationale": "Prompt-only is heuristic and drift-prone (violates P33 structural-before-heuristic). Source-owned instructions + getToolGrant/clause asset tests make required and forbidden grants machine-checkable, matching established ADV enforcement."
+          }
+        ],
+        "recommendation": "Proceed. Adopt one non-blocking refinement into the design before planning: (1) add a design/agreement note that native episode_recall includes the shared 'global' namespace alongside the active-project namespace (advisory-only, cannot authorize state); (2) add asset-test clauses pinning episode_recall granted read-only on adv-researcher + discovery, episode_remember/episode_forget/episode_stats absent-or-false, namespace=active-project and top_k<=5 asserted in the source-owned instruction, and the skip+bounded-warning+never-block-gate degradation clause."
+      },
+      "recommendation": "validation.status=caution (no blockers). Design is correct, simple, and spec-law compliant. Adopt the global-namespace acknowledgement note and the enumerated asset-test clauses (read-only recall grant present; write/delete/stats grants forbidden; namespace+top_k<=5 pinned; outage degradation clause pinned), then advance the design gate.",
+      "follow_ups": [
+        "Design/agreement wording: acknowledge native episode_recall folds shared 'global' namespace into active-project recall (advisory-only).",
+        "Asset test: assert namespace=active-project and top_k<=5 in the source-owned recall instruction to catch drift toward omitted-namespace all-namespace recall.",
+        "ADV state for change integrateEpisodeMemory was not reachable from this session (owner project /home/jon/dev/advance; workflow not found); validated against packet-inline AGREEMENT + DESIGN plus target_path disk snapshot evidence."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-cc6e742fded2": [
+      {
+        "runId": "tr_mrilz24f_cfae9735",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tool-name-assets.test.ts",
+        "durationMs": 2401.7486690003425,
+        "recordedAt": "2026-07-13T02:33:52.094Z"
+      },
+      {
+        "runId": "tr_mrilzm1v_6244b5a2",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tool-name-assets.test.ts",
+        "durationMs": 3857.851573999971,
+        "recordedAt": "2026-07-13T02:34:17.892Z"
+      },
+      {
+        "runId": "tr_mrim071f_f87d2160",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tool-name-assets.test.ts",
+        "durationMs": 4372.541786000133,
+        "recordedAt": "2026-07-13T02:34:45.120Z"
+      },
+      {
+        "runId": "tr_mrim0mch_ec534d9a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "git diff --check && bin/oc-test targeted -- src/tool-name-assets.test.ts",
+        "durationMs": 4613.946312000044,
+        "recordedAt": "2026-07-13T02:35:04.940Z"
+      }
+    ],
+    "tk-38608e746e8e": [
+      {
+        "runId": "tr_mrim2so6_2f4ac328",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tool-name-assets.test.ts src/deploy-local-exclusion.test.ts",
+        "durationMs": 4848.000771999359,
+        "recordedAt": "2026-07-13T02:36:46.434Z"
+      },
+      {
+        "runId": "tr_mrim823b_403d181a",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test full",
+        "durationMs": 214063.48739500064,
+        "recordedAt": "2026-07-13T02:40:51.946Z"
+      },
+      {
+        "runId": "tr_mrimbmjn_57de6deb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test full",
+        "durationMs": 102726.78396499995,
+        "recordedAt": "2026-07-13T02:43:38.410Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T01:09:22.675Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal by invoking the exact shown continuation command /adv-discover integrateEpisodeMemory.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "105f69021e83c5720fafd494055ce2f6f97d7c7c6e4d8da054249c0fb3a4b040",
+        "non_whitespace_chars": 3693,
+        "checked_at": "2026-07-13T01:03:31.270Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T01:32:23.970Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings persisted; user approved success and acceptance criteria. ChangeContract minted with 18 items. Direct-memory contribution policy is explicitly deferred to design.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "non_whitespace_chars": 3240,
+        "checked_at": "2026-07-13T01:03:31.271Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T01:41:56.956Z",
+      "completed_by": "agent",
+      "approval_evidence": "Read-only, project-scoped Episode recall design recorded. Independent validator returned caution with no blockers; shared global inclusion is documented and advisory-only.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "9a5cff0db3e31b377bfcfaf6206ac0dee30566b756df2adcc3f95395e43d5123",
+        "non_whitespace_chars": 4606,
+        "checked_at": "2026-07-13T01:03:31.272Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T01:44:58.243Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the two-task graph: implementation followed by contract-backed verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T02:44:27.996Z",
+      "completed_by": "agent",
+      "approval_evidence": "2/2 tasks checkpointed. Full suite passed: tr_mrimbmjn_57de6deb. Scoped Episode recall policy and structural asset coverage committed in f84d02f and 3aff3799."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T03:00:52.675Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work. Review matrix has 18 passing/respected rows; full suite passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ad4304af07085e8d56289a33643b8c1a83f24ee7743ba8e76ffa40cf39ea61b4",
+        "non_whitespace_chars": 1000,
+        "checked_at": "2026-07-13T01:03:31.273Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "episode",
+    "source_path": "/home/jon/dev/episode",
+    "linked_at": "2026-07-13T01:03:28.717Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+      "approvedAt": "2026-07-13T01:32:01.397Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Discovery and research can use bounded, active-project decision memory as advisory context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "ADV continues with native context when decision-memory service is unavailable and makes the limitation visible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Existing ADV wisdom/reflection ingestion remains the routine durable-learning path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Every eligible decision-memory retrieval is confined to active-project scope; cross-project results are excluded except explicitly shared memory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Recalled memory cannot authorize gates, override specifications or contracts, or replace task evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Decision-memory service failure does not block discovery or research.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Before any direct durable-memory contribution behavior is enabled, its eligible content is defined and secrets, transcripts, gate state, and task evidence are excluded.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Shipped asset validation detects missing project scope, advisory-use, or outage-behavior policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "ADV change state, gate state, contracts, task evidence, and `adv_wisdom_*` remain authoritative in ADV.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Decision-memory retrieval remains bounded and project-scoped.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Decision-memory service availability is an external runtime prerequisite; Advance deployment does not register the service.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not persist secrets, raw transcripts, gate state, or task evidence in decision memory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not treat recalled semantic memory as authoritative workflow or specification state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not remove or weaken existing `adv_wisdom_*` behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not mirror routine ADV wisdom/reflection writes through a direct memory-contribution path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Replacing ADV change, task, contract, gate, or evidence stores.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Re-indexing repository source code in decision memory.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Broad memory migration or retroactive reconstruction of historical session transcripts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T03:00:27.707Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; scoped recall grants and policy in adv.md/adv-researcher.md."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Policy explicitly continues when Episode unavailable."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "No direct-write grants; existing wisdom flows unchanged."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tool-name-assets test pins recall grant and top_k: 5."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Policy text and test pin advisory-only handling."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Policy pins graceful continuation on unavailable Episode."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Test forbids episode_remember/forget/stats grants."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused asset test 5/5 and full suite passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No workflow-state integration added."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "top_k: 5 and active namespace policy."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "deploy-local exclusion test passed."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No write tools granted."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Advisory-only policy."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No ADV wisdom behavior removed."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Direct write tools forbidden by test."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No store replacement."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No source indexing."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No migration."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Every eligible decision-memory retrieval is confined to active-project scope; cross-project results are excluded except explicitly shared memory.",
+    "Recalled memory cannot authorize gates, override specifications or contracts, or replace task evidence.",
+    "Decision-memory service failure does not block discovery or research.",
+    "Before any direct durable-memory contribution behavior is enabled, its eligible content is defined and secrets, transcripts, gate state, and task evidence are excluded.",
+    "Shipped asset validation detects missing project scope, advisory-use, or outage-behavior policy."
+  ],
+  "documents": {
+    "proposal": "# Integrate Episode Memory\n\n## Why\n\nADV agents have no defined Episode recall or durable-memory capture behavior. Session logs showed no historical `episode_*` calls, even though Episode accepts ADV wisdom and reflection ingestion. ADV users therefore begin work without relevant cross-session decision context, while existing ADV wisdom remains siloed from active agent behavior.\n\n## What Changes\n\n- Define when ADV roles consult relevant Episode decision memory.\n- Define when durable learnings are contributed to Episode and what provenance they retain.\n- Align shipped ADV agent assets, workflow guidance, and verification with that policy.\n- Preserve ADV-native wisdom, reflection, task, contract, and gate behavior.\n\n## User Outcomes\n\n- Work starts with relevant prior decisions, conventions, and known failure modes when they exist.\n- Durable learning can help later ADV work without requiring users to repeat prior context.\n- Memory use remains bounded, attributable, and appropriate to the active project.\n\n## Affected Code\n\n- Advance agent assets and workflow instructions.\n- Advance deployment and verification surfaces for those assets.\n- Episode MCP interface as an external integration dependency.\n\n## Related Repositories\n\n- **Primary:** `/home/jon/dev/advance` — owns ADV agent assets and workflow behavior.\n- **Dependency:** `/home/jon/dev/episode` — owns Episode recall, memory provenance, and ingestion behavior.\n\n## Constraints\n\n- Keep ADV change state, gate state, contracts, task evidence, and `adv_wisdom_*` behavior authoritative in ADV.\n- Do not store secrets, raw session transcripts, or unbounded implementation logs in Episode.\n- Keep memory access project-scoped unless an explicitly shared/global memory is appropriate.\n- Preserve source provenance and deduplication behavior supplied by Episode.\n\n## Impact\n\nThis changes ADV agent behavior and shipped configuration, not user product functionality. Existing Episode ingestion of ADV wisdom/reflections remains compatible.\n\n## Context\n\n- Accessible OpenCode logs contained no historical `episode_*` tool calls from ADV sessions.\n- Episode documents decision-memory recall/remember tools and ingests ADV wisdom/reflections with source provenance.\n- Advance currently mandates ADV wisdom loading but provides no Episode usage policy.\n\n## Discovery Agenda\n\n### Codebase unknowns\n\n- Which shipped Advance agent assets, overlays, command contracts, and deployment paths must change. **Resolved in discovery:** source agent assets and asset tests own this behavior; deployment does not register external MCP servers.\n- Whether current asset tests structurally validate external MCP tool exposure and lifecycle instructions. **Resolved in discovery:** existing tool-name asset test validates ADV tool keys only; Episode assertions need dedicated asset coverage.\n\n### Ecosystem unknowns\n\n- Episode recall result shape, failure behavior, namespace selection, and limits relevant to agent prompts. **Resolved in discovery:** bounded recall supports `top_k` up to 50; omitted namespace searches all namespaces, while a supplied namespace searches that project plus `global`.\n- Whether current OpenCode agent tool policy requires explicit allow-list entries for Episode MCP tools in every ADV role. **Resolved in discovery:** tool grants and instruction contracts are separate policy surfaces; discovery will scope grants by lane.\n\n### Domain unknowns\n\n- Which ADV phases benefit from recall, and which learning classes justify direct memory writes rather than existing ingestion. **Partially resolved:** read-biased recall is recommended; direct writes remain a user-policy decision.\n- Retention, privacy, and operator expectations for manually contributed memories. **Open user-policy decision.**\n\n### Integration unknowns\n\n- How deployed Advance agent configuration reaches the active OpenCode runtime and how integration health should be observed. **Resolved in discovery:** Advance deployment syncs agent assets but does not register Episode; Episode availability is an external runtime prerequisite.\n- Whether Episode requires source changes beyond its existing ADV wisdom/reflection ingestion. **Resolved in discovery:** no Episode source change is currently warranted.\n\n## Scope\n\n### In Scope\n\n- Governed Episode recall and durable-memory contribution behavior for ADV roles.\n- Shipped Advance agent assets, instructions, and verification needed to support that behavior.\n- Compatibility with existing ADV wisdom/reflection ingestion and project-scoped memory provenance.\n\n### Out of Scope\n\n- Replacing ADV's change, task, contract, gate, or evidence stores.\n- Re-indexing repository source code in Episode.\n- Broad memory migration or retroactive reconstruction of historical session transcripts.\n\n### Must Not\n\n- Must not persist secrets, raw transcripts, gate state, or task evidence in Episode.\n- Must not treat semantic recall as authoritative workflow or specification state.\n- Must not remove or weaken existing `adv_wisdom_*` behavior.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Reason |\n| --- | --- | --- |\n| Skill Discovery | PASS | Loaded `adv-agent-tool-contracts`; researcher used `adv-opportunity-scout`. No pending-review skill frontmatter found. |\n| Prior Research Extension | PASS | No relevant prior research artifact found; new source finding: Episode ingestion already deduplicates ADV wisdom/reflection entries. |\n| Conflict & Related-Work Scan | PASS | Reviewed active/archived target changes and source agenda; overlap with `updateAgentGuide` requires file-level coordination. |\n| Edge Case Investigation | PASS | Recall and write-policy failure modes recorded. |\n| Design Question Depth | PASS | Trust model, blast radius, and alternatives recorded below. |\n| Draft Spec Delta Shapes | PASS | Four behavioral delta shapes drafted below. |\n| Related Pattern Scan | PASS | Existing agent tool grants, workflow wisdom, and asset-test patterns identified. |\n| LBP Check | PASS | Read-biased, namespace-scoped, optional integration is preferred. |\n| Completeness Verification | PASS | Primary and secondary control surfaces classified. |\n\n### Skills Considered\n\n- `adv-agent-tool-contracts` — matched: agent tools, prompt contracts, tests, and schema alignment; loaded.\n- `adv-opportunity-scout` — matched: strategic ecosystem/architecture change; applied by researcher.\n- `customize-opencode` — not applied: primary implementation belongs in Advance source-owned assets, not direct local configuration editing.\n\n### Extends\n\nNo prior Episode-memory research pack found in `docs/*-prep.md` or `temp/*.md`.\n\nNew finding: Episode automatically ingests ADV wisdom and reflections with source IDs and deduplication. Directly mirroring every `adv_wisdom_add` through `remember` would create a separate manual-memory path and duplicate the existing lifecycle.\n\n### Conflict Scan\n\n- `updateAgentGuide` has broad scope over `AGENTS.md` and ADV command instructions. Coordinate exact file ownership before implementation; it is a potential overlap, not a scope conflict.\n- `auditAgentWorkflowEvidence` is read-only but relevant: it found zero measured wisdom reuse and degraded research-report persistence. It informs observability requirements.\n- Source-project agenda has 16 Episode implementation follow-ups; none describe ADV agent memory integration.\n- Target-project agenda and `adv_change_validate` could not be queried through the exposed cross-project tool schema because those tools do not accept `target_path`. This is recorded as a tooling limitation, not a clean conflict result.\n\n### Current State\n\n- Episode provides decision-memory `recall`, `remember`, `forget`, and `stats`; it is intentionally not a source-code index.\n- Recall without a namespace searches all namespaces; a project namespace searches that namespace plus `global`.\n- `remember` persists supplied content verbatim as manual memory.\n- Episode ingestion already imports ADV wisdom/reflections and respects source-ID deduplication and supersession.\n- Advance agent assets load ADV wisdom but have no Episode call policy. Advance deployment syncs agent assets but does not register external MCP services.\n\n### Edge Cases\n\n**Recall policy**\n\n1. Episode MCP is absent or unavailable: ADV must continue with its native context and report no false recall evidence.\n2. Namespace omitted: all-project recall can expose irrelevant or cross-project context; every recall must carry an explicit project namespace.\n\n**Write policy**\n\n1. A direct memory write contains a secret, transcript, gate state, or task evidence: it must be rejected by policy before the call because Episode stores supplied content verbatim.\n2. A direct write duplicates a wisdom/reflection already ingested: it creates an unnecessary manual-memory record; routine wisdom mirroring is excluded.\n\n### Open Design Questions\n\n1. **Recall coverage:** Which ADV phases should consult Episode? **Trust model:** joint. **Blast radius:** too broad adds context noise; too narrow preserves current blind starts. **Alternatives:** research-only recall; orchestrator plus research recall; every task-lane recall. Recommendation: bounded orchestrator/research recall, not every task lane.\n2. **Direct-write policy:** Which rare learning classes may use `remember`? **Trust model:** joint. **Blast radius:** weak policy risks duplication or sensitive storage. **Alternatives:** no direct writes; global/cross-project decisions only; all durable learnings. Recommendation: global/cross-project decisions only, with existing ADV wisdom left to ingestion.\n3. **Unavailable service behavior:** Should missing Episode block work? **Trust model:** agent. **Blast radius:** blocking turns optional context into an availability dependency. **Alternatives:** block; graceful degradation. Recommendation: graceful degradation with explicit bounded warning/evidence.\n\n### Draft Spec Deltas\n\n- `rq-episodeRecall01`: Given an eligible ADV context and Episode availability, when a defined recall point begins, then the agent performs at most one bounded recall using the active project namespace and treats results as advisory context.\n- `rq-episodeIsolation01`: Given a recall call, when the agent supplies a namespace, then it never omits the active project namespace or treats recalled text as authoritative workflow/spec state.\n- `rq-episodeDegrade01`: Given Episode is unavailable or fails, when an eligible recall point begins, then ADV continues with native context and records the limitation without completing a gate from recalled content.\n- `rq-episodeWrite01`: Given a candidate direct write, when it is not an approved global/cross-project decision or contains excluded material, then no `remember` call occurs.\n\n### Related Pattern Scan\n\n- `adv-researcher` already uses optional external research MCP grants, providing a read-only lane precedent for Episode recall.\n- `adv` owns `adv_wisdom_list`, `adv_wisdom_add`, and reflection behavior; this remains the durable ADV-authority pattern.\n- Existing tool-name asset tests validate ADV keys only, so Episode policy needs explicit test coverage rather than inference from generic tool lists.\n\n### Completeness Verification\n\n**Problem completeness — high confidence:** the issue is not Episode storage failure; source and runtime evidence show storage/ingestion exists while ADV behavior lacks recall/write policy. Secondary surface: local deployed agent profiles mirror shipped source assets. **Disposition:** in scope through source-owned asset/deployment verification; do not hand-edit deployed copies.\n\n**Solution scope — high confidence:** integration requires agent permissions, lifecycle instructions, graceful-degradation guidance, and tests. No sole control-surface claim is made: external MCP registration remains an environment prerequisite and is explicitly outside this change's deployment ownership.\n\n### LBP Check\n\nPreferred direction: read-biased, bounded, project-namespace-scoped recall; optional service behavior; no routine direct-write mirroring. This reuses Episode's purpose-built semantic store and existing ADV ingestion instead of rebuilding recall in Advance or duplicating wisdom writes. External coding-agent-memory evidence favors bounded high-signal retrieval over context dumping. Episode-side recency/frequency ranking is a separate future consideration, not required for this integration.\n\n### Discovery Opportunity Scout\n\nTriggered: strategic architecture and external integration.\n\nAuto-adopted findings:\n\n- Add a read-only Episode recall capability to the research lane.\n- Require explicit project namespace at every recall call.\n- Add optional-MCP graceful-degradation and asset-test coverage.\n\nUser-policy findings to resolve:\n\n- Direct `remember` policy.\n- Secret/transcript exclusion policy and review boundary.\n\nResearch report persistence was unavailable because the worker received `WorkflowNotFoundError`; source-backed findings are captured here.\n\n### Recommended Objectives\n\n1. Give eligible ADV work access to bounded, project-scoped Episode decision recall without making Episode authoritative.\n2. Preserve ADV wisdom/reflection ingestion as the routine durable-learning path.\n3. Prevent cross-project leakage, secret/transcript storage, and workflow-state persistence.\n4. Degrade safely when Episode is unavailable.\n5. Verify shipped asset behavior and external-service prerequisites structurally.\n\n### AMBIGUITY ANALYSIS\n\n| ID | Severity | Category | Finding | Evidence | Reason |\n| --- | --- | --- | --- | --- | --- |\n| B0 | INFO | Boundaries | Scope boundaries are explicit. | \"### Out of Scope\" and \"### Must Not\" | No blocking boundary ambiguity. |\n| F0 | INFO | Functional Scope | User outcomes are implementation-free. | \"Work starts with relevant prior decisions...\" | Behavioral direction is clear. |\n| S1 | MEDIUM | Completion Signals | Proposal has no criteria yet. | \"## User Outcomes\" | Discovery owns firm criteria; draft criteria follow. |\n| M1 | HIGH | Missing Information | Direct-write retention policy needs user sign-off. | \"Retention, privacy, and operator expectations for manually contributed memories. **Open user-policy decision.**\" | User-value/security boundary cannot be inferred. |\n\nCoverage: B:C F:C S:P M:P\n\nTrigger evaluation: 0 CRITICAL, 1 HIGH. Advisory ambiguity only; continue to agreement questions.",
+    "problemStatement": "## Why\n\nADV agents have no defined Episode recall or durable-memory capture behavior. Session logs showed no historical `episode_*` calls, even though Episode accepts ADV wisdom and reflection ingestion. ADV users therefore begin work without relevant cross-session decision context, while existing ADV wisdom remains siloed from active agent behavior.\n\nThe outcome is a governed Episode integration for ADV: agents can retrieve relevant prior decisions and contribute durable learning when appropriate, without replacing ADV workflow state, contracts, task evidence, or scoped wisdom records.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Give discovery and research bounded, project-scoped access to relevant decision memory without making that memory authoritative.\n2. Preserve ADV wisdom/reflection ingestion as the routine durable-learning path.\n3. Prevent cross-project leakage, sensitive-content storage, and workflow-state persistence.\n4. Continue safely and visibly when decision-memory service is unavailable.\n5. Verify shipped agent assets and their external-service prerequisite behavior structurally.\n\n## Success Criteria\n\n- SC1: Discovery and research can use bounded, active-project decision memory as advisory context.\n- SC2: ADV continues with native context when decision-memory service is unavailable and makes the limitation visible.\n- SC3: Existing ADV wisdom/reflection ingestion remains the routine durable-learning path.\n\n## Acceptance Criteria\n\n- AC1: Every eligible decision-memory retrieval is confined to active-project scope; cross-project results are excluded except explicitly shared memory.\n- AC2: Recalled memory cannot authorize gates, override specifications or contracts, or replace task evidence.\n- AC3: Decision-memory service failure does not block discovery or research.\n- AC4: Before any direct durable-memory contribution behavior is enabled, its eligible content is defined and secrets, transcripts, gate state, and task evidence are excluded.\n- AC5: Shipped asset validation detects missing project scope, advisory-use, or outage-behavior policy.\n\n## Constraints\n\n- C1: ADV change state, gate state, contracts, task evidence, and `adv_wisdom_*` remain authoritative in ADV.\n- C2: Decision-memory retrieval remains bounded and project-scoped.\n- C3: Decision-memory service availability is an external runtime prerequisite; Advance deployment does not register the service.\n\n## Avoidances\n\n- DONT1: Do not persist secrets, raw transcripts, gate state, or task evidence in decision memory.\n- DONT2: Do not treat recalled semantic memory as authoritative workflow or specification state.\n- DONT3: Do not remove or weaken existing `adv_wisdom_*` behavior.\n- DONT4: Do not mirror routine ADV wisdom/reflection writes through a direct memory-contribution path.\n\n## Out of Scope\n\n- OOS1: Replacing ADV change, task, contract, gate, or evidence stores.\n- OOS2: Re-indexing repository source code in decision memory.\n- OOS3: Broad memory migration or retroactive reconstruction of historical session transcripts.\n\n## Preview Applicability\n\n- `visual_surface: false`\n- `exact_route_required: not_applicable`\n- `data_state_expectation: not_applicable`\n- `viewport_expectation: not_applicable`\n- Rationale: this changes agent and workflow behavior only; no browser-visible output is affected.\n\n## Decisions\n\n### User Decisions\n\n- **Recall coverage:** discovery and research first. This bounds context expansion while improving early-stage understanding.\n- **Outage behavior:** continue and record a warning. This keeps decision memory optional and makes degraded context visible.\n\n### Agent Decisions (LBP)\n\n- Use read-biased, project-scoped retrieval because Episode already ingests ADV wisdom/reflections and unscoped retrieval can span projects.\n- Do not make routine direct contributions: automatic ingestion is the ordinary path, while direct contributions require a separately justified policy.\n- Treat recalled material as advisory only; authoritative workflow/specification state stays in ADV.\n\n## Deferred Questions\n\n- **Direct-write policy:** User deferred the choice of whether any Advance-specific, global, or cross-project decision class may contribute directly to decision memory to `/adv-design`. Until decided, no routine direct-contribution behavior is assumed.\n\n## Sign-Off\n\n- Criteria approved by user: `approve`.",
+    "design": "# Design\n\n## Architecture Overview\n\nEpisode remains an external, optional decision-memory MCP. Advance source-owned agent assets declare a read-only `episode_recall` capability only where approved coverage applies: ADV discovery context and the `adv-researcher` lane. The policy is enforced twice: explicit agent instructions govern behavior, and structural asset tests govern grants and required safety clauses.\n\nNo ADV workflow state flows into Episode. Existing ADV wisdom/reflection ingestion stays the routine durable-learning write path.\n\n## Key Decisions\n\n1. **Read-only integration:** grant `episode_recall`; do not grant direct contribution, deletion, or statistics tools. This preserves DONT1–DONT4 and defers direct-write policy.\n2. **Native scope and bound:** use Episode's supplied project namespace and a fixed small `top_k` bound. A namespaced Episode query includes that project plus explicitly shared `global` memory; both remain advisory. Do not add an Advance wrapper or custom scoping layer.\n3. **Advisory-only output:** recalled text may inform investigation but cannot complete gates, satisfy contract evidence, or override specs/tasks.\n4. **Optional service:** missing/unavailable Episode skips recall, emits a bounded limitation, and continues native ADV workflow.\n5. **Source-owned deployment:** edit Advance agent assets and command contracts; do not hand-edit deployed files or register Episode from Advance deployment.\n\n## ADR Drafts\n\nNo ADR draft. The integration is reversible, source-local policy using an existing external MCP; its tradeoffs are documented here.\n\n## Implementation Strategy\n\n1. Add explicit read-only Episode recall grants to approved ADV discovery/research roles; explicitly omit direct-contribution tools.\n2. Add lifecycle instruction clauses: one bounded recall at eligible context load, active project scope plus explicitly shared memory, advisory-only handling, no sensitive payload contribution, and graceful degradation.\n3. Reuse existing optional-worker/split-load degradation wording rather than adding a new failure mechanism.\n4. Add asset tests proving required grants and policy clauses; assert direct-contribution grants remain absent and deployment remains service-registration-independent.\n5. Validate source assets and deployed-sync assumptions without changing Episode service registration.\n\n## LBP Analysis\n\nThis uses Episode for the job it already owns: semantic decision retrieval over project memory. It uses ADV for workflow state, contracts, gates, task evidence, wisdom, and reflections. A custom wrapper would duplicate Episode namespace/bounded-query behavior; routine direct writes would duplicate existing ingestion. Explicit frontmatter grants plus tests make the security and authority boundary structural.\n\n## Affected Components\n\n- `.opencode/agents/adv.md` — discovery-context recall policy and explicit grant.\n- `.opencode/agents/adv-researcher.md` — research-lane recall policy and explicit grant.\n- Relevant ADV discovery/research command contracts — lifecycle prompts and graceful-degradation wording.\n- `plugin/src/*asset*.test.ts` — grant, required-policy, forbidden-direct-write, and deployment-boundary assertions.\n- `scripts/deploy-local.sh` — verification only; no Episode registration change.\n\n## Design-Derived Criteria\n\n- DDC1: Each eligible context load performs at most one Episode recall with fixed `top_k <= 5`.\n- DDC2: Every recall carries active project namespace; explicitly shared `global` results remain advisory-only.\n- DDC3: No approved ADV role receives a direct memory-contribution or deletion grant in this change.\n- DDC4: Asset tests fail when a required recall grant/policy clause is absent or a forbidden direct-write grant appears.\n- DDC5: Episode unavailability follows existing optional-worker degradation behavior and cannot block a gate.\n\n## Risks / Mitigations\n\n- **Cross-project context leakage:** explicit namespace required; shared global inclusion documented and advisory-only; pin policy in asset tests.\n- **Context pollution:** one recall per eligible load with `top_k <= 5`; advisory-only interpretation.\n- **Sensitive-memory contribution:** no direct contribution grant; deferred policy blocks expansion.\n- **External service outage:** optional degradation; record limitation and continue.\n- **Configuration drift:** source-owned assets plus structural tests; do not edit deployed copies.\n\n## Design Leverage Scout\n\n- Considered: 5 candidates; source-verified but report persistence degraded by `WorkflowNotFoundError`.\n- Adopted: native Episode namespace/top-k semantics without a custom wrapper; existing tool-name/deploy-exclusion test patterns; existing optional-worker degradation wording.\n- Resolved from user decision: recall applies to ADV discovery context and research lane.\n- Follow-up fact: shared/global behavior remains Episode-owned and is documented as an integration boundary.\n\n## Validator\n\n**Caution — no blockers.** Independent validation confirmed frontmatter grants, negative-grant tests, and source-owned asset-test patterns. It identified one minor integration fact: a namespaced Episode recall also includes explicitly shared `global` memory. This design now records that behavior and keeps those results advisory-only. No contract compromise found.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV now has bounded, read-only Episode decision-memory recall for discovery and research. Recall is active-project scoped, limited to five results, advisory-only, and optional when Episode is unavailable.\n\n## Value\n\nLater ADV work can use relevant prior decisions without treating memory as workflow authority or duplicating existing ADV wisdom/reflection ingestion.\n\n## Verification\n\n- RED test proved the policy assertion failed before grants and guidance existed.\n- Focused asset tests passed (5/5).\n- Full repository suite passed (`bin/oc-test full`).\n- Independent acceptance review returned READY with no findings.\n\n## Risks and Follow-ups\n\n- A namespaced Episode query can include explicitly shared global memory; it remains advisory-only.\n- Direct memory-write policy remains deferred; no write/delete/statistics grants were added.\n- Reviewer report persistence encountered `WorkflowNotFoundError`; direct review result was READY.\n\n## Release Readiness Summary\n\nImplementation is source-owned, checkpointed in the change worktree, and has no migration, frontend, deployment-registration, or production-operations impact.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T03:00:27.707Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Discovery and research can use bounded, active-project decision memory as advisory context. | pass | Reviewer READY; scoped recall grants and policy in adv.md/adv-researcher.md. |\n| SC2 | success_criterion | ADV continues with native context when decision-memory service is unavailable and makes the limitation visible. | pass | Policy explicitly continues when Episode unavailable. |\n| SC3 | success_criterion | Existing ADV wisdom/reflection ingestion remains the routine durable-learning path. | pass | No direct-write grants; existing wisdom flows unchanged. |\n| AC1 | acceptance_criterion | Every eligible decision-memory retrieval is confined to active-project scope; cross-project results are excluded except explicitly shared memory. | pass | tool-name-assets test pins recall grant and top_k: 5. |\n| AC2 | acceptance_criterion | Recalled memory cannot authorize gates, override specifications or contracts, or replace task evidence. | pass | Policy text and test pin advisory-only handling. |\n| AC3 | acceptance_criterion | Decision-memory service failure does not block discovery or research. | pass | Policy pins graceful continuation on unavailable Episode. |\n| AC4 | acceptance_criterion | Before any direct durable-memory contribution behavior is enabled, its eligible content is defined and secrets, transcripts, gate state, and task evidence are excluded. | pass | Test forbids episode_remember/forget/stats grants. |\n| AC5 | acceptance_criterion | Shipped asset validation detects missing project scope, advisory-use, or outage-behavior policy. | pass | Focused asset test 5/5 and full suite passed. |\n| C1 | constraint | ADV change state, gate state, contracts, task evidence, and `adv_wisdom_*` remain authoritative in ADV. | respected | No workflow-state integration added. |\n| C2 | constraint | Decision-memory retrieval remains bounded and project-scoped. | respected | top_k: 5 and active namespace policy. |\n| C3 | constraint | Decision-memory service availability is an external runtime prerequisite; Advance deployment does not register the service. | respected | deploy-local exclusion test passed. |\n| DONT1 | avoidance | Do not persist secrets, raw transcripts, gate state, or task evidence in decision memory. | respected | No write tools granted. |\n| DONT2 | avoidance | Do not treat recalled semantic memory as authoritative workflow or specification state. | respected | Advisory-only policy. |\n| DONT3 | avoidance | Do not remove or weaken existing `adv_wisdom_*` behavior. | respected | No ADV wisdom behavior removed. |\n| DONT4 | avoidance | Do not mirror routine ADV wisdom/reflection writes through a direct memory-contribution path. | respected | Direct write tools forbidden by test. |\n| OOS1 | out_of_scope | Replacing ADV change, task, contract, gate, or evidence stores. | not_applicable | No store replacement. |\n| OOS2 | out_of_scope | Re-indexing repository source code in decision memory. | not_applicable | No source indexing. |\n| OOS3 | out_of_scope | Broad memory migration or retroactive reconstruction of historical session transcripts. | not_applicable | No migration. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T01:15:20.316Z",
+      "contentHash": "dcbb940b37866a6d506c563a792d3bd94b5f0937301ca7a2e6c02daed1afb518",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T01:03:31.376Z",
+      "contentHash": "3a685872c009456019c0004e6c7f2acca85155f62cb27bd4862ff1828c710203",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T01:31:49.098Z",
+      "contentHash": "00153d939fea8ab7bf98db45f9375b688ec9e650f4d4d74e885e9006889934f7",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T01:41:40.227Z",
+      "contentHash": "9a5cff0db3e31b377bfcfaf6206ac0dee30566b756df2adcc3f95395e43d5123",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T03:00:09.604Z",
+      "contentHash": "ad4304af07085e8d56289a33643b8c1a83f24ee7743ba8e76ffa40cf39ea61b4",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T03:00:52.675Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
