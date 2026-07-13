@@ -94,22 +94,7 @@ From change data: affected files, spec scenarios, task completion evidence, `cha
 `pwd` → record as `{workdir}`. Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Critical in worktrees — sub-agents inherit default project root, not worktree path.
 
 ---
-## 12-Dimension Review Framework
-| # | Dimension | Focus |
-|---|-----------|-------|
-| 1 | Design | Architecture, system integration, timing |
-| 2 | Functionality | Does it work? Edge cases? Concurrency? |
-| 3 | Complexity | Understandable quickly? Over-engineered? |
-| 4 | Tests | Coverage, tests fail when code breaks |
-| 5 | Naming | Clear, communicative, appropriate length |
-| 6 | Comments | Explain "why" not "what" |
-| 7 | Style | Style guide conformance |
-| 8 | Documentation | READMEs, API docs updated |
-| 9 | Security | Auth, validation, secrets |
-| 10 | Performance | Degradation risks, optimization |
-| 11 | Error Handling | Correct, user-friendly, debuggable |
-| 12 | Consistency | Matches existing patterns |
-
+See the 12-Dimension Framework table in [Phase 0: Embedded Methodology](#phase-0-embedded-methodology) above.
 ---
 ## Sub-Agent Resilience
 Empty/failed result = transient failure (empty string, missing `"dimension"` key, error-only).
