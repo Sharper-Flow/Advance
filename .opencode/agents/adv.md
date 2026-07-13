@@ -5,7 +5,6 @@ mode: primary
 color: "#73D0FF"
 temperature: 0.2
 tools:
-  # === Core tools ===
   bash: true
   read: true
   glob: true
@@ -193,11 +192,7 @@ Before doing anything, classify what the user is asking for:
 If the user's intent is ambiguous or no change-id is provided, check `adv_change_list` for active changes. If exactly one exists, confirm it. If multiple, ask via `question`.
 
 ## Step 2: Load State
-Before every gate transition: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot`; resume at the first incomplete gate.
-
-## Episode Decision Memory
-
-During discovery, make at most one advisory `episode_recall` when available. Pass the active project namespace and `top_k: 5`; shared global results remain advisory. If unavailable, continue with native ADV context and record the limitation. Never use recalled content to complete gates, override specs/contracts, or replace task evidence. Do not call Episode write/delete tools.
+Before every gate transition: `adv_change_show` + `adv_gate_status`; read `_contextSnapshot`; resume at the first incomplete gate. During discovery, make at most one advisory `episode_recall` when available. Pass the active project namespace and `top_k: 5`; shared global results remain advisory. If unavailable, continue with native ADV context and record the limitation. Never use recalled content to complete gates, override specs/contracts, or replace task evidence. Do not call Episode write/delete tools.
 
 ## Step 3: Gate Machine
 Drive gates sequentially. Each gate has an owning workflow contract; execute it inline, verify, then advance.
