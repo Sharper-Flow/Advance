@@ -887,10 +887,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         };
       }
 
-      // Build candidate ID set from memo + Visibility + disk to avoid
-      // dropping orphan-on-disk changes the memo never observed. Memo
-      // is the warm-path source; Visibility/disk catch cold-start and
-      // orphan cases.
+      // Build candidate ID set from cache + memo + Visibility + disk to avoid
+      // dropping warm rows after a source deadline and orphan-on-disk changes
+      // the memo never observed. Cache/memo are warm-path sources;
+      // Visibility/disk catch cold-start and orphan cases.
       const memoSummaries = memo.getAll();
       const memoIds = memoSummaries.map((s) => s.id);
 
@@ -946,7 +946,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       }
 
       const changeIds = Array.from(
-        new Set([...memoIds, ...visibilityIds, ...diskIds]),
+        new Set([
+          ...changeCache.keys(),
+          ...memoIds,
+          ...visibilityIds,
+          ...diskIds,
+        ]),
       );
 
       const memoIndex = new Map<string, ChangeSummary>();

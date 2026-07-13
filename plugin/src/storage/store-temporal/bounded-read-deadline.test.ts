@@ -47,6 +47,23 @@ import { TEMPORAL_READ_DEADLINE_BUDGET_MS } from "./shared";
  */
 const SLOW_LIST_CHANGE_DIRS = new Map<string, number>();
 
+/**
+ * Path-scoped `loadChange` slowdown map (candidate archive-fallback
+ * deadline tests). Entries map an absolute archive root path to a
+ * fake-timer delay in milliseconds; when the root path matches, the mock
+ * waits that long before delegating to the real `loadChange`.
+ */
+const SLOW_LOAD_CHANGE = new Map<string, number>();
+
+/**
+ * Call-count map for `hasArchiveBundle` (archive-fallback deadline test).
+ * The first call for a given changeId returns false (so
+ * `loadTerminalProjection` short-circuits and the workflow query is
+ * exercised); subsequent calls return true (so `checkArchiveBundle`
+ * admits the archive-only fallback path).
+ */
+const HAS_ARCHIVE_BUNDLE_CALLS = new Map<string, number>();
+
 vi.mock("../json", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../json")>();
   return {
@@ -62,6 +79,32 @@ vi.mock("../json", async (importOriginal) => {
         });
       }
       return actual.listChangeDirs(path);
+    },
+    loadChange: async (
+      archivePath: string,
+      changeId: string,
+    ): ReturnType<typeof actual.loadChange> => {
+      const delay = SLOW_LOAD_CHANGE.get(archivePath);
+      if (delay !== undefined) {
+        await new Promise<void>((resolve) => {
+          globalThis.setTimeout(resolve, delay);
+        });
+      }
+      return actual.loadChange(archivePath, changeId);
+    },
+    hasArchiveBundle: async (
+      archivePath: string,
+      changeId: string,
+    ): Promise<boolean> => {
+      // Archive-fallback deadline test only: force the first call to
+      // false so loadTerminalProjection short-circuits and the workflow
+      // query is exercised. All other tests delegate unchanged.
+      if (changeId === "slowArchiveFallback") {
+        const count = (HAS_ARCHIVE_BUNDLE_CALLS.get(changeId) ?? 0) + 1;
+        HAS_ARCHIVE_BUNDLE_CALLS.set(changeId, count);
+        if (count === 1) return false;
+      }
+      return actual.hasArchiveBundle(archivePath, changeId);
     },
   };
 });
@@ -155,10 +198,14 @@ describe("bounded one-pass change-list resolution", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     SLOW_LIST_CHANGE_DIRS.clear();
+    SLOW_LOAD_CHANGE.clear();
+    HAS_ARCHIVE_BUNDLE_CALLS.clear();
   });
 
   afterEach(async () => {
     SLOW_LIST_CHANGE_DIRS.clear();
+    SLOW_LOAD_CHANGE.clear();
+    HAS_ARCHIVE_BUNDLE_CALLS.clear();
     vi.useRealTimers();
     if (tempDir) await cleanupTempDir(tempDir);
     tempDir = undefined;
@@ -634,6 +681,173 @@ describe("bounded one-pass change-list resolution", () => {
     expect(result.hydrationStats).toMatchObject({
       deadlineExceeded: true,
       omitted: 1,
+    });
+  }, 15_000);
+
+  it("bounds candidate disk fallback reads after fast Temporal failure", async () => {
+    // Fake only the timeout machinery; leave setImmediate real so fs reads
+    // and async-generator enumeration drain deterministically.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("slowDiskFallback"));
+
+    // Temporal query fails fast — the fallback read path is exercised.
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              throw workflowNotFoundError();
+            },
+          }),
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/slowDiskFallback" };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    // Make the disk fallback read hang indefinitely. Calls come from:
+    //   1. loadDiskTerminalProjection inside getTemporalChange (fast)
+    //   2. getGuardedChangeHandle inside getTemporalChange (fast)
+    //   3. reseedChangeFromDisk inside getTemporalChange (fast)
+    //   4. loadCandidate fallback chain after fast Temporal failure (hang)
+    // Without the deadline wrapper the fallback read never resolves and the
+    // test times out (RED); with the wrapper the aggregate deadline rejects
+    // it and the candidate becomes a typed omission (GREEN).
+    const diskGetCalls = new Map<string, number>();
+    const realGet = legacy.changes.get.bind(legacy.changes);
+    legacy.changes.get = (async (changeId: string) => {
+      const count = (diskGetCalls.get(changeId) ?? 0) + 1;
+      diskGetCalls.set(changeId, count);
+      if (count <= 3) {
+        // loadDiskTerminalProjection + getGuardedChangeHandle + reseedChangeFromDisk — fast
+        return realGet(changeId);
+      }
+      // loadCandidate fallback — hang indefinitely
+      return new Promise<never>(() => {});
+    }) as typeof legacy.changes.get;
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const pending = store.changes.list({ includeArchived: true });
+    // Wait for the fallback read to start — source enumeration, the fast
+    // Temporal failure, the terminal-projection disk read, the owner-guard
+    // disk read, and the reseed disk read have already happened. The fourth
+    // diskGet call is the loadCandidate fallback.
+    for (let i = 0; i < 5000 && (diskGetCalls.get("slowDiskFallback") ?? 0) < 4; i++) {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+    expect(diskGetCalls.get("slowDiskFallback")).toBe(4);
+    // Advance past the budget. The deadline wrapper (if present) rejects
+    // the fallback read. Without the wrapper, the read hangs and the test
+    // times out (RED).
+    await vi.advanceTimersByTimeAsync(TEMPORAL_READ_DEADLINE_BUDGET_MS + 1000);
+    const result = await pending;
+
+    // The disk fallback read is bounded by the aggregate deadline.
+    // The candidate is omitted with typed incompleteness — never a hang.
+    expect(result.changes.map((c) => c.id)).not.toContain("slowDiskFallback");
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "SOURCE_DEADLINE_EXCEEDED",
+          source: "workflow_query",
+        }),
+      ]),
+    );
+    expect(result.hydrationStats).toMatchObject({
+      deadlineExceeded: true,
+    });
+  }, 15_000);
+
+  it("bounds candidate archive fallback reads after fast Temporal failure", async () => {
+    // Fake only the timeout machinery; leave setImmediate real so fs reads
+    // and async-generator enumeration drain deterministically.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await writeArchiveBundle(tempDir, archivedChange("slowArchiveFallback"));
+
+    // Temporal query fails fast — the archive fallback path is exercised.
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              throw workflowNotFoundError();
+            },
+          }),
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/slowArchiveFallback" };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    // No disk shadow — legacy.changes.get returns success: false so the
+    // archive-only fallback (loadChange) is exercised.
+    let diskGetCalls = 0;
+    const realGet = legacy.changes.get.bind(legacy.changes);
+    legacy.changes.get = (async (changeId: string) => {
+      diskGetCalls += 1;
+      const result = await realGet(changeId);
+      if (!result.success) {
+        return { success: false as const, error: "not found" };
+      }
+      return result;
+    }) as typeof legacy.changes.get;
+
+    // Make the archive fallback load hang past the aggregate budget.
+    SLOW_LOAD_CHANGE.set(
+      legacy.paths.archive,
+      TEMPORAL_READ_DEADLINE_BUDGET_MS + 2_000,
+    );
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const pending = store.changes.list({ includeArchived: true });
+    // Wait for the disk fallback read to start — source enumeration and
+    // the fast Temporal failure have already happened.
+    for (let i = 0; i < 5000 && diskGetCalls === 0; i++) {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+    expect(diskGetCalls).toBe(1);
+    // Advance past the budget. The deadline wrapper (if present) rejects
+    // the fallback read. Without the wrapper, the read hangs and the test
+    // times out (RED).
+    await vi.advanceTimersByTimeAsync(TEMPORAL_READ_DEADLINE_BUDGET_MS + 1000);
+    const result = await pending;
+
+    // The archive fallback read is bounded by the aggregate deadline.
+    // The candidate is omitted with typed incompleteness — never a hang.
+    expect(result.changes.map((c) => c.id)).not.toContain(
+      "slowArchiveFallback",
+    );
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "TERMINAL_CANDIDATE_OMITTED",
+        }),
+      ]),
+    );
+    expect(result.hydrationStats).toMatchObject({
+      deadlineExceeded: true,
     });
   }, 15_000);
 

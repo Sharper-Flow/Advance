@@ -1036,7 +1036,10 @@ export function createTemporalStoreBackend(
       }
 
       try {
-        const result = await legacy.changes.get(changeId);
+        const result = await raceWithTemporalDeadline(
+          legacy.changes.get(changeId),
+          deadline,
+        );
         if (result.success && result.data) {
           const terminal =
             result.data.status === "archived" ||
@@ -1045,7 +1048,13 @@ export function createTemporalStoreBackend(
           // Layer A1 defensive override: if disk-fallback returned a
           // non-terminal status but an archive bundle exists, treat
           // as archived (the bundle is the durable terminal record).
-          if (!terminal && (await checkArchiveBundle(changeId))) {
+          if (
+            !terminal &&
+            (await raceWithTemporalDeadline(
+              checkArchiveBundle(changeId),
+              deadline,
+            ))
+          ) {
             return {
               change: { ...result.data, status: "archived" },
               resolution: {
@@ -1076,12 +1085,15 @@ export function createTemporalStoreBackend(
         if (
           !result.success &&
           legacy.paths.archive &&
-          (await checkArchiveBundle(changeId))
+          (await raceWithTemporalDeadline(
+            checkArchiveBundle(changeId),
+            deadline,
+          ))
         ) {
           try {
-            const archiveLoad = await loadChange(
-              legacy.paths.archive,
-              changeId,
+            const archiveLoad = await raceWithTemporalDeadline(
+              loadChange(legacy.paths.archive, changeId),
+              deadline,
             );
             if (archiveLoad.success && archiveLoad.data) {
               return {
