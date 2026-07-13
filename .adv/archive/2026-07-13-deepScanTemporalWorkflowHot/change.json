@@ -1,0 +1,1029 @@
+{
+  "id": "deepScanTemporalWorkflowHot",
+  "title": "Deep-scan Temporal workflow hot path",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-13T00:29:56.312Z",
+  "tasks": [
+    {
+      "id": "tk-8a0ac638ed20",
+      "title": "Publish Temporal hot-path assessment",
+      "type": "research",
+      "section": "Assessment",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-13T00:49:11.921Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "source_citation",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T00:54:45.304Z",
+      "verification": "Executive summary persists file/symbol evidence, official Temporal citations, risk classifications, bounded follow-ups, and no-code boundary.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Persisted a durable Temporal hot-path assessment: risk-classified local file/symbol evidence, official SDK citations, conforming current-state conclusion, measurement-first performance guidance, and bounded replay/serialization/idempotency/readiness follow-ups.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "f13befa15f7302792250f68f96049527020996f4",
+      "completedAt": "2026-07-13T00:55:13.351Z",
+      "completed_at": "2026-07-13T00:55:13.351Z",
+      "notes": "Published cited assessment in executive summary; no repository code changed.",
+      "updatedAt": "2026-07-13T00:55:21.060Z"
+    },
+    {
+      "id": "tk-371516b7f50c",
+      "title": "Verify assessment boundaries",
+      "type": "verification",
+      "section": "Assessment",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-13T00:49:21.688Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8a0ac638ed20"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_policy": "review",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T00:55:28.897Z",
+      "verification": "Reviewed persisted executive summary and clean worktree: no workflow/product/code/config changes; report explicitly preserves replay, handler, cap, continue-as-new, and bundle-boundary invariants.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Verified AC5 and C1–C4 against persisted assessment, independent research reports, and clean git state. Confirmed the change is evidence-only and preserves all specified workflow invariants.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "f13befa15f7302792250f68f96049527020996f4",
+      "completedAt": "2026-07-13T00:55:49.675Z",
+      "completed_at": "2026-07-13T00:55:49.675Z",
+      "notes": "Review passed: executive summary covers agreed evidence and follow-up boundaries; worktree is clean with no workflow/product changes.",
+      "updatedAt": "2026-07-13T00:55:55.892Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "deepScanTemporalWorkflowHot",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:temporal-workflow-hot-path"
+      },
+      "agent": "adv-researcher",
+      "topic": "Temporal TypeScript workflow hot-path: replay determinism, query/signal cost, state projection/serialization, history growth, and test/perf strategy",
+      "sources": [
+        {
+          "label": "Temporal TS SDK — patched()/deprecatePatch() versioning",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts",
+          "summary": "patched() returns true when not replaying and when replaying histories produced with the same patchId; else false. deprecatePatch() phases out a patch after all live runs are post-migration. Confirms the repo's DISCOVERY/ACCEPTANCE/STATE_BACKED patch markers are the canonical determinism-safe evolution mechanism."
+        },
+        {
+          "label": "Temporal TS SDK — continue-as-new to bound history",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/contrib/strands/README.md",
+          "summary": "Long-lived signal/query workflows accumulate history and can exceed per-workflow limits; monitor workflowInfo().continueAsNewSuggested and hand off to a fresh run passing state as seed. Matches repo's shouldContinueAsNewFromInfo + seedState pattern."
+        },
+        {
+          "label": "Temporal TS SDK — allHandlersFinished drain before CAN/complete",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/contrib/workflow-streams/README.md",
+          "summary": "Canonical CAN recipe awaits condition(allHandlersFinished) before continueAsNew so in-flight signal/update handlers are not interrupted. Repo does exactly this at both the terminal-complete and CAN paths (workflows.ts:1678, 1732)."
+        },
+        {
+          "label": "Temporal TS SDK — standard API usage (patched + continueAsNewSuggested)",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/test/src/workflows/workflow-with-standard-api-usage.ts",
+          "summary": "Canonical durable-singleton workflow combining setHandler queries/signals/updates, patched branching, and continueAsNewSuggested-gated CAN. Directly mirrors changeWorkflow shape."
+        },
+        {
+          "label": "Temporal TS SDK — Worker.runReplayHistory / runReplayHistories",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/test/src/test-replay.ts",
+          "summary": "Replay committed histories against the current bundle to detect non-determinism regressions in CI; supports batch histories. Repo uses runReplayHistory in replay-determinism.test.ts but with only ONE fixture."
+        },
+        {
+          "label": "Temporal TS SDK — TestWorkflowEnvironment time-skipping",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/testing/src/testing-workflow-environment.ts",
+          "summary": "createTimeSkipping() env skips server time for fast deterministic workflow tests; repo already wraps this via withTestWorkflowEnvironment across queries/signals/epic/projection/CAN itests."
+        },
+        {
+          "label": "Repo — snapshotState deep-clone on every projection",
+          "locator": "plugin/src/temporal/workflows.ts:717-718,733-759,761-770",
+          "summary": "snapshotState() does JSON.parse(JSON.stringify(state)) and is called on every scheduleChangeProjection / projectChangeState / archive activity. Cost is O(state size) per signal when projectionChangesDir is set."
+        },
+        {
+          "label": "Repo — size caps validated against Temporal payload/history limits",
+          "locator": "plugin/src/types/artifacts.ts:86-111 + artifacts.test.ts:155-169",
+          "summary": "ARTIFACT_HARD_CAP 256KB, AGGREGATE_HARD_CAP ~1.8MB, tests assert <2MB per-payload and CAN-seed limits. Layer-2 size guard rejects via state-mutation (not throw), preserving workflow liveness."
+        },
+        {
+          "label": "Repo — history threshold + CAN seed",
+          "locator": "plugin/src/temporal/contracts.ts:704-723 + workflows.ts:1656-1734",
+          "summary": "DEFAULT_CHANGE_HISTORY_THRESHOLD 5000 events (env-tunable), shouldContinueAsNewFromInfo honors continueAsNewSuggested OR historyLength>=threshold; seedState hand-copies ~40 fields."
+        },
+        {
+          "label": "Repo — single replay fixture",
+          "locator": "plugin/src/temporal/__tests__/replay-determinism.test.ts:21-35",
+          "summary": "Only one committed history fixture (discovery-gate patch). Three patch markers exist in workflows.ts but only one is covered by a replay fixture."
+        }
+      ],
+      "architecture_assessment": "The changeWorkflow hot path is by-the-book against Temporal TS canon: (1) determinism-safe evolution via patched()/deprecatePatch() markers with documented deprecation plans; (2) history bounding via continueAsNewSuggested||historyLength threshold with allHandlersFinished drain before both terminal-complete and CAN — matching the official CAN recipe exactly; (3) signal handlers never throw (Layer-2 state-mutation rejection) so a bad payload cannot fail the workflow, which is the correct pattern per Temporal's handling-messages guidance; (4) size caps proven <2MB payload/CAN-seed ceilings by unit test. Query handlers are synchronous shallow returns (spread/derive), which is replay-safe and cheap. The one genuine hot-path cost is snapshotState()'s JSON.parse(JSON.stringify(state)) full deep-clone executed on EVERY projection-triggering signal (and every archive activity) — O(state bytes) CPU + transient allocation per signal, growing with tasks/documents/subagent_reports accumulation. This runs inside the workflow sandbox on the replay-critical path, so it also re-executes on every replay. It is correct and safe, but it is the measurable serialization hotspot. Secondary: replay-regression coverage is thin (one fixture for three live patch markers), so a determinism regression in the acceptance/state-backed patch branches would not be caught by the committed-history replay gate.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No correctness or safety blocker. Determinism, history-bounding, drain-before-complete, non-throwing handlers, and payload/seed size caps all conform to official Temporal TypeScript guidance and are test-backed. Findings are bounded performance + test-coverage optimizations, not defects."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "snapshotState deep-clone (JSON.parse(JSON.stringify)) is simple, structurally-safe (fully detaches the projected snapshot from mutable workflow state, avoiding aliasing bugs), and dependency-free — but costs a full O(state) serialize+parse per projection signal on the replay-critical path.",
+          "Replacing the deep clone with structuredClone or a shaped/partial projection would cut CPU/alloc but adds either sandbox-compatibility risk (structuredClone availability in the workflow isolate) or hand-maintained field lists that can drift from state shape — the same maintenance cost already accepted for the CAN seedState.",
+          "Raising the 5000-event CAN threshold reduces rotation frequency (fewer seed serializations) but grows per-run history size and replay time; lowering it does the inverse. It is already env-tunable, so the tradeoff is deploy-time, not code-time.",
+          "Adding more replay fixtures raises determinism-regression protection but adds committed binary/JSON history fixtures that must be curated and pruned in step with patch deprecation."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep JSON.parse(JSON.stringify) deep clone as-is",
+            "disposition": "preferred",
+            "rationale": "Boring, proven, sandbox-safe, and the projection is already gated behind projectionChangesDir being set. For typical change state (well under the 256KB/1.8MB caps) the per-signal cost is small and bounded. Optimize only if profiling shows it dominates."
+          },
+          {
+            "option": "Replace deep clone with structuredClone()",
+            "disposition": "deferred",
+            "rationale": "structuredClone is faster and native, but its availability/behavior inside the Temporal workflow isolate must be verified before adoption; unverified — do not assume. Belongs in a scoped follow-up with a determinism/replay test, not a blind swap."
+          },
+          {
+            "option": "Project a shaped subset instead of full-state clone",
+            "disposition": "deferred",
+            "rationale": "Would cut serialization to only the fields the disk projection consumes, but reintroduces a hand-maintained field list (drift risk mirrors seedState). Worth it only if the projection consumer needs a strict subset and profiling justifies it."
+          },
+          {
+            "option": "Add per-patch replay fixtures (acceptance + state-backed markers)",
+            "disposition": "preferred",
+            "rationale": "Cheap, high-value: closes the gap where 3 live patch branches have only 1 committed-history replay guard. Directly strengthens the determinism gate the whole hot path relies on."
+          },
+          {
+            "option": "Add a micro-benchmark for snapshotState/projection cost",
+            "disposition": "preferred",
+            "rationale": "Turns the 'is the clone a real hotspot?' question from speculation into evidence before any optimization, honoring measure-before-optimize."
+          }
+        ],
+        "recommendation": "Ship no change to the workflow itself — it conforms. Open two bounded follow-ups: (1) determinism coverage — add committed replay-history fixtures for the ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF and STATE_BACKED_ACCEPTANCE/GATE patch branches so runReplayHistory guards all three live patch markers, not one; (2) serialization measurement — add a micro-benchmark around snapshotState()/projectChangeState at representative and near-cap state sizes, and only then decide (structuredClone verified-in-sandbox vs shaped projection) if the deep-clone is a measured hotspot. Do not blind-swap the clone. Keep the 5000-event CAN threshold; document that it is env-tunable (ADV_TEMPORAL_CHANGE_HISTORY_THRESHOLD) for operators who hit large-history changes."
+      },
+      "recommendation": "PASS with two bounded, non-blocking follow-ups. The Temporal workflow hot path is architecturally correct and test-backed against official Temporal TypeScript canon (patched/deprecatePatch determinism, continueAsNewSuggested history bounding, allHandlersFinished drain, non-throwing size-guarded signals, <2MB payload/seed caps). The only real optimization target is snapshotState()'s full JSON deep-clone per projection signal — measure before optimizing, do not blind-swap. Second follow-up: expand replay-history fixtures from 1 to cover all 3 live patch markers so the determinism gate is complete.",
+      "follow_ups": [
+        "FOLLOW-UP (test/determinism): add committed replay-history fixtures for ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH and STATE_BACKED_ACCEPTANCE_PROOF_PATCH / STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH branches; wire into replay-determinism.test.ts so Worker.runReplayHistory guards all live patch markers.",
+        "FOLLOW-UP (perf measurement): add a micro-benchmark for snapshotState() + projectChangeState at representative and near-AGGREGATE_HARD_CAP state sizes to determine whether the JSON deep-clone is a real hotspot before optimizing.",
+        "FOLLOW-UP (perf, conditional): if benchmark shows the deep clone dominates, evaluate structuredClone (first VERIFY availability/behavior inside the Temporal workflow isolate) or a shaped-subset projection, each behind a new replay/determinism test.",
+        "DOC: note that CAN history threshold is env-tunable via ADV_TEMPORAL_CHANGE_HISTORY_THRESHOLD (default 5000) for operators with large-history changes.",
+        "WARNING: packet omitted explicit IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors; proceeded under the prose research objective (replay determinism, handler cost, projection/serialization, history growth, test/perf strategy) without inferring identity fields."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "deepScanTemporalWorkflowHot",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "tron:temporal-workflow-hot-path"
+      },
+      "agent": "adv-tron",
+      "target": "Temporal workflow hot paths in plugin/src/temporal/workflows.ts (changeWorkflow + epicWorkflow), state reducers, projection, search-attribute recomputation, and replay-determinism safety tests",
+      "evidence": [
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 553,
+          "summary": "changeWorkflow function: 1182-line main signal-driven workflow, ~36 signal handlers and ~16 query handlers wired through signalMutation/signalAsync wrappers"
+        },
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 1758,
+          "summary": "epicWorkflow function: 254-line Epic signal-only workflow with its own signalAsync wrapper"
+        },
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 717,
+          "summary": "snapshotState() = JSON.parse(JSON.stringify(state)) called on every projected signal — deep clone of full workflow state"
+        },
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 1357,
+          "summary": "gateCompletedSignal handler uses an ad-hoc promise chain (gateCompletionChain) to serialize readiness evaluation"
+        },
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 1661,
+          "summary": "wf.condition(...) main loop predicate uses only `wf.workflowInfo()` and state.status / shouldContinueAsNew threshold"
+        },
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 1733,
+          "summary": "continueAsNew seed passes a 33-field explicit copy of state; size determines second-half per-payload pressure"
+        },
+        {
+          "file": "plugin/src/temporal/change-state.ts",
+          "line": 1498,
+          "summary": "getReadyTasksFromChangeState has nested state.tasks.find inside per-task deps filter — O(n^2) on hot query path"
+        },
+        {
+          "file": "plugin/src/temporal/change-state.ts",
+          "line": 1021,
+          "summary": "applySubagentReportSubmittedToState performs up to three O(n) scans: seenReportIds.includes, subagent_reports.some, task.subagent_reports.some"
+        },
+        {
+          "file": "plugin/src/temporal/change-state.ts",
+          "line": 792,
+          "summary": "applyTaskAddedToState O(n) findIndex on each add; signal storm test plans for 5,200 adds (continue-as-new.itest.ts)"
+        },
+        {
+          "file": "plugin/src/temporal/change-state.ts",
+          "line": 504,
+          "summary": "byteLength uses TextEncoder().encode(content) per content update (per-artifact size guard)"
+        },
+        {
+          "file": "plugin/src/temporal/change-state.ts",
+          "line": 579,
+          "summary": "checkAggregateSize JSON.stringify's a freshly-projected documents record to enforce aggregate cap"
+        },
+        {
+          "file": "plugin/src/temporal/search-attributes.ts",
+          "line": 175,
+          "summary": "buildChangeSearchAttributes rebuilds ~10 attribute arrays (active-worktree filter+sort, lifecycle status, bucket derivation) on every signal completion"
+        },
+        {
+          "file": "plugin/src/temporal/search-attributes.ts",
+          "line": 241,
+          "summary": "applyAndUpsertSearchAttributes is called from afterSuccess() for every signal that takes afterSuccess branch"
+        },
+        {
+          "file": "plugin/src/temporal/gate-readiness.ts",
+          "line": 799,
+          "summary": "evaluateGateReadiness fans out to priorGateBlockers + acceptanceContractBlockers + checkUnresolvedDesignConcerns + checkRequiredObligationReleaseBlockers + checkOpsFollowupReleaseBlockers per gate completion"
+        },
+        {
+          "file": "plugin/src/temporal/gate-readiness.ts",
+          "line": 1066,
+          "summary": "evaluateGateCriteria runs ALL gated evaluators (CRITERION_EVALUATORS) regardless of gate; some scan state.tasks.filter"
+        },
+        {
+          "file": "plugin/src/temporal/gate-readiness.ts",
+          "line": 550,
+          "summary": "latestDesignerReportsByTask builds a Map by iterating state.subagent_reports — O(n) but fine for normal size"
+        },
+        {
+          "file": "plugin/src/temporal/epic-state.ts",
+          "line": 856,
+          "summary": "recomputeEpicProgress is invoked from 14 apply* functions in epic-state.ts; each pass filters state.epic.entries"
+        },
+        {
+          "file": "plugin/src/temporal/contracts.ts",
+          "line": 702,
+          "summary": "DEFAULT_CHANGE_HISTORY_THRESHOLD = 5_000 events, env-tunable; gates continue-as-new rotation"
+        },
+        {
+          "file": "plugin/src/temporal/__tests__/workflow-bundle-imports.test.ts",
+          "line": 34,
+          "summary": "Bundles workflows.ts via @temporalio/worker webpack and asserts no fs/node:* reference reaches the bundle"
+        },
+        {
+          "file": "plugin/src/temporal/workflow-bundle-boundary.test.ts",
+          "line": 88,
+          "summary": "Transitive boundary tests enforce: no wf.defineUpdate, no storage/tools/tool-registry/plugin-init, no node:* in workflow reachable set"
+        },
+        {
+          "file": "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+          "line": 21,
+          "summary": "Committed history fixture replays via Worker.runReplayHistory to guard TMPRL1100/non-determinism regressions"
+        },
+        {
+          "file": "plugin/src/temporal/__tests__/concurrent-signaling.itest.ts",
+          "line": 270,
+          "summary": "Stress test pumps 150 concurrent signals (3 agents × 50 each) into a single change workflow; expects 0 rejections"
+        },
+        {
+          "file": "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+          "line": 94,
+          "summary": "Sends 5,200 taskAdded signals to force continue-as-new rotation; verifies runId change and task preservation"
+        },
+        {
+          "file": "plugin/src/temporal/__tests__/workflow-termination.test.ts",
+          "line": 86,
+          "summary": "Verifies workflow Completes on archive/close signal — anti-zombie-workflow invariant"
+        },
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 895,
+          "summary": "Four wf.patched markers (DISCOVERY_CONTRACT_READINESS_PATCH, ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH, STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH, STATE_BACKED_ACCEPTANCE_PROOF_PATCH) replay-branch gate-completion logic"
+        },
+        {
+          "file": "plugin/src/types/artifacts.ts",
+          "line": 96,
+          "summary": "ARTIFACT_SOFT_CAP=64KB, ARTIFACT_HARD_CAP=256KB, AGGREGATE_SOFT_CAP=1MB, AGGREGATE_HARD_CAP≈1.8MB — per-payload caps below Temporal 2MB ceiling"
+        }
+      ],
+      "findings": [
+        "FINDING-001 [hotspot] changeWorkflow signal handler fan-out (workflows.ts:1213-1654): ~36 wf.setHandler calls each wrap their reducer via signalMutation/signalAsync. Every successful mutation then triggers upsertSignalSearchAttributes (rebuild + wf.upsertSearchAttributes) and, depending on options.projectAfter, an unawaited scheduleChangeProjection which itself calls the proxyActivities-bound writeChangeProjection. Replay determinism is preserved (proxy activities are deterministic) but the per-signal overhead stack is the dominant cost for active changes.",
+        "FINDING-002 [hotspot] gateCompletedSignal uses an ad-hoc promise chain (workflows.ts:1357-1370). The chain grows on each concurrent gateCompleted: every concurrent accept from C3 (and the 3-agents burst in concurrent-signaling.itest.ts) appends a then-chain segment to gateCompletionChain. A single failing completeGateWithReadiness blocks all subsequent segments only if they await gateCompletionChain; ordering is also enforced per-signal via the shared gate state, but the chain shape itself is a leak source if any completion forgets to await.",
+        "FINDING-003 [risk] snapshotState() deep-clones the full ChangeWorkflowState on every projected signal (workflows.ts:717-718). Even with ARTIFACT_HARD_CAP=256KB per artifact, the accumulated state size + subagent_reports + tasks + documents is JSON.parse(JSON.stringify(state))'d before each projection activity. With seedState.documents accumulating toward AGGREGATE_HARD_CAP (~1.8MB), each successful projection signal performs two serializations of the full state, dominating replay cost and signal-handler latency.",
+        "FINDING-004 [hotspot] buildChangeSearchAttributes (search-attributes.ts:175-239) recomputes every attribute on every signal completion. The function filters state.worktrees by status, sorts branch and path arrays via localeCompare, derives bucket via deriveBucket(bucketCtxFromState(state, nowMs)), and normalizes lifecycleState. Called once per successful signal in afterSuccess(); safe for replay but ~O(worktrees log worktrees) per signal.",
+        "FINDING-005 [risk] applySubagentReportSubmittedToState performs 3 unbounded scans plus a partial seenReportIds writes (change-state.ts:1031-1060). state.seenReportIds grows unboundedly across the workflow lifetime and is part of the continueAsNew seed — there is no ring-buffer / cap. With cross-project fan-in reports this can grow into per-event footprint pressure on history length.",
+        "FINDING-006 [risk] getReadyTasksFromChangeState is O(n^2) on the hot query path (change-state.ts:1498-1524). getReadyQuery (workflows.ts:696) is bound to this and is called per-peer-agent query in multi-session scenarios; nested state.tasks.find inside per-task deps.filter produces quadratic scan that grows with task count.",
+        "FINDING-007 [hotspot] eval chain in completeGateWithReadiness (workflows.ts:955-1209) is the deepest nested call in the workflow. evaluateGateReadiness → priorGateBlockers → discoveryContractBlockers/acceptanceContractBlockers → checkUnresolvedDesignConcerns (latestDesignerReportsByTask + nested dispositions.some) → checkRequiredObligationReleaseBlockers → checkOpsFollowupReleaseBlockers. Each is safe but cumulative cost scales linearly with state.tasks + state.subagent_reports + state.contract.items on every gate completion.",
+        "FINDING-008 [risk] checkAggregateSize in applyContentWithSizeGuard (change-state.ts:575-589) JSON.stringify's a fresh document projection on every artifact update to enforce ~1.8MB aggregate cap. With frequent artifact updates this is repeated full-stringify of all 6 documents even when content size is well below any cap (the early-return path skips it via size > ARTIFACT_HARD_CAP, but the aggregate branch always runs after the per-artifact check).",
+        "FINDING-009 [structure] PATCH markers enforce replay-safe branching at gate completion (workflows.ts:895-922, 962, 975, 990). Four wf.patched markers gate which activity sequence is replayed for older histories. The replay-determinism.test.ts fixture covers DISCOVERY_CONTRACT_READINESS_PATCH but not the other three — coverage gap.",
+        "FINDING-010 [pattern] Bundle boundary is enforced by two complementary tests (workflow-bundle-imports.test.ts: webpack bundler forbids fs/node:* / better-sqlite3; workflow-bundle-boundary.test.ts: transitive boundary forbids wf.defineUpdate, storage/, tools/, tool-registry.ts, plugin-init.ts, node:*). Belt-and-suspenders approach. New helpers must keep these invariants, especially through change-state.ts which is reached by ~36 apply* functions.",
+        "FINDING-011 [risk] continueAsNew seed (workflows.ts:1684-1733) explicitly spreads 33 fields including subagent_reports and documents. With long-running changes and large state, the seed itself approaches the 2MB Temporal payload cap; AGGREGATE_HARD_CAP (~1.8MB) is the structural guard. Per-payload cap is enforced at the reducer level but signal-fired probes (e.g. explore queries that read snapshots) can still threaten the seed at rotation time."
+      ],
+      "hotspots": [
+        "plugin/src/temporal/workflows.ts (functions changeWorkflow / epicWorkflow, ~2010 lines; ~36 signal handlers, ~16 query handlers, gateCompletionChain, continueAsNew seed) — orchestration complexity",
+        "plugin/src/temporal/change-state.ts (1694 lines, 80 exported symbols; hot reducers: applySubagentReportSubmittedToState, applyTaskAddedToState, getReadyTasksFromChangeState, applyContentWithSizeGuard) — central reducer",
+        "plugin/src/temporal/gate-readiness.ts (1107 lines, 30 functions; deeply nested readiness check + advisory criteria evaluations) — gate readiness is the deepest call in the workflow",
+        "plugin/src/temporal/contracts.ts (733 lines, 18 interfaces; ChangeWorkflowState surfaces 33 seedState fields) — schema surface",
+        "plugin/src/temporal/search-attributes.ts (249 lines; buildChangeSearchAttributes rebuilds attrs on every signal) — derived projection recomputed per signal",
+        "plugin/src/temporal/epic-state.ts (909 lines; recomputeEpicProgress invoked from 14 apply* functions) — epic hot path"
+      ],
+      "risks": [
+        "Replay determinism drift via Date()/Math.random() etc — change-state.ts injects `let logicalTick = 0` and `new Date(workflowEpoch + logicalTick++).toISOString()` (workflows.ts:556-559) for workflowNow() so timestamps stay deterministic; any refactor that injects a transient Date.now() or new Date() inside a reducer or signalMutation will not surface locally but will break replay the moment a worker reload changes the code path. Vitest's replay-determinism.test.ts covers DISCOVERY_CONTRACT_READINESS_PATCH but the 3 acceptance PATCH markers and acceptanceContractBlockers are not covered by replay fixtures.",
+        "Aggregation overshoot pressure — state.seenReportIds grows monotonically and is included in the continueAsNew seed (workflows.ts:1723, change-state.ts:1031-1060). Without a ring-buffer or hard cap, an agent loop or fixture can balloon the seed beyond AGGREGATE_HARD_CAP.",
+        "Projection write storms — scheduleChangeProjection (workflows.ts:761-770) issues an unawaited proxyActivities call per projected signal. Backpressure is bounded only by the activity's startToCloseTimeout (10s) and maximumAttempts 3 (workflows.ts:192). A burst of 150 signals (concurrent-signaling fixture) plus 9 gate completions schedules 9 unawaited activity calls with no global semaphore; the worker activity slot pool becomes the de-facto throttle.",
+        "Gate completion ordering edge — the gateCompletionChain pattern (workflows.ts:1357-1370) interleaves a Promise per concurrent gateCompleted. If a single completeGateWithReadiness throws (outside Temporal system-failure rejections), the chain swallows the error after marking gate stuck (workflows.ts:927-937). A throw that escapes the chain (e.g. an unhandled error inside markGateStuckForBlockers' evaluateGateCriteria try/catch) would tear down the workflow; the try/catch around criteria (workflows.ts:1191-1202) only shields evaluateGateCriteria, not the broader chain.",
+        "Cross-project coordination signal hot path — crossProjectCoordinationUpdatedSignal (workflows.ts:1419-1423) calls applyCrossProjectCoordinationUpdatedToState; if active changes fan into cross-project traffic at burst, the signalMutation wrapper still triggers buildChangeSearchAttributes which serializes affectedProjects + worktrees arrays; with N>50 active peer changes this dominates the per-signal cost.",
+        "wf.upsertSearchAttributes cost — per-signal applyAndUpsertSearchAttributes (workflows.ts:720-731) calls wf.upsertSearchAttributes via the SDK. Each call is a workflow task scheduling decision point on the hot path; not catastrophic but combined with projection writes it doubles the command count per signal for non-rejected mutations.",
+        "Dependency on large artifact bulk-paths — every state-changing signal that passes `projectAfter: true` (gateAwaitingApproval, gateStuck, phase9StatusUpdated, archiveRequested, changeCancelled) triggers a full-state deep-clone snapshot. For changes near the 1.8MB aggregate cap this is a ~3.6MB JSON.parse round-trip per signal; combined with the bundle boundary test enforcing no fs reach into the workflow, snapshot cost cannot be offloaded to I/O."
+      ],
+      "open_questions": [
+        "What is the realistic maximum state size encountered in production? Are any active changes known to approach AGGREGATE_HARD_CAP? (No telemetry source in this repo observed; would need Temporal admin Visibility or runtime instrumentation.)",
+        "Are replay fixtures for the 3 acceptance PATCH markers (ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH, STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH, STATE_BACKED_ACCEPTANCE_PROOF_PATCH) committed or pending? Only DISCOVERY_CONTRACT_READINESS_PATCH has a committed history under plugin/src/temporal/__tests__/replay/histories/.",
+        "What is the typical peer-session query rate against getStateQuery / getReadyQuery / getInvestmentReportQuery? Deriving hot path priority requires telemetry that this repo does not contain.",
+        "Is there an explicit signal-coalescing strategy for projection writes? scheduleChangeProjection issues one proxy call per signal without debouncing; would a microtask-batched projection (with last-write-wins within a short window) materially reduce activity slot pressure?",
+        "Are there any recordings in .adv/reflections/ of workflow-perf incidents (history-length, replay failures, projection lag) to ground the bounded follow-ups?",
+        "For changes with many tasks and many subagent reports, would O(n^2) in getReadyTasksFromChangeState become observable at the scale exercised by concurrent-signaling.itest.ts (30 tasks) or does the next test boundary sit much higher?",
+        "Does the per-signal upsertSignalSearchAttributes traffic defeat the rebuild caching strategy, or is the rebuild cheap relative to the upsert round-trip?"
+      ],
+      "suggested_next_commands": [
+        "/adv-proposal \"Bounded perf hot-path scope: snapshotState deep-clone, getReadyTasks O(n^2), applySubagentReportSubmitted O(n) scans, seenReportIds growth guard\" — Trigger: concrete bounded follow-up slices need a proposal/agreement/design before implementation; Rationale: 4 hotspots are localized in change-state.ts and workflows.ts, well-scoped to bounded slices, suitable for durable change.",
+        "/adv-task — Trigger: any of the proposed scoped slices (e.g. \"introduce a state-scoped Map index for getReadyTasks\") are implementation-ready as soon as a parent proposal exists; Rationale: each is independently testable, no design needed beyond the proposal's agreement.",
+        "/adv-slop-scan plugin/src/temporal/change-state.ts — Trigger: 1694-line file with 80 exported reducer functions; many duplicate applyContentWithSizeGuard wrapper lines and noise patterns likely; Rationale: AI-generated slop often shows up as verbose copy-paste; deeper pattern audit needed before re-shaping.",
+        "/adv-arch-scan plugin/src/temporal — Trigger: workflow hot path is a heuristic-heavy state machine (size-guard, idempotency ledger, gate readiness, search-attribute freshening) — structural correctness check; Rationale: many of these guards are layered; an arch scan could surface heuristic-only gates that should be Zod-validated.",
+        "/adv-audit advance-workflow — Trigger: explicit spec-vs-implementation drift on hot-path invariants (size caps, history threshold, replay determinism); Rationale: P34 evidence stance — only run an audit if there is suspected drift, otherwise proposal work is enough.",
+        "/adv-tron plugin/src/temporal/activities.ts — Trigger: more reconnaissance needed on the activity side of the hot path (writeChangeProjection, archiveChangeActivity) before designing the bound; Rationale: workflows.ts is well-scanned; activities.ts deep-read was skipped to keep this scan bounded.",
+        "/adv-optimizer plugin/src/temporal/workflows.ts — Trigger: signal-handler fan-out and gateCompletionChain are both candidates for structural simplification, but require a proposal/agreement boundary first."
+      ],
+      "follow_ups": [
+        "{\n  \"packet_defect\": false,\n  \"missing_packets\": [],\n  \"warnings\": [\"TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors were not provided in the orchestrator packet; this report uses the change title plus the human-readable intent and does not infer identity fields.\"],\n  \"consumer_warnings\": []\n}"
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "deepScanTemporalWorkflowHot",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: Temporal workflow hot-path evidence/report change",
+      "sources": [
+        {
+          "label": "Temporal SDK — patched()",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts",
+          "summary": "patched(patchId) returns true when not replaying and true during replay only if history was produced by a worker with the same patchId; else false. Run new code on true, old on false to preserve determinism. Confirms repo wf.patched() branching pattern is by-the-book."
+        },
+        {
+          "label": "Temporal SDK — deprecatePatch()",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts",
+          "summary": "deprecatePatch(patchId) phases out a marker only after ALL live runs/histories are post-migration; premature removal yields undefined replay behavior. Confirms the repo's documented 'keep marker until histories archived then wf.deprecatePatch' deprecation plan is correct, and that removing markers on static inspection alone would be unsafe."
+        },
+        {
+          "label": "Temporal SDK — canonical patched/deprecatePatch + continueAsNew workflow",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/test/src/workflows/workflow-with-standard-api-usage.ts",
+          "summary": "Official sample uses setHandler + condition + patched('new-logic') if/else + continueAsNewSuggested-gated continueAsNew in a single workflow. Structurally matches changeWorkflow: handler registration, patched branches, and history-length/suggested continue-as-new."
+        },
+        {
+          "label": "Temporal SDK — allHandlersFinished before continueAsNew",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/contrib/workflow-streams/README.md",
+          "summary": "Recommended recipe: on continueAsNewSuggested, stop intake then `await condition(allHandlersFinished)` before continueAsNew, so in-flight signal/update handlers drain and are not lost across rotation. Matches workflows.ts:1732-1733 (await wf.condition(wf.allHandlersFinished); await wf.continueAsNew(seed)) exactly."
+        },
+        {
+          "label": "Local — snapshotState deep clone",
+          "locator": "plugin/src/temporal/workflows.ts:717-718",
+          "summary": "snapshotState() = JSON.parse(JSON.stringify(state)). Deterministic under replay (pure, no I/O/ordering nondeterminism), so correctness-safe; cost is a size-scaling performance candidate, not a correctness bug. Supports design's measurement-first guardrail before structuredClone/shaped-projection."
+        },
+        {
+          "label": "Local — patch markers vs replay fixtures",
+          "locator": "plugin/src/temporal/workflows.ts:895-922, wf.patched() at 962/975/990/1062; plugin/src/temporal/__tests__/replay-determinism.test.ts:23-65",
+          "summary": "Four live patch-marker constants (DISCOVERY_CONTRACT_READINESS, STATE_BACKED_GATE_ARTIFACT_PROOF, STATE_BACKED_ACCEPTANCE_PROOF, ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF) gate divergent command sequences; only one committed history fixture (DISCOVERY_CONTRACT_READINESS) is replay-tested. Confirms the 'incomplete replay fixtures' coverage gap and the per-marker replay-fixture follow-up."
+        },
+        {
+          "label": "Local — O(n^2) ready-task lookup",
+          "locator": "plugin/src/temporal/change-state.ts:1505-1528",
+          "summary": "For each pending task, blocked_by deps resolve via nested state.tasks.find(...) — quadratic in task count. Correctness is fine; it is a growth/performance candidate for a bounded index (Map by id) with a scoped follow-up + test. Matches design."
+        },
+        {
+          "label": "Local — unbounded seenReportIds + continue-as-new seed",
+          "locator": "plugin/src/temporal/change-state.ts:1031-1060; plugin/src/temporal/workflows.ts:1723",
+          "summary": "seenReportIds is a spread-append de-dupe array with no cap, carried verbatim into the continue-as-new seed (workflows.ts:1723). Growth-bound candidate; capping intersects the size-guard/CAN-seed invariant, so it needs its own proposal + tests (design defers it correctly). Aggregate size guard exists (change-state.size-guard.test.ts) but does not cap this array specifically."
+        }
+      ],
+      "architecture_assessment": "The design is an evidence/report-only change that validates existing Temporal mechanics rather than mutating them. Every non-trivial claim in its 'Initial Evidence' block is confirmed in the repository: per-signal JSON deep clone (workflows.ts:717-718), signal/search-attribute fan-out (upsertSignalSearchAttributes), O(n^2) ready-task lookup (change-state.ts:1505-1528), unbounded seenReportIds carried into the CAN seed (workflows.ts:1723), gate-readiness fan-out (gate-readiness.ts), and incomplete replay fixtures (1 of 4 live patch markers covered). Against official Temporal TypeScript sources, the existing patterns are canonical: wf.patched()/wf.deprecatePatch() usage and its documented 'keep until histories archived' deprecation plan match the SDK contract; the `await condition(allHandlersFinished)` drain before continueAsNew matches the SDK's recommended recipe line-for-line; and the JSON deep clone is deterministic under replay (pure, no nondeterministic ordering/IO), so it is a size-scaling performance candidate, not a correctness defect. The design's guardrails (no clone replacement on static inspection alone; measurement-first before snapshotState/projection changes; per-marker replay fixtures; no changes to caps/thresholds/signals/queries/patch markers/bundle boundaries) are the correct, conservative dispositions and align with Temporal's own versioning/patching safety guidance. No unsafe or unsupported design direction was found: the change explicitly implements nothing in workflow code and defers all mutations to scoped follow-ups with verification strategies.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Evidence-only research change with conservative guardrails. All five acceptance criteria are satisfiable by the assessment method: hot paths are file/symbol-evidenced and classifiable (AC1); the required coverage set — signal fan-out, projection snapshotting, search-attribute recompute, ready-task lookup, gate readiness, continue-as-new seed growth, replay patch coverage — is all locatable in-repo (AC2); Temporal TS guidance on determinism/patching/handler-safety/continue-as-new is cited from official SDK sources and compared to repo behavior (AC3); follow-ups are bounded to named files/symbols with measurement-first flags (AC4); and the change implements no optimization and weakens no replay-safety/size-cap/handler/bundle invariant (AC5). Two nuances worth recording in the final report, not blockers: (a) verify the exact count of live patch markers (4 constants; ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH is documented as superseded by STATE_BACKED_ACCEPTANCE_PROOF_PATCH per the workflows.ts comment) so the replay-fixture follow-up enumerates the truly-live set; (b) the seenReportIds cap follow-up must respect the continue-as-new seed/size-guard invariant since a naive cap changes carried state."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Report-only change delivers no runtime improvement now; benefit is deferred to correctly-scoped follow-ups (intentional, and the safe ordering given replay-determinism stakes).",
+          "Measurement-first guardrail on snapshotState/projection adds a benchmarking step before any clone/projection change, trading upfront effort for avoided premature optimization on a replay-critical path.",
+          "Per-marker replay fixtures require capturing/committing real history JSON per live patch, which is maintenance cost, but it is the only way to structurally guarantee determinism across code evolution (Temporal versioning contract)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Replace JSON.parse(JSON.stringify()) with structuredClone in snapshotState as part of this change",
+            "disposition": "rejected",
+            "rationale": "Out of scope for a report change and premature: cost is unmeasured, both clones are replay-deterministic, and structuredClone has different type-fidelity behavior (Map/Set/undefined/prototype handling) that needs a benchmark + fidelity check first. Design correctly defers to a measurement-first follow-up."
+          },
+          {
+            "option": "Cap seenReportIds and add a ready-task index now",
+            "disposition": "rejected",
+            "rationale": "Both intersect load-bearing invariants (continue-as-new seed size guard; replay determinism of ready-task derivation). Each needs its own proposal, transition/state-machine tests, and (for the cap) a size-guard interaction test. Deferral is the safe call."
+          },
+          {
+            "option": "Flag CONFLICT on the deep-clone / unbounded-array hot paths",
+            "disposition": "rejected",
+            "rationale": "No unsafe or unsupported design direction exists. The change proposes zero workflow mutations and its guardrails are stricter than Temporal's own guidance requires. CONFLICT is reserved for actual unsafe directions; none are present."
+          }
+        ],
+        "recommendation": "Approve the design as a bounded evidence/report change. In the delivered assessment: (1) enumerate the exact live patch-marker set (confirm ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH live-vs-superseded status) so the replay-fixture follow-up is complete; (2) keep the measurement-first gate on snapshotState/projection and require benchmarks at representative and near-cap state sizes before any clone/projection change; (3) scope the seenReportIds cap follow-up to explicitly preserve the continue-as-new seed/size-guard invariant with an interaction test; (4) scope the ready-task index follow-up (change-state.ts:1505-1528) with a determinism-preserving transition test. Do not remove any patch marker without archived-history + fixture evidence."
+      },
+      "recommendation": "VALIDATION: pass. Proceed to the design gate. The design is architecturally sound, conservative, and fully supported by official Temporal TypeScript sources and local repository evidence. It correctly preserves replay determinism, handler-drain, size-cap, and bundle-boundary invariants, and defers every mutation (clone replacement, state caps, ready-task index, patch-marker changes) to scoped follow-ups with measurement/verification requirements. Recommended refinements are report-content precision items, not gate blockers.",
+      "follow_ups": [
+        "Assessment should enumerate the exact live patch-marker set and confirm whether ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH is live or superseded by STATE_BACKED_ACCEPTANCE_PROOF_PATCH, so the replay-fixture follow-up covers every truly-live marker.",
+        "seenReportIds cap follow-up must include a continue-as-new seed/size-guard interaction test to prove the cap does not corrupt carried state across rotation.",
+        "Ready-task index follow-up (change-state.ts:1505-1528) should carry a determinism-preserving transition/state-machine test since derivation runs inside workflow-reachable code."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "deepScanTemporalWorkflowHot",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/deepScanTemporalWorkflowHot",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "Research-only Temporal assessments can validate performance hypotheses without unsafe optimization by pairing local symbol evidence with official SDK citations, explicit no-code boundaries, and measurement-first follow-ups."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git diff --check && git status --short && git diff --name-only",
+          "Firecrawl scrape of all four cited official Temporal SDK sources; citation-term inspection"
+        ],
+        "results": "pass",
+        "evidence": "Clean git checks produced no output: no tracked, staged, unstaged, or untracked product changes and no whitespace errors. All seven required categories are present in the executive summary and map to existing local evidence: snapshot/projection (workflows.ts:717-770), signal/search-attribute fan-out (720-770, 1213-1654; search-attributes.ts:175-248), ready-task lookup (change-state.ts:1498-1530), seenReportIds seed growth (1031-1060; workflows.ts:1682-1733), live patch branches plus replay fixture (895-922, 962/975/990; replay-determinism.test.ts:21-70), and gate readiness (gate-readiness.ts:799-854; workflows.ts:955-1209). The cited official Temporal SDK sources were fetched successfully and contain patched/deprecatePatch, continueAsNew, allHandlersFinished, and Worker.runReplayHistory evidence. Executive summary limits clone replacement to benchmark plus isolate verification; preserves caps, threshold/drain semantics, signals/queries, patch markers, and workflow-bundle boundaries; it recommends no unsafe patch removal or unmeasured clone replacement."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Official GitHub citations target the moving main branch; pinning source revisions would improve future audit reproducibility but is not required by the approved agreement."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "deepScanTemporalWorkflowHot",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/deepScanTemporalWorkflowHot",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [
+        {
+          "id": "followup-boundary-1",
+          "label": "issue",
+          "file": "executive-summary.md",
+          "line": 26,
+          "what": "Three follow-ups omit the required named file/symbol boundary, and three omit an explicit measurement-before-code disposition.",
+          "why": "AC4 requires every recommendation to name files/symbols, state a concrete verification strategy, and state whether measurement is required before code. The prose names only behaviors for replay histories, seenReportIds, and ready-task indexing; only serialization explicitly says measurement is required.",
+          "fix": "Amend the executive summary with one row per follow-up: target file/symbol, verification command/test, and explicit `measurement required: yes|no`; then correct the AC4 matrix evidence."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "citation-provenance-1",
+          "label": "suggestion",
+          "file": "executive-summary.md",
+          "line": 17,
+          "what": "Official Temporal SDK citations point at mutable `main` URLs and aggregate several claims into one sentence.",
+          "why": "Links are official and sufficient for assessment context, but immutable permalinks plus per-claim source mapping would make archive evidence reproducible.",
+          "fix": "Pin future research citations to commit URLs and map each source to its asserted Temporal behavior."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "Research-only release evidence needs each follow-up to carry an explicit target, verification method, and measurement-before-code disposition; a global evidence map does not make an individual recommendation bounded."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git status --short && git diff --check && git log --oneline -5",
+          "ADV artifact-only review of agreement, executive summary, and acceptance matrix"
+        ],
+        "results": "pass",
+        "evidence": "Worktree status and diff check were clean; HEAD f13befa1 matches both research task checkpoints. Agreement, executive summary, and acceptance matrix confirm no code, configuration, deployment, archive, or ops change. Review found AC4 evidence inconsistency: the matrix says all four follow-ups name files/symbols, but the listed follow-ups do not."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Acceptance/release should not proceed until AC4 is made auditable per follow-up; otherwise archive records overstate boundedness.",
+        "Temporal references use mutable SDK `main` links, so source content may drift after archival.",
+        "No archive, deployment, operational runbook, telemetry, or product-state effect exists for this research-only change; release effect is limited to persisting the assessment."
+      ],
+      "required_main_agent_actions": [
+        "Amend the executive summary and AC4 review-matrix row so each follow-up explicitly names file/symbol scope, verification method, and whether measurement is required before any code change.",
+        "Re-run acceptance review after that artifact correction; do not complete release/archive while AC4 evidence remains internally inconsistent.",
+        "Optional hardening: replace Temporal SDK `main` URLs with immutable commit permalinks and source-to-claim mapping before archive."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "deepScanTemporalWorkflowHot",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/deepScanTemporalWorkflowHot",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git status --short && git diff --name-only && git diff --cached --name-only",
+          "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Clean worktree: no tracked, staged, or untracked repository changes. All four follow-ups name concrete files/symbols or line-bounded regions, define a verification method, and explicitly label Measurement required Yes/No. Replay fixture test passed: 1 file, 1 test."
+      },
+      "scope_drift": null,
+      "risks": [
+        "External Temporal SDK citations track main; commit pinning is optional future audit hardening, not an AC4 defect."
+      ],
+      "required_main_agent_actions": [
+        "Record AC4 as satisfied; clarification is evidence-only and requires no workflow or product-code change."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "deepScanTemporalWorkflowHot",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/deepScanTemporalWorkflowHot",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "convention",
+          "content": "Evidence-only performance assessments should name each follow-up's concrete code location, executable verification method, and explicit Measurement required: Yes/No to make AC review release-ready."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts",
+          "git status --short && git diff --check && git diff --stat"
+        ],
+        "results": "pass",
+        "evidence": "Replay fixture passed: 1 file, 1 test, including Worker.runReplayHistory (exit 0). Worktree status, diff check, and diff stat emitted no output after verification: clean, no code/config/product delta. AC4 recheck: all four follow-ups name plugin/src locations/symbols, concrete verification, and Measurement required Yes/No: replay coverage (No), serialization measurement (Yes), idempotency growth (No), ready-task indexing (No). Named symbols verified locally: snapshotState at workflows.ts:717, scheduleChangeProjection at :761, seenReportIds at change-state.ts:1031-1060 and workflows.ts:1723, getReadyTasksFromChangeState at change-state.ts:1498. Gate state: acceptance done; release is only remaining gate, so archive is not yet eligible."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No deployment, ops, telemetry, configuration, or workflow behavior change exists in this research-only change; release remains an orchestration gate, not a deploy action."
+      ],
+      "required_main_agent_actions": [
+        "Proceed through the release gate using the READY hardening evidence; then archive only after release completion. Do not revisit AC4 unless the executive summary follow-up text changes.",
+        "No code or deployment action required for this evidence-only change."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:36:15.081Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved the promoted Epic shell problem statement in this session: map Temporal workflow replay/projection performance and safety risks, then identify bounded follow-ups with transition/state-machine test strategy.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "db343471575ab49eb0859d54ffa9ff380f8d50c69a58c162565f00e477eccafe",
+        "non_whitespace_chars": 258,
+        "checked_at": "2026-07-13T00:29:56.360Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:45:17.062Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the discovery agreement. Independent local and official Temporal research found no workflow correctness blocker; outcome is a bounded risk assessment with measurement-first and replay-coverage follow-up candidates.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "non_whitespace_chars": 2038,
+        "checked_at": "2026-07-13T00:29:56.361Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:48:47.131Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent Temporal validator PASS, high confidence, low risk. Design preserves existing workflow mechanics and limits this change to evidence/report delivery; replay-fixture and measurement-first recommendations are bounded follow-ups.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "70087bdff27156d69406b2fe8a76690e0f11326cbd8795032429d4e14abea2c0",
+        "non_whitespace_chars": 1648,
+        "checked_at": "2026-07-13T00:29:56.362Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:54:08.162Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved the two-task research-only graph: publish cited assessment, then verify no workflow/product changes or invariant weakening."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:56:11.126Z",
+      "completed_by": "agent",
+      "approval_evidence": "Both research-only tasks are checkpointed done. Executive summary contains file/symbol evidence, official Temporal citations, bounded follow-ups, and explicit no-code/invariant-preservation review. Strict validation passed with only non-blocking NO_DELTAS."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T01:09:08.716Z",
+      "completed_by": "user",
+      "approval_evidence": "User re-approved the corrected assessment after hardening remediation. Acceptance re-review READY: all four follow-ups now specify locations, verification, and measurement-required state.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "7b4462a2fd17fa58923a625aff66e84c464c7f906ea1a8ef49bcf8ed2fd39533",
+        "non_whitespace_chars": 3272,
+        "checked_at": "2026-07-13T00:29:56.364Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "acceptance",
+      "reason": "Release hardening found AC4 evidence insufficiently explicit: three follow-ups lacked named file/symbol bounds and an explicit measurement-required state.",
+      "scope_delta": "Clarify only the assessment and contract-review evidence: give every follow-up named code locations, verification, and measurement-required yes/no. No workflow/product implementation scope change.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-13T01:05:01.789Z",
+      "gates_reset": [
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+      "approvedAt": "2026-07-13T00:42:34.076Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "The assessment identifies each examined hot path with file/symbol evidence and labels it `correctness`, `performance`, `growth`, or `coverage` risk.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "The assessment covers signal fan-out, projection snapshotting, search-attribute recomputation, ready-task dependency lookup, gate readiness, continue-as-new seed growth, and replay patch coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Temporal TypeScript guidance on replay determinism, patching, handler safety, and continue-as-new is cited from official SDK sources and compared with repository behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Every recommended follow-up is bounded to named files/symbols, has a concrete verification strategy, and states whether it requires measurement before code changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "The assessment explicitly records that no workflow performance optimization is implemented in this change and does not weaken replay safety, size caps, required handler behavior, or workflow-bundle boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Specs and Temporal replay determinism remain law.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Treat `snapshotState()` deep-clone cost as a measurement candidate, not permission to replace it without benchmark and sandbox evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve existing `continueAsNew` threshold/drain semantics and payload-size caps.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not add telemetry, global configuration, or workflow code during this research change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Direct refactors or performance changes to `workflows.ts`, `change-state.ts`, `gate-readiness.ts`, or search-attribute computation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing state caps, continue-as-new thresholds, signal/query contracts, or patch-marker behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Broad Temporal platform redesign or unrelated status/dashboard work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T01:05:47.287Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "Executive summary classifies every assessed hot path with file/symbol evidence; independent reviewer confirmed all seven categories."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Assessment explicitly covers signal fan-out, snapshots, search attributes, ready tasks, gate readiness, CAN seed growth, and replay coverage."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "Executive summary cites official Temporal TypeScript workflow, standard API usage, handler-drain, and replay-history sources; reviewer validated all four citations."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Every follow-up now names precise files/symbols or line-bounded regions, verification method, and explicit measurement-required Yes/No. Release hardening evidence-gap remediation."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Boundary statement and clean worktree review prove no workflow/product optimization or invariant weakening was implemented."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Replay-safe recommendations; no patch removal or workflow behavior change."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Assessment requires benchmark and workflow-isolate verification before clone replacement."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Assessment preserves continue-as-new threshold/drain and payload-size caps; no code changes."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Worktree clean; no telemetry, global configuration, or workflow code changed."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No direct workflow/state/readiness/search-attribute refactor performed."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No cap, threshold, signal/query, or patch-marker behavior changed."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No platform redesign or status/dashboard work performed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "The assessment identifies each examined hot path with file/symbol evidence and labels it `correctness`, `performance`, `growth`, or `coverage` risk.",
+    "The assessment covers signal fan-out, projection snapshotting, search-attribute recomputation, ready-task dependency lookup, gate readiness, continue-as-new seed growth, and replay patch coverage.",
+    "Temporal TypeScript guidance on replay determinism, patching, handler safety, and continue-as-new is cited from official SDK sources and compared with repository behavior.",
+    "Every recommended follow-up is bounded to named files/symbols, has a concrete verification strategy, and states whether it requires measurement before code changes.",
+    "The assessment explicitly records that no workflow performance optimization is implemented in this change and does not weaken replay safety, size caps, required handler behavior, or workflow-bundle boundaries."
+  ],
+  "documents": {
+    "proposal": "# Deep-scan Temporal workflow hot path\n\n## Intent\n\nMap workflow replay/projection performance and safety risks, then identify bounded follow-up changes with transition/state-machine test strategy.\n\n## Scope\n\n- Promoted from Epic optimizeAdvPerformanceStructure shell shell-1783186808935-k2108s.\n",
+    "problemStatement": "## Problem\n\nDeep-scan Temporal workflow hot path\n\n## Success Criteria\n\nMap workflow replay/projection performance and safety risks, then identify bounded follow-up changes with transition/state-machine test strategy.\n",
+    "agreement": "# Agreement\n\n## Objective\n\nProduce an evidence-backed Temporal workflow hot-path assessment for ADV. Distinguish confirmed correctness risks from measured or merely suspected performance costs, and define bounded follow-up candidates rather than changing workflow behavior in this research change.\n\n## Acceptance Criteria\n\n1. The assessment identifies each examined hot path with file/symbol evidence and labels it `correctness`, `performance`, `growth`, or `coverage` risk.\n2. The assessment covers signal fan-out, projection snapshotting, search-attribute recomputation, ready-task dependency lookup, gate readiness, continue-as-new seed growth, and replay patch coverage.\n3. Temporal TypeScript guidance on replay determinism, patching, handler safety, and continue-as-new is cited from official SDK sources and compared with repository behavior.\n4. Every recommended follow-up is bounded to named files/symbols, has a concrete verification strategy, and states whether it requires measurement before code changes.\n5. The assessment explicitly records that no workflow performance optimization is implemented in this change and does not weaken replay safety, size caps, required handler behavior, or workflow-bundle boundaries.\n\n## Constraints\n\n- Specs and Temporal replay determinism remain law.\n- Treat `snapshotState()` deep-clone cost as a measurement candidate, not permission to replace it without benchmark and sandbox evidence.\n- Preserve existing `continueAsNew` threshold/drain semantics and payload-size caps.\n- Do not add telemetry, global configuration, or workflow code during this research change.\n\n## Out of Scope\n\n- Direct refactors or performance changes to `workflows.ts`, `change-state.ts`, `gate-readiness.ts`, or search-attribute computation.\n- Changing state caps, continue-as-new thresholds, signal/query contracts, or patch-marker behavior.\n- Broad Temporal platform redesign or unrelated status/dashboard work.\n\n## Initial Evidence\n\n- Local reconnaissance found per-signal deep cloning, signal/search-attribute fan-out, O(n²) ready-task lookup, unbounded `seenReportIds`, gate readiness fan-out, and incomplete replay fixtures.\n- Official Temporal sources confirm existing patching, handler rejection, and continue-as-new patterns are structurally sound; they support measurement-first performance follow-ups.",
+    "design": "# Design\n\n## Decision\n\nThis is an evidence/report change, not a workflow optimization change. Preserve current Temporal workflow mechanics because official guidance and local tests support their determinism, handler-liveness, size-cap, and continue-as-new behavior.\n\n## Assessment Method\n\n1. Inspect workflow signal/query fan-out, state reducers, projections, search attributes, readiness, and continue-as-new seed construction.\n2. Classify findings as correctness, performance candidate, growth bound, or determinism coverage gap.\n3. Validate workflow evolution against official Temporal TypeScript sources for `patched`, handler completion, replay history, and continue-as-new.\n4. Record only bounded follow-ups. Performance changes require a benchmark at representative and near-cap state sizes before implementation.\n\n## Findings to Deliver\n\n- Existing design: conforming durable workflow pattern; no correctness rewrite proposed.\n- Determinism follow-up: replay fixtures for every live patch marker.\n- Measurement follow-up: benchmark `snapshotState()`/projection serialization before considering `structuredClone` or shaped projection.\n- Bounded structural candidates: `seenReportIds` cap and ready-task lookup indexing; each needs its own proposal and tests.\n\n## Guardrails\n\n- Do not replace JSON deep cloning based on static inspection alone.\n- Do not change continue-as-new thresholds, payload caps, signals, queries, patch markers, or bundle boundaries.\n- Follow-up changes must preserve replay tests and temporal workflow import-boundary checks.\n\n## Verification\n\n- Contract review matrix maps report evidence to all assessment criteria.\n- Independent Temporal validator confirms no unsupported external assumptions or unsafe optimization recommendation.\n- Final assessment records file/symbol evidence, source citations, risk class, and bounded verification plan for each follow-up.",
+    "executiveSummary": "# Temporal Workflow Hot-Path Assessment\n\n## Outcome\n\nADV’s Temporal change workflow follows the supported durable-workflow pattern. No workflow correctness rewrite or performance optimization is warranted in this change. Deliverable: evidence-backed follow-up map.\n\n## Evidence Map\n\n- **Projection serialization — performance:** `plugin/src/temporal/workflows.ts:717-718`, `snapshotState()`. Correct/deterministic; benchmark before changing.\n- **Signal fan-out — performance:** `workflows.ts:1213-1654`, `scheduleChangeProjection()` at `720-770`; `search-attributes.ts:175-239`. Measure before optimization.\n- **Ready tasks — performance:** `plugin/src/temporal/change-state.ts:1498-1524`, `getReadyTasksFromChangeState()`. Candidate for deterministic indexing.\n- **Idempotency ledger — growth:** `change-state.ts:1031-1060` and CAN seed carry-forward at `workflows.ts:1723`; `seenReportIds` is unbounded.\n- **Replay safety — coverage:** `workflows.ts:895-922,962,975,990`; `replay-determinism.test.ts:21-35` has incomplete committed-history coverage.\n- **Gate readiness — performance:** `gate-readiness.ts:799-1107`; `workflows.ts:955-1209`. Candidate only after measurement.\n- **Continue-as-new seed — growth:** `workflows.ts:1684-1733`; `types/artifacts.ts:96-110` is structurally guarded by payload caps.\n\n## External Validation\n\n- https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts\n- https://github.com/temporalio/sdk-typescript/blob/main/packages/test/src/workflows/workflow-with-standard-api-usage.ts\n- https://github.com/temporalio/sdk-typescript/blob/main/contrib/workflow-streams/README.md\n- https://github.com/temporalio/sdk-typescript/blob/main/packages/test/src/test-replay.ts\n\nSources support existing patch-gated evolution, non-throwing signal rejection, handler drain before continue-as-new, and history bounding.\n\n## Bounded Follow-Ups\n\n1. **Replay coverage** — locations: `plugin/src/temporal/__tests__/replay-determinism.test.ts` and live patch branches in `plugin/src/temporal/workflows.ts:895-922,962,975,990`. Verify: committed histories exercised with `Worker.runReplayHistory`. Measurement required: **No**.\n2. **Serialization measurement** — locations: `plugin/src/temporal/workflows.ts:snapshotState()` and `scheduleChangeProjection()`. Verify: representative and near-aggregate-cap benchmark plus workflow-isolate behavior check before any clone replacement. Measurement required: **Yes**.\n3. **Idempotency growth** — locations: `plugin/src/temporal/change-state.ts:1031-1060` (`seenReportIds`) and `plugin/src/temporal/workflows.ts:1723` CAN seed carry-forward. Verify: duplicate-report rejection plus continue-as-new seed/cap test. Measurement required: **No**.\n4. **Ready-task indexing** — location: `plugin/src/temporal/change-state.ts:getReadyTasksFromChangeState()` at `1498-1524`. Verify: deterministic readiness and transition tests. Measurement required: **No**.\n\n## Acceptance and Release Review\n\nAcceptance re-review: READY. Release hardening: READY. AC4 now explicitly records location, verification, and measurement state for every follow-up. Replay test: 1/1 passed. Worktree clean; no product, code, configuration, deployment, or ops delta. Optional future audit hardening: pin Temporal citations from SDK `main` to immutable commits.\n\n## Release Readiness Summary\n\n- Delivered value: verified assessment separates safe current workflow behavior from bounded future work.\n- Release risk: low; hardening found no blockers.\n- Ops/migration/frontend impact: none.\n- Collision risk: none; no repository diff.\n- Open follow-ups: four non-blocking candidates listed above; none is release-blocking.\n- Archive action: safe after user sign-off.\n\n## Boundary Statement\n\nNo Temporal workflow, reducer, cap, threshold, signal/query, patch-marker, telemetry, or configuration code changed. Replay determinism, handler behavior, size guards, continue-as-new drain, and workflow-bundle boundaries remain unchanged.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T01:05:47.287Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | The assessment identifies each examined hot path with file/symbol evidence and labels it `correctness`, `performance`, `growth`, or `coverage` risk. | pass | Executive summary classifies every assessed hot path with file/symbol evidence; independent reviewer confirmed all seven categories. |\n| AC2 | acceptance_criterion | The assessment covers signal fan-out, projection snapshotting, search-attribute recomputation, ready-task dependency lookup, gate readiness, continue-as-new seed growth, and replay patch coverage. | pass | Assessment explicitly covers signal fan-out, snapshots, search attributes, ready tasks, gate readiness, CAN seed growth, and replay coverage. |\n| AC3 | acceptance_criterion | Temporal TypeScript guidance on replay determinism, patching, handler safety, and continue-as-new is cited from official SDK sources and compared with repository behavior. | pass | Executive summary cites official Temporal TypeScript workflow, standard API usage, handler-drain, and replay-history sources; reviewer validated all four citations. |\n| AC4 | acceptance_criterion | Every recommended follow-up is bounded to named files/symbols, has a concrete verification strategy, and states whether it requires measurement before code changes. | pass | Every follow-up now names precise files/symbols or line-bounded regions, verification method, and explicit measurement-required Yes/No. Release hardening evidence-gap remediation. |\n| AC5 | acceptance_criterion | The assessment explicitly records that no workflow performance optimization is implemented in this change and does not weaken replay safety, size caps, required handler behavior, or workflow-bundle boundaries. | pass | Boundary statement and clean worktree review prove no workflow/product optimization or invariant weakening was implemented. |\n| C1 | constraint | Specs and Temporal replay determinism remain law. | respected | Replay-safe recommendations; no patch removal or workflow behavior change. |\n| C2 | constraint | Treat `snapshotState()` deep-clone cost as a measurement candidate, not permission to replace it without benchmark and sandbox evidence. | respected | Assessment requires benchmark and workflow-isolate verification before clone replacement. |\n| C3 | constraint | Preserve existing `continueAsNew` threshold/drain semantics and payload-size caps. | respected | Assessment preserves continue-as-new threshold/drain and payload-size caps; no code changes. |\n| C4 | constraint | Do not add telemetry, global configuration, or workflow code during this research change. | respected | Worktree clean; no telemetry, global configuration, or workflow code changed. |\n| OOS1 | out_of_scope | Direct refactors or performance changes to `workflows.ts`, `change-state.ts`, `gate-readiness.ts`, or search-attribute computation. | not_applicable | No direct workflow/state/readiness/search-attribute refactor performed. |\n| OOS2 | out_of_scope | Changing state caps, continue-as-new thresholds, signal/query contracts, or patch-marker behavior. | not_applicable | No cap, threshold, signal/query, or patch-marker behavior changed. |\n| OOS3 | out_of_scope | Broad Temporal platform redesign or unrelated status/dashboard work. | not_applicable | No platform redesign or status/dashboard work performed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-13T00:29:56.406Z",
+      "contentHash": "db343471575ab49eb0859d54ffa9ff380f8d50c69a58c162565f00e477eccafe",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-13T00:29:56.406Z",
+      "contentHash": "292148876b34e7853440c1f423619ef11803db6d7a9ac545a66ae97186e115ea",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-13T00:42:34.076Z",
+      "contentHash": "e40ef487a2147c2fedf409956b8ccc064f58394e814bc754660c5fa0b237851a",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-13T00:45:32.661Z",
+      "contentHash": "70087bdff27156d69406b2fe8a76690e0f11326cbd8795032429d4e14abea2c0",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T01:11:47.137Z",
+      "contentHash": "3d2201f83b46bf12f7a9a9ae8ee1d82156d1ff20f339ea9123e41dca6c499734",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T01:11:47.137Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "epic_membership": {
+    "epic_id": "optimizeAdvPerformanceStructure",
+    "entry_id": "shell-1783186808935-k2108s",
+    "order": 6,
+    "title": "Deep-scan Temporal workflow hot path",
+    "linked_at": "2026-07-13T00:30:25.946Z",
+    "source": "link_existing"
+  },
+  "worktree_auto_managed": true
+}
