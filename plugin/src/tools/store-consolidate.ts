@@ -1160,7 +1160,7 @@ export class EpicQueryTimeoutError extends Error {
       `live Epic state query for "${epicId}" timed out after ${timeoutMs}ms ` +
         `(host-side bound below the 10s tool boundary); the source Epic ` +
         `workflow did not answer in time — restore or restart the source ` +
-        `workflow and re-run consolidation, or recreate the Epic manually`,
+        `workflow and re-run consolidation`,
     );
     this.name = "EpicQueryTimeoutError";
     this.epicId = epicId;
@@ -1538,7 +1538,7 @@ export async function executeConsolidation(
         );
         if (!state) {
           throw new Error(
-            `source epic workflow state unavailable for ${item.id}; cannot carry Epic state — recreate manually or restore the source workflow`,
+            `source epic workflow state unavailable for ${item.id}; cannot carry Epic state — restore the source workflow and re-run consolidation`,
           );
         }
         await recreateLiveEpic({

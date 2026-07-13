@@ -1303,6 +1303,8 @@ describe("executeConsolidation", () => {
       );
       expect(epicOutcome?.status).toBe("failed");
       expect(epicOutcome?.error).toMatch(/state/i);
+      expect(epicOutcome?.error).toMatch(/restore/i);
+      expect(epicOutcome?.error).not.toMatch(/manual/i);
       // Terminal items still applied (they precede the live phase).
       const termOutcome = report.outcomes?.find((o) => o.item_id === "term-a");
       expect(termOutcome?.status).toBe("applied");
@@ -1354,9 +1356,8 @@ describe("executeConsolidation", () => {
       // Typed + actionable: names the Epic, the timeout, and the remediation.
       expect(epicOutcome?.error).toContain("epic-live-a");
       expect(epicOutcome?.error).toMatch(/timed out/i);
-      expect(epicOutcome?.error).toMatch(
-        /recreate the Epic manually|restore|restart/i,
-      );
+      expect(epicOutcome?.error).toMatch(/restore|restart/i);
+      expect(epicOutcome?.error).not.toMatch(/manual/i);
       // Not coerced to null: a null state would surface the distinct
       // "state unavailable" message, not a timeout.
       expect(epicOutcome?.error).not.toMatch(/state unavailable/i);
@@ -1389,7 +1390,8 @@ describe("executeConsolidation", () => {
     expect(err.message).toContain("epic-live-a");
     expect(err.message).toMatch(/timed out/i);
     // Actionable: points the operator at a concrete remediation path.
-    expect(err.message).toMatch(/recreate the Epic manually|restore|restart/i);
+    expect(err.message).toMatch(/restore|restart/i);
+    expect(err.message).not.toMatch(/manual/i);
     // Distinct from the null-coercion path: never reads as "not found".
     expect(err.message).not.toMatch(/not found/i);
   });
