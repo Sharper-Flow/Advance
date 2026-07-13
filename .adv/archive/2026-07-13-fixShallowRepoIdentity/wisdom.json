@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-H2RU-g",
+      "type": "gotcha",
+      "content": "Branch-deploy hazard: the opt-in adv post-commit/pre-push hook runs `deploy-local.sh --fix` from the worktree, which builds and deploys the CHANGE BRANCH plugin to ~/.local/share/Advance and bounces Temporal workers. Under a trunk-only deployment policy this is a policy violation triggered by any commit inside the change worktree. Mitigation: after finishing branch commits, redeploy from the trunk checkout to restore runtime, and never rely on a branch-built tool for production ops (route live ops to a post-merge child change).",
+      "source_task": "tk-ee8f47a8f4ce",
+      "recorded_at": "2026-07-13T00:50:30.295Z"
+    },
+    {
+      "id": "ws-wEpwpc",
+      "type": "pattern",
+      "content": "Pre-existing trunk-red triage: when a change's full-suite gate is red, classify each failure as (a) change-owned, (b) staleness (branch behind trunk; trunk reformatted/changed the file — fix by rebase, never by editing stale copies which reverts trunk logic), or (c) genuinely pre-existing trunk-red (test + asset identical base→trunk → trunk itself fails). Prove (b) via `git diff --shortstat base trunk -- file`; prove (c) via `git show trunk:file | rg pattern`. Confirm rebase is conflict-free first: `grep -Fxf <(branch files) <(trunk files)`.",
+      "source_task": "tk-ee8f47a8f4ce",
+      "recorded_at": "2026-07-13T00:50:41.739Z"
+    }
+  ],
+  "count": 2
+}

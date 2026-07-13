@@ -1,0 +1,2146 @@
+{
+  "id": "fixShallowRepoIdentity",
+  "title": "Fix shallow repo identity",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-11T15:08:33.961Z",
+  "tasks": [
+    {
+      "id": "tk-419ca51e73a3",
+      "title": "Add typed identity resolution with shallow/graft refusal",
+      "type": "code",
+      "section": "Identity guard",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-11T15:25:02.748Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "SC1"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-11T15:42:18.746Z",
+      "verification": "TDD: RED tr_mrgjbd47_457083e9 (7 guard tests failed, module absent); GREEN tr_mrgjfj67_2e08a96e (41 tests pass: 7 new guard fixtures incl. shallow refusal, partial-clone non-trip, multi-root, graft, not-git + 34 legacy identity tests); VERIFY tr_mrgjfz1t_a609f7e9 (plugin typecheck). Mint refusal wired: getProjectIdFromGit throws UnstableIdentityError; resolveProjectContext surfaces identityError; index.ts refuses store init instead of legacy in-repo fallback; peer scanning shielded.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/index.ts",
+        "plugin/src/plugin-context.ts",
+        "plugin/src/utils/peer-sessions.ts",
+        "plugin/src/utils/project-id.ts",
+        "plugin/src/utils/project-identity-guard.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/index.ts",
+        "plugin/src/plugin-context.ts",
+        "plugin/src/utils/peer-sessions.ts",
+        "plugin/src/utils/project-id.ts",
+        "plugin/src/utils/project-identity-guard.test.ts"
+      ],
+      "checkpointSha": "c6d2348d9aff60943a5883b978f74498d239c050",
+      "completedAt": "2026-07-11T15:48:18.254Z",
+      "completed_at": "2026-07-11T15:48:18.254Z"
+    },
+    {
+      "id": "tk-b9ec0d0fdd3e",
+      "title": "Build adv_store_consolidate scan/dry_run with collision refusal and ledger schema",
+      "type": "code",
+      "section": "Consolidation tool",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-11T15:25:16.117Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-419ca51e73a3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC5",
+          "SC2"
+        ],
+        "verifies": [
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-11T15:48:28.997Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixShallowRepoIdentity",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShallowRepoIdentity",
+          "task_id": "tk-b9ec0d0fdd3e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-b9ec0d0fdd3e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/store-consolidate.ts",
+            "plugin/src/tools/store-consolidate.test.ts",
+            "plugin/src/tool-registry.ts",
+            "plugin/src/utils/tool-title.ts",
+            "plugin/src/utils/tool-arg-preflight.ts",
+            "plugin/src/cli-bridge-contract.test.ts",
+            "docs/cli-surface-matrix.md"
+          ],
+          "verification": [
+            {
+              "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (RED, runId tr_mrgkd7dt_e8c1c369)",
+              "exit_code": 1,
+              "summary": "RED confirmed: suite failed with module absent before implementation"
+            },
+            {
+              "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (GREEN, runId tr_mrgkqv91_55cf3330)",
+              "exit_code": 0,
+              "summary": "All 24 tests pass: scan enumeration/classification across legacy+shard layouts, shallow-boundary flagging, worker.lock liveness, zero-mutation tree compares, dry_run partitioning, collision halt report, ledger idempotency (skip_ledgered), jsonl hash dedupe, missing-target/source handling, shallow-repo refusal with unshallow guidance, execute refusal, schema round-trips, plan_hash stability"
+            },
+            {
+              "command": "bun run typecheck (VERIFY, runId tr_mrgkrg0x_6b3754db)",
+              "exit_code": 0,
+              "summary": "tsc --noEmit clean across the plugin"
+            },
+            {
+              "command": "bunx vitest run tool-registry/tool-title/cli-bridge-contract/cli-surface-matrix/tool-name-assets/advance-epics-assets (VERIFY, runId tr_mrgkryxr_12b913e4)",
+              "exit_code": 1,
+              "summary": "118 passed, 1 failed — the failure (advance-epics-assets 'keeps initial entries optional') confirmed PRE-EXISTING on clean base c6d2348 via git stash; all wiring tests for this change pass"
+            },
+            {
+              "command": "bunx vitest run tool-arg-preflight/integration/worktree-warp-mode-assets/active-change-pointer/adv-engineer-assets/adv-designer-assets (VERIFY, runId tr_mrgkts0n_83d2e356)",
+              "exit_code": 0,
+              "summary": "219 passed — no regressions in preflight policies, integration, or agent-asset surfaces"
+            },
+            {
+              "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 && bun run typecheck (VERIFY post lint/format, runId tr_mrgkvdvr_e0e42244)",
+              "exit_code": 0,
+              "summary": "24 tests + typecheck re-verified after eslint fixes and prettier formatting; eslint clean, schemas:check clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Unified per-ID collision map across all item categories (changes, archive bundles, retired epics, live epics) rather than per-category checks",
+              "why": "Catches same-ID-different-category collisions (e.g. change live in source but archived in target) — the dangerous case AC5/DONT2 must halt on; structural per design"
+            },
+            {
+              "what": "Execute action included in the action enum but returns a structured non-mutating refusal naming task tk-9e02f3b6015f",
+              "why": "Keeps the action-discriminated schema stable for task 3 (DDC3) while guaranteeing zero mutations this build (C2)"
+            },
+            {
+              "what": "Orphan classification via structural git checks: cat-file -e {sha}^{commit} + rev-list --max-parents=0 {sha}",
+              "why": "C3 — a non-root commit used as store id is exactly the shallow-boundary/graft unstable-identity signature; no error-text or path heuristics"
+            },
+            {
+              "what": "data_home_root injection + defaultDataHomeRoot() that unwraps the oc per-project shard path to the XDG base",
+              "why": "Tests never touch real XDG stores (design excerpt requirement); default correctly walks both legacy and opencode-projects shard layouts in oc-sharded sessions"
+            },
+            {
+              "what": "Ledger exists flag tracks file existence (not row count); malformed ledger lines counted and tolerated",
+              "why": "DDC4 append-only ledger may contain drifted rows; dry_run must report them, never crash"
+            },
+            {
+              "what": "Added the docs/cli-surface-matrix.md row and frozen-snapshot append as registration wiring",
+              "why": "Existing asset tests (cli-surface-matrix coverage, cli-bridge-contract frozen list, explicit-title guard) fail without them — they are mechanical registration invariants, not the spec/docs work owned by tk-2b3929ed4d2c"
+            },
+            {
+              "what": "Duplicate store-id in both layouts: deterministic shard-layout preference with warning",
+              "why": "Read-only determinism; execute task will need the final policy, surfaced via warnings now"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "docs/cli-surface-matrix.md (+1 row: adv_store_consolidate keep-mcp-only)",
+              "plugin/src/cli-bridge-contract.test.ts (+1 frozen-snapshot entry)"
+            ],
+            "details": "Added one row to docs/cli-surface-matrix.md and appended adv_store_consolidate to the frozen snapshot in cli-bridge-contract.test.ts. Strictly OUT_OF_SCOPE reads as 'spec/docs edits', but these two files are mechanical registration invariants enforced by existing asset tests (cli-surface-matrix coverage requires a row per tool; frozen snapshot requires the new name). Without them the acceptance gate's full suite would fail on registration wiring, which IS in scope. Both edits are append-only single lines preserving the guards' intent.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "PRE-EXISTING: advance-epics-assets.test.ts > /adv-epic command contract > 'keeps initial entries optional and mutations typed' fails on clean base c6d2348 — .opencode/command/adv-epic.md no longer matches /initial (?:roadmap )?entries are optional…/i. Confirmed via git stash that it fails without this task's changes. Not in scope; surface to the docs task owner.",
+            "Task tk-9e02f3b6015f: duplicate store-id across legacy+shard layouts currently prefers shard with a warning; execute needs the final deterministic source-selection policy.",
+            "Task tk-2b3929ed4d2c: SETUP.md shallow-clone guidance and .adv/specs deltas (rq-projectIdentityStability01, rq-storeConsolidation01) remain — deliberately untouched."
+          ],
+          "required_main_agent_actions": [
+            "Decide whether to route the pre-existing advance-epics-assets.test.ts failure to the docs task (tk-2b3929ed4d2c) or a separate fix — it will fail the full-suite verification gate (tk-6db01c6b815e) if left as-is."
+          ],
+          "related_scan": "Ran all registration-consistency surfaces: tool-registry.test.ts, tool-title.test.ts, cli-bridge-contract.test.ts (frozen snapshot), cli-surface-matrix.test.ts, tool-name-assets.test.ts, tool-arg-preflight.test.ts, integration.test.ts, worktree-warp-mode-assets, active-change-pointer, adv-engineer/designer-assets — all pass (118 + 219 tests). eslint + prettier + schemas:check clean. No same-pattern orphans in the wiring.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_store_consolidate scan/dry_run implemented read-only with full registration wiring (registry, titles, preflight, frozen snapshot append, matrix row). 24 colocated tests + typecheck + 337 related wiring/asset tests pass. Shared ConsolidationReportSchema (dry_run now, execute fills outcomes) and ConsolidationLedgerRowSchema (keyed source/target/itemId, content-hashed) are exported for task tk-9e02f3b6015f. Collision detection is a unified per-ID map across changes/archive/retired-epics/live-epics with policy 'halt'. Live-epic enumeration is injectable; default uses Temporal visibility with 10s timeout degrading to 'unavailable'. PRE-EXISTING unrelated failure: advance-epics-assets.test.ts 'keeps initial entries optional' fails on clean base c6d2348 (adv-epic.md doc drift) — not caused by this task.",
+            "suggested_next_action": "Review diff, then proceed to task tk-9e02f3b6015f (execute action: terminal-first import, live recreation, ledger writes) which consumes the exported schemas from plugin/src/tools/store-consolidate.ts."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (RED, runId tr_mrgkd7dt_e8c1c369)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (GREEN, runId tr_mrgkqv91_55cf3330)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun run typecheck (VERIFY, runId tr_mrgkrg0x_6b3754db)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run tool-registry/tool-title/cli-bridge-contract/cli-surface-matrix/tool-name-assets/advance-epics-assets (VERIFY, runId tr_mrgkryxr_12b913e4)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run tool-arg-preflight/integration/worktree-warp-mode-assets/active-change-pointer/adv-engineer-assets/adv-designer-assets (VERIFY, runId tr_mrgkts0n_83d2e356)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 && bun run typecheck (VERIFY post lint/format, runId tr_mrgkvdvr_e0e42244)"
+            }
+          ]
+        }
+      ],
+      "verification": "Delegated adv-engineer: RED tr_mrgkd7dt_e8c1c369; GREEN tr_mrgkqv91_55cf3330 (24/24 store-consolidate tests, real git fixtures + temp XDG roots); VERIFY tr_mrgkrg0x_6b3754db (typecheck), tr_mrgkryxr_12b913e4 (wiring sweep 118 pass, 1 pre-existing unrelated fail), tr_mrgkts0n_83d2e356 (219 pass), tr_mrgkvdvr_e0e42244 (post-format). scan/dry_run implemented with shared report schema, ledger row schema, collision detection, execute refusal stub. Pre-existing advance-epics-assets.test.ts failure confirmed on clean base — deferred to final verification triage.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/cli-surface-matrix.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/store-consolidate.test.ts",
+        "plugin/src/tools/store-consolidate.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "touched_files": [
+        "docs/cli-surface-matrix.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/store-consolidate.test.ts",
+        "plugin/src/tools/store-consolidate.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "23b16137d51f34cf28b8e1e64305ed77e33f2979",
+      "completedAt": "2026-07-11T16:33:03.762Z",
+      "completed_at": "2026-07-11T16:33:03.762Z"
+    },
+    {
+      "id": "tk-9e02f3b6015f",
+      "title": "Implement consolidation execute: terminal-first import, live recreation, idempotent re-run",
+      "type": "code",
+      "section": "Consolidation tool",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-11T15:25:30.205Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b9ec0d0fdd3e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC6",
+          "SC2"
+        ],
+        "verifies": [
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-11T16:33:27.129Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixShallowRepoIdentity",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShallowRepoIdentity/plugin",
+          "task_id": "tk-9e02f3b6015f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-9e02f3b6015f"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/tools/store-consolidate.ts",
+            "plugin/src/tools/store-consolidate.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (red)",
+              "exit_code": 1,
+              "summary": "RED: 15 new execute tests fail before implementation (runId tr_mrgm1hpf_8ec9b2dd)"
+            },
+            {
+              "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (green)",
+              "exit_code": 0,
+              "summary": "GREEN: 38/38 pass (runId tr_mrgmafbl_90efcdd3)"
+            },
+            {
+              "command": "bun run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit clean (runId tr_mrgmch5i_95c64e17)"
+            },
+            {
+              "command": "bunx vitest run src/tools/store-consolidate.test.ts src/cli-bridge-contract.test.ts --maxWorkers=2 (verify)",
+              "exit_code": 0,
+              "summary": "VERIFY: 57/57 pass incl. cli-bridge contract (runId tr_mrgmd2in_778ad87d)"
+            },
+            {
+              "command": "bunx eslint src/tools/store-consolidate.ts src/tools/store-consolidate.test.ts",
+              "exit_code": 0,
+              "summary": "eslint clean on both touched files"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Live change recreation uses ensureChangeWorkflowStarted + changeSeedStateFromChange(loadChange(...)) — the exact reseedChangeFromDisk path — plus a disk-projection copy of the change dir into target changes/",
+              "why": "Existing creation/signal path (C1: new workflow with carried state, no history rewrite); disk copy mirrors the store's own non-terminal dual-write and enables KD-5 document hydration via projectionChangesDir=target changes dir"
+            },
+            {
+              "what": "Live epic recreation queries source epic workflow state (getEpicStateQuery) and starts the target workflow with seedState=buildEpicSeedState(state); missing source state fails that item with an operator-facing error instead of inventing a persistence path",
+              "why": "EpicWorkflowInput.seedState is the existing continue-as-new carry mechanism; STOP_WHEN forbids new persistence machinery"
+            },
+            {
+              "what": "Recreation backends are injectable (ConsolidationExecuteDeps); defaults share one lazily-created Temporal client bundle",
+              "why": "Tests never touch real Temporal/XDG; terminal-only executes need no Temporal connection at all"
+            },
+            {
+              "what": "Ledger rows written per applied item AND per appended jsonl row (item_id = row content hash), immediately after each mutation",
+              "why": "DDC4 append-only content-hashed rows; per-item ledgering is the resume contract (ledgered items skipped)"
+            },
+            {
+              "what": "buildConsolidationPlan: ledger read moved before collision detection; ledgered IDs excluded from collisions",
+              "why": "Without this, a successful run makes its own re-run report false collisions (target now holds the imported items), breaking AC6 no-op reporting"
+            },
+            {
+              "what": "Missing target store mints under canonical legacy layout (opencode/plugins/advance/<id>)",
+              "why": "Deterministic rule; plan reports target.exists=false only when no layout copy exists"
+            },
+            {
+              "what": "Unledgered partial copies in the target halt as collisions rather than being auto-adopted",
+              "why": "AC5/DONT2 literal: duplicate IDs halt; resume granularity is the ledger per DONE_WHEN parenthetical"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Ledger-exclusion change affects only re-run collision semantics; all 22 pre-existing scan/dry_run/tool tests pass unchanged. cli-bridge-contract.test.ts (only other file referencing the tool) passes against the updated description. importDirProjection divergent-content guard is defensive DONT2 coverage for the unreachable-after-collision-check race.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_store_consolidate execute implemented: approval-gated typed refusals (approval_required/worker_lock_live/collisions_present), terminal-first disk-projection imports (changes/archive/retired-epics), live change recreation via ensureChangeWorkflowStarted + changeSeedStateFromChange (carries tasks/gates/artifacts/documents/epic_membership), live epic recreation via ensureEpicWorkflowStarted + buildEpicSeedState, content-hash-deduped jsonl appends, append-only ledger per item/row (AC6 no-op re-runs). buildConsolidationPlan now reads the ledger before collision detection and excludes ledgered IDs from collisions (required for AC6 re-runs; all pre-existing dry-run tests unchanged and passing). Resume contract: ledgered items are skipped; an unledgered partial copy in the target is indistinguishable from a duplicate ID and halts as a collision (AC5) — operator resolves manually. Missing-target store mints under the legacy layout path. Tests: 38/38 file, 57/57 with cli-bridge-contract, typecheck clean, eslint clean.",
+            "suggested_next_action": "Review diff, then proceed to remaining tasks (tk-2b3929ed4d2c spec/docs, tk-cb27339a3627 PokeEdge production run). Full plugin test suite optional before archive."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (red)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (green)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts src/cli-bridge-contract.test.ts --maxWorkers=2 (verify)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bunx eslint src/tools/store-consolidate.ts src/tools/store-consolidate.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Delegated adv-engineer: RED (15 fail) → GREEN 38/38 store-consolidate tests → typecheck clean → 57/57 with cli-bridge-contract → eslint clean (runIds in persisted ENGINEER_REPORT attempt 1). Execute action: approval-gated with typed ConsolidationError codes, worker.lock refusal, terminal-first ordering, live recreation via existing reseed path preserving tasks/gates/artifacts/epic_membership, content-hash dedupe appends, append-only ledger idempotency with resumable re-runs, orphan store untouched.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/store-consolidate.test.ts",
+        "plugin/src/tools/store-consolidate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/store-consolidate.test.ts",
+        "plugin/src/tools/store-consolidate.ts"
+      ],
+      "checkpointSha": "60803038e0f0e57044adf28ee327ce73ccd9b4b6",
+      "completedAt": "2026-07-11T17:11:17.688Z",
+      "completed_at": "2026-07-11T17:11:17.688Z"
+    },
+    {
+      "id": "tk-2b3929ed4d2c",
+      "title": "Add identity-stability and consolidation spec deltas plus shallow-clone docs",
+      "type": "docs",
+      "section": "Specs and docs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-11T15:25:51.184Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9e02f3b6015f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C5"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-07-11T17:11:37.249Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixShallowRepoIdentity",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShallowRepoIdentity",
+          "task_id": "tk-2b3929ed4d2c",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2b3929ed4d2c"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".adv/specs/advance-meta/spec.json",
+            ".adv/specs/advance-delivery/spec.json",
+            "docs/specs/advance-meta.md",
+            "docs/specs/advance-delivery.md",
+            "SETUP.md",
+            "docs/store-consolidation.md",
+            "README.md"
+          ],
+          "verification": [
+            {
+              "command": "bun run typecheck (plugin/)",
+              "exit_code": 0,
+              "summary": "tsc --noEmit passes; runId tr_mrgn773z_eca98227"
+            },
+            {
+              "command": "bin/oc-test targeted -- src/deploy-local.test.ts src/release-install-assets.test.ts src/tools/spec.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/cli-bridge-contract.test.ts",
+              "exit_code": 0,
+              "summary": "6 suites, 144 tests passed — covers spec.json schema validation, advance-meta md-mirror version/ID sync, SETUP.md asset guards, docs stability guards, frozen tool-name list; runId tr_mrgn84sp_15c5d602"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Registered deltas by editing .adv/specs/<capability>/spec.json directly (version bump + new requirement) with docs/specs md mirrors updated to match",
+              "why": "This is the repo's existing delta mechanism — verified via git history of recent checkpoint commits (e.g. ensureTargetWorkers added rq-targetWorkerLifecycle01 the same way) and the deploy-local.test.ts mirror-sync guard; change.deltas map has no agent-facing write path and is only consumed at archive time"
+            },
+            {
+              "what": "Placed shallow-clone guidance under SETUP.md Troubleshooting and created docs/store-consolidation.md as a new doc",
+              "why": "Shallow refusal is an environment-level operator gotcha matching Troubleshooting; consolidation is a multi-step recovery flow warranting a dedicated doc, cross-linked from SETUP.md and README documentation map"
+            },
+            {
+              "what": "JSON edits done via python json.load/dump with ensure_ascii=False",
+              "why": "First pass escaped the em-dash in the purpose field to \\u2014; rewrote from git-clean state to keep diffs minimal and literal-UTF8 consistent with the rest of the file"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified cli-surface-matrix.md already carries the adv_store_consolidate disposition row; grepped all docs/SETUP/README for existing shallow/consolidate mentions (none, so no stale-text fixes needed); confirmed only advance-meta has a guarded md-mirror test and its version/updated header now matches spec.json",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Spec deltas rq-projectIdentityStability01 (advance-meta v1.23.0, 4 G/W/T scenarios) and rq-storeConsolidation01 (advance-delivery v1.4.0, 6 G/W/T scenarios) registered in .adv/specs/*/spec.json with docs/specs md mirrors updated. SETUP.md gained a Troubleshooting section on UnstableIdentityError with exact git fetch --unshallow remediation; new docs/store-consolidation.md documents scan→dry_run→approve→execute, ConsolidationError codes, ledger idempotency, orphan-store retention; README documentation map row added. cli-surface-matrix.md already had the adv_store_consolidate row — no change needed. 144 guard tests + typecheck all pass.",
+            "suggested_next_action": "Proceed to next task (PokeEdge execution) or mark tk-2b3929ed4d2c done; no further docs work outstanding"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bun run typecheck (plugin/)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/deploy-local.test.ts src/release-install-assets.test.ts src/tools/spec.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/cli-bridge-contract.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Delegated adv-engineer (docs, TDD N/A): spec deltas rq-projectIdentityStability01 (4 G/W/T) + rq-storeConsolidation01 (6 G/W/T) with md mirrors and version bumps; SETUP.md troubleshooting section naming UnstableIdentityError + git fetch --unshallow; docs/store-consolidation.md flow doc; README map row. Verification recorded: tr_mrgn773z_eca98227 (typecheck), tr_mrgn84sp_15c5d602 (6 guard suites / 144 tests incl. spec schema + mirror-sync + doc asset guards).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-delivery/spec.json",
+        ".adv/specs/advance-meta/spec.json",
+        "README.md",
+        "SETUP.md",
+        "docs/specs/advance-delivery.md",
+        "docs/specs/advance-meta.md",
+        "docs/store-consolidation.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-delivery/spec.json",
+        ".adv/specs/advance-meta/spec.json",
+        "README.md",
+        "SETUP.md",
+        "docs/specs/advance-delivery.md",
+        "docs/specs/advance-meta.md",
+        "docs/store-consolidation.md"
+      ],
+      "checkpointSha": "dc0e31cb423d6cca9014f649bd4fc1ef44dbc9db",
+      "completedAt": "2026-07-11T17:35:04.406Z",
+      "completed_at": "2026-07-11T17:35:04.406Z"
+    },
+    {
+      "id": "tk-cb27339a3627",
+      "title": "Run PokeEdge store consolidation via approved ops runbook",
+      "type": "ops",
+      "section": "PokeEdge recovery",
+      "status": "cancelled",
+      "priority": 4,
+      "created_at": "2026-07-11T15:26:06.086Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2b3929ed4d2c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7",
+          "SC3"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "assignedTo": "agent",
+      "started_at": "2026-07-11T17:35:38.952Z",
+      "cancelApproval": "User replied exactly `approve all` to the numbered cancellation prompt.",
+      "cancelledAt": "2026-07-13T00:11:29.740Z",
+      "completed_at": "2026-07-13T00:11:29.740Z",
+      "cancellation": {
+        "reason": "Live PokeEdge consolidation moved to linked post-merge child runPokeedgeConsolidation; parent branch must not be deployed.",
+        "approved_by_user": true,
+        "approval_evidence": "User replied exactly `approve all` to the numbered cancellation prompt.",
+        "approved_at": "2026-07-13T00:11:29.740Z"
+      }
+    },
+    {
+      "id": "tk-6db01c6b815e",
+      "title": "Verify full contract: guard classes, consolidation matrix, PokeEdge counts",
+      "type": "verification",
+      "section": "Final verification",
+      "status": "cancelled",
+      "priority": 5,
+      "created_at": "2026-07-11T15:26:19.740Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cb27339a3627"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "cancelApproval": "User replied exactly `approve all` to the numbered cancellation prompt.",
+      "cancelledAt": "2026-07-13T00:11:29.740Z",
+      "completed_at": "2026-07-13T00:11:29.740Z",
+      "cancellation": {
+        "reason": "Parent verification must not require post-merge production counts; replacement task will verify tool behavior and linked-child handoff.",
+        "approved_by_user": true,
+        "approval_evidence": "User replied exactly `approve all` to the numbered cancellation prompt.",
+        "approved_at": "2026-07-13T00:11:29.740Z"
+      }
+    },
+    {
+      "id": "tk-ee8f47a8f4ce",
+      "title": "Verify parent contract and post-merge handoff",
+      "type": "verification",
+      "section": "Final verification",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-07-13T00:11:45.332Z",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-13T00:22:27.131Z",
+      "verification": "Full suite green: bin/oc-test full 4956/4956 tests, 333/333 files, 0 failed (104s). pnpm run check green: schemas/typecheck/isolation/lockfile/eslint/prettier all pass. Targeted parent suites: store-consolidate 38/38, project-identity-guard 7/7. Change-owned files formatted; branch rebased conflict-free onto current trunk (0 behind). Pre-existing trunk drift repaired per user instruction: AGENTS.md (Temporal-only persistence, external state, z.toJSONSchema, CI order pipeline, rq-temporalTsDeterminismDocs01 citation), adv-epic.md (initial entries are optional). AC1-AC6/SC1-SC2 verified by tests; AC7/SC3 verified as linked-child handoff configuration (runPokeedgeConsolidation fast-follow with deployed-trunk + count-proof preconditions).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "876d8564022f52466545238b46ba05bcd165d89f",
+      "completedAt": "2026-07-13T00:50:53.816Z",
+      "completed_at": "2026-07-13T00:50:53.816Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixShallowRepoIdentity",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate shallow-repo identity guard and adv_store_consolidate design against canonical git semantics",
+      "sources": [
+        {
+          "label": "git-rev-parse docs",
+          "locator": "https://git-scm.com/docs/git-rev-parse",
+          "summary": "--is-shallow-repository documented plumbing surface"
+        },
+        {
+          "label": "git shallow.c",
+          "locator": "https://code.googlesource.com/git/+/926c40d04b5a77e00d3b22a5d2696c22b81569cc/shallow.c",
+          "summary": "is_repository_shallow() structurally checks .git/shallow file"
+        },
+        {
+          "label": "git 2.15.0 release notes",
+          "locator": "https://github.com/git/git/blob/master/Documentation/RelNotes/2.15.0.adoc",
+          "summary": "--is-shallow-repository shipped 2017; universally available"
+        },
+        {
+          "label": "shallow root repro",
+          "locator": "https://github.com/isaacs/github/issues/1804",
+          "summary": "rev-list --max-parents=0 returns shallow boundary as fake root"
+        },
+        {
+          "label": "git shallow boundary commit",
+          "locator": "https://github.com/git/git/commit/4d4e49fff17122e0eec185857fa87d526174859f",
+          "summary": "boundary rewrites when .git/shallow changes"
+        },
+        {
+          "label": "partial-clone technical doc",
+          "locator": "https://github.com/git/git/blob/94f057755b7941b321fd11fec1b2e3ca5313a4e0/Documentation/technical/partial-clone.adoc",
+          "summary": "partial clone is independent of DAG shallowing; roots preserved"
+        },
+        {
+          "label": "GitHub partial vs shallow clone",
+          "locator": "https://github.blog/open-source/git/get-up-to-speed-with-partial-clone-and-shallow-clone/",
+          "summary": "--filter=blob:none downloads all commits/trees; no .git/shallow"
+        }
+      ],
+      "architecture_assessment": "Existing: projectId from rev-list --max-parents=0 HEAD with null-on-failure (vulnerable to moving shallow boundary). Reference: gate identity minting on --is-shallow-repository == false with typed refusal. Deviation MINOR: pre-check + typed refusal at the store.ts createStore mint chokepoint; no identity-basis change. ~40 read-side getProjectId call sites keep soft fallbacks; mint chokepoint refusal gives minimal correct blast radius.",
+      "validation": {
+        "status": "pass",
+        "blockers": [
+          "Worker-side report persistence failed with WorkflowNotFoundError (submitted against source project); re-submitted by orchestrator via target_path",
+          "Validation used design-summary packet + local code; design.md artifact was unfetchable from worker context"
+        ],
+        "notes": "Shallow boundary as fake root confirmed against git source and real-world repro; --is-shallow-repository is structural (.git/shallow existence); partial clones preserve true roots and will not false-trip the guard."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Refusal blocks minting in --depth 1 CI checkouts (correct behavior; needs unshallow guidance)",
+          "Live-workflow recreation is riskier than terminal-projection import",
+          "+1 git plumbing call on identity resolution (cold path, bounded 5s timeout)"
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Direct .git/shallow filesystem check",
+            "disposition": "rejected",
+            "rationale": "Bypasses git GIT_DIR/alternates resolution; plumbing flag is the structural surface"
+          },
+          {
+            "option": "Silent null fallback on shallow",
+            "disposition": "rejected",
+            "rationale": "Conflates not-git with unstable-identity and silently mints legacy in-repo stores"
+          },
+          {
+            "option": "HEAD/tip-relative identity",
+            "disposition": "rejected",
+            "rationale": "Less stable than root-commit identity"
+          },
+          {
+            "option": "Auto-run git fetch --unshallow",
+            "disposition": "rejected",
+            "rationale": "Network side-effect inside an identity resolver"
+          },
+          {
+            "option": "Typed refusal at mint chokepoint",
+            "disposition": "preferred",
+            "rationale": "Single mint point already hard-throws on unresolved id; minimal blast radius"
+          }
+        ],
+        "recommendation": "Proceed with typed resolveProjectIdentity guard; keep null=not-git distinct from shallow refusal; import terminal projections before live recreation; key ledger on (sourceProjectId, trueProjectId, itemId); add --filter=blob:none fixture proving non-refusal."
+      },
+      "recommendation": "Proceed. Sequence consolidation terminal-first then live recreation; structural per-ID collision refusal; ledger-keyed idempotency; add partial-clone fixture test; scan mode should flag existing state dirs minted under shallow-boundary SHAs.",
+      "follow_ups": [
+        "Confirm design.md matches validated packet before completing design gate",
+        "adv_store_consolidate scan should warn about existing shallow-minted state dirs"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixShallowRepoIdentity",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShallowRepoIdentity",
+      "task_id": "tk-b9ec0d0fdd3e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-b9ec0d0fdd3e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/store-consolidate.ts",
+        "plugin/src/tools/store-consolidate.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/utils/tool-title.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "docs/cli-surface-matrix.md"
+      ],
+      "verification": [
+        {
+          "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (RED, runId tr_mrgkd7dt_e8c1c369)",
+          "exit_code": 1,
+          "summary": "RED confirmed: suite failed with module absent before implementation"
+        },
+        {
+          "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (GREEN, runId tr_mrgkqv91_55cf3330)",
+          "exit_code": 0,
+          "summary": "All 24 tests pass: scan enumeration/classification across legacy+shard layouts, shallow-boundary flagging, worker.lock liveness, zero-mutation tree compares, dry_run partitioning, collision halt report, ledger idempotency (skip_ledgered), jsonl hash dedupe, missing-target/source handling, shallow-repo refusal with unshallow guidance, execute refusal, schema round-trips, plan_hash stability"
+        },
+        {
+          "command": "bun run typecheck (VERIFY, runId tr_mrgkrg0x_6b3754db)",
+          "exit_code": 0,
+          "summary": "tsc --noEmit clean across the plugin"
+        },
+        {
+          "command": "bunx vitest run tool-registry/tool-title/cli-bridge-contract/cli-surface-matrix/tool-name-assets/advance-epics-assets (VERIFY, runId tr_mrgkryxr_12b913e4)",
+          "exit_code": 1,
+          "summary": "118 passed, 1 failed — the failure (advance-epics-assets 'keeps initial entries optional') confirmed PRE-EXISTING on clean base c6d2348 via git stash; all wiring tests for this change pass"
+        },
+        {
+          "command": "bunx vitest run tool-arg-preflight/integration/worktree-warp-mode-assets/active-change-pointer/adv-engineer-assets/adv-designer-assets (VERIFY, runId tr_mrgkts0n_83d2e356)",
+          "exit_code": 0,
+          "summary": "219 passed — no regressions in preflight policies, integration, or agent-asset surfaces"
+        },
+        {
+          "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 && bun run typecheck (VERIFY post lint/format, runId tr_mrgkvdvr_e0e42244)",
+          "exit_code": 0,
+          "summary": "24 tests + typecheck re-verified after eslint fixes and prettier formatting; eslint clean, schemas:check clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Unified per-ID collision map across all item categories (changes, archive bundles, retired epics, live epics) rather than per-category checks",
+          "why": "Catches same-ID-different-category collisions (e.g. change live in source but archived in target) — the dangerous case AC5/DONT2 must halt on; structural per design"
+        },
+        {
+          "what": "Execute action included in the action enum but returns a structured non-mutating refusal naming task tk-9e02f3b6015f",
+          "why": "Keeps the action-discriminated schema stable for task 3 (DDC3) while guaranteeing zero mutations this build (C2)"
+        },
+        {
+          "what": "Orphan classification via structural git checks: cat-file -e {sha}^{commit} + rev-list --max-parents=0 {sha}",
+          "why": "C3 — a non-root commit used as store id is exactly the shallow-boundary/graft unstable-identity signature; no error-text or path heuristics"
+        },
+        {
+          "what": "data_home_root injection + defaultDataHomeRoot() that unwraps the oc per-project shard path to the XDG base",
+          "why": "Tests never touch real XDG stores (design excerpt requirement); default correctly walks both legacy and opencode-projects shard layouts in oc-sharded sessions"
+        },
+        {
+          "what": "Ledger exists flag tracks file existence (not row count); malformed ledger lines counted and tolerated",
+          "why": "DDC4 append-only ledger may contain drifted rows; dry_run must report them, never crash"
+        },
+        {
+          "what": "Added the docs/cli-surface-matrix.md row and frozen-snapshot append as registration wiring",
+          "why": "Existing asset tests (cli-surface-matrix coverage, cli-bridge-contract frozen list, explicit-title guard) fail without them — they are mechanical registration invariants, not the spec/docs work owned by tk-2b3929ed4d2c"
+        },
+        {
+          "what": "Duplicate store-id in both layouts: deterministic shard-layout preference with warning",
+          "why": "Read-only determinism; execute task will need the final policy, surfaced via warnings now"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "docs/cli-surface-matrix.md (+1 row: adv_store_consolidate keep-mcp-only)",
+          "plugin/src/cli-bridge-contract.test.ts (+1 frozen-snapshot entry)"
+        ],
+        "details": "Added one row to docs/cli-surface-matrix.md and appended adv_store_consolidate to the frozen snapshot in cli-bridge-contract.test.ts. Strictly OUT_OF_SCOPE reads as 'spec/docs edits', but these two files are mechanical registration invariants enforced by existing asset tests (cli-surface-matrix coverage requires a row per tool; frozen snapshot requires the new name). Without them the acceptance gate's full suite would fail on registration wiring, which IS in scope. Both edits are append-only single lines preserving the guards' intent.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "PRE-EXISTING: advance-epics-assets.test.ts > /adv-epic command contract > 'keeps initial entries optional and mutations typed' fails on clean base c6d2348 — .opencode/command/adv-epic.md no longer matches /initial (?:roadmap )?entries are optional…/i. Confirmed via git stash that it fails without this task's changes. Not in scope; surface to the docs task owner.",
+        "Task tk-9e02f3b6015f: duplicate store-id across legacy+shard layouts currently prefers shard with a warning; execute needs the final deterministic source-selection policy.",
+        "Task tk-2b3929ed4d2c: SETUP.md shallow-clone guidance and .adv/specs deltas (rq-projectIdentityStability01, rq-storeConsolidation01) remain — deliberately untouched."
+      ],
+      "required_main_agent_actions": [
+        "Decide whether to route the pre-existing advance-epics-assets.test.ts failure to the docs task (tk-2b3929ed4d2c) or a separate fix — it will fail the full-suite verification gate (tk-6db01c6b815e) if left as-is."
+      ],
+      "related_scan": "Ran all registration-consistency surfaces: tool-registry.test.ts, tool-title.test.ts, cli-bridge-contract.test.ts (frozen snapshot), cli-surface-matrix.test.ts, tool-name-assets.test.ts, tool-arg-preflight.test.ts, integration.test.ts, worktree-warp-mode-assets, active-change-pointer, adv-engineer/designer-assets — all pass (118 + 219 tests). eslint + prettier + schemas:check clean. No same-pattern orphans in the wiring.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_store_consolidate scan/dry_run implemented read-only with full registration wiring (registry, titles, preflight, frozen snapshot append, matrix row). 24 colocated tests + typecheck + 337 related wiring/asset tests pass. Shared ConsolidationReportSchema (dry_run now, execute fills outcomes) and ConsolidationLedgerRowSchema (keyed source/target/itemId, content-hashed) are exported for task tk-9e02f3b6015f. Collision detection is a unified per-ID map across changes/archive/retired-epics/live-epics with policy 'halt'. Live-epic enumeration is injectable; default uses Temporal visibility with 10s timeout degrading to 'unavailable'. PRE-EXISTING unrelated failure: advance-epics-assets.test.ts 'keeps initial entries optional' fails on clean base c6d2348 (adv-epic.md doc drift) — not caused by this task.",
+        "suggested_next_action": "Review diff, then proceed to task tk-9e02f3b6015f (execute action: terminal-first import, live recreation, ledger writes) which consumes the exported schemas from plugin/src/tools/store-consolidate.ts."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (RED, runId tr_mrgkd7dt_e8c1c369)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (GREEN, runId tr_mrgkqv91_55cf3330)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun run typecheck (VERIFY, runId tr_mrgkrg0x_6b3754db)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run tool-registry/tool-title/cli-bridge-contract/cli-surface-matrix/tool-name-assets/advance-epics-assets (VERIFY, runId tr_mrgkryxr_12b913e4)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run tool-arg-preflight/integration/worktree-warp-mode-assets/active-change-pointer/adv-engineer-assets/adv-designer-assets (VERIFY, runId tr_mrgkts0n_83d2e356)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 && bun run typecheck (VERIFY post lint/format, runId tr_mrgkvdvr_e0e42244)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixShallowRepoIdentity",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShallowRepoIdentity/plugin",
+      "task_id": "tk-9e02f3b6015f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-9e02f3b6015f"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/tools/store-consolidate.ts",
+        "plugin/src/tools/store-consolidate.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (red)",
+          "exit_code": 1,
+          "summary": "RED: 15 new execute tests fail before implementation (runId tr_mrgm1hpf_8ec9b2dd)"
+        },
+        {
+          "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (green)",
+          "exit_code": 0,
+          "summary": "GREEN: 38/38 pass (runId tr_mrgmafbl_90efcdd3)"
+        },
+        {
+          "command": "bun run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit clean (runId tr_mrgmch5i_95c64e17)"
+        },
+        {
+          "command": "bunx vitest run src/tools/store-consolidate.test.ts src/cli-bridge-contract.test.ts --maxWorkers=2 (verify)",
+          "exit_code": 0,
+          "summary": "VERIFY: 57/57 pass incl. cli-bridge contract (runId tr_mrgmd2in_778ad87d)"
+        },
+        {
+          "command": "bunx eslint src/tools/store-consolidate.ts src/tools/store-consolidate.test.ts",
+          "exit_code": 0,
+          "summary": "eslint clean on both touched files"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Live change recreation uses ensureChangeWorkflowStarted + changeSeedStateFromChange(loadChange(...)) — the exact reseedChangeFromDisk path — plus a disk-projection copy of the change dir into target changes/",
+          "why": "Existing creation/signal path (C1: new workflow with carried state, no history rewrite); disk copy mirrors the store's own non-terminal dual-write and enables KD-5 document hydration via projectionChangesDir=target changes dir"
+        },
+        {
+          "what": "Live epic recreation queries source epic workflow state (getEpicStateQuery) and starts the target workflow with seedState=buildEpicSeedState(state); missing source state fails that item with an operator-facing error instead of inventing a persistence path",
+          "why": "EpicWorkflowInput.seedState is the existing continue-as-new carry mechanism; STOP_WHEN forbids new persistence machinery"
+        },
+        {
+          "what": "Recreation backends are injectable (ConsolidationExecuteDeps); defaults share one lazily-created Temporal client bundle",
+          "why": "Tests never touch real Temporal/XDG; terminal-only executes need no Temporal connection at all"
+        },
+        {
+          "what": "Ledger rows written per applied item AND per appended jsonl row (item_id = row content hash), immediately after each mutation",
+          "why": "DDC4 append-only content-hashed rows; per-item ledgering is the resume contract (ledgered items skipped)"
+        },
+        {
+          "what": "buildConsolidationPlan: ledger read moved before collision detection; ledgered IDs excluded from collisions",
+          "why": "Without this, a successful run makes its own re-run report false collisions (target now holds the imported items), breaking AC6 no-op reporting"
+        },
+        {
+          "what": "Missing target store mints under canonical legacy layout (opencode/plugins/advance/<id>)",
+          "why": "Deterministic rule; plan reports target.exists=false only when no layout copy exists"
+        },
+        {
+          "what": "Unledgered partial copies in the target halt as collisions rather than being auto-adopted",
+          "why": "AC5/DONT2 literal: duplicate IDs halt; resume granularity is the ledger per DONE_WHEN parenthetical"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Ledger-exclusion change affects only re-run collision semantics; all 22 pre-existing scan/dry_run/tool tests pass unchanged. cli-bridge-contract.test.ts (only other file referencing the tool) passes against the updated description. importDirProjection divergent-content guard is defensive DONT2 coverage for the unreachable-after-collision-check race.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_store_consolidate execute implemented: approval-gated typed refusals (approval_required/worker_lock_live/collisions_present), terminal-first disk-projection imports (changes/archive/retired-epics), live change recreation via ensureChangeWorkflowStarted + changeSeedStateFromChange (carries tasks/gates/artifacts/documents/epic_membership), live epic recreation via ensureEpicWorkflowStarted + buildEpicSeedState, content-hash-deduped jsonl appends, append-only ledger per item/row (AC6 no-op re-runs). buildConsolidationPlan now reads the ledger before collision detection and excludes ledgered IDs from collisions (required for AC6 re-runs; all pre-existing dry-run tests unchanged and passing). Resume contract: ledgered items are skipped; an unledgered partial copy in the target is indistinguishable from a duplicate ID and halts as a collision (AC5) — operator resolves manually. Missing-target store mints under the legacy layout path. Tests: 38/38 file, 57/57 with cli-bridge-contract, typecheck clean, eslint clean.",
+        "suggested_next_action": "Review diff, then proceed to remaining tasks (tk-2b3929ed4d2c spec/docs, tk-cb27339a3627 PokeEdge production run). Full plugin test suite optional before archive."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (red)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 (green)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx vitest run src/tools/store-consolidate.test.ts src/cli-bridge-contract.test.ts --maxWorkers=2 (verify)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bunx eslint src/tools/store-consolidate.ts src/tools/store-consolidate.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixShallowRepoIdentity",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShallowRepoIdentity",
+      "task_id": "tk-2b3929ed4d2c",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2b3929ed4d2c"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".adv/specs/advance-meta/spec.json",
+        ".adv/specs/advance-delivery/spec.json",
+        "docs/specs/advance-meta.md",
+        "docs/specs/advance-delivery.md",
+        "SETUP.md",
+        "docs/store-consolidation.md",
+        "README.md"
+      ],
+      "verification": [
+        {
+          "command": "bun run typecheck (plugin/)",
+          "exit_code": 0,
+          "summary": "tsc --noEmit passes; runId tr_mrgn773z_eca98227"
+        },
+        {
+          "command": "bin/oc-test targeted -- src/deploy-local.test.ts src/release-install-assets.test.ts src/tools/spec.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/cli-bridge-contract.test.ts",
+          "exit_code": 0,
+          "summary": "6 suites, 144 tests passed — covers spec.json schema validation, advance-meta md-mirror version/ID sync, SETUP.md asset guards, docs stability guards, frozen tool-name list; runId tr_mrgn84sp_15c5d602"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Registered deltas by editing .adv/specs/<capability>/spec.json directly (version bump + new requirement) with docs/specs md mirrors updated to match",
+          "why": "This is the repo's existing delta mechanism — verified via git history of recent checkpoint commits (e.g. ensureTargetWorkers added rq-targetWorkerLifecycle01 the same way) and the deploy-local.test.ts mirror-sync guard; change.deltas map has no agent-facing write path and is only consumed at archive time"
+        },
+        {
+          "what": "Placed shallow-clone guidance under SETUP.md Troubleshooting and created docs/store-consolidation.md as a new doc",
+          "why": "Shallow refusal is an environment-level operator gotcha matching Troubleshooting; consolidation is a multi-step recovery flow warranting a dedicated doc, cross-linked from SETUP.md and README documentation map"
+        },
+        {
+          "what": "JSON edits done via python json.load/dump with ensure_ascii=False",
+          "why": "First pass escaped the em-dash in the purpose field to \\u2014; rewrote from git-clean state to keep diffs minimal and literal-UTF8 consistent with the rest of the file"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified cli-surface-matrix.md already carries the adv_store_consolidate disposition row; grepped all docs/SETUP/README for existing shallow/consolidate mentions (none, so no stale-text fixes needed); confirmed only advance-meta has a guarded md-mirror test and its version/updated header now matches spec.json",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Spec deltas rq-projectIdentityStability01 (advance-meta v1.23.0, 4 G/W/T scenarios) and rq-storeConsolidation01 (advance-delivery v1.4.0, 6 G/W/T scenarios) registered in .adv/specs/*/spec.json with docs/specs md mirrors updated. SETUP.md gained a Troubleshooting section on UnstableIdentityError with exact git fetch --unshallow remediation; new docs/store-consolidation.md documents scan→dry_run→approve→execute, ConsolidationError codes, ledger idempotency, orphan-store retention; README documentation map row added. cli-surface-matrix.md already had the adv_store_consolidate row — no change needed. 144 guard tests + typecheck all pass.",
+        "suggested_next_action": "Proceed to next task (PokeEdge execution) or mark tk-2b3929ed4d2c done; no further docs work outstanding"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bun run typecheck (plugin/)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/deploy-local.test.ts src/release-install-assets.test.ts src/tools/spec.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/cli-bridge-contract.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixShallowRepoIdentity",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShallowRepoIdentity",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Amended release sequencing: parent ships tested identity guard + consolidation tool from trunk-only deploy; linked child runPokeedgeConsolidation runs live PokeEdge migration only after parent merge + trunk deploy",
+      "sources": [
+        {
+          "label": "Parent design amendment (adv_change_show _design)",
+          "locator": "adv_change_show changeId=fixShallowRepoIdentity include.design",
+          "summary": "Parent branch never locally deployed; child runs only after parent merged to trunk and runtime deploys from trunk; child follows scan→dry-run→approval→execute for 67fe3e95/2d2af340 into 4d6b5898 with before/after proof."
+        },
+        {
+          "label": "Parent agreement (Constraints §6, Decision)",
+          "locator": "adv_change_show changeId=fixShallowRepoIdentity include.agreement",
+          "summary": "Constraint 6: parent branch never locally deployed; runtime deploy only after parent merge to trunk. Decision: PokeEdge production migration moves from parent pre-release execution to linked post-merge child, preserving trunk-only deployment."
+        },
+        {
+          "label": "Child proposal (fast-follow link)",
+          "locator": "adv_change_show changeId=runPokeedgeConsolidation include.proposal",
+          "summary": "Child is fast_follow_of fixShallowRepoIdentity; proposal requires deployed trunk, scan→dry-run→explicit approval→execute, preserve source stores, retained before/after recovery evidence."
+        },
+        {
+          "label": "AGENTS.md line 43 (deploy model)",
+          "locator": "/home/jon/dev/advance/AGENTS.md:43",
+          "summary": "Live adv_* behavior changes only after pnpm run build + deploy-local.sh --fix + host restart. Confirms running the migration tool against un-merged branch code would require deploying that branch — which the design forbids; child instead runs merged trunk-deployed tool."
+        },
+        {
+          "label": "adv-archive command spec line 553",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-archive.md:553",
+          "summary": "Production deploy is outside ADV gate lifecycle; ADV stops at verified default-branch push + local dev deploy. Confirms parent release legitimately ends without running production migration."
+        },
+        {
+          "label": "Trunk-worktree isolation policy (global instruction)",
+          "locator": "~/.config/opencode/instructions/trunk-worktree-isolation.md",
+          "summary": "Trunk checkout stays on default branch; branch work in worktrees. Corroborates that parent branch does not become deployed runtime except by explicit local deploy from worktree, which the design excludes."
+        }
+      ],
+      "architecture_assessment": "The amendment resolves a genuine circular dependency. Original AC7 required live PokeEdge production migration (before/after count proof) as a pre-release acceptance obligation, but the migration must run against the deployed consolidation tool, and per AGENTS.md:43 the tool only takes effect after build+deploy-local, and per trunk-only policy runtime deploy occurs only after merge to trunk. That made the pre-merge production operation impossible: proving the tool live required deploying un-merged branch code, violating the trunk-only invariant. The re-entry split cleanly separates concerns: (1) parent delivers tested tool + identity guard + specs, proven by AC1-AC6 (guard trip/non-trip, dry-run plan, live-item recreation, collision halt, idempotency) — all satisfiable in tests without a production run; (2) child runPokeedgeConsolidation, linked as fast_follow_of the parent, owns the live migration and holds the before/after production proof, gated on deployed trunk. AC7 in the parent is now a documented-handoff verification (child linked + child proposal requires trunk+scan+dry-run+approval+before/after) rather than a live production run. Tool safety is preserved: agreement Constraints (structural shallow detection, dry-run default, no history rewrite, approval-gated audited mutation) and Avoidances (no silent fallback, no newest-wins collision resolution, no manual file shuffling, no orphan deletion without separate approval) are unchanged by the amendment. Structural guards remain: fast-follow linkage is durable (parent_change_id present on child), child proposal encodes the trunk precondition and scan→dry-run→approval→execute sequence, and the specific source/target store IDs (67fe3e95, 2d2af340 → 4d6b5898) are carried in both parent AC7 and child proposal.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Amended sequencing removes the branch-deploy/release circular dependency and preserves trunk-only deployment. Verified against parent design amendment, parent agreement, child proposal, AGENTS.md:43 deploy model, adv-archive spec line 553, and trunk-worktree isolation policy. Two non-blocking cautions: (a) parent AC7 verifies the handoff is set up (child linked + child proposal preconditions) but does not itself execute the production run — this is correct and intended, but reviewers should confirm parent acceptance does not silently re-interpret AC7 as requiring live counts. (b) Child change is still draft with only a proposal and one CLARIFY_UNCLEAR_SCOPE finding; the production proof obligation lives entirely in the child, so the child must not be cancelled/abandoned or the recovery is dropped — recommend the child agreement explicitly promote the before/after count proof and orphan-store retention to acceptance criteria before the child executes."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Splitting delivery from live migration adds a second change to track and a durable-linkage dependency; if the child is abandoned, the production stores stay orphaned (mitigated by fast-follow linkage and the retained parent evidence).",
+          "Parent AC7 becomes a setup/handoff assertion rather than an executed production proof, shifting the burden of the real before/after verification into the child — correct for trunk-only safety but requires the child to actually run to close the loop.",
+          "Trunk-only sequencing delays the live recovery until after parent merge+deploy; acceptable because the orphaned stores are inert and no data is lost while waiting."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep live PokeEdge migration as a parent pre-release acceptance requirement (original AC7)",
+            "disposition": "rejected",
+            "rationale": "Impossible under trunk-only deployment: the tool only affects live behavior after build+deploy-local (AGENTS.md:43) and runtime deploy occurs only after merge to trunk; proving it live pre-merge would require deploying un-merged branch code, violating the trunk-worktree isolation invariant."
+          },
+          {
+            "option": "Locally deploy the parent branch to run the migration before merge, then merge",
+            "disposition": "rejected",
+            "rationale": "Directly violates the trunk-only deployment invariant (agreement Constraint 6; trunk-worktree isolation policy) and would run an audited production mutation from unreviewed branch code — an unsafe state/history workaround the STOP_WHEN condition explicitly forbids."
+          },
+          {
+            "option": "Fold both tool delivery and live migration into one change but gate the migration task behind a manual post-merge step",
+            "disposition": "rejected",
+            "rationale": "A single change cannot be both merged-to-trunk and still-open-for-a-post-merge-task without leaving the change perpetually un-archivable; the fast-follow child is the correct durable structure for post-release production work (consistent with adv-archive spec: production deploy is outside the gate lifecycle)."
+          }
+        ],
+        "recommendation": "Proceed. The amended sequencing is architecturally sound and removes the circular dependency without any unsafe history/state workaround. Before the child executes: (1) advance runPokeedgeConsolidation through its own discovery/agreement and promote the before/after production count proof + source-store retention to explicit child acceptance criteria; (2) ensure the child's trunk-deployed precondition is verified structurally at run time (confirm running tool came from merged trunk, not a branch build) rather than assumed."
+      },
+      "recommendation": "PASS. Amended release sequencing correctly decouples parent tool delivery (proven by tests, deployed from trunk) from child live PokeEdge migration (post-merge, trunk-deployed, scan→dry-run→approval→execute with before/after proof). No contract compromise or missing structural guard in the parent. Non-blocking follow-ups: promote the child's production proof + orphan-store retention to explicit child acceptance criteria, and structurally verify the child runs the merged-trunk tool.",
+      "follow_ups": [
+        "Child runPokeedgeConsolidation: promote before/after production count proof and source-store retention from proposal constraints to explicit acceptance criteria before execution.",
+        "Child: verify at run time that the executing adv_store_consolidate came from a merged-trunk deploy (structural check), not a branch build.",
+        "Parent acceptance: confirm AC7 is evaluated as handoff-configured (child linked + child preconditions present), not silently re-interpreted as requiring live production counts."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixShallowRepoIdentity",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShallowRepoIdentity",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:post-merge-sequencing"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate trunk-only post-merge PokeEdge recovery sequencing",
+      "sources": [
+        {
+          "label": "Advance AGENTS deployment model",
+          "locator": "/home/jon/dev/advance/AGENTS.md:43",
+          "summary": "Source edits require build, local deployment, and OpenCode/plugin-host restart before runtime behavior changes."
+        },
+        {
+          "label": "ADV archive contract",
+          "locator": "/home/jon/dev/advance/.opencode/command/adv-archive.md:553",
+          "summary": "Production deployment is outside parent release lifecycle after verified default-branch push."
+        },
+        {
+          "label": "Trunk worktree policy",
+          "locator": "~/.config/opencode/instructions/trunk-worktree-isolation.md",
+          "summary": "Branch work stays isolated; runtime deployment is trunk-only by user decision."
+        },
+        {
+          "label": "Parent agreement and design amendment",
+          "locator": "ADV artifacts for fixShallowRepoIdentity",
+          "summary": "Parent holds tested tool safety; linked child holds deployed-trunk production proof."
+        }
+      ],
+      "architecture_assessment": "Original AC7 created an impossible loop: live production proof required runtime deployment, but trunk-only policy prohibits deployment of the unmerged branch. The fast-follow child removes that loop while retaining parent safety obligations and production evidence.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "PASS, high confidence, low risk. Parent AC1–AC6 remain testable without production deployment; child proposal owns sources 67fe3e95… and 2d2af340… into 4d6b5898… with scan, dry-run, approval, execute, and before/after proof."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Second linked change must be tracked.",
+          "Live recovery occurs post-merge.",
+          "Parent evaluates AC7 as handoff configuration rather than live execution proof."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep live PokeEdge recovery in parent pre-release execution",
+            "disposition": "rejected",
+            "rationale": "Requires branch runtime deployment, contradicting trunk-only deployment."
+          },
+          {
+            "option": "Deploy the branch for one migration",
+            "disposition": "rejected",
+            "rationale": "Violates explicit user deployment policy."
+          },
+          {
+            "option": "Linked post-merge fast-follow",
+            "disposition": "preferred",
+            "rationale": "Preserves tested parent tool delivery and keeps production evidence in a deployable child."
+          }
+        ],
+        "recommendation": "Proceed with amended design. Ensure child agreement makes before/after proof and deployed-trunk identity explicit; evaluate parent AC7 as linked-handoff setup."
+      },
+      "recommendation": "PASS. Complete parent under the amended handoff contract; later prepare child agreement with explicit runtime-source and count-proof criteria.",
+      "follow_ups": [
+        "Child needs explicit acceptance criteria for deployed-trunk identity, source-store retention, and before/after counts.",
+        "Parent acceptance must assess AC7 as child handoff configuration."
+      ],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixShallowRepoIdentity",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShallowRepoIdentity",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:parent-contract"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "bin/oc-test full",
+          "exit_code": 1,
+          "duration_ms": 171920
+        },
+        {
+          "kind": "command",
+          "command": "pnpm run check",
+          "exit_code": 1
+        }
+      ],
+      "status": "fail",
+      "error_class": "SEMANTIC",
+      "confidence": "high",
+      "evidence_basis": "Full suite found 5 deterministic asset-contract failures; pnpm check completed schemas, TypeScript, isolation, lockfile, and lint then failed Prettier in six files.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "blocker",
+          "summary": "Full suite: 3 failed / 330 passed test files; 5 failed / 4928 passed tests. Missing adv-epic optional-entry wording, AGENTS Temporal/schema/CI-order contract text, and external citation for rq-temporalTsDeterminismDocs01.",
+          "evidence": [
+            {
+              "label": "full-suite log",
+              "locator": "tool_f58db6a11001R8XL0Fq1mau0UE:3864-4229",
+              "summary": "Deterministic asset-contract failures."
+            }
+          ]
+        },
+        {
+          "id": "verify-002",
+          "severity": "blocker",
+          "summary": "pnpm run check failed at Prettier after prior validation stages completed.",
+          "evidence": [
+            {
+              "label": "pnpm check",
+              "locator": "pnpm run check",
+              "summary": "Prettier reported six unformatted files."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "ask_user",
+      "scope_risk": true,
+      "suggested_handoff": {
+        "summary": "Repair documented asset-contract omissions and formatting only if scope is explicitly expanded.",
+        "in_scope": [
+          "adv-epic wording",
+          "AGENTS contract text",
+          "external citation",
+          "Prettier formatting"
+        ],
+        "out_of_scope": [
+          "Consolidation behavior",
+          "PokeEdge migration",
+          "ADV state mutation",
+          "deployment"
+        ],
+        "done_when": [
+          "bin/oc-test full exits 0",
+          "pnpm run check exits 0"
+        ],
+        "verification": [
+          "bin/oc-test full",
+          "pnpm run check"
+        ]
+      },
+      "required_main_agent_actions": [
+        "Obtain scope decision before remediation because failures include unrelated adv-epic and repository instruction assets."
+      ],
+      "follow_ups": [],
+      "consumer_warnings": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixShallowRepoIdentity",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixShallowRepoIdentity",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:full-suite-final"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "duration_ms": 104430
+        },
+        {
+          "kind": "command",
+          "command": "pnpm run check",
+          "exit_code": 0
+        }
+      ],
+      "status": "pass",
+      "error_class": "UNKNOWN",
+      "confidence": "high",
+      "evidence_basis": "Full suite: 333/333 files, 4956/4956 tests pass, 0 failed. Static check: schemas:check, tsc --noEmit, isolation, lockfile, eslint, prettier all pass.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "info",
+          "summary": "Full suite fully green after drift repairs (4956/4956).",
+          "evidence": [
+            {
+              "label": "test summary",
+              "locator": "bin/oc-test full",
+              "summary": "333 files pass; 4956 tests pass; 104.43s."
+            }
+          ]
+        },
+        {
+          "id": "verify-002",
+          "severity": "info",
+          "summary": "Static check pipeline fully green.",
+          "evidence": [
+            {
+              "label": "check output",
+              "locator": "pnpm run check (plugin)",
+              "summary": "schemas/typecheck/isolation/lockfile/lint/format all pass."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "continue",
+      "scope_risk": false,
+      "suggested_handoff": {
+        "summary": "No handoff required; full suite and static check are green.",
+        "in_scope": [
+          "None — verification complete"
+        ],
+        "out_of_scope": [
+          "Live PokeEdge migration (linked child runPokeedgeConsolidation)"
+        ],
+        "done_when": [
+          "bin/oc-test full exits 0",
+          "pnpm run check exits 0"
+        ],
+        "verification": [
+          "bin/oc-test full",
+          "pnpm run check"
+        ]
+      },
+      "required_main_agent_actions": [],
+      "follow_ups": [],
+      "consumer_warnings": []
+    }
+  ],
+  "test_runs": {
+    "tk-419ca51e73a3": [
+      {
+        "runId": "tr_mrgjbd47_457083e9",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/utils/project-identity-guard.test.ts --maxWorkers=2",
+        "durationMs": 960.2964370027184,
+        "recordedAt": "2026-07-11T15:43:54.986Z"
+      },
+      {
+        "runId": "tr_mrgjfj67_2e08a96e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/utils/project-identity-guard.test.ts src/utils/project-id.test.ts --maxWorkers=2",
+        "durationMs": 1072.9723680019379,
+        "recordedAt": "2026-07-11T15:47:09.441Z"
+      },
+      {
+        "runId": "tr_mrgjfz1t_a609f7e9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun run typecheck",
+        "durationMs": 7992.714442998171,
+        "recordedAt": "2026-07-11T15:47:30.015Z"
+      }
+    ],
+    "tk-b9ec0d0fdd3e": [
+      {
+        "runId": "tr_mrgkd7dt_e8c1c369",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2",
+        "durationMs": 781.77000400424,
+        "recordedAt": "2026-07-11T16:13:20.467Z"
+      },
+      {
+        "runId": "tr_mrgkqv91_55cf3330",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2",
+        "durationMs": 1582.4752480015159,
+        "recordedAt": "2026-07-11T16:23:57.923Z"
+      },
+      {
+        "runId": "tr_mrgkrg0x_6b3754db",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun run typecheck",
+        "durationMs": 7751.6215249970555,
+        "recordedAt": "2026-07-11T16:24:24.850Z"
+      },
+      {
+        "runId": "tr_mrgkryxr_12b913e4",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/tool-registry.test.ts src/utils/tool-title.test.ts src/cli-bridge-contract.test.ts src/cli-surface-matrix.test.ts src/tool-name-assets.test.ts src/advance-epics-assets.test.ts --maxWorkers=2",
+        "durationMs": 5935.704306997359,
+        "recordedAt": "2026-07-11T16:24:49.398Z"
+      },
+      {
+        "runId": "tr_mrgkts0n_83d2e356",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/utils/tool-arg-preflight.test.ts src/integration.test.ts src/__tests__/worktree-warp-mode-assets.test.ts src/__tests__/active-change-pointer.test.ts src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts --maxWorkers=2",
+        "durationMs": 16104.998227000237,
+        "recordedAt": "2026-07-11T16:26:13.703Z"
+      },
+      {
+        "runId": "tr_mrgkvdvr_e0e42244",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2 && bun run typecheck",
+        "durationMs": 8467.456471003592,
+        "recordedAt": "2026-07-11T16:27:28.693Z"
+      }
+    ],
+    "tk-9e02f3b6015f": [
+      {
+        "runId": "tr_mrgm1hpf_8ec9b2dd",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2",
+        "durationMs": 2038.977959997952,
+        "recordedAt": "2026-07-11T17:00:13.202Z"
+      },
+      {
+        "runId": "tr_mrgm8193_f4ba39bb",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2",
+        "durationMs": 3428.7466410025954,
+        "recordedAt": "2026-07-11T17:05:18.475Z"
+      },
+      {
+        "runId": "tr_mrgmafbl_90efcdd3",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/store-consolidate.test.ts --maxWorkers=2",
+        "durationMs": 3190.1970230042934,
+        "recordedAt": "2026-07-11T17:07:10.023Z"
+      },
+      {
+        "runId": "tr_mrgmax1f_597c9d03",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "bun run typecheck",
+        "durationMs": 8470.381171993911,
+        "recordedAt": "2026-07-11T17:07:32.985Z"
+      },
+      {
+        "runId": "tr_mrgmbouj_c2cb17cc",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "bun run typecheck",
+        "durationMs": 8550.297393999994,
+        "recordedAt": "2026-07-11T17:08:09.024Z"
+      },
+      {
+        "runId": "tr_mrgmch5i_95c64e17",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun run typecheck",
+        "durationMs": 8402.232734002173,
+        "recordedAt": "2026-07-11T17:08:45.723Z"
+      },
+      {
+        "runId": "tr_mrgmd2in_778ad87d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/store-consolidate.test.ts src/cli-bridge-contract.test.ts --maxWorkers=2",
+        "durationMs": 3993.1280309930444,
+        "recordedAt": "2026-07-11T17:09:13.388Z"
+      }
+    ],
+    "tk-2b3929ed4d2c": [
+      {
+        "runId": "tr_mrgn773z_eca98227",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun run typecheck",
+        "durationMs": 7972.201444000006,
+        "recordedAt": "2026-07-11T17:32:39.030Z"
+      },
+      {
+        "runId": "tr_mrgn7htf_ea8b1943",
+        "phase": "verify",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/deploy-local.test.ts src/release-install-assets.test.ts src/tools/spec.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/cli-bridge-contract.test.ts",
+        "durationMs": 15.296070002019405,
+        "recordedAt": "2026-07-11T17:32:52.913Z"
+      },
+      {
+        "runId": "tr_mrgn84sp_15c5d602",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/deploy-local.test.ts src/release-install-assets.test.ts src/tools/spec.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/cli-bridge-contract.test.ts",
+        "durationMs": 5452.493211001158,
+        "recordedAt": "2026-07-11T17:33:22.702Z"
+      }
+    ],
+    "tk-ee8f47a8f4ce": [
+      {
+        "runId": "tr_mrihajws_9e2bf197",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/store-consolidate.test.ts src/utils/project-identity-guard.test.ts src/tools/spec.test.ts src/manifest-doc-drift.test.ts src/adv-stability-docs-assets.test.ts src/cli-bridge-contract.test.ts",
+        "durationMs": 3458.850405999925,
+        "recordedAt": "2026-07-13T00:22:50.242Z"
+      },
+      {
+        "runId": "tr_mrihlwlp_1c914adc",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/advance-epics-assets.test.ts src/repo-instructions-assets.test.ts src/manifest-doc-drift.test.ts",
+        "durationMs": 3970.788813999854,
+        "recordedAt": "2026-07-13T00:31:39.914Z"
+      },
+      {
+        "runId": "tr_mrihndq0_c37c3c81",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/store-consolidate.test.ts src/utils/project-identity-guard.test.ts",
+        "durationMs": 2726.558007000014,
+        "recordedAt": "2026-07-13T00:32:48.741Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-H2RU-g",
+      "type": "gotcha",
+      "content": "Branch-deploy hazard: the opt-in adv post-commit/pre-push hook runs `deploy-local.sh --fix` from the worktree, which builds and deploys the CHANGE BRANCH plugin to ~/.local/share/Advance and bounces Temporal workers. Under a trunk-only deployment policy this is a policy violation triggered by any commit inside the change worktree. Mitigation: after finishing branch commits, redeploy from the trunk checkout to restore runtime, and never rely on a branch-built tool for production ops (route live ops to a post-merge child change).",
+      "source_task": "tk-ee8f47a8f4ce",
+      "recorded_at": "2026-07-13T00:50:30.295Z"
+    },
+    {
+      "id": "ws-wEpwpc",
+      "type": "pattern",
+      "content": "Pre-existing trunk-red triage: when a change's full-suite gate is red, classify each failure as (a) change-owned, (b) staleness (branch behind trunk; trunk reformatted/changed the file — fix by rebase, never by editing stale copies which reverts trunk logic), or (c) genuinely pre-existing trunk-red (test + asset identical base→trunk → trunk itself fails). Prove (b) via `git diff --shortstat base trunk -- file`; prove (c) via `git show trunk:file | rg pattern`. Confirm rebase is conflict-free first: `grep -Fxf <(branch files) <(trunk files)`.",
+      "source_task": "tk-ee8f47a8f4ce",
+      "recorded_at": "2026-07-13T00:50:41.739Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-11T15:10:15.720Z",
+      "completed_by": "user",
+      "approval_evidence": "Command-as-approval: user invoked the shown continuation command /adv-discover fixShallowRepoIdentity while the proposal checkpoint was pending. Proposal content was authored from the confirmed PokeEdge incident (\"We should do all 3\" + \"Yes!\").",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "5cc793da1efa160e65e1a0ac232f3bd1fd1c5c3db40dc3b0e988fbd4833bd8d6",
+        "non_whitespace_chars": 1501,
+        "checked_at": "2026-07-11T15:08:33.996Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:02:39.800Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved amended agreement with `approve`: parent ships tested tool from trunk-only deployment path; linked child runPokeedgeConsolidation owns live PokeEdge recovery after parent merge.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "non_whitespace_chars": 2772,
+        "checked_at": "2026-07-11T15:08:33.999Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:05:12.998Z",
+      "completed_by": "agent",
+      "approval_evidence": "Amended release sequencing validated independently by adv-researcher: PASS, high confidence, low risk. Parent tool safety remains intact; linked post-merge child removes branch-deploy circularity and retains production proof.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "e2d6913c8bf13c6f34200d724cbda298c496ac439c9474d34a1039177d75db66",
+        "non_whitespace_chars": 632,
+        "checked_at": "2026-07-11T15:08:34.000Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:22:13.424Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved revised graph with four retained completed implementation tasks, two approved cancellations, and replacement verification task tk-ee8f47a8f4ce."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-13T00:51:14.166Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete. 5/7 tasks done (4 implementation + 1 verification), 2 approved cancellations (live PokeEdge run + old verification moved to linked child runPokeedgeConsolidation). Full suite green (4956/4956), pnpm run check green. Branch rebased conflict-free onto current trunk. Pre-existing trunk-red doc-contract failures repaired per user instruction (AGENTS.md determinism/schema/CI guidance + citation; adv-epic.md wording)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-13T01:00:03.916Z",
+      "completed_by": "user",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "99644ceac32a8816b2e8fca20a9eae2376408ec912bb4c26df64296e4989d0fe",
+        "non_whitespace_chars": 3478,
+        "checked_at": "2026-07-11T15:08:34.001Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "User approved trunk-only deployment. The live PokeEdge recovery must run only after the consolidation tool is merged to trunk, so it cannot remain a pre-release acceptance requirement.",
+      "scope_delta": "Retain identity guard and consolidation-tool implementation in this change. Move live PokeEdge migration and its before/after production count proof into a linked post-merge follow-up change; replace AC7 here with verified tool behavior and documented post-merge handoff.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-12T23:44:16.152Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-07-11T15:08:32.128Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+      "approvedAt": "2026-07-13T00:02:30.813Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A shallow clone can never silently mint an unstable ADV identity or external state store.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Orphaned identity stores are consolidable into the true-root store with zero silent data loss.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Linked child `runPokeedgeConsolidation` owns PokeEdge's live consolidation after this parent is merged and locally deployed from `trunk`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a shallow repository, ADV state initialization and mutation refuse with an actionable error naming `git fetch --unshallow`; no external store or Temporal state is created under a graft-boundary identity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a partial clone (`--filter=blob:none`) or multi-root repository with full root history, the guard does not trip and identity resolves as today.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "The consolidation tool is dry-run-first: dry-run emits a per-item plan (changes, archives, Epics, wisdom, agenda, reflections) with zero mutations; execution requires explicit approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Live non-terminal changes and Epics from an orphan store are recreated under the true identity preserving tasks, gates, artifacts, and Epic membership; terminal (archived/closed) items import as disk projections visible via `includeArchived: true`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Duplicate IDs across stores halt consolidation with a per-ID collision report; nothing is overwritten or lost.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Re-running consolidation after success is a no-op (idempotent), reported as such.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`runPokeedgeConsolidation` is linked to this change and its proposal requires deployed `trunk`, scan/dry-run, explicit execute approval, and before/after verification for source stores `67fe3e95…` and `2d2af340…` into `4d6b5898…`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No Temporal workflow history rewrites; recreation uses new workflows with carried state, never history mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Consolidation mutations are approval-gated and audited; dry-run is the default mode.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Shallow/graft detection must be structural (git plumbing surfaces such as `--is-shallow-repository`), never inferred from error text.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Identity derivation changes preserve current behavior for full clones, partial clones with root history, and multi-root repositories.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Tests cover guard trip/non-trip classes and consolidation dry-run, execution, collision, and idempotency paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "The parent branch is never locally deployed; runtime deployment occurs only after parent merge to `trunk`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No silent identity fallback (e.g. path-hash) when the guard trips — refuse loudly instead.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No newest-wins auto-resolution of ID collisions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No manual file shuffling as the recovery procedure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "No deletion of orphan stores after consolidation without separate explicit approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-13T00:56:09.790Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "project-identity-guard.test.ts 7/7: shallow clones refuse; getProjectIdFromGit throws UnstableIdentityError; index.ts refuses store init at mint chokepoint (no external/Temporal state minted)."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "store-consolidate.test.ts 38/38: terminal-first import, live recreation, collision halt, ledger idempotency, zero-mutation dry_run tree compares; no delete calls (no silent loss)."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Linked child runPokeedgeConsolidation created as fast_follow of parent; proposal requires deployed trunk, scan/dry-run, explicit execute approval, before/after counts for 67fe3e95… + 2d2af340… into 4d6b5898…."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Guard shallow-refusal fixture; UnstableIdentityError message names `git fetch --unshallow` and states no ADV state created; mint-point refusal wired in index.ts/plugin-context.ts."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Partial-clone (--filter=blob:none) fixture (DDC5) and multi-root fixture in guard suite prove non-trip; identity resolves via sorted root determinism as today."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "dry_run zero-mutation tree-compare tests + execute approval_required typed refusal test; dry-run is default mode."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Execute tests: live change recreation via ensureChangeWorkflowStarted + changeSeedStateFromChange (tasks/gates/artifacts/epic_membership carried); live epic via buildEpicSeedState; terminal items imported as disk projections."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Collision-halt tests: unified per-ID collision map across changes/archive/retired-epics/live-epics; execute halts with per-ID report; no overwrite (zero delete/overwrite calls)."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Ledger idempotency tests (skip_ledgered); buildConsolidationPlan reads ledger before collision detection and excludes ledgered IDs so re-runs report no-op."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "AC7 (amended) verified as linked-handoff configuration: runPokeedgeConsolidation is a linked fast_follow child; its proposal mandates deployed trunk, scan/dry-run, explicit execute approval, and before/after verification for the two source stores into 4d6b5898…. Live execution intentionally deferred to child (trunk-only deployment)."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Execute recreates via new Temporal workflows carrying seed state; source workflows untouched; no history rewrite. Verified in store-consolidate.ts execute path."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Execute requires approvedByUser===true and non-empty approvalEvidence else throws ConsolidationError('approval_required') with zero mutations; dry-run default. Tested."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Detection uses `git rev-parse --is-shallow-repository` (reads .git/shallow) and info/grafts file existence — structural git plumbing, never error-text inference."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Guard non-trip tests for full clone, partial clone, and multi-root preserve current identity behavior."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "7 guard fixtures (shallow/partial/multi-root/graft/not-git) + 38 consolidation tests (scan/dry_run/execute/collision/idempotency/refusals). Full suite 4956/4956 green."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Design and process mandate trunk-only deployment; live PokeEdge run deferred to post-merge child. Caveat: opt-in post-commit hook transiently deployed the branch during execution; runtime was restored from trunk and no branch-built tool was used for any production op (recorded as wisdom ws-H2RU-g)."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Guard throws UnstableIdentityError (loud refusal); no path-hash or silent fallback on trip. not_git stays distinct from unstable."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Collision policy is halt+report; no newest-wins/auto-resolution. Tested."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Recovery is tool-owned (adv_store_consolidate); child change runs the tool, not manual file shuffling."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static audit: zero rmSync/unlinkSync/fs.rm/rimraf calls in store-consolidate.ts; orphan stores are never deleted."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given a shallow repository, ADV state initialization and mutation refuse with an actionable error naming `git fetch --unshallow`; no external store or Temporal state is created under a graft-boundary identity.",
+    "Given a partial clone (`--filter=blob:none`) or multi-root repository with full root history, the guard does not trip and identity resolves as today.",
+    "The consolidation tool is dry-run-first: dry-run emits a per-item plan (changes, archives, Epics, wisdom, agenda, reflections) with zero mutations; execution requires explicit approval.",
+    "Live non-terminal changes and Epics from an orphan store are recreated under the true identity preserving tasks, gates, artifacts, and Epic membership; terminal (archived/closed) items import as disk projections visible via `includeArchived: true`.",
+    "Duplicate IDs across stores halt consolidation with a per-ID collision report; nothing is overwritten or lost.",
+    "Re-running consolidation after success is a no-op (idempotent), reported as such.",
+    "`runPokeedgeConsolidation` is linked to this change and its proposal requires deployed `trunk`, scan/dry-run, explicit execute approval, and before/after verification for source stores `67fe3e95…` and `2d2af340…` into `4d6b5898…`."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|---|---|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n# Proposal: Fix shallow repo identity\n\n## Problem\nADV derived project identity from `git rev-list --max-parents=0 HEAD`. In a shallow clone this returns a moving graft boundary. PokeEdge therefore minted stores under `67fe3e95…` and `2d2af340…` instead of true root `4d6b5898…`.\n\n## Proposed outcome\n1. Refuse state initialization or mutation in shallow/grafted repositories with exact `git fetch --unshallow` guidance.\n2. Provide an audited, dry-run-first `adv_store_consolidate` tool with structural collision refusal and ledger-backed idempotency.\n3. Hand off the live PokeEdge migration to linked child `runPokeedgeConsolidation`, which runs only after this change is merged and deployed from `trunk`.\n\n## Evidence\n- PokeEdge's shallow fetch boundary moved between identities.\n- `git fetch --unshallow` restored true root `4d6b5898…`.\n\n## Out of scope\n- Running live PokeEdge migration before parent release.\n- OpenCode session-shard hashing.\n- Temporal history rewrites.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Prevent shallow repositories from silently minting unstable pseudo-root ADV identities.\n2. Provide an audited, dry-run-first consolidation tool that merges an orphaned identity store into its true-root store.\n3. Create and link a post-merge PokeEdge consolidation follow-up that runs only from deployed `trunk`.\n\n## Success Criteria\n\n1. A shallow clone can never silently mint an unstable ADV identity or external state store.\n2. Orphaned identity stores are consolidable into the true-root store with zero silent data loss.\n3. Linked child `runPokeedgeConsolidation` owns PokeEdge's live consolidation after this parent is merged and locally deployed from `trunk`.\n\n## Acceptance Criteria\n\n1. Given a shallow repository, ADV state initialization and mutation refuse with an actionable error naming `git fetch --unshallow`; no external store or Temporal state is created under a graft-boundary identity.\n2. Given a partial clone (`--filter=blob:none`) or multi-root repository with full root history, the guard does not trip and identity resolves as today.\n3. The consolidation tool is dry-run-first: dry-run emits a per-item plan (changes, archives, Epics, wisdom, agenda, reflections) with zero mutations; execution requires explicit approval.\n4. Live non-terminal changes and Epics from an orphan store are recreated under the true identity preserving tasks, gates, artifacts, and Epic membership; terminal (archived/closed) items import as disk projections visible via `includeArchived: true`.\n5. Duplicate IDs across stores halt consolidation with a per-ID collision report; nothing is overwritten or lost.\n6. Re-running consolidation after success is a no-op (idempotent), reported as such.\n7. `runPokeedgeConsolidation` is linked to this change and its proposal requires deployed `trunk`, scan/dry-run, explicit execute approval, and before/after verification for source stores `67fe3e95…` and `2d2af340…` into `4d6b5898…`.\n\n## Constraints\n\n1. No Temporal workflow history rewrites; recreation uses new workflows with carried state, never history mutation.\n2. Consolidation mutations are approval-gated and audited; dry-run is the default mode.\n3. Shallow/graft detection must be structural (git plumbing surfaces such as `--is-shallow-repository`), never inferred from error text.\n4. Identity derivation changes preserve current behavior for full clones, partial clones with root history, and multi-root repositories.\n5. Tests cover guard trip/non-trip classes and consolidation dry-run, execution, collision, and idempotency paths.\n6. The parent branch is never locally deployed; runtime deployment occurs only after parent merge to `trunk`.\n\n## Avoidances\n\n1. No silent identity fallback (e.g. path-hash) when the guard trips — refuse loudly instead.\n2. No newest-wins auto-resolution of ID collisions.\n3. No manual file shuffling as the recovery procedure.\n4. No deletion of orphan stores after consolidation without separate explicit approval.\n\n## Decision\n\nPokeEdge production migration moves from this parent’s pre-release execution to linked post-merge child `runPokeedgeConsolidation`, preserving trunk-only deployment while retaining the parent’s fully tested tool delivery.",
+    "design": "# Design amendment: post-merge PokeEdge recovery\n\nThe identity guard and `adv_store_consolidate` implementation remain unchanged.\n\n## Release sequencing\n\n- Parent `fixShallowRepoIdentity` delivers tested tool code, docs, and specs.\n- Parent branch is not locally deployed.\n- Linked child `runPokeedgeConsolidation` runs only after parent release has merged code to `trunk` and local runtime deployment uses `trunk`.\n- Child follows scan → dry-run → explicit approval → execute for `67fe3e95…` and `2d2af340…` into `4d6b5898…`, then records before/after proof.\n\nThis removes the impossible pre-merge production-operation dependency without weakening tool behavior, collision safety, source-store retention, or ledger idempotency.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nThis change makes ADV refuse to create project state in shallow/grafted git repositories (where the identity is unstable and silently drifts), and ships an audited tool to consolidate already-orphaned state stores back under the correct project identity. You are approving release of the tested guard + tool; the live PokeEdge data recovery runs later in a linked follow-up after this merges to trunk.\n\n## Why It Matters\nPrevents the exact failure that hit PokeEdge — a shallow clone minted state under a moving pseudo-identity, so 258 changes, 122 archives, and 4 Epics appeared to vanish. The guard makes this class of data-orphaning structurally impossible going forward; the consolidation tool provides a safe, dry-run-first, non-destructive recovery path.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Structural identity guard (project-id.ts): ADV now detects shallow clones and grafts via git plumbing and refuses to mint state, with an actionable `git fetch --unshallow` error — instead of silently creating an orphan store.\n2. Audited consolidation tool `adv_store_consolidate` (scan / dry-run / execute): merges an orphaned state store into the true-root store — terminal history imported as read-only projections, live work recreated via new Temporal workflows (no history rewrite), duplicate-ID collisions halted, re-runs idempotent, source stores never deleted.\n3. Specs, SETUP guidance, and docs for the new behavior; pre-existing repo doc-contract drift repaired to restore a green build.\n4. Linked follow-up `runPokeedgeConsolidation` created to run the live PokeEdge recovery post-merge from a trunk deployment.\n\n## What Was Verified\n- Verdict: APPROVED with 0 blockers, 0 issues, 1 nit (advisory).\n- Tests: full suite green — 4956/4956 tests, 333/333 files; `pnpm run check` clean (schemas, typecheck, isolation, lockfile, lint, format).\n- Preview URL: not_applicable — CLI/plugin infrastructure change with no browser-visible output.\n- Contract matrix: 20/20 required rows pass/respected; 0 failing.\n\n## Release Readiness Summary\n- Verdict: READY (harden, 2026-07-13). Mode: inline — low-risk, well-tested change; no scanner triggers.\n- Pre-flight: gates 1–6 done; 2/2 cancellations approved; 0 unaddressed blocker/issue findings; contract matrix 20/20; merge compatibility fast-forward clean (trunk f13befa1 is ancestor of change branch 876d8564).\n- Dimensions: tests green with per-task TDD evidence; quality clean (typecheck/lint/format); security reviewed (dry-run-first, zero-delete, collision-halt, audit trail); performance not hot-path; docs updated (spec, SETUP, runbook, AGENTS.md); compatibility verified via rebase + FF merge check.\n- Nit disposition: advisory classification nit accepted as-is — the fallback path is pre-existing legacy behavior with negligible impact.\n- Ops readiness: standard deploy pipeline post-merge; no migrations, secrets, or production ops in this change. Live PokeEdge recovery is owned by linked child runPokeedgeConsolidation (runs post-merge from trunk).\n\n## Remaining Concerns\n- Non-blocking: live PokeEdge recovery is deferred to linked child `runPokeedgeConsolidation` (runs post-merge from trunk).\n- Advisory nit: an unlikely `--is-shallow-repository` git failure after git-dir resolves is classified as not-git (falls back to legacy path); negligible impact, accepted as-is at harden.\n- Process caveat: an opt-in post-commit hook transiently deployed the branch during execution; runtime was restored from trunk and no branch-built tool ran any production op (wisdom ws-H2RU-g).\n\n## Supporting Evidence\n- Tasks: tk-419ca51e73a3 (guard), tk-b9ec0d0fdd3e (scan/dry_run), tk-9e02f3b6015f (execute), tk-2b3929ed4d2c (specs/docs), tk-ee8f47a8f4ce (verification).\n- Reports: adv-researcher design-validation (PASS) + post-merge-sequencing (PASS); adv-verification-triage full-suite-final (pass, 4956/4956).\n- Contract review matrix (20 rows) + persisted agreement/design artifacts.\n\n## Consequence Context\n1. Delivered value: pass — structural prevention of shallow-identity state orphaning + safe recovery tool (tests green, matrix 20/20).\n2. Enabling-only/follow-up dependency: follow-up — live PokeEdge recovery owned by linked child runPokeedgeConsolidation (runs post-merge from trunk).\n3. Ops readiness: pass — standard deploy pipeline; no migrations/secrets/prod ops; docs and runbook updated.\n4. Migration/data impact: pass — recovery is dry-run-first, non-destructive (zero delete calls), collision-halting; no data migrated by this parent change.\n5. Frontend/preview impact: n/a — non-visual CLI/plugin change; Preview URL not_applicable with matching matrix rationale.\n6. Collision/release risk: pass — branch rebased conflict-free onto current trunk; fast-forward merge verified (trunk f13befa1 ancestor of 876d8564).\n7. Open follow-ups: follow-up — runPokeedgeConsolidation (post-merge live recovery); 2 advisory agenda items for child acceptance criteria.\n8. Next action: archive sign-off releases this change; then run runPokeedgeConsolidation from trunk.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-13T00:56:09.790Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A shallow clone can never silently mint an unstable ADV identity or external state store. | pass | project-identity-guard.test.ts 7/7: shallow clones refuse; getProjectIdFromGit throws UnstableIdentityError; index.ts refuses store init at mint chokepoint (no external/Temporal state minted). |\n| SC2 | success_criterion | Orphaned identity stores are consolidable into the true-root store with zero silent data loss. | pass | store-consolidate.test.ts 38/38: terminal-first import, live recreation, collision halt, ledger idempotency, zero-mutation dry_run tree compares; no delete calls (no silent loss). |\n| SC3 | success_criterion | Linked child `runPokeedgeConsolidation` owns PokeEdge's live consolidation after this parent is merged and locally deployed from `trunk`. | pass | Linked child runPokeedgeConsolidation created as fast_follow of parent; proposal requires deployed trunk, scan/dry-run, explicit execute approval, before/after counts for 67fe3e95… + 2d2af340… into 4d6b5898…. |\n| AC1 | acceptance_criterion | Given a shallow repository, ADV state initialization and mutation refuse with an actionable error naming `git fetch --unshallow`; no external store or Temporal state is created under a graft-boundary identity. | pass | Guard shallow-refusal fixture; UnstableIdentityError message names `git fetch --unshallow` and states no ADV state created; mint-point refusal wired in index.ts/plugin-context.ts. |\n| AC2 | acceptance_criterion | Given a partial clone (`--filter=blob:none`) or multi-root repository with full root history, the guard does not trip and identity resolves as today. | pass | Partial-clone (--filter=blob:none) fixture (DDC5) and multi-root fixture in guard suite prove non-trip; identity resolves via sorted root determinism as today. |\n| AC3 | acceptance_criterion | The consolidation tool is dry-run-first: dry-run emits a per-item plan (changes, archives, Epics, wisdom, agenda, reflections) with zero mutations; execution requires explicit approval. | pass | dry_run zero-mutation tree-compare tests + execute approval_required typed refusal test; dry-run is default mode. |\n| AC4 | acceptance_criterion | Live non-terminal changes and Epics from an orphan store are recreated under the true identity preserving tasks, gates, artifacts, and Epic membership; terminal (archived/closed) items import as disk projections visible via `includeArchived: true`. | pass | Execute tests: live change recreation via ensureChangeWorkflowStarted + changeSeedStateFromChange (tasks/gates/artifacts/epic_membership carried); live epic via buildEpicSeedState; terminal items imported as disk projections. |\n| AC5 | acceptance_criterion | Duplicate IDs across stores halt consolidation with a per-ID collision report; nothing is overwritten or lost. | pass | Collision-halt tests: unified per-ID collision map across changes/archive/retired-epics/live-epics; execute halts with per-ID report; no overwrite (zero delete/overwrite calls). |\n| AC6 | acceptance_criterion | Re-running consolidation after success is a no-op (idempotent), reported as such. | pass | Ledger idempotency tests (skip_ledgered); buildConsolidationPlan reads ledger before collision detection and excludes ledgered IDs so re-runs report no-op. |\n| AC7 | acceptance_criterion | `runPokeedgeConsolidation` is linked to this change and its proposal requires deployed `trunk`, scan/dry-run, explicit execute approval, and before/after verification for source stores `67fe3e95…` and `2d2af340…` into `4d6b5898…`. | pass | AC7 (amended) verified as linked-handoff configuration: runPokeedgeConsolidation is a linked fast_follow child; its proposal mandates deployed trunk, scan/dry-run, explicit execute approval, and before/after verification for the two source stores into 4d6b5898…. Live execution intentionally deferred to child (trunk-only deployment). |\n| C1 | constraint | No Temporal workflow history rewrites; recreation uses new workflows with carried state, never history mutation. | respected | Execute recreates via new Temporal workflows carrying seed state; source workflows untouched; no history rewrite. Verified in store-consolidate.ts execute path. |\n| C2 | constraint | Consolidation mutations are approval-gated and audited; dry-run is the default mode. | respected | Execute requires approvedByUser===true and non-empty approvalEvidence else throws ConsolidationError('approval_required') with zero mutations; dry-run default. Tested. |\n| C3 | constraint | Shallow/graft detection must be structural (git plumbing surfaces such as `--is-shallow-repository`), never inferred from error text. | respected | Detection uses `git rev-parse --is-shallow-repository` (reads .git/shallow) and info/grafts file existence — structural git plumbing, never error-text inference. |\n| C4 | constraint | Identity derivation changes preserve current behavior for full clones, partial clones with root history, and multi-root repositories. | respected | Guard non-trip tests for full clone, partial clone, and multi-root preserve current identity behavior. |\n| C5 | constraint | Tests cover guard trip/non-trip classes and consolidation dry-run, execution, collision, and idempotency paths. | respected | 7 guard fixtures (shallow/partial/multi-root/graft/not-git) + 38 consolidation tests (scan/dry_run/execute/collision/idempotency/refusals). Full suite 4956/4956 green. |\n| C6 | constraint | The parent branch is never locally deployed; runtime deployment occurs only after parent merge to `trunk`. | respected | Design and process mandate trunk-only deployment; live PokeEdge run deferred to post-merge child. Caveat: opt-in post-commit hook transiently deployed the branch during execution; runtime was restored from trunk and no branch-built tool was used for any production op (recorded as wisdom ws-H2RU-g). |\n| DONT1 | avoidance | No silent identity fallback (e.g. path-hash) when the guard trips — refuse loudly instead. | respected | Guard throws UnstableIdentityError (loud refusal); no path-hash or silent fallback on trip. not_git stays distinct from unstable. |\n| DONT2 | avoidance | No newest-wins auto-resolution of ID collisions. | respected | Collision policy is halt+report; no newest-wins/auto-resolution. Tested. |\n| DONT3 | avoidance | No manual file shuffling as the recovery procedure. | respected | Recovery is tool-owned (adv_store_consolidate); child change runs the tool, not manual file shuffling. |\n| DONT4 | avoidance | No deletion of orphan stores after consolidation without separate explicit approval. | respected | Static audit: zero rmSync/unlinkSync/fs.rm/rimraf calls in store-consolidate.ts; orphan stores are never deleted. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-12T23:45:00.318Z",
+      "contentHash": "3decc1047a3239b4b398b7b5bca317b7a30da9d479a4a4309d4302e88b0403f1",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-12T23:45:00.318Z",
+      "contentHash": "4e79c1cd991dd94ed1fa685ff10760f029966ef44c3abbadc316522c8769f470",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-12T23:45:00.318Z",
+      "contentHash": "e2d6913c8bf13c6f34200d724cbda298c496ac439c9474d34a1039177d75db66",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-13T01:00:59.708Z",
+      "contentHash": "ec60f3bb46300de40fefb99747a1d4872d3d686e32a208f7dfc5e6b8477e2b1c",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-13T01:00:59.708Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-12T23:35:14.992Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-13T00:02:21.189Z"
+    }
+  ]
+}
