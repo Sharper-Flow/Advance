@@ -74,6 +74,38 @@ export class TemporalQueryTimeoutError extends Error {
   }
 }
 
+/**
+ * Aggregate deadline budget for one authoritative read request (KD1).
+ * List/status resolvers create one deadline context per request and
+ * thread it into every Temporal query attempt; the retry wrapper caps
+ * per-attempt timeouts and retry/backoff admission to the remaining
+ * budget so a slow candidate can never outlive the request.
+ *
+ * rq-boundedAuthoritativeRead01: authoritative list/status reads resolve
+ * inside this single request-scoped 8s aggregate deadline and return a
+ * complete or explicitly degraded result — never an unclassified
+ * whole-tool ToolExecutionTimeout and never a worker-restart or
+ * timeout-ceiling-increase workaround.
+ */
+export const TEMPORAL_READ_DEADLINE_BUDGET_MS = 8_000;
+
+export interface TemporalReadDeadline {
+  /** Total aggregate budget in milliseconds (for diagnostics/errors). */
+  readonly budgetMs: number;
+  /** Absolute expiry in `Date.now()` epoch milliseconds. */
+  readonly deadlineAt: number;
+}
+
+export function createTemporalReadDeadline(
+  budgetMs: number = TEMPORAL_READ_DEADLINE_BUDGET_MS,
+): TemporalReadDeadline {
+  return { budgetMs, deadlineAt: Date.now() + budgetMs };
+}
+
+export function remainingDeadlineMs(deadline: TemporalReadDeadline): number {
+  return deadline.deadlineAt - Date.now();
+}
+
 export function getTemporalRetryTelemetry(): RetryTelemetry {
   return { ...telemetry };
 }
@@ -113,6 +145,13 @@ interface RetryOptions {
   onTransientFailure?: () => Promise<void>;
   timeoutMs?: number;
   opType?: string;
+  /**
+   * Request-scoped aggregate deadline (KD1). When present, each attempt
+   * uses no more than the smaller of `timeoutMs` and the remaining
+   * budget, and no new attempt or backoff begins once the budget is
+   * exhausted. Omit for mutation/long-running paths.
+   */
+  deadline?: TemporalReadDeadline;
 }
 
 function delayMs(attempt: number, options: RetryOptions): number {
@@ -145,9 +184,24 @@ export async function withTemporalRetry<T>(
   options: RetryOptions = {},
 ): Promise<T> {
   const maxAttempts = options.maxAttempts ?? 3;
+  const deadline = options.deadline;
   for (let attempt = 1; ; attempt++) {
+    let remaining: number | undefined;
+    if (deadline) {
+      remaining = remainingDeadlineMs(deadline);
+      if (remaining <= 0) {
+        // Budget exhausted: refuse to begin a new attempt (KD1). Surface an
+        // aggregate timeout so callers record typed incompleteness instead
+        // of an unbounded hang.
+        throw new TemporalQueryTimeoutError(deadline.budgetMs);
+      }
+    }
+    const attemptTimeoutMs =
+      remaining !== undefined
+        ? Math.min(options.timeoutMs ?? remaining, remaining)
+        : options.timeoutMs;
     try {
-      const result = await withTimeout(op(), options.timeoutMs);
+      const result = await withTimeout(op(), attemptTimeoutMs);
       telemetry.lastOpAt = new Date().toISOString();
       telemetry.lastError = null;
       telemetry.lastAttempts = attempt;
@@ -162,10 +216,20 @@ export async function withTemporalRetry<T>(
       ) {
         throw error;
       }
+      if (deadline) {
+        const afterFailure = remainingDeadlineMs(deadline);
+        if (afterFailure <= 0) {
+          // No reconnect/backoff may begin after expiry; propagate the
+          // failure that consumed the budget rather than swallowing it.
+          throw error;
+        }
+      }
       await options.onTransientFailure?.();
-      await new Promise((resolve) =>
-        setTimeout(resolve, delayMs(attempt, options)),
-      );
+      const backoffMs = delayMs(attempt, options);
+      const waitMs = deadline
+        ? Math.min(backoffMs, Math.max(0, remainingDeadlineMs(deadline)))
+        : backoffMs;
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
   }
 }

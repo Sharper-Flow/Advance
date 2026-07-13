@@ -9,6 +9,7 @@ import {
   createDefaultGates,
   GATE_ORDER,
   isGateSatisfied,
+  type Change,
   type GateId,
   type ChangeRecency,
 } from "../types";
@@ -111,10 +112,31 @@ export function buildNextGateRecommendationFromDirective(input: {
   };
 }
 
+/**
+ * Request-local resolution context for status enrichment
+ * (fixChangeListTimeouts KD4 / AC4). When `change` is present, enrichment
+ * MUST reuse it — including its proposal document projection — instead of
+ * issuing a duplicate per-change Temporal read. `resolvedChanges` lets
+ * fast-follow parent context resolve from the same request-local map;
+ * store reads remain the fallback for entries the request never resolved
+ * (e.g. an archived parent outside the active candidate set).
+ */
+export interface StatusResolvedChangeContext {
+  change?: Change;
+  resolvedChanges?: ReadonlyMap<string, Change>;
+}
+
 export async function getFastFollowParentContext(
   store: Store,
   parentChangeId: string,
+  resolvedChanges?: ReadonlyMap<string, Change>,
 ): Promise<string> {
+  const fromMap = resolvedChanges?.get(parentChangeId);
+  if (fromMap) {
+    const terminal =
+      fromMap.status === "archived" || fromMap.status === "closed";
+    return terminal ? `${parentChangeId} (${fromMap.status})` : parentChangeId;
+  }
   const parent = await store.changes.get(parentChangeId);
   if (parent.success && parent.data) {
     const terminal =
@@ -131,16 +153,28 @@ export async function enrichRecentChangeStatus(
   store: Store,
   clarifyMode: string,
   isPrimary: boolean,
+  resolved?: StatusResolvedChangeContext,
 ): Promise<void> {
   const changeId = String(rc.id);
-  const changeResult = await store.changes.get(changeId);
-  if (!changeResult.success || !changeResult.data) return;
+  let changeData: Change;
+  let proposalText: string;
+  if (resolved?.change) {
+    // AC4: the request already hydrated this change — reuse the document
+    // and its Temporal proposal projection. No second store.changes.get
+    // and no readArtifact call for an already-resolved row.
+    changeData = resolved.change;
+    proposalText = resolved.change.documents?.proposal ?? "";
+  } else {
+    const changeResult = await store.changes.get(changeId);
+    if (!changeResult.success || !changeResult.data) return;
+    changeData = changeResult.data;
+    // Temporal-first proposal read per KD-6. Falls back to disk/archive
+    // via readArtifact; null result means no proposal content — use
+    // empty string for snapshot rendering (status output is read-only).
+    proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
+  }
 
-  const gates = changeResult.data.gates ?? createDefaultGates();
-  // Temporal-first proposal read per KD-6. Falls back to disk/archive via
-  // readArtifact; null result means no proposal content — use empty string
-  // for snapshot rendering (status output is read-only).
-  const proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
+  const gates = changeData.gates ?? createDefaultGates();
 
   // Authoritative next-action projection shared with gate status and the
   // context snapshot. Derived from the disk change projection (Temporal-first
@@ -149,8 +183,8 @@ export async function enrichRecentChangeStatus(
   // first open gate and omit the `_directive` payload on the rare error path.
   const directive = deriveDirectiveSafe(
     changeToDirectiveState({
-      projectId: changeResult.data.adv_project_id ?? "unknown",
-      change: changeResult.data,
+      projectId: changeData.adv_project_id ?? "unknown",
+      change: changeData,
       gates,
     }),
     Date.now(),
@@ -162,19 +196,19 @@ export async function enrichRecentChangeStatus(
         | undefined);
 
   const snapshotInput = {
-    change: changeResult.data,
+    change: changeData,
     proposalText,
     gates: gates ?? undefined,
     workdir: store.paths.root,
   };
 
   Object.assign(rc, {
-    parent_change_id: changeResult.data.fast_follow_of?.parent_change_id,
-    epic: changeResult.data.epic_membership
+    parent_change_id: changeData.fast_follow_of?.parent_change_id,
+    epic: changeData.epic_membership
       ? {
-          id: changeResult.data.epic_membership.epic_id,
-          title: changeResult.data.epic_membership.title,
-          entry_id: changeResult.data.epic_membership.entry_id,
+          id: changeData.epic_membership.epic_id,
+          title: changeData.epic_membership.title,
+          entry_id: changeData.epic_membership.entry_id,
         }
       : undefined,
     _contextSnapshot: isPrimary
@@ -184,7 +218,7 @@ export async function enrichRecentChangeStatus(
   });
 
   const dependencyStatus = await buildExternalDependencyStatus(
-    changeResult.data.external_dependencies,
+    changeData.external_dependencies,
   );
   if (dependencyStatus) {
     (rc as unknown as Record<string, unknown>)._externalDependencyStatus =
@@ -195,10 +229,11 @@ export async function enrichRecentChangeStatus(
     ? (directive.action.gateId as GateId | undefined)
     : fallbackNextGate;
   if (directive && nextGate) {
-    const parentContext = changeResult.data.fast_follow_of
+    const parentContext = changeData.fast_follow_of
       ? await getFastFollowParentContext(
           store,
-          changeResult.data.fast_follow_of.parent_change_id,
+          changeData.fast_follow_of.parent_change_id,
+          resolved?.resolvedChanges,
         )
       : undefined;
     const item = buildNextGateRecommendationFromDirective({
@@ -215,7 +250,7 @@ export async function enrichRecentChangeStatus(
   appendClarifyRecommendation(
     status,
     clarifyMode,
-    changeResult.data,
+    changeData,
     proposalText,
     changeId,
   );
@@ -321,6 +356,7 @@ export async function filterRecentChangesForProductScope(
   recentChanges: ChangeRecency[],
   store: Store,
   scope: "repo" | "product" | undefined,
+  resolvedChanges?: ReadonlyMap<string, Change>,
 ): Promise<ChangeRecency[]> {
   const productContext = store.productContext;
   if (!productContext || productContext.mode === "single_repo") {
@@ -330,6 +366,23 @@ export async function filterRecentChangesForProductScope(
 
   const scoped: ChangeRecency[] = [];
   for (const change of recentChanges) {
+    // Request-local map first (AC4); store read is the fallback for
+    // entries the request never resolved.
+    const fromMap = resolvedChanges?.get(String(change.id));
+    if (fromMap) {
+      if (!fromMap.scope_repos?.length) {
+        scoped.push(change);
+        continue;
+      }
+      if (
+        fromMap.scope_repos.some(
+          (repo) => repo.repo_id === productContext.currentRepoId,
+        )
+      ) {
+        scoped.push(change);
+      }
+      continue;
+    }
     const full = await store.changes.get(String(change.id));
     if (!full.success || !full.data?.scope_repos?.length) {
       scoped.push(change);

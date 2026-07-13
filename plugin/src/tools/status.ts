@@ -7,6 +7,7 @@
  */
 import { basename } from "path";
 import type { Store } from "../storage/store";
+import type { StatusReadOptions } from "../storage/store-types";
 import { getTemporalWorkerRole } from "../plugin-init";
 import {
   classifyTemporalError,
@@ -112,7 +113,10 @@ async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function loadStatusWithBootstrapRetry(store: Store): Promise<{
+async function loadStatusWithBootstrapRetry(
+  store: Store,
+  options?: StatusReadOptions,
+): Promise<{
   status: ProjectStatus;
   bootstrapDiagnostic?: {
     recovered: boolean;
@@ -124,7 +128,7 @@ async function loadStatusWithBootstrapRetry(store: Store): Promise<{
 
   for (let attempt = 1; attempt <= STATUS_BOOTSTRAP_MAX_ATTEMPTS; attempt++) {
     try {
-      const status = await store.status();
+      const status = await store.status(options);
       return lastBootstrapError
         ? {
             status,
@@ -249,11 +253,44 @@ export const statusTools = {
             recentChanges: 0,
             recommendations: 0,
           };
+          // fixChangeListTimeouts KD4 / AC3: the summary bound travels
+          // into the status read BEFORE deep per-change hydration, not
+          // only as an output slice afterwards. Full views pass no bound
+          // and keep complete resolution semantics under the shared
+          // per-call aggregate deadline.
+          // rq-summaryReadBound01: summary applies STATUS_SUMMARY_RECENT_LIMIT
+          // before non-required deep hydration/artifact reads/enrichment and
+          // reuses request-local resolved documents instead of re-reading them.
+          const statusReadOptions: StatusReadOptions | undefined =
+            view === "summary"
+              ? { recentLimit: STATUS_SUMMARY_RECENT_LIMIT }
+              : undefined;
           const { status, bootstrapDiagnostic } = await withRecordedPhase(
             "adv_status",
             "statusLoad",
-            () => loadStatusWithBootstrapRetry(activeStore),
+            () => loadStatusWithBootstrapRetry(activeStore, statusReadOptions),
           );
+          // Request-local resolved documents (AC4): extracted for
+          // enrichment reuse and stripped before output serialization —
+          // the map is transport-only, never response payload.
+          const resolvedChanges = status.resolvedChanges;
+          if (resolvedChanges !== undefined) {
+            delete status.resolvedChanges;
+          }
+          // Typed degradation must be visible in every view (C2): surface
+          // resolver warnings as recommendations so a bounded/deadline-
+          // truncated status can never look complete.
+          for (const warning of status.warnings ?? []) {
+            pushStatusRecommendation(status, {
+              kind: "health",
+              priority: "high",
+              title: "Status read incomplete",
+              detail: warning.message,
+              action: "retry `adv_status` or query the named changes directly",
+              source: "health",
+              message: `⚠️ Status read incomplete — ${warning.message}`,
+            });
+          }
           const migrationStatus =
             view === "health" || view === "hygiene"
               ? await withRecordedPhase("adv_status", "migrationStatus", () =>
@@ -393,6 +430,7 @@ export const statusTools = {
                   status.changes.recent ?? [],
                   activeStore,
                   scope,
+                  resolvedChanges,
                 ),
             );
             if (
@@ -430,6 +468,10 @@ export const statusTools = {
                     activeStore,
                     clarifyMode,
                     isPrimary,
+                    {
+                      change: resolvedChanges?.get(String(rc.id)),
+                      resolvedChanges,
+                    },
                   );
                 }
               },

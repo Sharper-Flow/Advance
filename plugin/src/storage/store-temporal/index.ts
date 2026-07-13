@@ -30,6 +30,11 @@ import {
   getGuardedChangeHandle,
   runTemporalQuery,
   classifyTemporalReadFailure,
+  createTemporalReadDeadline,
+  raceWithTemporalDeadline,
+  remainingDeadlineMs,
+  TemporalQueryTimeoutError,
+  type TemporalReadDeadline,
 } from "./shared";
 import {
   changeStateQuery,
@@ -414,6 +419,7 @@ export function createTemporalStoreBackend(
   const loadArchiveProjection = async (
     changeId: string,
     reason: ProjectionRecoveryReason,
+    deadline?: TemporalReadDeadline,
   ): Promise<Change | null> => {
     if (!legacy.paths.archive) return null;
 
@@ -421,6 +427,13 @@ export function createTemporalStoreBackend(
     if (exact.success && exact.data?.id === changeId) {
       return withProjectionRecovery(exact.data, "archive", reason);
     }
+
+    // The scan below is the archive-inventory × candidate product (DONT3):
+    // once the aggregate deadline is exhausted it must not begin.
+    // rq-readSourceAttribution01: archive/visibility candidate sources are
+    // bounded and attributed — per-iteration deadline admission, typed source
+    // degradation naming the incomplete source, and no unbounded scan.
+    if (deadline && remainingDeadlineMs(deadline) <= 0) return null;
 
     let archiveDirs: string[];
     try {
@@ -433,6 +446,7 @@ export function createTemporalStoreBackend(
     }
 
     for (const archiveDir of archiveDirs) {
+      if (deadline && remainingDeadlineMs(deadline) <= 0) return null;
       if (archiveDir === changeId) continue;
       const loaded = await loadChange(legacy.paths.archive, archiveDir);
       if (loaded.success && loaded.data?.id === changeId) {
@@ -446,11 +460,16 @@ export function createTemporalStoreBackend(
   const loadArchiveBundleDominantProjection = async (
     changeId: string,
     reason: ProjectionRecoveryReason,
+    deadline?: TemporalReadDeadline,
   ): Promise<Change | null> => {
     if (!legacy.paths.archive) return null;
     if (!(await hasArchiveBundle(legacy.paths.archive, changeId))) return null;
 
-    const archivedProjection = await loadArchiveProjection(changeId, reason);
+    const archivedProjection = await loadArchiveProjection(
+      changeId,
+      reason,
+      deadline,
+    );
     if (archivedProjection) {
       return setCachedProjection({ ...archivedProjection, status: "archived" });
     }
@@ -478,10 +497,12 @@ export function createTemporalStoreBackend(
   const loadTerminalProjection = async (
     changeId: string,
     reason: ProjectionRecoveryReason = "missing_workflow",
+    deadline?: TemporalReadDeadline,
   ): Promise<Change | null> => {
     const archiveProjection = await loadArchiveBundleDominantProjection(
       changeId,
       reason,
+      deadline,
     );
     if (archiveProjection) return archiveProjection;
 
@@ -494,12 +515,13 @@ export function createTemporalStoreBackend(
   const reseedChangeFromDisk = async (
     changeId: string,
     reason: ProjectionRecoveryReason = "missing_workflow",
+    deadline?: TemporalReadDeadline,
   ): Promise<Change | null> => {
     // rq-replayFallback01: poisoned or missing workflow reads fall back to
     // durable disk/archive projections instead of forcing manual bundle work.
     const legacyRead = await legacy.changes.get(changeId);
     if (!legacyRead.success || !legacyRead.data) {
-      return loadArchiveProjection(changeId, reason);
+      return loadArchiveProjection(changeId, reason, deadline);
     }
     const change = legacyRead.data;
 
@@ -560,8 +582,12 @@ export function createTemporalStoreBackend(
       return null;
     }
     try {
-      const state = (await runTemporalQuery(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      const state = (await runTemporalQuery(
+        async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(
+            changeStateQuery,
+          ),
+        { deadline },
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
       return setCachedChange(state);
@@ -571,7 +597,12 @@ export function createTemporalStoreBackend(
           err instanceof Error ? err.message : String(err)
         }`,
       );
-      const failure = await classifyTemporalReadFailure(input, changeId, err);
+      const failure = await classifyTemporalReadFailure(
+        input,
+        changeId,
+        err,
+        deadline,
+      );
       if (failure.errorClass === "fallback") {
         return withProjectionRecovery(
           change,
@@ -585,10 +616,23 @@ export function createTemporalStoreBackend(
 
   const getTemporalChange = async (
     changeId: string,
+    opts?: { deadline?: TemporalReadDeadline },
   ): Promise<ReturnType<Store["changes"]["get"]>> => {
+    const deadline = opts?.deadline;
+    // Aggregate-deadline admission (KD1/KD5): once the request budget is
+    // exhausted, no further read stage may begin. The caller records the
+    // resulting TemporalQueryTimeoutError as typed incompleteness rather
+    // than re-entering another retry loop.
+    if (deadline && remainingDeadlineMs(deadline) <= 0) {
+      throw new TemporalQueryTimeoutError(deadline.budgetMs);
+    }
     // rq-terminalProjectionTruth01: durable terminal projection dominates
     // stale non-terminal shadows before any live workflow round-trip.
-    const terminalProjection = await loadTerminalProjection(changeId);
+    const terminalProjection = await loadTerminalProjection(
+      changeId,
+      "missing_workflow",
+      deadline,
+    );
     if (terminalProjection) {
       indexTasksFromChange(terminalProjection);
       const source =
@@ -613,8 +657,12 @@ export function createTemporalStoreBackend(
       };
     }
     try {
-      const state = (await runTemporalQuery(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      const state = (await runTemporalQuery(
+        async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(
+            changeStateQuery,
+          ),
+        { deadline },
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
       // rq-autoManageAdvWorktrees AC3 — lazy migration trigger.
@@ -640,11 +688,17 @@ export function createTemporalStoreBackend(
       // reseedChangeFromDisk short-circuits and returns the on-disk
       // projection without re-creating the workflow — re-seeding would
       // re-emit a summary signal and undo adv_archive_purge.
-      const failure = await classifyTemporalReadFailure(input, changeId, error);
+      const failure = await classifyTemporalReadFailure(
+        input,
+        changeId,
+        error,
+        deadline,
+      );
       if (failure.errorClass === "fallback") {
         const reseeded = await reseedChangeFromDisk(
           changeId,
           failure.recoveryReason ?? "missing_workflow",
+          deadline,
         );
         if (reseeded) {
           // rq-autoManageAdvWorktrees AC3 — lazy migration after reseed.
@@ -712,24 +766,39 @@ export function createTemporalStoreBackend(
    * post-invalidate) still surface even when the caller's bundle has
    * no `workflow.list` capability.
    */
-  const listResolvedChanges = async (filter?: {
-    includeArchived?: boolean;
-    includeClosed?: boolean;
-  }): Promise<import("../store-types").ResolvedChangeList> => {
+  const listResolvedChanges = async (
+    filter?: {
+      includeArchived?: boolean;
+      includeClosed?: boolean;
+    },
+    deadline: TemporalReadDeadline = createTemporalReadDeadline(),
+    options?: { candidateLimit?: number },
+  ): Promise<import("../store-types").ResolvedChangeList> => {
     const wantsTerminalStatuses = Boolean(
       filter?.includeArchived || filter?.includeClosed,
     );
+    const expired = (): boolean => remainingDeadlineMs(deadline) <= 0;
 
-    // Track source-class failures and per-candidate outcomes so terminal
-    // aggregate reads can surface structured degraded metadata instead of
-    // masquerading as complete success.
+    // Track source-class failures and per-candidate outcomes so aggregate
+    // reads can surface structured degraded metadata instead of
+    // masquerading as complete success. Both are recorded in ONE load
+    // pass — terminal classification no longer re-runs the per-candidate
+    // load chain (KD2).
     const degradedSources = new Set<TerminalSource>();
-    const candidateResolutions: Array<{
+    let deadlineExceeded = false;
+    const deadlineSources = new Set<TerminalSource>();
+    const markDeadline = (source: TerminalSource): void => {
+      deadlineExceeded = true;
+      deadlineSources.add(source);
+    };
+    type CandidateResolution = {
       id: string;
       terminal: boolean;
       source?: "workflow" | "disk" | "archive" | "retired_projection";
       omitted: boolean;
-    }> = [];
+      omissionReason?: "load_failed" | "deadline" | "bounded";
+    };
+    const candidateResolutions: CandidateResolution[] = [];
 
     // Union three sources to find every change ID. Memo is used as a
     // cache within per-change hydration (getTemporalChange), not as a
@@ -760,31 +829,54 @@ export function createTemporalStoreBackend(
     let visibilityIds: string[] = [];
     if (typeof bundle.client?.workflow?.list === "function") {
       try {
-        visibilityIds = await listChangeWorkflowIds(
-          bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
-          {
-            projectId: input.projectId,
-            // Drop the status filter when caller wants archived/closed
-            // so the visibility query doesn't pre-narrow the result set.
-            statuses: wantsTerminalStatuses ? null : undefined,
-          },
+        visibilityIds = await raceWithTemporalDeadline(
+          listChangeWorkflowIds(
+            bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+            {
+              projectId: input.projectId,
+              // Drop the status filter when caller wants archived/closed
+              // so the visibility query doesn't pre-narrow the result set.
+              statuses: wantsTerminalStatuses ? null : undefined,
+            },
+          ),
+          deadline,
         );
       } catch (err) {
+        const hitDeadline =
+          err instanceof TemporalQueryTimeoutError || expired();
         logger.warn(
-          `[P2.4] Visibility list failed; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
+          `[P2.4] Visibility list ${
+            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+          }; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
         );
         degradedSources.add("visibility");
+        if (hitDeadline) markDeadline("visibility");
       }
     }
 
+    // Disk enumeration is typically fast local I/O (one readdir per path)
+    // but can hang on slow network/FUSE/NFS-backed project roots or
+    // transiently-stalled filesystems. Route it through the same
+    // aggregate-deadline admission gate as visibility (AC1/AC5/C2) so a
+    // slow readdir degrades with typed source-specific incompleteness
+    // rather than outliving the request budget. Disk still stays
+    // available as an omission-evidence source on Temporal-side
+    // degradation; the deadline gates the potentially-unbounded stages.
     let diskIds: string[] = [];
     try {
-      diskIds = await listChangeDirs(legacy.paths.changes);
+      diskIds = await raceWithTemporalDeadline(
+        listChangeDirs(legacy.paths.changes),
+        deadline,
+      );
     } catch (err) {
+      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
       logger.warn(
-        `Disk listChangeDirs failed: ${err instanceof Error ? err.message : String(err)}`,
+        `Disk listChangeDirs ${
+          hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+        }: ${err instanceof Error ? err.message : String(err)}`,
       );
       degradedSources.add("active_disk");
+      if (hitDeadline) markDeadline("active_disk");
     }
 
     // (4) Archive bundles — required when caller asks for terminal statuses.
@@ -797,18 +889,63 @@ export function createTemporalStoreBackend(
     let archiveIds: string[] = [];
     if (wantsTerminalStatuses && legacy.paths.archive) {
       try {
-        archiveIds = await listChangeDirs(legacy.paths.archive);
+        archiveIds = await raceWithTemporalDeadline(
+          listChangeDirs(legacy.paths.archive),
+          deadline,
+        );
       } catch (err) {
+        const hitDeadline =
+          err instanceof TemporalQueryTimeoutError || expired();
         logger.warn(
-          `Disk listChangeDirs(archive) failed: ${err instanceof Error ? err.message : String(err)}`,
+          `Disk listChangeDirs(archive) ${
+            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+          }: ${err instanceof Error ? err.message : String(err)}`,
         );
         degradedSources.add("archive");
+        if (hitDeadline) markDeadline("archive");
       }
     }
 
     const changeIds = Array.from(
       new Set([...memoIds, ...visibilityIds, ...diskIds, ...archiveIds]),
     );
+    const archiveIdSet = new Set(archiveIds);
+
+    // Caller-supplied read bound (fixChangeListTimeouts KD4 / AC3): the
+    // summary view bounds deep hydration UPSTREAM instead of hydrating
+    // every candidate and slicing the output afterwards. Memo-warm
+    // candidates sort by recency first so the bounded set is the most
+    // recent one rather than an arbitrary enumeration prefix; candidates
+    // without a memo signal keep their (stable) enumeration order. The
+    // truncated tail becomes typed bounded omissions — never silently
+    // dropped, never counted as complete (C2).
+    const candidateLimit = options?.candidateLimit;
+    let hydrationIds = changeIds;
+    if (candidateLimit !== undefined && changeIds.length > candidateLimit) {
+      const memoActivity = new Map(
+        memoAll.map((summary) => [summary.id, summary.lastActivityAt] as const),
+      );
+      const ordered = [...changeIds].sort((a, b) => {
+        const aActivity = memoActivity.get(a);
+        const bActivity = memoActivity.get(b);
+        if (aActivity && bActivity) {
+          const cmp = bActivity.localeCompare(aActivity);
+          return cmp !== 0 ? cmp : a.localeCompare(b);
+        }
+        if (aActivity) return -1;
+        if (bActivity) return 1;
+        return 0;
+      });
+      hydrationIds = ordered.slice(0, candidateLimit);
+      for (const changeId of ordered.slice(candidateLimit)) {
+        candidateResolutions.push({
+          id: changeId,
+          terminal: archiveIdSet.has(changeId),
+          omitted: true,
+          omissionReason: "bounded",
+        });
+      }
+    }
 
     // Batch size for loading changes — balances Temporal query parallelism
     // against memory usage. 20 keeps per-batch latency under ~200ms with
@@ -837,7 +974,13 @@ export function createTemporalStoreBackend(
     };
 
     // Pre-scan memo for stale terminal-state entries (rq-crossSessionCacheConsistency01)
-    for (const summary of memo.getAll()) {
+    for (const summary of memoAll) {
+      // Deadline admission (KD5): stop the archive-bundle pre-scan once
+      // the aggregate budget is gone and record typed incompleteness.
+      if (expired()) {
+        markDeadline("archive");
+        break;
+      }
       if (summary.status === "archived" || summary.status === "closed")
         continue;
       if (await checkArchiveBundle(summary.id)) {
@@ -846,62 +989,169 @@ export function createTemporalStoreBackend(
       }
     }
 
-    for (let i = 0; i < changeIds.length; i += CHANGE_LIST_BATCH_SIZE) {
-      const batch = changeIds.slice(i, i + CHANGE_LIST_BATCH_SIZE);
-      const loaded = await Promise.all(
-        batch.map(async (changeId) => {
-          try {
-            return await getTemporalChange(changeId);
-          } catch {
-            // rq-terminalAggregateRead01: per-candidate failure is bounded;
-            // one bad/missing workflow does not abort the aggregate read.
-            // Degraded metadata lives in the omission (missing row) rather
-            // than an unclassified whole-tool timeout.
-            try {
-              const result = await legacy.changes.get(changeId);
-
-              // Layer A1 defensive override: if disk-fallback returned a
-              // non-terminal status but an archive bundle exists, treat
-              // as archived (the bundle is the durable terminal record).
-              if (
-                result.success &&
-                result.data &&
-                result.data.status !== "archived" &&
-                result.data.status !== "closed" &&
-                (await checkArchiveBundle(changeId))
-              ) {
-                result.data = { ...result.data, status: "archived" };
-                return result;
-              }
-
-              // Archive-only fallback: when there is no source-dir shadow
-              // (legacy.changes.get returned success: false) but an archive
-              // bundle exists, load the change directly from the bundle.
-              // The bundle is the durable terminal record per
-              // rq-archiveRetirement01.1.
-              if (
-                !result.success &&
-                legacy.paths.archive &&
-                (await checkArchiveBundle(changeId))
-              ) {
-                try {
-                  return await loadChange(legacy.paths.archive, changeId);
-                } catch {
-                  return { success: false } as const;
-                }
-              }
-
-              return result;
-            } catch {
-              return { success: false } as const;
-            }
-          }
-        }),
-      );
-      for (const result of loaded) {
+    // One-pass candidate load + classification (KD2). Each candidate is
+    // loaded at most once; document, provenance, terminal state, and
+    // omission/deadline outcome are recorded during the same pass.
+    const loadCandidate = async (
+      changeId: string,
+    ): Promise<{ change?: Change; resolution?: CandidateResolution }> => {
+      const isArchiveCandidate = archiveIdSet.has(changeId);
+      try {
+        const result = await raceWithTemporalDeadline(
+          getTemporalChange(changeId, { deadline }),
+          deadline,
+        );
         if (result.success && result.data) {
-          changes.push(result.data);
+          return {
+            change: result.data,
+            resolution: {
+              id: changeId,
+              terminal:
+                result.data.status === "archived" ||
+                result.data.status === "closed",
+              source: result.source,
+              omitted: false,
+            },
+          };
         }
+      } catch {
+        // rq-terminalAggregateRead01: per-candidate failure is bounded;
+        // one bad/missing workflow does not abort the aggregate read.
+        // Fall through to the fallback chain below.
+      }
+
+      // Once the aggregate budget is gone no fallback stage may begin;
+      // record typed incompleteness instead of initiating more reads
+      // (design execution note 2 — never re-enter a retry loop).
+      if (expired()) {
+        markDeadline("workflow_query");
+        return {
+          resolution: {
+            id: changeId,
+            terminal: isArchiveCandidate,
+            omitted: true,
+            omissionReason: "deadline",
+          },
+        };
+      }
+
+      try {
+        const result = await raceWithTemporalDeadline(
+          legacy.changes.get(changeId),
+          deadline,
+        );
+        if (result.success && result.data) {
+          const terminal =
+            result.data.status === "archived" ||
+            result.data.status === "closed";
+
+          // Layer A1 defensive override: if disk-fallback returned a
+          // non-terminal status but an archive bundle exists, treat
+          // as archived (the bundle is the durable terminal record).
+          if (
+            !terminal &&
+            (await raceWithTemporalDeadline(
+              checkArchiveBundle(changeId),
+              deadline,
+            ))
+          ) {
+            return {
+              change: { ...result.data, status: "archived" },
+              resolution: {
+                id: changeId,
+                terminal: true,
+                source: "archive",
+                omitted: false,
+              },
+            };
+          }
+
+          return {
+            change: result.data,
+            resolution: {
+              id: changeId,
+              terminal,
+              source: "disk",
+              omitted: false,
+            },
+          };
+        }
+
+        // Archive-only fallback: when there is no source-dir shadow
+        // (legacy.changes.get returned success: false) but an archive
+        // bundle exists, load the change directly from the bundle.
+        // The bundle is the durable terminal record per
+        // rq-archiveRetirement01.1.
+        if (
+          !result.success &&
+          legacy.paths.archive &&
+          (await raceWithTemporalDeadline(
+            checkArchiveBundle(changeId),
+            deadline,
+          ))
+        ) {
+          try {
+            const archiveLoad = await raceWithTemporalDeadline(
+              loadChange(legacy.paths.archive, changeId),
+              deadline,
+            );
+            if (archiveLoad.success && archiveLoad.data) {
+              return {
+                change: archiveLoad.data,
+                resolution: {
+                  id: changeId,
+                  terminal: true,
+                  source: "archive",
+                  omitted: false,
+                },
+              };
+            }
+          } catch {
+            // fall through to omission
+          }
+        }
+      } catch {
+        // fall through to omission
+      }
+
+      // Omissions are recorded for terminal candidates (existing
+      // rq-terminalAggregateRead01 semantics) and for any candidate lost
+      // to deadline expiry (new typed incompleteness).
+      const hitDeadline = expired();
+      if (hitDeadline) markDeadline("workflow_query");
+      if (isArchiveCandidate || hitDeadline) {
+        return {
+          resolution: {
+            id: changeId,
+            terminal: isArchiveCandidate,
+            omitted: true,
+            omissionReason: hitDeadline ? "deadline" : "load_failed",
+          },
+        };
+      }
+      return {};
+    };
+
+    for (let i = 0; i < hydrationIds.length; i += CHANGE_LIST_BATCH_SIZE) {
+      // Batch admission: no new load work begins after expiry. Remaining
+      // candidates become typed omissions rather than hanging the read.
+      if (expired()) {
+        markDeadline("workflow_query");
+        for (const changeId of hydrationIds.slice(i)) {
+          candidateResolutions.push({
+            id: changeId,
+            terminal: archiveIdSet.has(changeId),
+            omitted: true,
+            omissionReason: "deadline",
+          });
+        }
+        break;
+      }
+      const batch = hydrationIds.slice(i, i + CHANGE_LIST_BATCH_SIZE);
+      const loaded = await Promise.all(batch.map(loadCandidate));
+      for (const entry of loaded) {
+        if (entry.change) changes.push(entry.change);
+        if (entry.resolution) candidateResolutions.push(entry.resolution);
       }
     }
 
@@ -926,104 +1176,18 @@ export function createTemporalStoreBackend(
     }
     const resolvedChanges = Array.from(byCanonicalId.values());
 
-    // Degraded metadata is only surfaced for terminal aggregate reads.
-    if (!wantsTerminalStatuses) {
-      return { changes: resolvedChanges };
-    }
-
-    // Re-run the per-candidate load bookkeeping with source tracking so
-    // we can classify terminal candidates by origin and count omissions.
-    // This intentionally mirrors the load logic above to keep classification
-    // structural rather than timer-based.
-    for (let i = 0; i < changeIds.length; i += CHANGE_LIST_BATCH_SIZE) {
-      const batch = changeIds.slice(i, i + CHANGE_LIST_BATCH_SIZE);
-      await Promise.all(
-        batch.map(async (changeId) => {
-          const isArchiveCandidate = archiveIds.includes(changeId);
-          const isTerminalCandidate = isArchiveCandidate;
-
-          try {
-            const result = await getTemporalChange(changeId);
-            if (result.success && result.data) {
-              const terminal =
-                result.data.status === "archived" ||
-                result.data.status === "closed";
-              candidateResolutions.push({
-                id: changeId,
-                terminal,
-                source: result.source,
-                omitted: false,
-              });
-              return;
-            }
-          } catch {
-            // fall through to explicit fallback classification
-          }
-
-          try {
-            const result = await legacy.changes.get(changeId);
-            if (result.success && result.data) {
-              const terminal =
-                result.data.status === "archived" ||
-                result.data.status === "closed";
-              if (!terminal && (await checkArchiveBundle(changeId))) {
-                candidateResolutions.push({
-                  id: changeId,
-                  terminal: true,
-                  source: "archive",
-                  omitted: false,
-                });
-                return;
-              }
-              candidateResolutions.push({
-                id: changeId,
-                terminal,
-                source: "disk",
-                omitted: false,
-              });
-              return;
-            }
-
-            if (
-              !result.success &&
-              legacy.paths.archive &&
-              (await checkArchiveBundle(changeId))
-            ) {
-              try {
-                const archiveLoad = await loadChange(
-                  legacy.paths.archive,
-                  changeId,
-                );
-                if (archiveLoad.success && archiveLoad.data) {
-                  candidateResolutions.push({
-                    id: changeId,
-                    terminal: true,
-                    source: "archive",
-                    omitted: false,
-                  });
-                  return;
-                }
-              } catch {
-                // fall through to omission
-              }
-            }
-          } catch {
-            // fall through to omission
-          }
-
-          if (isTerminalCandidate) {
-            candidateResolutions.push({
-              id: changeId,
-              terminal: true,
-              omitted: true,
-            });
-          }
-        }),
-      );
-    }
+    // Terminal provenance/omission classification was recorded during the
+    // single load pass above — there is intentionally no second per-
+    // candidate load loop (KD2; previously this section re-ran the whole
+    // load chain for classification only).
 
     const terminalResolutions = candidateResolutions.filter((r) => r.terminal);
-    const omitted = terminalResolutions.filter((r) => r.omitted).length;
+    // Bounded omissions carry their own warning code; they must not
+    // inflate the terminal load-failure omission count.
+    const omittedResolutions = terminalResolutions.filter(
+      (r) => r.omitted && r.omissionReason !== "bounded",
+    );
+    const omitted = omittedResolutions.length;
     const terminalFromArchive = terminalResolutions.filter(
       (r) => !r.omitted && r.source === "archive",
     ).length;
@@ -1033,22 +1197,87 @@ export function createTemporalStoreBackend(
     const terminalFromWorkflow = terminalResolutions.filter(
       (r) => !r.omitted && r.source === "workflow",
     ).length;
+    const deadlineOmissions = candidateResolutions.filter(
+      (r) => r.omitted && r.omissionReason === "deadline",
+    );
+    const boundedOmissions = candidateResolutions.filter(
+      (r) => r.omitted && r.omissionReason === "bounded",
+    );
 
     const warnings: TerminalWarning[] = [];
-    for (const source of degradedSources) {
+    if (wantsTerminalStatuses) {
+      for (const source of degradedSources) {
+        warnings.push({
+          code: "TERMINAL_SOURCE_DEGRADED" as TerminalWarningCode,
+          source,
+          message: `Terminal ${source} source could not be enumerated; rows may be incomplete.`,
+        });
+      }
+      if (omitted > 0) {
+        warnings.push({
+          code: "TERMINAL_CANDIDATE_OMITTED" as TerminalWarningCode,
+          source: "workflow_query",
+          message: `${omitted} terminal candidate(s) could not be loaded from any available source.`,
+          omittedCount: omitted,
+          omittedIds: omittedResolutions.map((r) => r.id).slice(0, 20),
+        });
+      }
+    }
+    // Deadline-triggered incompleteness is typed on BOTH active and
+    // terminal paths — a deadline-truncated result must never look
+    // complete (C2). Source failures keep their terminal-only warning
+    // semantics for compatibility.
+    if (deadlineExceeded) {
+      const sources =
+        deadlineSources.size > 0
+          ? Array.from(deadlineSources)
+          : (["workflow_query"] as TerminalSource[]);
+      for (const source of sources) {
+        warnings.push({
+          code: "SOURCE_DEADLINE_EXCEEDED" as TerminalWarningCode,
+          source,
+          message: `Aggregate read deadline (${deadline.budgetMs}ms) exceeded while resolving ${source}; results are incomplete.`,
+          ...(deadlineOmissions.length > 0
+            ? {
+                omittedCount: deadlineOmissions.length,
+                omittedIds: deadlineOmissions.map((r) => r.id).slice(0, 20),
+              }
+            : {}),
+        });
+      }
+    }
+    // Caller-bound truncation is typed on BOTH active and terminal paths:
+    // a bound-truncated result must never look complete (C2), and counts/
+    // recency derived from it are explicitly partial (KD4 risk row).
+    if (boundedOmissions.length > 0) {
       warnings.push({
-        code: "TERMINAL_SOURCE_DEGRADED" as TerminalWarningCode,
-        source,
-        message: `Terminal ${source} source could not be enumerated; rows may be incomplete.`,
+        code: "SOURCE_BOUND_EXCEEDED" as TerminalWarningCode,
+        source: "workflow_query",
+        message: `Read bound (${candidateLimit} candidate(s)) truncated ${boundedOmissions.length} candidate(s); counts and recency are incomplete.`,
+        omittedCount: boundedOmissions.length,
+        omittedIds: boundedOmissions.map((r) => r.id).slice(0, 20),
       });
     }
-    if (omitted > 0) {
-      warnings.push({
-        code: "TERMINAL_CANDIDATE_OMITTED" as TerminalWarningCode,
-        source: "workflow_query",
-        message: `${omitted} terminal candidate(s) could not be loaded from any available source.`,
-        omittedCount: omitted,
-      });
+
+    // Active/default path: no terminal degraded metadata (preserved
+    // compatibility), but deadline and bound degradation always surface.
+    if (!wantsTerminalStatuses) {
+      if (warnings.length === 0) {
+        return { changes: resolvedChanges };
+      }
+      return {
+        changes: resolvedChanges,
+        warnings,
+        hydrationStats: {
+          ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
+          ...(deadlineOmissions.length > 0
+            ? { omitted: deadlineOmissions.length }
+            : {}),
+          ...(boundedOmissions.length > 0
+            ? { boundedOmitted: boundedOmissions.length }
+            : {}),
+        },
+      };
     }
 
     const hydrationStats: HydrationStats = {
@@ -1057,27 +1286,49 @@ export function createTemporalStoreBackend(
       terminalFromDisk,
       terminalFromWorkflow,
       omitted,
+      ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
+      ...(boundedOmissions.length > 0
+        ? { boundedOmitted: boundedOmissions.length }
+        : {}),
     };
 
     return {
       changes: resolvedChanges,
       ...(warnings.length > 0 ? { warnings } : {}),
-      ...(terminalResolutions.length > 0 ? { hydrationStats } : {}),
+      ...(terminalResolutions.length > 0 || deadlineExceeded
+        ? { hydrationStats }
+        : {}),
     };
   };
 
-  const buildTemporalStatus = async (): Promise<ProjectStatus> => {
+  const buildTemporalStatus = async (
+    options?: import("../store-types").StatusReadOptions,
+  ): Promise<ProjectStatus> => {
     // P2.2: status no longer routes through legacy.status(). Specs come
     // from listSpecsActivity (disk read), changes come from Temporal-derived
     // listResolvedChanges, recommendations are an empty array (the doctor-
     // prefixed recs were generated by corruption-recovery.ts which is
     // deleted in P2.7 — no longer relevant in Temporal-only mode).
+    //
+    // One request-scoped aggregate deadline covers this status read
+    // (KD1/KD5); callers may share their own via options. The summary
+    // bound (recentLimit) travels into the resolver as a candidate limit
+    // so deep hydration stops at the bound instead of hydrating every
+    // candidate and slicing afterwards (KD4 / AC3).
+    const deadline = options?.deadline ?? createTemporalReadDeadline();
     const specsResult = await listSpecsActivity({
       specsDir: legacy.paths.specs,
     });
     const specCapabilities = specsResult.ok ? specsResult.specs : [];
 
-    const { changes } = await listResolvedChanges();
+    const resolved = await listResolvedChanges(
+      undefined,
+      deadline,
+      options?.recentLimit !== undefined
+        ? { candidateLimit: options.recentLimit }
+        : undefined,
+    );
+    const { changes, warnings, hydrationStats } = resolved;
     const now = new Date();
     const byStatus: Record<ChangeStatus, number> = {
       draft: 0,
@@ -1091,7 +1342,7 @@ export function createTemporalStoreBackend(
       byStatus[change.status]++;
     }
 
-    const recent = changes
+    const sortedRecent = changes
       .filter(
         (change) => change.status !== "archived" && change.status !== "closed",
       )
@@ -1109,6 +1360,14 @@ export function createTemporalStoreBackend(
         const cmp = b.lastActivityAt.localeCompare(a.lastActivityAt);
         return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
       });
+    // Defensive projection bound: the resolver already bounded candidates
+    // when recentLimit was supplied, so this slice is a no-op on that
+    // path; it keeps the read model honest for any future caller that
+    // passes a limit without resolver support.
+    const recent =
+      options?.recentLimit !== undefined
+        ? sortedRecent.slice(0, options.recentLimit)
+        : sortedRecent;
 
     return {
       specs: {
@@ -1121,6 +1380,13 @@ export function createTemporalStoreBackend(
         recent,
       },
       recommendations: [],
+      // Request-local resolved documents for enrichment reuse (KD4/AC4).
+      // Transport-only; adv_status strips this before serializing output.
+      resolvedChanges: new Map(
+        changes.map((change) => [change.id, change] as const),
+      ),
+      ...(warnings && warnings.length > 0 ? { warnings } : {}),
+      ...(hydrationStats ? { hydrationStats } : {}),
     };
   };
 
@@ -1237,7 +1503,7 @@ export function createTemporalStoreBackend(
     tasks: createTaskOps(deps),
     gates: createGateOps(deps),
     wisdom: createWisdomOps(deps),
-    status: async () => buildTemporalStatus(),
+    status: async (options) => buildTemporalStatus(options),
     epics: createEpicOps(deps),
   };
 
