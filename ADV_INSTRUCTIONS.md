@@ -162,7 +162,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-coordinate`           | Audit project changes, Epic alignment, sequencing, and membership health                             |
 | `/adv-triage`               | Triage backlog sources, reconcile into GH issues, apply bug priority labels, regenerate ROADMAP.md |
 | `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                                    |
-| `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |
+| `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up candidates             |
 | `/adv-optimizer [target]`   | Analyze code simplification opportunities and propose optimizer changes                              |
 
 ## Command Boundaries
@@ -267,7 +267,6 @@ Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,
 | All tasks                | `adv_task_list`                                           |
 | Active changes           | `adv_change_list`                                         |
 | Validate                 | `adv_change_validate`                                     |
-| Agenda                   | `adv_agenda_list`                                         |
 | Wisdom                   | `adv_wisdom_list`                                         |
 
 On direct-read failure → stop, call `adv_change_show` or `adv_task_show`.
@@ -578,7 +577,7 @@ Reads use `snapshot-ok` + `_projectContext`; mutations use `temporal-required` +
 
 - `snapshot-ok`: `adv_change_show`, `adv_change_list`, `adv_change_validate`, `adv_status`, `adv_task_show`, `adv_task_list`, `adv_task_ready`.
 - `temporal-required`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_task_reclassify_tdd`, `adv_epic_link_change`, `adv_epic_unlink_change`, `adv_epic_move_change`, `adv_epic_repair_membership`, `adv_gate_status`, `adv_gate_complete`, `adv_temporal_reconnect`, `adv_temporal_worker_restart`, `adv_run_test`. Epic membership tools treat `target_path` as child-change routing and also accept `epic_owner_target_path` for remote Epic owner routing; both require trust confirmation when untrusted.
-- Current-project only: `adv_temporal_register_search_attributes`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
+- Current-project only: `adv_temporal_register_search_attributes`, `adv_reflect`, `adv_conformance`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
 
 Missing `target_path` and genuinely cross-project? Switch sessions: `cd <other-project> && opencode`.
 

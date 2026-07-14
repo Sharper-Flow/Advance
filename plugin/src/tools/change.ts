@@ -1133,7 +1133,7 @@ export const changeTools = {
         "Origin provenance kind. " +
           "'roadmap' = promoted from a GitHub Project / ROADMAP.md item (origin_issue_number required). " +
           "'discovery' = surfaced mid-session (bug found, drive-by improvement). " +
-          "'triage' = promoted by /adv-triage from agenda/wisdom/notes (origin_source_artifact recommended). " +
+          "'triage' = promoted by /adv-triage from wisdom/notes (origin_source_artifact recommended). " +
           "'adhoc' = explicit, no upstream artifact. " +
           "Omit to leave origin unset (legacy/backward-compatible).",
       ),
@@ -1151,7 +1151,8 @@ export const changeTools = {
         .optional()
         .describe(
           "Stable reference to the upstream artifact for kind=triage or kind=discovery. " +
-            "Examples: agenda-id ('ag-...'), wisdom-id, task-id, or note-line ref.",
+            "Examples: wisdom-id, task-id, or note-line ref. " +
+            "Parse-only legacy: agenda-id ('ag-...') values remain readable for historical records.",
         ),
     },
     execute: async (

@@ -626,11 +626,11 @@ export const storeCleanupTools = {
   adv_store_cleanup: {
     description:
       "Maintenance-only legacy Agenda cleanup across discoverable local ADV stores. " +
-      "action 'scan' (default, read-only) inventories every store with agenda data, classifying safety. " +
-      "action 'dry_run' emits the per-store cleanup plan with zero mutations. " +
+      "action 'scan' (default, read-only) inventories every store holding legacy agenda data, classifying safety. " +
+      "action 'dry_run' emits the per-store legacy agenda cleanup plan with zero mutations. " +
       "action 'execute' applies the exact dry-run plan: approval-gated, manifest-before-delete, " +
       "retains unsafe stores for retry, and refuses when worker.lock is live or a consolidation " +
-      "ledger with agenda_row entries exists.",
+      "ledger with legacy agenda_row entries exists.",
     args: {
       action: z
         .enum(["scan", "dry_run", "execute"])

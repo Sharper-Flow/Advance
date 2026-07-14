@@ -49,14 +49,6 @@ const COMMAND_EMOJIS: Record<string, string> = {
 
   // Test Operations
   adv_run_test: "🧪",
-
-  // Agenda Operations
-  adv_agenda_list: "📅",
-  adv_agenda_add: "➕",
-  adv_agenda_start: "▶️",
-  adv_agenda_complete: "✅",
-  adv_agenda_cancel: "❌",
-  adv_agenda_prioritize: "⬆️",
 };
 
 const DEFAULT_EMOJI = "🔧";

@@ -177,7 +177,6 @@ function makeStore(overrides?: { sourceChange?: Change }): Store {
     tasks: {} as Store["tasks"],
     gates: {} as Store["gates"],
     wisdom: {} as Store["wisdom"],
-    agenda: {} as Store["agenda"],
   } as Store;
 }
 
@@ -378,26 +377,20 @@ describe("adv_followup_promote", () => {
     expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
   });
 
-  test("supports agenda fallback source", async () => {
-    const store = makeStore();
-
-    const output = await followupTools.adv_followup_promote.execute(
-      {
-        source_change_id: "sourceChange",
-        source_kind: "agenda",
-        source_agenda_id: "ag-123",
-        relationship: "cleanup_after",
-        kind: "cleanup",
-        summary: "Clean up temp tables",
-      },
-      store,
-    );
-    const parsed = parseToolOutput(output);
-
-    expect(parsed.success).toBe(true);
-    expect(parsed.ops_followup.source.source_kind).toBe("agenda");
-    expect(parsed.ops_followup.source.source_agenda_id).toBe("ag-123");
-    expect(parsed.ops_followup.source.source_artifact).toBe("ag-123");
+  test("rejects agenda as a source kind (retireAgendaWorkflow)", async () => {
+    // The tool-input SOURCE_KIND_SCHEMA must reject "agenda" for new
+    // promotions. OpsFollowupSourceSchema keeps "agenda" for parse-only
+    // legacy compatibility (AC8) but the tool input enum does not. Since
+    // execute() is invoked directly here (bypassing the SDK's tool()
+    // Zod boundary), we assert against the input arg schema.
+    const argsSchema = followupTools.adv_followup_promote.args
+      .source_kind as unknown as { options: string[] };
+    expect(argsSchema.options).not.toContain("agenda");
+    expect(argsSchema.options).toEqual([
+      "required_follow_up",
+      "report_follow_up",
+      "manual",
+    ]);
   });
 
   test("supports manual fallback source", async () => {

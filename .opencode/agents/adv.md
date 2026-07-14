@@ -72,18 +72,11 @@ tools:
   adv_task_cancel: true
   adv_task_checkpoint: true
   # Wisdom
-  adv_wisdom_list: true
-  adv_wisdom_add: true
-  adv_project_wisdom_list: true
-  # Agenda
-  adv_agenda_list: true
-  adv_agenda_add: true
-  adv_agenda_start: true
-  adv_agenda_complete: true
-  adv_agenda_cancel: true
-  adv_agenda_prioritize: true
-  # Gates
-  adv_gate_status: true
+   adv_wisdom_list: true
+   adv_wisdom_add: true
+   adv_project_wisdom_list: true
+   # Gates
+   adv_gate_status: true
   adv_gate_complete: true
   adv_contract_mint: true
   adv_contract_review_matrix_set: true
@@ -403,7 +396,6 @@ Decision rationale (major decisions only): when `docs/command-voice-standard.md`
 | List all active changes        | `adv_change_list`     |
 | Validate a change              | `adv_change_validate` |
 | Wisdom / learnings             | `adv_wisdom_list`     |
-| Agenda items                   | `adv_agenda_list`     |
 | Conformance state              | `adv_conformance action: "status"` |
 
 If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead. Artifact content comes from `adv_change_show include:{proposal|problemStatement|agreement|design|executiveSummary|acceptance:true}` or packet inline content, not `artifacts.*.path` unless explicitly `readable:true`.

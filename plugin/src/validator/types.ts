@@ -151,7 +151,6 @@ export type ConflictInventoryCompleteness = "complete" | "degraded" | "blocked";
 
 /**
  * Complete paginated typed change inventory used for conflict detection.
- * Replaces the legacy adv_agenda_list-based conflict scan.
  */
 export interface ConflictInventory {
   /** All enumerated changes (active + archived) */

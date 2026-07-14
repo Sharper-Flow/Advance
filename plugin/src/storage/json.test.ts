@@ -54,7 +54,7 @@ describe("getProjectPaths", () => {
     expect(paths.archive).toBe("/project/.adv/archive");
     expect("db" in paths).toBe(false);
     expect(paths.wisdom).toBe("/project/.adv/wisdom.jsonl");
-    expect(paths.agenda).toBe("/project/.adv/agenda.jsonl");
+    expect("agenda" in paths).toBe(false);
     expect(paths.reflections).toBe("/project/.adv/reflections.jsonl");
     expect(paths.projectMetadata).toBe("/project/.adv/project-metadata.json");
     expect(paths.snapshotRepairAudit).toBe(
@@ -88,7 +88,7 @@ describe("getProjectPaths", () => {
     expect(paths.archive).toBe("/ext/data/abc123/archive");
     expect("db" in paths).toBe(false);
     expect(paths.wisdom).toBe("/ext/data/abc123/wisdom.jsonl");
-    expect(paths.agenda).toBe("/ext/data/abc123/agenda.jsonl");
+    expect("agenda" in paths).toBe(false);
     expect(paths.reflections).toBe("/ext/data/abc123/reflections.jsonl");
     expect(paths.projectMetadata).toBe(
       "/ext/data/abc123/project-metadata.json",

@@ -128,11 +128,10 @@ export const SubagentConsumerWarningSchema = z
       "verification_mismatch",
       "verification_missing",
       "consumer_failure",
-      // Advisory marker emitted when the design-concern promotion consumer
-      // routes a designer design_dimensions concern / neighboring recommendation
-      // into a durable required-obligation agenda item. Surfacing only — the
-      // structural acceptance/release block is owned by the gate-readiness
-      // evaluator, not this warning.
+      // Advisory marker emitted when a designer design_dimensions concern /
+      // neighboring recommendation is raised. The structural acceptance/release
+      // block is owned by the gate-readiness evaluator; this warning surfaces
+      // that a typed disposition (adv_design_concern_disposition) is required.
       "design_concern_promoted",
     ]),
     message: z.string().min(1),

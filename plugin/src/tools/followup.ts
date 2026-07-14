@@ -3,8 +3,11 @@
  *
  * Promotes typed ops/enabler follow-ups from structured sources
  * (required_follow_up in sub-agent reports, sidecar report metadata) into
- * linked ADV child changes with an `ops_followup` profile. Agenda items and
- * manual fallback are supported but are explicitly secondary to typed sources.
+ * linked ADV child changes with an `ops_followup` profile. Manual fallback
+ * is supported but explicitly secondary to typed sources. retireAgendaWorkflow:
+ * new promotions no longer accept Agenda as a source kind; legacy records
+ * carrying `source_kind: "agenda"` remain parseable on the persisted
+ * OpsFollowupSource schema (AC8 parse-only).
  *
  * Authority split:
  *   - The child/follow-up change owns `ops_followup` (source, status, evidence).
@@ -47,10 +50,13 @@ import {
   type RequiredFollowUp,
 } from "../types";
 
+// retireAgendaWorkflow: "agenda" removed from the tool-input enum. The
+// persisted OpsFollowupSource schema in types/changes.ts still accepts
+// "agenda" for parse-only legacy compatibility (AC8); new promotions must
+// use typed report/manual sources.
 const SOURCE_KIND_SCHEMA = z.enum([
   "required_follow_up",
   "report_follow_up",
-  "agenda",
   "manual",
 ]);
 
@@ -186,7 +192,6 @@ interface PromotionInput {
   source_change_id: string;
   source_kind: z.infer<typeof SOURCE_KIND_SCHEMA>;
   source_report_key?: string;
-  source_agenda_id?: string;
   source_contract_id?: string;
   source_task_id?: string;
   relationship: z.infer<typeof OpsRelationshipSchema>;
@@ -211,39 +216,17 @@ async function validateSource(
     }
   | { ok: false; error: string }
 > {
-  const {
-    source_kind,
-    source_report_key,
-    source_agenda_id,
-    source_contract_id,
-    summary,
-  } = input;
+  const { source_kind, source_report_key, source_contract_id, summary } = input;
 
   if (source_kind === "manual") {
-    if (source_report_key || source_agenda_id) {
-      return {
-        ok: false,
-        error:
-          "Manual source cannot include source_report_key or source_agenda_id. Use source_kind 'report_follow_up' or 'agenda' for structured sources.",
-      };
-    }
-    return { ok: true, sourceArtifact: undefined };
-  }
-
-  if (source_kind === "agenda") {
-    if (!source_agenda_id) {
-      return {
-        ok: false,
-        error: "Agenda source requires source_agenda_id.",
-      };
-    }
     if (source_report_key) {
       return {
         ok: false,
-        error: "Agenda source cannot include source_report_key.",
+        error:
+          "Manual source cannot include source_report_key. Use source_kind 'report_follow_up' or 'required_follow_up' for structured sources.",
       };
     }
-    return { ok: true, sourceArtifact: source_agenda_id };
+    return { ok: true, sourceArtifact: undefined };
   }
 
   // report_follow_up or required_follow_up
@@ -384,9 +367,6 @@ function buildOpsFollowupProfile(
       ? input.source_report_key
         ? { source_report_key: input.source_report_key }
         : {}
-      : {}),
-    ...(input.source_kind === "agenda" && input.source_agenda_id
-      ? { source_agenda_id: input.source_agenda_id }
       : {}),
   };
 
@@ -571,14 +551,14 @@ export const followupTools = {
   adv_followup_promote: {
     description:
       "Promote an ops/enabler follow-up into a linked ADV child change with a typed ops_followup profile. " +
-      "Prefers structured sources (required_follow_up from sub-agent reports, report metadata) over agenda text or manual fallback. " +
+      "Prefers structured sources (required_follow_up from sub-agent reports, report metadata) over manual fallback. " +
       "Creates the child change, seeds its ops_followup profile, and records an outbound ops_followup_link on the source change.",
     args: {
       source_change_id: z
         .string()
         .describe("Change ID that originated the follow-up."),
       source_kind: SOURCE_KIND_SCHEMA.describe(
-        "Structured source kind. required_follow_up/report_follow_up use source_report_key; agenda uses source_agenda_id; manual has no artifact.",
+        "Structured source kind. required_follow_up/report_follow_up use source_report_key; manual has no artifact.",
       ),
       source_report_key: z
         .string()
@@ -586,10 +566,6 @@ export const followupTools = {
         .describe(
           "Sub-agent report key when source_kind is required_follow_up or report_follow_up.",
         ),
-      source_agenda_id: z
-        .string()
-        .optional()
-        .describe("Agenda item ID when source_kind is agenda. Fallback only."),
       source_contract_id: z
         .string()
         .optional()
@@ -632,7 +608,6 @@ export const followupTools = {
         source_change_id,
         source_kind,
         source_report_key,
-        source_agenda_id,
         source_contract_id,
         source_task_id,
         relationship,
@@ -648,7 +623,6 @@ export const followupTools = {
         source_change_id: string;
         source_kind: z.infer<typeof SOURCE_KIND_SCHEMA>;
         source_report_key?: string;
-        source_agenda_id?: string;
         source_contract_id?: string;
         source_task_id?: string;
         relationship: z.infer<typeof OpsRelationshipSchema>;
@@ -694,7 +668,6 @@ export const followupTools = {
                 source_change_id,
                 source_kind,
                 source_report_key,
-                source_agenda_id,
                 source_contract_id,
                 source_task_id,
                 relationship,
@@ -721,7 +694,6 @@ export const followupTools = {
           source_change_id,
           source_kind,
           source_report_key,
-          source_agenda_id,
           source_contract_id,
           source_task_id,
           relationship,

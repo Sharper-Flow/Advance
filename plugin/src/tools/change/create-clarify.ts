@@ -912,9 +912,9 @@ export function productContextOutput(
  * branch-local spec changes.
  *
  * Builds a typed conflict inventory (complete paginated change inventory
- * with Epic/member context and explicit completeness state) to replace the
- * legacy adv_agenda_list-based conflict scan. Active changes and Epic
- * members are authoritative; archived changes are related context only.
+ * with Epic/member context and explicit completeness state). Active changes
+ * and Epic members are authoritative; archived changes are related context
+ * only.
  */
 export async function loadValidationContext(
   store: Store,

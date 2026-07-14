@@ -23,9 +23,8 @@ tools:
   adv_change_list: true
   adv_change_show: true
   adv_task_list: true
-  adv_project_context: true
-  adv_agenda_list: true
-  adv_wisdom_list: true
+   adv_project_context: true
+   adv_wisdom_list: true
   adv_snapshot_health: true
   adv_subagent_report_submit: true
   # Disabled - Tron is repo read-only

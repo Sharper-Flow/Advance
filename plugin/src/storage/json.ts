@@ -139,7 +139,6 @@ export interface ProjectPaths {
   archive: string;
   retiredEpics: string;
   wisdom: string;
-  agenda: string;
   reflections: string;
   projectMetadata: string;
   /**
@@ -182,7 +181,6 @@ export function getProjectPaths(
       archive: join(ext, archiveDir),
       retiredEpics: join(ext, "retired-epics"),
       wisdom: join(ext, "wisdom.jsonl"),
-      agenda: join(ext, "agenda.jsonl"),
       reflections: join(ext, "reflections.jsonl"),
       projectMetadata: join(ext, "project-metadata.json"),
       snapshotRepairAudit: join(ext, "snapshot-repair-audit.jsonl"),
@@ -200,7 +198,6 @@ export function getProjectPaths(
     archive: join(root, config?.archive_dir ?? ".adv/archive"),
     retiredEpics: join(root, ".adv/retired-epics"),
     wisdom: join(root, ".adv/wisdom.jsonl"),
-    agenda: join(root, ".adv/agenda.jsonl"),
     reflections: join(root, ".adv/reflections.jsonl"),
     projectMetadata: join(root, ".adv/project-metadata.json"),
     snapshotRepairAudit: join(root, ".adv/snapshot-repair-audit.jsonl"),

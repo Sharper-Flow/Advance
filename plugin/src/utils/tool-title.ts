@@ -165,16 +165,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
         : "Scan stores for legacy agenda",
     );
   },
-  adv_agenda_list: () => read("List agenda"),
-  adv_agenda_add: (args) => write(`Add agenda item${suffix(args, "title")}`),
-  adv_agenda_start: (args) =>
-    write(`Start agenda item${suffix(args, "itemId")}`),
-  adv_agenda_complete: (args) =>
-    write(`Complete agenda item${suffix(args, "itemId")}`),
-  adv_agenda_cancel: (args) =>
-    write(`Cancel agenda item${suffix(args, "itemId")}`),
-  adv_agenda_prioritize: (args) =>
-    write(`Prioritize agenda item${suffix(args, "itemId")}`),
   adv_project_metadata: (args) =>
     byAction(args, "Project metadata", {
       read: `Read project metadata${suffix(args, "key")}`,

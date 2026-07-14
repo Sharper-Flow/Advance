@@ -12,8 +12,14 @@
  *    checks only (C3).
  *  - `dry_run`: emit the full per-item consolidation plan — changes
  *    partitioned live vs terminal, archive bundles, Epics (incl.
- *    retired-epics), wisdom/agenda/reflections row counts, per-ID collision
+ *    retired-epics), wisdom/reflections row counts, per-ID collision
  *    report (AC5, DONT2) — with ZERO mutations (AC3, C2).
+ *
+ * retireAgendaWorkflow: consolidation no longer reads or writes
+ * `agenda.jsonl`. Legacy Agenda data is the responsibility of
+ * `adv_store_cleanup`, which is mutually serialized with consolidation
+ * via the shared ledger/lock primitives. Consolidation skips the file;
+ * cleanup handles its deletion and audit manifest.
  *
  * The `execute` action (task tk-9e02f3b6015f) applies the exact dry-run
  * plan: approval-gated (C2), terminal-first disk-projection imports, live
@@ -140,6 +146,11 @@ export type ConsolidationAppendPlan = z.infer<
  * (source_project_id, target_project_id, item_id); content-hashed so
  * re-runs are structurally idempotent (AC6). Exported for the execute
  * task (tk-9e02f3b6015f).
+ *
+ * Parse-only legacy: `agenda_row` is retained so existing ledgers with
+ * agenda_row entries continue to parse (retireAgendaWorkflow AC8). New
+ * consolidations do not write agenda_row items; legacy Agenda data is
+ * cleaned up by adv_store_cleanup.
  */
 export const ConsolidationLedgerRowSchema = z
   .object({
@@ -219,7 +230,6 @@ export const ConsolidationReportSchema = z
     appends: z
       .object({
         wisdom: ConsolidationAppendPlanSchema,
-        agenda: ConsolidationAppendPlanSchema,
         reflections: ConsolidationAppendPlanSchema,
       })
       .strict(),
@@ -285,7 +295,6 @@ export const ConsolidationScanStoreSchema = z
         archive_bundles: z.number().int().nonnegative(),
         retired_epics: z.number().int().nonnegative(),
         wisdom_rows: z.number().int().nonnegative(),
-        agenda_rows: z.number().int().nonnegative(),
         reflections_rows: z.number().int().nonnegative(),
       })
       .strict(),
@@ -703,7 +712,6 @@ export async function scanStoresForRepo(
         retired_epics: (await readdirSafe(join(ref.path, "retired-epics")))
           .length,
         wisdom_rows: await countJsonlRows(join(ref.path, "wisdom.jsonl")),
-        agenda_rows: await countJsonlRows(join(ref.path, "agenda.jsonl")),
         reflections_rows: await countJsonlRows(
           join(ref.path, "reflections.jsonl"),
         ),
@@ -812,7 +820,6 @@ export async function buildConsolidationPlan(
     sourceRetiredEpics,
     sourceLock,
     sourceWisdom,
-    sourceAgenda,
     sourceReflections,
   ] = await Promise.all([
     readStoreChanges(source.path),
@@ -820,7 +827,6 @@ export async function buildConsolidationPlan(
     readStoreRetiredEpics(source.path),
     probeWorkerLock(source.path),
     readJsonlHashed(join(source.path, "wisdom.jsonl")),
-    readJsonlHashed(join(source.path, "agenda.jsonl")),
     readJsonlHashed(join(source.path, "reflections.jsonl")),
   ]);
 
@@ -834,9 +840,6 @@ export async function buildConsolidationPlan(
     : [];
   const targetWisdom = target
     ? await readJsonlHashed(join(target.path, "wisdom.jsonl"))
-    : { rows: 0, malformed: 0, hashes: new Set<string>() };
-  const targetAgenda = target
-    ? await readJsonlHashed(join(target.path, "agenda.jsonl"))
     : { rows: 0, malformed: 0, hashes: new Set<string>() };
   const targetReflections = target
     ? await readJsonlHashed(join(target.path, "reflections.jsonl"))
@@ -1090,7 +1093,6 @@ export async function buildConsolidationPlan(
     },
     appends: {
       wisdom: appendPlan(sourceWisdom, targetWisdom),
-      agenda: appendPlan(sourceAgenda, targetAgenda),
       reflections: appendPlan(sourceReflections, targetReflections),
     },
     collisions,
@@ -1581,12 +1583,13 @@ export async function executeConsolidation(
   }
 
   // --- Phase 3: jsonl appends with content-hash dedupe ---------------------
+  // retireAgendaWorkflow: agenda.jsonl is intentionally absent. Legacy
+  // Agenda data is deleted by adv_store_cleanup, not consolidated.
   const appendTargets: Array<{
     file: string;
     itemKind: ConsolidationLedgerRow["item_kind"];
   }> = [
     { file: "wisdom.jsonl", itemKind: "wisdom_row" },
-    { file: "agenda.jsonl", itemKind: "agenda_row" },
     { file: "reflections.jsonl", itemKind: "reflection_row" },
   ];
   for (const { file, itemKind } of appendTargets) {
@@ -1715,9 +1718,9 @@ export const storeConsolidateTools = {
     description:
       "Consolidate an orphaned ADV identity store (minted under a shallow-boundary / unstable SHA) into the true-root store. " +
       "action 'scan' (default, read-only) enumerates candidate orphan stores for the current repo across XDG shard layouts and flags dirs minted under unstable SHAs. " +
-      "action 'dry_run' emits the full per-item plan (changes live vs terminal, archive bundles, Epics, wisdom/agenda/reflections, per-ID collision report) with zero mutations. " +
+      "action 'dry_run' emits the full per-item plan (changes live vs terminal, archive bundles, Epics, wisdom/reflections, per-ID collision report) with zero mutations. " +
       "Colliding item IDs halt with a per-ID report — nothing is overwritten. " +
-      "action 'execute' applies the exact dry-run plan: approval-gated (approvedByUser + approvalEvidence), refuses on a live source worker.lock or collisions, imports terminal items as disk projections first, recreates live changes/Epics under the true identity, appends wisdom/agenda/reflections with content-hash dedupe, and writes an append-only ledger so re-runs are idempotent no-ops.",
+      "action 'execute' applies the exact dry-run plan: approval-gated (approvedByUser + approvalEvidence), refuses on a live source worker.lock or collisions, imports terminal items as disk projections first, recreates live changes/Epics under the true identity, appends wisdom/reflections with content-hash dedupe, and writes an append-only ledger so re-runs are idempotent no-ops.",
     args: {
       action: z
         .enum(["scan", "dry_run", "execute"])
