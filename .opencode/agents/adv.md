@@ -378,7 +378,7 @@ Decision rationale (major decisions only): when `docs/command-voice-standard.md`
 
 - `~/.local/share/opencode/plugins/advance/**/change.json`
 - `~/.local/share/opencode/plugins/advance/**/proposal.md`
-- `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
+- legacy `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/conformance.json`
 

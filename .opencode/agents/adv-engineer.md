@@ -194,7 +194,7 @@ When scope is complete:
 - `~/.local/share/opencode/plugins/advance/**/design.md`
 - `~/.local/share/opencode/plugins/advance/**/executive-summary.md`
 - `~/.local/share/opencode/plugins/advance/**/acceptance.md`
-- `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
+- legacy `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/conformance.json`
 

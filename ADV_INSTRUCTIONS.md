@@ -256,7 +256,7 @@ When artifacts conflict, later gates override earlier gates. Spec requirements o
 
 × NEVER read ADV state files directly (`read`, `cat`, `ls`). Use ADV MCP tools exclusively.
 
-Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,problem-statement.md,agenda.jsonl,wisdom.jsonl,conformance.json}`
+Forbidden: `~/.local/share/opencode/plugins/advance/**/{change.json,proposal.md,problem-statement.md,wisdom.jsonl,conformance.json}` and legacy `agenda.jsonl` files.
 
 | Need                     | Tool                                                      |
 | ------------------------ | --------------------------------------------------------- |
@@ -1035,7 +1035,7 @@ ADV uses external mutable state shared by worktrees. Specs stay in repo (`.adv/s
 
 ### External State
 
-State: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (`changes/`, `archive/`, `wisdom.jsonl`, `reflections.jsonl`, `agenda.jsonl`). Worktrees: `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. Cleanup deletion requires approval.
+State: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (`changes/`, `archive/`, `wisdom.jsonl`, `reflections.jsonl`). Worktrees: `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. Legacy Agenda cleanup deletion requires approval.
 
 ### Worktree Policy
 
