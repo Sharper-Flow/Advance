@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.23.0
-> **Updated:** 2026-07-11
+> **Version:** 1.24.0
+> **Updated:** 2026-07-14
 
 ## Purpose
 
@@ -2637,5 +2637,50 @@ ADV project identity is derived from the repository root commit. In a shallow cl
 **Then:**
 - A multi-root repository resolves deterministically to the lexicographically first root commit
 - A non-git directory resolves to a not-git outcome (legacy null/fallback behavior), never an unstable-identity refusal
+
+---
+
+### Tool Ownership and Reachability Matrix
+
+**ID:** `rq-toolOwnership01` | **Priority:** **[MUST]**
+
+Every registered ADV tool must have an explicit ownership/reachability classification — orchestrator, operator-only, or dual (read: agent, mutate: operator) — recorded in the git-tracked matrix at docs/tool-ownership.md. Operator-only maintenance and recovery tools (adv_archive_purge, adv_archive_repair, adv_store_cleanup, adv_store_consolidate, adv_snapshot_health#repair, adv_temporal_worker_restart, adv_conformance#override) remain discoverable but must never become routine autonomous agent actions: agents invoke them only on explicit operator instruction with the required approval evidence. Dual tools expose agent-reachable reads while their mutation or refresh surfaces remain operator-owned. The matrix is advisory guidance enforced by static-check tests against tool-registry.ts ADV_TOOL_NAMES; adding or renaming a registered tool without a matrix row must fail CI.
+
+**Tags:** `tool-surface`, `ownership`, `operator-only`, `docs`
+
+#### Scenarios
+
+**Matrix document covers every registered tool** (`rq-toolOwnership01.1`)
+
+**Given:**
+- The set of registered tool names in plugin/src/tool-registry.ts ADV_TOOL_NAMES
+
+**When:** The tool-ownership static-check test runs
+
+**Then:**
+- docs/tool-ownership.md exists and contains a classification row for every ADV_TOOL_NAMES entry
+- A tool added to the registry without a matrix row fails CI
+
+**Operator-only maintenance tools are named and non-routine** (`rq-toolOwnership01.2`)
+
+**Given:**
+- The operator-only maintenance set: adv_archive_purge, adv_archive_repair, adv_store_cleanup, adv_store_consolidate, adv_snapshot_health#repair, adv_temporal_worker_restart, adv_conformance#override
+
+**When:** The matrix is consulted or an agent plans a maintenance or recovery action
+
+**Then:**
+- Each operator-only tool is classified in docs/tool-ownership.md with its approval/evidence gate
+- Agents treat these tools as discoverable but never routine autonomous actions; invocation requires explicit operator instruction
+
+**Dual tools split read and mutate reachability** (`rq-toolOwnership01.3`)
+
+**Given:**
+- A dual-classified tool such as adv_status, adv_project_metadata, adv_wip_state, adv_session_list, adv_session_show, or adv_roadmap
+
+**When:** An agent uses the tool
+
+**Then:**
+- Read actions are agent-reachable
+- Mutation or refresh surfaces remain operator-owned and are not invoked as routine autonomous agent actions
 
 ---
