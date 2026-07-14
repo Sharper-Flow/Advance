@@ -40,12 +40,12 @@ Gather:
 
 - Project purpose, stack, constraints from project context
 - Active/archived changes overlapping findings
-- Agenda items already covering same improvement
+- Follow-ups already covering same improvement
 - Relevant capability specs
 - Worktree path and source roots
 - Stack manifests: `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`
 
-Do not surface duplicates already covered by active changes or agenda unless new evidence changes priority.
+Do not surface duplicates already covered by active changes or existing follow-ups unless new evidence changes priority.
 
 ## Current-State Scan
 
@@ -129,7 +129,7 @@ Prefer recommendations that improve user value, reliability, security, or long-t
 
 ## Synthesis
 
-Deduplicate against active changes and agenda. Sort CRITICAL → HIGH → MEDIUM → LOW → GREENFIELD.
+Deduplicate against active changes and existing follow-ups. Sort CRITICAL → HIGH → MEDIUM → LOW → GREENFIELD.
 
 Report sections:
 
@@ -175,7 +175,7 @@ Hygiene:
 ## Constraints
 
 - Read-only with respect to ADV state.
-- No changes/tasks/gates/specs/agenda creation.
+- No changes/tasks/gates/specs/follow-up creation.
 - Evidence required.
 - Bounded findings and landscape counts.
 - Fallback notes must appear in report and research pack.

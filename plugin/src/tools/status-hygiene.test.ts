@@ -72,6 +72,15 @@ describe("appendArchivedBranchHygieneRecommendations", () => {
     expect(store.changes.listSummary).not.toHaveBeenCalled();
     expect(status.archived_branch_hygiene).toBeDefined();
     expect(status.archived_branch_hygiene.count).toBe(1);
+    expect(status.archived_branch_hygiene.recommendation).toContain(
+      "adv_worktree_cleanup",
+    );
+    expect(status.archived_branch_hygiene.recommendation).toContain(
+      "archived_branches",
+    );
+    expect(status.archived_branch_hygiene.recommendation).not.toContain(
+      "adv_archive_repair",
+    );
   });
 
   test("ignores ResolvedChangeList warnings and hydrationStats", async () => {

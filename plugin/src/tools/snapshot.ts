@@ -14,11 +14,15 @@ import { formatToolOutput } from "../utils/tool-output";
 import {
   scanSnapshotHealth,
   executeRepair,
+  SNAPSHOT_HEALTH_SCHEMA_VERSION,
   type SnapshotHealthOutput,
   type RepairAction,
   type RepairActionRecord,
 } from "./snapshot-scan";
-import { appendSnapshotRepairAudit } from "../storage/snapshot-repair-audit";
+import {
+  appendSnapshotRepairAudit,
+  listSnapshotRepairAudits,
+} from "../storage/snapshot-repair-audit";
 import { getProjectId } from "../utils/project-id";
 import type { Store } from "../storage/store";
 
@@ -26,12 +30,21 @@ import type { Store } from "../storage/store";
 // Constants
 // =============================================================================
 
-const REPAIR_ACTION_ENUM = [
+/**
+ * Closed repair whitelist (rq-snapshotHealthRepairWhitelist01). Exported so
+ * the validator parity test can assert spec/runtime name the same action set.
+ */
+export const REPAIR_ACTION_ENUM = [
   "delete_stale_locks",
   "delete_zero_byte_objects",
   "delete_orphan_bare_repos",
   "delete_fsck_corrupt_repos",
 ] as const;
+
+/** Default number of audit entries returned by action 'audit_history'. */
+const AUDIT_HISTORY_DEFAULT_LIMIT = 20;
+/** Hard cap on audit entries returned by action 'audit_history' (DDC2). */
+const AUDIT_HISTORY_MAX_LIMIT = 100;
 
 // =============================================================================
 // Tool Definitions
@@ -43,17 +56,29 @@ export const snapshotHealthTools = {
       "Detect and remediate OpenCode snapshot-store corruption. " +
       "Default action 'scan' is read-only and returns structured findings. " +
       "Action 'repair' requires approvedByUser:true, approvalEvidence, and repair_actions whitelist. " +
+      "Action 'audit_history' returns bounded recent repair-audit entries (project-scoped only, newest first; no secrets, no cross-project data). " +
       "Use scope:'global' to scan all OpenCode projects (read still safe; repair requires explicit approval).",
     args: {
       action: z
-        .enum(["scan", "repair"])
+        .enum(["scan", "repair", "audit_history"])
         .default("scan")
-        .describe("scan = read-only detection; repair = approval-gated fix"),
+        .describe(
+          "scan = read-only detection; repair = approval-gated fix; audit_history = bounded recent repair-audit entries",
+        ),
       scope: z
         .enum(["project", "global"])
         .default("project")
         .describe(
           "project = caller-project snapshot dir; global = all OpenCode projects",
+        ),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(AUDIT_HISTORY_MAX_LIMIT)
+        .optional()
+        .describe(
+          `audit_history only: max entries to return (default ${AUDIT_HISTORY_DEFAULT_LIMIT}, max ${AUDIT_HISTORY_MAX_LIMIT}).`,
         ),
       repair_actions: z
         .array(z.enum(REPAIR_ACTION_ENUM))
@@ -79,8 +104,9 @@ export const snapshotHealthTools = {
     },
     execute: async (
       args: {
-        action: "scan" | "repair";
+        action: "scan" | "repair" | "audit_history";
         scope: "project" | "global";
+        limit?: number;
         repair_actions?: RepairAction[];
         approvedByUser?: boolean;
         approvalEvidence?: string;
@@ -105,6 +131,43 @@ export const snapshotHealthTools = {
           projectId,
         });
         return formatToolOutput(output);
+      }
+
+      // ── Audit history: bounded, project-scoped, read-only ────────────────
+      // AC3 / DDC2 / DONT6: recent repair-audit entries without exposing
+      // secrets or unrelated project data. Entries are constrained to the
+      // strict SnapshotRepairAuditEntrySchema fields by the reader.
+      if (args.action === "audit_history") {
+        if (args.scope === "global") {
+          return formatToolOutput({
+            success: false,
+            error:
+              "audit_history is project-scoped only. scope:'global' is not supported for audit reads (no cross-project audit data).",
+          });
+        }
+        // Belt-and-suspenders clamp: Zod enforces 1..100 at the registry
+        // boundary, but direct callers bypass that validation.
+        const rawLimit = args.limit ?? AUDIT_HISTORY_DEFAULT_LIMIT;
+        const limit = Number.isFinite(rawLimit)
+          ? Math.min(Math.max(Math.floor(rawLimit), 1), AUDIT_HISTORY_MAX_LIMIT)
+          : AUDIT_HISTORY_DEFAULT_LIMIT;
+        // Same project-scoped path pair used by the append path above —
+        // the audit log of the caller's own project only.
+        const entries = await listSnapshotRepairAudits(
+          store.paths.root,
+          store.paths.snapshotRepairAudit,
+        );
+        // Newest first; the log itself is append order (oldest first).
+        const audits = entries.slice(-limit).reverse();
+        return formatToolOutput({
+          schema_version: SNAPSHOT_HEALTH_SCHEMA_VERSION,
+          action: "audit_history",
+          project_id: projectId,
+          total_entries: entries.length,
+          returned: audits.length,
+          limit,
+          audits,
+        });
       }
 
       // ── Repair: pre-flight validation ──────────────────────────────────────

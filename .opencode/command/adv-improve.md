@@ -80,7 +80,7 @@ Extract top-3 competitors + 2 emerging patterns max. Each entry needs source URL
 
 ## Phase 5: Synthesis
 
-Deduplicate against active changes and agenda. Sort CRITICAL → HIGH → MEDIUM → LOW → GREENFIELD.
+Deduplicate against active changes and existing follow-ups. Sort CRITICAL → HIGH → MEDIUM → LOW → GREENFIELD.
 
 Emit **IMPROVEMENT ANALYSIS** with Current State, Architecture, External Landscape, Summary, top 3 recommendations, health signal, and next commands: `/adv-proposal <summary>`, `/adv-task`, `/adv-audit`, `/adv-tron`.
 
@@ -106,7 +106,7 @@ If section cannot refresh, mark `⚠ not refreshed ({reason})` and preserve prio
 
 - No ADV state mutation.
 - Only write: research pack under `docs/*-prep.md`.
-- No change/agenda creation; suggestions only.
+- No change/follow-up creation; suggestions only.
 - Bounded: 5 findings/category, 3 competitors + 2 patterns.
 - Evidence required; reject evidence-free findings.
 - Fallback/unavailability notes MUST appear in report and pack.

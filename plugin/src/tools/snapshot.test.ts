@@ -15,6 +15,7 @@ import {
   SNAPSHOT_HEALTH_SCHEMA_VERSION,
 } from "./snapshot-scan";
 import { listSnapshotRepairAudits } from "../storage/snapshot-repair-audit";
+import { appendSnapshotRepairAudit } from "../storage/snapshot-repair-audit";
 import type { Store } from "../storage/store";
 
 // =============================================================================
@@ -339,5 +340,137 @@ describe("adv_snapshot_health", () => {
     expect(parsed).toHaveProperty("findings");
     expect(Array.isArray(parsed.findings)).toBe(true);
     expect(parsed.schema_version).toBe(SNAPSHOT_HEALTH_SCHEMA_VERSION);
+  });
+
+  // ── audit_history (AC3 / DDC2): bounded, project-scoped repair-audit reads ─
+
+  async function seedAuditEntries(count: number): Promise<void> {
+    for (let i = 0; i < count; i++) {
+      await appendSnapshotRepairAudit(
+        tempDir,
+        {
+          pattern: "stale_lock",
+          action: "delete_stale_locks",
+          target_path: `/tmp/repo-${i}/index.lock`,
+          before_summary: `Finding stale_lock at /tmp/repo-${i}/index.lock`,
+          after_summary: `Repair succeeded; target index.lock removed`,
+          outcome: "success",
+        },
+        store.paths.snapshotRepairAudit,
+      );
+    }
+  }
+
+  test("audit_history returns recent entries newest-first with default limit 20", async () => {
+    await seedAuditEntries(3);
+
+    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+      { action: "audit_history", scope: "project" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.schema_version).toBe(SNAPSHOT_HEALTH_SCHEMA_VERSION);
+    expect(parsed.action).toBe("audit_history");
+    expect(parsed.project_id).toBe("test-project-id");
+    expect(parsed.limit).toBe(20);
+    expect(parsed.total_entries).toBe(3);
+    expect(parsed.returned).toBe(3);
+    expect(parsed.audits).toHaveLength(3);
+    // Newest first: last appended entry leads.
+    expect(parsed.audits[0].target_path).toBe("/tmp/repo-2/index.lock");
+    expect(parsed.audits[2].target_path).toBe("/tmp/repo-0/index.lock");
+  });
+
+  test("audit_history bounds results to the requested limit", async () => {
+    await seedAuditEntries(25);
+
+    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+      { action: "audit_history", scope: "project", limit: 5 },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.total_entries).toBe(25);
+    expect(parsed.returned).toBe(5);
+    expect(parsed.limit).toBe(5);
+    expect(parsed.audits).toHaveLength(5);
+    // Tail of the log, newest first.
+    expect(parsed.audits[0].target_path).toBe("/tmp/repo-24/index.lock");
+    expect(parsed.audits[4].target_path).toBe("/tmp/repo-20/index.lock");
+  });
+
+  test("audit_history applies the default limit of 20", async () => {
+    await seedAuditEntries(25);
+
+    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+      { action: "audit_history", scope: "project" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.limit).toBe(20);
+    expect(parsed.returned).toBe(20);
+    expect(parsed.audits).toHaveLength(20);
+  });
+
+  test("audit_history clamps limit to the 100 maximum", async () => {
+    await seedAuditEntries(3);
+
+    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+      { action: "audit_history", scope: "project", limit: 500 },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.limit).toBe(100);
+    expect(parsed.returned).toBe(3);
+  });
+
+  test("audit_history refuses scope: global (no cross-project audit data)", async () => {
+    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+      { action: "audit_history", scope: "global" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("project");
+  });
+
+  test("audit_history returns an empty list when no audit log exists", async () => {
+    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+      { action: "audit_history", scope: "project" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.total_entries).toBe(0);
+    expect(parsed.returned).toBe(0);
+    expect(parsed.audits).toEqual([]);
+  });
+
+  test("audit_history entries expose only audit-schema fields (no secrets)", async () => {
+    await seedAuditEntries(1);
+
+    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+      { action: "audit_history", scope: "project" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.audits).toHaveLength(1);
+    expect(Object.keys(parsed.audits[0]).sort()).toEqual(
+      [
+        "id",
+        "pattern",
+        "action",
+        "target_path",
+        "before_summary",
+        "after_summary",
+        "outcome",
+        "recorded_at",
+      ].sort(),
+    );
   });
 });

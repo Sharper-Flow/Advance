@@ -18,7 +18,7 @@ Target resolution: file path → read directly, directory → outline all, symbo
 ## Exits
 | Exit | Condition |
 |------|-----------|
-| ✅ Report | Findings synthesized with agenda suggestions |
+| ✅ Report | Findings synthesized with follow-up suggestions |
 | 🎤 Clarify | Target too ambiguous |
 
 ---
@@ -36,7 +36,7 @@ Before deep reads, establish baseline context in this order:
 
 1. **WORKING DIRECTORY / repo root** — record the actual workdir and resolved target path.
 2. **Project context** — load `adv_project_context`.
-3. **active ADV state** — inspect active changes plus relevant agenda/wisdom/spec context using ADV read tools.
+3. **active ADV state** — inspect active changes plus relevant wisdom/spec context using ADV read tools.
 4. **repo tree/outline** — inspect repo tree/outline before target-local reads.
 5. **coverage gaps** — record unavailable tools, skipped dimensions, and unexamined areas.
 
@@ -96,9 +96,9 @@ EXPECTED OUTPUT: return TRON RECONNAISSANCE REPORT and call adv_subagent_report_
 
 Pass only:
 
-**Broad:** repo root, project context, ADV state (changes/agenda/specs), file tree summary. Task: map architecture, identify hotspots, note patterns, flag risks, check spec drift, suggest agenda items. Cap: 10 findings.
+**Broad:** repo root, project context, ADV state (changes/specs), file tree summary. Task: map architecture, identify hotspots, note patterns, flag risks, check spec drift, suggest follow-ups. Cap: 10 findings.
 
-**Scoped:** target, resolved files, repo root, project context, relevant ADV state. Task: deep-read target, trace dependencies, find related code, assess complexity/coverage/risk, check ADV overlap, suggest agenda items. Cap: 15 findings.
+**Scoped:** target, resolved files, repo root, project context, relevant ADV state. Task: deep-read target, trace dependencies, find related code, assess complexity/coverage/risk, check ADV overlap, suggest follow-ups. Cap: 15 findings.
 ## Phase 5: Synthesize
 Validate findings (require file references, remove evidence-free, deduplicate). Emit TRON RECONNAISSANCE REPORT:
 - Target/scope
@@ -106,7 +106,7 @@ Validate findings (require file references, remove evidence-free, deduplicate). 
 - Hotspots (file/module + why)
 - Risks (with file references)
 - Open questions
-- Possible agenda items (title, rationale, priority — suggestions only, not auto-created)
+- Possible follow-ups (title, rationale, priority — suggestions only, not auto-created)
 - Suggested next commands (command, target, trigger, rationale): `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, `/adv-proposal`, `/adv-task`, `/adv-tron`, and optional `/adv-audit` only for explicit spec-vs-implementation drift
 ## Constraints
 - Read-only — × never writes files or mutates ADV state

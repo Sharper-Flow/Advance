@@ -283,8 +283,9 @@ export function createToolMap(
       store,
     ),
 
-    // Roadmap Tool (legacy — delegates internally to adv_backlog_state via
-    // Visibility query when Temporal reachable; kept for backward compat)
+    // Roadmap Tool — reads the same backlog snapshot as adv_backlog_state;
+    // queries Visibility directly for active-change annotation when Temporal
+    // is reachable. Both tools coexist with different interfaces.
     adv_roadmap: bindTool(roadmapTools.adv_roadmap, "adv_roadmap", store),
 
     // Backlog Coordination Tools (rq-backlogCoord01..07)
@@ -403,6 +404,11 @@ export function createToolMap(
     adv_archive_repair: bindTool(
       changeTools.adv_archive_repair,
       "adv_archive_repair",
+      store,
+    ),
+    adv_archive_purge: bindTool(
+      changeTools.adv_archive_purge,
+      "adv_archive_purge",
       store,
     ),
     adv_change_status_repair: bindTool(
@@ -974,6 +980,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_validate",
   "adv_change_archive",
   "adv_archive_repair",
+  "adv_archive_purge",
   "adv_change_status_repair",
   "adv_change_update_issues",
   "adv_change_repair_origin",

@@ -29,6 +29,7 @@ import {
   scanStoresForCleanup,
   buildCleanupPlan,
   executeCleanup,
+  paginateCleanupPlan,
   StoreCleanupPlanSchema,
   StoreCleanupManifestRowSchema,
   AGENDA_CLEANUP_MANIFEST_FILENAME,
@@ -183,6 +184,7 @@ async function pathExists(p: string): Promise<boolean> {
 let base: string;
 let repoDir: string;
 let dataHomeRoot: string;
+let pagingRoot: string;
 let trueRoot: string;
 const storeA = "a".repeat(40);
 const storeB = "b".repeat(40);
@@ -227,6 +229,30 @@ beforeAll(async () => {
 
   // True store: no agenda.
   await writeStoreDir(legacyStorePath(dataHomeRoot, trueRoot), {
+    changes: [{ id: "change-true", status: "active" }],
+    wisdomRows: ["wisdom row"],
+  });
+
+  // Dedicated fixture for summary/pagination tests. The execute tests above
+  // mutate dataHomeRoot, so review-render tests get their own root that
+  // stays stable regardless of test order.
+  pagingRoot = join(base, "xdg-paging");
+  await writeStoreDir(legacyStorePath(pagingRoot, storeA), {
+    changes: [{ id: "change-a", status: "active" }],
+    agendaRows: ["agenda row 1", "agenda row 2"],
+    wisdomRows: ["wisdom row"],
+  });
+  await writeStoreDir(shardStorePath(pagingRoot, shardHash, storeB), {
+    changes: [{ id: "change-b", status: "active" }],
+    agendaRows: ["agenda row"],
+    workerLock: { pid: process.pid },
+  });
+  await writeStoreDir(legacyStorePath(pagingRoot, storeC), {
+    changes: [{ id: "change-c", status: "active" }],
+    agendaRows: ["agenda row"],
+    consolidationLedger: [{ item_kind: "agenda_row", item_id: "hash1" }],
+  });
+  await writeStoreDir(legacyStorePath(pagingRoot, trueRoot), {
     changes: [{ id: "change-true", status: "active" }],
     wisdomRows: ["wisdom row"],
   });
@@ -616,5 +642,184 @@ describe("manifest outcome accuracy", () => {
       timestamp: "2026-07-10T00:00:00.000Z",
     };
     expect(() => StoreCleanupManifestRowSchema.parse(row)).not.toThrow();
+  });
+});
+
+// =============================================================================
+// plan summary + pagination (AC9, DDC3, rq-storeCleanupCoupling01.4)
+// =============================================================================
+
+describe("plan summary and pagination", () => {
+  test("summary reports bounded aggregate counts over the full plan", async () => {
+    const plan = await buildCleanupPlan({ dataHomeRoot: pagingRoot });
+    expect(plan.summary).toEqual({
+      total_stores: 4,
+      delete_count: 1,
+      skip_count: 1,
+      retain_count: 2,
+      total_rows: 4,
+      delete_rows: 2,
+    });
+    // Full (unpaged) render always reports has_more: false.
+    expect(plan.has_more).toBe(false);
+    expect(StoreCleanupPlanSchema.parse(plan).summary.total_stores).toBe(4);
+  });
+
+  test("paginateCleanupPlan slices stores with has_more and preserves plan_hash", async () => {
+    const full = await buildCleanupPlan({ dataHomeRoot: pagingRoot });
+
+    const first = paginateCleanupPlan(full, { offset: 0, limit: 2 });
+    expect(first.stores).toEqual(full.stores.slice(0, 2));
+    expect(first.has_more).toBe(true);
+    expect(first.plan_hash).toBe(full.plan_hash);
+    expect(first.summary).toEqual(full.summary);
+
+    const rest = paginateCleanupPlan(full, { offset: 2, limit: 2 });
+    expect(rest.stores).toEqual(full.stores.slice(2));
+    expect(rest.has_more).toBe(false);
+    expect(rest.plan_hash).toBe(full.plan_hash);
+
+    const beyond = paginateCleanupPlan(full, { offset: 99, limit: 2 });
+    expect(beyond.stores).toEqual([]);
+    expect(beyond.has_more).toBe(false);
+    expect(beyond.plan_hash).toBe(full.plan_hash);
+  });
+
+  test("paged, filtered, and full renders share one plan_hash (DDC3 determinism)", async () => {
+    const full = await buildCleanupPlan({ dataHomeRoot: pagingRoot });
+    const renders = [
+      paginateCleanupPlan(full, { limit: 1 }),
+      paginateCleanupPlan(full, { offset: 1, limit: 2 }),
+      paginateCleanupPlan(full, { outcome: "delete" }),
+      paginateCleanupPlan(full, { outcome: "retain", limit: 1 }),
+      paginateCleanupPlan(full, {}),
+    ];
+    for (const render of renders) {
+      expect(render.plan_hash).toBe(full.plan_hash);
+      expect(render.summary).toEqual(full.summary);
+    }
+  });
+
+  test("outcome filter narrows review data to delete-only stores", async () => {
+    const full = await buildCleanupPlan({ dataHomeRoot: pagingRoot });
+
+    const deletes = paginateCleanupPlan(full, { outcome: "delete" });
+    expect(deletes.stores.map((s) => s.project_id)).toEqual([storeA]);
+    expect(deletes.has_more).toBe(false);
+    expect(deletes.plan_hash).toBe(full.plan_hash);
+
+    const retainedPage = paginateCleanupPlan(full, {
+      outcome: "retain",
+      limit: 1,
+    });
+    expect(retainedPage.stores).toHaveLength(1);
+    expect(retainedPage.stores[0]!.outcome).toBe("retain");
+    expect(retainedPage.has_more).toBe(true);
+  });
+});
+
+// =============================================================================
+// dry_run paging at the tool boundary (AC9)
+// =============================================================================
+
+describe("adv_store_cleanup dry_run paging", () => {
+  test("dry_run applies a bounded default page and exposes summary + has_more", async () => {
+    const result = (await executeTool({
+      action: "dry_run",
+      data_home_root: pagingRoot,
+    })) as {
+      summary: { total_stores: number };
+      has_more: boolean;
+      plan_hash: string;
+      stores: unknown[];
+    };
+    expect(result.summary.total_stores).toBe(4);
+    expect(result.stores.length).toBe(4); // 4 < default page size
+    expect(result.has_more).toBe(false);
+    expect(result.plan_hash).toMatch(/^sha256:/);
+  });
+
+  test("dry_run honors limit/offset with stable plan_hash across pages", async () => {
+    const page1 = (await executeTool({
+      action: "dry_run",
+      data_home_root: pagingRoot,
+      limit: 2,
+    })) as {
+      stores: unknown[];
+      has_more: boolean;
+      plan_hash: string;
+      summary: unknown;
+    };
+    const page2 = (await executeTool({
+      action: "dry_run",
+      data_home_root: pagingRoot,
+      offset: 2,
+      limit: 2,
+    })) as {
+      stores: unknown[];
+      has_more: boolean;
+      plan_hash: string;
+      summary: unknown;
+    };
+    expect(page1.stores).toHaveLength(2);
+    expect(page1.has_more).toBe(true);
+    expect(page2.stores).toHaveLength(2);
+    expect(page2.has_more).toBe(false);
+    expect(page1.plan_hash).toBe(page2.plan_hash);
+    expect(page1.summary).toEqual(page2.summary);
+  });
+
+  test("dry_run outcome=delete returns delete-only review data", async () => {
+    const result = (await executeTool({
+      action: "dry_run",
+      data_home_root: pagingRoot,
+      outcome: "delete",
+    })) as {
+      stores: { project_id: string }[];
+      has_more: boolean;
+    };
+    expect(result.stores).toHaveLength(1);
+    expect(result.stores[0]!.project_id).toBe(storeA);
+    expect(result.has_more).toBe(false);
+  });
+
+  test("execute accepts a plan_hash from a paged dry_run and applies the full plan", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-cleanup-paged-exec-"));
+    try {
+      await writeStoreDir(legacyStorePath(root, storeA), {
+        changes: [{ id: "change-a", status: "active" }],
+        agendaRows: ["row1"],
+      });
+      await writeStoreDir(legacyStorePath(root, storeC), {
+        changes: [{ id: "change-c", status: "active" }],
+        agendaRows: ["row1", "row2"],
+      });
+
+      // Operator reviews a single-page render; the hash still covers both
+      // stores, including the paginated-out one.
+      const paged = (await executeTool({
+        action: "dry_run",
+        data_home_root: root,
+        limit: 1,
+      })) as { stores: unknown[]; has_more: boolean; plan_hash: string };
+      expect(paged.stores).toHaveLength(1);
+      expect(paged.has_more).toBe(true);
+
+      const report = (await executeTool({
+        action: "execute",
+        data_home_root: root,
+        approvedByUser: true,
+        approvalEvidence: "paged approval",
+        dry_run_plan_hash: paged.plan_hash,
+      })) as { success: boolean; stores: unknown[] };
+      expect(report.success).toBe(true);
+      // The full plan executed: the paginated-out store was processed too.
+      expect(report.stores).toHaveLength(2);
+      expect(
+        await pathExists(join(legacyStorePath(root, storeC), "agenda.jsonl")),
+      ).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

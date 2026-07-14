@@ -369,7 +369,7 @@ export const backlogTools = {
 
   adv_backlog_state: {
     description:
-      "Single-call ranked-backlog read with TTL-bounded freshness and O(1) active-change annotation per issue number (rq-backlogCoord01, rq-backlogCoord05, rq-backlogCoord07). Replaces the agent-facing read path of `adv_roadmap` (which becomes a thin delegation wrapper in task C4).",
+      "Single-call ranked-backlog read with TTL-bounded freshness and O(1) active-change annotation per issue number (rq-backlogCoord01, rq-backlogCoord05, rq-backlogCoord07). Reads the same backlog snapshot as `adv_roadmap`; both tools coexist — `adv_roadmap` offers file/live source modes with its own filtering, while `adv_backlog_state` adds TTL-bounded freshness metadata and a single-query Visibility annotation path.",
     args: BacklogStateArgsSchema.shape,
     execute: async (
       args: z.infer<typeof BacklogStateArgsSchema>,

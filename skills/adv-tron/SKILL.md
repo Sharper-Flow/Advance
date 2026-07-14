@@ -29,7 +29,7 @@ Before deep reads, establish baseline context in this order:
 
 1. **WORKING DIRECTORY / repo root** — preserve the active workdir and resolved target path.
 2. **Project context** — load `adv_project_context`.
-3. **active ADV state** — inspect active changes plus relevant agenda/wisdom/spec context with ADV read tools.
+3. **active ADV state** — inspect active changes plus relevant wisdom/spec context with ADV read tools.
 4. **repo tree/outline** — inspect repo tree/outline before target-local reads.
 5. **coverage gaps** — record unavailable tools, skipped dimensions, and unexamined areas.
 
@@ -40,7 +40,7 @@ Scan the entire repository for structural understanding:
 1. **Broad Scan structure map** — use `lgrep_get_repo_outline` or `lgrep_get_file_tree` for top-level structure
 2. **hotspot/risk scan** — identify files with high complexity, deep nesting, unclear ownership, missing tests, or many dependencies
 3. **related pattern/convention scan** — note recurring patterns, conventions, and deviations
-4. **active-change/spec overlap** — check active ADV state, specs, agenda, and wisdom for nearby work
+4. **active-change/spec overlap** — check active ADV state, specs, and wisdom for nearby work
 5. **coverage gaps** — list unavailable tools, skipped dimensions, and open questions
 
 ### Scoped (target provided)
@@ -56,7 +56,7 @@ Investigate a specific target — file path, module, symbol, feature area, or pr
 3. **Scoped Scan dependency/usage trace** — trace what the target depends on and what depends on it
 4. **Related code** — find similar patterns, sibling modules, or coupled components
 5. **Risk assessment** — run hotspot/risk scan signals for test coverage, complexity, and change risk
-6. **active-change/spec overlap** — check active ADV state, specs, agenda, and wisdom for nearby work
+6. **active-change/spec overlap** — check active ADV state, specs, and wisdom for nearby work
 7. **coverage gaps** — list unavailable tools, unexamined related code, and open questions
 
 ## Degraded Execution
@@ -134,14 +134,14 @@ RISKS:
 OPEN QUESTIONS:
   - {question that needs human input}
 
-POSSIBLE AGENDA ITEMS:
+POSSIBLE FOLLOW-UPS:
   These are suggestions only — not created automatically.
 
-  - {suggested agenda title}
+  - {suggested follow-up title}
     Why: {1 sentence rationale}
     Priority: {critical|high|medium|low|backlog}
 
-  - {suggested agenda title}
+  - {suggested follow-up title}
     Why: {1 sentence rationale}
     Priority: {critical|high|medium|low|backlog}
 

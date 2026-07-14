@@ -14,7 +14,7 @@ Seven patterns, three severity levels:
 |---|---|---|---|
 | `stale_lock` | critical | `*.lock` file with mtime >5 min ago AND no `lsof` holder (or `lsof` unavailable) | `delete_stale_locks` |
 | `zero_byte_object` | critical | File under `objects/{xx}/[0-9a-f]{38,}` with size 0 | `delete_zero_byte_objects` |
-| `fsck_error` | critical | `git fsck --no-dangling --connectivity-only` reports error/fatal/missing/corrupt/broken (max 10 per repo; skipped on dirs >500 MB) | (none — manual investigation required) |
+| `fsck_error` | critical | `git fsck --no-dangling --connectivity-only` reports error/fatal/missing/corrupt/broken (max 10 per repo; skipped on dirs >500 MB) | `delete_fsck_corrupt_repos` (re-runs fsck on the live repo before deletion; skips when now clean) |
 | `orphan_bare_repo` | warning | Bare repo exists but expected worktree path is missing | `delete_orphan_bare_repos` |
 | `oversized_dir` | info | Bare repo dir >100 MB (advisory; not structural corruption) | (none) |
 | `legacy_layout` | info | `{projectId}/` is itself a bare repo (HEAD+objects+refs at project root), rather than under `{worktreeHash}/` subdir | `delete_orphan_bare_repos` |
@@ -45,9 +45,18 @@ adv_snapshot_health({
 Required for `action: "repair"`:
 - `approvedByUser: true`
 - `approvalEvidence`: non-empty human-readable string
-- `repair_actions`: non-empty array drawn from `["delete_stale_locks", "delete_zero_byte_objects", "delete_orphan_bare_repos"]`
+- `repair_actions`: non-empty array drawn from `["delete_stale_locks", "delete_zero_byte_objects", "delete_orphan_bare_repos", "delete_fsck_corrupt_repos"]`
 
 Tool rejects the call if any required field is missing.
+
+### Audit history (read-only)
+
+```
+adv_snapshot_health({ action: "audit_history" })
+adv_snapshot_health({ action: "audit_history", limit: 50 })
+```
+
+Returns the caller project's recent snapshot-repair audit entries from the purpose-specific audit log, newest first. `limit` defaults to 20 and is capped at 100. Project-scoped only: `scope: "global"` is rejected so no cross-project audit data is exposed. Entries carry only the strict audit-schema fields (`id`, `pattern`, `action`, `target_path`, `before_summary`, `after_summary`, `outcome`, `recorded_at`) — no secrets.
 
 ### DryRun
 
@@ -65,7 +74,7 @@ Returns `repair_preview` with `status: "success"` records and no filesystem muta
 
 ## Repair Safety Model
 
-1. **Closed whitelist** — only three repair actions are accepted. Unknown strings rejected at the Zod schema layer.
+1. **Closed whitelist** — only four repair actions are accepted. Unknown strings rejected at the Zod schema layer.
 2. **Approval gate** — every repair call requires `approvedByUser: true` + non-empty `approvalEvidence`.
 3. **TOCTOU race guard** — before deleting a stale lock, the repair flow re-checks `lsof` and refuses if a holder PID has reappeared since the scan. Before deleting an orphan bare repo, it re-resolves the worktree path and refuses if it has reappeared.
 4. **No history-altering ops** — `git gc`, `git prune`, `git filter-repo` are explicitly out of scope (constraint C3 from the change agreement).
@@ -110,6 +119,20 @@ Stable `schema_version: 1`. Consumers should check `schema_version >= N` for for
 
 See `plugin/src/tools/snapshot-scan.ts` for full type definitions.
 
+`action: "audit_history"` returns a bounded read view instead:
+
+```typescript
+{
+  schema_version: 1,
+  action: "audit_history",
+  project_id: string,
+  total_entries: number,  // entries in the audit log
+  returned: number,       // entries in this response (<= limit)
+  limit: number,          // effective limit (default 20, max 100)
+  audits: SnapshotRepairAuditEntry[],  // newest first
+}
+```
+
 ## Constants
 
 | Constant | Value | Purpose |
@@ -123,7 +146,7 @@ See `plugin/src/tools/snapshot-scan.ts` for full type definitions.
 
 - **Upstream race not fixed.** The OpenCode snapshot-service race on `index.lock` (cross-process) remains. This tool is detection + cleanup, not prevention.
 - **`lsof` required for stale-lock detection.** When `lsof` is missing, the tool degrades to `holder_pid: "unknown_no_lsof"` and still flags stale locks (defensive default — assume no holder).
-- **No automatic remediation of `fsck_error`.** These typically indicate non-trivial corruption; the tool surfaces the error lines but does not delete or repair. Manual `git fsck` investigation recommended.
+- **`delete_fsck_corrupt_repos` deletes the whole bare repo.** The fsck repair path re-runs `git fsck` on the live repo immediately before deletion and skips when the repo is now clean, but an approved deletion is still destructive — review the finding's error lines first.
 - **Cross-project repair requires per-call approval.** Cross-project READ (scope: global) is allowed without confirmation; cross-project REPAIR must be explicit via the same approval gate.
 
 ## Requirements Cited

@@ -684,3 +684,18 @@ describe("adv_backlog_state (rq-backlogCoord01, rq-backlogCoord05, rq-backlogCoo
     }
   });
 });
+
+describe("adv_backlog_state description guard (alignToolSurface)", () => {
+  it("does not contain stale delegation-wrapper claim", () => {
+    const desc = backlogTools.adv_backlog_state.description;
+    expect(desc).not.toContain("Replaces the agent-facing read path");
+    expect(desc).not.toContain("thin delegation wrapper");
+    expect(desc).not.toContain("task C4");
+  });
+
+  it("describes parallel coexistence with adv_roadmap", () => {
+    const desc = backlogTools.adv_backlog_state.description;
+    expect(desc).toContain("adv_roadmap");
+    expect(desc).toMatch(/coexist|parallel|both tools/i);
+  });
+});

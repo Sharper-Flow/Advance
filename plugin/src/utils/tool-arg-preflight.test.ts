@@ -163,6 +163,22 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "reject",
   },
   {
+    // audit_history page limit: 0 placeholder fills normalize to omitted so
+    // the handler default (20) applies; bounded read, no safety impact.
+    toolName: "adv_snapshot_health",
+    field: "limit",
+    policy: "zero",
+    action: "omit",
+  },
+  {
+    // dry_run page limit: 0 placeholder fills normalize to omitted so the
+    // handler default (20) applies; bounded read, no safety impact.
+    toolName: "adv_store_cleanup",
+    field: "limit",
+    policy: "zero",
+    action: "omit",
+  },
+  {
     toolName: "adv_task_update",
     field: "recoveryEvidence",
     policy: "blank",
@@ -2038,6 +2054,16 @@ describe("tool arg preflight", () => {
       },
       "recoveryEvidence",
     ],
+    [
+      "adv_worktree_cleanup",
+      { reason: "archived branch cleanup", mode: " " },
+      "mode",
+    ],
+    [
+      "adv_worktree_cleanup",
+      { reason: "archived branch cleanup", changeId: " " },
+      "changeId",
+    ],
   ])(
     "normalizes blank placeholder to omitted for %s.%s",
     (toolName, rawArgs, field) => {
@@ -2624,6 +2650,22 @@ describe("tool arg preflight", () => {
         summary: "Add rate limiting",
         origin_kind: "adhoc",
       });
+      expect(result.invalid).toEqual([]);
+    });
+
+    test("zero: 'omit' normalizes adv_store_cleanup.limit 0 to omitted (handler default applies)", () => {
+      // adv_store_cleanup.limit has { zero: "omit" } so strict-mode 0 fills
+      // become omitted and the dry_run default page size (20) applies.
+      const result = preflightToolArgs(
+        "adv_store_cleanup",
+        {
+          action: z.enum(["scan", "dry_run", "execute"]).default("scan"),
+          limit: z.number().int().min(1).max(100).optional(),
+        },
+        { action: "dry_run", limit: 0 },
+      );
+      expect(result.ok).toBe(true);
+      expect(result.normalizedArgs).toEqual({ action: "dry_run" });
       expect(result.invalid).toEqual([]);
     });
 

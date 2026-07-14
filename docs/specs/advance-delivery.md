@@ -708,7 +708,7 @@ ADV must provide a consolidation tool (`adv_store_consolidate`) that merges an o
 **When:** adv_store_consolidate runs with action `dry_run`
 
 **Then:**
-- The plan partitions changes into live vs terminal, and lists archive bundles, Epics (including retired Epics), and wisdom/agenda/reflections row counts
+- The plan partitions changes into live vs terminal, and lists archive bundles, Epics (including retired Epics), and wisdom/reflections row counts
 - Each item carries a plan action (`recreate`, `import_projection`, `append_dedupe`, `skip_collision`, or `skip_ledgered`)
 - A per-ID collision report is included
 - No mutations are applied to either store
@@ -736,7 +736,7 @@ ADV must provide a consolidation tool (`adv_store_consolidate`) that merges an o
 **Then:**
 - Terminal (archived/closed) changes and Epics import as disk projections visible via `includeArchived: true`
 - Live changes and Epics are recreated under the true identity as new Temporal workflows carrying prior tasks, gates, artifacts, and Epic membership — never history rewrites
-- Wisdom, agenda, and reflections rows append with content-hash dedupe
+- Wisdom and reflections rows append with content-hash dedupe
 
 **Re-running consolidation is an idempotent no-op** (`rq-storeConsolidation01.5`)
 
@@ -759,5 +759,77 @@ ADV must provide a consolidation tool (`adv_store_consolidate`) that merges an o
 **Then:**
 - No source files were modified or deleted by consolidation
 - Source store deletion requires a separate explicit approval outside the consolidation flow
+
+---
+
+### Store Cleanup Safety, Consolidation Coupling, and Indefinite Retention
+
+**ID:** `rq-storeCleanupCoupling01` | **Priority:** **[MUST]**
+
+ADV retains `adv_store_cleanup` indefinitely as an operator-only maintenance tool for provably obsolete legacy agenda data; it is discoverable but must never become a routine autonomous agent action. Cleanup and store consolidation (`adv_store_consolidate`) are mutually serialized: both refuse to act on stores holding a live worker.lock, cleanup retains any store whose consolidation ledger contains agenda_row entries (preserving consolidation evidence), and consolidation never modifies or deletes source stores, including cleanup manifests. Cleanup execute is manifest-before-delete: a `prepared` manifest row is persisted before any deletion, deletion proceeds only when that write succeeds, and a terminal outcome row is appended after each attempt so re-runs are idempotent. Dry-run plans stay reviewable before execution: bounded summary counts plus paged store renders, with plan_hash always computed over the full plan content — including paginated-out stores — so an approval pinned to a plan hash authorizes exactly one full plan.
+
+**Tags:** `cleanup`, `consolidation`, `maintenance`, `operator-only`, `audit`
+
+#### Scenarios
+
+**Live worker.lock refuses cleanup and consolidation** (`rq-storeCleanupCoupling01.1`)
+
+**Given:**
+- A store holding a live worker.lock
+
+**When:** adv_store_cleanup or adv_store_consolidate evaluates the store
+
+**Then:**
+- Cleanup classifies the store unsafe and plans retain
+- Consolidation refuses with code worker_lock_live
+- No files are created, modified, or deleted by either tool
+
+**Cleanup preserves consolidation evidence** (`rq-storeCleanupCoupling01.2`)
+
+**Given:**
+- A store whose consolidation-ledger.jsonl contains agenda_row entries
+
+**When:** adv_store_cleanup plans the store
+
+**Then:**
+- The store is classified unsafe and planned as retain
+- Consolidation ledger data and imported agenda rows are never deleted by cleanup
+- Consolidation never modifies or deletes source stores, including cleanup manifests
+
+**Execute is manifest-before-delete** (`rq-storeCleanupCoupling01.3`)
+
+**Given:**
+- An approved cleanup execute with a matching plan hash
+
+**When:** A store planned as delete is processed
+
+**Then:**
+- A prepared manifest row is persisted before any deletion is attempted
+- Deletion proceeds only when the manifest write succeeds
+- A terminal outcome row (applied or failed) is appended after the attempt, making re-runs idempotent
+
+**Dry-run plans are bounded, reviewable, and hash-exact** (`rq-storeCleanupCoupling01.4`)
+
+**Given:**
+- A dry-run plan over many stores
+
+**When:** The operator reviews the plan with optional offset/limit/outcome paging
+
+**Then:**
+- A summary block reports aggregate counts (total stores, delete/skip/retain counts, total and delete row counts)
+- Paged renders return a bounded stores slice with has_more
+- plan_hash covers the full plan content including paginated-out stores, so paged and full renders share one hash and execute applies exactly the approved full plan
+
+**Cleanup is retained indefinitely as operator-only maintenance** (`rq-storeCleanupCoupling01.5`)
+
+**Given:**
+- The retired legacy Agenda model
+
+**When:** Operators maintain local stores over time
+
+**Then:**
+- adv_store_cleanup remains available indefinitely for removing provably obsolete legacy agenda files
+- The tool is operator-only: discoverable, but never a routine autonomous agent action
+- Every deletion remains approval-gated with a manifest audit trail
 
 ---

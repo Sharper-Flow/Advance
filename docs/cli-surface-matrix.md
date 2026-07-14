@@ -111,6 +111,7 @@
 | `adv_change_bulk_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_archive` | `no-cli-dangerous` | Archive mutation + spec delta |
 | `adv_archive_repair` | `no-cli-dangerous` | Archive release repair mutation |
+| `adv_archive_purge` | `no-cli-dangerous` | Operator-only archived-change purge; terminates workflow, opt-in disk-bundle removal |
 | `adv_change_status_repair` | `no-cli-dangerous` | Change status repair mutation |
 | `adv_change_update_issues` | `no-cli-dangerous` | Issue linkage mutation |
 | `adv_change_repair_origin` | `no-cli-dangerous` | Origin-linkage repair mutation |

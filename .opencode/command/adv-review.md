@@ -447,7 +447,7 @@ To clear a blocked concern, do exactly one of:
 - Fix it and have `adv-designer` submit an updated (higher-attempt) all-pass report for the task.
 - Record a typed disposition via `adv_design_concern_disposition` (`changeId`, `taskId`, `concernKey`, `disposition` ∈ `fixed | rejected_with_evidence | split | fast_follow`, non-blank `evidence`). There is no debt-acceptance disposition.
 
-Advisory only: on report submit, each concern and `neighboring_recommendation` is auto-promoted to a `required-obligation` agenda item (deduped) so it is never silently lost — but the agenda item is routing, not the gate authority.
+Advisory only: on report submit, each concern and `neighboring_recommendation` surfaces a `design_concern_promoted` consumer warning (deduped) so it is never silently lost — but the warning is routing, not the gate authority.
 
 When synthesizing acceptance proof, additionally map relevant `DESIGNER_REPORT.design_dimensions` / `required_main_agent_actions` into `contract.reviewMatrix` rows using `design_proof`, `rubric_review`, `review`, `static_check`, or `test` evidence policies. Browser/design proof for runnable visual surfaces must include viewport context; a missing runnable surface requires explicit fallback rationale. Review/harden ownership remains with `adv-reviewer`; `adv-designer` remains apply-phase only.
 

@@ -7,7 +7,15 @@
  * Reuses store-consolidation primitives: walkStoreDirs, content hashing,
  * live-lock refusal, ledger-based idempotency, and manifest-before-delete.
  *
- * Design references: AC7, SC3, C3, C4, DONT2, DONT5.
+ * Retained indefinitely as operator-only maintenance (C6): dry-run plans are
+ * bounded and reviewable (summary counts + paged renders), and plan_hash
+ * always covers the full plan content — including paginated-out stores — so
+ * an approval pinned to any render authorizes exactly one full plan.
+ *
+ * Design references: AC7, AC9, AC10, SC3, C3, C4, C6, DONT2, DONT5.
+ * Spec: rq-storeCleanupCoupling01 (cleanup/consolidation coupling, lock
+ * refusal, manifest-before-delete ordering, indefinite operator-only
+ * retention).
  */
 
 import { appendFile, readFile, unlink } from "fs/promises";
@@ -31,6 +39,10 @@ const SHA256_HEX = /^sha256:[0-9a-f]{64}$/;
 
 /** Manifest filename inside each cleaned store (design: manifest-before-delete). */
 export const AGENDA_CLEANUP_MANIFEST_FILENAME = "agenda-cleanup-manifest.jsonl";
+
+/** dry_run paging bounds (AC9): default page size and hard maximum. */
+export const CLEANUP_PLAN_DEFAULT_LIMIT = 20;
+export const CLEANUP_PLAN_MAX_LIMIT = 100;
 
 // =============================================================================
 // Schemas
@@ -115,13 +127,29 @@ export const StoreCleanupPlanStoreSchema = z
   .strict();
 export type StoreCleanupPlanStore = z.infer<typeof StoreCleanupPlanStoreSchema>;
 
+export const StoreCleanupPlanSummarySchema = z
+  .object({
+    total_stores: z.number().int().nonnegative(),
+    delete_count: z.number().int().nonnegative(),
+    skip_count: z.number().int().nonnegative(),
+    retain_count: z.number().int().nonnegative(),
+    total_rows: z.number().int().nonnegative(),
+    delete_rows: z.number().int().nonnegative(),
+  })
+  .strict();
+export type StoreCleanupPlanSummary = z.infer<
+  typeof StoreCleanupPlanSummarySchema
+>;
+
 export const StoreCleanupPlanSchema = z
   .object({
     schema_version: z.literal(1),
     action: z.literal("dry_run"),
     generated_at: z.string(),
     plan_hash: z.string().regex(SHA256_HEX),
+    summary: StoreCleanupPlanSummarySchema,
     stores: z.array(StoreCleanupPlanStoreSchema),
+    has_more: z.boolean(),
     zero_mutations: z.literal(true),
   })
   .strict();
@@ -444,17 +472,85 @@ export async function buildCleanupPlan(
     };
   });
 
+  const sortedStores = planStores.sort((a, b) =>
+    a.project_id.localeCompare(b.project_id),
+  );
+
+  // AC9: bounded aggregate counts over the FULL plan, independent of any
+  // render-time paging (summary is part of the hashed plan content).
+  const summary: StoreCleanupPlanSummary = {
+    total_stores: sortedStores.length,
+    delete_count: sortedStores.filter((s) => s.outcome === "delete").length,
+    skip_count: sortedStores.filter((s) => s.outcome === "skip").length,
+    retain_count: sortedStores.filter((s) => s.outcome === "retain").length,
+    total_rows: sortedStores.reduce((acc, s) => acc + s.rows, 0),
+    delete_rows: sortedStores
+      .filter((s) => s.outcome === "delete")
+      .reduce((acc, s) => acc + s.rows, 0),
+  };
+
   const planBase = {
     schema_version: 1 as const,
     action: "dry_run" as const,
-    stores: planStores.sort((a, b) => a.project_id.localeCompare(b.project_id)),
+    summary,
+    stores: sortedStores,
     zero_mutations: true as const,
   };
 
   return {
     ...planBase,
     generated_at: now().toISOString(),
+    // DDC3 / rq-storeCleanupCoupling01.4: plan_hash covers the full plan
+    // content — including stores a paged render would omit — so execute
+    // always applies exactly the approved full plan.
     plan_hash: sha256(canonicalize(planBase)),
+    has_more: false,
+  };
+}
+
+// =============================================================================
+// dry_run render paging (AC9)
+// =============================================================================
+
+export interface PaginateCleanupPlanOptions {
+  offset?: number;
+  limit?: number;
+  /** Restrict review data to one outcome (e.g. "delete" for delete-only review). */
+  outcome?: StoreCleanupPlanStore["outcome"];
+}
+
+/**
+ * Pure render-time paging over a full plan (AC9, DDC3). Returns a bounded
+ * stores slice with `has_more`; `plan_hash` and `summary` are carried through
+ * unchanged because they always describe the FULL plan — including
+ * paginated-out stores (rq-storeCleanupCoupling01.4). Zero mutations.
+ */
+export function paginateCleanupPlan(
+  plan: StoreCleanupPlan,
+  options: PaginateCleanupPlanOptions,
+): StoreCleanupPlan {
+  // Belt-and-suspenders clamp: the tool-layer Zod args enforce
+  // int/nonnegative/1..100 at the registry boundary, but direct callers
+  // bypass that validation. Boundedness is the safety property; clamping
+  // preserves it without rejecting (mirrors snapshot audit_history limit).
+  const rawOffset = options.offset ?? 0;
+  const offset = Number.isFinite(rawOffset)
+    ? Math.max(0, Math.floor(rawOffset))
+    : 0;
+  const rawLimit = options.limit ?? CLEANUP_PLAN_DEFAULT_LIMIT;
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(Math.max(Math.floor(rawLimit), 1), CLEANUP_PLAN_MAX_LIMIT)
+    : CLEANUP_PLAN_DEFAULT_LIMIT;
+
+  const filtered = options.outcome
+    ? plan.stores.filter((s) => s.outcome === options.outcome)
+    : plan.stores;
+  const page = filtered.slice(offset, offset + limit);
+
+  return {
+    ...plan,
+    stores: page,
+    has_more: offset + page.length < filtered.length,
   };
 }
 
@@ -657,10 +753,12 @@ export const storeCleanupTools = {
     description:
       "Maintenance-only legacy Agenda cleanup across discoverable local ADV stores. " +
       "action 'scan' (default, read-only) inventories every store holding legacy agenda data, classifying safety. " +
-      "action 'dry_run' emits the per-store legacy agenda cleanup plan with zero mutations. " +
+      "action 'dry_run' emits the per-store legacy agenda cleanup plan with zero mutations: bounded summary counts " +
+      "plus optional offset/limit/outcome paging for review; plan_hash always covers the full plan content " +
+      "(including paginated-out stores). " +
       "action 'execute' applies the exact dry-run plan: approval-gated, manifest-before-delete, " +
       "retains unsafe stores for retry, and refuses when worker.lock is live or a consolidation " +
-      "ledger with legacy agenda_row entries exists.",
+      "ledger with legacy agenda_row entries exists. Retained indefinitely as operator-only maintenance.",
     args: {
       action: z
         .enum(["scan", "dry_run", "execute"])
@@ -673,6 +771,29 @@ export const storeCleanupTools = {
         .optional()
         .describe(
           "Data-home root holding opencode/ and opencode-projects/. Injected for tests; defaults to the resolved XDG data home.",
+        ),
+      offset: z
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .describe(
+          "dry_run only: page offset into the plan stores (default 0). plan_hash is unaffected by paging.",
+        ),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(CLEANUP_PLAN_MAX_LIMIT)
+        .optional()
+        .describe(
+          `dry_run only: page size for plan stores (default ${CLEANUP_PLAN_DEFAULT_LIMIT}, max ${CLEANUP_PLAN_MAX_LIMIT}). plan_hash always covers the full plan.`,
+        ),
+      outcome: z
+        .enum(["delete", "skip", "retain"])
+        .optional()
+        .describe(
+          "dry_run only: restrict review data to one outcome (e.g. 'delete' for delete-only review). plan_hash still covers the full plan.",
         ),
       dry_run_plan_hash: z
         .string()
@@ -693,6 +814,9 @@ export const storeCleanupTools = {
       args: {
         action: "scan" | "dry_run" | "execute";
         data_home_root?: string;
+        offset?: number;
+        limit?: number;
+        outcome?: "delete" | "skip" | "retain";
         dry_run_plan_hash?: string;
         approvedByUser?: boolean;
         approvalEvidence?: string;
@@ -709,7 +833,14 @@ export const storeCleanupTools = {
       if (args.action === "dry_run") {
         try {
           const plan = await buildCleanupPlan({ dataHomeRoot });
-          return formatToolOutput(plan, { tool: "adv_store_cleanup" });
+          // AC9: bounded, paged review render. The full plan (and its hash)
+          // is computed first; paging never changes what execute applies.
+          const render = paginateCleanupPlan(plan, {
+            offset: args.offset,
+            limit: args.limit,
+            outcome: args.outcome,
+          });
+          return formatToolOutput(render, { tool: "adv_store_cleanup" });
         } catch (error) {
           return formatToolOutput(
             {

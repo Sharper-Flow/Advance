@@ -188,3 +188,13 @@ describe("adv_project_metadata", () => {
     expect(result).toContain("agent");
   });
 });
+
+describe("adv_project_metadata description guard (alignToolSurface)", () => {
+  it("names scan-command producers for write entries", () => {
+    const desc = projectMetadataTools.adv_project_metadata.description;
+    expect(desc).toContain("adv-slop-scan");
+    expect(desc).toContain("adv-comp-scan");
+    expect(desc).toContain("adv-audit");
+    expect(desc).toContain("adv-arch-scan");
+  });
+});

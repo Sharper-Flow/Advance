@@ -2064,7 +2064,7 @@
           "id": "rq-temporalConcurrentLoad01.1",
           "title": "Five or more concurrent clients complete state writes with no lost updates",
           "given": [
-            "At least five concurrent ADV client sessions issue ADV-mutating tool calls (state writes, change updates, agenda adds, wisdom adds, worktree registers) against change workflows on the same project task queue"
+            "At least five concurrent ADV client sessions issue ADV-mutating tool calls (state writes, change updates, wisdom adds, worktree registers) against change workflows on the same project task queue"
           ],
           "when": "The concurrent-clients benchmark mode runs for the configured duration",
           "then": [

@@ -111,8 +111,8 @@ describe("adv-review 12-dimension framework single-source (AC1)", () => {
 // NON-BEHAVIORAL (asset presence only): these tests assert that the command
 // markdown points operators at the STRUCTURAL enforcement rail. They prove the
 // guidance text exists — NOT that enforcement works. The behavioral guarantees
-// (concerns block acceptance/release; dispositions clear them; advisory agenda
-// promotion) are covered by gate-readiness.test.ts (checkUnresolvedDesignConcerns),
+// (concerns block acceptance/release; dispositions clear them; advisory consumer
+// warnings) are covered by gate-readiness.test.ts (checkUnresolvedDesignConcerns),
 // subagent-report.test.ts (consumeDesignerDesignConcerns), and
 // design-concern.test.ts (adv_design_concern_disposition). See AC11 / DONT8.
 describe("adv-review designer-concern prose points at the structural rail (non-behavioral)", () => {
@@ -126,7 +126,7 @@ describe("adv-review designer-concern prose points at the structural rail (non-b
     expect(command).toMatch(/STRUCTURAL, not reviewer-prose/i);
   });
 
-  test("prose preserves design-proof vocabulary and advisory-only agenda framing", () => {
+  test("prose preserves design-proof vocabulary and advisory-only consumer warning framing", () => {
     expect(command).toContain("design_dimensions");
     expect(command).toContain("neighboring_recommendation");
     expect(command).toContain("design_proof");

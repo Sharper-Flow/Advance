@@ -4,7 +4,7 @@
   "title": "Snapshot Store Health Diagnostics",
   "purpose": "Detect and remediate OpenCode snapshot-store corruption — stale locks, zero-byte git objects, fsck errors, orphan bare repos, oversized dirs, and legacy-layout artifacts — that historically caused recurring agent freezes (e.g., example-web index.lock contention).",
   "version": "1.0.0",
-  "updated_at": "2026-05-12T00:00:00.000Z",
+  "updated_at": "2026-07-14T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-snapshotHealthProbe01",
@@ -68,7 +68,7 @@
     {
       "id": "rq-snapshotHealthRepairWhitelist01",
       "title": "Closed repair whitelist",
-      "body": "Only three repair actions are accepted by `adv_snapshot_health` when `action: 'repair'` is invoked: `delete_stale_locks`, `delete_zero_byte_objects`, and `delete_orphan_bare_repos`. Any other string in the `repair_actions` array MUST be rejected with a validation error before any filesystem operation begins.\n\nHistory-altering git operations are explicitly prohibited. The repair whitelist MUST NOT include `gc`, `prune`, `filter-repo`, `repack`, or any other command that rewrites git history or mutates the object database in ways that are not strictly additive removal of known-bad artifacts.",
+      "body": "Only four repair actions are accepted by `adv_snapshot_health` when `action: 'repair'` is invoked: `delete_stale_locks`, `delete_zero_byte_objects`, `delete_orphan_bare_repos`, and `delete_fsck_corrupt_repos`. Any other string in the `repair_actions` array MUST be rejected with a validation error before any filesystem operation begins.\n\nHistory-altering git operations are explicitly prohibited. The repair whitelist MUST NOT include `gc`, `prune`, `filter-repo`, `repack`, or any other command that rewrites git history or mutates the object database in ways that are not strictly additive removal of known-bad artifacts.",
       "priority": "must",
       "tags": ["diagnostics", "snapshot", "repair", "whitelist"],
       "scenarios": [
@@ -76,7 +76,7 @@
           "id": "rq-snapshotHealthRepairWhitelist01.1",
           "title": "Whitelisted repairs are accepted",
           "given": [
-            "A repair request includes only delete_stale_locks, delete_zero_byte_objects, and delete_orphan_bare_repos"
+            "A repair request includes only delete_stale_locks, delete_zero_byte_objects, delete_orphan_bare_repos, and delete_fsck_corrupt_repos"
           ],
           "when": "The tool validates repair_actions",
           "then": [

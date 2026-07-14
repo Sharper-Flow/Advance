@@ -25,7 +25,7 @@ OpenCode plugin repo implementing ADV — a spec-driven development orchestrator
 
 ```
 plugin/src/
-  tools/        # MCP tool implementations (spec, change, task, gate, wisdom, agenda, project, status, test)
+  tools/        # MCP tool implementations (spec, change, task, gate, wisdom, backlog, project, status, test)
   storage/      # JSON projections, Temporal adapters, migrations, external state paths
   validator/    # Spec compliance, prep-readiness checks, task classification
   events/       # Terminal UI helpers, status markers
@@ -74,7 +74,7 @@ CI order: schemas:check → typecheck → lint → format:check → test → bui
 
 ### ADV state is external
 
-Changes, archive, wisdom, agenda, reflections, and handoff live **outside the repo** at:
+Changes, archive, wisdom, reflections, and handoff live **outside the repo** at (legacy agenda data may also exist until cleaned by `adv_store_cleanup`):
 
 ```
 $XDG_DATA_HOME/opencode/plugins/advance/{project-id}/

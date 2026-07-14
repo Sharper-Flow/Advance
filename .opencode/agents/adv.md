@@ -59,6 +59,7 @@ tools:
   adv_change_repair_origin: true
   adv_change_reenter: true
   adv_archive_repair: true
+  adv_archive_purge: true
   adv_change_status_repair: true
   adv_change_forget: true
   adv_design_concern_disposition: true

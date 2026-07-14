@@ -337,7 +337,7 @@
     {
       "id": "rq-backlogCoord09",
       "title": "Triage source cleanup before issue creation and bug priority assignment",
-      "body": "/adv-triage MUST run source cleanup validation after structural match/gap analysis and before new issue creation or bug priority assignment. Cleanup validation covers represented and unrepresented ADV changes, GitHub issues/project items, agenda items, and local sources gathered by /adv-triage. Each non-relevant cleanup candidate MUST include source, stable ref, classification, evidence, proposed action, and approval group. Heuristics such as title similarity or agent inference are advisory only and MUST NOT close, complete, cancel, remove, suppress, merge-note, deprioritize, or otherwise mutate items without structural evidence and explicit approval batched by source/reason. Agenda duplicate/superseded/should-merge candidates approved for cleanup MUST complete with a note referencing the survivor/source. Bug priority assignment MUST NOT run until cleanup validation has completed for the candidate pool. User questions during bug priority assignment gather context only and MUST NOT ask the user to confirm or choose a priority; the agent assigns priority autonomously within a bounded question budget.",
+      "body": "/adv-triage MUST run source cleanup validation after structural match/gap analysis and before new issue creation or bug priority assignment. Cleanup validation covers represented and unrepresented ADV changes, GitHub issues/project items, and local sources gathered by /adv-triage. Each non-relevant cleanup candidate MUST include source, stable ref, classification, evidence, proposed action, and approval group. Heuristics such as title similarity or agent inference are advisory only and MUST NOT close, complete, cancel, remove, suppress, merge-note, deprioritize, or otherwise mutate items without structural evidence and explicit approval batched by source/reason. Legacy agenda duplicate/superseded/should-merge candidates approved for cleanup MUST complete with a note referencing the survivor/source. Bug priority assignment MUST NOT run until cleanup validation has completed for the candidate pool. User questions during bug priority assignment gather context only and MUST NOT ask the user to confirm or choose a priority; the agent assigns priority autonomously within a bounded question budget.",
       "priority": "must",
       "tags": ["triage", "cleanup", "backlog", "human-authority", "p33"],
       "scenarios": [
@@ -357,7 +357,7 @@
           "id": "rq-backlogCoord09.2",
           "title": "Cleanup candidates carry evidence and action shape",
           "given": [
-            "A source item, represented issue, active ADV change, or agenda item is stale, already addressed, duplicate, superseded, should-merge, or unclear"
+            "A source item, represented issue, active ADV change, or legacy agenda item is stale, already addressed, duplicate, superseded, should-merge, or unclear"
           ],
           "when": "cleanup validation classifies the candidate",
           "then": [
@@ -393,13 +393,13 @@
         },
         {
           "id": "rq-backlogCoord09.5",
-          "title": "Agenda superseded or merge candidates complete with survivor note",
+          "title": "Legacy agenda superseded or merge candidates complete with survivor note",
           "given": [
-            "An agenda item is approved as duplicate/superseded or should-merge"
+            "A legacy agenda item is approved as duplicate/superseded or should-merge"
           ],
           "when": "/adv-triage applies cleanup",
           "then": [
-            "The agenda item is completed rather than silently deleted",
+            "The legacy agenda item is completed rather than silently deleted",
             "The completion note references the survivor/source"
           ]
         }

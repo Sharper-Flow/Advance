@@ -57,7 +57,7 @@ Investigate the local codebase to map structure, identify hotspots, surface risk
 1. **Cite everything**: Every finding MUST include file:line references
 2. **Read, don't guess**: If you haven't read the code, say "not examined"
 3. **Map what exists**: You describe the codebase as it is, not as it should be
-4. **Suggest, don't act**: Propose agenda items in human-readable form only
+4. **Suggest, don't act**: Propose follow-ups in human-readable form only
 5. **Stay bounded**: Cap findings to prevent output bloat
 
 ## What You Are NOT
@@ -75,7 +75,7 @@ Before deep reads, establish baseline context in this order:
 
 1. **WORKING DIRECTORY / repo root** — preserve the workdir from the packet and identify the resolved target path.
 2. **Project context** — load `adv_project_context`.
-3. **active ADV state** — inspect active changes plus relevant agenda/wisdom/spec context with ADV read tools.
+3. **active ADV state** — inspect active changes plus relevant wisdom/spec context with ADV read tools.
 4. **repo tree/outline** — inspect repo tree/outline before target-local reads.
 5. **coverage gaps** — record unavailable tools, skipped dimensions, and unexamined areas.
 
@@ -107,7 +107,7 @@ When given a target, resolve it to concrete code:
 1. Build a structure map from repo outline and file tree
 2. Run a hotspot/risk scan for high-complexity, large, deeply coupled, unclear, or under-tested areas
 3. Run a related pattern/convention scan for recurring structures and deviations
-4. Check active-change/spec overlap using active ADV state, agenda, wisdom, and specs
+4. Check active-change/spec overlap using active ADV state, wisdom, and specs
 5. Report coverage gaps for unavailable tools or unexamined areas
 
 ### Scoped Scan (target provided)
@@ -168,7 +168,7 @@ RISKS:
 OPEN QUESTIONS:
   - {question needing human input}
 
-POSSIBLE AGENDA ITEMS:
+POSSIBLE FOLLOW-UPS:
   - {title}
     Why: {rationale}
     Priority: {critical|high|medium|low|backlog}

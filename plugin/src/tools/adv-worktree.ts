@@ -30,6 +30,7 @@ import {
 } from "../utils/workspace-warp";
 import { triageWorktrees } from "./worktree/triage";
 import { initStateDb, type WorktreeStateAccess } from "./worktree/state";
+import { cleanupArchivedMergedBranches } from "./archive-helpers/archived-branch-cleanup";
 import {
   appendTargetProjectContextOutput,
   withTargetPathStore,
@@ -130,6 +131,8 @@ interface WorktreeCleanupArgs extends TargetWorktreeMutationArgs {
   reason: string;
   dryRun?: boolean;
   timeoutMs?: number;
+  mode?: "worktrees" | "archived_branches";
+  changeId?: string;
 }
 
 const targetWorktreeMutationArgSchemas = {
@@ -258,6 +261,18 @@ async function executeWorktreeCleanup(
   options: { serverUrl?: URL; client?: OpencodeClient } = {},
   context?: TargetProjectContext,
 ): Promise<string> {
+  // rq-archiveBranchCleanup01: archived-branch hygiene is git maintenance,
+  // not ADV recovery state. It owns no workflow signals, so it routes before
+  // the queued-cleanup DB/timeout machinery.
+  if (args.mode === "archived_branches") {
+    const result = await cleanupArchivedMergedBranches({
+      store,
+      changeId: args.changeId,
+      dryRun: args.dryRun,
+    });
+    return formatMaybeTargetOutput(formatToolOutput(result), context);
+  }
+
   const projectRoot = store.paths.root;
   const database = await initWorktreeDb(projectRoot);
   const log = createLogger();
@@ -661,20 +676,34 @@ export const advWorktreeTools = {
 
   adv_worktree_cleanup: {
     description:
-      "Discover terminal cleanup candidates and retry queued worktree deletions. Safe: skips worktrees still used as a process CWD, preserves dirty/unmerged unsafe worktrees, and keeps retained items queued.",
+      "Discover terminal cleanup candidates and retry queued worktree deletions. Safe: skips worktrees still used as a process CWD, preserves dirty/unmerged unsafe worktrees, and keeps retained items queued. Opt-in mode=archived_branches instead scans local change/* branches tied to archived ADV changes, detects fully-merged ones (squash-merge-safe), and deletes the safe ones — post-merge branch hygiene moved here from adv_archive_repair so every archive_repair action has a single recovery purpose.",
     args: {
       reason: z
         .string()
-        .describe("Brief explanation of why you are retrying queued cleanup"),
+        .describe("Brief explanation of why you are running cleanup"),
       dryRun: z
         .boolean()
         .optional()
-        .describe("Preview cleanup retries without deleting queued worktrees"),
+        .describe(
+          "Preview cleanup without deleting queued worktrees or merged branches",
+        ),
       timeoutMs: z
         .number()
         .optional()
         .describe(
-          `Optional wall-clock timeout for the cleanup pass. Defaults to ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms (the safe tool budget below the SDK's 10s ceiling). Values exceeding the safe budget are clamped automatically. The effective timeout is reported in the response as effectiveTimeoutMs.`,
+          `Optional wall-clock timeout for the cleanup pass. Defaults to ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms (the safe tool budget below the SDK's 10s ceiling). Values exceeding the safe budget are clamped automatically. The effective timeout is reported in the response as effectiveTimeoutMs. Applies to mode=worktrees only.`,
+        ),
+      mode: z
+        .enum(["worktrees", "archived_branches"])
+        .optional()
+        .describe(
+          "worktrees (default) = retry queued worktree deletions; archived_branches = opt-in scan/delete of fully-merged local change/* branches tied to archived ADV changes (operator-explicit, rq-archiveBranchCleanup01)",
+        ),
+      changeId: z
+        .string()
+        .optional()
+        .describe(
+          "Optional archived change ID restricting mode=archived_branches to a single change",
         ),
       ...targetWorktreeMutationArgSchemas,
     },
