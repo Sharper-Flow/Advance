@@ -357,7 +357,7 @@ Terminal status/title paths MUST NOT emit BEL (U+0007 / `\x07`). OSC title seque
 
 **ID:** `rq-titleIdentity01` | **Priority:** **[MUST]**
 
-Terminal title identity MUST show the active ADV change id only when a change is active, and MUST fall back to the project name when no ADV change is active. The active title MUST NOT include a project prefix, worktree path, git branch, trunk/main checkout marker, status marker, progress text, blocked marker, or emoji. Title identity changes MUST remain subject to `rq-titleBell01` sanitization and non-audible emission rules.
+Terminal title identity MUST show the active ADV change id when a change is active, and MUST prefix it with the parent Epic id when the change has Epic membership (`epicId | changeId`). When no reachable active ADV change exists, ADV MUST NOT write, clear, or replace the pane title; the pane retains its last intentional ADV title. The active title MUST NOT include a project prefix, project name fallback, worktree path, git branch, trunk/main checkout marker, status marker, progress text, blocked marker, or emoji. Title identity changes MUST remain subject to `rq-titleBell01` sanitization and non-audible emission rules.
 
 **Tags:** `chat-output-display`, `terminal-title`, `identity`
 
@@ -366,27 +366,39 @@ Terminal title identity MUST show the active ADV change id only when a change is
 **Active change title is change id only** (`rq-titleIdentity01.1`)
 
 **Given:**
-- Project name `toolbox`
 - Active ADV change id `fixFoo`
+- No Epic membership
 
 **When:** ADV builds or emits the terminal title
 
 **Then:**
 - The title payload is exactly `fixFoo` after existing title sanitization
-- The title payload does not contain `toolbox`, `toolbox: fixFoo`, a status marker, progress text, branch, worktree path, or emoji
+- The title payload does not contain a project name, `toolbox: fixFoo`, a status marker, progress text, branch, worktree path, or emoji
 
-**Inactive title falls back to project name** (`rq-titleIdentity01.2`)
+**No active change emits no title write** (`rq-titleIdentity01.2`)
 
 **Given:**
-- Project name `toolbox`
-- No active ADV change id
+- No reachable active ADV change id
+
+**When:** ADV initializes, updates status, or runs terminal cleanup
+
+**Then:**
+- ADV emits zero pane-title writes
+- ADV does not clear or replace the existing pane title
+
+**Epic membership composes epicId | changeId** (`rq-titleIdentity01.3`)
+
+**Given:**
+- Active ADV change id `fixFoo`
+- Parent Epic id `terminalIdentity`
 
 **When:** ADV builds or emits the terminal title
 
 **Then:**
-- The title payload is exactly `toolbox` after existing title sanitization
+- The title payload is exactly `terminalIdentity | fixFoo` after existing title sanitization
+- The title payload contains exactly one ` | ` separator
 
-**Status churn does not retitle unchanged identity** (`rq-titleIdentity01.3`)
+**Status churn does not retitle unchanged identity** (`rq-titleIdentity01.4`)
 
 **Given:**
 - The active ADV change id remains `fixFoo`
@@ -398,10 +410,10 @@ Terminal title identity MUST show the active ADV change id only when a change is
 - The title is emitted only after the identity string changes
 - Normal status churn does not rewrite the same title
 
-**Identity policy preserves title safety** (`rq-titleIdentity01.4`)
+**Identity policy preserves title safety** (`rq-titleIdentity01.5`)
 
 **Given:**
-- A project name or active change id contains C0/C1 control bytes
+- An active change id or Epic id contains C0/C1 control bytes
 
 **When:** ADV emits the terminal title
 

@@ -206,7 +206,7 @@ Emit at START of each response:
 | `[ADV:REFLECTION]`         | Reflection report emitted                                     | 🟪    |
 | `[ADV:PEER_SESSIONS]`      | Informational; peer sessions detected in same project         | ⬜    |
 
-Tab title: initial identity only, `advChange` when a change is active or `project` when idle. No dynamic status/progress retitles. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
+Tab title: active ADV change identity only. With an active change the title is exactly the change ID; with Epic membership it is `epicId | changeId`. With no reachable active change, ADV emits no title write and the pane retains its last intentional title. No project fallback, no dynamic status/progress retitles. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 
 ### Context Snapshot
 
