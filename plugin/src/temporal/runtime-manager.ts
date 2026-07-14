@@ -2,7 +2,7 @@
 
 import { dirname, join } from "path";
 import { mkdir } from "fs/promises";
-import { spawn, spawnSync, type ChildProcess } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { statSync, accessSync, constants as fsConstants } from "node:fs";
 import * as net from "node:net";
 import { tmpdir } from "os";
@@ -423,21 +423,4 @@ export async function ensureTemporalRuntime(
   } finally {
     await release();
   }
-}
-
-export function spawnTemporalWorkerProcess(input: {
-  workerScript: string;
-  taskQueue: string;
-  address: string;
-  namespace: string;
-  projectId: string;
-  cwd: string;
-}): ChildProcess {
-  const spec = buildTemporalWorkerProcessSpec(input);
-  return spawn(spec.command, spec.args, {
-    cwd: input.cwd,
-    env: spec.env,
-    stdio: "ignore",
-    detached: true,
-  });
 }
