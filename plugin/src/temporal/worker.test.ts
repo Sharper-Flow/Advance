@@ -74,6 +74,25 @@ describe("temporal worker helpers", () => {
     );
   });
 
+  it("runTemporalWorkerFromEnv stops its watchdog after a clean worker return", async () => {
+    vi.useFakeTimers();
+    const killSpy = vi
+      .spyOn(process, "kill")
+      .mockImplementation((() => true) as typeof process.kill);
+
+    try {
+      await runTemporalWorkerFromEnv({
+        ADV_TEMPORAL_TASK_QUEUE: "advance-clean-return",
+      } as NodeJS.ProcessEnv);
+
+      vi.advanceTimersByTime(3_000);
+      expect(killSpy).not.toHaveBeenCalled();
+    } finally {
+      killSpy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   it("runTemporalWorker falls back to workflows.ts when workflows.js is absent in source mode", async () => {
     await runTemporalWorker({
       taskQueue: "advance-proj-source",

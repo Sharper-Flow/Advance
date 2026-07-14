@@ -59,6 +59,11 @@ export interface EnumerateWorkerProcessesOptions {
   /** Cmdline substring identifying an ADV worker. Defaults to the dist bundle path. */
   marker?: string;
   /**
+   * Cancels an in-progress scan when the bounded status probe expires.
+   * `readdir` itself is not abortable, but every per-process file read is.
+   */
+  signal?: AbortSignal;
+  /**
    * Parent-liveness probe — injectable for tests. Defaults to the signal-0
    * ESRCH check (same semantics as worker.ts `isParentAlive`).
    */
@@ -104,6 +109,16 @@ export async function enumerateAdvWorkerProcesses(
   const procDir = options.procDir ?? "/proc";
   const marker = options.marker ?? DEFAULT_WORKER_SCRIPT_MARKER;
   const isAlive = options.isAlive ?? isProcessAlive;
+  const signal = options.signal;
+
+  const throwIfAborted = (): void => {
+    if (!signal?.aborted) return;
+    throw signal.reason instanceof Error
+      ? signal.reason
+      : new Error("ADV worker-process probe aborted");
+  };
+
+  throwIfAborted();
 
   let entries: string[];
   try {
@@ -121,35 +136,42 @@ export async function enumerateAdvWorkerProcesses(
     .sort((a, b) => a - b);
 
   const processes: WorkerProcessInfo[] = [];
-  await Promise.all(
-    pids.map(async (pid) => {
-      let cmdline: string;
-      try {
-        cmdline = await readFile(join(procDir, String(pid), "cmdline"), "utf8");
-      } catch {
-        // Process exited mid-scan or owned by another user.
-        return;
-      }
-      if (!cmdline.includes(marker)) return;
-
-      let ppid: number | null = null;
-      try {
-        const statusBody = await readFile(
-          join(procDir, String(pid), "status"),
-          "utf8",
-        );
-        ppid = parsePpidFromStatus(statusBody);
-      } catch {
-        // Status unreadable — ppid stays null; never guess orphan status.
-      }
-
-      processes.push({
-        pid,
-        ppid,
-        orphan: ppid !== null && !isAlive(ppid),
+  // Scan serially so a large process table cannot launch unbounded I/O. The
+  // status probe's abort signal stops the next iteration and aborts an active
+  // readFile, preventing timed-out probes from continuing in the background.
+  for (const pid of pids) {
+    throwIfAborted();
+    let cmdline: string;
+    try {
+      cmdline = await readFile(join(procDir, String(pid), "cmdline"), {
+        encoding: "utf8",
+        signal,
       });
-    }),
-  );
+    } catch {
+      throwIfAborted();
+      // Process exited mid-scan or owned by another user.
+      continue;
+    }
+    if (!cmdline.includes(marker)) continue;
+
+    let ppid: number | null = null;
+    try {
+      const statusBody = await readFile(join(procDir, String(pid), "status"), {
+        encoding: "utf8",
+        signal,
+      });
+      ppid = parsePpidFromStatus(statusBody);
+    } catch {
+      throwIfAborted();
+      // Status unreadable — ppid stays null; never guess orphan status.
+    }
+
+    processes.push({
+      pid,
+      ppid,
+      orphan: ppid !== null && !isAlive(ppid),
+    });
+  }
 
   processes.sort((a, b) => a.pid - b.pid);
   return {

@@ -118,6 +118,18 @@ describe("enumerateAdvWorkerProcesses", () => {
     expect(snapshot).toBeNull();
   });
 
+  test("honors an aborted status-probe signal before scanning entries", async () => {
+    const controller = new AbortController();
+    controller.abort(new Error("probe deadline exceeded"));
+
+    await expect(
+      enumerateAdvWorkerProcesses({
+        procDir: tempDir,
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow("probe deadline exceeded");
+  });
+
   test("skips malformed entries and entries with unreadable cmdline", async () => {
     await writeFakeProcEntry(tempDir, 301, {
       cmdline: ["node", "/x/plugin/dist/temporal/worker.js"],

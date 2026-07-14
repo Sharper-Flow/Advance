@@ -174,7 +174,7 @@ export const statusWorkerProcessesProbeCache = createProbeCache<
   // /proc enumeration is local and cheap; the standard 2s probe bound
   // guarantees a slow/hung scan can never stall the health probe.
   timeoutMs: STATUS_PROBE_TIMEOUT_MS,
-  fetch: async () => enumerateAdvWorkerProcesses(),
+  fetch: async (_key, { signal }) => enumerateAdvWorkerProcesses({ signal }),
 });
 
 /** Exported for test isolation only */

@@ -384,36 +384,41 @@ export async function runTemporalWorkerFromEnv(
   // paths below. If the plugin-host parent crashes, the clean-shutdown
   // reaper never runs and this detached:false child would orphan and keep
   // polling — the watchdog self-exits instead.
-  startParentLivenessWatchdog();
-
-  // Multi-queue mode: parent spawns one Node child that polls many queues.
-  // Contract: `ADV_TEMPORAL_MULTI_QUEUE=1` + `ADV_TEMPORAL_TASK_QUEUES=q1,q2`.
-  // See `worker-multi.ts`.
-  if (env.ADV_TEMPORAL_MULTI_QUEUE === "1") {
-    const raw = env.ADV_TEMPORAL_TASK_QUEUES ?? "";
-    const queues = raw
-      .split(",")
-      .map((q) => q.trim())
-      .filter((q) => q.length > 0);
-    if (queues.length === 0) {
-      throw new Error(
-        "ADV_TEMPORAL_MULTI_QUEUE=1 but ADV_TEMPORAL_TASK_QUEUES is empty",
-      );
+  const stopWatchdog = startParentLivenessWatchdog();
+  try {
+    // Multi-queue mode: parent spawns one Node child that polls many queues.
+    // Contract: `ADV_TEMPORAL_MULTI_QUEUE=1` + `ADV_TEMPORAL_TASK_QUEUES=q1,q2`.
+    // See `worker-multi.ts`.
+    if (env.ADV_TEMPORAL_MULTI_QUEUE === "1") {
+      const raw = env.ADV_TEMPORAL_TASK_QUEUES ?? "";
+      const queues = raw
+        .split(",")
+        .map((q) => q.trim())
+        .filter((q) => q.length > 0);
+      if (queues.length === 0) {
+        throw new Error(
+          "ADV_TEMPORAL_MULTI_QUEUE=1 but ADV_TEMPORAL_TASK_QUEUES is empty",
+        );
+      }
+      await runMultiQueueTemporalWorker(queues, env);
+      return;
     }
-    await runMultiQueueTemporalWorker(queues, env);
-    return;
-  }
 
-  const taskQueue = env.ADV_TEMPORAL_TASK_QUEUE;
-  if (!taskQueue) {
-    throw new Error("ADV_TEMPORAL_TASK_QUEUE is required to start worker");
-  }
+    const taskQueue = env.ADV_TEMPORAL_TASK_QUEUE;
+    if (!taskQueue) {
+      throw new Error("ADV_TEMPORAL_TASK_QUEUE is required to start worker");
+    }
 
-  await runTemporalWorker({
-    address: getTemporalAddress(env),
-    namespace: getTemporalNamespace(env),
-    taskQueue,
-  });
+    await runTemporalWorker({
+      address: getTemporalAddress(env),
+      namespace: getTemporalNamespace(env),
+      taskQueue,
+    });
+  } finally {
+    // A clean worker shutdown or an input error must not leave a timer behind
+    // when this helper is invoked in-process by tests or controlled teardown.
+    stopWatchdog();
+  }
 }
 
 const currentFile = fileURLToPath(import.meta.url);
