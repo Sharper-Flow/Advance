@@ -2909,9 +2909,20 @@ export const changeTools = {
               ...openOpsObligationsPayload,
             });
           }
+          // rq-releaseFinalization01 / AC3 split-brain recovery: record Phase 9
+          // done whenever it is not already done — INCLUDING when unset. Same
+          // defect class as the reconcile path (archive-gate.ts): the prior
+          // guard (`phase9_status?.status && ...`) skipped the unset case, so a
+          // bundle-present re-run with an unset phase9_status never recorded the
+          // terminal status. `preservePhase9Evidence(undefined, next)` returns
+          // `next`, recording an unset status cleanly.
+          //
+          // Guard on `!releaseResult.recoveryMutation`: a disk-projection release
+          // recovery means the change workflow already completed and cannot
+          // accept the phase9 signal; skip there to preserve poisoned-recovery.
           if (
-            change.phase9_status?.status &&
-            change.phase9_status.status !== "done"
+            change.phase9_status?.status !== "done" &&
+            !releaseResult.recoveryMutation
           ) {
             await recordPhase9Status({
               store,
@@ -2919,7 +2930,7 @@ export const changeTools = {
               status: preservePhase9Evidence(change.phase9_status, {
                 status: "done",
                 startedAt:
-                  change.phase9_status.startedAt ?? new Date().toISOString(),
+                  change.phase9_status?.startedAt ?? new Date().toISOString(),
                 completedAt: new Date().toISOString(),
               }),
             });
