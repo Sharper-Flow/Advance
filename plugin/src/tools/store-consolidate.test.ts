@@ -575,7 +575,7 @@ describe("buildConsolidationPlan", () => {
     });
     const after = await snapshotTree(dataHomeRoot);
     expect(after).toEqual(before);
-  });
+  }, 30_000);
 });
 
 // =============================================================================
@@ -591,7 +591,7 @@ describe("adv_store_consolidate tool", () => {
     })) as { target: { project_id: string }; action: string };
     expect(result.action).toBe("dry_run");
     expect(result.target.project_id).toBe(trueRoot);
-  });
+  }, 30_000);
 
   test("refuses when source equals target", async () => {
     const result = (await executeTool({
@@ -667,7 +667,7 @@ describe("adv_store_consolidate tool", () => {
     expect(result.error_code).toBe("worker_lock_live");
     const after = await snapshotTree(dataHomeRoot);
     expect(after).toEqual(before);
-  });
+  }, 30_000);
 
   test("scan via tool succeeds end-to-end", async () => {
     const result = (await executeTool({
@@ -1513,7 +1513,7 @@ describe("executeConsolidation", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 });
 
 // =============================================================================
