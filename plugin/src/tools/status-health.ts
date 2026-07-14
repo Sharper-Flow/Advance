@@ -24,6 +24,7 @@ import {
   isStslInitialized,
 } from "../temporal/service";
 import { getWorktreeCensus } from "../utils/worktree-census";
+import { enumerateAdvWorkerProcesses } from "../utils/worker-process-probe";
 import { listChangeDirs, loadChange } from "../storage/json";
 import { archiveBundleExists } from "../archive/archive";
 import { createProbeCache, type ProbeCacheFreshness } from "./probe-cache";
@@ -148,6 +149,34 @@ export const statusQueueServiceabilityProbeCache = createProbeCache<
   },
 });
 
+// =============================================================================
+// Worker-processes advisory probe (AC5, fixTemporalTimeoutsWorker)
+// =============================================================================
+
+/**
+ * Advisory OS-level worker census: live ADV worker process count, orphan
+ * count, and per-process pid/ppid/orphan detail. `null` when enumeration is
+ * unavailable (non-Linux host, missing /proc) — callers omit the section.
+ */
+export type WorkerProcessesSnapshot = Awaited<
+  ReturnType<typeof enumerateAdvWorkerProcesses>
+>;
+
+/** Host-wide census — single cache key (not project-scoped). */
+const WORKER_PROCESSES_CACHE_KEY = "__host_workers__";
+
+export const statusWorkerProcessesProbeCache = createProbeCache<
+  WorkerProcessesSnapshot,
+  string
+>({
+  name: "status.worker_processes",
+  ttlMs: STATUS_PROBE_TTL_MS,
+  // /proc enumeration is local and cheap; the standard 2s probe bound
+  // guarantees a slow/hung scan can never stall the health probe.
+  timeoutMs: STATUS_PROBE_TIMEOUT_MS,
+  fetch: async (_key, { signal }) => enumerateAdvWorkerProcesses({ signal }),
+});
+
 /** Exported for test isolation only */
 export const _statusProbeCaches = {
   clear(): void {
@@ -156,6 +185,7 @@ export const _statusProbeCaches = {
     statusSearchAttributesProbeCache.clear();
     statusQueueServiceabilityProbeCache.clear();
     snapshotHealthProbeCache.clear();
+    statusWorkerProcessesProbeCache.clear();
     statusQueueServiceabilityInputs.clear();
   },
 };
@@ -202,6 +232,18 @@ export async function fetchStatusTemporalHealth(
 }> {
   return statusTemporalHealthProbeCache.fetch(
     projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+    options,
+  );
+}
+
+export async function fetchStatusWorkerProcesses(
+  options: StatusProbeFetchOptions = {},
+): Promise<{
+  value: WorkerProcessesSnapshot;
+  freshness: ProbeCacheFreshness;
+}> {
+  return statusWorkerProcessesProbeCache.fetch(
+    WORKER_PROCESSES_CACHE_KEY,
     options,
   );
 }

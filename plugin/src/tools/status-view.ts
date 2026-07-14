@@ -18,6 +18,7 @@ export interface StatusViewPlan {
   temporalHealth: boolean;
   queueServiceability: boolean;
   searchAttributes: boolean;
+  workerProcesses: boolean;
   projectConfig: boolean;
   recentEnrichment: boolean;
   worktreeCleanup: boolean;
@@ -44,6 +45,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         temporalHealth: true,
         queueServiceability: false,
         searchAttributes: false,
+        workerProcesses: false,
         projectConfig: false,
         recentEnrichment: true,
         worktreeCleanup: false,
@@ -63,6 +65,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         temporalHealth: true,
         queueServiceability: true,
         searchAttributes: true,
+        workerProcesses: true,
         projectConfig: true,
         recentEnrichment: true,
         worktreeCleanup: true,
@@ -82,6 +85,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         temporalHealth: false,
         queueServiceability: false,
         searchAttributes: false,
+        workerProcesses: false,
         projectConfig: false,
         recentEnrichment: true,
         worktreeCleanup: false,
@@ -101,6 +105,7 @@ export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
         temporalHealth: false,
         queueServiceability: false,
         searchAttributes: false,
+        workerProcesses: false,
         projectConfig: true,
         recentEnrichment: true,
         worktreeCleanup: false,
@@ -221,6 +226,10 @@ export function applyStatusView(
       projection.feature_flag_sources = full.feature_flag_sources;
       projection.auto_managed_changes = full.auto_managed_changes;
       projection.search_attributes = full.search_attributes;
+      // AC5 (fixTemporalTimeoutsWorker): advisory OS-level worker census —
+      // workerCount + orphanCount + per-process pid/ppid/orphan — so
+      // multi-session worker contention is visible before a wedge.
+      projection.worker_processes = full.worker_processes;
       projection.diagnostics = full.diagnostics;
       // migration_status is a diagnostic field — surface here in addition
       // to hygiene view so operators see migration health alongside

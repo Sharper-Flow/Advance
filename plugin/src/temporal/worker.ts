@@ -304,37 +304,121 @@ export async function runMultiQueueTemporalWorker(
   }
 }
 
+/**
+ * Default parent-liveness probe. Signal 0 performs an existence check
+ * without delivering a signal. Returns false only when the parent has been
+ * reaped (ESRCH); other errors (e.g. EPERM — the process exists but isn't
+ * signalable by us) are treated as "alive" so a transient permission quirk
+ * never triggers a spurious self-exit.
+ */
+function isParentAlive(ppid: number): boolean {
+  try {
+    process.kill(ppid, 0);
+    return true;
+  } catch (err) {
+    return (err as NodeJS.ErrnoException).code !== "ESRCH";
+  }
+}
+
+/** Coarse poll interval for the parent-liveness watchdog (cheap check). */
+const DEFAULT_PARENT_WATCHDOG_INTERVAL_MS = 3000;
+
+export interface ParentLivenessWatchdogOptions {
+  /** Parent pid to probe. Captured once; defaults to `process.ppid`. */
+  ppid?: number;
+  /** Poll interval in ms. Defaults to 3000. */
+  intervalMs?: number;
+  /** Liveness probe — injectable for tests. Defaults to signal-0 check. */
+  isAlive?: (ppid: number) => boolean;
+  /** Exit function — injectable for tests. Defaults to `process.exit`. */
+  exit?: (code: number) => void;
+}
+
+/**
+ * AC4 parent-liveness watchdog (crash-orphan guard).
+ *
+ * The live worker child is spawned with `detached: false` (worker-multi.ts).
+ * On CLEAN shutdown the parent SIGTERM/SIGKILLs the child, so no orphan is
+ * left behind. But on parent CRASH (kill -9 / OOM / segfault) the shutdown
+ * handler never runs, the child is reparented (pid 1 or a systemd subreaper)
+ * and keeps polling the task queue — an orphan worker that saturates the
+ * shared STSL gRPC. This watchdog probes the parent pid and self-exits when
+ * the parent is gone, closing the crash-orphan gap clean-shutdown can't.
+ *
+ * The parent pid is captured ONCE at start. After the parent dies the child
+ * is reparented and `process.ppid` would then point at init / a subreaper
+ * (alive) — re-reading it each tick would never detect the orphan. Probing
+ * the captured pid with signal 0 is robust to subreapers, unlike a
+ * `ppid === 1` check which misses non-init adoptive parents.
+ *
+ * The interval timer is `unref()`d so it never keeps the child alive on its
+ * own. Returns a stop function (primarily for tests / explicit teardown).
+ */
+export function startParentLivenessWatchdog(
+  options: ParentLivenessWatchdogOptions = {},
+): () => void {
+  const ppid = options.ppid ?? process.ppid;
+  const intervalMs = options.intervalMs ?? DEFAULT_PARENT_WATCHDOG_INTERVAL_MS;
+  const isAlive = options.isAlive ?? isParentAlive;
+  const exit = options.exit ?? ((code: number) => process.exit(code));
+
+  const timer = setInterval(() => {
+    if (isAlive(ppid)) return;
+    // Parent is gone (crash / kill -9 / OOM) and clean-shutdown reaping
+    // never ran. Self-exit so we don't orphan-poll the task queue and
+    // saturate the shared STSL gRPC.
+    clearInterval(timer);
+    exit(1);
+  }, intervalMs);
+
+  if (typeof timer.unref === "function") timer.unref();
+
+  return () => clearInterval(timer);
+}
+
 export async function runTemporalWorkerFromEnv(
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<void> {
-  // Multi-queue mode: parent spawns one Node child that polls many queues.
-  // Contract: `ADV_TEMPORAL_MULTI_QUEUE=1` + `ADV_TEMPORAL_TASK_QUEUES=q1,q2`.
-  // See `worker-multi.ts`.
-  if (env.ADV_TEMPORAL_MULTI_QUEUE === "1") {
-    const raw = env.ADV_TEMPORAL_TASK_QUEUES ?? "";
-    const queues = raw
-      .split(",")
-      .map((q) => q.trim())
-      .filter((q) => q.length > 0);
-    if (queues.length === 0) {
-      throw new Error(
-        "ADV_TEMPORAL_MULTI_QUEUE=1 but ADV_TEMPORAL_TASK_QUEUES is empty",
-      );
+  // AC4: arm the parent-liveness watchdog before entering the (blocking)
+  // worker.run() poll loop. Covers both the single-queue and multi-queue
+  // paths below. If the plugin-host parent crashes, the clean-shutdown
+  // reaper never runs and this detached:false child would orphan and keep
+  // polling — the watchdog self-exits instead.
+  const stopWatchdog = startParentLivenessWatchdog();
+  try {
+    // Multi-queue mode: parent spawns one Node child that polls many queues.
+    // Contract: `ADV_TEMPORAL_MULTI_QUEUE=1` + `ADV_TEMPORAL_TASK_QUEUES=q1,q2`.
+    // See `worker-multi.ts`.
+    if (env.ADV_TEMPORAL_MULTI_QUEUE === "1") {
+      const raw = env.ADV_TEMPORAL_TASK_QUEUES ?? "";
+      const queues = raw
+        .split(",")
+        .map((q) => q.trim())
+        .filter((q) => q.length > 0);
+      if (queues.length === 0) {
+        throw new Error(
+          "ADV_TEMPORAL_MULTI_QUEUE=1 but ADV_TEMPORAL_TASK_QUEUES is empty",
+        );
+      }
+      await runMultiQueueTemporalWorker(queues, env);
+      return;
     }
-    await runMultiQueueTemporalWorker(queues, env);
-    return;
-  }
 
-  const taskQueue = env.ADV_TEMPORAL_TASK_QUEUE;
-  if (!taskQueue) {
-    throw new Error("ADV_TEMPORAL_TASK_QUEUE is required to start worker");
-  }
+    const taskQueue = env.ADV_TEMPORAL_TASK_QUEUE;
+    if (!taskQueue) {
+      throw new Error("ADV_TEMPORAL_TASK_QUEUE is required to start worker");
+    }
 
-  await runTemporalWorker({
-    address: getTemporalAddress(env),
-    namespace: getTemporalNamespace(env),
-    taskQueue,
-  });
+    await runTemporalWorker({
+      address: getTemporalAddress(env),
+      namespace: getTemporalNamespace(env),
+      taskQueue,
+    });
+  } finally {
+    // A clean worker shutdown or an input error must not leave a timer behind
+    // when this helper is invoked in-process by tests or controlled teardown.
+    stopWatchdog();
+  }
 }
 
 const currentFile = fileURLToPath(import.meta.url);

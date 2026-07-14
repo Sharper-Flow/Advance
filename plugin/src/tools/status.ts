@@ -43,6 +43,7 @@ import {
   fetchStatusSnapshotHealth,
   fetchStatusTemporalHealth,
   fetchStatusQueueServiceability,
+  fetchStatusWorkerProcesses,
   buildTemporalHealthFallback,
   STATUS_PROBE_TTL_MS,
   pushQueueServiceabilityRecommendations,
@@ -56,6 +57,7 @@ import {
   type SnapshotHealthSnapshot,
   type StatusQueueServiceabilitySnapshot,
   type TemporalHealthSnapshot,
+  type WorkerProcessesSnapshot,
   type WorktreeCensusSnapshot,
 } from "./status-health";
 import {
@@ -343,6 +345,49 @@ export const statusTools = {
               temporalHealth,
               queueServiceability,
             });
+          }
+
+          let workerProcesses: WorkerProcessesSnapshot | undefined;
+          if (plan.workerProcesses) {
+            try {
+              const workerProcessesProbe = await fetchStatusWorkerProcesses({
+                forceRefresh,
+              });
+              workerProcesses = workerProcessesProbe.value;
+              probeFreshness.worker_processes = workerProcessesProbe.freshness;
+            } catch (err) {
+              // Advisory section — enumeration failure (or a slow /proc
+              // scan hitting the probe timeout) must never fail the health
+              // probe. Omit the section.
+              workerProcesses = undefined;
+              probeFreshness.worker_processes = {
+                cached_at: new Date().toISOString(),
+                stale: true,
+                age_ms: 0,
+                ttl_ms: STATUS_PROBE_TTL_MS,
+                error: err instanceof Error ? err.message : String(err),
+              };
+            }
+
+            if (workerProcesses && workerProcesses.orphanCount > 0) {
+              const orphanPids = workerProcesses.processes
+                .filter((p) => p.orphan)
+                .map((p) => p.pid)
+                .slice(0, 5);
+              const message =
+                `⚠️ ${workerProcesses.orphanCount} orphaned ADV Temporal worker process(es) detected ` +
+                `(pid ${orphanPids.join(", ")}${workerProcesses.orphanCount > orphanPids.length ? ", …" : ""}) — ` +
+                "parent plugin-host is gone; kill them to stop task-queue saturation.";
+              pushStatusRecommendation(status, {
+                kind: "health",
+                priority: "high",
+                title: "Orphaned ADV worker process(es)",
+                detail: `${workerProcesses.orphanCount} worker process(es) whose parent is dead`,
+                action: `kill ${orphanPids.join(" ")} — or see docs/temporal-recovery.md`,
+                source: "health",
+                message,
+              });
+            }
           }
 
           let searchAttributes: SearchAttributesSnapshot | undefined;
@@ -798,6 +843,7 @@ export const statusTools = {
                 }
               : {}),
             search_attributes: searchAttributes,
+            worker_processes: workerProcesses,
             opencode_session_debt: opencodeSessionDebt,
             migration_status: migrationStatus,
             project_metadata: projectMetadata,

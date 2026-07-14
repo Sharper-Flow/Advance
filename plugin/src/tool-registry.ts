@@ -47,6 +47,7 @@ import { testTools } from "./tools/test";
 import { temporalOpsTools } from "./tools/temporal-ops";
 import { checkpointTools } from "./tools/checkpoint";
 import { formatArchiveTimeoutResult } from "./tools/change/archive-timeout";
+import { formatGateCompleteTimeoutResult } from "./tools/gate-timeout";
 import { reflectionTools } from "./tools/reflection";
 import { snapshotHealthTools } from "./tools/snapshot";
 import { projectMetadataTools } from "./tools/project-metadata";
@@ -694,6 +695,15 @@ export function createToolMap(
       "adv_gate_status",
       store,
     ),
+    // adv_gate_complete — fixTemporalTimeoutsWorker AC1. The gate signal
+    // (gateCompletedSignal via fireSignalAndRefresh) is lighter than
+    // archive's git finalization, but under worker contention the default
+    // 10s safety-net is sometimes exceeded: the signal may have landed
+    // while the agent sees a bare ToolExecutionTimeout. 30s covers the
+    // Temporal signal + cache-refresh round trip with headroom, and the
+    // onToolTimeout classifier returns a typed "may have landed — verify
+    // via adv_gate_status" advisory instead of the generic timeout so
+    // the caller does not blindly re-fire the signal.
     adv_gate_complete: registerTool(
       gateTools.adv_gate_complete.description,
       gateTools.adv_gate_complete.args,
@@ -706,6 +716,15 @@ export function createToolMap(
               store,
             ),
           "adv_gate_complete",
+          undefined,
+          {
+            timeoutMs: 30_000,
+            onToolTimeout: (args, error) =>
+              formatGateCompleteTimeoutResult({
+                args: args as { changeId?: unknown; gateId?: unknown },
+                timeoutMs: error.timeoutMs,
+              }),
+          },
         ),
       ),
     ),

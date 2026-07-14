@@ -396,9 +396,24 @@ export async function reconcileArchivedBundleRetry(input: {
     }
     releaseResult = { ...completionResult, gate: durableProof.gate };
   }
+  // rq-archiveRetryIdempotence01 / AC3 split-brain recovery: reconcile Phase 9
+  // metadata to done whenever it is not already done — INCLUDING when it is
+  // unset. The #216 split-brain leaves a durable bundle with phase9_status
+  // unset (the Temporal-only recorder could not fire during the timeout); the
+  // idempotent re-run MUST record it. The prior guard
+  // (`phase9_status?.status && ...`) skipped the unset case, silently leaving
+  // the split-brain unreconciled. `preservePhase9Evidence(undefined, next)`
+  // returns `next`, so an unset status is recorded cleanly.
+  //
+  // Guard on `!releaseResult.recoveryMutation`: when the release gate had to be
+  // recovered via disk projection, the change workflow has already completed
+  // and CANNOT accept the phase9 signal — recording there would throw a
+  // completed-workflow error and break the poisoned-recovery path. In that case
+  // phase9 reconciliation is the adv_change_status_repair concern, not this
+  // signal. When the workflow is live (no recovery mutation), record normally.
   if (
-    input.change.phase9_status?.status &&
-    input.change.phase9_status.status !== "done"
+    input.change.phase9_status?.status !== "done" &&
+    !releaseResult.recoveryMutation
   ) {
     await recordPhase9Status({
       store: input.store,
@@ -406,7 +421,7 @@ export async function reconcileArchivedBundleRetry(input: {
       status: preservePhase9Evidence(input.change.phase9_status, {
         status: "done",
         startedAt:
-          input.change.phase9_status.startedAt ?? new Date().toISOString(),
+          input.change.phase9_status?.startedAt ?? new Date().toISOString(),
         completedAt: new Date().toISOString(),
       }),
     });

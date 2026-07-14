@@ -19,6 +19,7 @@ import {
   runTemporalWorkerFromEnv,
   runMultiQueueTemporalWorker,
   createChildIPCHandler,
+  startParentLivenessWatchdog,
 } from "./worker";
 
 describe("temporal worker helpers", () => {
@@ -71,6 +72,25 @@ describe("temporal worker helpers", () => {
         taskQueue: "advance-proj2",
       }),
     );
+  });
+
+  it("runTemporalWorkerFromEnv stops its watchdog after a clean worker return", async () => {
+    vi.useFakeTimers();
+    const killSpy = vi
+      .spyOn(process, "kill")
+      .mockImplementation((() => true) as typeof process.kill);
+
+    try {
+      await runTemporalWorkerFromEnv({
+        ADV_TEMPORAL_TASK_QUEUE: "advance-clean-return",
+      } as NodeJS.ProcessEnv);
+
+      vi.advanceTimersByTime(3_000);
+      expect(killSpy).not.toHaveBeenCalled();
+    } finally {
+      killSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 
   it("runTemporalWorker falls back to workflows.ts when workflows.js is absent in source mode", async () => {
@@ -367,6 +387,162 @@ describe("temporal worker helpers", () => {
       expect(onRegister).not.toHaveBeenCalled();
       expect(onUnregister).not.toHaveBeenCalled();
       expect(onShutdown).not.toHaveBeenCalled();
+    });
+  });
+
+  // AC4 — Parent-liveness watchdog (crash-orphan guard).
+  //
+  // Context: the live worker child is spawned with `detached: false`
+  // (worker-multi.ts). On CLEAN shutdown the parent SIGTERM/SIGKILLs the
+  // child. But on parent CRASH (kill -9 / OOM / segfault) the shutdown
+  // handler never runs, the child is reparented (pid 1 or a systemd
+  // subreaper) and keeps polling the task queue — an orphan worker that
+  // saturates the shared STSL gRPC. The watchdog probes the parent pid and
+  // self-exits when the parent is gone.
+  //
+  // The parent pid is captured ONCE at start. Re-reading `process.ppid`
+  // after reparenting would point at init/subreaper (alive) and never
+  // detect the orphan — so we probe the captured pid with
+  // `process.kill(ppid, 0)` (signal 0 = existence check). ESRCH ⇒ parent
+  // reaped ⇒ self-exit. This is robust to subreapers (unlike `ppid === 1`).
+  describe("startParentLivenessWatchdog (AC4)", () => {
+    it("self-exits when the parent is gone (process.kill throws ESRCH)", () => {
+      vi.useFakeTimers();
+      const killSpy = vi.spyOn(process, "kill").mockImplementation(((
+        pid: number,
+        signal?: string | number,
+      ) => {
+        if (signal === 0) {
+          const err = new Error("no such process") as NodeJS.ErrnoException;
+          err.code = "ESRCH";
+          throw err;
+        }
+        return true;
+      }) as typeof process.kill);
+      const exit = vi.fn();
+
+      try {
+        const stop = startParentLivenessWatchdog({
+          ppid: 12345,
+          intervalMs: 1000,
+          exit,
+        });
+        vi.advanceTimersByTime(1000);
+        expect(exit).toHaveBeenCalledTimes(1);
+        expect(exit).toHaveBeenCalledWith(1);
+        stop();
+      } finally {
+        killSpy.mockRestore();
+        vi.useRealTimers();
+      }
+    });
+
+    it("does NOT exit while the parent is alive", () => {
+      vi.useFakeTimers();
+      const killSpy = vi
+        .spyOn(process, "kill")
+        .mockImplementation((() => true) as typeof process.kill);
+      const exit = vi.fn();
+
+      try {
+        const stop = startParentLivenessWatchdog({
+          ppid: 12345,
+          intervalMs: 1000,
+          exit,
+        });
+        // Several intervals elapse with a live parent → no exit.
+        vi.advanceTimersByTime(5000);
+        expect(exit).not.toHaveBeenCalled();
+        stop();
+      } finally {
+        killSpy.mockRestore();
+        vi.useRealTimers();
+      }
+    });
+
+    it("stops probing after exit fires (no repeated exit calls)", () => {
+      vi.useFakeTimers();
+      const killSpy = vi.spyOn(process, "kill").mockImplementation(((
+        pid: number,
+        signal?: string | number,
+      ) => {
+        if (signal === 0) {
+          const err = new Error("no such process") as NodeJS.ErrnoException;
+          err.code = "ESRCH";
+          throw err;
+        }
+        return true;
+      }) as typeof process.kill);
+      const exit = vi.fn();
+
+      try {
+        startParentLivenessWatchdog({ ppid: 12345, intervalMs: 1000, exit });
+        // Many intervals elapse; exit must fire exactly once.
+        vi.advanceTimersByTime(10000);
+        expect(exit).toHaveBeenCalledTimes(1);
+      } finally {
+        killSpy.mockRestore();
+        vi.useRealTimers();
+      }
+    });
+
+    it("treats non-ESRCH kill errors (e.g. EPERM) as parent-alive", () => {
+      vi.useFakeTimers();
+      const killSpy = vi.spyOn(process, "kill").mockImplementation(((
+        pid: number,
+        signal?: string | number,
+      ) => {
+        if (signal === 0) {
+          const err = new Error("not permitted") as NodeJS.ErrnoException;
+          err.code = "EPERM";
+          throw err;
+        }
+        return true;
+      }) as typeof process.kill);
+      const exit = vi.fn();
+
+      try {
+        const stop = startParentLivenessWatchdog({
+          ppid: 12345,
+          intervalMs: 1000,
+          exit,
+        });
+        vi.advanceTimersByTime(5000);
+        expect(exit).not.toHaveBeenCalled();
+        stop();
+      } finally {
+        killSpy.mockRestore();
+        vi.useRealTimers();
+      }
+    });
+
+    it("defaults to process.exit and process.ppid when options omitted", () => {
+      vi.useFakeTimers();
+      // Parent gone: default probe (process.kill(capturedPpid, 0)) → ESRCH.
+      const killSpy = vi.spyOn(process, "kill").mockImplementation(((
+        pid: number,
+        signal?: string | number,
+      ) => {
+        if (signal === 0) {
+          const err = new Error("no such process") as NodeJS.ErrnoException;
+          err.code = "ESRCH";
+          throw err;
+        }
+        return true;
+      }) as typeof process.kill);
+      const exitSpy = vi
+        .spyOn(process, "exit")
+        .mockImplementation((() => undefined) as typeof process.exit);
+
+      try {
+        startParentLivenessWatchdog({ intervalMs: 1000 });
+        vi.advanceTimersByTime(1000);
+        expect(exitSpy).toHaveBeenCalledWith(1);
+      } finally {
+        killSpy.mockRestore();
+        exitSpy.mockRestore();
+        vi.useRealTimers();
+      }
     });
   });
 });
