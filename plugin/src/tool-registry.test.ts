@@ -536,12 +536,15 @@ describe("safeExecute timeout overrides for slow-subprocess tools", () => {
     expect(value).toBeGreaterThanOrEqual(15_000);
   });
 
-  // fixArchiveTerminalProjection SC3/AC4: adv_change_archive must declare a
-  // heavy-tier timeoutMs override (its inner git push budget alone defaults
-  // to 300s) plus an onToolTimeout classifier so an interruption past the
-  // durable bundle write returns a typed still-finalizing/reconcile result
-  // instead of a bare ToolExecutionTimeout.
-  test("adv_change_archive registers safeExecute with heavy-tier timeoutMs override + onToolTimeout classifier", () => {
+  // fixArchiveTerminalProjection SC3/AC4 + fixTemporalTimeoutsWorker AC2:
+  // adv_change_archive must declare a heavy-tier timeoutMs override (its
+  // inner git push budget alone defaults to 300s) plus an onToolTimeout
+  // classifier so an interruption past the durable bundle write returns a
+  // typed still-finalizing/reconcile result instead of a bare
+  // ToolExecutionTimeout. AC2 regression guard: the > 300s assertion also
+  // covers the > 10s default-floor requirement — dropping the override
+  // back to the 10s default (the #216 bug) fails this test.
+  test("adv_change_archive registers safeExecute with heavy-tier timeoutMs override + onToolTimeout classifier (AC2)", () => {
     const block = extractRegistrationBlock(registrySrc, "adv_change_archive");
     expect(
       block,
