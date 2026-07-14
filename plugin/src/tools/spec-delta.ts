@@ -148,6 +148,12 @@ function validateDeltaArg(input: DeltaValidation): {
           'delta.requirement.scenarios[].id must match the "rq-{parent}.{n}" format',
       };
     }
+    if (!scenario.id.startsWith(`${delta.requirement.id}.`)) {
+      return {
+        error:
+          "delta.requirement.scenarios[].id must use the added requirement id as its parent",
+      };
+    }
   }
   return { delta };
 }
@@ -187,6 +193,20 @@ async function runAdd(
   projectContext?: TargetProjectOutputContext,
 ): Promise<string> {
   try {
+    const change = await activeStore.changes.get(input.changeId);
+    if (!change.success) {
+      throw new Error(
+        `Unable to load change ${input.changeId}: ${change.error}`,
+      );
+    }
+    if (!change.data) {
+      throw new Error(`Change ${input.changeId} not found`);
+    }
+    if (change.data.status !== "draft") {
+      throw new Error(
+        `Spec delta add requires a draft change; ${input.changeId} is ${change.data.status}`,
+      );
+    }
     const existingSpec = await activeStore.specs.get(input.capability);
     if (!existingSpec.success) {
       throw new Error(

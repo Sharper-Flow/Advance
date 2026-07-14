@@ -389,6 +389,54 @@ describe("adv_delta_add — validation refusals", () => {
     },
   );
 
+  it("rejects a scenario whose parent ID differs from its added requirement", async () => {
+    const store = makeStore();
+    const delta = makeValidDelta({
+      requirement: {
+        ...makeValidDelta().requirement,
+        scenarios: [
+          {
+            ...makeValidDelta().requirement.scenarios![0]!,
+            id: "rq-otherRequirement01.1",
+          },
+        ],
+      },
+    });
+
+    const result = await specDeltaTools.adv_delta_add.execute(
+      { changeId: "addFeature", capability: "test-capability", delta },
+      store,
+    );
+
+    expect(parse(result).success).not.toBe(true);
+    expect(parse(result).error).toMatch(/parent/i);
+    expect(mocks.specDeltasAdd).not.toHaveBeenCalled();
+  });
+
+  it("rejects an add for a non-draft change before calling the store", async () => {
+    const store = makeStore({
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: { id: "addFeature", status: "archived", deltas: {} },
+        })),
+      },
+    });
+
+    const result = await specDeltaTools.adv_delta_add.execute(
+      {
+        changeId: "addFeature",
+        capability: "test-capability",
+        delta: makeValidDelta(),
+      },
+      store,
+    );
+
+    expect(parse(result).success).not.toBe(true);
+    expect(parse(result).error).toMatch(/draft/i);
+    expect(mocks.specDeltasAdd).not.toHaveBeenCalled();
+  });
+
   it("rejects an add whose requirement already exists in the target spec before calling the store", async () => {
     const store = makeStore({
       specs: {
