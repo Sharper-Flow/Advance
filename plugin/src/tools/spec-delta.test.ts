@@ -136,6 +136,9 @@ function makeStore(overrides: Record<string, unknown> = {}): Store {
         },
       })),
     },
+    specs: {
+      get: vi.fn(async () => ({ success: true, data: null })),
+    },
     ...overrides,
   } as unknown as Store;
 }
@@ -354,6 +357,62 @@ describe("adv_delta_add — validation refusals", () => {
     const parsed = parse(result);
 
     expect(parsed.success).not.toBe(true);
+    expect(mocks.specDeltasAdd).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["dl-invalid-id", "rq-specDelta01", "rq-specDelta01.1"],
+    ["dl-AAA11111", "invalid-requirement", "rq-specDelta01.1"],
+    ["dl-AAA11111", "rq-specDelta01", "invalid-scenario"],
+  ])(
+    "rejects malformed structured IDs (%s, %s, %s) without calling the store",
+    async (deltaId, requirementId, scenarioId) => {
+      const store = makeStore();
+      const delta = makeValidDelta({
+        id: deltaId,
+        requirement: {
+          ...makeValidDelta().requirement,
+          id: requirementId,
+          scenarios: [
+            { ...makeValidDelta().requirement.scenarios![0]!, id: scenarioId },
+          ],
+        },
+      });
+
+      const result = await specDeltaTools.adv_delta_add.execute(
+        { changeId: "addFeature", capability: "test-capability", delta },
+        store,
+      );
+
+      expect(parse(result).success).not.toBe(true);
+      expect(mocks.specDeltasAdd).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects an add whose requirement already exists in the target spec before calling the store", async () => {
+    const store = makeStore({
+      specs: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            name: "test-capability",
+            requirements: [{ id: "rq-specDelta01" }],
+          },
+        })),
+      },
+    });
+
+    const result = await specDeltaTools.adv_delta_add.execute(
+      {
+        changeId: "addFeature",
+        capability: "test-capability",
+        delta: makeValidDelta(),
+      },
+      store,
+    );
+
+    expect(parse(result).success).not.toBe(true);
+    expect(parse(result).error).toMatch(/already exists/i);
     expect(mocks.specDeltasAdd).not.toHaveBeenCalled();
   });
 

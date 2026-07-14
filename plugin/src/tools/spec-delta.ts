@@ -34,6 +34,10 @@ import {
   type TargetProjectOutputContext,
 } from "./target-project";
 
+const DELTA_ID_PATTERN = /^dl-[a-zA-Z0-9]+$/;
+const REQUIREMENT_ID_PATTERN = /^rq-[a-zA-Z0-9]+$/;
+const SCENARIO_ID_PATTERN = /^rq-[a-zA-Z0-9]+\.\d+$/;
+
 const targetArgs = {
   target_path: z
     .string()
@@ -122,12 +126,28 @@ function validateDeltaArg(input: DeltaValidation): {
   if (!delta.requirement.id?.trim()) {
     return { error: "delta.requirement.id must be a non-blank string" };
   }
+  if (!DELTA_ID_PATTERN.test(delta.id)) {
+    return { error: 'delta.id must match the "dl-{nanoid}" format' };
+  }
+  if (!REQUIREMENT_ID_PATTERN.test(delta.requirement.id)) {
+    return {
+      error: 'delta.requirement.id must match the "rq-{nanoid}" format',
+    };
+  }
   const scenarios = delta.requirement.scenarios;
   if (!Array.isArray(scenarios) || scenarios.length === 0) {
     return {
       error:
         "delta.requirement.scenarios must contain at least one Given/When/Then scenario",
     };
+  }
+  for (const scenario of scenarios) {
+    if (!SCENARIO_ID_PATTERN.test(scenario.id)) {
+      return {
+        error:
+          'delta.requirement.scenarios[].id must match the "rq-{parent}.{n}" format',
+      };
+    }
   }
   return { delta };
 }
@@ -167,6 +187,21 @@ async function runAdd(
   projectContext?: TargetProjectOutputContext,
 ): Promise<string> {
   try {
+    const existingSpec = await activeStore.specs.get(input.capability);
+    if (!existingSpec.success) {
+      throw new Error(
+        `Unable to validate existing spec for capability ${input.capability}: ${existingSpec.error}`,
+      );
+    }
+    if (
+      existingSpec.data?.requirements.some(
+        (requirement) => requirement.id === input.delta.requirement.id,
+      )
+    ) {
+      throw new Error(
+        `Requirement ${input.delta.requirement.id} already exists in spec ${input.capability}`,
+      );
+    }
     const appended = await activeStore.specDeltas.add(
       input.changeId,
       input.capability,
