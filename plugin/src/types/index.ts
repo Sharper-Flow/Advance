@@ -64,8 +64,13 @@ export {
   SpecSchema,
   type Spec,
   DependencySchema,
+  CAPABILITY_KEY_PATTERN,
+  CapabilityKeySchema,
+  type CapabilityKey,
   DeltaSchema,
   type Delta,
+  DeltaAddSchema,
+  type DeltaAdd,
 } from "./specs";
 
 // =============================================================================

@@ -72,6 +72,7 @@ import {
   applyTaskUpdatedToState,
   applyTestRunRecordedToState,
   applyWisdomAddedToState,
+  applySpecDeltaAddedToState,
   applyWorktreeAttachedToState,
   applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
@@ -348,6 +349,9 @@ const gateReenteredSignal = wf.defineSignal<
 const wisdomAddedSignal = wf.defineSignal<
   [import("../types").WisdomAddedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.wisdomAdded);
+const specDeltaAddedSignal = wf.defineSignal<
+  [import("../types").SpecDeltaAddedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.specDeltaAdded);
 const reflectionRecordedSignal = wf.defineSignal<
   [import("../types").ReflectionRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.reflectionRecorded);
@@ -1391,6 +1395,12 @@ export async function changeWorkflow(
     wisdomAddedSignal,
     signalMutation("wisdomAdded", (payload) =>
       applyWisdomAddedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    specDeltaAddedSignal,
+    signalMutation("specDeltaAdded", (payload) =>
+      applySpecDeltaAddedToState(state, payload),
     ),
   );
   wf.setHandler(

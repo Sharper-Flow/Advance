@@ -36,6 +36,7 @@ import type {
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
+  SpecDeltaAddedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   Task,
   TaskAddedSignalPayload,
@@ -56,6 +57,7 @@ import type {
   WorktreeSetupFailedSignalPayload,
 } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
+import { CAPABILITY_KEY_PATTERN } from "../types/specs";
 import {
   normalizePersistedSubagentReportState,
   normalizeLegacyChangeStatus,
@@ -1218,6 +1220,55 @@ export function applyWisdomAddedToState(
   payload: WisdomAddedSignalPayload,
 ): ChangeWorkflowState {
   state.wisdom.push(payload.entry);
+  setLastSignalAt(state, payload.addedAt);
+  return state;
+}
+
+/**
+ * addSpecDeltaWriter: append-only spec-delta reducer (DeltaAdd semantics only).
+ *
+ * Appends `payload.delta` under `state.deltas[payload.capability]`, accepting
+ * existing or valid new kebab-case capability keys. Duplicate delta ids and
+ * duplicate add-requirement ids are rejected deterministically (throw →
+ * signal-rejection path) so replays and duplicate submissions leave the
+ * capability-keyed delta record unchanged. Matching is exact-identifier only —
+ * no heuristic inference. The reducer never resolves or modifies global spec
+ * files: archive remains the sole global-spec writer.
+ */
+export function applySpecDeltaAddedToState(
+  state: ChangeWorkflowState,
+  payload: SpecDeltaAddedSignalPayload,
+): ChangeWorkflowState {
+  if (!CAPABILITY_KEY_PATTERN.test(payload.capability)) {
+    throw new Error(
+      `Malformed capability key: ${JSON.stringify(payload.capability)}`,
+    );
+  }
+  const deltas = state.deltas ?? {};
+  for (const [capability, entries] of Object.entries(deltas)) {
+    for (const entry of entries) {
+      if (entry.id === payload.delta.id) {
+        throw new Error(
+          `Duplicate spec delta id ${payload.delta.id} under capability ${capability}`,
+        );
+      }
+      if (
+        entry.operation === "add" &&
+        entry.requirement.id === payload.delta.requirement.id
+      ) {
+        throw new Error(
+          `Duplicate requirement id ${payload.delta.requirement.id} under capability ${capability}`,
+        );
+      }
+    }
+  }
+  state.deltas = {
+    ...deltas,
+    [payload.capability]: [
+      ...(deltas[payload.capability] ?? []),
+      payload.delta,
+    ],
+  };
   setLastSignalAt(state, payload.addedAt);
   return state;
 }

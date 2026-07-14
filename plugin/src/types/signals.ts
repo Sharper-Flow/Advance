@@ -22,6 +22,7 @@ import {
   GateReadinessBlockerSchema,
 } from "./gates";
 import { WisdomEntrySchema } from "./wisdom";
+import { CapabilityKeySchema, DeltaAddSchema } from "./specs";
 import { AttemptSchema, TaskSchema } from "./tasks";
 import { TaskStructuredOutputSchema } from "./task-output";
 import {
@@ -305,6 +306,26 @@ export const WisdomAddedSignalPayloadSchema = z.object({
 });
 export type WisdomAddedSignalPayload = z.infer<
   typeof WisdomAddedSignalPayloadSchema
+>;
+
+/**
+ * Append-only spec-delta writer payload (addSpecDeltaWriter change).
+ *
+ * Restricted to DeltaAdd semantics: only operation:"add" deltas carrying a
+ * complete requirement may be recorded. Modify/remove/rename stay
+ * archive-internal until their target-resolution and overwrite semantics are
+ * separately designed. `capability` accepts an existing or a valid new
+ * kebab-case capability key; the workflow reducer appends the delta under
+ * `state.deltas[capability]` and archive remains the sole global-spec writer.
+ */
+export const SpecDeltaAddedSignalPayloadSchema = z.object({
+  capability: CapabilityKeySchema,
+  delta: DeltaAddSchema,
+  addedAt: IsoTimestampSchema,
+  addedBy: z.string().optional(),
+});
+export type SpecDeltaAddedSignalPayload = z.infer<
+  typeof SpecDeltaAddedSignalPayloadSchema
 >;
 
 export const ReflectionRecordedSignalPayloadSchema = z.object({
