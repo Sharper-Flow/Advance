@@ -37,6 +37,7 @@ import {
   problemStatementUpdatedSignal,
   proposalUpdatedSignal,
   reflectionRecordedSignal,
+  specDeltaAddedSignal,
   subagentReportSubmittedSignal,
   taskAddedSignal,
   taskAssignedSignal,
@@ -245,6 +246,89 @@ describe("changeWorkflow Epic membership signals", () => {
       expect(state.epic_membership).toBeUndefined();
     });
   });
+});
+
+describe("changeWorkflow spec-delta signals", () => {
+  function makeAddDelta(deltaId: string, requirementId: string) {
+    return {
+      id: deltaId,
+      operation: "add" as const,
+      requirement: {
+        id: requirementId,
+        title: `Requirement ${requirementId}`,
+        body: "Durable behavior recorded through the spec-delta writer.",
+        priority: "must" as const,
+        scenarios: [
+          {
+            id: `${requirementId}.1`,
+            title: "Recorded delta persists",
+            given: ["a draft change exists"],
+            when: "a valid add delta is signaled",
+            then: ["the delta persists under the capability"],
+          },
+        ],
+      },
+    };
+  }
+
+  it("appends add deltas under a new capability and rejects duplicates deterministically", async () => {
+    await withSignalWorker("spec-delta-added", async (handle) => {
+      await handle.signal(specDeltaAddedSignal, {
+        capability: "collection-dashboard",
+        delta: makeAddDelta("dl-AAA11111", "rq-specDelta01"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+        addedBy: "agent",
+      });
+
+      let state = await queryState(handle);
+      expect(state.deltas["collection-dashboard"]).toHaveLength(1);
+      expect(state.deltas["collection-dashboard"]?.[0]).toMatchObject({
+        id: "dl-AAA11111",
+        operation: "add",
+        requirement: expect.objectContaining({ id: "rq-specDelta01" }),
+      });
+
+      // Duplicate delta id: rejected, delta record unchanged.
+      await handle.signal(specDeltaAddedSignal, {
+        capability: "collection-dashboard",
+        delta: makeAddDelta("dl-AAA11111", "rq-specDelta01"),
+        addedAt: "2026-05-05T00:00:02.000Z",
+      });
+
+      // Duplicate requirement id under a different delta id: rejected too.
+      await handle.signal(specDeltaAddedSignal, {
+        capability: "collection-dashboard",
+        delta: makeAddDelta("dl-BBB22222", "rq-specDelta01"),
+        addedAt: "2026-05-05T00:00:03.000Z",
+      });
+
+      state = await queryState(handle);
+      expect(state.deltas["collection-dashboard"]).toHaveLength(1);
+      const rejections = (state as any).signal_rejections ?? [];
+      expect(rejections).toHaveLength(2);
+      for (const rejection of rejections) {
+        expect(rejection.signalName).toBe("specDeltaAdded");
+      }
+
+      // A distinct requirement appends cleanly after the rejections.
+      await handle.signal(specDeltaAddedSignal, {
+        capability: "collection-dashboard",
+        delta: makeAddDelta("dl-CCC33333", "rq-specDelta02"),
+        addedAt: "2026-05-05T00:00:04.000Z",
+      });
+
+      state = await queryState(handle);
+      expect(state.deltas["collection-dashboard"]?.map((d) => d.id)).toEqual([
+        "dl-AAA11111",
+        "dl-CCC33333",
+      ]);
+      // lastSignalAt is monotonic: the intervening rejections stamp
+      // workflowNow(), so fixture timestamps cannot move it backwards.
+      // Reducer-level payload.addedAt behavior is covered in
+      // change-state.spec-delta.test.ts.
+      expect(state.lastSignalAt).toBeTruthy();
+    });
+  }, 30_000);
 });
 
 async function waitForGateStatus(

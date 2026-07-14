@@ -70,6 +70,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
       show: `Show spec${suffix(args, "capability")}`,
       search: `Search specs${suffix(args, "query")}`,
     }),
+  adv_delta_add: (args) =>
+    write(`Add spec delta${suffix(args, "changeId", "capability")}`),
   adv_roadmap: (args) => read(`Show roadmap${suffix(args, "kind")}`),
   adv_backlog_state: (args) => read(`Show backlog${suffix(args, "kind")}`),
   adv_backlog_add: (args) => write(`Add backlog item${suffix(args, "title")}`),

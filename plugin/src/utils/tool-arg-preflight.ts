@@ -54,6 +54,20 @@ const ARTIFACT_FIELDS = [
 // policy executor. Keep this table limited to structural placeholder decisions;
 // no fs/store/Temporal lookups here.
 const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
+  adv_delta_add: {
+    // Optional audit identity.
+    addedBy: { blank: "omit" },
+    // Contextually-validated target_path mutation guard (handler checks
+    // only when target_path is present).
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+    // Contextually-validated (rq-toolPlaceholderPolicy01.6). The handler
+    // rejects poisoned_history without precise evidence and refuses any
+    // disk-projection write even with valid evidence.
+    recoveryEvidence: { blank: "omit" },
+    recoveryReason: { blank: "omit" },
+  },
   adv_change_create: {
     // Optional artifact content — strict-mode providers fill with "" defaults.
     proposal: { blank: "omit" },

@@ -36,6 +36,7 @@ import {
   ProblemStatementUpdatedSignalPayloadSchema,
   ProposalUpdatedSignalPayloadSchema,
   ReflectionRecordedSignalPayloadSchema,
+  SpecDeltaAddedSignalPayloadSchema,
   SubagentReportSubmittedSignalPayloadSchema,
   TaskAddedSignalPayloadSchema,
   TaskAssignedSignalPayloadSchema,
@@ -84,6 +85,7 @@ const designSignalKeys = [
   "gateCompleted",
   "gateReentered",
   "wisdomAdded",
+  "specDeltaAdded",
   "reflectionRecorded",
   "worktreeCreated",
   "worktreeDeleted",
@@ -120,11 +122,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 50 signal surface", () => {
+  it("defines the 51 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(50);
+    expect(surfacedKeys).toHaveLength(51);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -336,6 +338,33 @@ describe("change workflow message contract", () => {
         },
       ],
       [WisdomAddedSignalPayloadSchema, { entry: wisdom, addedAt: timestamp }],
+      [
+        SpecDeltaAddedSignalPayloadSchema,
+        {
+          capability: "collection-dashboard",
+          delta: {
+            id: "dl-1",
+            operation: "add",
+            requirement: {
+              id: "rq-specDelta01",
+              title: "Spec delta writer",
+              body: "Record change-scoped add deltas durably.",
+              priority: "must",
+              scenarios: [
+                {
+                  id: "rq-specDelta01.1",
+                  title: "Record add delta",
+                  given: ["a draft change exists"],
+                  when: "the writer is invoked",
+                  then: ["the delta persists under the capability"],
+                },
+              ],
+            },
+          },
+          addedAt: timestamp,
+          addedBy: "agent",
+        },
+      ],
       [
         ReflectionRecordedSignalPayloadSchema,
         { report: { ok: true }, recordedAt: timestamp },

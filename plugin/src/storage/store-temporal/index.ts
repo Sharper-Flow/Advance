@@ -48,6 +48,7 @@ import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
 import { createGateOps } from "./gates";
 import { createWisdomOps } from "./wisdom";
+import { createSpecDeltaOps } from "./spec-deltas";
 import { createEpicOps } from "./epics";
 
 const logger = createLogger("store-temporal");
@@ -1503,6 +1504,7 @@ export function createTemporalStoreBackend(
     tasks: createTaskOps(deps),
     gates: createGateOps(deps),
     wisdom: createWisdomOps(deps),
+    specDeltas: createSpecDeltaOps(deps),
     status: async (options) => buildTemporalStatus(options),
     epics: createEpicOps(deps),
   };
@@ -1516,3 +1518,4 @@ export { createChangeOps } from "./changes";
 export { createTaskOps } from "./tasks";
 export { createGateOps } from "./gates";
 export { createWisdomOps } from "./wisdom";
+export { createSpecDeltaOps } from "./spec-deltas";

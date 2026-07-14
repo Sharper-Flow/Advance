@@ -19,6 +19,7 @@ import type {
   TaskReadyResponse,
   ProjectStatus,
   ChangeRecency,
+  DeltaAdd,
   WisdomEntry,
   WisdomType,
   Cancellation,
@@ -341,6 +342,22 @@ export interface Store {
     listAll: (options?: {
       type?: WisdomType;
     }) => Promise<Array<WisdomEntry & { scope: string; change_id?: string }>>;
+  };
+
+  // Spec deltas (change-scoped, append-only writer).
+  //
+  // Records an add-operation delta under `change.deltas[capability]`.
+  // Existing and valid new kebab-case capability keys are accepted. Archive
+  // remains the sole writer of global spec files; this surface only mutates
+  // the change-owned durable delta record. Duplicate delta ids and duplicate
+  // add-requirement ids are rejected atomically with state left unchanged.
+  specDeltas: {
+    add: (
+      changeId: string,
+      capability: string,
+      delta: DeltaAdd,
+      options?: { addedBy?: string },
+    ) => Promise<DeltaAdd>;
   };
 
   // Gates

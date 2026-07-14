@@ -94,6 +94,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   gateCompleted: "adv.change.gateCompleted",
   gateReentered: "adv.change.gateReentered",
   wisdomAdded: "adv.change.wisdomAdded",
+  specDeltaAdded: "adv.change.specDeltaAdded",
   reflectionRecorded: "adv.change.reflectionRecorded",
   worktreeCreated: "adv.change.worktreeCreated",
   worktreeDeleted: "adv.change.worktreeDeleted",

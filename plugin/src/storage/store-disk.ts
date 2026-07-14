@@ -41,6 +41,7 @@ import type {
   Change,
   ChangeClosure,
   ChangeStatus,
+  DeltaAdd,
   Spec,
   Task,
   TddReclassification,
@@ -49,7 +50,7 @@ import type {
   WisdomType,
   ProjectConfig,
 } from "../types";
-import { WisdomEntrySchema } from "../types";
+import { CAPABILITY_KEY_PATTERN, WisdomEntrySchema } from "../types";
 import {
   createChangeScaffold,
   getProjectPaths,
@@ -909,6 +910,52 @@ export async function createDiskStore(
           );
         }
         return all;
+      },
+    },
+
+    // -------------------------------------------------------------------
+    // Spec deltas (append-only, add-only)
+    //
+    // Disk fallback mirrors the Temporal reducer contract: accept existing
+    // or valid new kebab-case capability keys, reject duplicate delta ids
+    // and duplicate add-requirement ids atomically, and never touch global
+    // spec files (archive remains the sole global-spec writer).
+    // -------------------------------------------------------------------
+    specDeltas: {
+      add: async (changeId, capability, delta: DeltaAdd, _options) => {
+        if (!CAPABILITY_KEY_PATTERN.test(capability)) {
+          throw new Error(
+            `Malformed capability key: ${JSON.stringify(capability)}`,
+          );
+        }
+        const result = await loadChange(paths.changes, changeId);
+        if (!result.success || !result.data) {
+          throw new Error(`Change not found: ${changeId}`);
+        }
+        const deltas = result.data.deltas ?? {};
+        for (const [existingCapability, entries] of Object.entries(deltas)) {
+          for (const entry of entries) {
+            if (entry.id === delta.id) {
+              throw new Error(
+                `Duplicate spec delta id ${delta.id} under capability ${existingCapability}`,
+              );
+            }
+            if (
+              entry.operation === "add" &&
+              entry.requirement.id === delta.requirement.id
+            ) {
+              throw new Error(
+                `Duplicate requirement id ${delta.requirement.id} under capability ${existingCapability}`,
+              );
+            }
+          }
+        }
+        result.data.deltas = {
+          ...deltas,
+          [capability]: [...(deltas[capability] ?? []), delta],
+        };
+        await saveChange(paths.changes, result.data);
+        return delta;
       },
     },
 

@@ -28,6 +28,7 @@ import type { Store } from "./storage/store-types";
 import type { OpencodeClient } from "./utils/opencode-types";
 
 import { specTools } from "./tools/spec";
+import { specDeltaTools } from "./tools/spec-delta";
 import { roadmapTools } from "./tools/roadmap";
 import { backlogTools } from "./tools/backlog";
 import { backlogShellTools } from "./tools/backlog-shell";
@@ -271,6 +272,16 @@ export function createToolMap(
   return {
     // Spec Tools
     adv_spec: bindToolWithContext(specTools.adv_spec, "adv_spec", store),
+
+    // Spec Delta Writer (addSpecDeltaWriter / roadmap #64): append-only
+    // add-operation delta under change.deltas[capability]. Archive remains
+    // the sole global-spec writer; this tool only mutates the change-owned
+    // durable delta record.
+    adv_delta_add: bindTool(
+      specDeltaTools.adv_delta_add,
+      "adv_delta_add",
+      store,
+    ),
 
     // Roadmap Tool (legacy — delegates internally to adv_backlog_state via
     // Visibility query when Temporal reachable; kept for backward compat)
@@ -903,6 +914,7 @@ export function createToolMap(
 export function getToolSurface(): Map<string, Set<string>> {
   const groups: Array<Record<string, { args?: Record<string, unknown> }>> = [
     specTools,
+    specDeltaTools,
     roadmapTools,
     backlogTools,
     changeTools,
@@ -944,6 +956,7 @@ export function getToolSurface(): Map<string, Set<string>> {
  */
 export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_spec",
+  "adv_delta_add",
   "adv_roadmap",
   "adv_backlog_state",
   "adv_wip_state",
