@@ -14,6 +14,7 @@ import {
   STALE_LOCK_THRESHOLD_MS,
   SNAPSHOT_HEALTH_SCHEMA_VERSION,
 } from "./snapshot-scan";
+import { listSnapshotRepairAudits } from "../storage/snapshot-repair-audit";
 import type { Store } from "../storage/store";
 
 // =============================================================================
@@ -23,9 +24,6 @@ import type { Store } from "../storage/store";
 const mocks = vi.hoisted(() => ({
   getProjectId: vi.fn(async () => "test-project-id"),
   getDataHome: vi.fn(() => ""),
-  agendaAddExecute: vi.fn(async () =>
-    JSON.stringify({ success: true, item: { id: "agenda-1" } }),
-  ),
 }));
 
 vi.mock("../utils/project-id", async () => {
@@ -36,20 +34,6 @@ vi.mock("../utils/project-id", async () => {
     ...actual,
     getProjectId: mocks.getProjectId,
     getDataHome: mocks.getDataHome,
-  };
-});
-
-vi.mock("./agenda", async () => {
-  const actual = await vi.importActual<typeof import("./agenda")>("./agenda");
-  return {
-    ...actual,
-    agendaTools: {
-      ...actual.agendaTools,
-      adv_agenda_add: {
-        ...actual.agendaTools.adv_agenda_add,
-        execute: mocks.agendaAddExecute,
-      },
-    },
   };
 });
 
@@ -205,7 +189,7 @@ describe("adv_snapshot_health", () => {
     expect(parsed.error.toLowerCase()).toContain("invalid");
   });
 
-  test("dryRun returns preview without mutations", async () => {
+  test("dryRun returns preview without mutations or audit entries", async () => {
     const snapshotRoot = join(tempDir, "opencode", "snapshot");
     const repoPath = join(snapshotRoot, "test-project-id", "abc123");
     await makeBareRepo(repoPath);
@@ -233,13 +217,18 @@ describe("adv_snapshot_health", () => {
     expect(parsed.repair_preview.details).toHaveLength(1);
     expect(parsed.repair_preview.details[0].status).toBe("success");
     expect(parsed.repair_preview.details[0].reason).toBe("dryRun");
-    // Lock file still exists
+    // Lock file still exists.
     await expect(access(lockPath)).resolves.toBeUndefined();
-    // No agenda entry written
-    expect(mocks.agendaAddExecute).not.toHaveBeenCalled();
+    // No snapshot-repair audit entry written for dryRun — only durable
+    // successful repairs produce audit records.
+    const audits = await listSnapshotRepairAudits(
+      tempDir,
+      store.paths.snapshotRepairAudit,
+    );
+    expect(audits).toEqual([]);
   });
 
-  test("audit entry written on successful repair", async () => {
+  test("successful repair appends a durable snapshot-repair audit entry (no Agenda write)", async () => {
     const snapshotRoot = join(tempDir, "opencode", "snapshot");
     const repoPath = join(snapshotRoot, "test-project-id", "abc123");
     await makeBareRepo(repoPath);
@@ -264,14 +253,65 @@ describe("adv_snapshot_health", () => {
 
     expect(parsed.repair_preview.details[0].status).toBe("success");
     expect(parsed.repair_preview.details[0].reason).not.toBe("dryRun");
-    // Agenda entry written
-    expect(mocks.agendaAddExecute).toHaveBeenCalledTimes(1);
-    const agendaCall = mocks.agendaAddExecute.mock.calls[0];
-    expect(agendaCall[0].category).toBe("snapshot-repair");
-    expect(agendaCall[0].title).toContain("delete_stale_locks");
-    expect(agendaCall[0].priority).toBe("low");
-    // Lock deleted
+
+    // Audit entry is written to the purpose-specific snapshot-repair audit
+    // log, NOT to the Agenda store. The audit log lives outside planning,
+    // gates, backlog, and Epic state.
+    const audits = await listSnapshotRepairAudits(
+      tempDir,
+      store.paths.snapshotRepairAudit,
+    );
+    expect(audits).toHaveLength(1);
+    const audit = audits[0];
+    expect(audit.action).toBe("delete_stale_locks");
+    expect(audit.pattern).toBe("stale_lock");
+    expect(audit.target_path).toContain("index.lock");
+    expect(audit.outcome).toBe("success");
+    expect(typeof audit.before_summary).toBe("string");
+    expect(audit.before_summary.length).toBeGreaterThan(0);
+    expect(typeof audit.after_summary).toBe("string");
+    expect(audit.after_summary.length).toBeGreaterThan(0);
+    expect(new Date(audit.recorded_at).toString()).not.toBe("Invalid Date");
+
+    // Lock deleted.
     await expect(access(lockPath)).rejects.toThrow();
+
+    // No Agenda entry is created — the audit trail lives in the
+    // purpose-specific snapshot-repair audit log, not in agenda.jsonl.
+    await expect(
+      access(store.paths.agenda),
+      "adv_snapshot_health must not write to the Agenda store; audit goes to the purpose-specific snapshot-repair audit log",
+    ).rejects.toThrow();
+  });
+
+  test("failed repairs do not produce audit entries", async () => {
+    // Set up a stale_lock finding whose target we delete before repair runs
+    // so the unlink fails (ENOENT), proving that failed repairs are not
+    // logged as successful audit entries.
+    const snapshotRoot = join(tempDir, "opencode", "snapshot");
+    const repoPath = join(snapshotRoot, "test-project-id", "abc123");
+    await makeBareRepo(repoPath);
+    // Do NOT add a stale lock — the repair will try to delete a non-existent
+    // path and the finding will not match the whitelist, so no audit write
+    // should occur.
+    const result = await snapshotHealthTools.adv_snapshot_health.execute(
+      {
+        action: "repair",
+        scope: "project",
+        repair_actions: ["delete_stale_locks"],
+        approvedByUser: true,
+        approvalEvidence: "test",
+        dryRun: false,
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.repair_preview.actions_executed).toBe(0);
+    const audits = await listSnapshotRepairAudits(
+      tempDir,
+      store.paths.snapshotRepairAudit,
+    );
+    expect(audits).toEqual([]);
   });
 
   test("output schema validates — all required fields present", async () => {

@@ -16,6 +16,7 @@ import type {
   EpicEntry,
   EpicMembershipStatus,
   EpicScope,
+  FastFollowOf,
   RetiredEpicProjection,
 } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
@@ -64,6 +65,153 @@ function epicError(err: unknown) {
     code,
     ...(blockers && { blockers }),
   });
+}
+
+// =============================================================================
+// Fast-Follow Lineage Projection (rq-epicFastFollowLineage01)
+// =============================================================================
+//
+// Advisory-only projection rendered on adv_epic_show entries when the child
+// change carries typed fast_follow_of metadata. Bounded by Epic entry count,
+// additive (never removes or reorders fields), and classification is a
+// constant — fast_follow_of is reserved for non-operational advisory children
+// per retireAgendaWorkflow design; operational work continues through
+// ops_followup_links and is not in scope here. The projection MUST NOT add
+// Epic task ownership, dependency enum, task readiness behavior, or release
+// gating.
+
+/**
+ * Compact fast-follow lineage rendered on Epic change entries.
+ *
+ * - `source_change_id`: parent change the child fast-follows from
+ * - `source_task_id`: task in the parent when known (derived from
+ *   followup_ref.report_key); null when the report scope is change-level or
+ *   unknown, or when followup_ref is absent
+ * - `classification`: always `"non_blocking_advisory"` for fast-follow
+ *   children; operational work uses ops_followup_links instead
+ * - `linked_at`: when the fast-follow link was established on the child
+ */
+export type EpicFastFollowLineage = {
+  source_change_id: string;
+  source_task_id: string | null;
+  classification: "non_blocking_advisory";
+  linked_at: string;
+};
+
+/**
+ * Derive the parent task ID from a subagentReportKey when the report scope
+ * is task-level. Returns null for change scope, unknown scope, malformed
+ * keys, or missing input.
+ *
+ * Report key formats (see subagent-reports.ts subagentReportKey):
+ * - taskId present:          `changeId|taskId|agent|attempt`
+ * - task scope (no taskId):  `changeId|task:<task_id>|agent|attempt`
+ * - change scope:            `changeId|change:<scope_key>|agent|attempt`
+ * - unknown:                 `changeId|unknown-scope|agent|attempt`
+ */
+function extractSourceTaskIdFromReportKey(
+  reportKey: string | undefined,
+): string | null {
+  if (!reportKey) return null;
+  const parts = reportKey.split("|");
+  if (parts.length < 2) return null;
+  const scopePart = parts[1];
+  if (!scopePart) return null;
+  if (scopePart.startsWith("task:")) {
+    const id = scopePart.slice("task:".length);
+    return id.length > 0 ? id : null;
+  }
+  if (scopePart.startsWith("change:")) return null;
+  if (scopePart === "unknown-scope") return null;
+  // Legacy taskId shape — second segment is the task id directly.
+  return scopePart;
+}
+
+/**
+ * Compute the advisory lineage for one child change, or null when the child
+ * has no fast_follow_of or cannot be loaded. Cached per change_id for the
+ * duration of a single render call so repeated entries referencing the same
+ * child issue exactly one store read.
+ */
+async function loadFastFollowLineage(
+  store: Store,
+  changeId: string,
+  cache: Map<string, EpicFastFollowLineage | null>,
+): Promise<EpicFastFollowLineage | null> {
+  if (cache.has(changeId)) return cache.get(changeId) ?? null;
+  let lineage: EpicFastFollowLineage | null = null;
+  try {
+    const loaded = await store.changes.get(changeId);
+    if (loaded.success && loaded.data) {
+      const ff: FastFollowOf | undefined = loaded.data.fast_follow_of;
+      if (ff) {
+        lineage = {
+          source_change_id: ff.parent_change_id,
+          source_task_id: extractSourceTaskIdFromReportKey(
+            ff.followup_ref?.report_key,
+          ),
+          classification: "non_blocking_advisory",
+          linked_at: ff.linked_at,
+        };
+      }
+    }
+  } catch {
+    lineage = null;
+  }
+  cache.set(changeId, lineage);
+  return lineage;
+}
+
+/**
+ * Build a per-entry-id map of fast-follow lineage for the given Epic entries.
+ * Shell entries and change entries without fast_follow_of produce no row.
+ * Bounded: at most one store read per unique child change_id.
+ */
+async function buildFastFollowLineageMap(
+  store: Store,
+  entries: readonly EpicEntry[],
+): Promise<Map<string, EpicFastFollowLineage>> {
+  const cache = new Map<string, EpicFastFollowLineage | null>();
+  const map = new Map<string, EpicFastFollowLineage>();
+  for (const entry of entries) {
+    if (entry.kind !== "change") continue;
+    const changeId = getEpicEntryChangeId(entry);
+    if (!changeId) continue;
+    const lineage = await loadFastFollowLineage(store, changeId, cache);
+    if (lineage) map.set(entry.entry_id, lineage);
+  }
+  return map;
+}
+
+/**
+ * Merge fast-follow lineage into a rendered Epic response. Additive only:
+ * preserves all existing keys on each entry and never adds fields to shell
+ * rows or entries whose child has no fast_follow_of. No-op when no lineage
+ * was discovered.
+ */
+async function enrichEpicRenderWithFastFollowLineage<
+  T extends {
+    entries?: ReadonlyArray<Record<string, unknown>>;
+    history?: ReadonlyArray<Record<string, unknown>>;
+    next_work?: ReadonlyArray<Record<string, unknown>>;
+  },
+>(rendered: T, store: Store, entries: readonly EpicEntry[]): Promise<T> {
+  const lineageMap = await buildFastFollowLineageMap(store, entries);
+  if (lineageMap.size === 0) return rendered;
+
+  const attach = <R extends Record<string, unknown>>(item: R): R => {
+    const entryId = item.entry_id;
+    if (typeof entryId !== "string") return item;
+    const lineage = lineageMap.get(entryId);
+    if (!lineage) return item;
+    return { ...item, fast_follow_lineage: lineage };
+  };
+
+  const out: Record<string, unknown> = { ...rendered };
+  if (rendered.entries) out.entries = rendered.entries.map(attach);
+  if (rendered.history) out.history = rendered.history.map(attach);
+  if (rendered.next_work) out.next_work = rendered.next_work.map(attach);
+  return out as T;
 }
 
 function mapEpicEntry(entry: EpicEntry) {
@@ -1056,7 +1204,15 @@ export const epicTools = {
                   loaded.retiredProjection,
                 )
               : formatEpicCompact(loaded.epic);
-        const output = formatToolOutput({ success: true, epic: rendered });
+        // Advisory-only fast-follow lineage projection. Bounded by Epic entry
+        // count, additive (never reorders/removes fields), and best-effort:
+        // child-change load failures simply omit lineage for that entry.
+        const enriched = await enrichEpicRenderWithFastFollowLineage(
+          rendered,
+          owner.store,
+          loaded.epic.entries,
+        );
+        const output = formatToolOutput({ success: true, epic: enriched });
         return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
         return epicError(err);

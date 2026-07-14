@@ -18,7 +18,7 @@
 
 import { tool, type ToolContext, type ToolResult } from "@opencode-ai/plugin";
 import { z } from "zod";
-import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
+import { safeExecute } from "./utils/safe-execute";
 import {
   formatToolArgPreflightError,
   preflightToolArgs,
@@ -33,6 +33,7 @@ import { backlogTools } from "./tools/backlog";
 import { backlogShellTools } from "./tools/backlog-shell";
 import { changeTools } from "./tools/change";
 import { followupTools } from "./tools/followup";
+import { reportFollowupTools } from "./tools/report-followup";
 import { opsEvidenceTools } from "./tools/ops-evidence";
 import { contractTools } from "./tools/contract";
 import { designConcernTools } from "./tools/design-concern";
@@ -40,7 +41,6 @@ import { taskTools } from "./tools/task";
 import { subagentReportTools } from "./tools/subagent-report";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
-import { agendaTools } from "./tools/agenda";
 import { projectTools } from "./tools/project";
 import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
@@ -55,6 +55,7 @@ import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionTools } from "./tools/adv-session";
 import { epicTools } from "./tools/epic";
 import { storeConsolidateTools } from "./tools/store-consolidate";
+import { storeCleanupTools } from "./tools/store-cleanup";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -185,7 +186,7 @@ function namedExecute<TArgs>(
   return execute;
 }
 
-/** Tool definition shape expected by bindTool / bindToolSimple. */
+/** Tool definition shape expected by bindTool. */
 interface ToolDef<TArgs, TStore> {
   description: string;
   args: ToolArgsSchema;
@@ -200,13 +201,6 @@ interface ToolDefWithContext<TArgs> {
     args: TArgs,
     ctx: { store: Store; worktree?: string; directory?: string },
   ) => Promise<string>;
-}
-
-/** Tool definition shape for agenda-style tools (directory + optional path). */
-interface ToolDefSimple<TArgs> {
-  description: string;
-  args: ToolArgsSchema;
-  execute: (args: TArgs, dir: string, path?: string) => Promise<string>;
 }
 
 /**
@@ -261,40 +255,15 @@ function bindToolWithContext<TArgs>(
 }
 
 /**
- * Bind an agenda-style tool definition to a directory + optional path.
- * Usage: `adv_agenda_list: bindToolSimple(agendaTools.adv_agenda_list, "adv_agenda_list", directory, store.paths.agenda)`
- */
-function bindToolSimple<TArgs>(
-  def: ToolDefSimple<TArgs>,
-  name: string,
-  dir: string,
-  path?: string,
-) {
-  // Wrap with safeExecuteSimple but pass `dir` as the inner `extra` and
-  // surface `path` via the third "extraPath" slot so enrichment can
-  // include it in error responses.
-  const wrapped = safeExecuteSimple(
-    async (args) => def.execute(args as TArgs, dir, path),
-    name,
-  );
-  return registerTool(
-    def.description,
-    def.args,
-    namedExecute(name, async (args: unknown) => wrapped(args, dir, path)),
-  );
-}
-
-/**
  * Build the complete tool map for the ADV plugin.
  *
  * Encapsulates all 36+ tool registrations so index.ts stays under 500 lines.
- * Uses bindTool for store-based tools and bindToolSimple for agenda tools.
- * Special cases (type coercion, extra args) use registerTool directly.
+ * Uses bindTool for store-based tools. Special cases (type coercion, extra
+ * args) use registerTool directly.
  */
 export function createToolMap(
   store: Store,
   directory: string,
-  agendaPath: string | undefined,
   serverUrl?: URL,
   client?: OpencodeClient,
 ) {
@@ -511,6 +480,13 @@ export function createToolMap(
       store,
     ),
 
+    // Report Follow-Up Promotion Tool
+    adv_report_followup_promote: bindTool(
+      reportFollowupTools.adv_report_followup_promote,
+      "adv_report_followup_promote",
+      store,
+    ),
+
     // Ops Evidence Append Tool
     adv_ops_evidence_add: bindTool(
       opsEvidenceTools.adv_ops_evidence_add,
@@ -650,42 +626,11 @@ export function createToolMap(
       store,
     ),
 
-    // Agenda Tools
-    adv_agenda_list: bindToolSimple(
-      agendaTools.adv_agenda_list,
-      "adv_agenda_list",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_add: bindToolSimple(
-      agendaTools.adv_agenda_add,
-      "adv_agenda_add",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_start: bindToolSimple(
-      agendaTools.adv_agenda_start,
-      "adv_agenda_start",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_complete: bindToolSimple(
-      agendaTools.adv_agenda_complete,
-      "adv_agenda_complete",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_cancel: bindToolSimple(
-      agendaTools.adv_agenda_cancel,
-      "adv_agenda_cancel",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_prioritize: bindToolSimple(
-      agendaTools.adv_agenda_prioritize,
-      "adv_agenda_prioritize",
-      directory,
-      agendaPath,
+    // Store Cleanup Tool — legacy Agenda cleanup (scan/dry_run read-only; execute approval-gated)
+    adv_store_cleanup: bindTool(
+      storeCleanupTools.adv_store_cleanup,
+      "adv_store_cleanup",
+      store,
     ),
 
     // Project Metadata Tool
@@ -943,6 +888,7 @@ export function getToolSurface(): Map<string, Set<string>> {
     backlogTools,
     changeTools,
     followupTools,
+    reportFollowupTools,
     opsEvidenceTools,
     contractTools,
     designConcernTools,
@@ -950,7 +896,6 @@ export function getToolSurface(): Map<string, Set<string>> {
     subagentReportTools,
     wisdomTools,
     statusTools,
-    agendaTools,
     projectTools,
     gateTools,
     testTools,
@@ -1015,6 +960,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_epic_reorder",
   "adv_epic_retire",
   "adv_followup_promote",
+  "adv_report_followup_promote",
   "adv_ops_evidence_add",
   "adv_ops_run_upsert",
   "adv_ops_run_evidence_add",
@@ -1033,12 +979,6 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_wisdom_list",
   "adv_project_wisdom_list",
   "adv_status",
-  "adv_agenda_list",
-  "adv_agenda_add",
-  "adv_agenda_start",
-  "adv_agenda_complete",
-  "adv_agenda_cancel",
-  "adv_agenda_prioritize",
   "adv_project_context",
   "adv_project_metadata",
   "adv_gate_status",
@@ -1061,6 +1001,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_session_show",
   "adv_snapshot_health",
   "adv_store_consolidate",
+  "adv_store_cleanup",
 ] as const;
 
 /**

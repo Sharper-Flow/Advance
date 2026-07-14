@@ -42,7 +42,7 @@ Every `/adv-discover` invocation must execute these 9 protocol steps and emit a 
 | --- | -------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | **Skill Discovery** (Phase 1.5)                    | Skills Considered         | Examined skills + match results (or "none available")                                                                            |
 | 2   | **Prior Research Extension**                       | Extends                   | Cited artifacts (including `/adv-improve` research packs under `docs/*-prep.md`) + ≥1 new finding (or "No prior research found") |
-| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan             | Results from `adv_change_list` (includeArchived), `adv_change_validate`, `adv_agenda_list`                                       |
+| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan             | Results from `adv_change_list` (includeArchived), `adv_change_validate`, and typed change inventory with Epic/member context |
 | 4   | **Edge Case Investigation**                        | Edge Cases                | ≥2 edge cases per gap (or "N/A: structural" with rationale)                                                                      |
 | 5   | **Design Question Depth**                          | Open Design Questions     | Each question annotated with trust model, blast radius, alternatives                                                             |
 | 6   | **Draft Spec Delta Shapes**                        | Draft Spec Deltas         | `rq-*` IDs + ≥1 G/W/T per delta (or "No spec deltas required")                                                                   |
@@ -159,11 +159,15 @@ If no matching skill was found for a domain clearly relevant to change's **core 
 
 ## Phase 1.6: Conflict & Related-Work Scan
 
-Execute all three tools and report findings in a "Conflict Scan" section:
+Execute the conflict scan using the typed change inventory and report findings in a "Conflict Scan" section:
 
-1. `adv_change_list includeArchived: true` → surface related active and archived changes
+1. `adv_change_list includeArchived: true` → enumerate all changes (active + archived) with Epic membership context
 2. `adv_change_validate` on target change → note that own-change pre-prep warnings (NO_TASKS, NO_DELTAS) are expected and should NOT be reported as conflicts
-3. `adv_agenda_list` → check for overlapping agenda items
+3. Build a complete paginated typed change inventory with explicit completeness state:
+   - **Active changes and Epic members** are authoritative for conflict detection
+   - **Archived changes** are related context only (inspect with `adv_change_show` for prior work that may inform or constrain the current proposal)
+   - The inventory must carry an explicit completeness state: `complete`, `degraded`, or `blocked`
+   - A clean "no conflicts" result is NOT permitted when the inventory has omissions, warnings, deadline issues, or source failures
 
 For relevant archived changes, use `adv_change_show` to inspect their tasks and decisions. Prior work may inform or constrain current proposal.
 

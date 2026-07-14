@@ -121,6 +121,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_epic_retire: (args) => write(`Retire Epic${suffix(args, "epic_id")}`),
   adv_followup_promote: (args) =>
     write(`Promote follow-up${suffix(args, "source_change_id")}`),
+  adv_report_followup_promote: (args) =>
+    write(`Promote report follow-up${suffix(args, "source_change_id")}`),
   adv_ops_evidence_add: (args) =>
     write(`Add ops evidence${suffix(args, "changeId")}`),
   adv_ops_run_upsert: (args) =>
@@ -154,16 +156,15 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
         : "Scan orphan stores",
     );
   },
-  adv_agenda_list: () => read("List agenda"),
-  adv_agenda_add: (args) => write(`Add agenda item${suffix(args, "title")}`),
-  adv_agenda_start: (args) =>
-    write(`Start agenda item${suffix(args, "itemId")}`),
-  adv_agenda_complete: (args) =>
-    write(`Complete agenda item${suffix(args, "itemId")}`),
-  adv_agenda_cancel: (args) =>
-    write(`Cancel agenda item${suffix(args, "itemId")}`),
-  adv_agenda_prioritize: (args) =>
-    write(`Prioritize agenda item${suffix(args, "itemId")}`),
+  adv_store_cleanup: (args) => {
+    const action = typeof args.action === "string" ? args.action : "scan";
+    if (action === "execute") return operator("Execute legacy agenda cleanup");
+    return read(
+      action === "dry_run"
+        ? "Dry-run legacy agenda cleanup"
+        : "Scan stores for legacy agenda",
+    );
+  },
   adv_project_metadata: (args) =>
     byAction(args, "Project metadata", {
       read: `Read project metadata${suffix(args, "key")}`,

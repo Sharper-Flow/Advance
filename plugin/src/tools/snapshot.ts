@@ -2,13 +2,15 @@
  * Snapshot Health Tool
  *
  * ADV tool wrapper over snapshot-scan.ts. Provides scan (read-only) and
- * repair (approval-gated) actions with agenda audit entries.
+ * repair (approval-gated) actions. Every successful repair appends a durable
+ * audit entry to the purpose-specific snapshot-repair audit log (NOT to the
+ * Agenda store) — see retireAgendaWorkflow AC4 and the "Purpose-specific
+ * repair audit" design decision.
  */
 
 import { basename } from "node:path";
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
-import { agendaTools } from "./agenda";
 import {
   scanSnapshotHealth,
   executeRepair,
@@ -16,6 +18,7 @@ import {
   type RepairAction,
   type RepairActionRecord,
 } from "./snapshot-scan";
+import { appendSnapshotRepairAudit } from "../storage/snapshot-repair-audit";
 import { getProjectId } from "../utils/project-id";
 import type { Store } from "../storage/store";
 
@@ -164,14 +167,28 @@ export const snapshotHealthTools = {
                 f.bare_repo_path === record.target_path,
             );
             const pattern = finding?.pattern ?? "unknown";
-            await agendaTools.adv_agenda_add.execute(
-              {
-                title: `snapshot-repair: ${record.action} on ${basename(record.target_path)}`,
-                description: `Finding: ${pattern}. Target: ${record.target_path}. Status: ${record.status}.`,
-                priority: "low",
-                category: "snapshot-repair",
-              },
+            // Prefer the most specific target path recorded by the scanner
+            // (e.g. the actual lock/object file path) when the finding
+            // metadata exposes it; fall back to the bare-repo path otherwise.
+            const specificTarget =
+              (finding?.metadata?.lock_path as string | undefined) ??
+              (finding?.metadata?.object_path as string | undefined) ??
+              record.target_path;
+            // Persist the audit to the purpose-specific snapshot-repair audit
+            // log (append-only). This log lives outside planning, gates,
+            // backlog, and Epic state — it is a durable, read-only audit
+            // record only. Do NOT route through the Agenda store.
+            await appendSnapshotRepairAudit(
               store.paths.root,
+              {
+                pattern,
+                action: record.action,
+                target_path: specificTarget,
+                before_summary: `Finding ${pattern} at ${specificTarget} (action=${record.action})`,
+                after_summary: `Repair succeeded${record.reason ? ` (${record.reason})` : ""}; target ${basename(specificTarget)} removed`,
+                outcome: "success",
+              },
+              store.paths.snapshotRepairAudit,
             );
           }
         }

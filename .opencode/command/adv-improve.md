@@ -50,7 +50,7 @@ Resolve in order: file path → read; directory → outline; symbol → `lgrep_s
 
 ## Phase 1: Context Loading
 
-Load `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec action: "list"`. Detect worktree, stack files, and source roots (`src/`, `lib/`, `app/`, `packages/`, `*.ts/*.js/*.py/*.go`). Exit cleanly if no source files.
+Load `adv_project_context`, `adv_change_list`, `adv_spec action: "list"`. Detect worktree, stack files, and source roots (`src/`, `lib/`, `app/`, `packages/`, `*.ts/*.js/*.py/*.go`). Exit cleanly if no source files.
 
 ---
 
@@ -115,7 +115,7 @@ If section cannot refresh, mark `⚠ not refreshed ({reason})` and preserve prio
 
 | Purpose | Tool |
 |---|---|
-| Context | `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec` |
+| Context | `adv_project_context`, `adv_change_list`, `adv_spec` |
 | Code | `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_get_file_tree`, `read` |
 | Reference | `context7_resolve-library-id`, `context7_query-docs`, `webfetch` |
 | External | `exa_web_search_exa` |

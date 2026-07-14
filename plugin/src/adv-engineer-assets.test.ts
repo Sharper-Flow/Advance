@@ -80,12 +80,6 @@ describe("adv-engineer assets", () => {
     expect(frontmatter).toMatch(/adv_change_\w+:\s*false/);
   });
 
-  test("blocks adv_agenda_* tools", () => {
-    const content = readFileSync(AGENT_PATH, "utf8");
-    const frontmatter = content.split("---")[1] ?? "";
-    expect(frontmatter).toMatch(/adv_agenda_\w+:\s*false/);
-  });
-
   test("allows typed sub-agent report submission tool", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const frontmatter = content.split("---")[1] ?? "";

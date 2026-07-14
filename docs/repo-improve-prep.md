@@ -175,7 +175,7 @@ Overlap / dedupe notes:
 ## Sources
 
 - Local: `project.md` via `adv_project_context`.
-- Local: active changes via `adv_change_list`, pending agenda via `adv_agenda_list`, specs via `adv_spec action:"list"`.
+- Local: active changes via `adv_change_list`, report follow-ups via `adv_change_show`, specs via `adv_spec action:"list"`.
 - Local: `plugin/package.json:17-32`.
 - Local: `plugin/scripts/bench-adv-latency.ts:63-98`.
 - Local: `plugin/scripts/benchmark-execute.ts:4-17`.

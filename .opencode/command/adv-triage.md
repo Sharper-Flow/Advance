@@ -22,7 +22,7 @@ Reconcile backlog sources into GH issues, apply `priority:*` labels to bugs auto
 
 - `--dry-run` — preview only; skip GH/file/git mutations + Tier B prompts
 - `--no-commit` — write ROADMAP.md but skip commit/push (ignored when `--dry-run`)
-- `--source <name>` — limit Phase 2 scan: `gh`/`agenda`/`wisdom`/`notes`/`changes`/`todos`
+- `--source <name>` — limit Phase 2 scan: `gh`/`wisdom`/`notes`/`changes`/`todos`
 
 Reject unknown flags: single-line error + valid list.
 
@@ -44,7 +44,7 @@ Any failure → `[ADV:BLOCKED]` + cause, stop. Resolve project handle, ensure cu
 
 ## Phase 2: Gather Sources
 
-Inline parallel reads (I/O bound, no sub-agents). 7 sources: GH issues, GH Projects items, ADV changes, agenda, wisdom, cross-session notes, TODO/FIXMEs. Cap each 100; overflow → recency sort + "(N more not shown)". Build inventory records with `kind_hint` heuristic (advisory only, P33). See skill § Phase 1.
+Inline parallel reads (I/O bound, no sub-agents). 6 sources: GH issues, GH Projects items, ADV changes, wisdom, cross-session notes, TODO/FIXMEs. Cap each 100; overflow → recency sort + "(N more not shown)". Build inventory records with `kind_hint` heuristic (advisory only, P33). See skill § Phase 1.
 
 ---
 
@@ -64,7 +64,6 @@ Source-specific actions after approval:
 
 - ADV changes: recommend `/adv-archive` for completed/ready work; close duplicate/superseded/not-planned/cancelled only through ADV close tools with approval evidence.
 - GitHub issues: capability-detect duplicate close support via `gh issue close --help`. If `--duplicate-of` is available, use native duplicate close. If unavailable, use documented `Duplicate of #N` comment semantics plus supported close reasons only.
-- Agenda: `duplicate/superseded` and `should-merge` resolve through `adv_agenda_complete` with a note referencing the survivor/source; stale/not-planned uses agenda cancellation only after approval.
 
 MUST NOT create or open issue candidates before cleanup validation completes for the source pool. MUST NOT apply bug priority labels before cleanup validation completes. Title similarity and agent inference are advisory only (P33): they may flag cleanup candidates, never mutate, close, suppress, or remove without structural evidence and explicit approval. See skill § Source cleanup validation.
 
@@ -147,7 +146,6 @@ Emit structured report: sources scanned, issues created/updated/prioritized/defe
 | Add to project | `gh project item-add` |
 | Project metadata | `adv_project_metadata` (read/write `github_project`) |
 | Active ADV changes | `adv_change_list status: 'in-flight'` |
-| Agenda | `adv_agenda_list`, `adv_agenda_complete`, `adv_agenda_cancel` |
 | Wisdom | `adv_wisdom_list` |
 | Local source scan | `glob`, `read`, `lgrep_search_text` |
 | Bug priority loop | `gh issue edit --add-label` |

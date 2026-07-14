@@ -2,8 +2,8 @@
  * Conformance Tool
  *
  * Single multi-action `adv_conformance` tool. Pattern matches existing
- * `adv_spec` and `adv_agenda_*` tools — one tool, action arg, multiple
- * sub-behaviors.
+ * `adv_spec` and other single-tool multi-action surfaces — one tool,
+ * action arg, multiple sub-behaviors.
  *
  * Actions:
  *   - status   read-only state inspection (rq-confDegradation01)

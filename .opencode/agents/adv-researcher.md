@@ -116,7 +116,7 @@ Consistency rules:
 
 ## ADV State Access Policy
 
-**NEVER** read ADV state files directly using `read`, `glob`, `grep`, `lgrep`, or filesystem paths. Forbidden ADV state artifacts include change.json, proposal.md, problem-statement.md, agreement.md, design.md, executive-summary.md, acceptance.md, agenda.jsonl, wisdom.jsonl, and conformance.json under external ADV state paths.
+**NEVER** read ADV state files directly using `read`, `glob`, `grep`, `lgrep`, or filesystem paths. Forbidden ADV state artifacts include change.json, proposal.md, problem-statement.md, agreement.md, design.md, executive-summary.md, acceptance.md, wisdom.jsonl, conformance.json, and legacy agenda.jsonl files under external ADV state paths.
 
 **ALWAYS** use ADV tools or packet-provided content instead:
 

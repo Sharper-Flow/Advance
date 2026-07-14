@@ -37,16 +37,10 @@ import {
 const mocks = vi.hoisted(() => {
   const fireSignalAndRefresh = vi.fn(async () => undefined);
   const workflowHandle = { signal: vi.fn(), query: vi.fn() };
-  const addAgendaItem = vi.fn(async (_root: string, title: string) => ({
-    id: `ag-${title.length}`,
-    title,
-    status: "pending",
-  }));
 
   return {
     fireSignalAndRefresh,
     workflowHandle,
-    addAgendaItem,
   };
 });
 
@@ -62,11 +56,6 @@ vi.mock("../temporal/service", () => ({
 
 vi.mock("../utils/project-id", () => ({
   getProjectId: async () => "project-1",
-}));
-
-vi.mock("../storage/agenda", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../storage/agenda")>()),
-  addAgendaItem: mocks.addAgendaItem,
 }));
 
 // Import tool layer AFTER mocks are established
@@ -559,13 +548,21 @@ describe("checkRequiredObligationRouting", () => {
 // Report Ingestion Tests
 // =============================================================================
 
+// =============================================================================
+// required_follow_ups report ingestion — retireAgendaWorkflow revision
+//
+// retireAgendaWorkflow removed the agenda consumer write for required
+// follow_ups. The typed obligations still ride on the report payload (and on
+// the subagentReportSubmittedSignal) so the structural release-safety +
+// gate-readiness evaluators above continue to see them unchanged.
+// =============================================================================
+
 describe("required_follow_ups report ingestion", () => {
   beforeEach(() => {
     mocks.fireSignalAndRefresh.mockClear();
-    mocks.addAgendaItem.mockClear();
   });
 
-  test("required_critical creates agenda item with priority critical", async () => {
+  test("required_critical obligations ride on the signal payload unchanged", async () => {
     const store = storeFor(
       buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
     );
@@ -589,81 +586,26 @@ describe("required_follow_ups report ingestion", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Fix security vulnerability",
+    // retireAgendaWorkflow: no agenda write; the consumer result carries the
+    // preview count and an empty `created` list.
+    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
+    expect(output.consumerResults.requiredFollowUps.created).toEqual([]);
+    // The typed obligations still ride on the signal so release-safety +
+    // gate-readiness evaluators see them.
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    expect(signalPayload.report.required_follow_ups).toEqual([
       expect.objectContaining({
-        priority: "critical",
-        category: "required-obligation",
-        description: expect.stringContaining("Obligation: required_critical"),
+        text: "Fix security vulnerability",
+        obligation_class: "required_critical",
+        severity: "critical",
+        source_contract_id: "contract-sec-1",
       }),
-    );
-    expect(mocks.addAgendaItem.mock.calls[0][2].description).toContain(
-      "Contract: contract-sec-1",
-    );
+    ]);
   });
 
-  test("severity high creates agenda item with priority high", async () => {
-    const store = storeFor(
-      buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
-    );
-    const report = engineerReport({
-      follow_ups: [],
-      required_follow_ups: [
-        {
-          text: "Update documentation",
-          obligation_class: "required_standard",
-          severity: "high",
-        },
-      ],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Update documentation",
-      expect.objectContaining({
-        priority: "high",
-        category: "required-obligation",
-      }),
-    );
-  });
-
-  test("report without required_follow_ups creates no required agenda items", async () => {
-    const store = storeFor(
-      buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
-    );
-    const report = engineerReport({
-      follow_ups: ["Regular follow-up"],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    // Should have exactly 1 call for the regular follow-up
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(1);
-    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
-      "/repo",
-      "Regular follow-up",
-      expect.objectContaining({
-        category: "subagent-followup",
-      }),
-    );
-  });
-
-  test("preserves severity mapping from report to agenda", async () => {
+  test("severity ordering is preserved across multiple obligations", async () => {
     const store = storeFor(
       buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
     );
@@ -687,14 +629,16 @@ describe("required_follow_ups report ingestion", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(2);
-    const calls = mocks.addAgendaItem.mock.calls;
-    const priorities = calls.map((c: any[]) => c[2].priority);
-    expect(priorities).toContain("critical");
-    expect(priorities).toContain("high");
+    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(2);
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    expect(
+      signalPayload.report.required_follow_ups?.map((r) => r.text),
+    ).toEqual(["A", "B"]);
   });
 
-  test("report with both follow_ups and required_follow_ups creates both types", async () => {
+  test("report with both follow_ups and required_follow_ups surfaces both kinds", async () => {
     const store = storeFor(
       buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
     );
@@ -717,13 +661,8 @@ describe("required_follow_ups report ingestion", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(2);
-
-    const categories = mocks.addAgendaItem.mock.calls.map(
-      (c: any[]) => c[2].category,
-    );
-    expect(categories).toContain("subagent-followup");
-    expect(categories).toContain("required-obligation");
+    expect(output.consumerResults.followUps.previewCount).toBe(1);
+    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
   });
 });
 

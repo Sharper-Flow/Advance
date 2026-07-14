@@ -15,6 +15,7 @@ import { ContractEvidencePolicySchema } from "./evidence-policy";
 import { TaskSchema } from "./tasks";
 import {
   DesignConcernDispositionSchema,
+  ReportFollowUpRefSchema,
   ScopedSubagentReportSchema,
 } from "./subagent-reports";
 import { DeltaSchema } from "./specs";
@@ -247,7 +248,7 @@ export type ClarifyFindingSnapshot = z.infer<
  * backend creating a follow-up in example-web).
  *
  * rq-opsFollowTrace01: source project/path/change provenance belongs in typed
- * workflow state, not agenda text.
+ * workflow state, not free-text queue entries.
  */
 export const CrossProjectOriginSchema = z.object({
   /** Name of the source project that created this follow-up change */
@@ -359,6 +360,12 @@ export const FastFollowOfSchema = z.object({
   parent_change_id: z.string(),
   /** ISO8601 timestamp when the fast-follow link was established */
   linked_at: z.string(),
+  /**
+   * Structural reference to the report follow-up that motivated this
+   * fast-follow child. Present when the child was created as the
+   * post-planning owner of a promoted report follow-up.
+   */
+  followup_ref: ReportFollowUpRefSchema.optional(),
 });
 
 export type FastFollowOf = z.infer<typeof FastFollowOfSchema>;
@@ -414,9 +421,15 @@ export type OpsFollowupStatus = z.infer<typeof OpsFollowupStatusSchema>;
 
 /**
  * Source provenance for an ops follow-up. Mirrors the structural source of the
- * promotion (typed required follow-up, sub-agent report, agenda item, or manual
- * fallback), not agenda text. The source change/project/path is always recorded
- * so the link is repairable from the child context.
+ * promotion (typed required follow-up, sub-agent report, or manual fallback).
+ * The source change/project/path is always recorded so the link is repairable
+ * from the child context.
+ *
+ * retireAgendaWorkflow (AC8 parse-only): the `agenda` source_kind and
+ * `source_agenda_id` field are retained in the persisted schema so legacy
+ * changes and reports that already reference Agenda remain readable. No new
+ * tool or signal writes these fields; new promotions must use the typed
+ * report/manual source kinds.
  */
 export const OpsFollowupSourceSchema = z.object({
   /** The change that originated this follow-up. */
@@ -428,7 +441,7 @@ export const OpsFollowupSourceSchema = z.object({
     .optional(),
   /** Absolute path to the originating project repository, when known. */
   source_path: z.string().min(1).optional(),
-  /** Source artifact kind/reference (e.g. report key, agenda id, contract id). */
+  /** Source artifact kind/reference (e.g. report key, contract id). */
   source_artifact: z.string().min(1).optional(),
   /** Contract item ID that motivated the follow-up, when applicable. */
   source_contract_id: z.string().min(1).optional(),
@@ -436,9 +449,13 @@ export const OpsFollowupSourceSchema = z.object({
   source_task_id: z.string().min(1).optional(),
   /** Sidecar sub-agent report key, when promoted from a report. */
   source_report_key: z.string().min(1).optional(),
-  /** Agenda item ID, only used as a legacy/fallback source. */
+  /** Parse-only legacy Agenda item ID. No new writes (retireAgendaWorkflow). */
   source_agenda_id: z.string().min(1).optional(),
-  /** Promotion source kind — ordered from most to least structured. */
+  /**
+   * Promotion source kind — ordered from most to least structured.
+   * Parse-only: "agenda" is retained so legacy records validate; new writes
+   * must use the typed report/manual kinds (retireAgendaWorkflow AC8).
+   */
   source_kind: z.enum([
     "required_follow_up",
     "report_follow_up",
@@ -782,7 +799,7 @@ export type ChangeContract = z.infer<typeof ChangeContractSchema>;
  *   - `discovery` — surfaced mid-session (bug found, drive-by improvement);
  *                   may carry source_artifact, never issue_number
  *   - `triage`    — promoted by `/adv-triage` from a non-GH source artifact
- *                   (agenda, wisdom, notes); issue_number/source_artifact optional
+ *                   (wisdom, notes); issue_number/source_artifact optional
  *   - `adhoc`     — explicit, no upstream artifact (default for ad-hoc work)
  *
  * The schema is typed-state only at this layer; behavior automation
@@ -804,7 +821,9 @@ export const ChangeOriginSchema = z.object({
   issue_number: z.number().int().positive().optional(),
   /**
    * Stable reference to the upstream artifact that triggered this change.
-   * For kind=triage: agenda-id (`ag-...`), wisdom-id, or note-line ref.
+   * For kind=triage: wisdom-id or note-line ref.
+   * Parse-only legacy: agenda-id (`ag-...`) values remain readable for
+   * historical records (retireAgendaWorkflow AC8).
    * For kind=discovery: optional task-id or wisdom-id created at the same time.
    * For kind=adhoc: omitted.
    */

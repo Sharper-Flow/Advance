@@ -108,4 +108,22 @@ describe("snapshot-health spec", () => {
     expect(race?.body).toContain("re-resolve");
     expect(race?.body).toContain("TOCTOU");
   });
+
+  test("rq-snapshotHealthAuditTrail01 requires purpose-specific audit log", () => {
+    const parsed = SpecSchema.parse(specRaw);
+    const audit = parsed.requirements.find(
+      (r) => r.id === "rq-snapshotHealthAuditTrail01",
+    );
+    expect(audit).toBeDefined();
+    expect(audit?.body).toContain("snapshot-repair audit log");
+    expect(audit?.body).toContain("append-only");
+    expect(audit?.body).toContain("pattern");
+    expect(audit?.body).toContain("target_path");
+    expect(audit?.body).toContain("before_summary");
+    expect(audit?.body).toContain("after_summary");
+    expect(audit?.body).toContain("outcome");
+    expect(audit?.body).toContain("recorded_at");
+    expect(audit?.body).not.toContain("adv_agenda_add");
+    expect(audit?.body).not.toContain("agenda");
+  });
 });

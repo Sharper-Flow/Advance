@@ -1104,20 +1104,6 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["reason"],
   },
   {
-    label: "blank agenda title rejected",
-    toolName: "adv_agenda_add",
-    rawArgs: { title: " " },
-    ok: false,
-    fields: ["title"],
-  },
-  {
-    label: "blank agenda cancellation reason rejected",
-    toolName: "adv_agenda_cancel",
-    rawArgs: { reason: " " },
-    ok: false,
-    fields: ["reason"],
-  },
-  {
     // rq-toolPlaceholderPolicy01.6: recoveryEvidence is contextually validated
     // by the handler (only when recoveryMode=poisoned_history), so blank
     // normalizes to omitted at preflight.
@@ -1596,7 +1582,7 @@ describe("tool arg preflight", () => {
       await store.init();
 
       try {
-        const map = createToolMap(store, mapTempDir, store.paths.agenda);
+        const map = createToolMap(store, mapTempDir);
         const policies = listToolArgFieldPolicies();
 
         for (const [toolName, fields] of Object.entries(policies)) {
@@ -1831,8 +1817,6 @@ describe("tool arg preflight", () => {
     ["adv_worktree_delete", { branch: " " }, "branch"],
     ["adv_worktree_cleanup", { reason: " " }, "reason"],
     ["adv_conformance", { action: "unlock", user: " " }, "user"],
-    ["adv_agenda_add", { title: " " }, "title"],
-    ["adv_agenda_cancel", { itemId: "ag-1", reason: " " }, "reason"],
     [
       "adv_temporal_register_search_attributes",
       { approvedByUser: true, approvalEvidence: " " },
@@ -2010,8 +1994,6 @@ describe("tool arg preflight", () => {
       "confirmationEvidence",
     ],
     ["adv_status", { target_path: " " }, "target_path"],
-    ["adv_agenda_add", { title: "real", description: " " }, "description"],
-    ["adv_agenda_add", { title: "real", category: " " }, "category"],
     [
       "adv_change_close",
       {
@@ -2598,8 +2580,6 @@ describe("tool arg preflight", () => {
       ["adv_worktree_cleanup", { reason: " " }, "reason"],
       ["adv_conformance", { action: "unlock", user: " " }, "user"],
       ["adv_conformance", { action: "unlock", reason: " " }, "reason"],
-      ["adv_agenda_add", { title: " " }, "title"],
-      ["adv_agenda_cancel", { itemId: "a", reason: " " }, "reason"],
       [
         "adv_temporal_register_search_attributes",
         { approvedByUser: true, approvalEvidence: " " },

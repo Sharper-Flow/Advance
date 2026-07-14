@@ -80,6 +80,7 @@
 | `adv_temporal_diagnose` | `mcp+cli-additive` | Add CLI `doctor`; MCP kept for in-recovery use |
 | `adv_snapshot_health` | `mcp+cli-additive` | CLI scan additive; repair remains approval-gated MCP-only |
 | `adv_store_consolidate` | `keep-mcp-only` | Ops recovery tool; scan/dry_run read-only, execute approval-gated |
+| `adv_store_cleanup` | `keep-mcp-only` | Maintenance-only legacy agenda cleanup; scan/dry_run read-only, execute approval-gated |
 | `adv_session_list` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_session_show` | `mcp+cli-additive` | Human inventory; additive CLI output |
 | `adv_worktree_triage` | `mcp+cli-additive` | Human inventory/report; additive CLI output |
@@ -90,7 +91,6 @@
 | `adv_gate_status` | `keep-mcp-only` | Agent reads constantly during workflow |
 | `adv_wisdom_list` | `keep-mcp-only` | Agent knowledge surface |
 | `adv_project_wisdom_list` | `keep-mcp-only` | Agent knowledge surface |
-| `adv_agenda_list` | `keep-mcp-only` | Agent-facing agenda surface |
 | `adv_project_context` | `keep-mcp-only` | Agent context read |
 | `adv_project_metadata` | `keep-mcp-only` | Agent context read |
 | `adv_wip_state` | `keep-mcp-only` | Temporal/session-dependent aggregation |
@@ -105,6 +105,7 @@
 | `adv_change_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_forget` | `keep-mcp-only` | Session pointer clear (in-memory only) |
 | `adv_followup_promote` | `no-cli-dangerous` | Promotes a linked ops follow-up change; mutation |
+| `adv_report_followup_promote` | `no-cli-dangerous` | Promotes a report follow-up into a task or fast-follow child; mutation |
 | `adv_ops_evidence_add` | `no-cli-dangerous` | Appends ops evidence and updates follow-up status; mutation |
 | `adv_change_bulk_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_archive` | `no-cli-dangerous` | Archive mutation + spec delta |
@@ -130,11 +131,6 @@
 | `adv_temporal_reconnect` | `no-cli-dangerous` | Runtime mutation |
 | `adv_temporal_worker_restart` | `no-cli-dangerous` | Runtime mutation |
 | `adv_wisdom_add` | `no-cli-dangerous` | Wisdom mutation |
-| `adv_agenda_add` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_start` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_complete` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_cancel` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_prioritize` | `no-cli-dangerous` | Agenda mutation |
 | `adv_epic_create` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_show` | `keep-mcp-only` | Agent-workflow read |
 | `adv_epic_list` | `mcp+cli-additive` | MCP remains the rich agent-workflow read; `bin/adv epic list --json` exposes reduced live ID-only Visibility enumeration |

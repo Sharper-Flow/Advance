@@ -230,17 +230,6 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     spec: { blank: "omit" }, // optional per-action
     artifact_path: { blank: "omit" }, // optional per-action
   },
-  adv_agenda_add: {
-    title: { blank: "reject" }, // required-when-present
-    description: { blank: "omit" }, // optional
-    category: { blank: "omit" }, // optional
-  },
-  adv_agenda_complete: {
-    notes: { blank: "omit" }, // optional descriptive
-  },
-  adv_agenda_cancel: {
-    reason: { blank: "reject" }, // audit
-  },
   adv_contract_mint: {
     approvedAt: { blank: "omit" }, // optional ISO timestamp
     // Contextually-validated (rq-toolPlaceholderPolicy01.6).
@@ -287,6 +276,11 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     data_home_root: { blank: "omit" },
     approvalEvidence: { blank: "reject" }, // audit
   },
+  adv_store_cleanup: {
+    data_home_root: { blank: "omit" },
+    dry_run_plan_hash: { blank: "reject" }, // required for execute
+    approvalEvidence: { blank: "reject" }, // audit
+  },
   adv_status: {
     target_path: { blank: "omit" },
   },
@@ -316,13 +310,16 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_followup_promote: {
     source_report_key: { blank: "omit" },
-    source_agenda_id: { blank: "omit" },
     source_contract_id: { blank: "omit" },
     source_task_id: { blank: "omit" },
     capability: { blank: "omit" },
     proposal: { blank: "omit" },
     target_path: { blank: "omit" },
     confirmationEvidence: { blank: "omit" },
+  },
+  adv_report_followup_promote: {
+    source_report_key: { blank: "omit" },
+    capability: { blank: "omit" },
   },
   adv_ops_evidence_add: {
     changeId: { blank: "reject" },

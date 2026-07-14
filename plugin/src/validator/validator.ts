@@ -11,6 +11,7 @@ import type {
   ValidationContext,
   ExistingSpec,
   ActiveChange,
+  ConflictInventory,
 } from "./types";
 import { runCompletenessChecks } from "./completeness";
 import { runConflictChecks } from "./conflicts";
@@ -22,8 +23,10 @@ import { runConflictChecks } from "./conflicts";
 interface ValidatorOptions {
   /** Existing specs to validate against */
   specs: Spec[];
-  /** Other active changes (for conflict detection) */
+  /** Other active changes (for conflict detection) — legacy path */
   activeChanges?: ActiveChange[];
+  /** Typed conflict inventory (preferred over activeChanges when present) */
+  conflictInventory?: ConflictInventory;
   /** Skip specific check types (for testing) */
   skipChecks?: ("completeness" | "conflicts" | "proposal-drift")[];
   /** Spec files that differ between current HEAD and merge-base with default branch.
@@ -44,6 +47,7 @@ interface ValidatorOptions {
 export function buildValidationContext(
   specs: Spec[],
   activeChanges?: ActiveChange[],
+  conflictInventory?: ConflictInventory,
 ): ValidationContext {
   const existingSpecs = new Map<string, ExistingSpec>();
   const existingRequirementIds = new Set<string>();
@@ -77,6 +81,7 @@ export function buildValidationContext(
     existingRequirementIds,
     requirementReferences,
     activeChanges,
+    conflictInventory,
   };
 }
 
@@ -108,11 +113,16 @@ export async function validateChange(
   const {
     specs,
     activeChanges,
+    conflictInventory,
     skipChecks = [],
     changedSpecFiles,
     proposalText,
   } = options;
-  const context = buildValidationContext(specs, activeChanges);
+  const context = buildValidationContext(
+    specs,
+    activeChanges,
+    conflictInventory,
+  );
 
   const errors: ValidationResult["errors"] = [];
   const warnings: ValidationResult["warnings"] = [];

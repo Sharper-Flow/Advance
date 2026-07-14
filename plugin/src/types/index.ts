@@ -17,7 +17,6 @@
  *   - wisdom.ts         WisdomType, WisdomEntry
  *   - project.ts        ProjectConfig, FeatureFlags, RelatedRepo, ProjectMetadataEntry
  *   - conformance.ts    Conformance*, EMPTY_CONFORMANCE_STATE
- *   - agenda.ts         Agenda*, AGENDA_PRIORITY_ORDER
  *   - status.ts         STATUS_MARKERS, StatusMarker
  *   - responses.ts      SpecListResponse, ChangeListResponse, TaskReadyResponse, ProjectStatus, ChangeRecency
  *   - tdd-helpers.ts    TDD_*_PATTERNS, isLogicTask, hasCompleteTddEvidence, etc.
@@ -143,6 +142,14 @@ export {
   SubagentConsumerWarningSchema,
   RequiredFollowUpSchema,
   type RequiredFollowUp,
+  ReportFollowUpKindSchema,
+  type ReportFollowUpKind,
+  ReportFollowUpRefSchema,
+  type ReportFollowUpRef,
+  reportFollowUpId,
+  reportKeyFromReport,
+  enumerateReportFollowUps,
+  resolveReportFollowUpByRef,
   DesignConcernDispositionSchema,
   type DesignConcernDisposition,
   EngineerSubagentReportSchema,
@@ -416,21 +423,6 @@ export {
   type ConformanceState,
   EMPTY_CONFORMANCE_STATE,
 } from "./conformance";
-
-// =============================================================================
-// Agenda
-// =============================================================================
-export {
-  AgendaPrioritySchema,
-  type AgendaPriority,
-  AgendaStatusSchema,
-  type AgendaStatus,
-  AgendaItemSchema,
-  type AgendaItem,
-  AgendaMetaSchema,
-  type AgendaMeta,
-  AGENDA_PRIORITY_ORDER,
-} from "./agenda";
 
 // =============================================================================
 // Status Markers

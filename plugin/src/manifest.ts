@@ -448,7 +448,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-tron": {
     name: "adv-tron",
     description:
-      "Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates",
+      "Investigate codebase structure, hotspots, risks, and suggest follow-up candidates",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],
