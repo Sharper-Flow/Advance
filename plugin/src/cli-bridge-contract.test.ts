@@ -122,6 +122,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
   test("ADV_TOOL_NAMES matches frozen snapshot", () => {
     const frozen: readonly string[] = [
       "adv_spec",
+      "adv_delta_add",
       "adv_roadmap",
       "adv_backlog_state",
       "adv_wip_state",
