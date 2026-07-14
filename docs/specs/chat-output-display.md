@@ -1,7 +1,7 @@
 # Chat Output Display
 
-> **Version:** 1.5.0
-> **Updated:** 2026-05-20
+> **Version:** 1.7.0
+> **Updated:** 2026-07-13
 > **Supersedes:** `context-display` v1.2.0
 
 ## Purpose
