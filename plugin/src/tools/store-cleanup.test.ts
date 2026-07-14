@@ -393,7 +393,7 @@ describe("executeCleanup", () => {
       expect(
         await pathExists(join(legacyStorePath(root, storeA), "agenda.jsonl")),
       ).toBe(false);
-      // Manifest written before delete.
+      // The pre-delete manifest row and terminal outcome are both persisted.
       expect(
         await pathExists(
           join(legacyStorePath(root, storeA), AGENDA_CLEANUP_MANIFEST_FILENAME),
@@ -475,7 +475,11 @@ describe("executeCleanup", () => {
       expect(lines.length).toBeGreaterThan(0);
       const parsed = StoreCleanupManifestRowSchema.parse(JSON.parse(lines[0]!));
       expect(parsed.project_id).toBe(storeA);
-      expect(parsed.outcome).toBe("applied");
+      expect(parsed.outcome).toBe("prepared");
+      const terminal = StoreCleanupManifestRowSchema.parse(
+        JSON.parse(lines[lines.length - 1]!),
+      );
+      expect(terminal.outcome).toBe("applied");
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -563,6 +567,38 @@ describe("manifest outcome accuracy", () => {
       const lastRow = rows[rows.length - 1];
       expect(lastRow.outcome).toBe("failed");
       expect(lastRow.outcome).not.toBe("applied");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test("persists a manifest row before invoking destructive deletion", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-cleanup-manifest-first-"));
+    try {
+      const storePath = legacyStorePath(root, storeA);
+      await writeStoreDir(storePath, {
+        changes: [{ id: "change-a", status: "active" }],
+        agendaRows: ["row1"],
+      });
+      const plan = await buildCleanupPlan({ dataHomeRoot: root });
+      let manifestWasPresent = false;
+      await executeCleanup({
+        dataHomeRoot: root,
+        approvedByUser: true,
+        approvalEvidence: "test",
+        dry_run_plan_hash: plan.plan_hash,
+        deps: {
+          deleteFile: async (agendaPath) => {
+            const manifest = await readFile(
+              join(storePath, AGENDA_CLEANUP_MANIFEST_FILENAME),
+              "utf-8",
+            );
+            manifestWasPresent = manifest.includes('"outcome":"prepared"');
+            await rm(agendaPath);
+          },
+        },
+      });
+      expect(manifestWasPresent).toBe(true);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

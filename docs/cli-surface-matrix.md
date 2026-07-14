@@ -91,7 +91,6 @@
 | `adv_gate_status` | `keep-mcp-only` | Agent reads constantly during workflow |
 | `adv_wisdom_list` | `keep-mcp-only` | Agent knowledge surface |
 | `adv_project_wisdom_list` | `keep-mcp-only` | Agent knowledge surface |
-| `adv_agenda_list` | `keep-mcp-only` | Agent-facing agenda surface |
 | `adv_project_context` | `keep-mcp-only` | Agent context read |
 | `adv_project_metadata` | `keep-mcp-only` | Agent context read |
 | `adv_wip_state` | `keep-mcp-only` | Temporal/session-dependent aggregation |
@@ -132,11 +131,6 @@
 | `adv_temporal_reconnect` | `no-cli-dangerous` | Runtime mutation |
 | `adv_temporal_worker_restart` | `no-cli-dangerous` | Runtime mutation |
 | `adv_wisdom_add` | `no-cli-dangerous` | Wisdom mutation |
-| `adv_agenda_add` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_start` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_complete` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_cancel` | `no-cli-dangerous` | Agenda mutation |
-| `adv_agenda_prioritize` | `no-cli-dangerous` | Agenda mutation |
 | `adv_epic_create` | `no-cli-dangerous` | Epic mutation |
 | `adv_epic_show` | `keep-mcp-only` | Agent-workflow read |
 | `adv_epic_list` | `mcp+cli-additive` | MCP remains the rich agent-workflow read; `bin/adv epic list --json` exposes reduced live ID-only Visibility enumeration |

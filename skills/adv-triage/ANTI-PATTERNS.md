@@ -6,9 +6,9 @@
 |---|---|---|
 | `/adv-status` | Read-only project overview | Prioritization counterpart |
 | `/adv-cleanup` | Triage abandoned/duplicate ADV changes | Disjoint: cleanup on ADV changes; triage on GH backlog |
-| `/adv-idea` / `/adv-problem` | Shape ideas / triage bugs into changes | Triage runs after items settle into agenda/notes; promotes to GH |
+| `/adv-idea` / `/adv-problem` | Shape ideas / triage bugs into changes | Triage runs after items settle into typed backlog/notes; promotes to GH |
 | `/adv-improve` | Suggest spec/implementation improvements | Suggestions become inventory items |
-| `/adv-tron` | Codebase recon, hotspot detection | Findings → agenda → triage promotes to issues |
+| `/adv-tron` | Codebase recon, hotspot detection | Findings → typed follow-up or backlog promotion → triage promotes to issues |
 
 ## Anti-patterns
 
@@ -24,7 +24,6 @@
 | Ask users to confirm or choose a priority | User questions gather context only; agent owns priority choice |
 | Close, complete, cancel, remove, suppress, merge-note, or deprioritize items from title similarity alone | Treat title similarity as advisory; require structural evidence and explicit approval |
 | Assume `gh issue close --duplicate-of` exists or never exists | Capability-detect via `gh issue close --help`; fallback to `Duplicate of #N` comment semantics plus supported close reasons |
-| Mark agenda superseded/should-merge items as resolved without provenance | Use `adv_agenda_complete` with a note referencing the survivor/source |
 | Drop low-priority TODOs silently | Surface all inventory items, even deferred |
 | Post priority rationale as an issue comment | Emit `<issue#>: priority=<tier> :: <rationale>` in chat output only |
 | Emit only top-N features | Phase 5.5 requires full `ROADMAP.md` fenced markdown echo |

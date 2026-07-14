@@ -77,8 +77,6 @@ Anything else → re-prompt with the same options. No LLM fallback.
 
 Action mapping after approval:
 
-- Agenda `duplicate/superseded` or `should-merge` → `adv_agenda_complete` with a note referencing the survivor/source.
-- Agenda `stale/already-addressed` or not-planned → `adv_agenda_cancel` with approval evidence.
 - GitHub duplicate handling → capability-detect with `gh issue close --help`. If `--duplicate-of` is supported, use native duplicate close. If not, add documented `Duplicate of #N` comment semantics and close only with locally supported reasons.
 - ADV changes → use ADV close/archive recommendations only; never mutate workflow state outside ADV tools.
 
@@ -135,8 +133,7 @@ After local items are promoted:
 Promoted {N} item(s) to GH issues. Deprecate the local sources?
 
 1. .adv/CROSS-SESSION-NOTES-2026-05-04.md line 42 → #123
-2. agenda item ag-xyz → #124
-3. plugin/src/foo.ts:88 TODO → #125
+2. plugin/src/foo.ts:88 TODO → #124
 
 Reply EXACTLY one of:
 - `deprecate all` — apply per-source deprecation
@@ -147,7 +144,7 @@ Reply EXACTLY one of:
 Anything else → re-prompt with the same options.
 ```
 
-Per-source actions: TODO/FIXME comment → `// see #{num}`; agenda item → complete with note; wisdom → append promotion note; cross-session note → strikethrough line; active ADV change → no deprecation.
+Per-source actions: TODO/FIXME comment → `// see #{num}`; wisdom → append promotion note; cross-session note → strikethrough line; active ADV change → no deprecation.
 
 ## ROADMAP.md commit prompt (Tier B)
 

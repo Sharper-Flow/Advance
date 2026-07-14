@@ -134,7 +134,10 @@ export const StoreCleanupManifestRowSchema = z
     agenda_path: z.string(),
     source_hash: z.string().regex(SHA256_HEX).nullable(),
     source_rows: z.number().int().nonnegative(),
-    outcome: z.enum(["applied", "retained", "skipped", "failed"]),
+    // `prepared` is persisted before destructive deletion. A terminal row is
+    // appended after the delete attempt so the manifest remains both a
+    // pre-delete audit record and an accurate outcome history.
+    outcome: z.enum(["prepared", "applied", "retained", "skipped", "failed"]),
     reason: z.string(),
     timestamp: z.string(),
   })
@@ -558,6 +561,33 @@ export async function executeCleanup(
     }
 
     // store.outcome === "delete"
+    // Persist the intent before touching Agenda data. If this fails, do not
+    // delete: an approved cleanup must always leave an audit record first.
+    const preparedRow: StoreCleanupManifestRow = {
+      schema_version: 1,
+      project_id: store.project_id,
+      agenda_path: store.agenda_path,
+      source_hash: store.content_hash,
+      source_rows: store.rows,
+      outcome: "prepared",
+      reason: "approved_cleanup_prepared",
+      timestamp: now().toISOString(),
+    };
+    try {
+      await appendFile(
+        manifestPath,
+        `${JSON.stringify(preparedRow)}\n`,
+        "utf-8",
+      );
+    } catch (error) {
+      outcomes.push({
+        project_id: store.project_id,
+        outcome: "failed",
+        reason: `manifest_write_failed: ${error instanceof Error ? error.message : String(error)}`,
+      });
+      continue;
+    }
+
     const deleteFile = options.deps?.deleteFile ?? unlink;
     let outcome: "applied" | "failed";
     let reason: string;

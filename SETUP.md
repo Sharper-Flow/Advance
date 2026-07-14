@@ -1461,15 +1461,6 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 
 **Agenda**
 
-| Tool                    | Purpose                                |
-| ----------------------- | -------------------------------------- |
-| `adv_agenda_list`       | List agenda items (with status filter) |
-| `adv_agenda_add`        | Add a quick work item to the agenda    |
-| `adv_agenda_start`      | Mark an agenda item as active          |
-| `adv_agenda_complete`   | Mark an agenda item as done            |
-| `adv_agenda_cancel`     | Cancel an agenda item                  |
-| `adv_agenda_prioritize` | Change priority of an agenda item      |
-
 ---
 
 ## Support
