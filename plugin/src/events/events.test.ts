@@ -182,37 +182,32 @@ describe("Status State Management", () => {
       expect(getStatus().activeChangeId).toBeNull();
     });
 
-    it("accepts structured context with label and epic title", () => {
+    it("accepts structured context with epic ID", () => {
       initializeStatus("test-project");
       setActiveChange("my-change", {
-        label: "Fix auth bug",
-        epicTitle: "Security Epic",
+        epicId: "terminalIdentity",
       });
       const status = getStatus();
       expect(status.activeChangeId).toBe("my-change");
-      expect(status.activeChangeLabel).toBe("Fix auth bug");
-      expect(status.activeEpicTitle).toBe("Security Epic");
+      expect(status.activeEpicId).toBe("terminalIdentity");
     });
 
-    it("defaults label to changeId when context not provided", () => {
+    it("defaults epic ID to null when context not provided", () => {
       initializeStatus("test-project");
       setActiveChange("my-change");
       const status = getStatus();
-      expect(status.activeChangeLabel).toBe("my-change");
-      expect(status.activeEpicTitle).toBeNull();
+      expect(status.activeEpicId).toBeNull();
     });
 
     it("clears structured context when change set to null", () => {
       initializeStatus("test-project");
       setActiveChange("my-change", {
-        label: "Fix auth bug",
-        epicTitle: "Security Epic",
+        epicId: "terminalIdentity",
       });
       setActiveChange(null);
       const status = getStatus();
       expect(status.activeChangeId).toBeNull();
-      expect(status.activeChangeLabel).toBeNull();
-      expect(status.activeEpicTitle).toBeNull();
+      expect(status.activeEpicId).toBeNull();
     });
   });
 
@@ -366,108 +361,75 @@ describe("Terminal Utilities", () => {
 // =============================================================================
 
 describe("buildTabTitle", () => {
-  it("shows raw change ID only when both project and active change are present", () => {
-    expect(buildTabTitle("🟩", "Jester", "working-on-adv-change-x")).toBe(
+  it("returns null when no active change (no project fallback)", () => {
+    expect(buildTabTitle()).toBeNull();
+    expect(buildTabTitle(undefined)).toBeNull();
+    expect(buildTabTitle("")).toBeNull();
+    expect(buildTabTitle("   ")).toBeNull();
+  });
+
+  it("returns raw change ID when active change is present", () => {
+    expect(buildTabTitle("working-on-adv-change-x")).toBe(
       "working-on-adv-change-x",
     );
   });
 
-  it("shows raw project only when no active change", () => {
-    expect(buildTabTitle("🟩", "Jester", undefined)).toBe("Jester");
+  it("returns raw change ID when Epic is absent", () => {
+    expect(buildTabTitle("fixAuth")).toBe("fixAuth");
+    expect(buildTabTitle("fixAuth", undefined)).toBe("fixAuth");
+    expect(buildTabTitle("fixAuth", "")).toBe("fixAuth");
+    expect(buildTabTitle("fixAuth", "   ")).toBe("fixAuth");
   });
 
-  it("shows raw project only when change ID is empty string", () => {
-    expect(buildTabTitle("🟩", "Jester", "")).toBe("Jester");
-  });
-
-  it("shows raw project only when change ID is whitespace", () => {
-    expect(buildTabTitle("🟩", "Jester", "   ")).toBe("Jester");
-  });
-
-  it("does not acronymize multi-word project names or prefix them to active changes", () => {
-    expect(buildTabTitle("🟩", "my-cool-project", "fixAuthTimeout")).toBe(
-      "fixAuthTimeout",
-    );
-  });
-
-  it("shows empty title when project name is empty and no change", () => {
-    expect(buildTabTitle("🟩", "", undefined)).toBe("");
-  });
-
-  it("shows raw change only when project name is empty", () => {
-    expect(buildTabTitle("🟩", "", "addFeatureX")).toBe("addFeatureX");
+  it("does not acronymize or normalize the change ID", () => {
+    expect(buildTabTitle("fixAuthTimeout")).toBe("fixAuthTimeout");
   });
 
   it("trims leading and trailing whitespace without semantic normalization", () => {
-    expect(buildTabTitle("🟩", "  Jester  ", "  changeX  ")).toBe("changeX");
+    expect(buildTabTitle("  changeX  ")).toBe("changeX");
   });
 
   it("never includes progress text", () => {
-    const title = buildTabTitle("🟩", "Jester", "changeX");
+    const title = buildTabTitle("changeX");
     expect(title).not.toMatch(/\[\d+\/\d+\]/);
   });
 
-  it("ignores BLOCKED/status emoji for the simple identity title", () => {
-    expect(buildTabTitle("🟥", "Jester", "changeX")).toBe("changeX");
-  });
-
-  it("shows project only when BLOCKED status emoji is provided without active change", () => {
-    expect(buildTabTitle("🟥", "Jester", undefined)).toBe("Jester");
-  });
-
-  it("ignores status emoji in the tab title", () => {
-    expect(buildTabTitle("🟩", "Jester", "changeX")).toBe("changeX");
-  });
-
-  it("renders Epic title | change label when both provided", () => {
-    expect(buildTabTitle("🟩", "Jester", "fixAuth", "Security Epic")).toBe(
-      "Security Epic | fixAuth",
+  it("renders epicId | changeId when both provided", () => {
+    expect(buildTabTitle("fixAuth", "terminalIdentity")).toBe(
+      "terminalIdentity | fixAuth",
     );
   });
 
-  it("renders change label only when no epic title", () => {
-    expect(buildTabTitle("🟩", "Jester", "fixAuth", undefined)).toBe("fixAuth");
-  });
-
-  it("renders change label only when epic title is empty", () => {
-    expect(buildTabTitle("🟩", "Jester", "fixAuth", "")).toBe("fixAuth");
-  });
-
-  it("renders change label only when epic title is whitespace", () => {
-    expect(buildTabTitle("🟩", "Jester", "fixAuth", "   ")).toBe("fixAuth");
-  });
-
-  it("does not produce dangling separator when epic title missing", () => {
-    const title = buildTabTitle("🟩", "Jester", "fixAuth", undefined);
+  it("does not produce dangling separator when Epic ID missing", () => {
+    const title = buildTabTitle("fixAuth", undefined);
     expect(title).not.toContain("|");
   });
 
-  it("trims whitespace in epic title and change label", () => {
-    expect(buildTabTitle("🟩", "Jester", "  fixAuth  ", "  Security  ")).toBe(
-      "Security | fixAuth",
-    );
-  });
-
-  it("sanitizes control characters in epic title and change label", () => {
-    // C0 control chars (0x01-0x1f) should be replaced by sanitizer
-    const title = buildTabTitle("🟩", "Jester", "fix\x01Auth", "Sec\x1burity");
-    // buildTabTitle itself does not sanitize — the OSC writer does.
-    // But the title should still render with the pipe separator.
-    expect(title).toContain("|");
-    expect(title).toContain("fix");
-    expect(title).toContain("Auth");
-  });
-
-  it("does not produce dangling separator when epic title is whitespace-only", () => {
-    const title = buildTabTitle("🟩", "Jester", "fixAuth", "   ");
+  it("does not produce dangling separator when Epic ID is whitespace-only", () => {
+    const title = buildTabTitle("fixAuth", "   ");
     expect(title).not.toContain("|");
     expect(title).toBe("fixAuth");
   });
 
-  it("renders exactly one separator when both epic and change are present", () => {
-    const title = buildTabTitle("🟩", "Jester", "fixAuth", "Security");
+  it("trims whitespace in Epic ID and change ID", () => {
+    expect(buildTabTitle("  fixAuth  ", "  terminalIdentity  ")).toBe(
+      "terminalIdentity | fixAuth",
+    );
+  });
+
+  it("renders exactly one separator when both Epic and change are present", () => {
+    const title = buildTabTitle("fixAuth", "terminalIdentity");
     const separatorCount = (title.match(/\|/g) || []).length;
     expect(separatorCount).toBe(1);
+  });
+
+  it("passes control characters through (sanitized by OSC writer, not builder)", () => {
+    // buildTabTitle itself does not sanitize — the OSC writer does.
+    // But the title should still render with the pipe separator.
+    const title = buildTabTitle("fix\x01Auth", "Sec\x1burity");
+    expect(title).toContain("|");
+    expect(title).toContain("fix");
+    expect(title).toContain("Auth");
   });
 });
 
@@ -510,7 +472,7 @@ describe("Terminal status updates are non-audible", () => {
       .mockImplementation(() => true as never);
 
     for (const status of statuses) {
-      updateTerminalStatus(status, "test-project");
+      updateTerminalStatus(status, "test-change");
     }
 
     const writes = stdoutSpy.mock.calls.map((call) => String(call[0]));

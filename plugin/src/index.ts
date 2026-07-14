@@ -828,23 +828,23 @@ const advancePluginImpl: Plugin = async (input) => {
   };
 
   /**
-   * Resolve change label and parent Epic title from the project store.
-   * Used at active-change pointer transitions to feed structured context to
-   * the terminal title renderer. Falls back gracefully — never blocks or
-   * fails the tool operation.
+   * Resolve the parent Epic ID for the active change from the project store.
+   *
+   * The pane identity contract renders stable IDs only — display titles
+   * never enter the title path. Returns `epicId` when the change has
+   * Epic membership; otherwise an empty object. Falls back gracefully —
+   * never blocks or fails the tool operation.
    */
   const resolveChangeContext = async (
     changeId: string,
-  ): Promise<{ label?: string; epicTitle?: string }> => {
+  ): Promise<{ epicId?: string }> => {
     if (!store) return {};
     try {
       const result = await store.changes.get(changeId);
       if (!result.success || !result.data) return {};
       const change = result.data;
-      return {
-        label: change.title,
-        epicTitle: change.epic_membership?.title,
-      };
+      const epicId = change.epic_membership?.epic_id;
+      return epicId ? { epicId } : {};
     } catch {
       return {};
     }

@@ -32,6 +32,175 @@ vi.mock("fs", async () => {
   };
 });
 
+// =============================================================================
+// Pane identity contract (fixAdvPanelTitles)
+//
+// Active ADV change identity only. No project fallback, no cleanup clear.
+// Stable IDs (changeId, epicId), never display labels.
+// =============================================================================
+
+describe("pane identity contract (no-write without active change)", () => {
+  const originalTmux = process.env.TMUX;
+  const originalStdoutIsTTY = process.stdout.isTTY;
+
+  const readLastSequence = (spy: ReturnType<typeof vi.spyOn>): string =>
+    String(spy.mock.calls.at(-1)?.[0]);
+
+  const expectTitleWrite = (
+    spy: ReturnType<typeof vi.spyOn>,
+    expectedTitle: string,
+  ): void => {
+    const sequence = readLastSequence(spy);
+    expect(sequence).toContain(`\x1b]0;${expectedTitle}\x1b\\`);
+    expect(sequence).not.toContain("\x07");
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.TMUX;
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: true,
+      configurable: true,
+    });
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    if (originalTmux === undefined) {
+      delete process.env.TMUX;
+    } else {
+      process.env.TMUX = originalTmux;
+    }
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: originalStdoutIsTTY,
+      configurable: true,
+    });
+    vi.clearAllMocks();
+  });
+
+  test("AC1: status updates with no active change emit zero title writes", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("ATTN");
+    term.updateTerminalStatus("WORK");
+    term.updateTerminalStatus("IDLE");
+    term.updateTerminalStatus("BLOCKED");
+
+    expect(stdoutSpy).not.toHaveBeenCalled();
+  });
+
+  test("AC2: active change writes exactly the change ID", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "fixPanelTitles");
+
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    expectTitleWrite(stdoutSpy, "fixPanelTitles");
+  });
+
+  test("AC3: Epic + change writes exactly `epicId | changeId`", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "fixPanelTitles", "terminalIdentity");
+
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    expectTitleWrite(stdoutSpy, "terminalIdentity | fixPanelTitles");
+  });
+
+  test("AC4: cleanup preserves the last title (no clear write)", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "activeChange");
+    const writesBeforeCleanup = stdoutSpy.mock.calls.length;
+    expect(writesBeforeCleanup).toBe(1);
+
+    term.cleanupTerminal();
+
+    // No additional title write during cleanup — pane keeps the last title.
+    expect(stdoutSpy.mock.calls.length).toBe(writesBeforeCleanup);
+  });
+
+  test("AC5: status churn with same changeId does not rewrite title", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "changeX");
+    term.updateTerminalStatus("ATTN", "changeX");
+    term.updateTerminalStatus("IDLE", "changeX");
+
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    expectTitleWrite(stdoutSpy, "changeX");
+  });
+
+  test("AC5: identity payload BEL is sanitized; OSC uses ST, never BEL", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "add\x07FeatureX");
+
+    expect(stdoutSpy).toHaveBeenCalled();
+    const sequence = readLastSequence(stdoutSpy);
+    expect(sequence).toContain("\x1b]0;add FeatureX\x1b\\");
+    expect(sequence).not.toContain("\x07");
+  });
+
+  test("buildTabTitle returns null when no active change (no project fallback)", async () => {
+    const term = await import("./terminal");
+
+    expect(term.buildTabTitle()).toBeNull();
+    expect(term.buildTabTitle(undefined)).toBeNull();
+    expect(term.buildTabTitle("")).toBeNull();
+    expect(term.buildTabTitle("   ")).toBeNull();
+  });
+
+  test("buildTabTitle returns changeId only when Epic absent", async () => {
+    const term = await import("./terminal");
+
+    expect(term.buildTabTitle("fixAuth")).toBe("fixAuth");
+    expect(term.buildTabTitle("fixAuth", undefined)).toBe("fixAuth");
+    expect(term.buildTabTitle("fixAuth", "")).toBe("fixAuth");
+    expect(term.buildTabTitle("fixAuth", "   ")).toBe("fixAuth");
+  });
+
+  test("buildTabTitle composes epicId | changeId", async () => {
+    const term = await import("./terminal");
+
+    expect(term.buildTabTitle("fixAuth", "terminalIdentity")).toBe(
+      "terminalIdentity | fixAuth",
+    );
+  });
+
+  test("transition from active to inactive does not emit a write (pane keeps last title)", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "someChange");
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+
+    // Clearing the active change must not clear/replace the title.
+    term.updateTerminalStatus("IDLE");
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("tmux rename-window safety", () => {
   const originalTmux = process.env.TMUX;
 
@@ -225,42 +394,39 @@ describe("terminal title status contract", () => {
     vi.clearAllMocks();
   });
 
-  test("ATTN without active change writes raw project title", async () => {
+  test("ATTN without active change emits no write", async () => {
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
     const term = await import("./terminal");
 
-    term.updateTerminalStatus("ATTN", "advance");
+    term.updateTerminalStatus("ATTN");
 
-    expect(stdoutSpy).toHaveBeenCalled();
-    expectNonAudibleTitleSequence(stdoutSpy.mock.calls.at(-1)?.[0], "advance");
+    expect(stdoutSpy).not.toHaveBeenCalled();
   });
 
-  test("WORK with active change writes raw change title only", async () => {
+  test("WORK with active change writes raw change ID only", async () => {
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
     const term = await import("./terminal");
 
-    term.updateTerminalStatus("WORK", "advance", "addFeatureX");
+    term.updateTerminalStatus("WORK", "addFeatureX");
 
     expect(stdoutSpy).toHaveBeenCalled();
     const sequence = String(stdoutSpy.mock.calls.at(-1)?.[0]);
     expectNonAudibleTitleSequence(sequence, "addFeatureX");
-    expect(sequence).not.toContain("advance: addFeatureX");
   });
 
-  test("BLOCKED without active change keeps simple project title", async () => {
+  test("BLOCKED without active change emits no write", async () => {
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
     const term = await import("./terminal");
 
-    term.updateTerminalStatus("BLOCKED", "advance");
+    term.updateTerminalStatus("BLOCKED");
 
-    expect(stdoutSpy).toHaveBeenCalled();
-    expectNonAudibleTitleSequence(stdoutSpy.mock.calls.at(-1)?.[0], "advance");
+    expect(stdoutSpy).not.toHaveBeenCalled();
   });
 
   test("active title payload BEL is sanitized before OSC output", async () => {
@@ -269,7 +435,7 @@ describe("terminal title status contract", () => {
       .mockImplementation(() => true as never);
     const term = await import("./terminal");
 
-    term.updateTerminalStatus("WORK", "advance", "add\x07FeatureX");
+    term.updateTerminalStatus("WORK", "add\x07FeatureX");
 
     expect(stdoutSpy).toHaveBeenCalled();
     expectNonAudibleTitleSequence(
@@ -299,7 +465,7 @@ describe("terminal title status contract", () => {
       value: false,
       configurable: true,
     });
-    term.updateTerminalStatus("WORK", "advance", "removeTerminalBells");
+    term.updateTerminalStatus("WORK", "removeTerminalBells");
 
     Object.defineProperty(process.stdout, "isTTY", {
       value: true,
@@ -309,7 +475,7 @@ describe("terminal title status contract", () => {
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
 
-    term.updateTerminalStatus("WORK", "advance", "removeTerminalBells");
+    term.updateTerminalStatus("WORK", "removeTerminalBells");
 
     expect(stdoutSpy).toHaveBeenCalledTimes(1);
     expectNonAudibleTitleSequence(
@@ -324,9 +490,9 @@ describe("terminal title status contract", () => {
       .mockImplementation(() => true as never);
     const term = await import("./terminal");
 
-    term.updateTerminalStatus("WORK", "advance", "changeX");
-    term.updateTerminalStatus("ATTN", "advance", "changeX");
-    term.updateTerminalStatus("IDLE", "advance", "changeX");
+    term.updateTerminalStatus("WORK", "changeX");
+    term.updateTerminalStatus("ATTN", "changeX");
+    term.updateTerminalStatus("IDLE", "changeX");
 
     expect(stdoutSpy).toHaveBeenCalledTimes(1);
     expectNonAudibleTitleSequence(stdoutSpy.mock.calls[0]?.[0], "changeX");

@@ -16,8 +16,7 @@ interface StatusState {
   currentStatus: StatusMarker;
   projectName: string;
   activeChangeId: string | null;
-  activeChangeLabel: string | null;
-  activeEpicTitle: string | null;
+  activeEpicId: string | null;
   taskProgress: string | null;
   lastUpdated: number;
 }
@@ -26,8 +25,7 @@ let state: StatusState = {
   currentStatus: "IDLE",
   projectName: "Unknown",
   activeChangeId: null,
-  activeChangeLabel: null,
-  activeEpicTitle: null,
+  activeEpicId: null,
   taskProgress: null,
   lastUpdated: Date.now(),
 };
@@ -87,8 +85,7 @@ export const initializeStatus = (projectName: string): void => {
     currentStatus: "IDLE",
     projectName,
     activeChangeId: null,
-    activeChangeLabel: null,
-    activeEpicTitle: null,
+    activeEpicId: null,
     taskProgress: null,
     lastUpdated: Date.now(),
   };
@@ -106,8 +103,7 @@ export const resetStatusForTest = (): void => {
     currentStatus: "IDLE",
     projectName: "Unknown",
     activeChangeId: null,
-    activeChangeLabel: null,
-    activeEpicTitle: null,
+    activeEpicId: null,
     taskProgress: null,
     lastUpdated: Date.now(),
   };
@@ -127,17 +123,18 @@ export const setStatus = (status: StatusMarker): void => {
 /**
  * Set the active change being worked on.
  *
- * Accepts optional structured context (label and epicTitle) for pane title
- * rendering. When context is not provided, label defaults to changeId and
- * epicTitle defaults to null. Passing null for changeId clears all context.
+ * Accepts optional structured context (epicId) for pane title rendering.
+ * The pane identity contract renders stable IDs only — the change ID is
+ * the identity, and epicId (when present) prefixes it as
+ * `epicId | changeId`. Display titles never enter the title path.
+ * Passing null for changeId clears all context.
  */
 export const setActiveChange = (
   changeId: string | null,
-  context?: { label?: string; epicTitle?: string },
+  context?: { epicId?: string },
 ): void => {
   state.activeChangeId = changeId;
-  state.activeChangeLabel = changeId ? (context?.label ?? changeId) : null;
-  state.activeEpicTitle = changeId ? (context?.epicTitle ?? null) : null;
+  state.activeEpicId = changeId ? (context?.epicId ?? null) : null;
   updateTerminal();
 };
 
@@ -151,14 +148,16 @@ export const setTaskProgress = (completed: number, total: number): void => {
 
 /**
  * Update the terminal display.
+ *
+ * Forwards stable IDs only — the pane identity contract renders the
+ * active change ID (and optional Epic ID), never a display label,
+ * project name, status marker, or progress text.
  */
 const updateTerminal = (): void => {
   updateTerminalStatus(
     state.currentStatus,
-    state.projectName,
-    state.activeChangeLabel ?? undefined,
-    state.activeEpicTitle ?? undefined,
-    state.taskProgress ?? undefined,
+    state.activeChangeId ?? undefined,
+    state.activeEpicId ?? undefined,
   );
 };
 
@@ -177,8 +176,7 @@ export const resetStatus = (): void => {
     ...state,
     currentStatus: "IDLE",
     activeChangeId: null,
-    activeChangeLabel: null,
-    activeEpicTitle: null,
+    activeEpicId: null,
     taskProgress: null,
     lastUpdated: Date.now(),
   };
@@ -196,8 +194,7 @@ export const cleanup = (): void => {
     currentStatus: "IDLE",
     projectName: "Unknown",
     activeChangeId: null,
-    activeChangeLabel: null,
-    activeEpicTitle: null,
+    activeEpicId: null,
     taskProgress: null,
     lastUpdated: Date.now(),
   };
