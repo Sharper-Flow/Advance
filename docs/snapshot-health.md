@@ -2,7 +2,7 @@
 
 `adv_snapshot_health` detects and remediates OpenCode snapshot-store corruption — stale locks, zero-byte git objects, fsck errors, orphan bare repos, oversized dirs, and legacy-layout artifacts that historically caused recurring agent freezes (notably example-web index.lock contention).
 
-The tool is **read-only by default**. Repairs require explicit user approval, are restricted to a closed whitelist, and write audit entries to the ADV agenda.
+The tool is **read-only by default**. Repairs require explicit user approval, are restricted to a closed whitelist, and append durable audit entries to a purpose-specific snapshot-repair audit log.
 
 > **This does not fix the upstream OpenCode race.** That is OpenCode-core, tracked at Sharper-Flow/Advance#118 (open — discovery gate running in main checkout). `adv_snapshot_health` is defense-in-depth: detect degraded state, surface it, and provide a structured repair path.
 
@@ -69,7 +69,7 @@ Returns `repair_preview` with `status: "success"` records and no filesystem muta
 2. **Approval gate** — every repair call requires `approvedByUser: true` + non-empty `approvalEvidence`.
 3. **TOCTOU race guard** — before deleting a stale lock, the repair flow re-checks `lsof` and refuses if a holder PID has reappeared since the scan. Before deleting an orphan bare repo, it re-resolves the worktree path and refuses if it has reappeared.
 4. **No history-altering ops** — `git gc`, `git prune`, `git filter-repo` are explicitly out of scope (constraint C3 from the change agreement).
-5. **Audit trail** — every successful repair appends an entry to the ADV agenda with `category: "snapshot-repair"`, `priority: "low"`, and a human-readable description containing the finding pattern, target path, and result.
+5. **Audit trail** — every successful repair appends a durable, append-only audit entry to the purpose-specific snapshot-repair audit log (`snapshot-repair-audit.jsonl`). Each entry records the finding pattern, repair action, target path, before/after summary, outcome, and an ISO-8601 timestamp. The audit log lives outside planning, gates, backlog, and Epic state; it is a read-only audit record only and is never consumed by task selection or change lifecycle logic. Failed, skipped, and dry-run repairs produce no audit entries.
 
 ## adv_status Integration
 

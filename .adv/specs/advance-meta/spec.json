@@ -2830,45 +2830,6 @@
       ]
     },
     {
-      "id": "rq-agendaDurableParse01",
-      "title": "Durable Agenda Parsing And Compaction",
-      "body": "Agenda JSONL persistence must preserve durability when a line cannot be parsed. When the agenda is loaded, any malformed or schema-invalid line must be logged via the debug-log diagnostic channel (mirroring project-wisdom and reflection loaders) rather than dropped silently. Automatic compaction, which rewrites the agenda from successfully parsed entries only, must not permanently discard unparsed content without surfacing it: when a load skipped one or more malformed lines, auto-compaction must be skipped (with a warning) so the corrupt content survives for manual inspection. This preserves the append-only durability guarantee.",
-      "priority": "must",
-      "tags": [
-        "agenda",
-        "storage",
-        "durability",
-        "observability"
-      ],
-      "scenarios": [
-        {
-          "id": "rq-agendaDurableParse01.1",
-          "title": "Malformed agenda line is logged on load",
-          "given": [
-            "An agenda JSONL file contains a malformed or schema-invalid line"
-          ],
-          "when": "The agenda is loaded",
-          "then": [
-            "The malformed line is skipped from the in-memory result",
-            "A diagnostic is logged identifying that a malformed line was skipped"
-          ]
-        },
-        {
-          "id": "rq-agendaDurableParse01.2",
-          "title": "Auto-compaction does not destroy unparsed content",
-          "given": [
-            "An agenda load skipped one or more malformed lines",
-            "The agenda would otherwise be eligible for automatic compaction"
-          ],
-          "when": "Automatic compaction is evaluated",
-          "then": [
-            "Compaction is skipped and a warning is surfaced",
-            "The malformed content is not permanently discarded"
-          ]
-        }
-      ]
-    },
-    {
       "id": "rq-projectIdentityStability01",
       "title": "Shallow-Repo Project Identity Refusal",
       "body": "ADV project identity is derived from the repository root commit. In a shallow clone, `git rev-list --max-parents=0 HEAD` returns the moving `.git/shallow` graft boundary as a fake root, and commit grafts rewrite parentage the same way. ADV MUST NOT mint external state or Temporal state under such an unstable pseudo-root identity: identity resolution must structurally detect shallow and grafted repositories and refuse with a typed, actionable error. Full clones, partial clones with complete root history (for example `--filter=blob:none`), and multi-root repositories must resolve exactly as before — the guard must never false-trip on stable histories.",

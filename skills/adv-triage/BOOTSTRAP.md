@@ -43,7 +43,6 @@ Re-runs MUST NOT mutate existing filter. Manual edits to `.adv/github-project.js
 | GH open issues | `gh issue list --state open --limit 500 --json number,title,body,labels,url,createdAt` | issues + labels |
 | GH Project items | `gh project item-list <N> --owner <owner> --format json --limit 500` plus `--query "repo:<owner>/<repository_filter>"` when configured | items + fields |
 | Active ADV changes | `adv_change_list status: 'in-flight'` | id, title, summary |
-| ADV agenda | `adv_agenda_list` | pending + active |
 | ADV wisdom | `adv_wisdom_list type: 'failure'` then `type: 'gotcha'` | snippets |
 | Cross-session notes | `glob .adv/CROSS-SESSION-NOTES-*.md` + `read` | bullets/headings/action lines |
 | TODO/FIXME | `lgrep_search_text query: 'TODO\\|FIXME' path: <repo-root>` filtered to source dirs | file:line + text |
@@ -58,7 +57,6 @@ Advisory only. P33: may prefill prompts, never create issues, mutate labels, or 
 |---|---|
 | `wisdom type:failure` | bug |
 | `wisdom type:gotcha` | likely bug; verify body |
-| `agenda` | category if present, else unknown |
 | TODO/FIXME | bug if text mentions broken/fix/wrong/crash/leak, else feature |
 | ADV active changes | feature for add/modify capability; bug for bugfix; else unknown |
 | Notes | unknown |

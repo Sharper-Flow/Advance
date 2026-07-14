@@ -128,11 +128,10 @@ export const SubagentConsumerWarningSchema = z
       "verification_mismatch",
       "verification_missing",
       "consumer_failure",
-      // Advisory marker emitted when the design-concern promotion consumer
-      // routes a designer design_dimensions concern / neighboring recommendation
-      // into a durable required-obligation agenda item. Surfacing only — the
-      // structural acceptance/release block is owned by the gate-readiness
-      // evaluator, not this warning.
+      // Advisory marker emitted when a designer design_dimensions concern /
+      // neighboring recommendation is raised. The structural acceptance/release
+      // block is owned by the gate-readiness evaluator; this warning surfaces
+      // that a typed disposition (adv_design_concern_disposition) is required.
       "design_concern_promoted",
     ]),
     message: z.string().min(1),
@@ -1023,6 +1022,158 @@ export function subagentReportKey(input: {
       : `change:${input.scope.scope_key}`
     : "unknown-scope";
   return `${input.changeId}|${scopeId}|${input.agent}|${input.attempt}`;
+}
+
+// =============================================================================
+// Typed Report Follow-Up Routing
+// =============================================================================
+
+/**
+ * Which report follow-up array a typed reference points to.
+ */
+export const ReportFollowUpKindSchema = z.enum([
+  "follow_ups",
+  "required_follow_ups",
+]);
+export type ReportFollowUpKind = z.infer<typeof ReportFollowUpKindSchema>;
+
+/**
+ * Structural reference to a specific follow-up inside a persisted sub-agent
+ * report. The `report_key` is the stable report identity (see
+ * `subagentReportKey`); `kind` and `index` disambiguate within the report.
+ * Text matching is never authority — this ref is.
+ */
+export const ReportFollowUpRefSchema = z
+  .object({
+    /** Stable report key (subagentReportKey format). */
+    report_key: z.string().min(1),
+    /** Which follow-up array this ref points to. */
+    kind: ReportFollowUpKindSchema,
+    /** Zero-based index within the array. */
+    index: z.number().int().min(0),
+  })
+  .strict();
+export type ReportFollowUpRef = z.infer<typeof ReportFollowUpRefSchema>;
+
+/**
+ * Deterministic typed ID for a report follow-up.
+ * Derived from immutable report identity (report_key) + kind + index.
+ * Format: `rfu:<report_key>:<kind>:<index>`
+ *
+ * Stable because the underlying inputs (report identity, kind, index) are
+ * immutable once the report is persisted. Legacy reports without typed IDs
+ * normalize to the same ID at read/promotion boundaries.
+ */
+export function reportFollowUpId(input: {
+  report_key: string;
+  kind: ReportFollowUpKind;
+  index: number;
+}): string {
+  return `rfu:${input.report_key}:${input.kind}:${input.index}`;
+}
+
+/**
+ * Compute the stable report key for a persisted report.
+ * Mirrors `subagentReportKey` but operates on the report object directly.
+ */
+export function reportKeyFromReport(report: ScopedSubagentReport): string {
+  return subagentReportKey({
+    changeId: report.change_id,
+    taskId:
+      typeof report.scope !== "string" && report.scope.kind === "task"
+        ? report.scope.task_id
+        : undefined,
+    scope: typeof report.scope === "string" ? undefined : report.scope,
+    agent: report.agent,
+    attempt: report.attempt,
+  });
+}
+
+/**
+ * Enumerate follow-ups from a report with their typed refs and IDs.
+ * For legacy reports without typed IDs, IDs are derived deterministically
+ * from report_key + kind + index.
+ */
+export function enumerateReportFollowUps(report: ScopedSubagentReport): Array<{
+  ref: ReportFollowUpRef;
+  id: string;
+  text: string;
+  required: boolean;
+}> {
+  const reportKey = reportKeyFromReport(report);
+  const results: Array<{
+    ref: ReportFollowUpRef;
+    id: string;
+    text: string;
+    required: boolean;
+  }> = [];
+
+  const followUps =
+    "follow_ups" in report && Array.isArray(report.follow_ups)
+      ? report.follow_ups
+      : [];
+  for (let i = 0; i < followUps.length; i++) {
+    const ref: ReportFollowUpRef = {
+      report_key: reportKey,
+      kind: "follow_ups",
+      index: i,
+    };
+    results.push({
+      ref,
+      id: reportFollowUpId(ref),
+      text: followUps[i],
+      required: false,
+    });
+  }
+
+  const requiredFollowUps =
+    "required_follow_ups" in report && Array.isArray(report.required_follow_ups)
+      ? report.required_follow_ups
+      : [];
+  for (let i = 0; i < requiredFollowUps.length; i++) {
+    const ref: ReportFollowUpRef = {
+      report_key: reportKey,
+      kind: "required_follow_ups",
+      index: i,
+    };
+    results.push({
+      ref,
+      id: reportFollowUpId(ref),
+      text: requiredFollowUps[i].text,
+      required: true,
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Resolve a follow-up by its typed ref from a report.
+ * Returns undefined when the ref does not match this report or the index is
+ * out of bounds.
+ */
+export function resolveReportFollowUpByRef(
+  report: ScopedSubagentReport,
+  ref: ReportFollowUpRef,
+): { text: string; required: boolean } | undefined {
+  const reportKey = reportKeyFromReport(report);
+  if (ref.report_key !== reportKey) return undefined;
+
+  if (ref.kind === "follow_ups") {
+    const followUps =
+      "follow_ups" in report && Array.isArray(report.follow_ups)
+        ? report.follow_ups
+        : [];
+    const text = followUps[ref.index];
+    return text !== undefined ? { text, required: false } : undefined;
+  }
+
+  const requiredFollowUps =
+    "required_follow_ups" in report && Array.isArray(report.required_follow_ups)
+      ? report.required_follow_ups
+      : [];
+  const rf = requiredFollowUps[ref.index];
+  return rf ? { text: rf.text, required: true } : undefined;
 }
 
 /** @deprecated Use `TaskScopedSubagentReportSchema` or `ScopedSubagentReportSchema` explicitly. */

@@ -13,7 +13,7 @@ Every discovery MUST execute each step and report results. Mark `[x]` when compl
 - [ ] **Phase 1.0: Cross-Project Origin Validation** — If the change has `cross_project_origin`, validate that the source project path exists, the source project name is recognizable, and the user confirms the origin context is relevant. If no origin field, mark PASS with "local change, no origin".
 - [ ] **Phase 1.5: Skill Discovery** — Search trusted skill directories (`~/.config/opencode/skills/*/SKILL.md`, repo `skills/*/SKILL.md`), read YAML frontmatter, match keywords against change domain. Output: "Skills Considered" section listing examined skills and match results.
 - [ ] **Prior Research Extension** — Search `temp/*.md`, `docs/*-prep.md` (including `/adv-improve` research packs), and archived changes for prior artifacts. Cite each in "Extends" section and add ≥1 new finding beyond what it contained. When a cited pack contains `Competitors & Alternatives` or `Emerging Patterns` sections relevant to an open design question, cite those sections explicitly in the LBP Check.
-- [ ] **Conflict & Related-Work Scan** — Run `adv_change_list` (includeArchived), `adv_change_validate`, and `adv_agenda_list`. Output: "Conflict Scan" section with explicit findings or "no conflicts".
+- [ ] **Conflict & Related-Work Scan** — Run `adv_change_list` (includeArchived) and `adv_change_validate`. Build a complete paginated typed change inventory with Epic/member context and explicit completeness state (complete/degraded/blocked). Active changes and Epic members are authoritative; archived changes are related context only. A clean "no conflicts" result is NOT permitted when the inventory has omissions, warnings, deadline issues, or source failures. Output: "Conflict Scan" section with explicit findings or "no conflicts".
 - [ ] **Edge Case Investigation** — For each gap identified, document ≥2 edge cases or failure modes. Structural gaps may be marked "N/A: structural" with rationale.
 - [ ] **Design Question Depth** — Each open design question must include trust model, blast radius, and alternatives considered annotations.
 - [ ] **Draft Spec Delta Shapes** — Each identified delta must have a concrete `rq-*` requirement ID and ≥1 Given/When/Then scenario. If no deltas needed, state "No spec deltas required" with rationale.
@@ -47,6 +47,8 @@ Graceful degradation rules for each protocol step:
 | External-Solution | Purely internal change (refactor/bug fix/local docs) | Allow "No external alternatives apply" with rationale in LBP Check.                                                                                          |
 | Conflict Scan     | `adv_change_validate` returns warnings on own change | Exclude own-change pre-prep warnings (NO_TASKS, NO_DELTAS).                                                                                                  |
 | Conflict Scan     | Active changes overlap on same files                 | Surface as coordination question, do not block.                                                                                                              |
+| Conflict Scan     | Inventory completeness is degraded or blocked        | Surface explicitly; do NOT emit a clean "no conflicts" result.                                                                                               |
+| Conflict Scan     | Inventory has warnings (pagination, hydration, deadline) | Surface warnings explicitly; do NOT emit a clean "no conflicts" result.                                                                                      |
 | Edge Cases        | Gap is purely structural (no logic)                  | Allow "N/A: structural" with rationale.                                                                                                                      |
 | Design Questions  | Single viable direction                              | Annotate "alternatives: none viable, single direction".                                                                                                      |
 | Spec Deltas       | New capability needed (no existing spec)             | Draft "rq-NEW* in new capability X".                                                                                                                         |
@@ -70,7 +72,7 @@ Discovery output persisted via `adv_change_update` must contain these sections:
 | Discovery Checklist    | Each protocol step with PASS/SKIP + reason | Table                     |
 | Skills Considered      | Skill name, match assessment, action taken | Table                     |
 | Extends                | Cited artifact, new findings beyond it     | Prose with artifact names |
-| Conflict Scan          | Tool results from 3 mandatory calls        | Prose with findings       |
+| Conflict Scan          | Tool results from typed change inventory        | Prose with findings       |
 | Current State          | What exists today in code/specs/docs       | Prose                     |
 | Edge Cases             | ≥2 per gap (or N/A: structural)            | Table per gap             |
 | Open Design Questions  | Trust model + blast radius + alternatives  | Table                     |

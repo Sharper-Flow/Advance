@@ -8,7 +8,10 @@
 import { z } from "zod";
 import { ContractEvidencePolicySchema } from "./evidence-policy";
 import { DependencySchema } from "./specs";
-import { SubagentReportSchema } from "./subagent-reports";
+import {
+  ReportFollowUpRefSchema,
+  SubagentReportSchema,
+} from "./subagent-reports";
 import { TaskStructuredOutputSchema } from "./task-output";
 
 // =============================================================================
@@ -202,6 +205,12 @@ export const TaskSchema = z
     tdd_reclassification: TddReclassificationSchema.optional(),
     /** Structured links from task work back to approved change-contract items. */
     contract_refs: TaskContractRefsSchema.optional(),
+    /**
+     * Structural reference to the report follow-up that motivated this task.
+     * Present when a task was created as the pre-planning owner of a promoted
+     * report follow-up. Text matching is never authority — this ref is.
+     */
+    followup_ref: ReportFollowUpRefSchema.optional(),
     /**
      * Evidence policy that governs what kind of proof satisfies task completion.
      * Uses the shared contract evidence-policy vocabulary.

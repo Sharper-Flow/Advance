@@ -103,12 +103,6 @@ describe("adv-designer assets", () => {
     expect(frontmatter).toMatch(/adv_change_\w+:\s*false/);
   });
 
-  test("blocks adv_agenda_* tools", () => {
-    const content = readFileSync(AGENT_PATH, "utf8");
-    const frontmatter = content.split("---")[1] ?? "";
-    expect(frontmatter).toMatch(/adv_agenda_\w+:\s*false/);
-  });
-
   test("blocks nested delegation via task: false", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const frontmatter = content.split("---")[1] ?? "";

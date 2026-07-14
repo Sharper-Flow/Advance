@@ -524,7 +524,7 @@ export function checkRequiredObligationRouting(
 // rq-designQualityEvidence01: Structural design-quality blocker.
 //
 // Reads persisted adv-designer reports from change state (sandbox-safe — no
-// agenda/storage access) and blocks acceptance/release while the LATEST designer
+// storage access) and blocks acceptance/release while the LATEST designer
 // report per task carries an undispositioned `concern` dimension or neighboring
 // recommendation. A concern clears when (a) a later all-pass report supersedes
 // it, or (b) a typed disposition exists for its (taskId, concernKey). There is

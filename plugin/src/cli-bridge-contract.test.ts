@@ -157,6 +157,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_epic_reorder",
       "adv_epic_retire",
       "adv_followup_promote",
+      "adv_report_followup_promote",
       "adv_ops_evidence_add",
       "adv_ops_run_upsert",
       "adv_ops_run_evidence_add",
@@ -175,12 +176,6 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_wisdom_list",
       "adv_project_wisdom_list",
       "adv_status",
-      "adv_agenda_list",
-      "adv_agenda_add",
-      "adv_agenda_start",
-      "adv_agenda_complete",
-      "adv_agenda_cancel",
-      "adv_agenda_prioritize",
       "adv_project_context",
       "adv_project_metadata",
       "adv_gate_status",
@@ -203,6 +198,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_session_show",
       "adv_snapshot_health",
       "adv_store_consolidate",
+      "adv_store_cleanup",
     ];
     expect(ADV_TOOL_NAMES).toEqual(frozen);
   });

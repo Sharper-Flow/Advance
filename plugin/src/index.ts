@@ -5,7 +5,7 @@
  * Primary interface for AI agents to manage specs, changes, and tasks.
  *
  * Implements the @opencode-ai/plugin SDK interface with:
- * - tool: MCP tools for spec/change/task/wisdom/agenda/test management (see tool-registry.ts)
+ * - tool: MCP tools for spec/change/task/wisdom/test management (see tool-registry.ts)
  * - event: Session status tracking, terminal UI updates
  * - tool.execute.before/after: Active change tracking, task completion detection
  * - experimental.session.compacting: Change preservation during compaction
@@ -925,13 +925,7 @@ const advancePluginImpl: Plugin = async (input) => {
     // MCP Tools — degraded map on init failure so agents see ADV_PLUGIN_INIT_FAILED
     tool:
       store && !initError
-        ? createToolMap(
-            store,
-            directory,
-            store.paths.agenda,
-            input.serverUrl,
-            client,
-          )
+        ? createToolMap(store, directory, input.serverUrl, client)
         : createDegradedToolMap(
             initError ?? new Error("Plugin store unavailable"),
             effectiveDir,

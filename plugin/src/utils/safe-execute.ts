@@ -510,12 +510,12 @@ export function safeExecute<TArgs, TContext>(
 }
 
 /**
- * Creates a version of safeExecute that works with tools that don't have a context parameter
- * (like agenda tools that just take directory).
+ * Creates a version of safeExecute that works with tools that don't have a
+ * context parameter (store-less tools that take a directory or similar).
  *
- * For agenda-style tools, the binder's `dir` and optional `path` parameters
- * are surfaced by default as `workdir` and `path` in error responses,
- * since they carry diagnostic value that would otherwise be lost.
+ * For such tools, the binder's `dir` and optional `path` parameters are
+ * surfaced by default as `workdir` and `path` in error responses, since
+ * they carry diagnostic value that would otherwise be lost.
  */
 export function safeExecuteSimple<TArgs, TExtra>(
   fn: (args: TArgs, extra: TExtra) => Promise<string>,

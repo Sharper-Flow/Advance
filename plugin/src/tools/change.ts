@@ -1187,7 +1187,7 @@ export const changeTools = {
         "Origin provenance kind. " +
           "'roadmap' = promoted from a GitHub Project / ROADMAP.md item (origin_issue_number required). " +
           "'discovery' = surfaced mid-session (bug found, drive-by improvement). " +
-          "'triage' = promoted by /adv-triage from agenda/wisdom/notes (origin_source_artifact recommended). " +
+          "'triage' = promoted by /adv-triage from wisdom/notes (origin_source_artifact recommended). " +
           "'adhoc' = explicit, no upstream artifact. " +
           "Omit to leave origin unset (legacy/backward-compatible).",
       ),
@@ -1205,7 +1205,8 @@ export const changeTools = {
         .optional()
         .describe(
           "Stable reference to the upstream artifact for kind=triage or kind=discovery. " +
-            "Examples: agenda-id ('ag-...'), wisdom-id, task-id, or note-line ref.",
+            "Examples: wisdom-id, task-id, or note-line ref. " +
+            "Parse-only legacy: agenda-id ('ag-...') values remain readable for historical records.",
         ),
     },
     execute: async (
@@ -2351,12 +2352,18 @@ export const changeTools = {
         return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
       const change = result.data;
-      const { specs, activeChanges, proposalText, changedSpecFiles } =
-        await loadValidationContext(store, changeId, change.title);
-      // Run full validation with active changes for conflict detection
+      const {
+        specs,
+        activeChanges,
+        conflictInventory,
+        proposalText,
+        changedSpecFiles,
+      } = await loadValidationContext(store, changeId, change.title);
+      // Run full validation with typed conflict inventory for conflict detection
       const validationResult = await validateChange(change, {
         specs,
         activeChanges,
+        conflictInventory,
         proposalText,
         changedSpecFiles,
       });
@@ -2569,6 +2576,7 @@ export const changeTools = {
           validationResult = await validateChange(change, {
             specs: validationContext.specs,
             activeChanges: validationContext.activeChanges,
+            conflictInventory: validationContext.conflictInventory,
             proposalText: validationContext.proposalText,
             changedSpecFiles: validationContext.changedSpecFiles,
           });

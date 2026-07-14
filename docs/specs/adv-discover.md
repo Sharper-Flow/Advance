@@ -166,13 +166,13 @@ When the proposal's Discovery Agenda contains ecosystem unknowns, or an open des
 
 **ID:** `rq-disc04` | **Priority:** **[MUST]**
 
-/adv-discover MUST run adv_change_list (with includeArchived), adv_change_validate, and adv_agenda_list, and report results in a Conflict Scan section. This prevents the agent from proposing work that conflicts with existing or archived changes.
+/adv-discover MUST run adv_change_list (with includeArchived) and adv_change_validate, and report results in a Conflict Scan section. The conflict scan uses a complete paginated typed change inventory with Epic/member context and explicit completeness/degraded/blocked state. Active changes and Epic members are authoritative; archived changes are related context only. A clean no-conflict result is not permitted when the inventory has omissions, warnings, deadline issues, or source failures. This prevents the agent from proposing work that conflicts with existing or archived changes.
 
-**Tags:** `discover`, `conflict-scan`, `related-work`
+**Tags:** `discover`, `conflict-scan`, `related-work`, `typed-inventory`
 
 #### Scenarios
 
-**All three mandatory tools are called** (`rq-disc04.1`)
+**Mandatory tools are called with typed inventory** (`rq-disc04.1`)
 
 **Given:**
 - A change in the discovery phase
@@ -182,7 +182,8 @@ When the proposal's Discovery Agenda contains ecosystem unknowns, or an open des
 **Then:**
 - adv_change_list with includeArchived is called
 - adv_change_validate is called
-- adv_agenda_list is called
+- A complete paginated typed change inventory is built with Epic/member context
+- The inventory carries explicit completeness state (complete, degraded, or blocked)
 - Results are reported in a 'Conflict Scan' section with explicit findings or 'no conflicts'
 
 **Own-change validation warnings are excluded from conflict findings** (`rq-disc04.2`)
@@ -195,6 +196,17 @@ When the proposal's Discovery Agenda contains ecosystem unknowns, or an open des
 **Then:**
 - Own-change pre-prep warnings are not reported as external conflicts
 - The warnings are noted as expected pre-prep state
+
+**Blocked or degraded inventory prevents clean no-conflict result** (`rq-disc04.3`)
+
+**Given:**
+- The typed change inventory has completeness state 'blocked' or 'degraded', or carries warnings
+
+**When:** Conflict scan results are reported
+
+**Then:**
+- A clean 'no conflicts' result is NOT emitted
+- The blocking/degraded state and warnings are surfaced explicitly
 
 ---
 

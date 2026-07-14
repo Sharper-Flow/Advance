@@ -631,6 +631,273 @@ describe("adv_epic_show", () => {
   });
 });
 
+describe("adv_epic_show fast-follow lineage projection (rq-epicFastFollowLineage01)", () => {
+  function makeChildChangeWithFastFollow(overrides?: {
+    parentChangeId?: string;
+    reportKey?: string;
+    linkedAt?: string;
+    includeFollowupRef?: boolean;
+  }) {
+    const linkedAt = overrides?.linkedAt ?? "2026-07-13T20:00:00.000Z";
+    const fast_follow_of =
+      overrides?.includeFollowupRef === false
+        ? {
+            parent_change_id: overrides?.parentChangeId ?? "parentChange",
+            linked_at: linkedAt,
+          }
+        : {
+            parent_change_id: overrides?.parentChangeId ?? "parentChange",
+            linked_at: linkedAt,
+            followup_ref: {
+              report_key:
+                overrides?.reportKey ??
+                "parentChange|tk-source123|adv-engineer|1",
+              kind: "follow_ups" as const,
+              index: 0,
+            },
+          };
+    return {
+      id: "childChange",
+      title: "Child Change",
+      status: "active",
+      gates: {},
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      created_at: "2026-07-13T00:00:00.000Z",
+      updated_at: "2026-07-13T00:00:00.000Z",
+      fast_follow_of,
+    } as unknown as Change;
+  }
+
+  test("compact view renders fast-follow lineage on next_work change entries", async () => {
+    const now = new Date().toISOString();
+    const store = makeStore({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "child-1",
+          order: 0,
+          change_id: "childChange",
+        },
+      ],
+      progress: {
+        status: "active",
+        total_entries: 1,
+        completed_entries: 0,
+        active_entries: 1,
+        next_entry_id: "child-1",
+        updated_at: now,
+      },
+    });
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id === "childChange") {
+          return { success: true, data: makeChildChangeWithFastFollow() };
+        }
+        return { success: false, error: "not found", type: "not_found" };
+      },
+    );
+
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.epic.next_work).toHaveLength(1);
+    expect(parsed.epic.next_work[0].fast_follow_lineage).toMatchObject({
+      source_change_id: "parentChange",
+      source_task_id: "tk-source123",
+      classification: "non_blocking_advisory",
+      linked_at: "2026-07-13T20:00:00.000Z",
+    });
+  });
+
+  test("full view renders fast-follow lineage on entries", async () => {
+    const store = makeStore({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "child-1",
+          order: 0,
+          change_id: "childChange",
+        },
+      ],
+    });
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id === "childChange") {
+          return { success: true, data: makeChildChangeWithFastFollow() };
+        }
+        return { success: false, error: "not found", type: "not_found" };
+      },
+    );
+
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic", view: "full" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.epic.entries).toHaveLength(1);
+    expect(parsed.epic.entries[0].fast_follow_lineage).toMatchObject({
+      source_change_id: "parentChange",
+      source_task_id: "tk-source123",
+      classification: "non_blocking_advisory",
+    });
+  });
+
+  test("source_task_id is null when followup_ref report_key is change scope", async () => {
+    const store = makeStore({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "child-1",
+          order: 0,
+          change_id: "childChange",
+        },
+      ],
+    });
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id === "childChange") {
+          return {
+            success: true,
+            data: makeChildChangeWithFastFollow({
+              reportKey: "parentChange|change:scopeKey|adv-engineer|1",
+            }),
+          };
+        }
+        return { success: false, error: "not found", type: "not_found" };
+      },
+    );
+
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic", view: "full" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(
+      parsed.epic.entries[0].fast_follow_lineage.source_task_id,
+    ).toBeNull();
+  });
+
+  test("source_task_id is null when fast_follow_of has no followup_ref", async () => {
+    const store = makeStore({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "child-1",
+          order: 0,
+          change_id: "childChange",
+        },
+      ],
+    });
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id === "childChange") {
+          return {
+            success: true,
+            data: makeChildChangeWithFastFollow({ includeFollowupRef: false }),
+          };
+        }
+        return { success: false, error: "not found", type: "not_found" };
+      },
+    );
+
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic", view: "full" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(
+      parsed.epic.entries[0].fast_follow_lineage.source_task_id,
+    ).toBeNull();
+  });
+
+  test("omits fast_follow_lineage when child change has no fast_follow_of", async () => {
+    const store = makeStore({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "child-1",
+          order: 0,
+          change_id: "childChange",
+        },
+      ],
+    });
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async (id: string) => {
+        if (id === "childChange") {
+          const change = makeChildChangeWithFastFollow();
+          const { fast_follow_of: _ff, ...rest } = change as unknown as {
+            fast_follow_of: unknown;
+          } & Record<string, unknown>;
+          void _ff;
+          return { success: true, data: rest as unknown as Change };
+        }
+        return { success: false, error: "not found", type: "not_found" };
+      },
+    );
+
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic", view: "full" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.epic.entries[0].fast_follow_lineage).toBeUndefined();
+  });
+
+  test("omits fast_follow_lineage when child change load fails", async () => {
+    const store = makeStore({
+      entries: [
+        {
+          kind: "change",
+          entry_id: "child-1",
+          order: 0,
+          change_id: "childChange",
+        },
+      ],
+    });
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+      async () => ({ success: false, error: "boom", type: "read_error" }),
+    );
+
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic", view: "full" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.epic.entries[0].fast_follow_lineage).toBeUndefined();
+  });
+
+  test("does not add lineage to shell entries", async () => {
+    const store = makeStore({
+      entries: [
+        {
+          kind: "shell",
+          entry_id: "shell-1",
+          order: 0,
+          title: "Future Shell",
+          success_hint: "Do it",
+        },
+      ],
+    });
+    const output = await epicTools.adv_epic_show.execute(
+      { epic_id: "addAuthEpic", view: "full" },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.success).toBe(true);
+    expect(parsed.epic.entries[0].fast_follow_lineage).toBeUndefined();
+  });
+});
+
 describe("adv_epic_add_shell", () => {
   test("adds a shell entry", async () => {
     const store = makeStore();

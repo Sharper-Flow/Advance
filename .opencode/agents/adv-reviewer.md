@@ -68,13 +68,8 @@ tools:
   adv_task_cancel: false
   adv_task_reclassify_tdd: false
   adv_task_checkpoint: false
-  adv_gate_complete: false
-  adv_agenda_add: false
-  adv_agenda_start: false
-  adv_agenda_complete: false
-  adv_agenda_cancel: false
-  adv_agenda_prioritize: false
-  adv_temporal_worker_restart: false
+   adv_gate_complete: false
+   adv_temporal_worker_restart: false
   adv_worktree_create: false
   adv_worktree_delete: false
   adv_worktree_cleanup: false
@@ -228,7 +223,7 @@ If `lgrep` fails or times out once, fall back immediately to `glob`/`grep`/`read
 - `~/.local/share/opencode/plugins/advance/**/design.md`
 - `~/.local/share/opencode/plugins/advance/**/executive-summary.md`
 - `~/.local/share/opencode/plugins/advance/**/acceptance.md`
-- `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
+- legacy `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/conformance.json`
 

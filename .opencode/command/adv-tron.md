@@ -1,6 +1,6 @@
 ---
 name: adv-tron
-description: Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates
+description: Investigate codebase structure, hotspots, risks, and suggest follow-up candidates
 ---
 # ADV Tron — Codebase Reconnaissance
 Investigate codebase to map structure, identify hotspots, surface risks, suggest follow-up work. Read-only — × never modifies files or ADV state.
@@ -27,7 +27,7 @@ Target resolution: file path → read directly, directory → outline all, symbo
 ## Phase 2: Determine Mode
 Empty args → broad. Non-empty → scoped. Emit: `[ADV:WORK] Tron reconnaissance: {mode}`.
 ## Phase 3: Gather Context
-1. `adv_project_context` + `adv_change_list` + `adv_agenda_list`
+1. `adv_project_context` + `adv_change_list`
 2. Broad: `lgrep_get_file_tree` for structure. Scoped: resolve target to concrete files/symbols → if unresolved after semantic/symbol/text search, fall back to the closest concrete target or broad reconnaissance and state that choice. Ask via `question` only if multiple plausible interpretations would lead to materially different investigations.
 
 ### Analysis Startup Sequence
@@ -120,6 +120,6 @@ Validate findings (require file references, remove evidence-free, deduplicate). 
 | Purpose | Tool |
 |---------|------|
 | Skill | `skill("adv-tron")` |
-| Context | `adv_project_context`, `adv_change_list`, `adv_agenda_list` |
+| Context | `adv_project_context`, `adv_change_list` |
 | Structure | `lgrep_get_file_tree`, `lgrep_get_repo_outline` |
 | Spawn | Task tool (`adv-tron` agent) |

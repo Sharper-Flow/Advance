@@ -67,13 +67,8 @@ tools:
   adv_task_add: false
   adv_task_cancel: false
   adv_task_reclassify_tdd: false
-  adv_gate_complete: false
-  adv_agenda_add: false
-  adv_agenda_start: false
-  adv_agenda_complete: false
-  adv_agenda_cancel: false
-  adv_agenda_prioritize: false
-  adv_worktree_create: false
+   adv_gate_complete: false
+   adv_worktree_create: false
   adv_worktree_delete: false
 ---
 <!-- ADV_SYNC:START build -->
@@ -210,7 +205,7 @@ ERRORS:
 - `~/.local/share/opencode/plugins/advance/**/design.md`
 - `~/.local/share/opencode/plugins/advance/**/executive-summary.md`
 - `~/.local/share/opencode/plugins/advance/**/acceptance.md`
-- `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
+- legacy `~/.local/share/opencode/plugins/advance/**/agenda.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/conformance.json`
 

@@ -113,18 +113,18 @@ If all resolved → emit REVIEW FINDINGS AUDIT: PASSED banner → proceed.
 
 > **Scope note:** `blocker:` and `issue:` findings are checked here (pre-flight). `suggestion:` and `question:` findings are validated and implemented in "Review Findings Ingestion" below. `nit:` findings are excluded from both.
 
-### Report-Created Agenda Audit
+### Report-Created Follow-Up Audit
 
-Inspect report-created agenda items before scanners run:
+Inspect report-created follow-ups (persisted as typed report metadata) before scanners run:
 
-1. Call `adv_agenda_list` and filter items with category `subagent-followup` or description/source metadata containing `Source: {change-id}/`.
-2. For each report-created agenda item, decide:
+1. Read `adv_change_show include:{ subagentReports: true }` and collect all `follow_ups` and `required_follow_ups` entries across task and change-scoped reports.
+2. For each report-created follow-up, decide:
    - **Safe + adjacent + campsite/touched-scope applicable** → fix during harden and record verification.
    - **Not applicable** → record rationale (`not adjacent`, `not campsite`, `outside touched scope`, `already covered`, or `requires separate change`).
    - **Would change agreement scope** → stop under the drift detection rule below.
-3. The harden summary must include `Report-created agenda audit: {fixed count} fixed, {rationale count} rationale recorded`.
+3. The harden summary must include `Report-created follow-up audit: {fixed count} fixed, {rationale count} rationale recorded`.
 
-Do not silently ignore report-created agenda items. Do not require harden to fix non-adjacent or unrelated agenda items.
+Do not silently ignore report-created follow-ups. Do not require harden to fix non-adjacent or unrelated follow-ups.
 
 ### Contract Proof Audit
 

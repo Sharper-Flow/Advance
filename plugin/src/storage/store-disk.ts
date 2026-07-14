@@ -9,7 +9,7 @@
  *
  * The Temporal store still needs a few things from a non-Temporal source:
  *   - **Paths**: ProjectPaths is the canonical computation that maps repo
- *     root + config to changes/specs/agenda/wisdom directories.
+ *     root + config to changes/specs/wisdom directories.
  *   - **Disk artifact writes**: changes.create, changes.save,
  *     changes.updateArtifacts manipulate proposal.md / change.json on disk.
  *     These are the source-of-truth files that survive workflow eviction.

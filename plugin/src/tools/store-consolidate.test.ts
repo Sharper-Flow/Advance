@@ -6,7 +6,7 @@
  *    across XDG shard layouts; flag dirs minted under shallow-boundary /
  *    unstable SHAs (structural git checks only).
  *  - dry_run: per-item plan (live vs terminal changes, archive bundles,
- *    Epics incl. retired-epics, wisdom/agenda/reflections rows), per-ID
+ *    Epics incl. retired-epics, wisdom/reflections rows), per-ID
  *    collision report, ledger-aware idempotency. Zero mutations.
  *
  * Fixtures use real git repos + temp data-home roots; real XDG stores are
@@ -70,7 +70,6 @@ interface StoreFixture {
   archive?: string[];
   retiredEpics?: string[];
   wisdomRows?: string[];
-  agendaRows?: string[];
   reflectionRows?: string[];
   workerLock?: { pid: number };
 }
@@ -122,7 +121,6 @@ async function writeStoreDir(
     );
   };
   await writeJsonl("wisdom.jsonl", fixture.wisdomRows);
-  await writeJsonl("agenda.jsonl", fixture.agendaRows);
   await writeJsonl("reflections.jsonl", fixture.reflectionRows);
   if (fixture.workerLock) {
     await writeFile(
@@ -214,7 +212,6 @@ beforeAll(async () => {
     archive: ["arch-collision"],
     retiredEpics: ["epic-collision"],
     wisdomRows: ["shared row", "target row"],
-    agendaRows: ["target agenda"],
   });
 
   // Orphan store (shard layout) minted under the shallow-boundary SHA.
@@ -228,7 +225,6 @@ beforeAll(async () => {
     archive: ["arch-1", "arch-collision"],
     retiredEpics: ["epic-1", "epic-collision"],
     wisdomRows: ["shared row", "source row"],
-    agendaRows: ["source agenda"],
     reflectionRows: ["source reflection"],
     workerLock: { pid: process.pid }, // live lock
   });
@@ -353,7 +349,6 @@ describe("scanStoresForRepo", () => {
       archive_bundles: 2,
       retired_epics: 2,
       wisdom_rows: 2,
-      agenda_rows: 1,
       reflections_rows: 1,
     });
   });
@@ -437,12 +432,6 @@ describe("buildConsolidationPlan", () => {
       target_rows: 2,
       new_rows: 1,
       duplicate_rows: 1,
-    });
-    expect(plan.appends.agenda).toMatchObject({
-      source_rows: 1,
-      target_rows: 1,
-      new_rows: 1,
-      duplicate_rows: 0,
     });
     expect(plan.appends.reflections).toMatchObject({
       source_rows: 1,
@@ -709,7 +698,6 @@ async function makeExecFixture(overrides?: {
       archive: ["arch-a"],
       retiredEpics: ["epic-retired-a"],
       wisdomRows: ["w1", "w2"],
-      agendaRows: ["a1"],
       reflectionRows: ["r1"],
     },
   );
@@ -1092,7 +1080,6 @@ describe("executeConsolidation", () => {
       source: {
         changes: [{ id: "term-a", status: "archived" }],
         wisdomRows: ["w1", "w2"],
-        agendaRows: ["a1"],
         reflectionRows: ["r1"],
       },
     });
@@ -1110,8 +1097,6 @@ describe("executeConsolidation", () => {
       expect(wisdom).toContain('"w1"');
       expect(wisdom).toContain('"w2"');
       expect(wisdom.split("\n").filter((l) => l.trim())).toHaveLength(2);
-      const agenda = await readFile(join(targetPath, "agenda.jsonl"), "utf-8");
-      expect(agenda).toContain('"a1"');
       const reflections = await readFile(
         join(targetPath, "reflections.jsonl"),
         "utf-8",
@@ -1119,12 +1104,11 @@ describe("executeConsolidation", () => {
       expect(reflections).toContain('"r1"');
       const rows = await readLedgerRows(targetPath);
       expect(rows.filter((r) => r.item_kind === "wisdom_row")).toHaveLength(1);
-      expect(rows.filter((r) => r.item_kind === "agenda_row")).toHaveLength(1);
       expect(rows.filter((r) => r.item_kind === "reflection_row")).toHaveLength(
         1,
       );
       for (const row of rows.filter((r) =>
-        ["wisdom_row", "agenda_row", "reflection_row"].includes(r.item_kind),
+        ["wisdom_row", "reflection_row"].includes(r.item_kind),
       )) {
         expect(row.action).toBe("append_dedupe");
       }

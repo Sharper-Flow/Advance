@@ -168,9 +168,15 @@ export interface ProjectPaths {
   archive: string;
   retiredEpics: string;
   wisdom: string;
-  agenda: string;
   reflections: string;
   projectMetadata: string;
+  /**
+   * Append-only audit log for adv_snapshot_health repairs. Purpose-specific
+   * (not Agenda) per retireAgendaWorkflow AC4: every successful snapshot
+   * repair retains a durable audit record without creating Agenda work, and
+   * the log stays outside planning, gates, backlog, and Epic state.
+   */
+  snapshotRepairAudit: string;
 
   /** External root directory, or null when using legacy in-repo paths */
   external: string | null;
@@ -204,9 +210,9 @@ export function getProjectPaths(
       archive: join(ext, archiveDir),
       retiredEpics: join(ext, "retired-epics"),
       wisdom: join(ext, "wisdom.jsonl"),
-      agenda: join(ext, "agenda.jsonl"),
       reflections: join(ext, "reflections.jsonl"),
       projectMetadata: join(ext, "project-metadata.json"),
+      snapshotRepairAudit: join(ext, "snapshot-repair-audit.jsonl"),
       external: ext,
     };
   }
@@ -221,9 +227,9 @@ export function getProjectPaths(
     archive: join(root, config?.archive_dir ?? ".adv/archive"),
     retiredEpics: join(root, ".adv/retired-epics"),
     wisdom: join(root, ".adv/wisdom.jsonl"),
-    agenda: join(root, ".adv/agenda.jsonl"),
     reflections: join(root, ".adv/reflections.jsonl"),
     projectMetadata: join(root, ".adv/project-metadata.json"),
+    snapshotRepairAudit: join(root, ".adv/snapshot-repair-audit.jsonl"),
     external: null,
   };
 }
