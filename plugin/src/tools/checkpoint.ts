@@ -598,9 +598,63 @@ export const checkpointTools = {
         activeDefaultWorkdir: string,
       ): Promise<string> => {
         const store = activeStore;
-        const cwd = args.target_path
-          ? activeDefaultWorkdir
-          : args.workdir || activeDefaultWorkdir;
+
+        // An explicitly blank workdir is a caller error — reject rather than
+        // silently falling back to the default workdir.
+        if (args.workdir !== undefined && args.workdir.trim() === "") {
+          return formatToolOutput({
+            status: "failed",
+            classification: "SEMANTIC",
+            workdir: args.workdir,
+            error:
+              "Explicit workdir must not be blank. Omit workdir to use the default working directory.",
+          } satisfies CheckpointResult);
+        }
+
+        // rq-archiveTargetPathRouting01.1: target_path selects the target
+        // Temporal store; it never overrides an explicit Git workdir.
+        const cwd = args.workdir ?? activeDefaultWorkdir;
+
+        // When target_path and an explicit workdir coexist, the workdir must
+        // belong to the same repository as the target root (linked worktrees
+        // share the git common dir). Compare common dirs BEFORE resolving
+        // target task state, signaling, or committing; reject unrelated repos.
+        if (args.target_path && args.workdir !== undefined) {
+          let targetCommonDir = "";
+          let workdirCommonDir = "";
+          try {
+            targetCommonDir = (
+              await runGit(
+                ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+                activeDefaultWorkdir,
+              )
+            ).stdout.trim();
+            workdirCommonDir = (
+              await runGit(
+                ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+                cwd,
+              )
+            ).stdout.trim();
+          } catch {
+            // Probe failure — fail closed as an unrelated-repository reject.
+          }
+          if (
+            !targetCommonDir ||
+            !workdirCommonDir ||
+            targetCommonDir !== workdirCommonDir
+          ) {
+            return formatToolOutput({
+              status: "failed",
+              classification: "SEMANTIC",
+              workdir: cwd,
+              error:
+                `workdir ${cwd} is not part of the target repository ${activeDefaultWorkdir} ` +
+                `(git common-dir mismatch). Run the checkpoint from a worktree linked to the ` +
+                `target repository, or omit workdir to use the target root.`,
+            } satisfies CheckpointResult);
+          }
+        }
+
         const mode = args.mode ?? "complete";
 
         // Validate cancel mode requires reason

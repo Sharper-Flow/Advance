@@ -944,10 +944,13 @@ describe("checkpoint tools — signal-driven", () => {
       expect(revParseCall?.[2]).toMatchObject({ cwd: "/tmp/target" });
     });
 
-    test("uses target store root as cwd when target_path is provided with caller workdir", async () => {
+    test("explicit workdir wins when it is a linked worktree of the target repository", async () => {
       const store = createMockStore();
       mockGitResponses({
-        "rev-parse --show-toplevel": { stdout: "/tmp/target\n" },
+        "rev-parse --path-format=absolute --git-common-dir": {
+          stdout: "/tmp/target/.git\n",
+        },
+        "rev-parse --show-toplevel": { stdout: "/tmp/source-worktree\n" },
       });
       mockRecordedTask();
 
@@ -971,7 +974,87 @@ describe("checkpoint tools — signal-driven", () => {
           args[0] === "rev-parse" &&
           args[1] === "--show-toplevel",
       );
-      expect(revParseCall?.[2]).toMatchObject({ cwd: "/tmp/target" });
+      expect(revParseCall?.[2]).toMatchObject({ cwd: "/tmp/source-worktree" });
+    });
+
+    test.each([{ blank: "" }, { blank: "   " }])(
+      "rejects explicitly blank workdir ($blank)",
+      async ({ blank }) => {
+        const store = createMockStore();
+        mockGitResponses({});
+
+        const result = await checkpointTools.adv_task_checkpoint.execute(
+          {
+            taskId: "tk-abc",
+            workdir: blank,
+            mode: "complete",
+            verification: "Tests passed",
+          },
+          store,
+          "/tmp/test",
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.status).toBe("failed");
+        expect(parsed.classification).toBe("SEMANTIC");
+        expect(parsed.error).toMatch(/blank/i);
+        expect(mocks.execFile).not.toHaveBeenCalled();
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      },
+    );
+
+    test("rejects unrelated repository when target_path and explicit workdir coexist", async () => {
+      const store = createMockStore();
+      mocks.execFile.mockImplementation(
+        (_cmd: string, args: string[], opts: unknown, cb: unknown) => {
+          const callback = cb as (
+            err: Error | null,
+            stdout: string,
+            stderr: string,
+          ) => void;
+          const cwd = (opts as { cwd?: string })?.cwd;
+          if (
+            args.join(" ") ===
+            "rev-parse --path-format=absolute --git-common-dir"
+          ) {
+            if (cwd === "/tmp/target") {
+              callback(null, "/tmp/target-repo/.git\n", "");
+            } else {
+              callback(null, "/tmp/other-repo/.git\n", "");
+            }
+          } else {
+            callback(null, "", "");
+          }
+        },
+      );
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          workdir: "/tmp/other-worktree",
+          mode: "complete",
+          verification: "Tests passed",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.status).toBe("failed");
+      expect(parsed.classification).toBe("SEMANTIC");
+      expect(parsed.error).toContain("not part of the target repository");
+
+      // No commit, no staging, no target task-state resolution, no signaling
+      const gitCommands = mocks.execFile.mock.calls.map(
+        ([, args]) => (args as string[])[0],
+      );
+      expect(gitCommands).not.toContain("add");
+      expect(gitCommands).not.toContain("commit");
+      expect(mocks.targetStore.tasks.show).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });
 });
