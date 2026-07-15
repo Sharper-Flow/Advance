@@ -161,13 +161,14 @@ export interface LiveEvidenceFixture {
   rows: LiveRowEvidence[];
 }
 
-/** Live evidence is supplemental: absent file -> null, suite stays green. */
-export function loadLiveEvidence(): LiveEvidenceFixture | null {
+/** Live evidence is supplemental: an absent file -> null; malformed evidence fails loudly. */
+export function loadLiveEvidence(
+  filePath = LIVE_EVIDENCE_PATH,
+): LiveEvidenceFixture | null {
   try {
-    return JSON.parse(
-      readFileSync(LIVE_EVIDENCE_PATH, "utf8"),
-    ) as LiveEvidenceFixture;
-  } catch {
-    return null;
+    return JSON.parse(readFileSync(filePath, "utf8")) as LiveEvidenceFixture;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
   }
 }

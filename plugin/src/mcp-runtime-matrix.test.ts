@@ -1,4 +1,7 @@
 import { describe, expect, test } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import {
   catalogExpression,
   directExpression,
@@ -196,6 +199,18 @@ describe("MCP runtime matrix live evidence (supplemental)", () => {
           `skipped live row ${entry.rowId} needs a reason`,
         ).toBeTruthy();
       }
+    }
+  });
+
+  test("only an absent live-evidence fixture is optional", () => {
+    const directory = mkdtempSync(join(tmpdir(), "adv-mcp-live-evidence-"));
+    const malformedPath = join(directory, "malformed.json");
+    try {
+      expect(loadLiveEvidence(join(directory, "missing.json"))).toBeNull();
+      writeFileSync(malformedPath, "{");
+      expect(() => loadLiveEvidence(malformedPath)).toThrow();
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
     }
   });
 
