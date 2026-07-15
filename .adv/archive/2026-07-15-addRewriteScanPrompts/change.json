@@ -1,0 +1,713 @@
+{
+  "id": "addRewriteScanPrompts",
+  "title": "Add rewrite scan prompts",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-15T18:23:43.313Z",
+  "tasks": [
+    {
+      "id": "tk-b7b8b9897843",
+      "title": "Add evidence-backed rewrite assessments to both scan contracts",
+      "type": "docs",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-15T18:33:03.642Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T18:34:02.249Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addRewriteScanPrompts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addRewriteScanPrompts",
+          "task_id": "tk-b7b8b9897843",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-b7b8b9897843"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            ".opencode/command/adv-arch-scan.md",
+            ".opencode/command/adv-slop-scan.md",
+            "skills/adv-arch-detection/SKILL.md",
+            "skills/adv-slop-detection/SKILL.md",
+            "plugin/src/adv-arch-scan-assets.test.ts",
+            "plugin/src/adv-slop-scan-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts",
+              "exit_code": 0,
+              "summary": "PASS — 2 test files, 25/25 tests pass (including rewrite-assessment symmetry tests)."
+            },
+            {
+              "command": "git status --short && git diff --stat",
+              "exit_code": 0,
+              "summary": "Diff confined to the six required files; no commit made."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Use command-level `rewriteAssessment` with complete or indeterminate status, definite conclusion lists, evidence, and tentative heuristic material.",
+              "why": "Preserves typed runner boundaries while supplying a self-describing orchestration output."
+            },
+            {
+              "what": "Place assessment after scan evidence and before report assembly.",
+              "why": "Keeps it derived rather than creating a second analysis authority."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "`adv-comp-scan` is outside the requested architecture/slop scope and was not changed."
+          ],
+          "required_main_agent_actions": [
+            "Inspect the scoped diff and checkpoint the six modified files."
+          ],
+          "related_scan": "The command directory contains architecture, slop, and competitive scan contracts. Only the two requested contracts were changed.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Both command contracts and matching skills now require two labeled rewrite answers, evidence or the no-definite-conclusion literal, tentative heuristic treatment, indeterminate degraded coverage, advisory-only semantics, and command-level JSON. Runner schema remains unchanged.",
+            "suggested_next_action": "Inspect diff, checkpoint task, then complete execution."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git status --short && git diff --stat"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addRewriteScanPrompts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addRewriteScanPrompts",
+          "task_id": "tk-b7b8b9897843",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-b7b8b9897843"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "2 test files, 25 tests passed. Commit 9d547198 implements both exact questions, evidence rules, tentative heuristic handling, indeterminate degraded coverage, advisory/deletion boundaries, command-level JSON placement, and symmetric command/skill asset assertions."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Review packet lacked inline agreement/design artifacts; reviewer used supplied acceptance checks and committed asset evidence."
+          ],
+          "required_main_agent_actions": [
+            "Persisted by orchestrator because the reviewer lacked the ADV report tool."
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addRewriteScanPrompts",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addRewriteScanPrompts",
+          "task_id": "tk-b7b8b9897843",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-b7b8b9897843"
+          },
+          "agent": "adv-reviewer",
+          "phase": "harden",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts",
+              "git diff --check 9d547198^ 9d547198"
+            ],
+            "results": "pass",
+            "evidence": "Targeted suite passed: 2 files, 25 tests. Commit diff check passed; worktree unchanged from accepted commit."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --check 9d547198^ 9d547198"
+            }
+          ]
+        }
+      ],
+      "verification": "bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts passed: 2 files, 25 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9d5471984e551c9a336d4f3579a1e63006c79b3f",
+      "completedAt": "2026-07-15T18:43:18.548Z",
+      "completed_at": "2026-07-15T18:43:18.548Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addRewriteScanPrompts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:rewrite-assessment-design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate derived rewrite-assessment output for architecture and slop scans",
+      "sources": [
+        {
+          "label": "Architecture command contract",
+          "locator": ".opencode/command/adv-arch-scan.md:52-104",
+          "summary": "Existing report flow separates structural evidence, low-confidence heuristic findings, and JSON output."
+        },
+        {
+          "label": "Slop command contract",
+          "locator": ".opencode/command/adv-slop-scan.md:63-143",
+          "summary": "Existing report flow fails on required coverage degradation and preserves confidence/actionability boundaries."
+        },
+        {
+          "label": "Slop report schema",
+          "locator": "bin/lib/slop-scan/schema.ts:87-303",
+          "summary": "slop_scan_report.v1 is typed and must be extended with a validator-backed assessment rather than prompt-only JSON."
+        },
+        {
+          "label": "Asset tests",
+          "locator": "plugin/src/adv-arch-scan-assets.test.ts:67-115; plugin/src/adv-slop-scan-assets.test.ts:104-241",
+          "summary": "Tests enforce command, skill, spec/docs, and output-contract symmetry."
+        }
+      ],
+      "architecture_assessment": "A derived rewrite assessment fits the existing report-assembly design only when it consumes existing findings and coverage status. It must not become a second analysis authority or alter severity, actionability, coverage status, or deletion safety.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Use typed additive assessment entries with explicit evidence references and confidence. Required coverage degradation yields indeterminate/unavailable assessment rather than a definite no-change conclusion."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Typed schema and fixture work is required for the slop JSON report.",
+          "Evidence references prevent model opinion from becoming an architectural fact."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Free-form assessment prose",
+            "disposition": "rejected",
+            "rationale": "Would violate typed-report ownership and structural correctness."
+          },
+          {
+            "option": "Independent rewrite scan",
+            "disposition": "rejected",
+            "rationale": "Would duplicate analysis authority and risk contradictory findings."
+          },
+          {
+            "option": "Derived typed assessment",
+            "disposition": "preferred",
+            "rationale": "Uses existing evidence and preserves confidence, coverage, and actionability semantics."
+          }
+        ],
+        "recommendation": "Implement an additive, derived typed assessment with evidence references and indeterminate semantics for incomplete coverage."
+      },
+      "recommendation": "Extend the slop report schema and command/skill contracts together; add a structurally defined assessment model and tests. Keep would-not-carry-over advisory and never deletion authorization.",
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addRewriteScanPrompts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addRewriteScanPrompts",
+      "task_id": "tk-b7b8b9897843",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-b7b8b9897843"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        ".opencode/command/adv-arch-scan.md",
+        ".opencode/command/adv-slop-scan.md",
+        "skills/adv-arch-detection/SKILL.md",
+        "skills/adv-slop-detection/SKILL.md",
+        "plugin/src/adv-arch-scan-assets.test.ts",
+        "plugin/src/adv-slop-scan-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts",
+          "exit_code": 0,
+          "summary": "PASS — 2 test files, 25/25 tests pass (including rewrite-assessment symmetry tests)."
+        },
+        {
+          "command": "git status --short && git diff --stat",
+          "exit_code": 0,
+          "summary": "Diff confined to the six required files; no commit made."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Use command-level `rewriteAssessment` with complete or indeterminate status, definite conclusion lists, evidence, and tentative heuristic material.",
+          "why": "Preserves typed runner boundaries while supplying a self-describing orchestration output."
+        },
+        {
+          "what": "Place assessment after scan evidence and before report assembly.",
+          "why": "Keeps it derived rather than creating a second analysis authority."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "`adv-comp-scan` is outside the requested architecture/slop scope and was not changed."
+      ],
+      "required_main_agent_actions": [
+        "Inspect the scoped diff and checkpoint the six modified files."
+      ],
+      "related_scan": "The command directory contains architecture, slop, and competitive scan contracts. Only the two requested contracts were changed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Both command contracts and matching skills now require two labeled rewrite answers, evidence or the no-definite-conclusion literal, tentative heuristic treatment, indeterminate degraded coverage, advisory-only semantics, and command-level JSON. Runner schema remains unchanged.",
+        "suggested_next_action": "Inspect diff, checkpoint task, then complete execution."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git status --short && git diff --stat"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addRewriteScanPrompts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addRewriteScanPrompts",
+      "task_id": "tk-b7b8b9897843",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-b7b8b9897843"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "2 test files, 25 tests passed. Commit 9d547198 implements both exact questions, evidence rules, tentative heuristic handling, indeterminate degraded coverage, advisory/deletion boundaries, command-level JSON placement, and symmetric command/skill asset assertions."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Review packet lacked inline agreement/design artifacts; reviewer used supplied acceptance checks and committed asset evidence."
+      ],
+      "required_main_agent_actions": [
+        "Persisted by orchestrator because the reviewer lacked the ADV report tool."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addRewriteScanPrompts",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addRewriteScanPrompts",
+      "task_id": "tk-b7b8b9897843",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-b7b8b9897843"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts",
+          "git diff --check 9d547198^ 9d547198"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite passed: 2 files, 25 tests. Commit diff check passed; worktree unchanged from accepted commit."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: git diff --check 9d547198^ 9d547198"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-b7b8b9897843": [
+      {
+        "runId": "tr_mrmfd3i8_53ab6e16",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts",
+        "durationMs": 1374.1310860000085,
+        "recordedAt": "2026-07-15T18:39:54.467Z"
+      },
+      {
+        "runId": "tr_mrmfebmr_63b407d0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts",
+        "durationMs": 1421.2679610000923,
+        "recordedAt": "2026-07-15T18:40:51.701Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:28:19.445Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the fast-track rewrite-assessment contract; scope and artifact boundaries recorded.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "f04343b0cff13a08bc6956403cffb45c5cbeb693f22e356799a333b76da3c2c1",
+        "non_whitespace_chars": 1733,
+        "checked_at": "2026-07-15T18:23:43.368Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-15T18:31:47.908Z",
+      "completed_at": "2026-07-15T18:31:59.242Z",
+      "completed_by": "agent",
+      "approval_evidence": "Validated derived typed assessment approach against scan contracts, structural-correctness rules, coverage semantics, and slop report schema; persisted researcher evidence.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+        "non_whitespace_chars": 1000,
+        "checked_at": "2026-07-15T18:23:43.369Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:32:47.796Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validation supports a derived, advisory rewrite assessment; command-level output preserves existing runner schemas, evidence, confidence, coverage, and deletion safeguards.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "6effc42708f36cd0505fb6f52b602068d1aba116329657885da6aa5e8bff0290",
+        "non_whitespace_chars": 1566,
+        "checked_at": "2026-07-15T18:23:43.370Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:33:50.282Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the one-task graph covering both command contracts, matching skills, and asset-test verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:44:01.250Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task checkpoint 9d547198 complete. Targeted architecture/slop asset tests passed: 25/25. Diff clean after checkpoint."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-15T18:49:07.650Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved delivered work after targeted tests passed and independent review returned READY.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "a213f2ed478c59d0ac8baaba9f757f3d1cb23e28527f7a5d62d362eead055a5e",
+        "non_whitespace_chars": 1067,
+        "checked_at": "2026-07-15T18:23:43.371Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+      "approvedAt": "2026-07-15T18:31:53.251Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-arch-scan` documents a mandatory rewrite-assessment step after scan evidence is collected and before report assembly; it answers both required rewrite questions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-slop-scan` documents the same mandatory step after phases are aggregated and before report assembly; it answers both required rewrite questions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Both command contracts require each answer to cite relevant source/tool evidence; heuristic-only material is tentative and cannot support a “definitely” conclusion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Text output labels both answers. JSON output exposes a structured `rewriteAssessment` object with `wouldChange` and `wouldNotCarryOver` entries and evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Both shared skills and both asset-test suites cover the new contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve current detector coverage, finding severity, actionability, and no-auto-delete rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No runtime scanner implementation is added in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No unsupported architectural prescriptions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No automatic refactor, deletion, or migration behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-15T18:45:53.449Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/adv-arch-scan-assets.test.ts` passes and asserts both rewrite questions, evidence rules, indeterminate status, and command-level rewriteAssessment."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/adv-slop-scan-assets.test.ts` passes and asserts both rewrite questions, evidence rules, indeterminate status, and command-level rewriteAssessment."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted asset suite passed 25/25; both commands and skills state source/tool or finding-reference evidence and tentative heuristic treatment."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Both command contracts define `REWRITE ASSESSMENT` text output and command-level `rewriteAssessment.wouldChange` / `wouldNotCarryOver` objects."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Both command and skill pairs are covered by new assertions in the two asset-test files; targeted suite passed 25/25."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewed diff confines changes to contracts, skills, and asset tests; rewrite assessment explicitly preserves severity, actionability, coverage, and deletion safeguards."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewed diff touches no scanner runtime code or `slop_scan_report.v1`; commands explicitly state command-level semantics only."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Independent reviewer verdict READY; assessment requires evidence and returns no definite conclusion where evidence is absent."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Independent reviewer verdict READY; both contracts state assessment never authorizes deletion, refactor, or remediation."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`/adv-arch-scan` documents a mandatory rewrite-assessment step after scan evidence is collected and before report assembly; it answers both required rewrite questions.",
+    "`/adv-slop-scan` documents the same mandatory step after phases are aggregated and before report assembly; it answers both required rewrite questions.",
+    "Both command contracts require each answer to cite relevant source/tool evidence; heuristic-only material is tentative and cannot support a “definitely” conclusion.",
+    "Text output labels both answers. JSON output exposes a structured `rewriteAssessment` object with `wouldChange` and `wouldNotCarryOver` entries and evidence.",
+    "Both shared skills and both asset-test suites cover the new contract."
+  ],
+  "documents": {
+    "proposal": "# Proposal\n\n## Why\n\nArchitecture and slop scans currently report detected issues but do not force an evidence-backed rewrite perspective. Users need each scan to answer what a clean-slate rebuild would change and what it would deliberately leave behind.\n\n## What Changes\n\nAdd a mandatory rewrite-assessment step to `/adv-arch-scan` and `/adv-slop-scan`. Each scan uses evidence gathered by its normal phases to answer:\n\n1. If this project/app were completely rewritten, what architecture would definitely change?\n2. If this project/app were completely rewritten, what would definitely not be carried over?\n\n## User Outcomes\n\n- Every architecture or slop scan includes two explicit, evidence-backed rewrite answers.\n- Text and command-level JSON reports preserve the assessment distinctly from ordinary findings.\n- The assessment does not promote heuristic guesses into authoritative findings.\n\n## Scope\n\n### In Scope\n\n- `.opencode/command/adv-arch-scan.md`\n- `.opencode/command/adv-slop-scan.md`\n- `skills/adv-arch-detection/SKILL.md`\n- `skills/adv-slop-detection/SKILL.md`\n- `.adv/specs/arch-scan/spec.json` and `.adv/specs/slop-scan/spec.json` through change-owned add deltas at archive\n- Mirrored `docs/specs/*.md` produced from the archive-applied spec updates\n- Asset tests under `plugin/src/*scan-assets.test.ts`\n\n### Out of Scope\n\n- New scanner executables, detector implementations, or changes to `slop_scan_report.v1`.\n- Automatic source rewrites or deletions.\n- Changing scanner severity, actionability, or coverage semantics.\n\n### Must Not\n\n- Treat a rewrite assessment as a mutation instruction or as proof without source/tool evidence.\n- Infer a definitive rewrite conclusion from heuristic-only evidence.\n- Report a negative rewrite conclusion when required scan coverage is incomplete.\n\n## Constraints\n\nThe assessment remains derived, advisory, and traceable: deterministic/tool-backed evidence can support a definite conclusion; heuristic-only evidence must be explicitly labelled tentative or omitted from the definite answer. Incomplete required coverage produces an indeterminate assessment, not a false no-change result.\n\n## Discovery Agenda\n\nConfirm the command, skill, spec-delta, and command-level JSON-report contracts remain aligned.",
+    "problemStatement": "Both `/adv-arch-scan` and `/adv-slop-scan` need a mandatory, evidence-backed rewrite-assessment step. Each scan must explicitly state what a complete rewrite would definitely change about the architecture and what it would definitely not carry over, without turning heuristic speculation into authoritative findings.",
+    "agreement": "# Agreement\n\n## Objective\n\nMake both scan workflows produce a bounded rewrite assessment grounded in scan evidence.\n\n## Acceptance Criteria\n\n1. `/adv-arch-scan` documents a mandatory rewrite-assessment step after scan evidence is collected and before report assembly; it answers both required rewrite questions.\n2. `/adv-slop-scan` documents the same mandatory step after phases are aggregated and before report assembly; it answers both required rewrite questions.\n3. Both command contracts require each answer to cite relevant source/tool evidence; heuristic-only material is tentative and cannot support a “definitely” conclusion.\n4. Text output labels both answers. JSON output exposes a structured `rewriteAssessment` object with `wouldChange` and `wouldNotCarryOver` entries and evidence.\n5. Both shared skills and both asset-test suites cover the new contract.\n\n## Constraints\n\n- Preserve current detector coverage, finding severity, actionability, and no-auto-delete rules.\n- No runtime scanner implementation is added in this change.\n\n## Avoidances\n\n- No unsupported architectural prescriptions.\n- No automatic refactor, deletion, or migration behavior.",
+    "design": "# Design\n\n## Rewrite Assessment\n\nAdd a report-assembly substep, `Rewrite Assessment`, to both command contracts and their matching skills. It consumes only completed scan evidence; it is not a separate heuristic scanner or authority.\n\n### Command-level output model\n\n```text\nrewriteAssessment:\n  status: available | indeterminate\n  wouldChange:\n    answer: string\n    evidenceRefs: string[]\n    confidence: confirmed | tentative\n  wouldNotCarryOver:\n    answer: string\n    evidenceRefs: string[]\n    confidence: confirmed | tentative\n```\n\nA `confirmed` entry requires source/tool evidence or stable finding references. Heuristic-only inputs may appear only as `tentative`; when no evidence supports a definite conclusion, report `No definite conclusion from scan evidence` rather than inventing one. If applicable required coverage is incomplete, set `status: indeterminate`; never turn degradation into a no-change conclusion.\n\n### Placement\n\n- Architecture scan: after phases 1–3, before Phase 4 report generation.\n- Slop scan: after phases 1–2 have been aggregated, before Phase 3 report generation.\n\nThe command text output renders the two questions verbatim as section labels. The command-level JSON report contains `rewriteAssessment`; no existing finding, coverage, severity, actionability, or metadata schema is repurposed.\n\n### Boundary\n\n`slop_scan_report.v1` remains the typed Phase 1 runner report and is not changed. The orchestration-level assessment derives from that evidence plus Phase 2 aggregation, preserves original confidence/actionability, and remains advisory: `wouldNotCarryOver` is never deletion authority.\n\n### Verification\n\nAsset tests assert command and skill contracts name both questions, the structured command-level JSON key, evidence references, tentative safeguards, and indeterminate coverage handling.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`/adv-arch-scan` and `/adv-slop-scan` now require a derived Rewrite Assessment before report assembly. Each explicitly answers what a complete rewrite would definitely change and what would definitely not be carried over.\n\n## Value\n\nScan results now distinguish evidence-backed rebuild guidance from speculation, making architectural cleanup decisions clearer without turning the scans into automatic refactoring or deletion tools.\n\n## Verification\n\n- `bin/oc-test targeted -- src/adv-arch-scan-assets.test.ts src/adv-slop-scan-assets.test.ts`\n- Passed: 2 test files, 25 tests.\n- Acceptance review: `READY`; zero findings.\n- Release hardening: `READY`; diff check passed and worktree remained at accepted commit `9d547198`.\n\n## Safety Boundaries\n\n- Definite answers require source/tool evidence or stable finding references.\n- Heuristic-only material is tentative.\n- Degraded coverage yields an indeterminate assessment, never a no-change claim.\n- The assessment does not change scanner severity, actionability, coverage, or deletion authority.\n- `slop_scan_report.v1` and runtime scanner implementation remain unchanged.\n\n## Release Readiness Summary\n\nDocumentation and asset-test change only. Harden review is READY. No migration, data, frontend, deployment, collision, or operational follow-up required.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-15T18:45:53.449Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `/adv-arch-scan` documents a mandatory rewrite-assessment step after scan evidence is collected and before report assembly; it answers both required rewrite questions. | pass | `plugin/src/adv-arch-scan-assets.test.ts` passes and asserts both rewrite questions, evidence rules, indeterminate status, and command-level rewriteAssessment. |\n| AC2 | acceptance_criterion | `/adv-slop-scan` documents the same mandatory step after phases are aggregated and before report assembly; it answers both required rewrite questions. | pass | `plugin/src/adv-slop-scan-assets.test.ts` passes and asserts both rewrite questions, evidence rules, indeterminate status, and command-level rewriteAssessment. |\n| AC3 | acceptance_criterion | Both command contracts require each answer to cite relevant source/tool evidence; heuristic-only material is tentative and cannot support a “definitely” conclusion. | pass | Targeted asset suite passed 25/25; both commands and skills state source/tool or finding-reference evidence and tentative heuristic treatment. |\n| AC4 | acceptance_criterion | Text output labels both answers. JSON output exposes a structured `rewriteAssessment` object with `wouldChange` and `wouldNotCarryOver` entries and evidence. | pass | Both command contracts define `REWRITE ASSESSMENT` text output and command-level `rewriteAssessment.wouldChange` / `wouldNotCarryOver` objects. |\n| AC5 | acceptance_criterion | Both shared skills and both asset-test suites cover the new contract. | pass | Both command and skill pairs are covered by new assertions in the two asset-test files; targeted suite passed 25/25. |\n| C1 | constraint | Preserve current detector coverage, finding severity, actionability, and no-auto-delete rules. | respected | Reviewed diff confines changes to contracts, skills, and asset tests; rewrite assessment explicitly preserves severity, actionability, coverage, and deletion safeguards. |\n| C2 | constraint | No runtime scanner implementation is added in this change. | respected | Reviewed diff touches no scanner runtime code or `slop_scan_report.v1`; commands explicitly state command-level semantics only. |\n| DONT1 | avoidance | No unsupported architectural prescriptions. | respected | Independent reviewer verdict READY; assessment requires evidence and returns no definite conclusion where evidence is absent. |\n| DONT2 | avoidance | No automatic refactor, deletion, or migration behavior. | respected | Independent reviewer verdict READY; both contracts state assessment never authorizes deletion, refactor, or remediation. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-15T18:32:42.142Z",
+      "contentHash": "333f0a45d14033c7bc688029fd64ed2d9f1739c6d749c6728e7f7cd4dc4cab87",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-15T18:25:12.271Z",
+      "contentHash": "f097a75b47d3d91349bb0950222bca9706d018570f52b19f154c8843ac8a61fa",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-15T18:25:12.271Z",
+      "contentHash": "9013cdceff96007fb0a2558bd7f5ac264d581e4ab0e3a7be702747df6f2d18a7",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-15T18:32:42.142Z",
+      "contentHash": "6effc42708f36cd0505fb6f52b602068d1aba116329657885da6aa5e8bff0290",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-15T18:51:03.886Z",
+      "contentHash": "b1814f6e04a66e537d062fbd502a5157aac0c3102c2570cdd9f77955041d4962",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-15T18:51:03.886Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-15T18:24:18.262Z",
+      "resolved": true,
+      "resolved_at": "2026-07-15T18:28:13.318Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-15T18:28:13.318Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
