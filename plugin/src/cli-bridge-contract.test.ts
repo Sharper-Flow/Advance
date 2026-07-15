@@ -120,6 +120,10 @@ describe("CLI bridge command contracts", () => {
 
 describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
   test("ADV_TOOL_NAMES matches frozen snapshot", () => {
+    // consolidateAdvToolSurface2: canonical names are now derived from the
+    // typed public-group inventory (tool-registry.ts). This guard still pins
+    // the exact name SET — any silent addition or removal fails — but no
+    // longer couples to incidental inventory group ordering.
     const frozen: readonly string[] = [
       "adv_spec",
       "adv_delta_add",
@@ -202,7 +206,8 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_store_consolidate",
       "adv_store_cleanup",
     ];
-    expect(ADV_TOOL_NAMES).toEqual(frozen);
+    const byName = (a: string, b: string) => a.localeCompare(b);
+    expect([...ADV_TOOL_NAMES].sort(byName)).toEqual([...frozen].sort(byName));
   });
 });
 

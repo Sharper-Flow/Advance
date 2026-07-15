@@ -906,142 +906,138 @@ export function createToolMap(
 }
 
 /**
+ * Typed inventory of retained public tool groups
+ * (consolidateAdvToolSurface2 — SC1/SC2/AC5/C5, DDC1/DDC2/DDC3).
+ *
+ * This readonly, type-checked inventory is the single source of truth for the
+ * public ADV tool surface. Canonical names (ADV_TOOL_NAMES) and the
+ * warrant-visible argument surface (getToolSurface) are BOTH derived from it,
+ * so discovery metadata can no longer drift from the exported `*Tools`
+ * groups. `createToolMap` above stays explicit — runtime registration
+ * preserves special bind, timeout, and context behavior — and deterministic
+ * parity tests (tool-registry.inventory.test.ts) fail if the explicit map,
+ * the degraded map, or the warrant surface diverges from this inventory.
+ *
+ * The inventory includes the backlog-shell, store-consolidation, and
+ * store-cleanup groups so warrant visibility matches registration (the
+ * pre-consolidation surface omitted them).
+ */
+
+/** One retained public `*Tools` export group (data-only view). */
+export type PublicToolGroup = Readonly<
+  Record<string, { args?: Record<string, unknown> }>
+>;
+
+/** Derived inventory entry: canonical tool name + declared argument record. */
+export type PublicToolEntry = readonly [
+  name: string,
+  args: Record<string, unknown>,
+];
+
+/**
+ * Flatten retained public groups into ordered [name, args] entries.
+ *
+ * DDC2: a duplicate exported public name across groups is rejected BEFORE any
+ * Set/Map construction can collapse it — a collision throws instead of
+ * silently dropping one of the colliding tools.
+ */
+export function collectPublicToolEntries(
+  groups: readonly PublicToolGroup[],
+): PublicToolEntry[] {
+  const entries: PublicToolEntry[] = [];
+  const firstGroupIndex = new Map<string, number>();
+  groups.forEach((group, groupIndex) => {
+    for (const [name, def] of Object.entries(group)) {
+      const first = firstGroupIndex.get(name);
+      if (first !== undefined) {
+        throw new Error(
+          `Duplicate public tool name "${name}" exported by public tool inventory groups at index ${first} and ${groupIndex}. Public names must be unique across retained groups before any Set/Map construction (consolidateAdvToolSurface2 DDC2).`,
+        );
+      }
+      firstGroupIndex.set(name, groupIndex);
+      entries.push([name, def.args ?? {}] as const);
+    }
+  });
+  return entries;
+}
+
+const PUBLIC_TOOL_GROUPS = [
+  specTools,
+  specDeltaTools,
+  roadmapTools,
+  backlogTools,
+  backlogShellTools,
+  changeTools,
+  followupTools,
+  reportFollowupTools,
+  opsEvidenceTools,
+  contractTools,
+  designConcernTools,
+  taskTools,
+  subagentReportTools,
+  wisdomTools,
+  statusTools,
+  projectTools,
+  gateTools,
+  testTools,
+  temporalOpsTools,
+  checkpointTools,
+  reflectionTools,
+  snapshotHealthTools,
+  projectMetadataTools,
+  conformanceTools,
+  advWorktreeTools,
+  advSessionTools,
+  epicTools,
+  storeConsolidateTools,
+  storeCleanupTools,
+] as const satisfies readonly PublicToolGroup[];
+
+const PUBLIC_TOOL_ENTRIES: readonly PublicToolEntry[] = Object.freeze(
+  collectPublicToolEntries(PUBLIC_TOOL_GROUPS),
+);
+
+/**
  * Live tool-surface lookup (addAcWarrantGuard): tool name → set of declared
- * argument keys, read directly from each `*Tools` definition's `args` record
- * (data only — no `execute` invocation). This is the source of truth used to
- * verify capability warrants at contract mint. It is intentionally read from
- * the already-imported tool groups so the surface is always live (DDC3) with
- * zero generated-artifact drift.
+ * argument keys, derived from PUBLIC_TOOL_ENTRIES (data only — no `execute`
+ * invocation). This is the source of truth used to verify capability warrants
+ * at contract mint. Because it derives from the same typed inventory as
+ * ADV_TOOL_NAMES, the warrant surface cannot drift from the canonical list
+ * (DDC1), and per-tool argument keys always equal the declared definition
+ * keys (DDC3).
  *
  * Consumed by `adv_contract_mint` via a runtime dynamic import so the pure
  * `validator/contract-mint.ts` / `validator/warrant.ts` never statically import
- * the registry (DDC2, no cycle).
+ * the registry (no import cycle).
  */
 export function getToolSurface(): Map<string, Set<string>> {
-  const groups: Array<Record<string, { args?: Record<string, unknown> }>> = [
-    specTools,
-    specDeltaTools,
-    roadmapTools,
-    backlogTools,
-    changeTools,
-    followupTools,
-    reportFollowupTools,
-    opsEvidenceTools,
-    contractTools,
-    designConcernTools,
-    taskTools,
-    subagentReportTools,
-    wisdomTools,
-    statusTools,
-    projectTools,
-    gateTools,
-    testTools,
-    temporalOpsTools,
-    checkpointTools,
-    reflectionTools,
-    snapshotHealthTools,
-    projectMetadataTools,
-    conformanceTools,
-    advWorktreeTools,
-    advSessionTools,
-    epicTools,
-  ];
   const surface = new Map<string, Set<string>>();
-  for (const group of groups) {
-    for (const [name, def] of Object.entries(group)) {
-      surface.set(name, new Set(Object.keys(def.args ?? {})));
-    }
+  for (const [name, args] of PUBLIC_TOOL_ENTRIES) {
+    surface.set(name, new Set(Object.keys(args)));
   }
   return surface;
 }
 
 /**
- * Canonical list of all ADV tool names. Kept in sync with createToolMap so
- * that createDegradedToolMap can register a stub for every tool when plugin
- * init fails.
+ * SC1 source baseline: the number of registered public ADV tools recorded at
+ * the start of consolidateAdvToolSurface2 implementation (2026-07-15). The
+ * final canonical count must be strictly lower once this change's contracted
+ * public removals (adv_backlog_state, adv_project_wisdom_list) land; the
+ * baseline/final exact-accounting assertion lives in
+ * tool-registry.inventory.test.ts.
  */
-export const ADV_TOOL_NAMES: readonly string[] = [
-  "adv_spec",
-  "adv_delta_add",
-  "adv_roadmap",
-  "adv_backlog_state",
-  "adv_wip_state",
-  "adv_backlog_add",
-  "adv_backlog_list",
-  "adv_backlog_show",
-  "adv_backlog_promote",
-  "adv_backlog_archive",
-  "adv_change_list",
-  "adv_change_show",
-  "adv_change_create",
-  "adv_change_update",
-  "adv_change_close",
-  "adv_change_bulk_close",
-  "adv_change_validate",
-  "adv_change_archive",
-  "adv_archive_repair",
-  "adv_archive_purge",
-  "adv_change_status_repair",
-  "adv_change_update_issues",
-  "adv_change_repair_origin",
-  "adv_change_reenter",
-  "adv_change_forget",
-  "adv_epic_create",
-  "adv_epic_show",
-  "adv_epic_list",
-  "adv_epic_update",
-  "adv_epic_add_shell",
-  "adv_epic_promote_shell",
-  "adv_epic_link_change",
-  "adv_epic_unlink_change",
-  "adv_epic_move_change",
-  "adv_epic_repair_membership",
-  "adv_epic_reorder",
-  "adv_epic_retire",
-  "adv_followup_promote",
-  "adv_report_followup_promote",
-  "adv_ops_evidence_add",
-  "adv_ops_run_upsert",
-  "adv_ops_run_evidence_add",
-  "adv_contract_mint",
-  "adv_contract_review_matrix_set",
-  "adv_design_concern_disposition",
-  "adv_task_show",
-  "adv_task_list",
-  "adv_task_ready",
-  "adv_task_update",
-  "adv_task_add",
-  "adv_task_cancel",
-  "adv_task_reclassify_tdd",
-  "adv_subagent_report_submit",
-  "adv_wisdom_add",
-  "adv_wisdom_list",
-  "adv_project_wisdom_list",
-  "adv_status",
-  "adv_project_context",
-  "adv_project_metadata",
-  "adv_gate_status",
-  "adv_gate_complete",
-  "adv_run_test",
-  "adv_temporal_diagnose",
-  "adv_temporal_register_search_attributes",
-  "adv_temporal_reconnect",
-  "adv_temporal_worker_restart",
-  "adv_task_checkpoint",
-  "adv_reflection_list",
-  "adv_reflect",
-  "adv_conformance",
-  "adv_worktree_create",
-  "adv_worktree_resume",
-  "adv_worktree_delete",
-  "adv_worktree_cleanup",
-  "adv_worktree_triage",
-  "adv_session_list",
-  "adv_session_show",
-  "adv_snapshot_health",
-  "adv_store_consolidate",
-  "adv_store_cleanup",
-] as const;
+export const ADV_PUBLIC_TOOL_BASELINE_COUNT = 80;
+
+/**
+ * Canonical list of all ADV tool names, derived from PUBLIC_TOOL_GROUPS.
+ * Duplicates are rejected at module load by collectPublicToolEntries before
+ * this array is constructed (DDC2). createDegradedToolMap registers a stub
+ * for every name; exact-set parity with createToolMap and getToolSurface is
+ * enforced by deterministic tests (DDC1).
+ */
+export const ADV_TOOL_NAMES: readonly string[] = Object.freeze(
+  PUBLIC_TOOL_ENTRIES.map(([name]) => name),
+);
 
 /**
  * Build a degraded tool map for the case where plugin init fails
