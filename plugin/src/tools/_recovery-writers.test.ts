@@ -944,4 +944,86 @@ describe("saveRecoveredSubagentReport", () => {
 
     await rm(root, { recursive: true, force: true });
   });
+
+  it("fails closed when the authoritative bundle manifest lacks a valid task carrier", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-badtasks-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    const manifest = `${JSON.stringify(
+      {
+        ...baseChange(),
+        id: "test-change",
+        status: "archived",
+        tasks: [{ title: "missing canonical task id" }],
+      },
+      null,
+      2,
+    )}\n`;
+    await writeFile(join(bundleDir, "change.json"), manifest);
+
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+
+    await expect(
+      saveRecoveredSubagentReport({
+        store,
+        change: { ...baseChange(), id: "test-change", status: "active" },
+        report: changeScopedReport("test-change", 2),
+        authorization: {
+          reason: "post_archive_report_persist_race_fallback",
+          evidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+        },
+      }),
+    ).rejects.toThrow(/invalid task carrier/);
+    expect(await readFile(join(bundleDir, "change.json"), "utf-8")).toBe(
+      manifest,
+    );
+
+    await rm(root, { recursive: true, force: true });
+  });
+
+  it("fails closed when the authoritative bundle has an invalid report carrier entry", async () => {
+    const root = await mkdtemp(join(tmpdir(), "adv-recovery-badreport-"));
+    const archiveDir = join(root, "archive");
+    const bundleDir = join(archiveDir, "2026-07-09-test-change");
+    await mkdir(bundleDir, { recursive: true });
+    const manifest = `${JSON.stringify(
+      {
+        ...baseChange(),
+        id: "test-change",
+        status: "archived",
+        subagent_reports: [[]],
+      },
+      null,
+      2,
+    )}\n`;
+    await writeFile(join(bundleDir, "change.json"), manifest);
+
+    const store: any = {
+      paths: { root, changes: join(root, "changes"), archive: archiveDir },
+      changes: { save: vi.fn(), refresh: vi.fn() },
+    };
+
+    await expect(
+      saveRecoveredSubagentReport({
+        store,
+        change: { ...baseChange(), id: "test-change", status: "active" },
+        report: changeScopedReport("test-change", 2),
+        authorization: {
+          reason: "post_archive_report_persist_race_fallback",
+          evidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+        },
+      }),
+    ).rejects.toThrow(/invalid subagent_reports entry/);
+    expect(await readFile(join(bundleDir, "change.json"), "utf-8")).toBe(
+      manifest,
+    );
+
+    await rm(root, { recursive: true, force: true });
+  });
 });

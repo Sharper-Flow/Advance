@@ -364,23 +364,51 @@ async function loadAuthoritativeBundleProjection(
     );
   }
   const manifest = parsed as Record<string, unknown>;
+  const assertReportCarrier = (reports: unknown, carrier: string): void => {
+    if (!Array.isArray(reports)) {
+      throw new Error(
+        `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} has non-array ${carrier}`,
+      );
+    }
+    if (
+      reports.some(
+        (report) =>
+          !report || typeof report !== "object" || Array.isArray(report),
+      )
+    ) {
+      throw new Error(
+        `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} has an invalid ${carrier} entry`,
+      );
+    }
+  };
   if (manifest.id !== changeId) {
     throw new Error(
       `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} belongs to change ${String(manifest.id)}, not ${changeId}`,
     );
   }
-  if (manifest.tasks !== undefined && !Array.isArray(manifest.tasks)) {
+  if (!Array.isArray(manifest.tasks)) {
     throw new Error(
-      `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} has non-array tasks`,
+      `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} has no array tasks carrier`,
     );
   }
-  if (
-    manifest.subagent_reports !== undefined &&
-    !Array.isArray(manifest.subagent_reports)
-  ) {
-    throw new Error(
-      `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} has non-array subagent_reports`,
-    );
+  for (const task of manifest.tasks) {
+    if (
+      !task ||
+      typeof task !== "object" ||
+      Array.isArray(task) ||
+      typeof (task as Record<string, unknown>).id !== "string"
+    ) {
+      throw new Error(
+        `Cannot persist recovered sub-agent report: archive bundle manifest at ${manifestPath} has an invalid task carrier`,
+      );
+    }
+    const taskReports = (task as Record<string, unknown>).subagent_reports;
+    if (taskReports !== undefined) {
+      assertReportCarrier(taskReports, "task subagent_reports");
+    }
+  }
+  if (manifest.subagent_reports !== undefined) {
+    assertReportCarrier(manifest.subagent_reports, "subagent_reports");
   }
   return manifest as unknown as Change;
 }
