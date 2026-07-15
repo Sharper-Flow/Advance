@@ -239,7 +239,7 @@ No other pauses, "shall I proceed?" prompts, or "ready to start /adv-X?" questio
 
 ### MCP Tool Name Contract
 
-MCP callable names are exact schema identifiers. Never normalize, split, or recase them. `searchcode_code_search`, `context7_resolve-library-id`, and `exa_web_search_exa` are valid callable names; `code_search`, `context7_resolve_library_id`, and `web_search_exa` are not. If a tool-name call fails, copy the exact name from the available-tools list and retry at most once; do not repeat the same unavailable name.
+For external MCP capabilities, use only the active tool surface. If `execute` is exposed, follow its generated catalog and exact returned paths. Otherwise use direct MCP callables exactly as exposed. Never infer availability from prose or normalize identifiers; report an absent capability as unavailable.
 
 ### Completion Bar
 For finish/ship/resume work, “done” means requested end-state verified. Red CI/test means inspect, classify, remediate, rerun. TDD Protocol evidence remains required per tasks.

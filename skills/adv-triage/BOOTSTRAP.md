@@ -45,7 +45,7 @@ Re-runs MUST NOT mutate existing filter. Manual edits to `.adv/github-project.js
 | Active ADV changes | `adv_change_list status: 'in-flight'` | id, title, summary |
 | ADV wisdom | `adv_wisdom_list type: 'failure'` then `type: 'gotcha'` | snippets |
 | Cross-session notes | `glob .adv/CROSS-SESSION-NOTES-*.md` + `read` | bullets/headings/action lines |
-| TODO/FIXME | `lgrep_search_text query: 'TODO\\|FIXME' path: <repo-root>` filtered to source dirs | file:line + text |
+| TODO/FIXME | lgrep text search (query `TODO\|FIXME`, path `<repo-root>`) filtered to source dirs | file:line + text |
 
 Cap each source at 100 items. Sort overflow by recency and surface `(N more not shown)`.
 

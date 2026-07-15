@@ -147,7 +147,7 @@ Emit structured report: sources scanned, issues created/updated/prioritized/defe
 | Project metadata | `adv_project_metadata` (read/write `github_project`) |
 | Active ADV changes | `adv_change_list status: 'in-flight'` |
 | Wisdom | `adv_wisdom_list` |
-| Local source scan | `glob`, `read`, `lgrep_search_text` |
+| Local source scan | `glob`, `read`, lgrep text search |
 | Bug priority loop | `gh issue edit --add-label` |
 | Roadmap write | `write` (whole file, deterministic from project state) |
 | Git ops | `bash` (`git status`, `git add ROADMAP.md`, `git commit`, `git pull --rebase`, `git push`) |

@@ -138,7 +138,7 @@ If no matching skill was found for a domain clearly relevant to change's **core 
 
 **Creation sub-flow (only if gap detected):**
 
-1. Research domain using Context7, Exa, and searchcode. Use Exa for candidate repo discovery, then `searchcode_code_search` / `searchcode_code_get_file` for in-repo implementation evidence.
+1. Research domain using Context7, Exa, and searchcode. Use Exa for candidate repo discovery, then searchcode code search / file fetch for in-repo implementation evidence.
 2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
 3. Write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
 4. Skip if file already exists → report "skill already exists: agent-{domain}"
@@ -196,7 +196,7 @@ Always-on discipline ensuring discovery captured the **full problem** and **full
 
 ### Scan-depth scaling (proportionality)
 
-The **check** always runs. A broad codebase surface scan (`lgrep_search_semantic` + `lgrep_search_symbols`) runs **only when the completeness question demands it** — i.e., when discovery relies on a sole-entry / single-control-surface claim for a cross-cutting operation, or when the problem spans an operation performed in multiple places. Narrow, localized changes record a lightweight rationale ("change is local to X; no cross-cutting operation claimed") and proceed without a broad scan.
+The **check** always runs. A broad codebase surface scan (lgrep semantic + symbol search) runs **only when the completeness question demands it** — i.e., when discovery relies on a sole-entry / single-control-surface claim for a cross-cutting operation, or when the problem spans an operation performed in multiple places. Narrow, localized changes record a lightweight rationale ("change is local to X; no cross-cutting operation claimed") and proceed without a broad scan.
 
 ### Sole-entry blocking (KD2 — reuses existing halt plumbing)
 
@@ -334,7 +334,7 @@ Required when proposal's Discovery Agenda contains ecosystem unknowns OR an open
 
 1. First consult any `docs/*-prep.md` research pack cited in the Extends section. If it already answers the question, summarise it in the LBP Check and cite the specific sections (`Competitors & Alternatives`, `Emerging Patterns`, `Applicability to This Repo`).
 2. If no relevant pack exists OR the cited pack is stale relative to current question:
-   - Run `exa_web_search_exa` queries: `["{domain} alternatives {year}", "{domain} emerging patterns {year}"]`
+   - Run Exa web-search queries: `["{domain} alternatives {year}", "{domain} emerging patterns {year}"]`
    - Record top-3 competitors/alternatives and up to 2 emerging patterns with source URLs
    - Evaluate applicability to this repo with file-path references
 3. Emit findings inline in the LBP Check section. Recommend `/adv-improve {target}` as a follow-up to persist the findings as a durable research pack when the discovery agenda will need them repeatedly.

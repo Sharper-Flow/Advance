@@ -37,7 +37,7 @@ Before deep reads, establish baseline context in this order:
 
 Scan the entire repository for structural understanding:
 
-1. **Broad Scan structure map** — use `lgrep_get_repo_outline` or `lgrep_get_file_tree` for top-level structure
+1. **Broad Scan structure map** — use lgrep repo outline or file tree for top-level structure
 2. **hotspot/risk scan** — identify files with high complexity, deep nesting, unclear ownership, missing tests, or many dependencies
 3. **related pattern/convention scan** — note recurring patterns, conventions, and deviations
 4. **active-change/spec overlap** — check active ADV state, specs, and wisdom for nearby work
@@ -49,8 +49,8 @@ Investigate a specific target — file path, module, symbol, feature area, or pr
 
 1. **Target normalization** — resolve the target to concrete files/symbols:
    - If it looks like a path → read it directly
-   - If it looks like a symbol → use `lgrep_search_symbols`
-   - If it looks like a concept/theme → use `lgrep_search_semantic`
+   - If it looks like a symbol → use lgrep symbol search
+   - If it looks like a concept/theme → use lgrep semantic search
    - If ambiguous → try all three, report what was found
 2. **Deep read** — read the target files, understand structure and behavior
 3. **Scoped Scan dependency/usage trace** — trace what the target depends on and what depends on it
@@ -69,12 +69,12 @@ Use tools in this priority order:
 
 | Step | Tool | When |
 |------|------|------|
-| 1 | `lgrep_search_semantic` | Concept/intent discovery |
-| 2 | `lgrep_search_symbols` | Named function/class/method lookup |
-| 3 | `lgrep_get_file_outline` | Understand a specific file's structure |
-| 4 | `lgrep_get_repo_outline` | Broad structural mapping |
-| 5 | `lgrep_get_file_tree` | Directory layout |
-| 6 | `lgrep_search_text` | Exact string/token matching |
+| 1 | lgrep semantic search | Concept/intent discovery |
+| 2 | lgrep symbol search | Named function/class/method lookup |
+| 3 | lgrep file outline | Understand a specific file's structure |
+| 4 | lgrep repo outline | Broad structural mapping |
+| 5 | lgrep file tree | Directory layout |
+| 6 | lgrep text search | Exact string/token matching |
 | 7 | `read` | Direct file inspection |
 | 8 | `grep` | Regex patterns across files |
 

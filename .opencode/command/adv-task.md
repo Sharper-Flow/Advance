@@ -143,7 +143,7 @@ Use the fast-track variant of the Gate Handoff Voice spine (see `docs/command-vo
 |---------|------|
 | Create change | `adv_change_create` |
 | Research | Task tool (adv-researcher) |
-| Fallback | Context7 (`context7_resolve-library-id` + `context7_query-docs`) for library docs, `webfetch` if Context7 is absent, `exa_web_search_exa` |
+| Fallback | Context7 (resolve library + query docs) for library docs, `webfetch` if Context7 is absent, Exa web search |
 | Context | `adv_project_context` |
 | Conflicts | `adv_change_list` |
 | Add tasks | `adv_task_add` |
