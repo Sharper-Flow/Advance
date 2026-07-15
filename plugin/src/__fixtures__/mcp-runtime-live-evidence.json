@@ -1,0 +1,70 @@
+{
+  "description": "Supplemental live runtime-matrix evidence captured by bounded oc run / opencode run probes. Regenerate via plugin/scripts/mcp-runtime-probe.ts. Deterministic verification lives in src/mcp-runtime-matrix.test.ts; CI never depends on this file.",
+  "generatedBy": "plugin/scripts/mcp-runtime-probe.ts",
+  "generatedAt": "2026-07-15T14:52:51.510Z",
+  "rows": [
+    {
+      "rowId": "codemode-primary",
+      "status": "pass",
+      "command": "oc run --agent adv --model kimi-for-coding/k2p7 --auto --format json",
+      "observedInvocation": "tools.context7[\"resolve-library-id\"]",
+      "evidenceExcerpt": "return await tools.context7[\"resolve-library-id\"]({ libraryName: \"zod\", query: \"resolve zod library id for schema validation docs\" }); | catalog toolCalls: context7.resolve-library-id",
+      "ranAt": "2026-07-15T14:50:51.694Z",
+      "reason": null
+    },
+    {
+      "rowId": "exact-path-forms",
+      "status": "pass",
+      "command": "oc run --agent adv --model kimi-for-coding/k2p7 --auto --format json",
+      "observedInvocation": "tools.lgrep.search_semantic",
+      "evidenceExcerpt": "return await tools.lgrep.search_semantic({ path: \"/home/jon/toolbox\", query: \"codemode\" }); | catalog toolCalls: lgrep.search_semantic",
+      "ranAt": "2026-07-15T14:50:51.694Z",
+      "reason": null
+    },
+    {
+      "rowId": "codemode-spawned-researcher",
+      "status": "pass",
+      "command": "oc run --agent adv-researcher --model kimi-for-coding/k2p7 --auto --format json",
+      "observedInvocation": "tools.context7[\"resolve-library-id\"]",
+      "evidenceExcerpt": "return await tools.context7[\"resolve-library-id\"]({ libraryName: \"zod\", query: \"resolve zod library id\" }); | catalog toolCalls: context7.resolve-library-id",
+      "ranAt": "2026-07-15T14:51:23.766Z",
+      "reason": null
+    },
+    {
+      "rowId": "exact-path-forms",
+      "status": "pass",
+      "command": "oc run --agent adv-researcher --model kimi-for-coding/k2p7 --auto --format json",
+      "observedInvocation": "tools.lgrep.search_semantic",
+      "evidenceExcerpt": "return await tools.lgrep.search_semantic({ path: \"/home/jon/toolbox\", query: \"codemode\" }); | catalog toolCalls: lgrep.search_semantic",
+      "ranAt": "2026-07-15T14:51:23.766Z",
+      "reason": null
+    },
+    {
+      "rowId": "direct-primary",
+      "status": "pass",
+      "command": "env -u OPENCODE_EXPERIMENTAL_CODE_MODE OC_DISABLE_CODE_MODE=1 oc run --agent adv --model kimi-for-coding/k2p7 --auto --format json",
+      "observedInvocation": "context7_resolve-library-id",
+      "evidenceExcerpt": "direct tool context7_resolve-library-id",
+      "ranAt": "2026-07-15T14:52:03.041Z",
+      "reason": null
+    },
+    {
+      "rowId": "exact-path-forms",
+      "status": "pass",
+      "command": "env -u OPENCODE_EXPERIMENTAL_CODE_MODE OC_DISABLE_CODE_MODE=1 oc run --agent adv --model kimi-for-coding/k2p7 --auto --format json",
+      "observedInvocation": "lgrep_search_semantic",
+      "evidenceExcerpt": "direct tool lgrep_search_semantic",
+      "ranAt": "2026-07-15T14:52:03.041Z",
+      "reason": null
+    },
+    {
+      "rowId": "codemode-no-mcp",
+      "status": "pass",
+      "command": "XDG_CONFIG_HOME=/tmp/opencode/adv-mcp-probe-276502/codemode-no-mcp/xdg OPENCODE_EXPERIMENTAL_CODE_MODE=true opencode run --dir /tmp/opencode/adv-mcp-probe-276502/codemode-no-mcp/project --agent adv --model kimi-for-coding/k2p7 --auto --format json",
+      "observedInvocation": null,
+      "evidenceExcerpt": "Context7 is not available — no `context7_*` callable exists in the active tool surface for this session. Per the MCP Tool Name Contract, I won't infer or fabricate the capability.",
+      "ranAt": "2026-07-15T14:52:35.280Z",
+      "reason": null
+    }
+  ]
+}
