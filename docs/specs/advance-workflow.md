@@ -2109,8 +2109,21 @@ ADV tools that support cross-project coordination must use explicit `target_path
 
 **Then:**
 - The tool fails before constructing or mutating target project state
-- The failure reports the target queue name and typed serviceability blockers
+- The failure reports the target queue name, serviceability status, confidence, and typed serviceability blockers
 - The failure includes an actionable recovery instruction for opening or restarting the target project ADV worker
+
+**Registered-but-failed local queue does not short-circuit readiness** (`rq-targetMutationReadiness04`)
+
+**Given:**
+- A temporal-required target_path mutation is evaluated
+- Per-queue local worker diagnostics show the target queue registered but failed (not alive)
+
+**When:** The target mutation readiness check runs
+
+**Then:**
+- Raw registration lists and aggregate worker aliveness do not admit the mutation; only per-queue diagnostics are local admission evidence
+- The failed local queue falls through to the bounded fresh server-poller probe before any fail-closed decision
+- A fresh server poller may admit the mutation as conservative server-confidence evidence without being reported as local worker liveness
 
 **Status and mutation readiness share serviceability semantics** (`rq-targetMutationReadiness03`)
 
@@ -4607,7 +4620,7 @@ adv_change_repair_origin MUST provide an audited, claim-safe path to repair the 
 
 **ID:** `rq-archiveTargetPathRouting01` | **Priority:** **[MUST]**
 
-adv_change_archive and adv_task_checkpoint MUST support `target_path` to route terminal lifecycle and task checkpoint operations to a target project from a non-native session. Target mutation MUST require explicit `target_confirmed` and non-blank `confirmationEvidence` for untrusted targets, MUST use the target project's store and Temporal queue, MUST preserve same-project safety semantics (gate preflight, worktree validation, branch/HEAD guards, task-to-change resolution), and MUST fail closed with a same-project recovery packet when the target project is unreachable.
+adv_change_archive and adv_task_checkpoint MUST support `target_path` to route terminal lifecycle and task checkpoint operations to a target project from a non-native session. Target mutation MUST require explicit `target_confirmed` and non-blank `confirmationEvidence` for untrusted targets, MUST use the target project's store and Temporal queue, MUST preserve same-project safety semantics (gate preflight, worktree validation, branch/HEAD guards, task-to-change resolution), and MUST fail closed with a same-project recovery packet when the target project is unreachable. For adv_task_checkpoint, `target_path` selects the target project's Temporal store and default git workdir; it MUST NOT override an explicit `workdir`. An explicitly blank `workdir` MUST be rejected as a caller error. When `target_path` and an explicit `workdir` coexist, the `workdir` MUST belong to the target repository, verified by comparing git common directories before target task-state resolution, signaling, staging, or committing; a mismatch (or an unverifiable common directory) MUST fail closed as an unrelated-repository reject.
 
 **Tags:** `workflow`, `archive`, `checkpoint`, `target-path`, `cross-project`
 
@@ -4634,7 +4647,7 @@ adv_change_archive and adv_task_checkpoint MUST support `target_path` to route t
 
 **Then:**
 - The task is resolved from the target project's store
-- Git operations run in the target project's root
+- Git operations run in the explicit workdir when one is provided and verified as part of the target repository, otherwise in the target project's root
 - The response carries target-project context
 
 **Unconfirmed target mutation is rejected** (`rq-archiveTargetPathRouting01.3`)
@@ -4647,6 +4660,43 @@ adv_change_archive and adv_task_checkpoint MUST support `target_path` to route t
 **Then:**
 - The call is rejected before filesystem or state mutation
 - Same-project behavior remains unchanged
+
+**Checkpoint target_path selects store, explicit workdir selects git cwd** (`rq-archiveTargetPathRouting01.4`)
+
+**Given:**
+- adv_task_checkpoint is called with both target_path and an explicit workdir
+- The explicit workdir is a linked worktree of the target repository (matching git common directory)
+
+**When:** The checkpoint resolves its execution context
+
+**Then:**
+- Target task state, signaling, and store access use the target project selected by target_path
+- Git operations run in the explicit workdir
+- target_path never overrides the explicit workdir as the git cwd
+
+**Explicit blank workdir is rejected before any git or state operation** (`rq-archiveTargetPathRouting01.5`)
+
+**Given:**
+- adv_task_checkpoint is called with a workdir argument that is empty or whitespace-only
+
+**When:** The checkpoint evaluates the call
+
+**Then:**
+- The call fails with a caller-error rejection naming the blank workdir
+- No git command runs, no task state is resolved, and no signal is fired
+
+**Checkpoint refuses an explicit workdir outside the target repository** (`rq-archiveTargetPathRouting01.6`)
+
+**Given:**
+- adv_task_checkpoint is called with both target_path and an explicit workdir
+- The workdir's git common directory differs from the target repository's, or cannot be probed
+
+**When:** The checkpoint compares git common directories
+
+**Then:**
+- The call fails closed as an unrelated-repository reject
+- The failure names the workdir and the target repository
+- No staging, committing, task-state resolution, or signaling occurs
 
 ---
 
