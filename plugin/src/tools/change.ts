@@ -290,6 +290,7 @@ import {
   reconcileInRepoArchive,
 } from "../archive";
 import { formatToolOutput, paginate } from "../utils/tool-output";
+import { withTimeout, TimeoutError } from "../utils/with-timeout";
 import {
   buildTodoProjection,
   formatValidationOutput,
@@ -343,6 +344,20 @@ import {
 // =============================================================================
 // Tool Definitions
 // =============================================================================
+
+/**
+ * Internal time budget for adv_change_validate's authoritative input load
+ * (change read + validation context: specs, active peers, proposal).
+ *
+ * Sits below the safeExecute 10s tool ceiling (same safe-budget convention
+ * as WORKTREE_TOOL_SAFE_TIMEOUT_MS in tools/adv-worktree.ts) so a slow
+ * Temporal query or peer hydration surfaces as an explicit typed degraded
+ * response instead of an unclassified whole-tool ToolExecutionTimeout.
+ * When the budget is exceeded no validation verdict is produced — the
+ * response is typed degraded metadata, never a complete-looking partial.
+ */
+export const CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS = 8_000;
+
 export const changeTools = {
   adv_change_list: {
     description:
@@ -2289,16 +2304,71 @@ export const changeTools = {
       },
       store: Store,
     ) => {
-      const result = await store.changes.get(changeId);
-      if (!result.success) {
-        return formatToolOutput({ error: result.error });
+      // tk-f4a18a9705ef: bound the authoritative input load (change read +
+      // validation context) so a slow Temporal read degrades structurally
+      // below the 10s safeExecute ceiling instead of surfacing as an
+      // unclassified whole-tool ToolExecutionTimeout. Early-return
+      // responses travel through the union so existing error output shapes
+      // are preserved exactly.
+      type ValidateInputs =
+        | { kind: "response"; response: string }
+        | {
+            kind: "ok";
+            change: Change;
+            context: Awaited<ReturnType<typeof loadValidationContext>>;
+          };
+      let inputs: ValidateInputs;
+      try {
+        inputs = await withTimeout(
+          (async (): Promise<ValidateInputs> => {
+            const result = await store.changes.get(changeId);
+            if (!result.success) {
+              return {
+                kind: "response",
+                response: formatToolOutput({ error: result.error }),
+              };
+            }
+            if (!result.data) {
+              return {
+                kind: "response",
+                response: formatToolOutput({
+                  error: `Change not found: ${changeId}`,
+                }),
+              };
+            }
+            const change = result.data;
+            const context = await loadValidationContext(
+              store,
+              changeId,
+              change.title,
+            );
+            return { kind: "ok", change, context };
+          })(),
+          CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS,
+          `adv_change_validate input load exceeded ${CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS}ms budget`,
+        );
+      } catch (err) {
+        if (!(err instanceof TimeoutError)) throw err;
+        return formatToolOutput({
+          passed: false,
+          degraded: true,
+          error: "VALIDATION_TIME_BUDGET_EXHAUSTED",
+          reason: "time_budget_exhausted",
+          stage: "load-inputs",
+          timeoutMs: CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS,
+          changeId,
+          strict: strict === true,
+          hint:
+            "Validation input load exceeded its internal time budget (below the 10s tool ceiling). " +
+            "No validation verdict was produced and authoritative state is untouched. " +
+            "Likely a slow Temporal query or peer hydration — retry; if persistent, run adv_status and adv_temporal_diagnose to check worker/workflow health.",
+        });
       }
-      if (!result.data) {
-        return formatToolOutput({ error: `Change not found: ${changeId}` });
+      if (inputs.kind === "response") {
+        return inputs.response;
       }
-      const change = result.data;
-      const { specs, activeChanges, proposalText, changedSpecFiles } =
-        await loadValidationContext(store, changeId, change.title);
+      const { change, context } = inputs;
+      const { specs, activeChanges, proposalText, changedSpecFiles } = context;
       // Run full validation with active changes for conflict detection
       const validationResult = await validateChange(change, {
         specs,

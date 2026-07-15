@@ -9,7 +9,11 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { changeTools, closeLinkedIssue } from "./change";
+import {
+  CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS,
+  changeTools,
+  closeLinkedIssue,
+} from "./change";
 import type { Store } from "../storage/store";
 import type { Change, Spec } from "../types";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
@@ -3543,6 +3547,103 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.validationErrors).toBeUndefined();
       expect(parsed).toHaveProperty("passed");
       expect(parsed.passed).toBe(true);
+    });
+
+    // tk-f4a18a9705ef: strict validation must be deterministically bounded.
+    // A slow/hung authoritative read must surface as an explicit typed
+    // degraded response below the 10s safeExecute ceiling, never as an
+    // unclassified whole-tool ToolExecutionTimeout.
+    describe("bounded input load", () => {
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      test("returns typed degraded response when the change read exceeds the budget", async () => {
+        const store = createMockStore({
+          tasks: [
+            { id: "tk-1", title: "Task", status: "done" },
+          ] as Change["tasks"],
+        });
+        // Simulate a slow/hung Temporal-backed read: never settles.
+        vi.mocked(store.changes.get).mockImplementation(
+          () => new Promise(() => {}),
+        );
+
+        vi.useFakeTimers();
+        const pending = changeTools.adv_change_validate.execute(
+          { changeId: "test-change", strict: true },
+          store,
+        );
+        await vi.advanceTimersByTimeAsync(
+          CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS + 50,
+        );
+        const result = await pending;
+
+        const parsed = JSON.parse(result);
+        expect(parsed.passed).toBe(false);
+        expect(parsed.degraded).toBe(true);
+        expect(parsed.error).toBe("VALIDATION_TIME_BUDGET_EXHAUSTED");
+        expect(parsed.reason).toBe("time_budget_exhausted");
+        expect(parsed.stage).toBe("load-inputs");
+        expect(parsed.timeoutMs).toBe(CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS);
+        expect(parsed.changeId).toBe("test-change");
+        // Degraded evidence must not masquerade as a completed validation:
+        // no verdict arrays, no checks-performed, no formatted report.
+        expect(parsed.errors).toBeUndefined();
+        expect(parsed.warnings).toBeUndefined();
+        expect(parsed.checksPerformed).toBeUndefined();
+        expect(parsed.formatted).toBeUndefined();
+      });
+
+      test("returns typed degraded response when validation context load exceeds the budget", async () => {
+        const store = createMockStore({
+          tasks: [
+            { id: "tk-1", title: "Task", status: "done" },
+          ] as Change["tasks"],
+        });
+        // The change read succeeds but the spec enumeration hangs.
+        vi.mocked(store.specs.list).mockImplementation(
+          () => new Promise(() => {}),
+        );
+
+        vi.useFakeTimers();
+        const pending = changeTools.adv_change_validate.execute(
+          { changeId: "test-change", strict: true },
+          store,
+        );
+        await vi.advanceTimersByTimeAsync(
+          CHANGE_VALIDATE_CONTEXT_TIMEOUT_MS + 50,
+        );
+        const result = await pending;
+
+        const parsed = JSON.parse(result);
+        expect(parsed.passed).toBe(false);
+        expect(parsed.degraded).toBe(true);
+        expect(parsed.error).toBe("VALIDATION_TIME_BUDGET_EXHAUSTED");
+        expect(parsed.checksPerformed).toBeUndefined();
+        expect(parsed.formatted).toBeUndefined();
+      });
+
+      test("completes within the budget without a degraded marker", async () => {
+        const store = createMockStore({
+          tasks: [
+            { id: "tk-1", title: "Task", status: "done" },
+          ] as Change["tasks"],
+        });
+
+        const result = await changeTools.adv_change_validate.execute(
+          { changeId: "test-change", strict: true },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.passed).toBe(true);
+        expect(parsed.degraded).toBeUndefined();
+        expect(parsed.error).toBeUndefined();
+        expect(parsed.checksPerformed).toEqual(
+          expect.arrayContaining(["completeness", "conflicts"]),
+        );
+      });
     });
   });
 
