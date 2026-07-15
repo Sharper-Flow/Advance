@@ -222,9 +222,7 @@ Emitted by mutation/ticker tools such as `adv_change_create`, `adv_change_reente
 
 ### MCP Tool Name Contract
 
-MCP callable names are exact schema identifiers; never normalize, split, or recase them. Current examples: `context7_resolve-library-id`, `context7_query-docs`, `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa`, `searchcode_code_search`, `searchcode_code_get_file`, `firecrawl_firecrawl_scrape`, `vision_vision_list`, `lgrep_search_semantic`.
-Invalid examples: `code_search`, `context7_resolve_library_id`, `context7_query_docs`, `web_search_exa`, `firecrawl_scrape`, `vision_list`.
-If a tool-name call fails, copy the exact name from the available-tools list and retry at most once; do not repeat the same unavailable name.
+External MCP invocation follows the active-surface contract carried by each MCP-capable agent prompt: use only capabilities actually exposed in the session — through the generated catalog when `execute` is exposed, direct callables otherwise — and never normalize identifiers. Name providers and capabilities in workflow prose (Context7 for library docs, Exa for web discovery, searchcode for public-repo code, Firecrawl for page scrape/crawl, lgrep for local code intelligence, Vision for daemon status); take exact invocation spellings from the active schema or catalog at runtime.
 
 ### Structural Correctness (P33)
 
@@ -963,7 +961,7 @@ Create `agent-{domain}/SKILL.md` with YAML `name`, `description`, `keywords`, `m
 
 ### Creation Flow
 
-1. **Research domain** — Context7, Exa, searchcode (`searchcode_code_search`) → gather domain-specific guidance. Use Exa to discover candidate repositories, then searchcode to inspect code inside each public repo.
+1. **Research domain** — Context7, Exa, searchcode → gather domain-specific guidance. Use Exa to discover candidate repositories, then searchcode to inspect code inside each public repo.
 2. **Assemble** — populate template with research findings, include source citations
 3. **Persist** — write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
 4. **Skip if exists** — if file already exists, report "skill already exists" and skip

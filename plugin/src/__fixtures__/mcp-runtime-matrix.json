@@ -1,0 +1,177 @@
+{
+  "description": "Static runtime-matrix fixtures for the mode-neutral MCP invocation contract (change updateCodemodeMcpContracts, task tk-28cdd4fde0c4). Each row pairs a machine-observed tool surface with the expected routing verdict. discoveryEvidence quotes the discovery-phase runtime observations these surfaces structuralize.",
+  "mandatoryRowIds": [
+    "codemode-primary",
+    "codemode-spawned-researcher",
+    "direct-primary",
+    "codemode-no-mcp",
+    "exact-path-forms"
+  ],
+  "rows": [
+    {
+      "id": "codemode-primary",
+      "title": "CodeMode enabled + external MCP available + primary Advance agent",
+      "discoveryEvidence": "CodeMode primary used tools.context7[\"resolve-library-id\"] successfully.",
+      "cases": [
+        {
+          "label": "punctuated Context7 lookup routes through the generated catalog",
+          "surface": {
+            "executeExposed": true,
+            "catalog": [
+              { "namespace": "context7", "name": "resolve-library-id" },
+              { "namespace": "context7", "name": "query-docs" },
+              { "namespace": "lgrep", "name": "search_semantic" }
+            ],
+            "directCallables": []
+          },
+          "capability": {
+            "namespace": "context7",
+            "name": "resolve-library-id"
+          },
+          "expect": {
+            "mode": "codemode-catalog",
+            "expression": "tools.context7[\"resolve-library-id\"]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "codemode-spawned-researcher",
+      "title": "CodeMode enabled + external MCP available + spawned Advance researcher",
+      "discoveryEvidence": "CodeMode spawned researcher used tools.context7[\"resolve-library-id\"] successfully.",
+      "cases": [
+        {
+          "label": "punctuated Context7 lookup routes through the generated catalog",
+          "surface": {
+            "executeExposed": true,
+            "catalog": [
+              { "namespace": "context7", "name": "resolve-library-id" },
+              { "namespace": "context7", "name": "query-docs" },
+              { "namespace": "lgrep", "name": "search_semantic" }
+            ],
+            "directCallables": []
+          },
+          "capability": {
+            "namespace": "context7",
+            "name": "resolve-library-id"
+          },
+          "expect": {
+            "mode": "codemode-catalog",
+            "expression": "tools.context7[\"resolve-library-id\"]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "direct-primary",
+      "title": "CodeMode disabled + external MCP available + primary Advance agent",
+      "discoveryEvidence": "Direct mode used context7_resolve-library-id successfully after explicitly unsetting inherited CodeMode state.",
+      "cases": [
+        {
+          "label": "punctuated Context7 lookup uses the direct callable exactly as exposed",
+          "surface": {
+            "executeExposed": false,
+            "catalog": [],
+            "directCallables": [
+              "context7_resolve-library-id",
+              "context7_query-docs",
+              "lgrep_search_semantic"
+            ]
+          },
+          "capability": {
+            "namespace": "context7",
+            "name": "resolve-library-id"
+          },
+          "expect": {
+            "mode": "direct",
+            "expression": "context7_resolve-library-id"
+          }
+        }
+      ]
+    },
+    {
+      "id": "codemode-no-mcp",
+      "title": "CodeMode enabled + all external MCP unavailable",
+      "discoveryEvidence": "No-MCP configuration exposed no execute; actual Context7 call reported unavailable. Stale pre-change prose had initially claimed disabled tools were visible.",
+      "cases": [
+        {
+          "label": "representative lookup resolves unavailable without a fabricated callable",
+          "surface": {
+            "executeExposed": false,
+            "catalog": [],
+            "directCallables": []
+          },
+          "capability": {
+            "namespace": "context7",
+            "name": "resolve-library-id"
+          },
+          "expect": { "mode": "unavailable" }
+        }
+      ]
+    },
+    {
+      "id": "exact-path-forms",
+      "title": "Identifier-safe and punctuated callable paths are used exactly as exposed",
+      "discoveryEvidence": "Punctuated and identifier-safe names round-tripped without normalization in both CodeMode and direct sessions.",
+      "cases": [
+        {
+          "label": "identifier-safe name uses dot form in the catalog",
+          "surface": {
+            "executeExposed": true,
+            "catalog": [{ "namespace": "lgrep", "name": "search_semantic" }],
+            "directCallables": []
+          },
+          "capability": { "namespace": "lgrep", "name": "search_semantic" },
+          "expect": {
+            "mode": "codemode-catalog",
+            "expression": "tools.lgrep.search_semantic"
+          }
+        },
+        {
+          "label": "punctuated name uses bracket form in the catalog",
+          "surface": {
+            "executeExposed": true,
+            "catalog": [
+              { "namespace": "context7", "name": "resolve-library-id" }
+            ],
+            "directCallables": []
+          },
+          "capability": {
+            "namespace": "context7",
+            "name": "resolve-library-id"
+          },
+          "expect": {
+            "mode": "codemode-catalog",
+            "expression": "tools.context7[\"resolve-library-id\"]"
+          }
+        },
+        {
+          "label": "identifier-safe direct callable is spelled exactly",
+          "surface": {
+            "executeExposed": false,
+            "catalog": [],
+            "directCallables": ["lgrep_search_semantic"]
+          },
+          "capability": { "namespace": "lgrep", "name": "search_semantic" },
+          "expect": { "mode": "direct", "expression": "lgrep_search_semantic" }
+        },
+        {
+          "label": "punctuated direct callable keeps its hyphen exactly",
+          "surface": {
+            "executeExposed": false,
+            "catalog": [],
+            "directCallables": ["context7_resolve-library-id"]
+          },
+          "capability": {
+            "namespace": "context7",
+            "name": "resolve-library-id"
+          },
+          "expect": {
+            "mode": "direct",
+            "expression": "context7_resolve-library-id"
+          }
+        }
+      ]
+    }
+  ]
+}

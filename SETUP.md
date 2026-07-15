@@ -297,14 +297,14 @@ unavailable:
 
 | MCP server                                     | Allowlist prefix / callable examples                                                          | Used by                                       | Degradation if missing                                                      |
 | ---------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
-| [lgrep](https://github.com/Sharper-Flow/lgrep) | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text`   | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
-| Firecrawl                                      | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`          | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
-| Context7                                       | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`                | `adv-researcher`                              | Library documentation lookup unavailable                                    |
-| Exa                                            | `exa_*` grants; call `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa` | `adv-researcher`                              | Web search unavailable                                                      |
-| searchcode                                     | `searchcode_*` grants; call `searchcode_code_search`, `searchcode_code_get_file`              | `adv-researcher`                              | Public-repo code example search unavailable                                 |
+| [lgrep](https://github.com/Sharper-Flow/lgrep) | `lgrep_*` grants; lgrep semantic/symbol/text search capabilities   | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| Firecrawl                                      | `firecrawl_*` grants; Firecrawl scrape/crawl capabilities          | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
+| Context7                                       | `context7_*` grants; Context7 resolve + query-docs capabilities                | `adv-researcher`                              | Library documentation lookup unavailable                                    |
+| Exa                                            | `exa_*` grants; Exa web-search/fetch capabilities | `adv-researcher`                              | Web search unavailable                                                      |
+| searchcode                                     | `searchcode_*` grants; searchcode code-search/file-fetch capabilities              | `adv-researcher`                              | Public-repo code example search unavailable                                 |
 | arXiv MCP                                      | `arxiv-mcp_*` grants; call exact names from active schema                                     | `adv-researcher`                              | Academic paper search unavailable                                           |
 
-Tool calls must use exact active-schema names. Allowlist prefixes are grants only, not callable names; do not normalize `searchcode_code_search` to `code_search`.
+Tool calls must use exact names from the active schema or generated catalog. Allowlist prefixes are grants only, not callable names; never normalize identifiers.
 
 Configure these MCP servers in your `opencode.json` `mcp` section per each
 server's documentation. The ADV sync script does not install or validate
@@ -1163,7 +1163,7 @@ If you customized your global `plan.md` or `build.md`, the sync script only patc
 **Note:** `adv-engineer.md` is synced by this repo as a repo-owned full-file global agent (not overlay-managed). Any local customization in `~/.config/opencode/agents/adv-engineer.md` will be overwritten on each sync. If you need custom behavior, extend via your own agent or overlay instead.
 
 - `plan.md` `tools:` — `webfetch: true`, `firecrawl_firecrawl_scrape: true`, `firecrawl_firecrawl_crawl: true`, `firecrawl_firecrawl_check_crawl_status: true`
-- `build.md` `tools:` — `adv_task_update: true`, `adv_run_test: true`, `adv_task_checkpoint: true`, `adv_wisdom_add: true`, plus `webfetch: true` and exact Firecrawl grants (`firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`, `firecrawl_firecrawl_check_crawl_status`)
+- `build.md` `tools:` — `adv_task_update: true`, `adv_run_test: true`, `adv_task_checkpoint: true`, `adv_wisdom_add: true`, plus `webfetch: true` and exact Firecrawl grants (`firecrawl_firecrawl_scrape: true`, `firecrawl_firecrawl_crawl: true`, `firecrawl_firecrawl_check_crawl_status: true`)
 
 ### Temporal Worker Errors
 

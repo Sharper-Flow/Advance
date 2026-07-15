@@ -34,7 +34,7 @@ Shape a vague idea into a proposal-ready summary. Fully collaborative; read-only
 
 ## Phase 0: Embedded Methodology
 
-Sub-agent resilience follows the canonical retry + fallback chain in `adv-research.md:111-135`. If a dispatched sub-agent returns empty, failed, or inconclusive: retry once with the same prompt; if the retry also fails, fall back to inline research using Context7 for official docs, `exa_web_search_exa` for community guidance and current best practices, and `searchcode_code_search` for real-world implementation patterns. Emit findings with the same `VALIDATION:` / `RECOMMENDATION:` structure and never skip a research question.
+Sub-agent resilience follows the canonical retry + fallback chain in `adv-research.md:111-135`. If a dispatched sub-agent returns empty, failed, or inconclusive: retry once with the same prompt; if the retry also fails, fall back to inline research using Context7 for official docs, Exa web search for community guidance and current best practices, and searchcode code search for real-world implementation patterns. Emit findings with the same `VALIDATION:` / `RECOMMENDATION:` structure and never skip a research question.
 
 ---
 

@@ -29,8 +29,8 @@ Methodology for `/adv-improve`: find evidence-backed improvement opportunities w
 | none | broad | scan repo structure and major capabilities |
 | file path | scoped | read file directly |
 | directory | scoped | outline/tree then sample important files |
-| symbol | scoped | `lgrep_search_symbols` |
-| concept/capability | scoped | `lgrep_search_semantic` + specs |
+| symbol | scoped | lgrep symbol search |
+| concept/capability | scoped | lgrep semantic search + specs |
 
 Ask only when ambiguity changes scope materially. Otherwise choose closest concrete target and state assumption.
 

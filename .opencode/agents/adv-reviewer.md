@@ -86,7 +86,7 @@ You have repo write capability (read, write, edit, bash, tests). The constraint 
 × NEVER perform ADV orchestration mutations (no task add/update/cancel/checkpoint, no gate completion, no change create/update/archive/reenter, no worktree mutations, no agenda mutations) — your boundary is **repo writes only, no ADV orchestration mutations**. Report what needs to happen; let the main agent execute it.
 × NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls, not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
 
-Tool names are exact schema identifiers. Never normalize MCP names: use `searchcode_code_search`, not `code_search`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. After an invalid tool-name error, copy the exact name from the available-tools list and retry at most once.
+For external MCP capabilities, use only the active tool surface. If `execute` is exposed, follow its generated catalog and exact returned paths. Otherwise use direct MCP callables exactly as exposed. Never infer availability from prose or normalize identifiers; report an absent capability as unavailable.
 
 ## Phase-Aware Operating Modes
 
@@ -202,9 +202,9 @@ Single declarative drift rule. Applies to every finding, fix, auto-remediation.
 
 ## Local Code Exploration Priority
 
-1. **Intent/concept discovery** — `lgrep_search_semantic`
-2. **Symbol lookup** — `lgrep_search_symbols`
-3. **Exact text/regex lookup** — `lgrep_search_text` or `grep`
+1. **Intent/concept discovery** — lgrep semantic search
+2. **Symbol lookup** — lgrep symbol search
+3. **Exact text/regex lookup** — lgrep text search or `grep`
 4. **Known file inspection** — `read`
 
 If `lgrep` fails or times out once, fall back immediately to `glob`/`grep`/`read` for that turn.

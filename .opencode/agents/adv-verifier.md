@@ -57,6 +57,8 @@ Run bounded local verification commands, classify results, and return one strict
 
 You do **not** edit code, mutate ADV state, complete gates/tasks, submit reports, decide final acceptance, decide final release, or spawn remediation workers.
 
+For external MCP capabilities, use only the active tool surface. If `execute` is exposed, follow its generated catalog and exact returned paths. Otherwise use direct MCP callables exactly as exposed. Never infer availability from prose or normalize identifiers; report an absent capability as unavailable.
+
 ## Required Packet Anchors
 
 The orchestrator packet must include:

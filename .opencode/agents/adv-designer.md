@@ -85,7 +85,7 @@ You have full write capability (read, write, edit, bash, tests). The constraint 
 × NEVER act as a review or harden gate owner — review/harden ownership stays with `adv-reviewer`. You are an apply-phase worker only.
 × NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls, not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
 
-Tool names are exact schema identifiers. Never normalize MCP names: use `searchcode_code_search`, not `code_search`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. After an invalid tool-name error, copy the exact name from the available-tools list and retry at most once.
+For external MCP capabilities, use only the active tool surface. If `execute` is exposed, follow its generated catalog and exact returned paths. Otherwise use direct MCP callables exactly as exposed. Never infer availability from prose or normalize identifiers; report an absent capability as unavailable.
 
 ## Scope Lock
 
@@ -235,9 +235,9 @@ When scope is complete:
 
 ## Local Code Exploration Priority
 
-1. **Intent/concept discovery** — `lgrep_search_semantic`
-2. **Symbol lookup** — `lgrep_search_symbols`
-3. **Exact text/regex lookup** — `lgrep_search_text` or `grep`
+1. **Intent/concept discovery** — lgrep semantic search
+2. **Symbol lookup** — lgrep symbol search
+3. **Exact text/regex lookup** — lgrep text search or `grep`
 4. **Known file inspection** — `read`
 
 ## Editing Tool Priority
