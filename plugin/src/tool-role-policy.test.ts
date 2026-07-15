@@ -260,6 +260,31 @@ describe("tool role policy — agent manifest exactness (SC3/AC6, C6)", () => {
         }
       });
 
+      test("default-deny wildcard precedes every explicit ADV allow", () => {
+        // OpenCode resolves legacy `tools:` permissions in document order and
+        // the last matching rule wins. A wildcard deny after a specific allow
+        // would silently revoke that required allow while the unordered map
+        // assertions above would still pass.
+        if (!policy.denyWildcard) return;
+
+        const wildcardIndex = readManifest(policy.agent).indexOf(
+          `${ADV_WILDCARD}: false`,
+        );
+        expect(
+          wildcardIndex,
+          `${policy.agent} default deny must exist`,
+        ).toBeGreaterThanOrEqual(0);
+        for (const tool of policy.allowed) {
+          const allowIndex = readManifest(policy.agent).indexOf(
+            `${tool}: true`,
+          );
+          expect(
+            allowIndex,
+            `${policy.agent} allow for ${tool} must follow adv_*: false`,
+          ).toBeGreaterThan(wildcardIndex);
+        }
+      });
+
       test("policy-pinned explicit denials remain explicit", () => {
         for (const tool of policy.explicitBlocked) {
           expect(
