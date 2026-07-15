@@ -111,6 +111,7 @@
 | `adv_archive_repair` | `no-cli-dangerous` | Archive release repair mutation |
 | `adv_archive_purge` | `no-cli-dangerous` | Operator-only archived-change purge; terminates workflow, opt-in disk-bundle removal |
 | `adv_change_status_repair` | `no-cli-dangerous` | Change status repair mutation |
+| `adv_change_workflow_terminate` | `no-cli-dangerous` | Operator-only pinned wedged-workflow termination; run pinned via describe, shipped-gate eligibility |
 | `adv_change_update_issues` | `no-cli-dangerous` | Issue linkage mutation |
 | `adv_change_repair_origin` | `no-cli-dangerous` | Origin-linkage repair mutation |
 | `adv_change_reenter` | `no-cli-dangerous` | Change state mutation |

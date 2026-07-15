@@ -407,6 +407,11 @@ export function createToolMap(
       "adv_archive_purge",
       store,
     ),
+    adv_change_workflow_terminate: bindTool(
+      changeTools.adv_change_workflow_terminate,
+      "adv_change_workflow_terminate",
+      store,
+    ),
     adv_change_status_repair: bindTool(
       changeTools.adv_change_status_repair,
       "adv_change_status_repair",

@@ -243,14 +243,28 @@ export async function fireSignalAndRefresh<Args extends unknown[]>(
 
 /**
  * Build a workflow handle for a specific change within a project.
+ *
+ * Optional `runId` pins the handle to one exact execution run (Temporal
+ * `getHandle(workflowId, runId)`), so run-sensitive operations such as
+ * `adv_change_workflow_terminate` can act on precisely the run that was
+ * assessed via describe — never on a different run of the same workflowId.
  */
 export function getChangeHandle(
-  client: { workflow: { getHandle: (workflowId: string) => unknown } },
+  client: {
+    workflow: { getHandle: (workflowId: string, runId?: string) => unknown };
+  },
   projectId: string,
   changeId: string,
+  runId?: string,
 ): WorkflowHandleLike {
   const workflowId = buildChangeWorkflowId(projectId, changeId);
-  return client.workflow.getHandle(workflowId) as WorkflowHandleLike;
+  // Unpinned callers keep the exact legacy single-arg call shape; the runId
+  // argument is only passed when a run is explicitly pinned.
+  return (
+    runId
+      ? client.workflow.getHandle(workflowId, runId)
+      : client.workflow.getHandle(workflowId)
+  ) as WorkflowHandleLike;
 }
 
 /**

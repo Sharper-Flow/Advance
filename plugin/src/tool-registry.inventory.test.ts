@@ -63,6 +63,14 @@ const CONTRACTED_PUBLIC_REMOVALS = [
   "adv_project_wisdom_list",
 ] as const;
 
+/**
+ * Public tools whose addition is contracted to LATER changes after the
+ * consolidation baseline landed (fixWedgedWorkflowRecovery). Exact accounting
+ * keeps the canonical count pinned at every intermediate state: the count may
+ * grow only via this recorded addition set, by exactly the number landed.
+ */
+const CONTRACTED_PUBLIC_ADDITIONS = ["adv_change_workflow_terminate"] as const;
+
 describe("public tool inventory — DDC1 name-set parity", () => {
   let tempDir: string;
 
@@ -198,10 +206,20 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     const landedRemovals = CONTRACTED_PUBLIC_REMOVALS.filter(
       (name) => !ADV_TOOL_NAMES.includes(name),
     ).length;
+    const landedAdditions = CONTRACTED_PUBLIC_ADDITIONS.filter((name) =>
+      ADV_TOOL_NAMES.includes(name),
+    ).length;
     // Exact accounting at every intermediate state: the count may drop only
-    // via the contracted removal set, by exactly the number landed. At change
-    // completion both removals have landed, so final (78) < baseline (80).
-    expect(ADV_TOOL_NAMES.length).toBe((baseline as number) - landedRemovals);
-    expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(baseline as number);
+    // via the contracted removal set and grow only via the contracted
+    // addition set, each by exactly the number landed. At consolidation
+    // completion both removals landed (78 = 80 - 2);
+    // fixWedgedWorkflowRecovery then added the pinned termination tool
+    // (79 = 80 - 2 + 1).
+    expect(ADV_TOOL_NAMES.length).toBe(
+      (baseline as number) - landedRemovals + landedAdditions,
+    );
+    expect(ADV_TOOL_NAMES.length).toBeLessThanOrEqual(
+      (baseline as number) + CONTRACTED_PUBLIC_ADDITIONS.length,
+    );
   });
 });

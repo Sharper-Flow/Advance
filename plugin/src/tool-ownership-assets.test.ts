@@ -22,6 +22,7 @@ const OPERATOR_ONLY_TOOLS = [
   "adv_conformance",
   "adv_change_status_repair",
   "adv_change_repair_origin",
+  "adv_change_workflow_terminate",
   "adv_temporal_register_search_attributes",
 ] as const;
 
