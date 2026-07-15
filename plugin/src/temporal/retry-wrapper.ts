@@ -43,13 +43,117 @@ export const temporalOpLatency = {
   reset(): void {},
 };
 
+// gRPC status codes (@grpc/grpc-js constants) relevant to retry/reconnect
+// classification. The Temporal client nests a raw @grpc/grpc-js ServiceError
+// as `ServiceError.cause`, where the numeric `code` lives.
+const GRPC_DEADLINE_EXCEEDED = 4;
+const GRPC_NOT_FOUND = 5;
+const GRPC_ALREADY_EXISTS = 6;
+const GRPC_RESOURCE_EXHAUSTED = 8;
+const GRPC_ABORTED = 10;
+const GRPC_UNAVAILABLE = 14;
+
+/**
+ * Retryable saturation/availability codes: retry with backoff, but do NOT
+ * replace the shared connection. The SDK's Connection interceptor already
+ * retries most of these; ADV's aggregate-deadline retry primarily covers
+ * DEADLINE_EXCEEDED (which the SDK does not retry) plus a bounded safety net.
+ */
+const GRPC_RETRYABLE_CODES = new Set<number>([
+  GRPC_DEADLINE_EXCEEDED,
+  GRPC_RESOURCE_EXHAUSTED,
+  GRPC_ABORTED,
+  GRPC_UNAVAILABLE,
+]);
+
+/** Application-status codes the fallback-recovery paths key on. */
+const GRPC_FALLBACK_CODES = new Set<number>([
+  GRPC_NOT_FOUND,
+  GRPC_ALREADY_EXISTS,
+]);
+
+/** Bounded depth for the `cause`-chain walk (defensive against deep nesting). */
+const MAX_CAUSE_DEPTH = 16;
+
+/**
+ * True when `v` has the shape of a raw @grpc/grpc-js ServiceError: a numeric
+ * `code` plus a string `details` and a record-like `metadata`. This is the
+ * shape the Temporal TypeScript SDK nests as `ServiceError.cause`. Requiring
+ * the full shape — not merely a numeric `.code` — prevents misclassifying
+ * unrelated application errors that happen to carry a `code` field.
+ */
+function isGrpcServiceErrorShape(
+  v: unknown,
+): v is { code: number; details: string; metadata: object } {
+  if (typeof v !== "object" || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.code === "number" &&
+    typeof o.details === "string" &&
+    typeof o.metadata === "object" &&
+    o.metadata !== null
+  );
+}
+
+/**
+ * Walk the error `cause` chain (bounded depth + visited-set cycle guard) and
+ * return the numeric gRPC status of the first validated ServiceError-shaped
+ * node, or `undefined` when none is present. Modeled on the SDK's own
+ * `isGrpcDeadlineError` traversal.
+ */
+export function extractGrpcStatus(error: unknown): number | undefined {
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  let depth = 0;
+  while (
+    current &&
+    typeof current === "object" &&
+    !seen.has(current) &&
+    depth < MAX_CAUSE_DEPTH
+  ) {
+    seen.add(current);
+    if (isGrpcServiceErrorShape(current)) return current.code;
+    current = (current as { cause?: unknown }).cause;
+    depth++;
+  }
+  return undefined;
+}
+
+/**
+ * Genuine transport-channel failures that justify replacing the shared STSL
+ * connection (reconnect axis). Saturation/availability codes are retryable but
+ * must NOT close+reopen the shared connection — that would cancel other
+ * sessions' in-flight ops on the same task queue (the #217 amplifier).
+ */
+const RECONNECTABLE_TRANSPORT_RE =
+  /ECONNREFUSED|ECONNRESET|EPIPE|broken pipe|Channel has been shut down|GOAWAY|socket hang up|Connection dropped/i;
+
+/**
+ * Reconnect axis: true only for genuine transport-channel failures. Distinct
+ * from `classifyTemporalError === "transient"` (the retry axis): a saturated
+ * server (RESOURCE_EXHAUSTED), coded UNAVAILABLE without transport text, plain
+ * ABORTED, or DEADLINE_EXCEEDED are all retryable but NOT reconnectable.
+ */
+export function isReconnectableError(error: unknown): boolean {
+  return RECONNECTABLE_TRANSPORT_RE.test(collectErrorText(error));
+}
+
 export function classifyTemporalError(error: unknown): TemporalErrorClass {
   const text = collectErrorText(error);
+  // Precedence 1: replay nondeterminism → fallback-eligible.
   if (
     /TMPRL1100|Nondeterminism error|No command scheduled for event/i.test(text)
   ) {
     return "fallback";
   }
+  // Precedence 2: validated structural gRPC status (never an arbitrary code).
+  const code = extractGrpcStatus(error);
+  if (code !== undefined) {
+    if (GRPC_FALLBACK_CODES.has(code)) return "fallback";
+    if (GRPC_RETRYABLE_CODES.has(code)) return "transient";
+    return "fatal";
+  }
+  // Precedence 3: text-based transient transport/timeout signals.
   if (
     /ECONNREFUSED|Unavailable|Channel has been shut down|timeout|deadline/i.test(
       text,
@@ -57,6 +161,7 @@ export function classifyTemporalError(error: unknown): TemporalErrorClass {
   ) {
     return "transient";
   }
+  // Precedence 4: text-based fallback (NOT_FOUND / already-exists).
   if (
     /not[_ ]found|NOT_FOUND|not registered|already started|already exists/i.test(
       text,
@@ -224,7 +329,13 @@ export async function withTemporalRetry<T>(
           throw error;
         }
       }
-      await options.onTransientFailure?.();
+      // Reconnect axis: only replace the shared connection for genuine
+      // transport-channel failures. Retryable saturation/availability codes
+      // retry with backoff without reconnecting, so one op's saturation never
+      // cancels other sessions' in-flight ops on the shared connection.
+      if (isReconnectableError(error)) {
+        await options.onTransientFailure?.();
+      }
       const backoffMs = delayMs(attempt, options);
       const waitMs = deadline
         ? Math.min(backoffMs, Math.max(0, remainingDeadlineMs(deadline)))

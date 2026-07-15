@@ -296,7 +296,7 @@ describe("runTemporalQuery aggregate deadline", () => {
     expect(reinitStsl).not.toHaveBeenCalled();
   });
 
-  test("preserves the default 5s query ceiling and reconnect retry without a deadline", async () => {
+  test("retries on the default 5s query ceiling WITHOUT reconnecting (timeout is retryable, not reconnectable)", async () => {
     let calls = 0;
     const op = vi.fn(() => {
       calls += 1;
@@ -313,12 +313,17 @@ describe("runTemporalQuery aggregate deadline", () => {
     expect(reinitStsl).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(1);
-    // Transient timeout → single reconnect hook + 250ms backoff, then retry.
-    expect(reinitStsl).toHaveBeenCalledTimes(1);
+    // Two-axis semantics (#217): a bare query timeout is a slow/contended
+    // worker, not a broken transport channel — it is retryable but NOT
+    // reconnectable. The retry proceeds after backoff with NO reconnect, so
+    // one op's timeout never closes the shared connection under other
+    // sessions' in-flight ops (avoids reconnect churn).
+    expect(reinitStsl).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(250);
     await assertion;
 
     expect(op).toHaveBeenCalledTimes(2);
+    expect(reinitStsl).not.toHaveBeenCalled();
   });
 });
