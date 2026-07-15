@@ -93,6 +93,7 @@ import {
   resolveTargetProject,
   TargetProjectError,
   targetPathSchema,
+  withOptionalTargetPathStore,
   withTargetPathStore,
 } from "./target-project";
 
@@ -473,6 +474,149 @@ describe("withTargetPathStore", () => {
         async () => null,
       ),
     ).rejects.toThrow(/Temporal service layer/);
+  });
+});
+
+// rq-targetReadAuthority01: every snapshot-ok target read tool funnels through
+// withOptionalTargetPathStore / withTargetPathStore("snapshot-ok"). These tests
+// pin the structural contract at that shared seam: the returned target context
+// must explicitly identify the data as a non-authoritative disk snapshot, and
+// the snapshot path must not touch target worker lifecycle or Temporal state.
+describe("target snapshot read authority marking", () => {
+  const originalXdgDataHome = process.env.XDG_DATA_HOME;
+  let root: string;
+  let currentProjectPath: string;
+  let targetPath: string;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    root = await mkdtemp(join(tmpdir(), "adv-target-read-authority-"));
+    currentProjectPath = join(root, "source");
+    targetPath = join(root, "target");
+    await mkdir(join(currentProjectPath, ".git"), { recursive: true });
+    await mkdir(join(targetPath, ".git"), { recursive: true });
+    mocks.getProjectId.mockResolvedValue(TARGET_PROJECT_ID);
+    process.env.XDG_DATA_HOME = join(
+      root,
+      "opencode-projects",
+      SOURCE_PROJECT_ID,
+    );
+  });
+
+  afterEach(async () => {
+    if (originalXdgDataHome !== undefined)
+      process.env.XDG_DATA_HOME = originalXdgDataHome;
+    else delete process.env.XDG_DATA_HOME;
+    await rm(root, { recursive: true, force: true });
+  });
+
+  test("withOptionalTargetPathStore marks target snapshot reads as non-authoritative disk snapshots", async () => {
+    const sourceStore = { paths: { root: currentProjectPath } };
+
+    const seen = await withOptionalTargetPathStore(
+      { store: sourceStore as never, target_path: targetPath },
+      async (store, projectContext) => ({ store, projectContext }),
+    );
+
+    // Snapshot reads open the target as a legacy disk store rooted at the
+    // resolved target project's canonical external root — never a
+    // Temporal-backed store, never worker lifecycle mutation.
+    expect(mocks.createLegacyStore).toHaveBeenCalledWith(targetPath, {
+      externalRoot: join(
+        root,
+        "opencode-projects",
+        TARGET_PROJECT_ID,
+        "opencode/plugins/advance",
+        TARGET_PROJECT_ID,
+      ),
+    });
+    expect(mocks.createStore).not.toHaveBeenCalled();
+    expect(mocks.getService).not.toHaveBeenCalled();
+    expect(mocks.ensureProjectTemporalQueue).not.toHaveBeenCalled();
+    expect(mocks.restartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+    // The emitted context explicitly identifies the returned data as a
+    // non-authoritative disk snapshot of the resolved target project.
+    expect(seen.projectContext).toMatchObject({
+      root: targetPath,
+      projectId: TARGET_PROJECT_ID,
+      stateMode: "disk-snapshot",
+      authority: "disk_snapshot_non_authoritative",
+    });
+    expect(seen.projectContext?.warning).toContain(
+      "Non-authoritative disk snapshot",
+    );
+  });
+
+  test("withOptionalTargetPathStore without target_path emits no project context and opens no target store", async () => {
+    const sourceStore = { paths: { root: currentProjectPath } };
+
+    const seen = await withOptionalTargetPathStore(
+      { store: sourceStore as never },
+      async (store, projectContext) => ({ store, projectContext }),
+    );
+
+    expect(seen.store).toBe(sourceStore);
+    expect(seen.projectContext).toBeUndefined();
+    expect(mocks.createLegacyStore).not.toHaveBeenCalled();
+    expect(mocks.createStore).not.toHaveBeenCalled();
+  });
+
+  test("snapshot-ok target context formats as a non-authoritative disk snapshot", async () => {
+    const formatted = await withTargetPathStore(
+      {
+        currentProjectPath,
+        target_path: targetPath,
+        stateRequirement: "snapshot-ok",
+      },
+      async ({ context }) => formatTargetProjectContext(context),
+    );
+
+    expect(formatted).toMatchObject({
+      root: targetPath,
+      projectId: TARGET_PROJECT_ID,
+      stateMode: "disk-snapshot",
+      authority: "disk_snapshot_non_authoritative",
+    });
+    expect(formatted.warning).toContain("Non-authoritative disk snapshot");
+    // rq-targetReadAuthority01.2: snapshot reads must not register, restart,
+    // or otherwise mutate target worker lifecycle or Temporal state.
+    expect(mocks.ensureProjectTemporalQueue).not.toHaveBeenCalled();
+    expect(mocks.getService).not.toHaveBeenCalled();
+    expect(mocks.createStore).not.toHaveBeenCalled();
+  });
+
+  test("temporal-required target context is authoritative and carries no snapshot marker", async () => {
+    mocks.ensureProjectTemporalQueue.mockImplementation(async () => {
+      const queue = `advance-${TARGET_PROJECT_ID}`;
+      mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([queue]);
+      mocks.getTemporalWorkerDiagnostics.mockReturnValue([
+        {
+          kind: "in_process" as const,
+          queues: [queue],
+          failedQueues: [] as string[],
+          alive: true,
+        },
+      ]);
+      mocks.getTemporalWorkerAliveness.mockReturnValue(true);
+      mocks.getTemporalWorkerRole.mockReturnValue("host");
+    });
+
+    const formatted = await withTargetPathStore(
+      {
+        currentProjectPath,
+        target_path: targetPath,
+        stateRequirement: "temporal-required",
+        target_confirmed: true,
+        confirmationEvidence: "user approved target mutation",
+      },
+      async ({ context }) => formatTargetProjectContext(context),
+    );
+
+    expect(formatted.stateMode).toBe("temporal");
+    expect(formatted.authority).toBeUndefined();
+    expect(formatted.warning ?? "").not.toContain(
+      "Non-authoritative disk snapshot",
+    );
   });
 });
 
