@@ -8,6 +8,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   buildPendingMergePhase9Status,
+  completeReleaseGateAfterFinalization,
   verifyReleaseEvidenceFromMain,
   preservePhase9Evidence,
   runReacquiringChangeQuery,
@@ -16,12 +17,31 @@ import {
 import * as gitFinalize from "../archive-helpers/git-finalize";
 import { getService, reinitStsl } from "../../temporal/service";
 import { getGateStatusQuery } from "../../temporal/messages";
+import { getProjectId } from "../../utils/project-id";
 import type { Change, Store } from "../../types";
-import type { GitFinalizeDeps } from "../archive-helpers/git-finalize";
+import type {
+  GitFinalizeDeps,
+  GitFinalizeOutcome,
+} from "../archive-helpers/git-finalize";
 
 vi.mock("../../temporal/service", () => ({
   getService: vi.fn(),
   reinitStsl: vi.fn(async () => undefined),
+}));
+
+vi.mock("../../utils/project-id", async () => {
+  const actual = await vi.importActual<typeof import("../../utils/project-id")>(
+    "../../utils/project-id",
+  );
+  return { ...actual, getProjectId: vi.fn() };
+});
+
+const recoveryWriterMocks = vi.hoisted(() => ({
+  saveRecoveredGateCompletion: vi.fn(),
+}));
+
+vi.mock("../_recovery-writers", () => ({
+  saveRecoveredGateCompletion: recoveryWriterMocks.saveRecoveredGateCompletion,
 }));
 
 function createStore(mainCheckout: string): Store {
@@ -395,5 +415,136 @@ describe("waitForArchiveReleaseGateCompletion", () => {
     expect(handle.query).toHaveBeenCalledTimes(2);
     expect(vi.mocked(getService).mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(client.workflow.getHandle).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("completeReleaseGateAfterFinalization — T3 ambiguous signal reconcile", () => {
+  // rq-reapOrphanAdvWorkers T3 (SC3/AC3): a transient-saturation
+  // gateCompletedSignal failure is AMBIGUOUS — the signal may have landed
+  // server-side. The path must run exactly ONE bounded reconcile read via the
+  // T2 reacquiring query and ZERO automatic re-signals.
+  const pendingGate = { status: "pending" };
+  const doneGate = {
+    status: "done",
+    completed_at: "2026-01-01T00:00:00Z",
+    completed_by: "adv-archive",
+  };
+  const shippedFinalization: GitFinalizeOutcome = {
+    status: "shipped",
+    mainCheckout: "/repo",
+    defaultBranch: "trunk",
+    pushStatus: "pushed",
+    mergeCommitSha: "merge-sha-1",
+  };
+
+  function saturationError(): Error {
+    // gRPC DEADLINE_EXCEEDED (code 4) — retryable saturation, not a
+    // transport-channel failure (not reconnectable) and not completed-workflow.
+    return Object.assign(new Error("signal failed: deadline exceeded"), {
+      cause: { code: 4, details: "context deadline exceeded", metadata: {} },
+    });
+  }
+
+  beforeEach(() => {
+    vi.mocked(getProjectId).mockResolvedValue("project-test");
+    recoveryWriterMocks.saveRecoveredGateCompletion.mockReset();
+    recoveryWriterMocks.saveRecoveredGateCompletion.mockImplementation(
+      async (input: {
+        change: Change;
+        gateId: string;
+        completion: unknown;
+      }) => ({
+        ...input.change,
+        gates: {
+          ...(input.change.gates ?? {}),
+          [input.gateId]: input.completion,
+        },
+      }),
+    );
+  });
+
+  it("runs exactly ONE reconcile read and ZERO re-signals when a transient signal failure actually landed", async () => {
+    const handle = {
+      query: vi
+        .fn()
+        .mockResolvedValueOnce(pendingGate) // pre-signal terminal pre-check
+        .mockResolvedValueOnce(doneGate), // the single bounded reconcile read
+      signal: vi.fn().mockRejectedValue(saturationError()),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const result = await completeReleaseGateAfterFinalization({
+      store: createStore("/repo"),
+      change: createChange({}),
+      changeId: "fixPhase9PrDetection",
+      finalization: shippedFinalization,
+    });
+
+    // Terminal reconcile → success/already-done result.
+    expect(result).toMatchObject({ ok: true, alreadyDone: true });
+    // Pre-signal read + exactly ONE reconcile read — no confirmation poll.
+    expect(handle.query).toHaveBeenCalledTimes(2);
+    // ZERO automatic re-signals: one fire attempt, never a blind retry.
+    expect(handle.signal).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces the classified error without re-signaling when the reconcile read is non-terminal", async () => {
+    const handle = {
+      query: vi.fn().mockResolvedValue(pendingGate),
+      signal: vi.fn().mockRejectedValue(saturationError()),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const result = await completeReleaseGateAfterFinalization({
+      store: createStore("/repo"),
+      change: createChange({}),
+      changeId: "fixPhase9PrDetection",
+      finalization: shippedFinalization,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain("deadline");
+      expect(result.workflowGateStatus).toBe("pending");
+    }
+    // Pre-signal read + exactly ONE reconcile read; reconcile never loops.
+    expect(handle.query).toHaveBeenCalledTimes(2);
+    expect(handle.signal).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps routing completed-workflow signal errors through disk-projection recovery (no reconcile read)", async () => {
+    const handle = {
+      query: vi.fn().mockResolvedValue(pendingGate),
+      signal: vi
+        .fn()
+        .mockRejectedValue(new Error("Cannot signal a completed workflow")),
+    };
+    const client = fakeClientWithHandle(handle);
+    vi.mocked(getService).mockReturnValue({ client } as never);
+
+    const result = await completeReleaseGateAfterFinalization({
+      store: createStore("/repo"),
+      change: createChange({}),
+      changeId: "fixPhase9PrDetection",
+      finalization: shippedFinalization,
+    });
+
+    expect(result).toMatchObject({ ok: true, recoveryMutation: true });
+    expect(
+      recoveryWriterMocks.saveRecoveredGateCompletion,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateId: "release",
+        authorization: expect.objectContaining({
+          reason: "completed_workflow_release_gate_recovery",
+        }),
+      }),
+    );
+    // The completed-workflow fallback is a distinct branch: no T3 reconcile
+    // read (only the pre-signal query) and no re-signal.
+    expect(handle.query).toHaveBeenCalledTimes(1);
+    expect(handle.signal).toHaveBeenCalledTimes(1);
   });
 });
