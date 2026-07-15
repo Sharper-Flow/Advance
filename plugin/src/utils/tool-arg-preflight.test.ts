@@ -310,7 +310,7 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   {
-    toolName: "adv_project_wisdom_list",
+    toolName: "adv_wisdom_list",
     field: "maxEntries",
     policy: "zero",
     action: "omit",
@@ -1527,15 +1527,15 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     normalizedArgs: { limit: 25 },
   },
   {
-    label: "zero project-wisdom-list maxEntries normalizes to omitted",
-    toolName: "adv_project_wisdom_list",
+    label: "zero wisdom-list maxEntries normalizes to omitted",
+    toolName: "adv_wisdom_list",
     rawArgs: { maxEntries: 0 },
     ok: true,
     normalizedArgs: {},
   },
   {
-    label: "non-zero project-wisdom-list maxEntries preserved",
-    toolName: "adv_project_wisdom_list",
+    label: "non-zero wisdom-list maxEntries preserved",
+    toolName: "adv_wisdom_list",
     rawArgs: { maxEntries: 10 },
     ok: true,
     normalizedArgs: { maxEntries: 10 },

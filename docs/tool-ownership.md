@@ -147,8 +147,7 @@ class rather than operator-only.
 | Tool | Class | Notes |
 |---|---|---|
 | `adv_wisdom_add` | orchestrator | Wisdom capture |
-| `adv_wisdom_list` | orchestrator | Wisdom read |
-| `adv_project_wisdom_list` | orchestrator | Project wisdom read |
+| `adv_wisdom_list` | orchestrator | Wisdom read (including project-only listings) |
 | `adv_project_context` | orchestrator | project.md read |
 | `adv_run_test` | orchestrator | Bounded test-run evidence |
 | `adv_task_checkpoint` | orchestrator | Task checkpoint commit |

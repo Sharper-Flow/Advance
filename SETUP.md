@@ -1456,8 +1456,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | Tool                      | Purpose                                               |
 | ------------------------- | ----------------------------------------------------- |
 | `adv_wisdom_add`          | Add a learning entry to a change (optionally promote) |
-| `adv_wisdom_list`         | List all wisdom entries for a change                  |
-| `adv_project_wisdom_list` | List project-level promoted wisdom entries            |
+| `adv_wisdom_list`         | List wisdom entries, optionally project-only          |
 
 **Agenda**
 

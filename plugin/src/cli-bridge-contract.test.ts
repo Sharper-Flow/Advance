@@ -178,7 +178,6 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_subagent_report_submit",
       "adv_wisdom_add",
       "adv_wisdom_list",
-      "adv_project_wisdom_list",
       "adv_status",
       "adv_project_context",
       "adv_project_metadata",

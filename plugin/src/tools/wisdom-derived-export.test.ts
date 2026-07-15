@@ -375,12 +375,17 @@ describe("adv_wisdom_list signal-driven path", () => {
   });
 });
 
-describe("adv_project_wisdom_list signal-driven path", () => {
+describe("adv_wisdom_list project_only branch", () => {
+  // consolidateAdvToolSurface2 (tk-11d902254d63): the removed
+  // adv_project_wisdom_list reader folded into adv_wisdom_list behind an
+  // explicit project_only filter plus a bounded maxEntries limit. DDC6:
+  // project filtering and product visibility filtering happen BEFORE the
+  // bounded limit, so the limit never starves visible entries.
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("reads project wisdom from disk when Temporal is available", async () => {
+  it("reads project wisdom from disk when project_only is true", async () => {
     mocks.listProjectWisdom.mockResolvedValueOnce([
       {
         id: "pw-1",
@@ -395,15 +400,22 @@ describe("adv_project_wisdom_list signal-driven path", () => {
       paths: { root: "/repo", wisdom: "/ext/wisdom.jsonl" },
     } as any;
 
-    const result = await wisdomTools.adv_project_wisdom_list.execute({}, store);
+    const result = await wisdomTools.adv_wisdom_list.execute(
+      { project_only: true },
+      store,
+    );
     const parsed = JSON.parse(result);
 
-    expect(parsed.entries).toHaveLength(1);
-    expect(parsed.entries[0].type).toBe("convention");
+    expect(parsed.wisdom).toHaveLength(1);
+    expect(parsed.wisdom[0]).toMatchObject({
+      id: "pw-1",
+      type: "convention",
+      scope: "project",
+    });
     expect(mocks.listProjectWisdom).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back to disk read when Temporal is unavailable", async () => {
+  it("reads project wisdom from disk when Temporal is unavailable", async () => {
     mocks.getService.mockReturnValueOnce(null);
     mocks.listProjectWisdom.mockResolvedValueOnce([
       {
@@ -419,10 +431,175 @@ describe("adv_project_wisdom_list signal-driven path", () => {
       paths: { root: "/repo", wisdom: "/ext/wisdom.jsonl" },
     } as any;
 
-    const result = await wisdomTools.adv_project_wisdom_list.execute({}, store);
+    const result = await wisdomTools.adv_wisdom_list.execute(
+      { project_only: true },
+      store,
+    );
     const parsed = JSON.parse(result);
 
-    expect(parsed.entries).toHaveLength(1);
+    expect(parsed.wisdom).toHaveLength(1);
     expect(mocks.listProjectWisdom).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies type filtering inside the project_only branch", async () => {
+    mocks.listProjectWisdom.mockResolvedValueOnce([
+      {
+        id: "pw-1",
+        type: "convention",
+        content: "Validate inputs",
+        promoted_at: "2026-05-01T00:00:00Z",
+      },
+      {
+        id: "pw-2",
+        type: "gotcha",
+        content: "Beware edge cases",
+        promoted_at: "2026-05-02T00:00:00Z",
+      },
+    ]);
+
+    const store = {
+      paths: { root: "/repo", wisdom: "/ext/wisdom.jsonl" },
+    } as any;
+
+    const result = await wisdomTools.adv_wisdom_list.execute(
+      { project_only: true, type: "gotcha" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.wisdom.map((e: { id: string }) => e.id)).toEqual(["pw-2"]);
+  });
+
+  it("applies product visibility filtering before the bounded limit (DDC6)", async () => {
+    mocks.listProjectWisdom.mockResolvedValueOnce([
+      {
+        id: "pw-other-1",
+        type: "pattern",
+        content: "other product 1",
+        product_id: "other-product",
+        promoted_at: "2026-05-01T00:00:00Z",
+      },
+      {
+        id: "pw-other-2",
+        type: "pattern",
+        content: "other product 2",
+        product_id: "other-product",
+        promoted_at: "2026-05-02T00:00:00Z",
+      },
+      {
+        id: "pw-visible-1",
+        type: "pattern",
+        content: "visible 1",
+        product_id: "example-product",
+        origin_repo_id: "backend",
+        promoted_at: "2026-05-03T00:00:00Z",
+      },
+      {
+        id: "pw-visible-2",
+        type: "pattern",
+        content: "visible 2",
+        product_id: "example-product",
+        origin_repo_id: "backend",
+        promoted_at: "2026-05-04T00:00:00Z",
+      },
+      {
+        id: "pw-visible-3",
+        type: "pattern",
+        content: "visible 3",
+        product_id: "example-product",
+        origin_repo_id: "backend",
+        promoted_at: "2026-05-05T00:00:00Z",
+      },
+    ]);
+
+    const store = {
+      paths: { root: "/repo/web", wisdom: "/ext/wisdom.jsonl" },
+      productContext: {
+        currentRoot: "/repo/web",
+        currentRepoId: "web",
+        repoProjectId: "w".repeat(40),
+        productId: "example-product",
+        productProjectId: "b".repeat(40),
+        primaryRoot: "/repo/backend",
+        primaryRepoId: "backend",
+        repos: {
+          web: { id: "web", root: "/repo/web", repoProjectId: "w".repeat(40) },
+          backend: {
+            id: "backend",
+            root: "/repo/backend",
+            repoProjectId: "b".repeat(40),
+          },
+        },
+        mode: "secondary",
+        missingPrimaryPolicy: "block",
+      },
+    } as any;
+
+    const result = await wisdomTools.adv_wisdom_list.execute(
+      { project_only: true, maxEntries: 2 },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    // A pre-filter limit (the removed reader's defect) would slice to the two
+    // other-product entries and return zero visible rows.
+    expect(parsed.wisdom.map((e: { id: string }) => e.id)).toEqual([
+      "pw-visible-1",
+      "pw-visible-2",
+    ]);
+    expect(parsed.count).toBe(2);
+    // The bounded limit must never be pushed into the storage read.
+    expect(mocks.listProjectWisdom).toHaveBeenCalledWith("/repo/web", {
+      wisdomPath: "/ext/wisdom.jsonl",
+    });
+  });
+
+  it("rejects project_only combined with changeId", async () => {
+    const store = {
+      paths: { root: "/repo", wisdom: "/ext/wisdom.jsonl" },
+    } as any;
+
+    const result = await wisdomTools.adv_wisdom_list.execute(
+      { project_only: true, changeId: "myChange" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.error).toContain("project_only");
+    expect(mocks.listProjectWisdom).not.toHaveBeenCalled();
+  });
+
+  it("rejects project_only combined with query", async () => {
+    const store = {
+      paths: { root: "/repo", wisdom: "/ext/wisdom.jsonl" },
+    } as any;
+
+    const result = await wisdomTools.adv_wisdom_list.execute(
+      { project_only: true, query: "validation" },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.error).toContain("project_only");
+    expect(mocks.listProjectWisdom).not.toHaveBeenCalled();
+  });
+
+  it("rejects maxEntries without project_only", async () => {
+    const store = {
+      paths: { root: "/repo", wisdom: "/ext/wisdom.jsonl" },
+      wisdom: {
+        listAll: vi.fn(async () => []),
+      },
+    } as any;
+
+    const result = await wisdomTools.adv_wisdom_list.execute(
+      { maxEntries: 5 },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.error).toContain("maxEntries");
+    expect(store.wisdom.listAll).not.toHaveBeenCalled();
+    expect(mocks.listProjectWisdom).not.toHaveBeenCalled();
   });
 });

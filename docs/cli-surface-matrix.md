@@ -90,7 +90,6 @@
 | `adv_task_ready` | `keep-mcp-only` | Agent-workflow reads; low standalone CLI value |
 | `adv_gate_status` | `keep-mcp-only` | Agent reads constantly during workflow |
 | `adv_wisdom_list` | `keep-mcp-only` | Agent knowledge surface |
-| `adv_project_wisdom_list` | `keep-mcp-only` | Agent knowledge surface |
 | `adv_project_context` | `keep-mcp-only` | Agent context read |
 | `adv_project_metadata` | `keep-mcp-only` | Agent context read |
 | `adv_wip_state` | `keep-mcp-only` | Temporal/session-dependent aggregation |

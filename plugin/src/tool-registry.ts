@@ -606,7 +606,9 @@ export function createToolMap(
       store,
     ),
 
-    // Wisdom Tools
+    // Wisdom Tools — adv_project_wisdom_list was removed by
+    // consolidateAdvToolSurface2 (tk-11d902254d63); its project-only listing
+    // folded into adv_wisdom_list behind project_only + bounded maxEntries.
     adv_wisdom_add: bindTool(
       wisdomTools.adv_wisdom_add,
       "adv_wisdom_add",
@@ -615,11 +617,6 @@ export function createToolMap(
     adv_wisdom_list: bindTool(
       wisdomTools.adv_wisdom_list,
       "adv_wisdom_list",
-      store,
-    ),
-    adv_project_wisdom_list: bindTool(
-      wisdomTools.adv_project_wisdom_list,
-      "adv_project_wisdom_list",
       store,
     ),
 

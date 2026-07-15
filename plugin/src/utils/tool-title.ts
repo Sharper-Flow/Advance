@@ -41,10 +41,6 @@ const STATIC_TITLES: Record<
   adv_wip_state: { title: "Show WIP state", titleKind: "read" },
   adv_status: { title: "Show ADV status", titleKind: "read" },
   adv_project_context: { title: "Show project context", titleKind: "read" },
-  adv_project_wisdom_list: {
-    title: "List project wisdom",
-    titleKind: "read",
-  },
   adv_task_ready: { title: "Show ready tasks", titleKind: "read" },
   adv_temporal_register_search_attributes: {
     title: "Register Temporal search attributes",

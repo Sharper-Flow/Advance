@@ -490,7 +490,7 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_backlog_list: {
     tail_limit: { zero: "omit" },
   },
-  adv_project_wisdom_list: {
+  adv_wisdom_list: {
     maxEntries: { zero: "omit" },
   },
   adv_reflection_list: {
