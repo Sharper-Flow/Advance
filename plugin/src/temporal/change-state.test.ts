@@ -1330,6 +1330,150 @@ describe("change-state pure mutation helpers", () => {
     expect(state.tasks[0]?.subagent_reports).toHaveLength(1);
   });
 
+  it("rejects a designer report when the signal taskId conflicts with the report owner task", () => {
+    const state = createChangeWorkflowState({
+      changeId: "designer-owner-mismatch",
+      title: "Designer owner mismatch",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    for (const [id, priority] of [
+      ["tk-a", 0],
+      ["tk-b", 1],
+    ] as const) {
+      applyTaskAddedToState(state, {
+        task: {
+          id,
+          title: `Task ${id}`,
+          type: "code",
+          status: "pending",
+          priority,
+          created_at: "2026-05-06T00:00:01.000Z",
+          metadata: { frontend: "true" },
+        },
+        addedAt: "2026-05-06T00:00:01.000Z",
+      });
+    }
+    applyTaskAssignedToState(state, {
+      taskId: "tk-a",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-a",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-b",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-b",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+
+    // The report is owned by tk-b but claims tk-a's active cycle. A payload
+    // taskId of tk-a must not anchor cycle validation to tk-a while the
+    // evidence persists under tk-b.
+    expect(() =>
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-a",
+        report: makeDesignerReport("designer-owner-mismatch", "tk-b", "ic-a"),
+        submittedAt: "2026-05-06T00:00:03.000Z",
+      }),
+    ).toThrow(/SUBAGENT_REPORT_OWNER_MISMATCH/);
+    expect(state.subagent_reports ?? []).toHaveLength(0);
+    expect(state.seenReportIds ?? []).toHaveLength(0);
+    expect(state.seenReportIdsTotal ?? 0).toBe(0);
+    expect(state.tasks[0]?.subagent_reports ?? []).toHaveLength(0);
+    expect(state.tasks[1]?.subagent_reports ?? []).toHaveLength(0);
+  });
+
+  it("rejects a task-scoped engineer report when the signal taskId conflicts with the report owner task", () => {
+    const state = createChangeWorkflowState({
+      changeId: "engineer-owner-mismatch",
+      title: "Engineer owner mismatch",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    for (const [id, priority] of [
+      ["tk-a", 0],
+      ["tk-b", 1],
+    ] as const) {
+      applyTaskAddedToState(state, {
+        task: {
+          id,
+          title: `Task ${id}`,
+          type: "code",
+          status: "pending",
+          priority,
+          created_at: "2026-05-06T00:00:01.000Z",
+        },
+        addedAt: "2026-05-06T00:00:01.000Z",
+      });
+    }
+
+    // The ownership boundary is generic to task-scoped reports, not
+    // designer-only: a conflicting payload taskId is rejected before any
+    // storage even when no apply_context cycle is claimed.
+    expect(() =>
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-a",
+        report: makeEngineerReport("engineer-owner-mismatch", "tk-b"),
+        submittedAt: "2026-05-06T00:00:02.000Z",
+      }),
+    ).toThrow(/SUBAGENT_REPORT_OWNER_MISMATCH/);
+    expect(state.subagent_reports ?? []).toHaveLength(0);
+    expect(state.seenReportIds ?? []).toHaveLength(0);
+    expect(state.seenReportIdsTotal ?? 0).toBe(0);
+    expect(state.tasks[0]?.subagent_reports ?? []).toHaveLength(0);
+    expect(state.tasks[1]?.subagent_reports ?? []).toHaveLength(0);
+  });
+
+  it("persists a cycle-anchored designer report under the report owner when the signal omits taskId", () => {
+    const state = createChangeWorkflowState({
+      changeId: "designer-owner-derived",
+      title: "Designer owner derived",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+
+    applySubagentReportSubmittedToState(state, {
+      report: makeDesignerReport(
+        "designer-owner-derived",
+        "tk-frontend",
+        "ic-frontend",
+      ),
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    expect(state.subagent_reports).toHaveLength(1);
+    expect(state.seenReportIdsTotal).toBe(1);
+    expect(state.tasks[0]?.subagent_reports).toHaveLength(1);
+  });
+
   it("preserves checkpoint metadata when a duplicate completion omits checkpointSha", () => {
     const state = createChangeWorkflowState({
       changeId: "checkpoint-sha-guard-test",

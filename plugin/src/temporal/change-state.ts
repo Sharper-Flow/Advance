@@ -1077,7 +1077,30 @@ export function applySubagentReportSubmittedToState(
   state: ChangeWorkflowState,
   payload: SubagentReportSubmittedSignalPayload,
 ): ChangeWorkflowState {
-  const taskId = payload.taskId ?? taskIdFromReport(payload.report);
+  const taskScoped =
+    typeof payload.report.scope === "string" ||
+    payload.report.scope.kind === "task";
+  const reportOwnerTaskId = taskIdFromReport(payload.report);
+  // Ownership boundary: for task-scoped reports the report itself is the
+  // authority on which task owns it. A signal-level taskId that disagrees
+  // with the report owner is rejected before any storage and before cycle
+  // validation — otherwise cycle validation could anchor to one task while
+  // the evidence persists under another. Payloads whose taskId matches (or
+  // omits) the owner are unaffected.
+  if (
+    taskScoped &&
+    reportOwnerTaskId &&
+    payload.taskId &&
+    payload.taskId !== reportOwnerTaskId
+  ) {
+    throw new Error(
+      `SUBAGENT_REPORT_OWNER_MISMATCH: signal taskId ${payload.taskId} conflicts with task-scoped report owner task ${reportOwnerTaskId} (agent: ${payload.report.agent}, attempt: ${payload.report.attempt}).`,
+    );
+  }
+  const taskId =
+    taskScoped && reportOwnerTaskId
+      ? reportOwnerTaskId
+      : (payload.taskId ?? reportOwnerTaskId);
   const task = taskId ? getMutableTask(state, taskId) : undefined;
 
   // An adv-designer report carrying apply_context is cycle-anchored evidence:
@@ -1098,9 +1121,6 @@ export function applySubagentReportSubmittedToState(
     }
   }
 
-  const taskScoped =
-    typeof payload.report.scope === "string" ||
-    payload.report.scope.kind === "task";
   const reportId = reportKey(payload.report);
   const seenReportIds = state.seenReportIds ?? [];
   const alreadyStoredInSidecar = (state.subagent_reports ?? []).some(
