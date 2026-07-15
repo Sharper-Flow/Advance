@@ -51,7 +51,7 @@ Use typed tools only:
 | List active Epics                       | `adv_epic_list`     |
 | Inspect plausible overlapping Epics     | `adv_epic_show`     |
 | Inspect active changes for related work | `adv_change_list`   |
-| Inspect backlog/roadmap when relevant   | `adv_backlog_state` |
+| Inspect backlog/roadmap when relevant   | `adv_roadmap`       |
 
 Rules:
 

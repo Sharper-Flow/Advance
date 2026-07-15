@@ -26,12 +26,12 @@ import { tmpdir } from "node:os";
 import { createLegacyStore, type Store } from "../storage/store";
 import { cleanupTempDir, createTempDir, createTestProject } from "./setup";
 import { changeTools } from "../tools/change";
-import { backlogTools } from "../tools/backlog";
 import type { RoadmapSnapshot } from "../tools/roadmap";
 import {
   assessAnnotationFreshness,
   buildRefreshMetadata,
   DEFAULT_ANNOTATION_TTL_MS,
+  roadmapTools,
 } from "../tools/roadmap";
 import { buildChangeSearchAttributes } from "../temporal/search-attributes";
 import {
@@ -166,7 +166,8 @@ describe("RL-1: duplicate work prevented by pre-create claim check", () => {
 
 // =============================================================================
 // RL-2: Stale priorities (snapshot diverges from GH Project)
-// Mechanism: adv_backlog_state surfaces TTL-bounded freshness; reports
+// Mechanism: adv_roadmap surfaces TTL-bounded annotation freshness
+// (consolidated from the removed adv_backlog_state); it reports
 // needs_refresh: true when snapshot age > ttl_ms (default 5 min).
 // =============================================================================
 
@@ -250,8 +251,8 @@ describe("RL-4: every change with origin.issue_number indexes itself", () => {
 // =============================================================================
 
 describe("RL-5: annotation is decoupled from snapshot file freshness", () => {
-  test("adv_backlog_state annotates from Visibility regardless of snapshot age", async () => {
-    // Snapshot generated 1 hour ago — well past 5-min TTL.
+  test("adv_roadmap annotates from Visibility regardless of snapshot age", async () => {
+    // Snapshot refreshed 1 hour ago — well past the 5-min annotation TTL.
     const oldSnapshot: RoadmapSnapshot = {
       ...SAMPLE_SNAPSHOT,
       last_refreshed: "2026-05-11T00:00:00.000Z",
@@ -261,7 +262,7 @@ describe("RL-5: annotation is decoupled from snapshot file freshness", () => {
     try {
       const store = makeStoreAt(root);
 
-      const result = await backlogTools.adv_backlog_state.execute(
+      const result = await roadmapTools.adv_roadmap.execute(
         {},
         store,
         undefined,
@@ -274,17 +275,15 @@ describe("RL-5: annotation is decoupled from snapshot file freshness", () => {
             }
             return m;
           },
-          // 1 hour later — snapshot is stale, but annotation still works.
-          now: new Date("2026-05-11T01:00:00.000Z"),
         },
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.freshness.needs_refresh).toBe(true);
+      expect(parsed.annotation_freshness.needs_refresh).toBe(true);
       const annotated = parsed.features.find(
         (f: { number: number }) => f.number === 51,
       );
-      expect(annotated.active_change.changeId).toBe("liveActiveChange");
+      expect(annotated.active_change).toBe("liveActiveChange");
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -293,34 +292,33 @@ describe("RL-5: annotation is decoupled from snapshot file freshness", () => {
 
 // =============================================================================
 // RL-6: Unbounded triage (must run /adv-triage to see fresh state)
-// Mechanism: adv_backlog_state derives active-change annotation from
-// Visibility on every call, independent of when /adv-triage last ran.
+// Mechanism: adv_roadmap derives active-change annotation from Visibility
+// on every call, independent of when /adv-triage last ran.
 // =============================================================================
 
 describe("RL-6: backlog state queryable without prior /adv-triage", () => {
-  test("adv_backlog_state runs against legacy snapshot without TTL fields", async () => {
+  test("adv_roadmap runs against legacy snapshot without TTL fields", async () => {
     // Snapshot missing the v2 TTL fields entirely (pre-cutover format).
     const legacySnapshot: RoadmapSnapshot = { ...SAMPLE_SNAPSHOT };
     const root = await writeFixture(legacySnapshot);
     try {
       const store = makeStoreAt(root);
 
-      const result = await backlogTools.adv_backlog_state.execute(
+      const result = await roadmapTools.adv_roadmap.execute(
         {},
         store,
         undefined,
         {
           activeChangesAnnotator: async () => new Map(),
-          now: new Date("2026-05-11T00:00:00.000Z"),
         },
       );
 
       const parsed = JSON.parse(result);
       // Backward-compat: missing TTL fields → needs_refresh: true (force
       // refresh next time) — but the tool returns data, doesn't error.
-      expect(parsed.freshness.needs_refresh).toBe(true);
-      expect(parsed.freshness.age_ms).toBeNull();
-      expect(parsed.bugs).toHaveLength(1);
+      expect(parsed.annotation_freshness.needs_refresh).toBe(true);
+      expect(parsed.annotation_freshness.age_ms).toBeNull();
+      expect(parsed.bugs.high).toHaveLength(1);
       expect(parsed.features).toHaveLength(2);
     } finally {
       await rm(root, { recursive: true, force: true });

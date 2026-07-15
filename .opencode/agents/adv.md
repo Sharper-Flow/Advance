@@ -40,7 +40,6 @@ tools:
   adv_project_context: true
   # Roadmap
   adv_roadmap: true
-  adv_backlog_state: true
   adv_backlog_add: true
   adv_backlog_archive: true
   adv_backlog_list: true

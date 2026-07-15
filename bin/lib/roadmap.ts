@@ -281,7 +281,7 @@ export function renderRoadmap(
 
   // Annotation notice
   lines.push(
-    "active-change annotation: unavailable in CLI file mode (use adv_backlog_state / adv_roadmap MCP tool)",
+    "active-change annotation: unavailable in CLI file mode (use adv_roadmap MCP tool)",
   );
   lines.push(
     "epic annotation: unavailable in CLI file mode (use adv_epic_show / adv_epic_list MCP tool)",

@@ -67,7 +67,6 @@
 |---|---|---|
 | `adv_status` | `mcp+cli-additive` | CLI table shipped; MCP kept for `view:"health"` depth |
 | `adv_roadmap` | `mcp+cli-additive` | CLI file mode; MCP kept for live + Temporal annotation |
-| `adv_backlog_state` | `mcp+cli-additive` | CLI file mode; MCP kept for live + Temporal annotation |
 | `adv_backlog_add` | `no-cli-dangerous` | Backlog mutation |
 | `adv_backlog_list` | `keep-mcp-only` | Agent-facing backlog read |
 | `adv_backlog_show` | `keep-mcp-only` | Agent-facing backlog read |

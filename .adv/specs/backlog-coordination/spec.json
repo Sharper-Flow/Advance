@@ -3,8 +3,8 @@
   "name": "backlog-coordination",
   "title": "Backlog Coordination",
   "purpose": "Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. Bug priority labels act as the source of truth for issue ordering; the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).",
-  "version": "1.4.0",
-  "updated_at": "2026-06-25T00:00:00.000Z",
+  "version": "1.5.0",
+  "updated_at": "2026-07-15T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-backlogCoord01",
@@ -199,7 +199,7 @@
     {
       "id": "rq-backlogCoord05",
       "title": "Active-change cross-reference uses O(1) Visibility query",
-      "body": "When the agent renders a backlog with active-change annotations (e.g., adv_backlog_state), it MUST use queryActiveChangesByIssueNumbers \u2014 a single Temporal Visibility query with an IN clause covering all snapshot issue numbers \u2014 and MUST NOT call store.changes.get() per change. This replaces the legacy O(n*m) buildActiveChangeIndex pattern in plugin/src/tools/roadmap.ts:703-737. Inputs > 100 issue numbers are batched at 100 per call to stay under Temporal query-string length limits.",
+      "body": "When the agent renders a backlog with active-change annotations (adv_roadmap, the sole backlog reader), it MUST use queryActiveChangesByIssueNumbers \u2014 a single Temporal Visibility query with an IN clause covering all snapshot issue numbers \u2014 and MUST NOT call store.changes.get() per change. This replaced the legacy O(n*m) buildActiveChangeIndex pattern formerly in plugin/src/tools/roadmap.ts. Inputs > 100 issue numbers are batched at 100 per call to stay under Temporal query-string length limits. When Temporal Visibility is unreachable, the reader MUST return the requested roadmap data with a typed annotations_unavailable source-health state and MUST NOT fall back to per-change reads.",
       "priority": "must",
       "tags": ["coordination", "performance", "visibility"],
       "scenarios": [
@@ -209,7 +209,7 @@
           "given": [
             "A snapshot with 50 features and 10 bugs (60 issue numbers total)"
           ],
-          "when": "adv_backlog_state computes the active-change annotation",
+          "when": "adv_roadmap computes the active-change annotation",
           "then": [
             "queryActiveChangesByIssueNumbers is called exactly once",
             "store.changes.get() is NOT called from the annotation path"
@@ -223,6 +223,21 @@
           "then": [
             "The helper makes exactly 3 Visibility calls (250 / 100 = ceil 3)",
             "Results are merged into a single Map<number, ClaimVisibilityResult>"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord05.3",
+          "title": "Visibility outage yields typed annotations_unavailable, never per-change fallback",
+          "given": [
+            "A readable backlog snapshot",
+            "Temporal Visibility is unreachable (no service, no project id, or query failure)"
+          ],
+          "when": "adv_roadmap computes the active-change annotation",
+          "then": [
+            "The response includes typed annotation_status = annotations_unavailable",
+            "Roadmap items, counts, and freshness are still returned",
+            "store.changes.get() is NOT called from the annotation path",
+            "active_changes_indexed is null rather than an empty count"
           ]
         }
       ]

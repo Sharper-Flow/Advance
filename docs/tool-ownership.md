@@ -50,7 +50,7 @@ operator-owned and must not run as routine autonomous agent actions
 | `adv_wip_state` | dual | Cross-change work-in-progress aggregate read | No agent mutation surface; worktree/session state it reports on is operator-owned |
 | `adv_session_list` | dual | Privacy-defensive peer session inventory | No agent mutation surface; session lifecycle owned by the `oc` wrapper/operator |
 | `adv_session_show` | dual | Self-session detail read | No agent mutation surface; session lifecycle owned by the `oc` wrapper/operator |
-| `adv_roadmap` | dual | `file`/`live` backlog reads | Roadmap mirror regeneration via `/adv-triage` (HITL-scoped); live GitHub Project refresh is operator-triggered |
+| `adv_roadmap` | dual | `file`/`live` backlog reads with TTL-bounded freshness and O(1) active-change annotation | Roadmap mirror regeneration via `/adv-triage` (HITL-scoped); live GitHub Project refresh is operator-triggered |
 
 ## Orchestrator Tools
 
@@ -70,7 +70,6 @@ class rather than operator-only.
 
 | Tool | Class | Notes |
 |---|---|---|
-| `adv_backlog_state` | orchestrator | Ranked-backlog read with active-change annotation |
 | `adv_backlog_add` | orchestrator | Backlog item capture |
 | `adv_backlog_list` | orchestrator | Backlog read |
 | `adv_backlog_show` | orchestrator | Backlog read |

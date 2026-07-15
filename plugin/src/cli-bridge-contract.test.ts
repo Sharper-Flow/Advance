@@ -43,7 +43,6 @@ const BRIDGES: BridgeCase[] = [
 const FORBIDDEN_FANOUT_TOKENS = [
   "adv_status",
   "adv_roadmap",
-  "adv_backlog_state",
   "adv_change_list",
   "adv_change_show",
   "adv_gate_status",
@@ -128,7 +127,6 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_spec",
       "adv_delta_add",
       "adv_roadmap",
-      "adv_backlog_state",
       "adv_wip_state",
       "adv_backlog_add",
       "adv_backlog_list",

@@ -357,17 +357,14 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     completion_signal: { blank: "omit" },
   },
   // tk-2b89b9cf3042: verified top-level strict-mode placeholder policy groups.
-  // Zero omission only for the three positive-int optionals below; blank
-  // omission for adv_ops_run_evidence_add optional evidence fields and the
-  // twelve registered Epic tools' optional string / target-routing fields.
-  adv_backlog_state: {
+  // Zero omission for the positive-int optionals (adv_roadmap.top here,
+  // adv_change_repair_origin.origin_issue_number above); blank omission for
+  // adv_ops_run_evidence_add optional evidence fields and the twelve
+  // registered Epic tools' optional string / target-routing fields.
+  adv_roadmap: {
     // rq-toolPlaceholderPolicy01.5: strict-mode providers fill optional
     // .positive() ints with 0. top is a feature-slice limit; 0 means
     // "no limit provided", so normalize to omitted.
-    top: { zero: "omit" },
-  },
-  adv_roadmap: {
-    // Same zero-placeholder rationale as adv_backlog_state.top.
     top: { zero: "omit" },
   },
   adv_ops_run_evidence_add: {

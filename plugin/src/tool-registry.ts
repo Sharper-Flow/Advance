@@ -283,17 +283,13 @@ export function createToolMap(
       store,
     ),
 
-    // Roadmap Tool — reads the same backlog snapshot as adv_backlog_state;
-    // queries Visibility directly for active-change annotation when Temporal
-    // is reachable. Both tools coexist with different interfaces.
+    // Roadmap Tool — the sole backlog reader. Reads the backlog snapshot
+    // (or live GitHub Project) and queries Visibility directly for O(1)
+    // active-change annotation; adv_backlog_state was removed by
+    // consolidateAdvToolSurface2 (tk-f022bfadbd81).
     adv_roadmap: bindTool(roadmapTools.adv_roadmap, "adv_roadmap", store),
 
-    // Backlog Coordination Tools (rq-backlogCoord01..07)
-    adv_backlog_state: bindTool(
-      backlogTools.adv_backlog_state,
-      "adv_backlog_state",
-      store,
-    ),
+    // Backlog Coordination Tools (rq-backlogCoord04)
     adv_wip_state: bindTool(backlogTools.adv_wip_state, "adv_wip_state", store),
 
     // Backlog Shell Tools

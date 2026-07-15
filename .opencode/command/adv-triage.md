@@ -6,7 +6,7 @@ description: Triage backlog sources, reconcile into GH issues, apply bug priorit
 
 Reconcile backlog sources into GH issues, apply `priority:*` labels to bugs autonomously, and regenerate `ROADMAP.md`. Roadmap issue flow uses GH Projects v2 as truth. `ROADMAP.md` = generated mirror, committed and pushed at end. User questions gather bug context only; the agent owns priority assignment.
 
-> **rq-backlogCoord01 / AC7 note:** After the agentic-backlog-coordination cutover, `/adv-triage` focuses on **reconciling, prioritizing bugs, and adding items**. Active-change annotation freshness is no longer this command's responsibility — `adv_backlog_state` derives it on demand via Temporal Visibility (`AdvBacklogIssueNumber`) under a TTL-bounded contract (default 5 min). Routine "is the backlog fresh?" use no longer requires running `/adv-triage`.
+> **rq-backlogCoord01 / AC7 note:** After the agentic-backlog-coordination cutover, `/adv-triage` focuses on **reconciling, prioritizing bugs, and adding items**. Active-change annotation freshness is no longer this command's responsibility — `adv_roadmap` derives it on demand via Temporal Visibility (`AdvBacklogIssueNumber`) under a TTL-bounded contract (default 5 min). Routine "is the backlog fresh?" use no longer requires running `/adv-triage`.
 
 > **CHECKLIST**: Default execute. `--dry-run` previews without mutations. Tier B inline approval required before opening issues, before writing/pushing ROADMAP.md, before deprecating local sources — gates run in execute mode regardless of invocation. Bug priority via `priority:{critical,high,medium,low}` labels. Scoring fields on features are read-only on snapshot; GH Project remains canonical for any remaining numeric data.
 

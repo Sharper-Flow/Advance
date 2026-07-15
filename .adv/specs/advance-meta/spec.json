@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.24.0",
-  "updated_at": "2026-07-14",
+  "version": "1.24.1",
+  "updated_at": "2026-07-15",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -491,7 +491,7 @@
     {
       "id": "rq-roadmapCliBridge01",
       "title": "Roadmap Slash Command Uses CLI Bridge",
-      "body": "The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.",
+      "body": "The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.",
       "priority": "must",
       "tags": [
         "roadmap",
@@ -522,7 +522,7 @@
           ],
           "when": "Its default body is evaluated for roadmap work instructions",
           "then": [
-            "It does not instruct the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, or adv_spec",
+            "It does not instruct the agent to call adv_roadmap, adv_change_list, adv_change_show, adv_gate_status, or adv_spec",
             "It does not instruct the agent to build active-change cross-reference, synthesize recommendations, or read freshness metadata",
             "It tells the agent to return the command output verbatim without analysis"
           ]

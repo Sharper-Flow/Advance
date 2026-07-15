@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.24.0
-> **Updated:** 2026-07-14
+> **Version:** 1.24.1
+> **Updated:** 2026-07-15
 
 ## Purpose
 
@@ -449,7 +449,7 @@ The local `adv dashboard` routine `/api/state` refresh must build ADV summary ca
 
 **ID:** `rq-roadmapCliBridge01` | **Priority:** **[MUST]**
 
-The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.
+The default /adv-roadmap slash command must be a thin OpenCode shell-output bridge over `adv roadmap --no-color`. It must return the CLI roadmap table output without instructing the agent to call adv_roadmap, adv_change_list, adv_change_show, adv_gate_status, adv_spec, synthesize recommendations, or read freshness metadata. Active-change annotation is explicitly out of CLI file mode and available only via explicit MCP backlog tooling; the CLI MUST NOT fabricate annotation from disk.
 
 **Tags:** `roadmap`, `command`, `cli`, `no-fanout`
 
@@ -476,7 +476,7 @@ The default /adv-roadmap slash command must be a thin OpenCode shell-output brid
 **When:** Its default body is evaluated for roadmap work instructions
 
 **Then:**
-- It does not instruct the agent to call adv_roadmap, adv_backlog_state, adv_change_list, adv_change_show, adv_gate_status, or adv_spec
+- It does not instruct the agent to call adv_roadmap, adv_change_list, adv_change_show, adv_gate_status, or adv_spec
 - It does not instruct the agent to build active-change cross-reference, synthesize recommendations, or read freshness metadata
 - It tells the agent to return the command output verbatim without analysis
 

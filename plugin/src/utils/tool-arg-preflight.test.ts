@@ -281,18 +281,12 @@ const AUDITED_PREFLIGHT_POLICY_REQUIREMENTS: ExpectedFieldPolicy[] = [
     action: "omit",
   },
   // tk-2b89b9cf3042: verified top-level strict-mode placeholder policy groups.
-  // Zero omission only for the three positive-int optionals; blank omission
+  // Zero omission only for the two positive-int optionals; blank omission
   // for adv_ops_run_evidence_add optional evidence fields and the twelve
   // registered Epic tools' optional string / target-routing fields.
   {
     toolName: "adv_change_repair_origin",
     field: "origin_issue_number",
-    policy: "zero",
-    action: "omit",
-  },
-  {
-    toolName: "adv_backlog_state",
-    field: "top",
     policy: "zero",
     action: "omit",
   },
@@ -1198,20 +1192,6 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
       approvedByUser: true,
       reason: "real rationale",
     },
-  },
-  {
-    label: "zero backlog top normalizes to omitted",
-    toolName: "adv_backlog_state",
-    rawArgs: { top: 0 },
-    ok: true,
-    normalizedArgs: {},
-  },
-  {
-    label: "non-zero backlog top is preserved",
-    toolName: "adv_backlog_state",
-    rawArgs: { top: 5 },
-    ok: true,
-    normalizedArgs: { top: 5 },
   },
   {
     label: "zero roadmap top normalizes to omitted",
