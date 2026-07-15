@@ -1324,9 +1324,6 @@ describe("adv_subagent_report_submit — non-terminal WorkflowNotFound recovery 
 
   beforeEach(async () => {
     mocks.fireSignalAndRefresh.mockClear();
-    mocks.addAgendaItem.mockClear();
-    mocks.loadAgenda.mockClear();
-    mocks.loadAgenda.mockResolvedValue({ meta: null, items: [] });
     tempRoot = await mkdtemp(join(tmpdir(), "adv-nonterminal-report-"));
   });
 
