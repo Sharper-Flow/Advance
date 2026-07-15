@@ -1,0 +1,1776 @@
+{
+  "id": "fixTaskCycleAnchoring",
+  "title": "Fix task cycle anchoring",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-15T13:47:20.395Z",
+  "tasks": [
+    {
+      "id": "tk-2b243a0aa3f8",
+      "title": "Add typed task-cycle lifecycle state",
+      "type": "code",
+      "section": "Lifecycle foundation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-15T15:12:42.216Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T15:18:04.390Z",
+      "verification": "TDD red/green guard coverage; 13 related suites passed via adv_run_test tr_mrmbu7zm_078bde69; pnpm run check passed via tr_mrmbvp4z_dc7460bf; pnpm run build passed via tr_mrmbwb6v_4b3ecb73. Completion now rejects frontend tasks with no active cycle and designer reports with no matching active cycle.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts"
+      ],
+      "checkpointSha": "105d2609e5e9021cb68f68ea659887d6e46e23db",
+      "completedAt": "2026-07-15T17:03:09.285Z",
+      "completed_at": "2026-07-15T17:03:09.285Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTaskCycleAnchoring",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTaskCycleAnchoring",
+          "task_id": "tk-2b243a0aa3f8",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2b243a0aa3f8"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/temporal/change-state.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/temporal/change-state.test.ts -t \"implementation cycle\" / -t \"designer report\"",
+              "exit_code": 1,
+              "summary": "RED confirmed: 3 new guard tests failed pre-fix (no-cycle completion, no-cycle designer report, mismatched-cycle designer report)."
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/change-state.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 56/56 tests pass after implementing both fixes and updating two pre-anchor persistence tests."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/change-state.crash-recovery.test.ts src/temporal/change-state.ops-follow-up.test.ts src/temporal/change-state.signal-rejection.test.ts src/temporal/change-state.size-guard.test.ts src/temporal/change-state.spec-delta.test.ts src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/gate-readiness.test.ts src/tools/subagent-report.test.ts src/tools/task.test.ts src/tools/followup.test.ts src/utils/loop-ledger.test.ts",
+              "exit_code": 0,
+              "summary": "Related scan: 13 files, 289/289 tests pass."
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, isolation, lockfile, ESLint, and Prettier pass."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Block frontend completion when no active implementation cycle exists.",
+              "why": "Cycle-before-evidence contract requires a hard block, never inferred or backfilled state."
+            },
+            {
+              "what": "Validate designer apply_context against the active task cycle before persistence and duplicate handling.",
+              "why": "Pre-anchor evidence must never persist or later satisfy a newly assigned cycle."
+            },
+            {
+              "what": "Limit the report anchor boundary to designer reports with apply_context.",
+              "why": "The accepted invariant is designer-specific; legacy reports that make no cycle claim remain compatible."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Consider a separately approved change if engineer apply_context must receive the same persistence-boundary validation; accepted scope is designer-specific."
+          ],
+          "required_main_agent_actions": [],
+          "related_scan": "All consumers of applyTaskCompletedToState and applySubagentReportSubmittedToState plus neighboring change-state, workflow, tool, and ledger suites passed; hasMatchingDesignerApplyEvidence has one consumer.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Both acceptance blockers are structurally fixed: frontend completion without active cycle now throws TASK_COMPLETION_BLOCKED; designer reports claiming apply_context require a matching active cycle and otherwise throw SUBAGENT_REPORT_ANCHOR_REJECTED. Legacy reports without apply_context remain compatible. TDD evidence: 56/56 local, 289/289 related, pnpm run check pass.",
+            "suggested_next_action": "Inspect diff, checkpoint reopened tasks, then rerun acceptance review."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/change-state.test.ts -t \"implementation cycle\" / -t \"designer report\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/change-state.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/change-state.crash-recovery.test.ts src/temporal/change-state.ops-follow-up.test.ts src/temporal/change-state.signal-rejection.test.ts src/temporal/change-state.size-guard.test.ts src/temporal/change-state.spec-delta.test.ts src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/gate-readiness.test.ts src/tools/subagent-report.test.ts src/tools/task.test.ts src/tools/followup.test.ts src/utils/loop-ledger.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-439d2a05a883",
+      "title": "Enforce cycle-aware report completion",
+      "type": "code",
+      "section": "Evidence guard",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-15T15:13:02.914Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2b243a0aa3f8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T15:27:29.562Z",
+      "verification": "Owner-task boundary remediation: task-scoped report owner is derived from report scope; conflicting signal task IDs reject before storage/cycle validation. 59 reducer tests passed (tr_mrmccil1_cc0c0045), signal/report suites passed (tr_mrmcdlao_cae146d1), and check+build passed (tr_mrmcffhs_d1b83628).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts"
+      ],
+      "checkpointSha": "b16ff25bee06f55a6eb8ce0e2b981cb2778be182",
+      "completedAt": "2026-07-15T17:18:03.449Z",
+      "completed_at": "2026-07-15T17:18:03.449Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTaskCycleAnchoring",
+          "attempt": 3,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTaskCycleAnchoring",
+          "task_id": "tk-439d2a05a883",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-439d2a05a883"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/temporal/change-state.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "pnpm exec vitest run src/temporal/change-state.test.ts -t \"owner\"",
+              "exit_code": 1,
+              "summary": "RED confirmed: owner-conflict cases failed pre-fix; omitted-taskId compatibility case passed."
+            },
+            {
+              "command": "pnpm exec vitest run src/temporal/change-state.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: all 59 tests pass (56 prior plus designer conflict, engineer conflict, and owner-derived persistence cases)."
+            },
+            {
+              "command": "bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts src/tools/subagent-report.test.ts",
+              "exit_code": 0,
+              "summary": "58 passed; workflow signal-handler and report-submit tool layer remain compatible."
+            },
+            {
+              "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+              "exit_code": 0,
+              "summary": "Typecheck clean."
+            },
+            {
+              "command": "pnpm exec eslint + prettier --check on touched files",
+              "exit_code": 0,
+              "summary": "Lint and format clean."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Derive task-scoped report ownership from taskIdFromReport(report) and reject a conflicting payload task ID before persistence.",
+              "why": "Eliminates attacker-controlled or malformed mixed task identity at the cycle boundary."
+            },
+            {
+              "what": "Use SUBAGENT_REPORT_OWNER_MISMATCH separate from cycle-anchor rejection.",
+              "why": "Makes ownership conflicts structural, greppable, and independently diagnosable."
+            },
+            {
+              "what": "Apply owner-identity validation to all task-scoped reports.",
+              "why": "A conflicting payload task ID is invalid regardless of agent; designer cycle validation then runs on the authoritative owner."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Mixed payload/report task identity was localized. The report tool sends matching IDs; other consumers derive task identity from reports or use only the legacy fallback.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task-scoped report ownership now derives from report scope, conflicting payload task IDs reject before storage/cycle validation, and designer apply_context validates against owner task active cycle. Red/green tests prove conflict leaves no report or seen ID persisted.",
+            "suggested_next_action": "Checkpoint the task and rerun acceptance review."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/change-state.test.ts -t \"owner\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/change-state.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts src/tools/subagent-report.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit -p tsconfig.json"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec eslint + prettier --check on touched files"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-4640907bf75c",
+      "title": "Verify rollout and checkpoint recovery",
+      "type": "verification",
+      "section": "Release proof",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-15T15:13:35.890Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-439d2a05a883"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC4",
+          "AC5",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C4",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "assignedTo": "agent",
+      "started_at": "2026-07-15T15:36:12.928Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixTaskCycleAnchoring",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTaskCycleAnchoring",
+          "task_id": "tk-4640907bf75c",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4640907bf75c"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "files_touched": [
+            "plugin/src/temporal/change-state.test.ts"
+          ],
+          "verification": [
+            {
+              "command": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/workflows.signal-handlers.test.ts src/tools/task.test.ts",
+              "exit_code": 0,
+              "summary": "3 files, 119/119 tests pass; runId tr_mrm9w53o_ed84fd83"
+            },
+            {
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check + typecheck + isolation + lockfile + lint + format:check all green"
+            },
+            {
+              "command": "pnpm run build",
+              "exit_code": 0,
+              "summary": "plugin dist/index.js + Temporal worker bundles built successfully"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Modeled stale cycle via applyTaskAssignedToState re-assignment overwriting task.apply_cycle",
+              "why": "Matches runtime semantics: guard reads current apply_cycle; evidence keyed to prior cycle id must no longer match"
+            },
+            {
+              "what": "Asserted dedupe counters (seenReportIdsTotal=1, single sidecar + task report storage) in duplicate tests",
+              "why": "Proves AC3 duplicate handling is idempotent in both directions — stale duplicate cannot launder evidence, matching duplicate cannot strip it"
+            },
+            {
+              "what": "No runtime changes",
+              "why": "Guard at change-state.ts:897-914 + hasMatchingDesignerApplyEvidence:1043-1056 already implements contract; tests confirmed behavior, no defect revealed"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none — guard has a single call site; no parallel patterns to fix",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC4 regression matrix complete in plugin/src/temporal/change-state.test.ts: existing missing+allow tests retained; added mismatch, stale-cycle, stale-duplicate, and matching-duplicate cases with dedupe-counter assertions (seenReportIdsTotal stays 1, single sidecar/task storage). Runtime guard unchanged — no defect found. Verification: targeted trio 119/119 pass (runId tr_mrm9w53o_ed84fd83), pnpm run check exit 0, pnpm run build exit 0. Pre-existing dirty plugin/schemas/change.schema.json + task.schema.json untouched; schemas:check green. Deploy/restart not performed per packet boundary.",
+            "suggested_next_action": "Checkpoint tk-4640907bf75c citing tr_mrm9w53o_ed84fd83 plus check/build pass; proceed to acceptance/release proof (deploy + runtime restart remain orchestrator-owned)."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/workflows.signal-handlers.test.ts src/tools/task.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run build"
+            }
+          ]
+        }
+      ],
+      "verification": "AC4: scoped regression suite 119/119 passed; pnpm run check and pnpm run build passed. AC5: deployment/restart recovery now proved by successful original cross-project checkpoint from registered lightenSkyButtons worktree, commit f37f699e9d700c71bc770361077526acda6c84a1.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "c4e45198cef36eca3af6de3183e30b8aa955e3d6",
+      "completedAt": "2026-07-15T16:40:32.639Z",
+      "completed_at": "2026-07-15T16:40:32.639Z",
+      "blockReason": "AC4 committed and local deployment ran from registered worktree. Temporal worker restart is serviceable, but deploy reports deployed-worker bounce incomplete and this OpenCode plugin host still has its pre-deploy bundle. A fresh OpenCode session/plugin-host restart is required before authoritative cross-project checkpoint verification for lightenSkyButtons.",
+      "attempts": []
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTaskCycleAnchoring",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:cycle-anchor-discovery"
+      },
+      "agent": "adv-researcher",
+      "topic": "Task-cycle anchor discovery",
+      "sources": [
+        {
+          "label": "Deployed workflow completion guard",
+          "locator": "file:///home/jon/.local/share/Advance/plugin/dist/temporal/workflows.js#L742-L770",
+          "summary": "Deployed workflow blocks frontend completion unless task.apply_cycle carries an implementation_cycle_id and a successful designer report matches that cycle."
+        },
+        {
+          "label": "Deployed report persistence reducer",
+          "locator": "file:///home/jon/.local/share/Advance/plugin/dist/temporal/workflows.js#L858-L914",
+          "summary": "Accepted reports are appended to change/task report arrays, but task.apply_cycle is never initialized or updated."
+        },
+        {
+          "label": "Deployed apply-context schemas and evidence matcher",
+          "locator": "file:///home/jon/.local/share/Advance/plugin/dist/chunk-6DV6AWSH.js#L215-L237",
+          "summary": "Deployed bundle defines strict ApplyContextSchema with implementation_cycle_id and provenance."
+        },
+        {
+          "label": "Deployed designer evidence predicate",
+          "locator": "file:///home/jon/.local/share/Advance/plugin/dist/chunk-6DV6AWSH.js#L304-L332",
+          "summary": "Matching evidence requires designer status complete, no blockers, null scope drift, all verification exit codes zero, and equal implementation cycle ID."
+        },
+        {
+          "label": "Checked-out source report schemas",
+          "locator": "file:///home/jon/dev/advance/plugin/src/types/subagent-reports.ts#L169-L189",
+          "summary": "Source engineer schema is strict and lacks apply_context; designer schema also lacks it at lines 236-260."
+        },
+        {
+          "label": "Checked-out source task schema",
+          "locator": "file:///home/jon/dev/advance/plugin/src/types/tasks.ts#L162-L252",
+          "summary": "Source TaskSchema has no apply_cycle field, though passthrough permits untyped legacy/forward fields."
+        },
+        {
+          "label": "Checked-out source report reducer",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/change-state.ts#L1030-L1097",
+          "summary": "Source reducer persists reports and blockers but no cycle anchor."
+        },
+        {
+          "label": "Checkpoint signal path",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/checkpoint.ts#L407-L485",
+          "summary": "Checkpoint fires taskCompletedSignal and surfaces the latest taskCompleted signal rejection when task does not become done."
+        },
+        {
+          "label": "Build and deployment contract",
+          "locator": "file:///home/jon/dev/advance/AGENTS.md#L43-L48",
+          "summary": "Live tools load deployed dist; source changes require build, deploy, and host restart."
+        },
+        {
+          "label": "Build outputs",
+          "locator": "file:///home/jon/dev/advance/plugin/package.json#L17-L33",
+          "summary": "pnpm run build builds both plugin and Temporal worker bundles."
+        },
+        {
+          "label": "Timestamp-based dist freshness check",
+          "locator": "file:///home/jon/dev/advance/scripts/deploy-local.sh#L190-L230",
+          "summary": "Deploy freshness compares source/input mtimes against outputs; it does not establish semantic source-to-dist equivalence."
+        },
+        {
+          "label": "Existing reducer and workflow tests",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/change-state.test.ts#L256-L320",
+          "summary": "Existing tests cover report persistence and dedupe but not task-cycle anchoring."
+        },
+        {
+          "label": "Existing Temporal integration tests",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/workflows.signal-handlers.test.ts#L1292-L1385",
+          "summary": "Existing workflow tests cover report storage, signal rejection resilience, and report dedupe but not frontend cycle-bound completion."
+        },
+        {
+          "label": "Temporal TypeScript workflow activation source",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/worker-interface.ts",
+          "summary": "Official SDK source shows activation jobs invoke handlers and then reevaluate blocked conditions, supporting durable workflow-state mutation in signal handlers."
+        }
+      ],
+      "architecture_assessment": "Current deployed bundle contains cycle-aware schemas, report identity, and a strict frontend checkpoint guard, but its report reducer never persists task.apply_cycle. Checked-out source is further behind: it lacks ApplyContext fields, Task.apply_cycle, cycle-aware identity, and the guard. This is a major source/deploy split and an incomplete state-machine transition. Preferred structural repair: persist an orchestrator-issued task cycle before delegation through a typed workflow mutation, then treat engineer/designer reports only as evidence bound to that existing anchor. Minimal viable alternative: atomically initialize task.apply_cycle from the first accepted task-scoped implementation report, before duplicate early returns, reject conflicting cycle IDs, and provide an explicit typed new-cycle transition for retries. Never let arbitrary late or stale reports overwrite the active cycle. Keep the checkpoint guard strict.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          "Deployed frontend task completion can remain permanently blocked because the guard requires task.apply_cycle.implementation_cycle_id while deployed report persistence only appends reports and never sets task.apply_cycle.",
+          "Checked-out source cannot reproduce deployed behavior: strict source report schemas reject apply_context, TaskSchema lacks apply_cycle, source report identity is not cycle-aware, and source workflow lacks the deployed frontend guard."
+        ],
+        "notes": "Two concrete edge cases: (1) a valid designer report for cycle C is persisted, but task.apply_cycle remains absent, so checkpoint rejects despite valid evidence; (2) retry reports for distinct cycles collide or can be mishandled if identity omits cycle or if stale reports overwrite the active anchor. Additional edge: rebuilding/deploying checked-out source can remove the live guard and apply-context contract. No existing capability spec was available in the briefing packet; direct ADV-state reads were intentionally not attempted."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "Dedicated typed cycle-start mutation adds schema/message/orchestrator wiring but preserves authority, retry ordering, and checkpoint integrity.",
+          "Initializing from report persistence is smaller but makes the first report the cycle authority and requires explicit conflict/retry semantics.",
+          "Cycle-aware report keys preserve retry evidence but alter legacy dedupe identity and need compatibility tests."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Persist orchestrator-issued cycle before delegation via typed workflow mutation",
+            "disposition": "preferred",
+            "rationale": "Separates authoritative task-cycle state from worker-produced evidence, prevents stale report overwrite, and lets checkpoint compare evidence against durable state."
+          },
+          {
+            "option": "Initialize cycle atomically from first accepted implementation report",
+            "disposition": "deferred",
+            "rationale": "Viable minimal repair if report packet authority is accepted, but must initialize before duplicate returns, reject mismatches, and add an explicit new-cycle transition."
+          },
+          {
+            "option": "Infer current cycle from latest persisted report during checkpoint",
+            "disposition": "rejected",
+            "rationale": "Ordering is not authority; late/stale reports can change inferred state and weaken structural correctness."
+          },
+          {
+            "option": "Remove or relax frontend checkpoint guard",
+            "disposition": "rejected",
+            "rationale": "Violates scope and loses cycle-bound designer evidence integrity."
+          }
+        ],
+        "recommendation": "Restore one shared ApplyContext vocabulary across source schemas, Task.apply_cycle, report identity, messages, reducers, tools, and generated schemas; add an authoritative cycle-start transition; preserve strict completion matching. Add reducer, workflow-integration, report-tool, checkpoint clean/committed, legacy compatibility, mismatched/stale-cycle, and source-build/deploy parity tests."
+      },
+      "recommendation": "Implement authoritative task-cycle start before delegation. Required regressions: missing anchor blocks; matching valid designer evidence passes; mismatched/stale cycle blocks; failed/error/blocker/scope-drift/nonzero verification blocks; duplicate same-cycle report is idempotent and can backfill only under explicit compatibility rule; new cycle cannot be overwritten by late old-cycle report; both clean and committed checkpoint paths surface rejection; fresh source build contains same schemas and guard as deployed output. Add/update capability law for cycle authority, transition ordering, dedupe identity, and legacy behavior. User-facing tradeoff: none in product UX; only agent workflow may expose a precise retry/remediation message when cycle initialization is missing.",
+      "follow_ups": [
+        "Briefing packet supplied no contract review matrix, task list, affected files, durable facts, or capability spec content. Validate the proposed requirements against the owning ADV capability spec during design using ADV spec tooling.",
+        "Investigate how the deployed cycle-aware artifact was produced while checked-out source and local source dist lack the feature; do not deploy from current source until parity is restored."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTaskCycleAnchoring",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:cycle-anchor-design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Cycle-anchor design validation",
+      "sources": [
+        {
+          "label": "Current task lifecycle types and assignment reducer",
+          "locator": "plugin/src/types/tasks.ts:162-230; plugin/src/types/signals.ts:144-168; plugin/src/temporal/change-state.ts:837-847",
+          "summary": "Task state and taskAssigned payload currently carry assignment identity/time but no implementation-cycle anchor; completion reducer is workflow-state authority."
+        },
+        {
+          "label": "Current assignment tool and resume contract",
+          "locator": "plugin/src/tools/task.ts:724-737,854-903; .opencode/command/adv-apply.md:598-606",
+          "summary": "adv_task_update fires taskAssignedSignal before routing and returns queried task state; apply resume behavior continues an active task, so cycle minting must distinguish resume/idempotent replay from a deliberately new cycle."
+        },
+        {
+          "label": "Strict report schemas and stable identity",
+          "locator": "plugin/src/types/subagent-reports.ts:54-72,169-189,236-260,994-1025,1075-1089",
+          "summary": "Engineer/designer reports are strict, currently lack cycle context, and use one shared byte-stable report-key helper."
+        },
+        {
+          "label": "Report dedupe and downstream key parser",
+          "locator": "plugin/src/temporal/change-state.ts:1009-1068; plugin/src/tools/epic.ts:101-128",
+          "summary": "Workflow dedupe depends on report identity; one downstream consumer parses the pipe-delimited key's second segment, constraining compatible key evolution."
+        },
+        {
+          "label": "Checkpoint completion path",
+          "locator": "plugin/src/tools/checkpoint.ts:363-442,444-516; plugin/src/temporal/change-state.ts:875-924",
+          "summary": "Checkpoint currently treats any persisted report only as a structured-output suppression signal, emits taskCompletedSignal, and verifies resulting state; no source cycle/evidence guard exists."
+        },
+        {
+          "label": "Poisoned-history assignment fallback",
+          "locator": "plugin/src/tools/task.ts:804-850",
+          "summary": "The task tool can disk-project in_progress assignment during poisoned-history recovery, which must not silently become a second authority for a Temporal-only cycle anchor."
+        },
+        {
+          "label": "Build and deployment pipeline",
+          "locator": "plugin/package.json:17-33; scripts/deploy-local.sh:190-257,1248-1271; docs/temporal-recovery.md:583",
+          "summary": "Normal build produces plugin and worker bundles; deployment rebuilds stale dist, rsyncs source plugin to stable runtime, and refreshes deployed Temporal workers."
+        },
+        {
+          "label": "Temporal TypeScript deterministic change guidance",
+          "locator": "https://docs.temporal.io/typescript/versioning",
+          "summary": "Temporal documents patched versioning for workflow changes that alter command behavior; data-only schema evolution still needs old-history-compatible payload handling."
+        },
+        {
+          "label": "Temporal TypeScript patched API source",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts",
+          "summary": "Official SDK source defines patched() behavior for replay-safe old/new workflow branches."
+        }
+      ],
+      "architecture_assessment": "Design direction is structurally sound: mint cycle identity outside workflow nondeterminism, persist it through taskAssignedSignal before delegation, require typed report context, and enforce completion against workflow state. Proceed only after tightening four hazards: (1) define repeat-assignment semantics so resume does not remint and explicit retry does; (2) preserve legacy report keys while appending cycle identity only for cycle-aware reports and update every key consumer; (3) make old signal histories replay-compatible through optional/cutover data rather than retroactively rejecting legacy completions; (4) prohibit or explicitly design poisoned-history disk fallback for cycle creation because agreement requires Temporal-only authority. Current source contains no cycle guard, and current built/runtime bundles inspected on disk expose no cycle tokens, so deployed parity must be proven after implementation rather than assumed.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contradictory requirement or inherent Temporal determinism blocker found. Design needs explicit compatibility, idempotency, recovery, and regression-test details before implementation."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Cycle-aware identity prevents stale evidence reuse but expands persisted report-key compatibility surface and fixture maintenance.",
+          "Optional legacy-compatible fields avoid retroactive replay breakage but require an explicit cutover rule so new delegated work cannot bypass the guard.",
+          "Reducer-side enforcement is harder to bypass than tool-only checks, but checkpoint must still preflight and surface precise no-cycle/mismatch/stale errors.",
+          "One active cycle per task is simple and sufficient, but replacing it on retry retains stale reports only as audit evidence and requires explicit new-cycle semantics."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Typed TaskApplyCycle plus typed report apply_context and workflow-state completion guard",
+            "disposition": "preferred",
+            "rationale": "Makes lifecycle ownership, evidence matching, and stale-cycle rejection structural while keeping reports as evidence rather than authority."
+          },
+          {
+            "option": "Infer cycle from report text, attempt, or latest report",
+            "disposition": "rejected",
+            "rationale": "Heuristic inference cannot prove lifecycle ownership and conflicts with strict typed-report boundaries."
+          },
+          {
+            "option": "Report submission mints or replaces task cycle",
+            "disposition": "rejected",
+            "rationale": "Lets evidence create its own authority and cannot safely distinguish stale retries."
+          },
+          {
+            "option": "Checkpoint-tool-only guard",
+            "disposition": "rejected",
+            "rationale": "Other completion-signal paths could bypass lifecycle integrity; workflow reducer must remain authoritative for cycle-aware completion."
+          },
+          {
+            "option": "Unconditionally require cycles while replaying all historical task signals",
+            "disposition": "rejected",
+            "rationale": "Old taskAssigned/taskCompleted histories lack cycle data and could have their projected completion semantics changed retroactively."
+          }
+        ],
+        "recommendation": "Proceed with revised design: add optional replay-compatible cycle fields, mint once at the pre-delegation assignment boundary, expose persisted cycle in adv_task_update output/packet, append cycle to report identity without changing legacy keys, compare typed report fields directly, and enforce cycle-aware completion in the reducer plus checkpoint preflight. Coordinate/rebase with updateSubagentDispatch before touching strict report schemas or identity."
+      },
+      "recommendation": "Revise design before planning. Specify TaskApplyCycle lifecycle and idempotency, legacy cutover behavior, cycle ID validation/format, exact successful-evidence predicate, poisoned-history policy, and shared identity migration with updateSubagentDispatch. Add tests for assignment persistence; same-cycle idempotency; explicit new-cycle supersession; old payload replay; legacy/new report keys; same-attempt cross-cycle dedupe; missing/mismatch/stale/duplicate/error-status reports; direct reducer bypass; continue-as-new/query projection; generated schema parity; deploy build/rsync/worker-refresh parity; and original lightenSkyButtons checkpoint.",
+      "follow_ups": [
+        "Coordinate with active updateSubagentDispatch because both changes touch strict engineer/designer report contracts, report identity, apply packets, and delegation sequence.",
+        "Define whether cycle creation is refused in poisoned_history mode or receives a separately approved Temporal recovery path; do not extend the current disk-projection assignment fallback silently.",
+        "Operational acceptance should compare source dist and stable runtime outputs after normal deploy and confirm restarted worker behavior; current source and on-disk bundles do not contain implementation_cycle_id/apply_cycle/TASK_COMPLETION_BLOCKED tokens."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTaskCycleAnchoring",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTaskCycleAnchoring",
+      "task_id": "tk-4640907bf75c",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4640907bf75c"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/change-state.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/workflows.signal-handlers.test.ts src/tools/task.test.ts",
+          "exit_code": 0,
+          "summary": "3 files, 119/119 tests pass; runId tr_mrm9w53o_ed84fd83"
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check + typecheck + isolation + lockfile + lint + format:check all green"
+        },
+        {
+          "command": "pnpm run build",
+          "exit_code": 0,
+          "summary": "plugin dist/index.js + Temporal worker bundles built successfully"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Modeled stale cycle via applyTaskAssignedToState re-assignment overwriting task.apply_cycle",
+          "why": "Matches runtime semantics: guard reads current apply_cycle; evidence keyed to prior cycle id must no longer match"
+        },
+        {
+          "what": "Asserted dedupe counters (seenReportIdsTotal=1, single sidecar + task report storage) in duplicate tests",
+          "why": "Proves AC3 duplicate handling is idempotent in both directions — stale duplicate cannot launder evidence, matching duplicate cannot strip it"
+        },
+        {
+          "what": "No runtime changes",
+          "why": "Guard at change-state.ts:897-914 + hasMatchingDesignerApplyEvidence:1043-1056 already implements contract; tests confirmed behavior, no defect revealed"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none — guard has a single call site; no parallel patterns to fix",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC4 regression matrix complete in plugin/src/temporal/change-state.test.ts: existing missing+allow tests retained; added mismatch, stale-cycle, stale-duplicate, and matching-duplicate cases with dedupe-counter assertions (seenReportIdsTotal stays 1, single sidecar/task storage). Runtime guard unchanged — no defect found. Verification: targeted trio 119/119 pass (runId tr_mrm9w53o_ed84fd83), pnpm run check exit 0, pnpm run build exit 0. Pre-existing dirty plugin/schemas/change.schema.json + task.schema.json untouched; schemas:check green. Deploy/restart not performed per packet boundary.",
+        "suggested_next_action": "Checkpoint tk-4640907bf75c citing tr_mrm9w53o_ed84fd83 plus check/build pass; proceed to acceptance/release proof (deploy + runtime restart remain orchestrator-owned)."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/workflows.signal-handlers.test.ts src/tools/task.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run build"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTaskCycleAnchoring",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTaskCycleAnchoring",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "cycle-anchor-1",
+          "label": "blocker",
+          "file": "plugin/src/temporal/change-state.ts",
+          "line": 897,
+          "what": "Frontend completion succeeds when task has no apply_cycle.",
+          "why": "Guard runs only when implementationCycleId exists, so missing durable lifecycle anchor bypasses required designer evidence.",
+          "fix": "Require frontend tasks to have an active apply_cycle before completion, then require matching designer evidence."
+        },
+        {
+          "id": "cycle-anchor-2",
+          "label": "blocker",
+          "file": "plugin/src/temporal/change-state.ts",
+          "line": 1075,
+          "what": "Designer evidence is persisted without validating an active matching task cycle.",
+          "why": "Evidence can be submitted before a durable cycle exists, then later match a newly assigned cycle; violates cycle-before-evidence contract.",
+          "fix": "Reject frontend adv-designer reports unless target task has an active apply_cycle matching report.apply_context.implementation_cycle_id."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/change-state.test.ts src/tools/task.test.ts src/temporal/workflows.signal-handlers.test.ts",
+          "git diff --check trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "3 test files passed; 119 tests passed. Diff whitespace check passed. Existing tests cover matching, mismatch, stale, and duplicate reports, but not missing-cycle completion or evidence-before-cycle rejection."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Current frontend task with no cycle can complete without designer evidence.",
+        "Pre-anchor designer report can become valid after later cycle assignment."
+      ],
+      "required_main_agent_actions": [
+        "Apply both cycle-anchor fixes in plugin/src/temporal/change-state.ts.",
+        "Add regressions for missing-cycle completion and designer evidence submitted before cycle activation.",
+        "Rerun focused Temporal and task-tool tests, then resubmit acceptance review."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTaskCycleAnchoring",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTaskCycleAnchoring",
+      "task_id": "tk-2b243a0aa3f8",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2b243a0aa3f8"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/change-state.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/temporal/change-state.test.ts -t \"implementation cycle\" / -t \"designer report\"",
+          "exit_code": 1,
+          "summary": "RED confirmed: 3 new guard tests failed pre-fix (no-cycle completion, no-cycle designer report, mismatched-cycle designer report)."
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/change-state.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 56/56 tests pass after implementing both fixes and updating two pre-anchor persistence tests."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/change-state.crash-recovery.test.ts src/temporal/change-state.ops-follow-up.test.ts src/temporal/change-state.signal-rejection.test.ts src/temporal/change-state.size-guard.test.ts src/temporal/change-state.spec-delta.test.ts src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/gate-readiness.test.ts src/tools/subagent-report.test.ts src/tools/task.test.ts src/tools/followup.test.ts src/utils/loop-ledger.test.ts",
+          "exit_code": 0,
+          "summary": "Related scan: 13 files, 289/289 tests pass."
+        },
+        {
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, isolation, lockfile, ESLint, and Prettier pass."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Block frontend completion when no active implementation cycle exists.",
+          "why": "Cycle-before-evidence contract requires a hard block, never inferred or backfilled state."
+        },
+        {
+          "what": "Validate designer apply_context against the active task cycle before persistence and duplicate handling.",
+          "why": "Pre-anchor evidence must never persist or later satisfy a newly assigned cycle."
+        },
+        {
+          "what": "Limit the report anchor boundary to designer reports with apply_context.",
+          "why": "The accepted invariant is designer-specific; legacy reports that make no cycle claim remain compatible."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Consider a separately approved change if engineer apply_context must receive the same persistence-boundary validation; accepted scope is designer-specific."
+      ],
+      "required_main_agent_actions": [],
+      "related_scan": "All consumers of applyTaskCompletedToState and applySubagentReportSubmittedToState plus neighboring change-state, workflow, tool, and ledger suites passed; hasMatchingDesignerApplyEvidence has one consumer.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Both acceptance blockers are structurally fixed: frontend completion without active cycle now throws TASK_COMPLETION_BLOCKED; designer reports claiming apply_context require a matching active cycle and otherwise throw SUBAGENT_REPORT_ANCHOR_REJECTED. Legacy reports without apply_context remain compatible. TDD evidence: 56/56 local, 289/289 related, pnpm run check pass.",
+        "suggested_next_action": "Inspect diff, checkpoint reopened tasks, then rerun acceptance review."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/change-state.test.ts -t \"implementation cycle\" / -t \"designer report\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/change-state.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/change-state.crash-recovery.test.ts src/temporal/change-state.ops-follow-up.test.ts src/temporal/change-state.signal-rejection.test.ts src/temporal/change-state.size-guard.test.ts src/temporal/change-state.spec-delta.test.ts src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/gate-readiness.test.ts src/tools/subagent-report.test.ts src/tools/task.test.ts src/tools/followup.test.ts src/utils/loop-ledger.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTaskCycleAnchoring",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTaskCycleAnchoring",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "review-1",
+          "label": "blocker",
+          "file": "plugin/src/temporal/change-state.ts",
+          "line": 1080,
+          "what": "Cycle-anchor validation trusts optional signal taskId, not report owning task.",
+          "why": "A direct schema-valid signal can supply a different task with matching active cycle while designer report task scope names an owner with no or mismatched cycle; report then persists before duplicate checks.",
+          "fix": "Derive validation task from taskIdFromReport(payload.report) and reject conflicting payload/report task IDs before persistence."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/change-state.test.ts"
+        ],
+        "results": "fail",
+        "evidence": "Initial path-qualified filter failed (no test files). Corrected command passed: 1 file, 56 tests. Existing tests confirm missing-cycle rejection, mismatch rejection, matching-cycle completion, legacy compatibility, and duplicate paths, but do not cover mismatched signal taskId versus report owner."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No cycle inference/backfill observed."
+      ],
+      "required_main_agent_actions": [
+        "Apply review-1 with owner-task validation and regression test for conflicting signal taskId/report task scope, then rerun targeted suite."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTaskCycleAnchoring",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTaskCycleAnchoring",
+      "task_id": "tk-439d2a05a883",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-439d2a05a883"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "files_touched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/change-state.test.ts"
+      ],
+      "verification": [
+        {
+          "command": "pnpm exec vitest run src/temporal/change-state.test.ts -t \"owner\"",
+          "exit_code": 1,
+          "summary": "RED confirmed: owner-conflict cases failed pre-fix; omitted-taskId compatibility case passed."
+        },
+        {
+          "command": "pnpm exec vitest run src/temporal/change-state.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: all 59 tests pass (56 prior plus designer conflict, engineer conflict, and owner-derived persistence cases)."
+        },
+        {
+          "command": "bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts src/tools/subagent-report.test.ts",
+          "exit_code": 0,
+          "summary": "58 passed; workflow signal-handler and report-submit tool layer remain compatible."
+        },
+        {
+          "command": "pnpm exec tsc --noEmit -p tsconfig.json",
+          "exit_code": 0,
+          "summary": "Typecheck clean."
+        },
+        {
+          "command": "pnpm exec eslint + prettier --check on touched files",
+          "exit_code": 0,
+          "summary": "Lint and format clean."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Derive task-scoped report ownership from taskIdFromReport(report) and reject a conflicting payload task ID before persistence.",
+          "why": "Eliminates attacker-controlled or malformed mixed task identity at the cycle boundary."
+        },
+        {
+          "what": "Use SUBAGENT_REPORT_OWNER_MISMATCH separate from cycle-anchor rejection.",
+          "why": "Makes ownership conflicts structural, greppable, and independently diagnosable."
+        },
+        {
+          "what": "Apply owner-identity validation to all task-scoped reports.",
+          "why": "A conflicting payload task ID is invalid regardless of agent; designer cycle validation then runs on the authoritative owner."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Mixed payload/report task identity was localized. The report tool sends matching IDs; other consumers derive task identity from reports or use only the legacy fallback.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task-scoped report ownership now derives from report scope, conflicting payload task IDs reject before storage/cycle validation, and designer apply_context validates against owner task active cycle. Red/green tests prove conflict leaves no report or seen ID persisted.",
+        "suggested_next_action": "Checkpoint the task and rerun acceptance review."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/change-state.test.ts -t \"owner\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/change-state.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts src/tools/subagent-report.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec tsc --noEmit -p tsconfig.json"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No adv_run_test evidence found for reported command: pnpm exec eslint + prettier --check on touched files"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTaskCycleAnchoring",
+      "attempt": 4,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTaskCycleAnchoring",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/workflows.signal-handlers.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "2 test files, 85 tests passed. Reviewed commit b16ff25bee06f55a6eb8ce0e2b981cb2778be182. Completion requires active frontend cycle plus complete matching designer evidence; anchored reports reject missing, mismatched, stale, and conflicting-owner submissions before persistence; duplicate behavior remains safe; legacy reports without apply_context remain accepted; no free-text cycle inference or backfill found."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": []
+    }
+  ],
+  "test_runs": {
+    "tk-2b243a0aa3f8": [
+      {
+        "runId": "tr_mrm87a21_5430fd1c",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/tools/task.test.ts",
+        "durationMs": 4593.525926000439,
+        "recordedAt": "2026-07-15T15:19:25.720Z"
+      },
+      {
+        "runId": "tr_mrm8acan_5213795a",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/task.test.ts",
+        "durationMs": 2980.6674139993265,
+        "recordedAt": "2026-07-15T15:21:48.617Z"
+      },
+      {
+        "runId": "tr_mrm8caxs_eae9e783",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/task.test.ts src/temporal/workflows.signal-handlers.test.ts",
+        "durationMs": 40576.99576499965,
+        "recordedAt": "2026-07-15T15:23:20.157Z"
+      },
+      {
+        "runId": "tr_mrm8cnvu_e123e172",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec prettier --check src/types/tasks.ts src/types/signals.ts src/temporal/change-state.ts src/tools/task.ts src/tools/task.test.ts src/temporal/workflows.signal-handlers.test.ts && pnpm exec eslint src/types/tasks.ts src/types/signals.ts src/temporal/change-state.ts src/tools/task.ts src/tools/task.test.ts src/temporal/workflows.signal-handlers.test.ts && pnpm run typecheck",
+        "durationMs": 1756.2849919991568,
+        "recordedAt": "2026-07-15T15:23:36.895Z"
+      },
+      {
+        "runId": "tr_mrm8dtat_2ba16e2b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec prettier --check src/types/tasks.ts src/types/signals.ts src/temporal/change-state.ts src/tools/task.ts src/tools/task.test.ts src/temporal/workflows.signal-handlers.test.ts && pnpm exec eslint src/types/tasks.ts src/types/signals.ts src/temporal/change-state.ts src/tools/task.ts src/tools/task.test.ts src/temporal/workflows.signal-handlers.test.ts && pnpm run typecheck",
+        "durationMs": 19647.58352400083,
+        "recordedAt": "2026-07-15T15:24:30.595Z"
+      },
+      {
+        "runId": "tr_mrmbu7zm_078bde69",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/change-state.crash-recovery.test.ts src/temporal/change-state.ops-follow-up.test.ts src/temporal/change-state.signal-rejection.test.ts src/temporal/change-state.size-guard.test.ts src/temporal/change-state.spec-delta.test.ts src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/gate-readiness.test.ts src/tools/subagent-report.test.ts src/tools/task.test.ts src/tools/followup.test.ts src/utils/loop-ledger.test.ts",
+        "durationMs": 40764.26240999997,
+        "recordedAt": "2026-07-15T17:01:14.976Z"
+      },
+      {
+        "runId": "tr_mrmbuggg_7442e8d2",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 1395.9989910000004,
+        "recordedAt": "2026-07-15T17:01:25.945Z"
+      },
+      {
+        "runId": "tr_mrmbvp4z_dc7460bf",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 50861.332428999944,
+        "recordedAt": "2026-07-15T17:02:23.846Z"
+      },
+      {
+        "runId": "tr_mrmbwb6v_4b3ecb73",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build",
+        "durationMs": 22834.07840800006,
+        "recordedAt": "2026-07-15T17:02:52.427Z"
+      }
+    ],
+    "tk-439d2a05a883": [
+      {
+        "runId": "tr_mrm8jloc_4a361f22",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec vitest run src/temporal/change-state.test.ts",
+        "durationMs": 2340.939755000174,
+        "recordedAt": "2026-07-15T15:29:00.617Z"
+      },
+      {
+        "runId": "tr_mrm8mdkb_9be4dcc4",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/change-state.test.ts",
+        "durationMs": 2067.1086980002,
+        "recordedAt": "2026-07-15T15:31:10.130Z"
+      },
+      {
+        "runId": "tr_mrm8othc_fd4cda24",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/change-state.test.ts src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts",
+        "durationMs": 4085.5693330001086,
+        "recordedAt": "2026-07-15T15:33:04.036Z"
+      },
+      {
+        "runId": "tr_mrm8p9xb_a58d3faa",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec prettier --check src/types/subagent-reports.ts src/temporal/change-state.ts src/temporal/change-state.test.ts src/tools/subagent-report.ts src/tools/change.ts src/tools/followup.ts src/tools/_recovery-writers.ts src/utils/loop-ledger.ts && pnpm exec eslint src/types/subagent-reports.ts src/temporal/change-state.ts src/temporal/change-state.test.ts src/tools/subagent-report.ts src/tools/change.ts src/tools/followup.ts src/tools/_recovery-writers.ts src/utils/loop-ledger.ts && pnpm run typecheck",
+        "durationMs": 1968.2924680002034,
+        "recordedAt": "2026-07-15T15:33:25.376Z"
+      },
+      {
+        "runId": "tr_mrm8qbsp_d1c8df93",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm exec prettier --check src/types/subagent-reports.ts src/temporal/change-state.ts src/temporal/change-state.test.ts src/tools/subagent-report.ts src/tools/change.ts src/tools/followup.ts src/tools/_recovery-writers.ts src/utils/loop-ledger.ts && pnpm exec eslint src/types/subagent-reports.ts src/temporal/change-state.ts src/temporal/change-state.test.ts src/tools/subagent-report.ts src/tools/change.ts src/tools/followup.ts src/tools/_recovery-writers.ts src/utils/loop-ledger.ts && pnpm run typecheck",
+        "durationMs": 18785.10205900017,
+        "recordedAt": "2026-07-15T15:34:14.451Z"
+      },
+      {
+        "runId": "tr_mrm8r18g_7c4dcfc3",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec prettier --check src/types/subagent-reports.ts src/temporal/change-state.ts src/temporal/change-state.test.ts src/tools/subagent-report.ts src/tools/change.ts src/tools/followup.ts src/tools/_recovery-writers.ts src/utils/loop-ledger.ts && pnpm exec eslint src/types/subagent-reports.ts src/temporal/change-state.ts src/temporal/change-state.test.ts src/tools/subagent-report.ts src/tools/change.ts src/tools/followup.ts src/tools/_recovery-writers.ts src/utils/loop-ledger.ts && pnpm run typecheck",
+        "durationMs": 2000.4920929996297,
+        "recordedAt": "2026-07-15T15:34:47.367Z"
+      },
+      {
+        "runId": "tr_mrm8rwtt_dfabe21b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec prettier --check src/types/subagent-reports.ts src/temporal/change-state.ts src/temporal/change-state.test.ts src/tools/subagent-report.ts src/tools/change.ts src/tools/followup.ts src/tools/_recovery-writers.ts src/utils/loop-ledger.ts && pnpm exec eslint src/types/subagent-reports.ts src/temporal/change-state.ts src/temporal/change-state.test.ts src/tools/subagent-report.ts src/tools/change.ts src/tools/followup.ts src/tools/_recovery-writers.ts src/utils/loop-ledger.ts && pnpm run typecheck",
+        "durationMs": 19750.731549000368,
+        "recordedAt": "2026-07-15T15:35:28.357Z"
+      },
+      {
+        "runId": "tr_mrmccil1_cc0c0045",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/temporal/change-state.test.ts",
+        "durationMs": 2432.6296459999867,
+        "recordedAt": "2026-07-15T17:15:28.539Z"
+      },
+      {
+        "runId": "tr_mrmcdlao_cae146d1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/workflows.signal-handlers.test.ts src/tools/subagent-report.test.ts",
+        "durationMs": 40445.11181899998,
+        "recordedAt": "2026-07-15T17:16:18.695Z"
+      },
+      {
+        "runId": "tr_mrmcffhs_d1b83628",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check && pnpm run build",
+        "durationMs": 73393.60347600002,
+        "recordedAt": "2026-07-15T17:17:44.520Z"
+      }
+    ],
+    "tk-4640907bf75c": [
+      {
+        "runId": "tr_mrm8unc7_d3e73968",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/task.test.ts src/temporal/change-state.test.ts src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts",
+        "durationMs": 3851.6765779992566,
+        "recordedAt": "2026-07-15T15:37:36.012Z"
+      },
+      {
+        "runId": "tr_mrm8wc1f_fbd1b281",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check && pnpm run build",
+        "durationMs": 69394.29633199982,
+        "recordedAt": "2026-07-15T15:38:54.708Z"
+      },
+      {
+        "runId": "tr_mrm9w53o_ed84fd83",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/workflows.signal-handlers.test.ts src/tools/task.test.ts",
+        "durationMs": 37029.38759699999,
+        "recordedAt": "2026-07-15T16:06:45.335Z"
+      },
+      {
+        "runId": "tr_mrm9xy98_62a13e45",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 47413.938097000006,
+        "recordedAt": "2026-07-15T16:08:09.763Z"
+      },
+      {
+        "runId": "tr_mrm9yjkr_cf31683c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build",
+        "durationMs": 21089.029542999924,
+        "recordedAt": "2026-07-15T16:08:37.379Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-15T13:47:41.416Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly approved fixing the missing durable task-cycle anchor after the verified checkpoint failure.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "2061f4052eab6ed596fe4bb0772f24019bf994dff6707eb89bf73d4622360541",
+        "non_whitespace_chars": 1031,
+        "checked_at": "2026-07-15T13:47:20.474Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-15T15:03:52.404Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed: source/deployed divergence verified; user approved contract criteria, originating-change unblock, and rollout.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "non_whitespace_chars": 2782,
+        "checked_at": "2026-07-15T13:47:20.475Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-15T15:26:49.536Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry resolution: target lifecycle mutation must use the registered ADV worktree path as target_path; no source change is required. Existing design and task graph remain valid.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "4c29505c07250d0b3b3cbbf00984998b050ca2a7c71e5a65c2154ae944ff3708",
+        "non_whitespace_chars": 2883,
+        "checked_at": "2026-07-15T13:47:20.477Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-15T15:27:11.204Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry preserved the approved three-task graph. Worktree target routing was clarified operationally; no task or acceptance scope changed."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-15T17:18:55.936Z",
+      "completed_by": "agent",
+      "approval_evidence": "Owner-task identity remediation checkpointed at b16ff25bee06f55a6eb8ce0e2b981cb2778be182. Task-scoped report ownership now derives from report scope; conflicting signal task IDs reject before persistence and cycle validation. Reducer tests tr_mrmccil1_cc0c0045, signal/report tests tr_mrmcdlao_cae146d1, check+build tr_mrmcffhs_d1b83628 passed. Deployed worker restarted serviceably after final build."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-15T17:24:00.249Z",
+      "completed_at": "2026-07-15T17:34:30.457Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved acceptance with reply: \"approve\". Review matrix re-asserted on live workflow (20/20 rows passing); executive summary present; independent review attempt 4 READY.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "a3ab3b02480d31aca6b55e84f68f3653ff37a8a23930b7065da49d67bdfa4bb9",
+        "non_whitespace_chars": 1149,
+        "checked_at": "2026-07-15T13:47:20.479Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "design",
+      "reason": "Checkpoint recovery for the originating cross-project change is part of approved AC5, but `adv_task_checkpoint` resolves target_path to the target main checkout and ignores the supplied ADV worktree, producing deterministic branch mismatch. The design/task graph needs an explicit target-worktree checkpoint routing repair and proof.",
+      "scope_delta": "Add a bounded source fix so target-path checkpoint recording runs git operations in the registered change worktree, then prove the originating PokeEdge task can complete without bypassing lifecycle guards.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-15T15:25:37.728Z",
+      "gates_reset": [
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "execution",
+      "reason": "Acceptance review found two contract-blocking paths: missing apply_cycle allows frontend completion without matching designer evidence, and designer evidence can be persisted before an active matching cycle exists.",
+      "scope_delta": "No product-scope expansion. Reopen execution to make the approved cycle-before-evidence invariant structural and add its two regression cases.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-15T16:46:31.934Z",
+      "gates_reset": [
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "execution",
+      "reason": "Acceptance review found a payload/report task-identity confusion path in cycle-anchor validation: optional signal taskId can differ from the report's task scope.",
+      "scope_delta": "No scope expansion. Enforce one structural owner-task identity at the report boundary and add the mismatched signal-task/report-owner regression.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-15T17:07:20.097Z",
+      "gates_reset": [
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "acceptance",
+      "reason": "Refresh acceptance readiness after persisting the required contract review matrix; prior acceptance attempt entered stuck state before the matrix was recorded.",
+      "scope_delta": "No scope change. Re-run only acceptance readiness with the completed 20-row, zero-failure review matrix.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-15T17:22:54.840Z",
+      "gates_reset": [
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "cross_project_origin": {
+    "source_project": "pokeedge-web",
+    "source_path": "/home/jon/dev/pokeedge-web",
+    "source_change_id": "lightenSkyButtons",
+    "linked_at": "2026-07-15T13:47:18.209Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+      "approvedAt": "2026-07-15T15:03:35.568Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Delegated frontend work completes only with durable lifecycle provenance and matching evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Retry or stale report evidence cannot complete another implementation cycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Local source, built bundle, and deployed runtime retain identical guard behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "`lightenSkyButtons` can checkpoint after rollout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Starting delegated frontend work records a non-empty cycle ID in workflow state before evidence or checkpoint.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_task_update"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Matching successful designer evidence permits `adv_task_checkpoint`; missing or mismatched evidence remains structurally rejected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_task_checkpoint"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Older-cycle and duplicate reports cannot satisfy an active cycle’s completion guard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_task_checkpoint"
+        ]
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Regression tests cover allow, missing, mismatch, stale, duplicate, and rebuild/deploy parity paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Targeted tests, `pnpm run check`, `pnpm run build`, deployment, and runtime restart pass; original checkpoint succeeds.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_task_checkpoint"
+        ]
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Lifecycle state is Temporal-only and structurally typed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "The apply lifecycle, not report text, owns cycle creation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Existing engineer/designer report schemas remain compatible unless a validated extension is necessary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Source changes occur in `/home/jon/dev/advance`; deployed `dist/` is deployment output only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Coordinate with `updateSubagentDispatch` without absorbing its engineer-first routing redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not infer, mint, or backfill a cycle from free-text report content.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not weaken `TASK_COMPLETION_BLOCKED` behavior for absent or mismatched lifecycle state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not manually edit live deployed artifacts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Engineer-first/designer-follow-up dispatch redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Product-facing UI work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "General Temporal repair or report-schema redesign unrelated to cycle provenance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-15T17:34:21.687Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review attempt 4 READY: frontend completion requires active cycle plus matching complete designer evidence."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review attempt 4 READY: stale/mismatched/duplicate cycle evidence cannot satisfy another cycle."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Final build deployed; Temporal worker restart reported serviceable queue."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "lightenSkyButtons checkpoint recorded from registered worktree at f37f699e9d700c71bc770361077526acda6c84a1."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reducer regression suite includes missing active cycle rejection; 59 tests passed, tr_mrmccil1_cc0c0045."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reducer tests prove matching evidence allows and missing/mismatched evidence rejects; tr_mrmccil1_cc0c0045."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression coverage includes stale, duplicate, and owner-conflict evidence rejection; tr_mrmccil1_cc0c0045."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Related 13-suite run passed 289 tests, tr_mrmbu7zm_078bde69; final review suite passed 85 tests."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "check/build passed tr_mrmcffhs_d1b83628; deployed worker restart serviceable; original checkpoint succeeded."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Cycle state stored in typed ChangeWorkflowState and validated by reducer tests."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Cycle read from task.apply_cycle; no report-text inference or backfill path."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Legacy designer reports without apply_context remain accepted by regression test."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Source edits checkpointed in ADV worktree; dist built and deployed only via deploy-local."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Changes limited to state reducer and tests; no dispatch redesign touched."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Independent review found no free-text cycle inference or backfill."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Missing/mismatched lifecycle state blocks completion and report persistence."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No direct deployed-artifact edits; deployment used scripts/deploy-local.sh --fix."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Engineer-first/designer-follow-up dispatch redesign not changed."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No product-facing UI work."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No general Temporal repair or unrelated report-schema redesign."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Starting delegated frontend work records a non-empty cycle ID in workflow state before evidence or checkpoint.",
+    "Matching successful designer evidence permits `adv_task_checkpoint`; missing or mismatched evidence remains structurally rejected.",
+    "Older-cycle and duplicate reports cannot satisfy an active cycle’s completion guard.",
+    "Regression tests cover allow, missing, mismatch, stale, duplicate, and rebuild/deploy parity paths.",
+    "Targeted tests, `pnpm run check`, `pnpm run build`, deployment, and runtime restart pass; original checkpoint succeeds."
+  ],
+  "documents": {
+    "proposal": "# Fix task cycle anchoring\n\n## Why\nA completed delegated frontend task can persist a valid typed designer report and verified worktree diff, yet `adv_task_checkpoint` rejects it with `TASK_COMPLETION_BLOCKED: frontend task … has no persisted implementation cycle`.\n\n## Discovery Findings\n\n### Skills Considered\n- `adv-agent-tool-contracts` — matched; applied. The repair must keep lifecycle schema, report transport, packets, tests, and capability law aligned.\n- `adv-temporal-repair` — matched for diagnosis; confirmed reachable healthy Temporal, not a poisoned workflow.\n- No new skill needed: this is an internal Temporal lifecycle repair, not a new external domain.\n\n### Extends\n- `updateSubagentDispatch` active-change wisdom: cycle provenance must be part of deterministic report identity across all persistence/readback consumers.\n- Project wisdom from `validateReleaseRecovery`: source build/deploy/restart is required for live plugin behavior.\n- New finding: deployed workflow checks `task.apply_cycle.implementation_cycle_id`, but checked-out source lacks the cycle type, reducer transition, and guard. Rebuilding current source would remove deployed protection rather than repair it.\n\n### Conflict Scan\n- Related active change `updateSubagentDispatch` is redesigning engineer/designer dispatch and cycle-aware report identity. It touches adjacent report and apply orchestration surfaces; coordinate/rebase before merging, but its engineer-first routing is out of this repair's scope.\n- No own-change task/delta warnings are meaningful before prep. Target-path validation/agenda tool coverage was unavailable from this driving project; source and Temporal evidence were inspected instead.\n\n### Current State\n- Deployed workflow guard requires a non-empty task cycle and matching successful designer evidence before frontend task completion.\n- Deployed report persistence saves reports but does not establish the task cycle anchor.\n- Current Advance source lacks cycle-aware task/report models and the deployed guard, creating a source/deployment divergence risk.\n\n### Edge Cases\n1. Valid designer report with no task anchor must remain rejected.\n2. Retry report from an older cycle must not satisfy a newer cycle.\n3. Duplicate report submission must not overwrite active-cycle ownership.\n4. A source rebuild must preserve both anchor and guard; live `dist/` remains deploy-script output only.\n\n### Open Design Questions\n- **Anchor ownership — agent-resolved.** Trust: agent-only. Blast radius: checkpoint integrity. Alternatives: report-minted anchor (rejected; report is evidence) vs apply-lifecycle transition (recommended).\n- **Cycle matching — agent-resolved.** Trust: agent-only. Blast radius: stale evidence could complete wrong work. Alternatives: task-only matching (rejected) vs task + immutable cycle ID (recommended).\n- **Dispatch overlap — agent-resolved.** Trust: agent-only. Blast radius: merge conflict with `updateSubagentDispatch`. Alternative: broaden this repair (rejected); keep compatibility and coordinate integration.\n\n### Draft Spec Deltas\n- `rq-taskCycleAnchor01`: Given a delegated frontend task starts an implementation cycle, when apply assigns work, then workflow state stores a non-empty cycle ID before evidence or completion.\n- `rq-taskCycleAnchor02`: Given a frontend checkpoint, when a successful designer report matches its stored cycle, then completion succeeds; when missing or mismatched, then completion rejects structurally.\n- `rq-taskCycleAnchor03`: Given source is built and deployed, when the worker bundle is produced, then source tests cover the same anchor/guard behavior and no deployed artifact is manually edited.\n\n### Related Pattern Scan\n- `updateSubagentDispatch` already identifies cycle-aware report-key migration as a same-class pattern. Reuse a single normalized cycle identity path; do not add a second report-key derivation.\n\n### Completeness Verification\n- **Problem completeness: high confidence.** Both symptom path and protective guard identified: absent lifecycle anchor, not a report, worker, or Temporal reachability failure.\n- **Solution scope: high confidence.** Repair requires task model, apply transition, report matching, checkpoint guard, focused workflow tests, and source→build→deploy alignment.\n- **Sole-entry status: verified.** Frontend completion guard is in deployed workflow state reducer; source and deployed workflow bundle are the two relevant surfaces.\n- **Secondary surfaces:** source model/reducer/tests are in scope; deployed `dist/` is read-only deployment output and explicitly out of direct-edit scope.\n\n### LBP Check\nPure internal lifecycle repair. External-solution check skipped: no external library/service is a viable substitute. Typed pre-delegation lifecycle state plus evidence matching is the long-term structural direction.\n\n### Discovery Opportunity Scout\nSkipped — narrow correctness repair; no product/architecture opportunity beyond the already-required lifecycle anchor.\n\n### AMBIGUITY ANALYSIS\n- `B1 LOW Boundaries`: active `updateSubagentDispatch` overlaps report-cycle identity. Evidence: \"centralize report-to-key derivation\". Resolved: coordinate; do not absorb its dispatch redesign.\n- `F1 CLEAR Functional Scope`: proposal says \"write a durable implementation-cycle anchor before checkpointing.\"\n- `S1 CLEAR Completion Signals`: user selected original-change unblock plus deploy/restart.\n- `M1 CLEAR Missing Information`: deployed/source divergence verified by source and deployed bundle inspection.\n\nCoverage: B:P F:C S:C M:C\n\n## User Decisions\n- Origin confirmed: `lightenSkyButtons` is intended follow-up context.\n- Required outcome: unblock `lightenSkyButtons` checkpoint after repair.\n- Rollout: include build, deployment, and local Advance runtime restart.\n\n## Boundaries\n- Do not weaken checkpoint integrity or infer cycle state from free-text reports.\n- Preserve Temporal-only lifecycle persistence.\n- Do not edit live deployed `dist/` files directly.\n- Do not absorb engineer-first dispatch redesign from `updateSubagentDispatch`.",
+    "agreement": "# Agreement — Fix task cycle anchoring\n\n## Objectives\n\n1. Restore durable lifecycle provenance for delegated frontend implementation.\n2. Preserve strict checkpoint rejection for missing, mismatched, stale, or duplicate-cycle evidence.\n3. Reconcile checked-out source with deployed cycle-aware workflow behavior.\n4. Restore completion of the originating `lightenSkyButtons` task after local rollout.\n\n## Success Criteria\n\n- SC1: Delegated frontend work completes only with durable lifecycle provenance and matching evidence.\n- SC2: Retry or stale report evidence cannot complete another implementation cycle.\n- SC3: Local source, built bundle, and deployed runtime retain identical guard behavior.\n- SC4: `lightenSkyButtons` can checkpoint after rollout.\n\n## Acceptance Criteria\n\n- AC1: Starting delegated frontend work records a non-empty cycle ID in workflow state before evidence or checkpoint. [warrant: tool:adv_task_update]\n- AC2: Matching successful designer evidence permits `adv_task_checkpoint`; missing or mismatched evidence remains structurally rejected. [warrant: tool:adv_task_checkpoint]\n- AC3: Older-cycle and duplicate reports cannot satisfy an active cycle’s completion guard. [warrant: tool:adv_task_checkpoint]\n- AC4: Regression tests cover allow, missing, mismatch, stale, duplicate, and rebuild/deploy parity paths.\n- AC5: Targeted tests, `pnpm run check`, `pnpm run build`, deployment, and runtime restart pass; original checkpoint succeeds. [warrant: tool:adv_task_checkpoint]\n\n## Constraints\n\n- C1: Lifecycle state is Temporal-only and structurally typed.\n- C2: The apply lifecycle, not report text, owns cycle creation.\n- C3: Existing engineer/designer report schemas remain compatible unless a validated extension is necessary.\n- C4: Source changes occur in `/home/jon/dev/advance`; deployed `dist/` is deployment output only.\n- C5: Coordinate with `updateSubagentDispatch` without absorbing its engineer-first routing redesign.\n\n## Avoidances\n\n- DONT1: Do not infer, mint, or backfill a cycle from free-text report content.\n- DONT2: Do not weaken `TASK_COMPLETION_BLOCKED` behavior for absent or mismatched lifecycle state.\n- DONT3: Do not manually edit live deployed artifacts.\n\n## Out of Scope\n\n- OOS1: Engineer-first/designer-follow-up dispatch redesign.\n- OOS2: Product-facing UI work.\n- OOS3: General Temporal repair or report-schema redesign unrelated to cycle provenance.\n\n## Preview Applicability\n\n- visual_surface: false\n- preview_expectation: exact_route_required: not_applicable; data_state_expectation: not_applicable; viewport_expectation: not_applicable.\n- rationale: lifecycle, workflow, and deployment behavior only; no browser-visible output.\n\n## Decisions\n\n### User Decisions\n\n- Confirmed `lightenSkyButtons` as intended origin.\n- Required operational proof: unblock its checkpoint after rollout.\n- Required rollout: build, deploy, and restart local Advance runtime.\n\n### Agent Decisions (LBP)\n\n- Persist an orchestrator-issued cycle before delegation; reports remain matching evidence only.\n- Keep source/deploy parity structural through source tests and normal build/deploy flow.\n\n## Sign-Off\n\nUser approved criteria and agreement with `approve` on 2026-07-15.",
+    "design": "# Design — Fix task cycle anchoring\n\n## Decision\n\nUse an orchestrator-minted, typed `TaskApplyCycle` recorded before delegated frontend work starts. Designer reports carry that exact cycle as evidence. The workflow reducer remains the sole authority that accepts completion only when task, cycle, agent, and successful report status match.\n\n## State and Signal Model\n\n- Add optional `task.apply_cycle` with `implementation_cycle_id`, `started_at`, `baseline_head_sha`, and `kind: initial|retry`.\n- Extend the assignment/apply lifecycle signal with an optional typed cycle payload. The tool-side orchestrator generates the ID and baseline before signaling; workflow code only persists deterministic payload data.\n- Existing histories/signals without the optional field remain valid. Use Temporal versioning around changed workflow behavior so replay does not introduce a new command path into old histories.\n- Resume of an in-progress task preserves its cycle. An explicit retry starts a new cycle and supersedes the previous ID; no report can update or mint cycle state.\n- Poisoned-history recovery does not synthesize cycles. It remains outside normal lifecycle completion.\n\n## Report and Completion Rules\n\n- Add strict `apply_context` support to engineer/designer report schema: `implementation_cycle_id` plus typed implementation provenance.\n- Keep legacy report keys unchanged. Append cycle identity only for cycle-aware reports, and migrate all dedupe/readback consumers through one key helper.\n- Reducer matching requires: task-scoped report, `adv-designer`, `status: complete`, exact task ID, exact cycle ID.\n- Checkpoint rejects absent, mismatched, stale, duplicate-only, or failed evidence with `TASK_COMPLETION_BLOCKED`; it never infers a cycle from report prose or latest-report position.\n\n## Source and Deployment Alignment\n\n- Port deployed cycle-aware behavior into checked-out source; do not edit deployed `dist/`.\n- Source tests exercise the reducer and tool signal contract. Build produces the worker bundle; deploy script installs it; restart loads the new runtime.\n- Coordinate cycle-key changes with `updateSubagentDispatch`; preserve its future engineer-first dispatch compatibility without changing routing in this repair.\n\n## Test Matrix\n\n1. New frontend assignment writes a cycle before report/checkpoint.\n2. Resume preserves cycle; explicit retry supersedes it.\n3. Matching successful designer report permits completion.\n4. Missing, mismatched, stale, failed, and duplicate evidence reject completion.\n5. Legacy task/report histories remain readable and do not gain new requirements retroactively.\n6. Cycle-aware report dedupe never collides with legacy keys or another cycle.\n7. Source targeted tests, check, build, deploy/restart, and the originating PokeEdge checkpoint pass.\n\n## Rejected Alternatives\n\n- Report-minted cycles: evidence would become authority.\n- Free-text or latest-report inference: nondeterministic and replay-unsafe.\n- Checkpoint-only cycle creation: too late to bind delegated work.\n- Live `dist/` edit: breaks source-of-truth deployment model.\n\n## Validator Resolution\n\nIndependent validation returned CAUTION, not conflict. This design adds explicit resume/retry semantics, legacy compatibility, key migration, workflow versioning, and no poisoned-history cycle synthesis before planning.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nTask-cycle completion is now structurally anchored to Temporal lifecycle state. Frontend tasks cannot checkpoint without an active implementation cycle and complete designer evidence for that exact cycle.\n\n## Delivered value\n- Missing-cycle completion is rejected.\n- Designer evidence is rejected before persistence unless its cycle matches the report owner task’s active cycle.\n- A signal task ID cannot be used to anchor evidence for a different report-owned task.\n- Stale, mismatched, duplicate, and pre-anchor evidence cannot satisfy another cycle.\n- Legacy reports without `apply_context` remain compatible.\n\n## Verification\n- Reducer suite: 59 passing tests (`tr_mrmccil1_cc0c0045`).\n- Signal-handler/report suite: passing (`tr_mrmcdlao_cae146d1`).\n- Full related suite: 289 passing tests (`tr_mrmbu7zm_078bde69`).\n- `pnpm run check && pnpm run build`: passed (`tr_mrmcffhs_d1b83628`).\n- Deployed worker restarted with a serviceable Temporal queue.\n- Originating `lightenSkyButtons` task checkpoint succeeded from its registered worktree (`f37f699e9d700c71bc770361077526acda6c84a1`).\n\n## Risks and follow-ups\nNo release-blocking concerns. A future, separately approved extension could apply the designer-specific cycle-claim boundary to engineer reports that carry `apply_context`.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-15T17:34:21.687Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Delegated frontend work completes only with durable lifecycle provenance and matching evidence. | pass | Review attempt 4 READY: frontend completion requires active cycle plus matching complete designer evidence. |\n| SC2 | success_criterion | Retry or stale report evidence cannot complete another implementation cycle. | pass | Review attempt 4 READY: stale/mismatched/duplicate cycle evidence cannot satisfy another cycle. |\n| SC3 | success_criterion | Local source, built bundle, and deployed runtime retain identical guard behavior. | pass | Final build deployed; Temporal worker restart reported serviceable queue. |\n| SC4 | success_criterion | `lightenSkyButtons` can checkpoint after rollout. | pass | lightenSkyButtons checkpoint recorded from registered worktree at f37f699e9d700c71bc770361077526acda6c84a1. |\n| AC1 | acceptance_criterion | Starting delegated frontend work records a non-empty cycle ID in workflow state before evidence or checkpoint. | pass | Reducer regression suite includes missing active cycle rejection; 59 tests passed, tr_mrmccil1_cc0c0045. |\n| AC2 | acceptance_criterion | Matching successful designer evidence permits `adv_task_checkpoint`; missing or mismatched evidence remains structurally rejected. | pass | Reducer tests prove matching evidence allows and missing/mismatched evidence rejects; tr_mrmccil1_cc0c0045. |\n| AC3 | acceptance_criterion | Older-cycle and duplicate reports cannot satisfy an active cycle’s completion guard. | pass | Regression coverage includes stale, duplicate, and owner-conflict evidence rejection; tr_mrmccil1_cc0c0045. |\n| AC4 | acceptance_criterion | Regression tests cover allow, missing, mismatch, stale, duplicate, and rebuild/deploy parity paths. | pass | Related 13-suite run passed 289 tests, tr_mrmbu7zm_078bde69; final review suite passed 85 tests. |\n| AC5 | acceptance_criterion | Targeted tests, `pnpm run check`, `pnpm run build`, deployment, and runtime restart pass; original checkpoint succeeds. | pass | check/build passed tr_mrmcffhs_d1b83628; deployed worker restart serviceable; original checkpoint succeeded. |\n| C1 | constraint | Lifecycle state is Temporal-only and structurally typed. | respected | Cycle state stored in typed ChangeWorkflowState and validated by reducer tests. |\n| C2 | constraint | The apply lifecycle, not report text, owns cycle creation. | respected | Cycle read from task.apply_cycle; no report-text inference or backfill path. |\n| C3 | constraint | Existing engineer/designer report schemas remain compatible unless a validated extension is necessary. | respected | Legacy designer reports without apply_context remain accepted by regression test. |\n| C4 | constraint | Source changes occur in `/home/jon/dev/advance`; deployed `dist/` is deployment output only. | respected | Source edits checkpointed in ADV worktree; dist built and deployed only via deploy-local. |\n| C5 | constraint | Coordinate with `updateSubagentDispatch` without absorbing its engineer-first routing redesign. | respected | Changes limited to state reducer and tests; no dispatch redesign touched. |\n| DONT1 | avoidance | Do not infer, mint, or backfill a cycle from free-text report content. | respected | Independent review found no free-text cycle inference or backfill. |\n| DONT2 | avoidance | Do not weaken `TASK_COMPLETION_BLOCKED` behavior for absent or mismatched lifecycle state. | respected | Missing/mismatched lifecycle state blocks completion and report persistence. |\n| DONT3 | avoidance | Do not manually edit live deployed artifacts. | respected | No direct deployed-artifact edits; deployment used scripts/deploy-local.sh --fix. |\n| OOS1 | out_of_scope | Engineer-first/designer-follow-up dispatch redesign. | not_applicable | Engineer-first/designer-follow-up dispatch redesign not changed. |\n| OOS2 | out_of_scope | Product-facing UI work. | not_applicable | No product-facing UI work. |\n| OOS3 | out_of_scope | General Temporal repair or report-schema redesign unrelated to cycle provenance. | not_applicable | No general Temporal repair or unrelated report-schema redesign. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-15T14:12:06.171Z",
+      "contentHash": "36e151da2dcb22e28280e99400b38a929b2a834447e10446847b27094c42b235",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-15T15:03:28.028Z",
+      "contentHash": "04befcf7006eb0693ef742df8a17e293281da3b5053ccca2f2c49a13885c3113",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-15T15:11:43.535Z",
+      "contentHash": "4c29505c07250d0b3b3cbbf00984998b050ca2a7c71e5a65c2154ae944ff3708",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-15T17:21:20.573Z",
+      "contentHash": "a3ab3b02480d31aca6b55e84f68f3653ff37a8a23930b7065da49d67bdfa4bb9",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-15T17:34:30.457Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-15T16:38:53.736Z"
+    }
+  ]
+}
