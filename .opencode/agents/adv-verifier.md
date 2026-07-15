@@ -18,6 +18,8 @@ tools:
   # Verification command execution
   bash: true
 
+  # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  adv_*: false
   # Read-only ADV context only
   adv_spec: true
   adv_project_context: true

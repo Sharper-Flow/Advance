@@ -17,6 +17,8 @@ tools:
   task: true
 
   question: true
+  # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  adv_*: false
   # ADV tools for proposal creation and gate completion
   adv_change_list: true
   adv_change_create: true

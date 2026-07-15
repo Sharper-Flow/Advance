@@ -34,6 +34,7 @@ tools:
   # === ADV tools — full suite for 7-gate orchestration ===
   # Specs + project context
   adv_spec: true
+  adv_delta_add: true
   adv_status: true
   adv_session_list: true
   adv_session_show: true
@@ -72,10 +73,10 @@ tools:
   adv_task_cancel: true
   adv_task_checkpoint: true
   # Wisdom
-   adv_wisdom_list: true
-   adv_wisdom_add: true
-   # Gates
-   adv_gate_status: true
+  adv_wisdom_list: true
+  adv_wisdom_add: true
+  # Gates
+  adv_gate_status: true
   adv_gate_complete: true
   adv_contract_mint: true
   adv_contract_review_matrix_set: true
@@ -84,6 +85,7 @@ tools:
   adv_subagent_report_submit: true
   # Ops follow-ups
   adv_followup_promote: true
+  adv_report_followup_promote: true
   adv_ops_evidence_add: true
   adv_ops_run_upsert: true
   adv_ops_run_evidence_add: true
@@ -92,6 +94,9 @@ tools:
   adv_temporal_reconnect: true
   adv_temporal_register_search_attributes: true
   adv_temporal_worker_restart: true
+  # Store maintenance (operator-only)
+  adv_store_cleanup: true
+  adv_store_consolidate: true
   # Snapshot health diagnostics
   adv_snapshot_health: true
   # Reflection

@@ -27,6 +27,8 @@ tools:
   # Research tools - academic papers
   arxiv-mcp_*: true
   episode_recall: true
+  # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  adv_*: false
   # ADV tools - spec/change queries + own optimized handoff report only
   adv_spec: true
   adv_status: true

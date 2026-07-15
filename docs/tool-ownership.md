@@ -174,6 +174,16 @@ mirrors `rq-toolOwnership01` in `.adv/specs/advance-meta/spec.json`. A
 registry change without a matching matrix row fails CI — silent drift between
 the tool surface and this matrix is a test failure, not a docs chore.
 
+This matrix is the documented view. The code-owned enforcement lives in
+`plugin/src/tool-role-policy.ts`: an exhaustive role classification of every
+retained canonical tool (including the action-level dual distinctions above)
+plus the intended ADV allowlist per shipped agent manifest.
+`plugin/src/tool-role-policy.test.ts` fails CI when the policy and this
+document disagree, when an agent manifest's ADV grants diverge from the
+intended allowed set, or when a non-orchestrator agent can reach an
+operator-only tool across a destructive, privacy, approval, or cross-project
+trust boundary.
+
 Related surfaces: `docs/cli-surface-matrix.md` (CLI disposition per tool),
 `ADV_INSTRUCTIONS.md` worktree-cleanup repair decision matrix,
 `docs/store-consolidation.md`, `docs/snapshot-health.md`.

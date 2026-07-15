@@ -10,6 +10,8 @@ tools:
   grep: true
   lgrep_search_text: true
   lgrep_get_file_outline: true
+  # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  adv_*: false
   # ADV state reads and classifier tools
   adv_change_show: true
   adv_gate_status: true

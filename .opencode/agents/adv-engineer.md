@@ -33,6 +33,8 @@ tools:
   firecrawl_firecrawl_scrape: true
   firecrawl_firecrawl_crawl: true
   firecrawl_firecrawl_check_crawl_status: true
+  # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  adv_*: false
   # === ADV reads (narrow, read-only) ===
   adv_spec: true
   adv_status: true
@@ -61,8 +63,8 @@ tools:
   adv_task_cancel: false
   adv_task_reclassify_tdd: false
   adv_task_checkpoint: false
-   adv_gate_complete: false
-   adv_temporal_worker_restart: false
+  adv_gate_complete: false
+  adv_temporal_worker_restart: false
   adv_worktree_create: false
   adv_worktree_delete: false
   adv_worktree_cleanup: false

@@ -18,13 +18,15 @@ tools:
   lgrep_get_file_outline: true
   lgrep_get_repo_outline: true
   lgrep_search_text: true
+  # === ADV role policy: default-deny — explicit role grants below (plugin/src/tool-role-policy.ts) ===
+  adv_*: false
   # ADV tools - read-only spec/change queries
   adv_spec: true
   adv_change_list: true
   adv_change_show: true
   adv_task_list: true
-   adv_project_context: true
-   adv_wisdom_list: true
+  adv_project_context: true
+  adv_wisdom_list: true
   adv_snapshot_health: true
   adv_subagent_report_submit: true
   # Disabled - Tron is repo read-only
