@@ -377,7 +377,9 @@ describe("gate tools — signal-driven lifecycle", () => {
           }),
         );
         mocks.querySignal.mockRejectedValueOnce(
-          new Error("WorkflowNotFoundError: workflow execution already completed"),
+          new Error(
+            "WorkflowNotFoundError: workflow execution already completed",
+          ),
         );
 
         const result = await gateTools.adv_gate_complete.execute(
@@ -386,7 +388,8 @@ describe("gate tools — signal-driven lifecycle", () => {
             gateId: "acceptance",
             completedBy: "agent",
             compatibilityReason: "pinned wedged run was terminated",
-            recoveryReason: "acceptance recovery after pinned workflow termination",
+            recoveryReason:
+              "acceptance recovery after pinned workflow termination",
             recoveryEvidence:
               "WorkflowNotFoundError: pinned run terminated after operator approval",
             priorApprovalEvidence: "Prior user acceptance approval: approve",
@@ -394,7 +397,10 @@ describe("gate tools — signal-driven lifecycle", () => {
           store,
         );
 
-        expect(JSON.parse(result)).toMatchObject({ success: true, recovered: true });
+        expect(JSON.parse(result)).toMatchObject({
+          success: true,
+          recovered: true,
+        });
         const persisted = JSON.parse(
           await readFile(join(changeDir, "change.json"), "utf8"),
         );
