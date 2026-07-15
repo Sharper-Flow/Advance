@@ -842,6 +842,9 @@ export function applyTaskAssignedToState(
   task.status = "in_progress";
   task.assignedTo = payload.sessionId;
   task.started_at = task.started_at ?? payload.assignedAt;
+  if (payload.applyCycle) {
+    task.apply_cycle = payload.applyCycle;
+  }
   setLastSignalAt(state, payload.assignedAt);
   return state;
 }

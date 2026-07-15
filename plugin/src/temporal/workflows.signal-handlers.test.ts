@@ -495,6 +495,11 @@ describe("changeWorkflow signal handlers", () => {
         taskId: "tk-added",
         sessionId: "session-1",
         assignedAt: "2026-05-05T00:01:03.000Z",
+        applyCycle: {
+          implementation_cycle_id: "ic-signal-test",
+          started_at: "2026-05-05T00:01:03.000Z",
+          kind: "initial",
+        },
       });
       await handle.signal(taskBlockedSignal, {
         taskId: "tk-added",
@@ -651,6 +656,10 @@ describe("changeWorkflow signal handlers", () => {
       expect(state.tasks.find((task) => task.id === "tk-added")).toMatchObject({
         status: "blocked",
         assignedTo: "session-1",
+        apply_cycle: {
+          implementation_cycle_id: "ic-signal-test",
+          kind: "initial",
+        },
         blockReason: "needs dependency",
       });
       expect(

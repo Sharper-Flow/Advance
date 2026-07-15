@@ -461,6 +461,43 @@ describe("task tools — signal/query adapters", () => {
       });
     });
 
+    test("anchors a frontend implementation cycle before assignment", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Frontend Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              metadata: { frontend: "true" },
+            },
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-frontend",
+        status: "in_progress",
+        metadata: { frontend: "true" },
+      });
+
+      await taskTools.adv_task_update.execute(
+        { taskId: "tk-frontend", status: "in_progress" },
+        store,
+      );
+
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-frontend",
+        applyCycle: {
+          implementation_cycle_id: expect.any(String),
+          kind: "initial",
+        },
+      });
+    });
+
     test("uses active workflow task scan fallback before mutating stale-index task", async () => {
       const fallbackTask = {
         id: "tk-reentry",

@@ -567,6 +567,12 @@ export const taskTools = {
       contract_refs: TaskContractRefsSchema.optional().describe(
         "Structured links from this task to approved change-contract items. Use implements/verifies/respects arrays, or not_applicable_reason for code tasks that intentionally have no contract obligation.",
       ),
+      restartImplementationCycle: z
+        .boolean()
+        .optional()
+        .describe(
+          "When starting an in-progress frontend task, supersedes its existing implementation cycle. Normal resumes preserve the current cycle.",
+        ),
       target_path: z
         .string()
         .optional()
@@ -596,6 +602,7 @@ export const taskTools = {
         implementation_summary?: string;
         error_recovery?: ErrorRecovery;
         contract_refs?: TaskContractRefs;
+        restartImplementationCycle?: boolean;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -696,6 +703,9 @@ export const taskTools = {
           // not block the normal signal mutation path.
         }
         const currentStatus = taskRecord?.task.status;
+        const currentTask =
+          taskRecord?.task ??
+          changeForGuard?.tasks.find((task) => task.id === args.taskId);
         const existingTaskReports =
           taskRecord?.task.subagent_reports ??
           changeForGuard?.tasks.find((task) => task.id === args.taskId)
@@ -724,6 +734,19 @@ export const taskTools = {
         let recoveredViaPoisoned = false;
         try {
           if (args.status === "in_progress") {
+            const isFrontendTask = currentTask?.metadata?.frontend === "true";
+            const currentCycle = currentTask?.apply_cycle;
+            const applyCycle =
+              isFrontendTask &&
+              (!currentCycle || args.restartImplementationCycle === true)
+                ? {
+                    implementation_cycle_id: `ic_${randomUUID()}`,
+                    started_at: now,
+                    kind: currentCycle
+                      ? ("retry" as const)
+                      : ("initial" as const),
+                  }
+                : undefined;
             await fireSignalAndRefresh(
               handle,
               activeStore,
@@ -733,6 +756,7 @@ export const taskTools = {
                 taskId: args.taskId,
                 sessionId: "agent",
                 assignedAt: now,
+                ...(applyCycle && { applyCycle }),
               },
             );
           } else if (args.status === "blocked") {
