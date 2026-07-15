@@ -121,6 +121,20 @@ Report `QUAL-012 structural_correctness_bypass` when Heuristic/fuzzy/LLM decisio
 
 Coverage output uses `coverage.detectors[]` with states `run`, `skipped`, `degraded`, `failed`, `timed_out`, `unavailable`, and `externally_covered`, plus `coverage.falsePositiveProtections`.
 
+## Rewrite Assessment Method
+
+The command derives a mandatory rewrite assessment after aggregation and before report assembly. Skill owns the evidence rules:
+
+- It explicitly labels and answers two questions:
+  1. If the project/app were completely rewritten, what architecture would definitely change?
+  2. If the project/app were completely rewritten, what would definitely not be carried over?
+- Definite answers require deterministic runner evidence (typed report findings/coverage) or stable finding references (smell id + `file:line`).
+- Phase 2 heuristic-only content is tentative, never definite.
+- A question with no evidence-backed answer yields `No definite conclusion from scan evidence`.
+- Required coverage degradation (`SLOP_SCAN_DEGRADED`) forces `status: "indeterminate"` — never a no-change conclusion.
+- Advisory only: never alters severity, grouping, actionability, or coverage, and must never authorize deletion; deletion safety rules in `DEAD_CODE.md` are unchanged.
+- Command-level `rewriteAssessment` JSON only; does not extend `slop_scan_report.v1`.
+
 ## Constraints
 
 - Read-only guidance only — no ADV state mutation.

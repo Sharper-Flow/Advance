@@ -127,6 +127,35 @@ describe("adv-arch-scan structural correctness assets", () => {
     expect(skill).toContain("produce no findings");
   });
 
+  test("command and skill document evidence-backed rewrite assessment", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SKILL_PATH, "utf8");
+
+    for (const content of [command, skill]) {
+      expect(content).toContain("Rewrite Assessment");
+      expect(content).toContain(
+        "If the project/app were completely rewritten, what architecture would definitely change?",
+      );
+      expect(content).toContain(
+        "If the project/app were completely rewritten, what would definitely not be carried over?",
+      );
+      expect(content).toContain("No definite conclusion from scan evidence");
+      expect(content).toContain("indeterminate");
+      expect(content).toContain("never a no-change conclusion");
+      expect(content).toContain("never authorize deletion");
+      expect(content).toContain("rewriteAssessment");
+    }
+    expect(command).toContain('"rewriteAssessment"');
+    expect(command).toContain('"complete" | "indeterminate"');
+    expect(command).toContain('"wouldChange": {');
+    expect(command).toContain('"wouldNotCarryOver": {');
+    expect(command).toContain('"confidence": "confirmed" | "tentative"');
+    expect(command).toContain("wouldChange");
+    expect(command).toContain("wouldNotCarryOver");
+    expect(command).toContain("tentative");
+    expect(command).toContain("command-level `rewriteAssessment`");
+  });
+
   test("ADV instructions classify arch-scan as inline with dedicated skill", () => {
     const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
 
