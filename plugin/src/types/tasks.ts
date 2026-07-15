@@ -159,6 +159,15 @@ export const TaskContractRefsSchema = z.object({
 
 export type TaskContractRefs = z.infer<typeof TaskContractRefsSchema>;
 
+export const TaskApplyCycleSchema = z
+  .object({
+    implementation_cycle_id: z.string().trim().min(1),
+    started_at: z.string().trim().min(1),
+    kind: z.enum(["initial", "retry"]),
+  })
+  .strict();
+export type TaskApplyCycle = z.infer<typeof TaskApplyCycleSchema>;
+
 export const TaskSchema = z
   .object({
     id: z.string(), // tk-Hf7dK2mN
@@ -187,6 +196,8 @@ export const TaskSchema = z
     completedAt: z.string().optional(),
     /** Session/agent assigned through taskAssignedSignal. */
     assignedTo: z.string().optional(),
+    /** Orchestrator-minted implementation lifecycle anchor for delegated work. */
+    apply_cycle: TaskApplyCycleSchema.optional(),
     /** Human-readable block reason from taskBlockedSignal. */
     blockReason: z.string().optional(),
     /** Retry/block attempts captured when a task gets stuck. */

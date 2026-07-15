@@ -12,6 +12,7 @@ import {
   applyOriginRepairedToState,
   applyProposalUpdatedToState,
   applyTaskAddedToState,
+  applyTaskAssignedToState,
   applyTaskCompletedToState,
   applyTestRunRecordedToState,
   changeSeedStateFromChange,
@@ -52,6 +53,68 @@ function makeEngineerReport(changeId: string, taskId: string, attempt = 1) {
       suggested_next_action: "Continue",
     },
   };
+}
+
+function makeDesignerReport(
+  changeId: string,
+  taskId: string,
+  implementationCycleId: string,
+  attempt = 1,
+) {
+  return {
+    schema_version: "1.0" as const,
+    change_id: changeId,
+    task_id: taskId,
+    scope: { kind: "task" as const, task_id: taskId },
+    attempt,
+    agent: "adv-designer" as const,
+    status: "complete" as const,
+    files_touched: ["plugin/src/temporal/change-state.ts"],
+    verification: [
+      {
+        command: "pnpm exec vitest run src/temporal/change-state.test.ts",
+        exit_code: 0,
+        summary: "passed",
+      },
+    ],
+    decisions: [],
+    blockers: [],
+    follow_ups: [],
+    required_main_agent_actions: [],
+    related_scan: "none",
+    workdir_used: "/tmp/worktree",
+    context_update_for_adv: {
+      what_ads_needs_to_know: "Designer report persisted",
+      suggested_next_action: "Continue",
+    },
+    design_dimensions: {
+      component_correctness: "n/a" as const,
+      semantic_html_a11y: "n/a" as const,
+      responsive_behavior: "n/a" as const,
+      visual_polish: "n/a" as const,
+      site_design_consistency: "n/a" as const,
+      finer_details: "n/a" as const,
+      notes: "Workflow-only test",
+    },
+    neighboring_recommendations: [],
+    apply_context: {
+      implementation_cycle_id: implementationCycleId,
+      implementation_provenance: {
+        kind: "inline" as const,
+        baseline_head_sha: "abc123",
+        diff_ref: "test diff",
+      },
+    },
+  };
+}
+
+function makeLegacyDesignerReport(changeId: string, taskId: string) {
+  const { apply_context: _applyContext, ...legacyReport } = makeDesignerReport(
+    changeId,
+    taskId,
+    "ic-unclaimed",
+  );
+  return legacyReport;
 }
 
 function makeResearcherReport(changeId: string) {
@@ -774,6 +837,641 @@ describe("change-state pure mutation helpers", () => {
     });
     expect(state).not.toHaveProperty("taskRuns");
     expect(state.lastSignalAt).toBe("2026-05-06T00:00:02.000Z");
+  });
+
+  it("rejects frontend completion without matching designer cycle evidence", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-cycle-guard",
+      title: "Frontend cycle guard",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-frontend",
+        verification: "verified",
+        summary: "complete",
+        filesTouched: [],
+        completedAt: "2026-05-06T00:00:03.000Z",
+      }),
+    ).toThrow(/requires successful adv-designer evidence/);
+  });
+
+  it("permits frontend completion with matching designer cycle evidence", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-cycle-allow",
+      title: "Frontend cycle allow",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-frontend",
+      report: makeDesignerReport(
+        "frontend-cycle-allow",
+        "tk-frontend",
+        "ic-frontend",
+      ),
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    applyTaskCompletedToState(state, {
+      taskId: "tk-frontend",
+      verification: "verified",
+      summary: "complete",
+      filesTouched: [],
+      completedAt: "2026-05-06T00:00:04.000Z",
+    });
+
+    expect(state.tasks[0]?.status).toBe("done");
+  });
+
+  it("rejects frontend completion when designer evidence matches a different cycle", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-cycle-mismatch",
+      title: "Frontend cycle mismatch",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+    // Cycle-anchored designer evidence claiming a non-active cycle never
+    // persists; the completion guard then has no matching evidence to accept.
+    expect(() =>
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-frontend",
+        report: makeDesignerReport(
+          "frontend-cycle-mismatch",
+          "tk-frontend",
+          "ic-other",
+        ),
+        submittedAt: "2026-05-06T00:00:03.000Z",
+      }),
+    ).toThrow(/SUBAGENT_REPORT_ANCHOR_REJECTED/);
+    expect(state.subagent_reports ?? []).toHaveLength(0);
+
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-frontend",
+        verification: "verified",
+        summary: "complete",
+        filesTouched: [],
+        completedAt: "2026-05-06T00:00:04.000Z",
+      }),
+    ).toThrow(/requires successful adv-designer evidence/);
+    expect(state.tasks[0]?.status).not.toBe("done");
+  });
+
+  it("rejects frontend completion when designer evidence is from an older cycle", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-cycle-stale",
+      title: "Frontend cycle stale",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-old",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-frontend",
+      report: makeDesignerReport(
+        "frontend-cycle-stale",
+        "tk-frontend",
+        "ic-old",
+      ),
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:04.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-new",
+        started_at: "2026-05-06T00:00:04.000Z",
+        kind: "retry",
+      },
+    });
+
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-frontend",
+        verification: "verified",
+        summary: "complete",
+        filesTouched: [],
+        completedAt: "2026-05-06T00:00:05.000Z",
+      }),
+    ).toThrow(/requires successful adv-designer evidence/);
+    expect(state.tasks[0]?.status).not.toBe("done");
+  });
+
+  it("keeps rejecting when a stale-cycle report is resubmitted as a duplicate", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-cycle-stale-duplicate",
+      title: "Frontend cycle stale duplicate",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-old",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+    const staleReport = makeDesignerReport(
+      "frontend-cycle-stale-duplicate",
+      "tk-frontend",
+      "ic-old",
+    );
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-frontend",
+      report: staleReport,
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:04.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-new",
+        started_at: "2026-05-06T00:00:04.000Z",
+        kind: "retry",
+      },
+    });
+    // Resubmitting stale-cycle evidence after re-anchoring is rejected at the
+    // boundary; the retained original report still cannot satisfy the guard.
+    expect(() =>
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-frontend",
+        report: staleReport,
+        submittedAt: "2026-05-06T00:00:05.000Z",
+      }),
+    ).toThrow(/SUBAGENT_REPORT_ANCHOR_REJECTED/);
+
+    expect(state.seenReportIdsTotal).toBe(1);
+    expect(state.subagent_reports).toHaveLength(1);
+    expect(state.tasks[0]?.subagent_reports).toHaveLength(1);
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-frontend",
+        verification: "verified",
+        summary: "complete",
+        filesTouched: [],
+        completedAt: "2026-05-06T00:00:06.000Z",
+      }),
+    ).toThrow(/requires successful adv-designer evidence/);
+    expect(state.tasks[0]?.status).not.toBe("done");
+  });
+
+  it("permits frontend completion when a matching report is resubmitted as a duplicate", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-cycle-duplicate-allow",
+      title: "Frontend cycle duplicate allow",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+    const matchingReport = makeDesignerReport(
+      "frontend-cycle-duplicate-allow",
+      "tk-frontend",
+      "ic-frontend",
+    );
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-frontend",
+      report: matchingReport,
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-frontend",
+      report: matchingReport,
+      submittedAt: "2026-05-06T00:00:04.000Z",
+    });
+
+    expect(state.seenReportIdsTotal).toBe(1);
+    expect(state.subagent_reports).toHaveLength(1);
+    expect(state.tasks[0]?.subagent_reports).toHaveLength(1);
+    applyTaskCompletedToState(state, {
+      taskId: "tk-frontend",
+      verification: "verified",
+      summary: "complete",
+      filesTouched: [],
+      completedAt: "2026-05-06T00:00:05.000Z",
+    });
+    expect(state.tasks[0]?.status).toBe("done");
+  });
+
+  it("rejects frontend completion when the task has no active implementation cycle", () => {
+    const state = createChangeWorkflowState({
+      changeId: "frontend-cycle-missing",
+      title: "Frontend cycle missing",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+    });
+
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-frontend",
+        verification: "verified",
+        summary: "complete",
+        filesTouched: [],
+        completedAt: "2026-05-06T00:00:03.000Z",
+      }),
+    ).toThrow(
+      /TASK_COMPLETION_BLOCKED: frontend task tk-frontend has no active implementation cycle/,
+    );
+    expect(state.tasks[0]?.status).not.toBe("done");
+  });
+
+  it("rejects a designer report with apply_context when the task has no implementation cycle", () => {
+    const state = createChangeWorkflowState({
+      changeId: "designer-anchor-missing",
+      title: "Designer anchor missing",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+    });
+
+    expect(() =>
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-frontend",
+        report: makeDesignerReport(
+          "designer-anchor-missing",
+          "tk-frontend",
+          "ic-claimed",
+        ),
+        submittedAt: "2026-05-06T00:00:03.000Z",
+      }),
+    ).toThrow(/SUBAGENT_REPORT_ANCHOR_REJECTED/);
+    expect(state.subagent_reports ?? []).toHaveLength(0);
+    expect(state.seenReportIdsTotal ?? 0).toBe(0);
+    expect(state.tasks[0]?.subagent_reports ?? []).toHaveLength(0);
+  });
+
+  it("rejects a designer report claiming a cycle that is not the task's active cycle", () => {
+    const state = createChangeWorkflowState({
+      changeId: "designer-anchor-mismatch",
+      title: "Designer anchor mismatch",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-active",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+
+    expect(() =>
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-frontend",
+        report: makeDesignerReport(
+          "designer-anchor-mismatch",
+          "tk-frontend",
+          "ic-other",
+        ),
+        submittedAt: "2026-05-06T00:00:03.000Z",
+      }),
+    ).toThrow(/SUBAGENT_REPORT_ANCHOR_REJECTED/);
+    expect(state.subagent_reports ?? []).toHaveLength(0);
+    expect(state.seenReportIdsTotal ?? 0).toBe(0);
+    expect(state.tasks[0]?.subagent_reports ?? []).toHaveLength(0);
+  });
+
+  it("persists a legacy designer report without apply_context", () => {
+    const state = createChangeWorkflowState({
+      changeId: "designer-anchor-legacy",
+      title: "Designer anchor legacy",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-legacy",
+        title: "Legacy task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-legacy",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+    });
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-legacy",
+      report: makeLegacyDesignerReport("designer-anchor-legacy", "tk-legacy"),
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    expect(state.subagent_reports).toHaveLength(1);
+    expect(state.seenReportIdsTotal).toBe(1);
+    expect(state.tasks[0]?.subagent_reports).toHaveLength(1);
+  });
+
+  it("rejects a designer report when the signal taskId conflicts with the report owner task", () => {
+    const state = createChangeWorkflowState({
+      changeId: "designer-owner-mismatch",
+      title: "Designer owner mismatch",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    for (const [id, priority] of [
+      ["tk-a", 0],
+      ["tk-b", 1],
+    ] as const) {
+      applyTaskAddedToState(state, {
+        task: {
+          id,
+          title: `Task ${id}`,
+          type: "code",
+          status: "pending",
+          priority,
+          created_at: "2026-05-06T00:00:01.000Z",
+          metadata: { frontend: "true" },
+        },
+        addedAt: "2026-05-06T00:00:01.000Z",
+      });
+    }
+    applyTaskAssignedToState(state, {
+      taskId: "tk-a",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-a",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-b",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-b",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+
+    // The report is owned by tk-b but claims tk-a's active cycle. A payload
+    // taskId of tk-a must not anchor cycle validation to tk-a while the
+    // evidence persists under tk-b.
+    expect(() =>
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-a",
+        report: makeDesignerReport("designer-owner-mismatch", "tk-b", "ic-a"),
+        submittedAt: "2026-05-06T00:00:03.000Z",
+      }),
+    ).toThrow(/SUBAGENT_REPORT_OWNER_MISMATCH/);
+    expect(state.subagent_reports ?? []).toHaveLength(0);
+    expect(state.seenReportIds ?? []).toHaveLength(0);
+    expect(state.seenReportIdsTotal ?? 0).toBe(0);
+    expect(state.tasks[0]?.subagent_reports ?? []).toHaveLength(0);
+    expect(state.tasks[1]?.subagent_reports ?? []).toHaveLength(0);
+  });
+
+  it("rejects a task-scoped engineer report when the signal taskId conflicts with the report owner task", () => {
+    const state = createChangeWorkflowState({
+      changeId: "engineer-owner-mismatch",
+      title: "Engineer owner mismatch",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    for (const [id, priority] of [
+      ["tk-a", 0],
+      ["tk-b", 1],
+    ] as const) {
+      applyTaskAddedToState(state, {
+        task: {
+          id,
+          title: `Task ${id}`,
+          type: "code",
+          status: "pending",
+          priority,
+          created_at: "2026-05-06T00:00:01.000Z",
+        },
+        addedAt: "2026-05-06T00:00:01.000Z",
+      });
+    }
+
+    // The ownership boundary is generic to task-scoped reports, not
+    // designer-only: a conflicting payload taskId is rejected before any
+    // storage even when no apply_context cycle is claimed.
+    expect(() =>
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-a",
+        report: makeEngineerReport("engineer-owner-mismatch", "tk-b"),
+        submittedAt: "2026-05-06T00:00:02.000Z",
+      }),
+    ).toThrow(/SUBAGENT_REPORT_OWNER_MISMATCH/);
+    expect(state.subagent_reports ?? []).toHaveLength(0);
+    expect(state.seenReportIds ?? []).toHaveLength(0);
+    expect(state.seenReportIdsTotal ?? 0).toBe(0);
+    expect(state.tasks[0]?.subagent_reports ?? []).toHaveLength(0);
+    expect(state.tasks[1]?.subagent_reports ?? []).toHaveLength(0);
+  });
+
+  it("persists a cycle-anchored designer report under the report owner when the signal omits taskId", () => {
+    const state = createChangeWorkflowState({
+      changeId: "designer-owner-derived",
+      title: "Designer owner derived",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-frontend",
+        title: "Frontend task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+        metadata: { frontend: "true" },
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskAssignedToState(state, {
+      taskId: "tk-frontend",
+      sessionId: "agent",
+      assignedAt: "2026-05-06T00:00:02.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-frontend",
+        started_at: "2026-05-06T00:00:02.000Z",
+        kind: "initial",
+      },
+    });
+
+    applySubagentReportSubmittedToState(state, {
+      report: makeDesignerReport(
+        "designer-owner-derived",
+        "tk-frontend",
+        "ic-frontend",
+      ),
+      submittedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    expect(state.subagent_reports).toHaveLength(1);
+    expect(state.seenReportIdsTotal).toBe(1);
+    expect(state.tasks[0]?.subagent_reports).toHaveLength(1);
   });
 
   it("preserves checkpoint metadata when a duplicate completion omits checkpointSha", () => {

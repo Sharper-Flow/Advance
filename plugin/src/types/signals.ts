@@ -23,7 +23,7 @@ import {
 } from "./gates";
 import { WisdomEntrySchema } from "./wisdom";
 import { CapabilityKeySchema, DeltaAddSchema } from "./specs";
-import { AttemptSchema, TaskSchema } from "./tasks";
+import { AttemptSchema, TaskApplyCycleSchema, TaskSchema } from "./tasks";
 import { TaskStructuredOutputSchema } from "./task-output";
 import {
   DesignConcernDispositionSchema,
@@ -145,6 +145,7 @@ export const TaskAssignedSignalPayloadSchema = z.object({
   taskId: z.string(),
   sessionId: z.string(),
   assignedAt: IsoTimestampSchema,
+  applyCycle: TaskApplyCycleSchema.optional(),
 });
 export type TaskAssignedSignalPayload = z.infer<
   typeof TaskAssignedSignalPayloadSchema

@@ -28,7 +28,10 @@ import type {
 import { LOOP_LEDGER_SCHEMA_VERSION } from "../types/loop-ledger";
 import type { SubagentAgent } from "../types/subagent-reports";
 import type { SubagentReportScope } from "../types/subagent-reports";
-import { subagentReportKey } from "../types/subagent-reports";
+import {
+  subagentReportImplementationCycleId,
+  subagentReportKey,
+} from "../types/subagent-reports";
 
 // ---------------------------------------------------------------------------
 // Loose structural input (legacy-tolerant). All fields optional.
@@ -148,6 +151,7 @@ function reportKey(
     scope: reportScope(report),
     agent: report.agent as SubagentAgent,
     attempt: report.attempt,
+    implementationCycleId: subagentReportImplementationCycleId(report as never),
   });
 }
 
