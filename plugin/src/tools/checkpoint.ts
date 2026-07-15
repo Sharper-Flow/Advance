@@ -165,12 +165,18 @@ async function gitPathExists(
 /**
  * Detect the state of the git repo. Returns:
  * - "ok" — normal repo on a branch
- * - "detached" — detached HEAD
+ * - "detached" — detached HEAD with no recovery markers
  * - "merging" — MERGE_HEAD exists
  * - "rebasing" — REBASE_HEAD or rebase state directory exists
  * - "cherry-picking" — CHERRY_PICK_HEAD exists
  * - "reverting" — REVERT_HEAD exists
  * - "not_git" — not a git repo (or git unavailable)
+ *
+ * rq-twf01.3: recovery markers are probed BEFORE the detached-HEAD check.
+ * Rebase and sequencer (cherry-pick/revert) operations run with a detached
+ * HEAD by design, so classifying detached first would mask the active
+ * recovery state and silently drop the trunk write firewall's structural
+ * recovery allowance.
  */
 export async function detectRepoState(cwd: string): Promise<RepoState> {
   try {
@@ -178,13 +184,6 @@ export async function detectRepoState(cwd: string): Promise<RepoState> {
     await runGit(["rev-parse", "--git-dir"], cwd);
   } catch {
     return "not_git";
-  }
-
-  try {
-    // Check for detached HEAD (symbolic ref fails when detached)
-    await runGit(["symbolic-ref", "-q", "HEAD"], cwd);
-  } catch {
-    return "detached";
   }
 
   try {
@@ -221,6 +220,13 @@ export async function detectRepoState(cwd: string): Promise<RepoState> {
     return "reverting";
   } catch {
     // REVERT_HEAD doesn't exist — normal state
+  }
+
+  try {
+    // Check for detached HEAD (symbolic ref fails when detached)
+    await runGit(["symbolic-ref", "-q", "HEAD"], cwd);
+  } catch {
+    return "detached";
   }
 
   return "ok";

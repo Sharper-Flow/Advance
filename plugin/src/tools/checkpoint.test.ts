@@ -6,11 +6,14 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdir } from "fs/promises";
+import { join } from "path";
 import {
   buildCommitMessage,
   checkpointTools,
   detectRepoState,
 } from "./checkpoint";
+import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import type { Store } from "../storage/store-types";
 
 const mocks = vi.hoisted(() => {
@@ -315,6 +318,30 @@ describe("checkpoint tools — signal-driven", () => {
   });
 
   describe("detectRepoState", () => {
+    test("detects clean repo on a branch as ok", async () => {
+      mockGitResponses({});
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("ok");
+    });
+
+    test("detects plain detached HEAD as detached", async () => {
+      mockGitResponses({
+        "symbolic-ref -q HEAD": {
+          error: new Error("ref HEAD is not a symbolic ref"),
+        },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("detached");
+    });
+
+    test("detects merge state", async () => {
+      mockGitResponses({
+        "rev-parse --verify MERGE_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("merging");
+    });
+
     test("detects rebase state", async () => {
       mockGitResponses({
         "rev-parse --verify REBASE_HEAD": { stdout: "abc123\n" },
@@ -335,6 +362,76 @@ describe("checkpoint tools — signal-driven", () => {
 
     test("detects revert state", async () => {
       mockGitResponses({
+        "rev-parse --verify REVERT_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("reverting");
+    });
+
+    // rq-twf01.3: recovery markers take precedence over detached-HEAD
+    // classification. Rebase and sequencer operations run with a detached
+    // HEAD by design, so checking detached first would mask the recovery
+    // state and silently drop the trunk-firewall recovery allowance.
+    test("merge markers take precedence over detached HEAD", async () => {
+      mockGitResponses({
+        "symbolic-ref -q HEAD": {
+          error: new Error("ref HEAD is not a symbolic ref"),
+        },
+        "rev-parse --verify MERGE_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("merging");
+    });
+
+    test("rebase markers take precedence over detached HEAD", async () => {
+      mockGitResponses({
+        "symbolic-ref -q HEAD": {
+          error: new Error("ref HEAD is not a symbolic ref"),
+        },
+        "rev-parse --verify REBASE_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("rebasing");
+    });
+
+    test("detached rebase-merge directory classifies as rebasing", async () => {
+      const tempDir = await createTempDir("adv-rebase-state-");
+      try {
+        const rebaseMergeDir = join(tempDir, "rebase-merge");
+        await mkdir(rebaseMergeDir, { recursive: true });
+        mockGitResponses({
+          "symbolic-ref -q HEAD": {
+            error: new Error("ref HEAD is not a symbolic ref"),
+          },
+          "rev-parse --git-path rebase-merge": {
+            stdout: `${rebaseMergeDir}\n`,
+          },
+        });
+
+        await expect(detectRepoState("/tmp/test")).resolves.toBe("rebasing");
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
+    });
+
+    test("cherry-pick markers take precedence over detached HEAD", async () => {
+      mockGitResponses({
+        "symbolic-ref -q HEAD": {
+          error: new Error("ref HEAD is not a symbolic ref"),
+        },
+        "rev-parse --verify CHERRY_PICK_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe(
+        "cherry-picking",
+      );
+    });
+
+    test("revert markers take precedence over detached HEAD", async () => {
+      mockGitResponses({
+        "symbolic-ref -q HEAD": {
+          error: new Error("ref HEAD is not a symbolic ref"),
+        },
         "rev-parse --verify REVERT_HEAD": { stdout: "abc123\n" },
       });
 

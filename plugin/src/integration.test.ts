@@ -873,6 +873,60 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     ).resolves.toBeUndefined();
   }, 30_000);
 
+  test("allows trunk writes during detached rebase recovery", async () => {
+    const { execSync } = await import("child_process");
+    const { writeFileSync } = await import("fs");
+    const { join } = await import("path");
+    const { detectRepoState } = await import("./tools/checkpoint");
+
+    await initGitRepo();
+    await enableWorktreeGuard();
+
+    // Put the trunk checkout into a real mid-rebase state: HEAD detached at
+    // the rebase target with the rebase-merge state directory present. The
+    // conflicting rebase exits non-zero — that is the expected stop point.
+    writeFileSync(join(tempDir, "README.md"), "feature version");
+    execSync("git checkout -b feature", { cwd: tempDir });
+    execSync("git commit -am 'feature'", { cwd: tempDir });
+    execSync("git checkout main", { cwd: tempDir });
+    writeFileSync(join(tempDir, "README.md"), "main version");
+    execSync("git commit -am 'main'", { cwd: tempDir });
+    try {
+      execSync("git rebase feature", { cwd: tempDir, stdio: "ignore" });
+    } catch {
+      // Expected: conflicting histories halt the rebase mid-flight.
+    }
+
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    // rq-twf01.3: a rebase runs with a detached HEAD by design, so the
+    // recovery state must classify structurally as rebasing — a bare
+    // "detached" verdict would mask the active recovery.
+    await expect(detectRepoState(tempDir)).resolves.toBe("rebasing");
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: join(tempDir, "src/file.ts") } } as any,
+      ),
+    ).resolves.toBeUndefined();
+
+    // Once the rebase is aborted, the strict trunk block returns.
+    execSync("git rebase --abort", { cwd: tempDir });
+    await expect(detectRepoState(tempDir)).resolves.toBe("ok");
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: join(tempDir, "src/file.ts") } } as any,
+      ),
+    ).rejects.toThrow(/Trunk write firewall/);
+  }, 30_000);
+
   test("guard does not interfere with existing hook responsibilities", async () => {
     hooks = await AdvancePlugin({
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
