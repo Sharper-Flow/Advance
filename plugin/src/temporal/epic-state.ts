@@ -206,6 +206,11 @@ export function applyEpicUpdatedToState(
   return { ok: true, value: { version: state.epic.version } };
 }
 
+// rq-epicMutableScope01: audited, versioned Epic scope mutation. Stale writes
+// are rejected via the expectedVersion check; scope changes flow only through
+// this typed signal path (store updateScope requires auditEvidence). Retained
+// after the latent adv_epic_update_scope tool definition was removed by
+// consolidateAdvToolSurface2 — the citation anchor moved here.
 export function applyEpicScopeUpdatedToState(
   state: EpicWorkflowState,
   payload: EpicScopeUpdatedSignalPayload,

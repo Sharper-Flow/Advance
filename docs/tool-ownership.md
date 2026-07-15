@@ -166,6 +166,26 @@ class rather than operator-only.
 | `adv_worktree_cleanup` | orchestrator | Worktree hygiene; `archived_branches` mode is operator-explicit (dry-run first) |
 | `adv_worktree_triage` | orchestrator | Read-only worktree inventory |
 
+## Removed Tools and Replacements
+
+`consolidateAdvToolSurface2` removed five legacy or redundant agent-callable
+tools completely — no wrappers, aliases, or compatibility exports. This matrix
+classifies retained tools only; removed names must never reappear in
+`ADV_TOOL_NAMES`, agent manifests, or new matrix rows (tombstone guard:
+`plugin/src/latent-tool-removal.test.ts`; manifest guard:
+`plugin/src/tool-role-policy.test.ts`).
+
+| Removed tool | Previous state | Replacement path |
+|---|---|---|
+| `adv_backlog_state` | Registered backlog-state reader | `adv_roadmap` — the sole backlog reader. Preserves `source: "file" \| "live"`, TTL-bounded annotation freshness, and O(1) active-change annotation via batched `queryActiveChangesByIssueNumbers` (≤100 issue numbers per call). On Temporal Visibility outage it returns the requested roadmap data with a typed `annotations_unavailable` source-health state — never per-change fallback reads |
+| `adv_project_wisdom_list` | Registered project-wisdom reader | `adv_wisdom_list` with `project_only: true`; `maxEntries` bounds the project-only listing and is applied after type and product-visibility filtering. `project_only` is mutually exclusive with `changeId` and `query` |
+| `adv_gate_criteria` | Latent definition, never registered | No agent-callable replacement. Gate criteria remain advisory checklists evaluated through the gate completion/status path (`adv_gate_status`, `adv_gate_complete`) |
+| `adv_epic_update_scope` | Latent definition, never registered | No agent-callable replacement. Audited, versioned Epic scope mutation remains Temporal storage/workflow behavior (`epicScopeUpdated` signal path, `rq-epicMutableScope01`) |
+| `adv_epic_merge` | Latent definition, never registered | No agent-callable replacement. Epic merge finalization remains Temporal storage/workflow behavior (`epicMerged` signal path, `rq-epicMerge01`) |
+
+Historical references under `.adv/archive/**` and `CHANGELOG.md` release
+history are permitted evidence, not active references.
+
 ## Drift Guard
 
 `plugin/src/tool-ownership-assets.test.ts` asserts this document exists,

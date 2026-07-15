@@ -66,7 +66,7 @@
 | Tool | Disposition | Rationale |
 |---|---|---|
 | `adv_status` | `mcp+cli-additive` | CLI table shipped; MCP kept for `view:"health"` depth |
-| `adv_roadmap` | `mcp+cli-additive` | CLI file mode; MCP kept for live + Temporal annotation |
+| `adv_roadmap` | `mcp+cli-additive` | CLI file mode; MCP kept for live + Temporal annotation (typed `annotations_unavailable` on Visibility outage, never per-change fallback) |
 | `adv_backlog_add` | `no-cli-dangerous` | Backlog mutation |
 | `adv_backlog_list` | `keep-mcp-only` | Agent-facing backlog read |
 | `adv_backlog_show` | `keep-mcp-only` | Agent-facing backlog read |
@@ -149,3 +149,15 @@
 - `adv validate` and `adv doctor` are NOT implemented in this change (AC8).
   The validate disk-vs-Temporal architecture decision is deferred to a
   follow-up `/adv-design` research task.
+
+## Removed Tools
+
+`adv_backlog_state`, `adv_project_wisdom_list`, `adv_gate_criteria`,
+`adv_epic_update_scope`, and `adv_epic_merge` were removed completely by
+`consolidateAdvToolSurface2`; none has a CLI or MCP surface. Replacement
+paths: `adv_roadmap` for backlog state (sole backlog reader; TTL-bounded
+freshness, O(1) annotation, typed `annotations_unavailable` degradation) and
+`adv_wisdom_list` with `project_only: true` for project wisdom (bounded by
+`maxEntries` after filtering). The three latent tools have no agent-callable
+replacement. Full mapping: `docs/tool-ownership.md` → Removed Tools and
+Replacements.
