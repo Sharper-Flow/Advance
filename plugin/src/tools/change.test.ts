@@ -3753,7 +3753,7 @@ describe("change tools — signal-driven lifecycle", () => {
         release: { status: "pending" },
       };
       const store = createMockStore({ gates: staleStoreGates });
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3761,7 +3761,7 @@ describe("change tools — signal-driven lifecycle", () => {
       );
       const parsed = JSON.parse(result);
 
-      expect(mocks.querySignal).toHaveBeenCalledTimes(1);
+      expect(mocks.queryMock).toHaveBeenCalledTimes(1);
       expect(parsed.error ?? "").not.toContain("incomplete gates");
       expect(parsed.incompleteGates).toBeUndefined();
     });
@@ -3788,7 +3788,7 @@ describe("change tools — signal-driven lifecycle", () => {
         }
         return { success: true, data: target };
       });
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3806,7 +3806,7 @@ describe("change tools — signal-driven lifecycle", () => {
         release: { status: "pending" },
       };
       const store = createMockStore({ gates: allDoneGates });
-      mocks.querySignal.mockResolvedValueOnce(liveIncompleteGates);
+      mocks.queryMock.mockResolvedValueOnce(liveIncompleteGates);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3840,7 +3840,7 @@ describe("change tools — signal-driven lifecycle", () => {
       vi.mocked(mocks.targetStore.specs.list).mockResolvedValue({
         specs: [],
       });
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       const result = await changeTools.adv_change_archive.execute(
         {
@@ -3900,7 +3900,7 @@ describe("change tools — signal-driven lifecycle", () => {
       vi.mocked(mocks.targetStore.specs.list).mockResolvedValue({
         specs: [],
       });
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       await changeTools.adv_change_archive.execute(
         {
@@ -3927,7 +3927,7 @@ describe("change tools — signal-driven lifecycle", () => {
         acceptance: { status: "pending" },
       };
       const store = createMockStore({ gates: allDoneGates });
-      mocks.querySignal.mockResolvedValueOnce(liveIncompleteGates);
+      mocks.queryMock.mockResolvedValueOnce(liveIncompleteGates);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3945,7 +3945,7 @@ describe("change tools — signal-driven lifecycle", () => {
     // rq-harden-archive-flow AC1/AC2
     test("refreshes the change from the workflow before reading for archive", async () => {
       const store = createMockStore({ gates: allDoneGates });
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3965,7 +3965,7 @@ describe("change tools — signal-driven lifecycle", () => {
       const store = createMockStore({ gates: allDoneGates });
       const refreshMock = store.changes.refresh as ReturnType<typeof vi.fn>;
       refreshMock.mockRejectedValueOnce(new Error("Failed to query Workflow"));
-      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
       const result = await changeTools.adv_change_archive.execute(
         { changeId: "test-change", dryRun: true },
@@ -3992,7 +3992,7 @@ describe("change tools — signal-driven lifecycle", () => {
             name: "WorkflowNotFoundError",
           }),
         );
-        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+        mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
         const result = await changeTools.adv_change_archive.execute(
           {
@@ -4029,7 +4029,7 @@ describe("change tools — signal-driven lifecycle", () => {
             name: "WorkflowNotFoundError",
           }),
         );
-        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+        mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
         const result = await changeTools.adv_change_archive.execute(
           { changeId: "test-change", phase9: "skip" },
@@ -4065,7 +4065,7 @@ describe("change tools — signal-driven lifecycle", () => {
         ).describe = vi.fn(async () => ({
           rawDescription: "TMPRL1100 Nondeterminism error",
         }));
-        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+        mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
         const result = await changeTools.adv_change_archive.execute(
           {
@@ -4103,7 +4103,7 @@ describe("change tools — signal-driven lifecycle", () => {
             describe: ReturnType<typeof vi.fn>;
           }
         ).describe = vi.fn(async () => ({ status: "RUNNING" }));
-        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+        mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
         const result = await changeTools.adv_change_archive.execute(
           {

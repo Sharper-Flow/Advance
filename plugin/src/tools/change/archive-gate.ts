@@ -16,14 +16,21 @@ import { loadChange } from "../../storage/json";
 import { getProjectId } from "../../utils/project-id";
 import { createLogger } from "../../utils/debug-log";
 import { formatToolOutput } from "../../utils/tool-output";
-import { collectErrorText } from "../../temporal/retry-wrapper";
+import {
+  collectErrorText,
+  classifyTemporalError,
+  isReconnectableError,
+} from "../../temporal/retry-wrapper";
 import { getService } from "../../temporal/service";
 import {
   fireSignalAndRefresh,
   getChangeHandle,
-  querySignal,
   waitForGateCompletion,
 } from "../_adapters";
+import {
+  runTemporalQuery,
+  type WorkflowHandleLike,
+} from "../../storage/store-temporal/shared";
 import {
   gateCompletedSignal,
   getGateStatusQuery,
@@ -81,9 +88,9 @@ export async function resolveArchiveGateState(
     return { effectiveGates: storeGates, storeGates, source: "store" };
   }
   try {
-    const handle = getChangeHandle(bundle.client, projectId, changeId);
-    const queriedGates = await querySignal<Gates>(
-      handle,
+    const queriedGates = await runReacquiringChangeQuery<Gates>(
+      projectId,
+      changeId,
       getGateStatusQuery,
       undefined,
     );
@@ -152,10 +159,70 @@ export function getArchiveGatePreflightError(
   return null;
 }
 // rq-releaseFinalization01: release gate confirmation must be durable.
+// rq-reapOrphanAdvWorkers T2: archive finalization reads must not pin a
+// pre-built handle. `reinitStsl` swaps the cached bundle's client in place
+// on reconnect; a handle captured before the retry loop keeps the closed
+// client and every retried query fails with the same transport error.
+// Rebuilding the handle from `getService()` inside each attempt closure
+// picks up the swapped-in client.
+function queryWithFreshChangeHandle(
+  projectId: string,
+  changeId: string,
+  query: unknown,
+  args: unknown[],
+): Promise<unknown> {
+  const bundle = getService();
+  if (!bundle) {
+    throw new Error("STSL not initialized for change query");
+  }
+  return getChangeHandle(bundle.client, projectId, changeId).query(
+    query,
+    ...args,
+  );
+}
+export function runReacquiringChangeQuery<T>(
+  projectId: string,
+  changeId: string,
+  query: unknown,
+  ...args: unknown[]
+): Promise<T> {
+  return runTemporalQuery(() =>
+    queryWithFreshChangeHandle(projectId, changeId, query, args),
+  ) as Promise<T>;
+}
+/**
+ * Handle-like adapter whose `query` reacquires the real handle from
+ * `getService()` on every invocation. Lets `waitForGateCompletion` (the
+ * single source of truth for gate poll semantics, STRUCT-003) drive the
+ * archive release-gate poll without pinning a stale client.
+ */
+function reacquiringChangeQueryHandle(
+  projectId: string,
+  changeId: string,
+): WorkflowHandleLike {
+  return {
+    query: (definition: unknown, ...args: unknown[]) =>
+      queryWithFreshChangeHandle(projectId, changeId, definition, args),
+    executeUpdate: () =>
+      Promise.reject(
+        new Error("reacquiring query handle does not support executeUpdate"),
+      ),
+    signal: () =>
+      Promise.reject(
+        new Error("reacquiring query handle does not support signal"),
+      ),
+  };
+}
 export async function waitForArchiveReleaseGateCompletion(
-  handle: ReturnType<typeof getChangeHandle>,
+  projectId: string,
+  changeId: string,
+  opts: { attempts?: number; delayMs?: number } = {},
 ): Promise<GateCompletion | undefined> {
-  return waitForGateCompletion(handle, "release");
+  return waitForGateCompletion(
+    reacquiringChangeQueryHandle(projectId, changeId),
+    "release",
+    opts,
+  );
 }
 export function buildReleaseCompletionEvidence(
   finalization: GitFinalizeOutcome,
@@ -862,10 +929,96 @@ export async function verifyReleaseGateDurableForArchive(input: {
   return { ok: true, gate: releaseGate };
 }
 /**
+ * rq-reapOrphanAdvWorkers T3 (SC3/AC3): a gateCompletedSignal failure is
+ * AMBIGUOUS when it is retryable saturation (retry axis: DEADLINE_EXCEEDED /
+ * UNAVAILABLE / RESOURCE_EXHAUSTED / ABORTED) or a transport-channel drop
+ * (reconnect axis) — the signal may have landed server-side before the client
+ * observed the error. Completed-workflow errors are NOT ambiguous (they route
+ * to disk-projection recovery); fatal errors propagate unchanged.
+ */
+async function isAmbiguousReleaseGateSignalFailure(
+  error: unknown,
+): Promise<boolean> {
+  const { isWorkflowCompletedError } =
+    await import("../../temporal/recovery-classification");
+  if (isWorkflowCompletedError(error)) return false;
+  return (
+    classifyTemporalError(error) === "transient" || isReconnectableError(error)
+  );
+}
+/**
+ * rq-reapOrphanAdvWorkers T3 (SC3/AC3): reconcile exactly once after an
+ * ambiguous gateCompletedSignal failure. A blind re-signal mints a new
+ * non-deduped request and can duplicate the completion, so the ONLY retry is
+ * this single bounded terminal-state read through the T2 reacquiring query.
+ * Terminal (release done) → already-done success. Non-terminal → surface the
+ * classified signal error; the operator's idempotent archive re-run reconciles
+ * through the pre-signal terminal pre-check. No loop, no re-signal.
+ *
+ * The disk proof is not re-checked here: callers
+ * (reconcileArchivedBundleRetry / adv_change_archive) run
+ * verifyReleaseGateDurableForArchive immediately before this function, so a
+ * durable disk-done gate short-circuits before any signal is fired.
+ */
+async function reconcileReleaseGateAfterAmbiguousSignal(input: {
+  store: Store;
+  change: Change;
+  projectId: string;
+  changeId: string;
+  evidence: string;
+  signalError: unknown;
+}): Promise<ArchiveReleaseGateResult> {
+  let reconciledGate: GateCompletion | undefined;
+  try {
+    reconciledGate = await runReacquiringChangeQuery<GateCompletion>(
+      input.projectId,
+      input.changeId,
+      getGateStatusQuery,
+      "release",
+    );
+  } catch (queryError) {
+    // The single reconcile read raced a completed workflow — the ambiguous
+    // signal may have landed and retired the workflow. Route through the same
+    // disk-projection recovery as every other Temporal interaction here.
+    const { isWorkflowCompletedError } =
+      await import("../../temporal/recovery-classification");
+    if (isWorkflowCompletedError(queryError)) {
+      return recoverReleaseGateIfWorkflowCompleted(queryError, {
+        store: input.store,
+        change: input.change,
+        evidence: input.evidence,
+      });
+    }
+    return {
+      ok: false,
+      error:
+        `Release gate signal outcome is ambiguous (${collectErrorText(input.signalError)}) ` +
+        `and the bounded reconcile read failed: ${collectErrorText(queryError)}. ` +
+        `No re-signal was attempted; re-run archive to reconcile.`,
+    };
+  }
+  if (reconciledGate?.status === "done") {
+    return { ok: true, gate: reconciledGate, alreadyDone: true };
+  }
+  return {
+    ok: false,
+    error:
+      `Release gate signal failed transiently (${collectErrorText(input.signalError)}) ` +
+      `and the bounded reconcile read observed non-terminal release gate status ` +
+      `"${reconciledGate?.status ?? "unknown"}". No re-signal was attempted; ` +
+      `re-run archive to reconcile.`,
+    workflowGateStatus: reconciledGate?.status,
+    readinessBlockers: reconciledGate?.readiness_blockers,
+    stuckReason: reconciledGate?.stuck_reason,
+  };
+}
+/**
  * Record the release gate after Phase 9 returns shipped evidence and
  * before archive status retires the workflow. Each Temporal interaction can
  * race a completed workflow, so query, signal, and confirmation poll all route
- * completed-workflow failures through disk-projection recovery.
+ * completed-workflow failures through disk-projection recovery. An ambiguous
+ * transient signal failure reconciles once via a bounded terminal-state read
+ * instead of blindly re-firing the signal (rq-reapOrphanAdvWorkers T3).
  */
 export async function completeReleaseGateAfterFinalization(input: {
   store: Store;
@@ -893,12 +1046,12 @@ export async function completeReleaseGateAfterFinalization(input: {
       error: "Could not resolve project ID for release gate completion",
     };
   }
-  const handle = getChangeHandle(bundle.client, projectId, input.changeId);
   const evidence = buildReleaseCompletionEvidence(input.finalization);
   let currentGate: GateCompletion | undefined;
   try {
-    currentGate = await querySignal<GateCompletion>(
-      handle,
+    currentGate = await runReacquiringChangeQuery<GateCompletion>(
+      projectId,
+      input.changeId,
       getGateStatusQuery,
       "release",
     );
@@ -912,20 +1065,39 @@ export async function completeReleaseGateAfterFinalization(input: {
   if (currentGate?.status === "done") {
     return { ok: true, gate: currentGate, alreadyDone: true };
   }
+  // rq-reapOrphanAdvWorkers T3 (SC3/AC3): fire gateCompletedSignal in a SINGLE
+  // attempt. The shared fireSignal retry wrapper would blindly re-signal on an
+  // ambiguous transient failure (the signal may have landed server-side),
+  // minting duplicate non-deduped completion requests. Retry happens ONLY via
+  // the bounded reconcile read in the catch — never via re-fire. The handle is
+  // built here, after the pre-signal query, so a mid-query reconnect
+  // (reinitStsl swaps bundle.client in place) cannot pin a closed client (T2).
+  const signalHandle = getChangeHandle(
+    bundle.client,
+    projectId,
+    input.changeId,
+  );
   try {
-    await fireSignalAndRefresh(
-      handle,
-      input.store,
-      input.changeId,
-      gateCompletedSignal,
-      {
-        gateId: "release",
-        completedBy: "adv-archive",
-        completedAt: new Date().toISOString(),
-        approvalEvidence: evidence,
-      },
-    );
+    await signalHandle.signal(gateCompletedSignal, {
+      gateId: "release",
+      completedBy: "adv-archive",
+      completedAt: new Date().toISOString(),
+      approvalEvidence: evidence,
+    });
+    // rq-cacheRefresh01: refresh after a successful signal, matching
+    // fireSignalAndRefresh semantics; on failure no refresh is attempted.
+    await input.store.changes.refresh(input.changeId);
   } catch (error) {
+    if (await isAmbiguousReleaseGateSignalFailure(error)) {
+      return reconcileReleaseGateAfterAmbiguousSignal({
+        store: input.store,
+        change: input.change,
+        projectId,
+        changeId: input.changeId,
+        evidence,
+        signalError: error,
+      });
+    }
     return recoverReleaseGateIfWorkflowCompleted(error, {
       store: input.store,
       change: input.change,
@@ -934,7 +1106,10 @@ export async function completeReleaseGateAfterFinalization(input: {
   }
   let postSignalGate: GateCompletion | undefined;
   try {
-    postSignalGate = await waitForArchiveReleaseGateCompletion(handle);
+    postSignalGate = await waitForArchiveReleaseGateCompletion(
+      projectId,
+      input.changeId,
+    );
   } catch (error) {
     return recoverReleaseGateIfWorkflowCompleted(error, {
       store: input.store,
