@@ -7,7 +7,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { COMMAND_MANIFEST } from "../manifest";
@@ -339,6 +339,72 @@ describe("gate tools — signal-driven lifecycle", () => {
         }),
       );
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("completed-workflow recovery uses one disk snapshot for gates and tasks", async () => {
+      const tmp = await mkdtemp(join(tmpdir(), "adv-gate-disk-snapshot-"));
+      const changesDir = join(tmp, "changes");
+      const changeDir = join(changesDir, "test-change");
+      const staleGates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const recoveredGates = {
+        ...staleGates,
+        execution: { status: "done" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates: staleGates });
+      store.paths.changes = changesDir;
+      try {
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(
+          join(changeDir, "change.json"),
+          JSON.stringify({
+            id: "test-change",
+            title: "Test Change",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+            created_by: "test",
+            tasks: [],
+            deltas: {},
+            wisdom: [],
+            gates: recoveredGates,
+          }),
+        );
+        mocks.querySignal.mockRejectedValueOnce(
+          new Error("WorkflowNotFoundError: workflow execution already completed"),
+        );
+
+        const result = await gateTools.adv_gate_complete.execute(
+          {
+            changeId: "test-change",
+            gateId: "acceptance",
+            completedBy: "agent",
+            compatibilityReason: "pinned wedged run was terminated",
+            recoveryReason: "acceptance recovery after pinned workflow termination",
+            recoveryEvidence:
+              "WorkflowNotFoundError: pinned run terminated after operator approval",
+            priorApprovalEvidence: "Prior user acceptance approval: approve",
+          },
+          store,
+        );
+
+        expect(JSON.parse(result)).toMatchObject({ success: true, recovered: true });
+        const persisted = JSON.parse(
+          await readFile(join(changeDir, "change.json"), "utf8"),
+        );
+        expect(persisted.gates).toMatchObject({
+          execution: { status: "done" },
+          acceptance: expect.objectContaining({ status: "done" }),
+        });
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
     });
 
     test("poisoned-history acceptance recovery rejects missing audit fields", async () => {
