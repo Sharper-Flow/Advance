@@ -74,6 +74,19 @@ Text output: detected stacks, applied Stack Packs, missing Stack Packs, skipped 
 
 Missing pack ≠ finding by itself. It is coverage debt.
 
+## Rewrite Assessment Method
+
+The command derives a mandatory rewrite assessment after scan evidence is final and before report assembly. Skill owns the evidence rules:
+
+- It explicitly labels and answers two questions:
+  1. If the project/app were completely rewritten, what architecture would definitely change?
+  2. If the project/app were completely rewritten, what would definitely not be carried over?
+- Definite answers require source/tool evidence or stable finding references; Phase 1 tool output and Phase 2 cited sources qualify.
+- Phase 3 heuristic-only content is tentative, never definite.
+- A question with no evidence-backed answer yields `No definite conclusion from scan evidence`.
+- Degraded detector coverage forces `status: "indeterminate"` — never a no-change conclusion.
+- Advisory only: no severity, confidence, or coverage changes, and must never authorize deletion. Command-level `rewriteAssessment` JSON semantics only.
+
 ## Research-Fallback Protocol
 
 ```

@@ -134,13 +134,44 @@ Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 fin
 4. Sort actionable findings: CRITICAL > HIGH > MEDIUM > LOW.
 5. Group by severity, category, scanner convergence.
 
+### Rewrite Assessment (mandatory, derived)
+
+After aggregation and before report assembly, derive a rewrite assessment that explicitly labels and answers two questions:
+
+1. If the project/app were completely rewritten, what architecture would definitely change?
+2. If the project/app were completely rewritten, what would definitely not be carried over?
+
+Evidence rules:
+
+- Every definite answer MUST cite source/tool evidence or stable finding references (smell id + `file:line`) from the scan.
+- Heuristic-only content is tentative: label it tentative and keep it out of the definite answers.
+- A question with no evidence-backed answer yields the literal `No definite conclusion from scan evidence`.
+- Required coverage degradation (`SLOP_SCAN_DEGRADED` or any required degraded detector) sets `status: "indeterminate"`; emit the assessment even in a `SLOP SCAN FAILED` report. Indeterminate is never a no-change conclusion; do not claim nothing would change.
+
+Advisory boundary: the assessment must not alter severity, grouping, actionability, or coverage, and must never authorize deletion. `wouldNotCarryOver` entries are not deletion actions; the deletion candidate safety and actionability rules above are unchanged.
+
+Text output: a `REWRITE ASSESSMENT` section that answers both labeled questions, each definite entry followed by its evidence references.
+
+JSON output (command-level `rewriteAssessment` only):
+
+```json
+"rewriteAssessment": {
+  "status": "complete" | "indeterminate",
+  "wouldChange": { "answer": "...", "evidence": ["..."], "confidence": "confirmed" | "tentative" },
+  "wouldNotCarryOver": { "answer": "...", "evidence": ["..."], "confidence": "confirmed" | "tentative" },
+  "tentative": [{ "statement": "...", "evidence": ["..."] }]
+}
+```
+
+`wouldChange` answers question 1; `wouldNotCarryOver` answers question 2. Each is one evidence-cited answer object. When no evidence-backed answer exists, use the literal `No definite conclusion from scan evidence` as `answer`, an empty `evidence` array, and `confidence: "tentative"`. The command appends `rewriteAssessment` beside the typed report; it does not extend `slop_scan_report.v1` and runner output is unchanged.
+
 ### Scanner Coverage Report
 
 Always include compact coverage in text output: `run`, `skipped`, `degraded`, `failed`, `timed_out`, `unavailable`, and `externally_covered` detectors; phase coverage; method coverage. Empty findings still report coverage.
 
 Text output: `SLOP SCAN REPORT` for successful scans or `SLOP SCAN FAILED` for required degraded coverage, scope, languages, prominent coverage warnings for important failed/missing detectors, severity/category summaries, detector coverage, findings (`id`, `file:line`, description, fix, evidence). No findings + complete coverage → `[OK] No slop detected.` No findings + required degraded coverage → print the failed required detectors and do not print `[OK]`.
 
-JSON output: `schema_version: "slop_scan_report.v1"`, `generated_at`, `scope`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields + `grouping` + `actionability`, `coverage.detectors[]`, and `coverage.falsePositiveProtections`. Required degraded coverage additionally includes `failure.code: "SLOP_SCAN_DEGRADED"`, `failure.message`, and `failure.failedDetectors[]`. `coverage.detectors[].state: 'run' | 'skipped' | 'degraded' | 'failed' | 'timed_out' | 'unavailable' | 'externally_covered'`. `grouping: 'actionable' | 'low-confidence' | 'user-review'`; `actionability: 'blocking' | 'actionable' | 'review_required' | 'non_blocking'`.
+JSON output: `schema_version: "slop_scan_report.v1"`, `generated_at`, `scope`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields + `grouping` + `actionability`, `coverage.detectors[]`, and `coverage.falsePositiveProtections`. Required degraded coverage additionally includes `failure.code: "SLOP_SCAN_DEGRADED"`, `failure.message`, and `failure.failedDetectors[]`. `coverage.detectors[].state: 'run' | 'skipped' | 'degraded' | 'failed' | 'timed_out' | 'unavailable' | 'externally_covered'`. `grouping: 'actionable' | 'low-confidence' | 'user-review'`; `actionability: 'blocking' | 'actionable' | 'review_required' | 'non_blocking'`. Command-level `rewriteAssessment` is appended beside the typed report envelope; see Rewrite Assessment.
 ## Phase 4: Write Metadata
 
 Skip metadata success writes when Phase 1 required coverage failed with `SLOP_SCAN_DEGRADED`.
@@ -157,4 +188,4 @@ After successful completion, call `adv_project_metadata action:"write"`:
 - `ADV_DEBUG=1`: raw sub-agent prompts/responses to stderr, pattern context.
 ## Execution
 
-Parse args → pre-flight → Phase 1 if enabled → Phase 2 if enabled → aggregate → report → write metadata.
+Parse args → pre-flight → Phase 1 if enabled → Phase 2 if enabled → aggregate → rewrite assessment → report → write metadata.

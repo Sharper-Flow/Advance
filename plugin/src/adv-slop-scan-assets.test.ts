@@ -240,6 +240,37 @@ describe("adv-slop-scan anti-recursion assets", () => {
     expect(skill).toContain("externally_covered");
   });
 
+  test("command and skill document evidence-backed rewrite assessment", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SLOP_SKILL_PATH, "utf8");
+
+    for (const content of [command, skill]) {
+      expect(content).toContain("Rewrite Assessment");
+      expect(content).toContain(
+        "If the project/app were completely rewritten, what architecture would definitely change?",
+      );
+      expect(content).toContain(
+        "If the project/app were completely rewritten, what would definitely not be carried over?",
+      );
+      expect(content).toContain("No definite conclusion from scan evidence");
+      expect(content).toContain("indeterminate");
+      expect(content).toContain("never a no-change conclusion");
+      expect(content).toContain("never authorize deletion");
+      expect(content).toContain("rewriteAssessment");
+    }
+    expect(command).toContain('"rewriteAssessment"');
+    expect(command).toContain('"complete" | "indeterminate"');
+    expect(command).toContain('"wouldChange": {');
+    expect(command).toContain('"wouldNotCarryOver": {');
+    expect(command).toContain('"confidence": "confirmed" | "tentative"');
+    expect(command).toContain("wouldChange");
+    expect(command).toContain("wouldNotCarryOver");
+    expect(command).toContain("tentative");
+    expect(command).toContain("command-level `rewriteAssessment`");
+    expect(command).toContain("does not extend `slop_scan_report.v1`");
+    expect(command).toContain("SLOP_SCAN_DEGRADED");
+  });
+
   test("documents single-level scanner orchestration in shared ADV instructions", () => {
     const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
 
