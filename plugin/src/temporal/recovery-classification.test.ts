@@ -11,7 +11,10 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { isWorkflowCompletedError } from "./recovery-classification";
+import {
+  isWorkflowCompletedError,
+  recoveryReasonFromError,
+} from "./recovery-classification";
 
 function errWithName(name: string, message = "x"): Error {
   const e = new Error(message);
@@ -63,5 +66,57 @@ describe("isWorkflowCompletedError — canonical recognition set", () => {
     expect(isWorkflowCompletedError(42)).toBe(false);
     expect(isWorkflowCompletedError(null)).toBe(false);
     expect(isWorkflowCompletedError(undefined)).toBe(false);
+  });
+});
+
+describe("recoveryReasonFromError — three-way query-failure taxonomy", () => {
+  test("poisoned history → poisoned_history", () => {
+    expect(
+      recoveryReasonFromError(
+        new Error(
+          "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231)",
+        ),
+      ),
+    ).toBe("poisoned_history");
+  });
+
+  test("completed/absent workflow → missing_workflow", () => {
+    expect(
+      recoveryReasonFromError(
+        new Error("Cannot signal a completed workflow handle"),
+      ),
+    ).toBe("missing_workflow");
+    expect(recoveryReasonFromError(errWithName("WorkflowNotFoundError"))).toBe(
+      "missing_workflow",
+    );
+    expect(
+      recoveryReasonFromError(
+        new Error("Workflow execution not found for workflowId: change-p1-x"),
+      ),
+    ).toBe("missing_workflow");
+  });
+
+  test("other reachable query failure → query_failed", () => {
+    // Generic Temporal SDK query failure with no poisoned/completed markers.
+    expect(recoveryReasonFromError(new Error("Failed to query Workflow"))).toBe(
+      "query_failed",
+    );
+    expect(recoveryReasonFromError(new Error("permission denied"))).toBe(
+      "query_failed",
+    );
+    // An unregistered query handler means the workflow EXISTS but cannot
+    // answer — that is not a missing workflow and must never authorize
+    // re-seed mutation.
+    expect(
+      recoveryReasonFromError(
+        new Error("Query type 'changeStateQuery' not registered"),
+      ),
+    ).toBe("query_failed");
+  });
+
+  test("non-Error values → query_failed", () => {
+    expect(recoveryReasonFromError("string error")).toBe("query_failed");
+    expect(recoveryReasonFromError(null)).toBe("query_failed");
+    expect(recoveryReasonFromError(undefined)).toBe("query_failed");
   });
 });

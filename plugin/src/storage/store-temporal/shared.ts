@@ -13,7 +13,11 @@ import {
   type TemporalReadDeadline,
   withTemporalRetry,
 } from "../../temporal/retry-wrapper";
-import { recoveryReasonFromError } from "../../temporal/recovery-classification";
+import {
+  recoveryReasonFromError,
+  type ProjectionRecoveryReason,
+  type RecoveryReason,
+} from "../../temporal/recovery-classification";
 import { reinitStsl } from "../../temporal/service";
 import { createLogger } from "../../utils/debug-log";
 import type { ChangeSummaryMemo, ChangeSummary } from "../store-temporal-memo";
@@ -337,7 +341,14 @@ async function hasPoisonedWorkflowDescription(
 
 export interface TemporalReadFailureClassification {
   errorClass: TemporalErrorClass;
-  recoveryReason?: "missing_workflow" | "poisoned_history";
+  /**
+   * Typed reason for the read failure. `query_failed` means the workflow
+   * state is unknown — it NEVER authorizes mutation. Recovery paths that
+   * mutate (re-seed) or project must require BOTH `errorClass ===
+   * "fallback"` AND a `ProjectionRecoveryReason` (i.e. recoveryReason !==
+   * "query_failed").
+   */
+  recoveryReason?: RecoveryReason;
 }
 
 export async function classifyTemporalReadFailure(
@@ -347,12 +358,6 @@ export async function classifyTemporalReadFailure(
   deadline?: TemporalReadDeadline,
 ): Promise<TemporalReadFailureClassification> {
   const errorClass = classifyTemporalError(error);
-  if (errorClass === "fallback") {
-    return {
-      errorClass,
-      recoveryReason: recoveryReasonFromError(error),
-    };
-  }
 
   if (
     errorClass === "fatal" &&
@@ -362,7 +367,10 @@ export async function classifyTemporalReadFailure(
     return { errorClass: "fallback", recoveryReason: "poisoned_history" };
   }
 
-  return { errorClass };
+  // Total three-way classification of every other reachable query failure:
+  // poisoned → poisoned_history, completed/not-found → missing_workflow,
+  // anything else → query_failed (never mutation-authorizing).
+  return { errorClass, recoveryReason: recoveryReasonFromError(error) };
 }
 
 export interface StoreDeps {
@@ -412,6 +420,6 @@ export interface StoreDeps {
   ) => Promise<import("../store-types").ResolvedChangeList>;
   reseedChangeFromDisk: (
     changeId: string,
-    reason?: "missing_workflow" | "poisoned_history",
+    reason?: ProjectionRecoveryReason,
   ) => Promise<Change | null>;
 }
