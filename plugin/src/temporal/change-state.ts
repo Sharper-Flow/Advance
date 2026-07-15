@@ -894,8 +894,13 @@ export function applyTaskCompletedToState(
     return state;
   }
 
-  const implementationCycleId = task.apply_cycle?.implementation_cycle_id;
-  if (task.metadata?.frontend === "true" && implementationCycleId) {
+  if (task.metadata?.frontend === "true") {
+    const implementationCycleId = task.apply_cycle?.implementation_cycle_id;
+    if (!implementationCycleId) {
+      throw new Error(
+        `TASK_COMPLETION_BLOCKED: frontend task ${payload.taskId} has no active implementation cycle. Assign the task with an apply cycle and collect successful adv-designer evidence before completing it.`,
+      );
+    }
     const reports = [
       ...(state.subagent_reports ?? []),
       ...(task.subagent_reports ?? []),
@@ -1074,6 +1079,25 @@ export function applySubagentReportSubmittedToState(
 ): ChangeWorkflowState {
   const taskId = payload.taskId ?? taskIdFromReport(payload.report);
   const task = taskId ? getMutableTask(state, taskId) : undefined;
+
+  // An adv-designer report carrying apply_context is cycle-anchored evidence:
+  // it may only persist while the owning task has that exact apply cycle
+  // active. Persisting pre-anchor evidence would let it become valid later
+  // once a matching cycle starts. Never infer or backfill a cycle here —
+  // throw so the signal wrapper records a signal rejection instead.
+  // Legacy reports without apply_context claim no cycle and stay compatible.
+  if (payload.report.agent === "adv-designer") {
+    const claimedCycleId = subagentReportImplementationCycleId(payload.report);
+    if (claimedCycleId) {
+      const activeCycleId = task?.apply_cycle?.implementation_cycle_id;
+      if (activeCycleId !== claimedCycleId) {
+        throw new Error(
+          `SUBAGENT_REPORT_ANCHOR_REJECTED: adv-designer report for task ${taskId ?? "<unknown>"} claims implementation cycle ${claimedCycleId} but the task has no matching active implementation cycle${activeCycleId ? ` (active cycle: ${activeCycleId})` : ""}.`,
+        );
+      }
+    }
+  }
+
   const taskScoped =
     typeof payload.report.scope === "string" ||
     payload.report.scope.kind === "task";
