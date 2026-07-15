@@ -112,6 +112,14 @@ describe("isReconnectableError (reconnect axis)", () => {
       expect(isReconnectableError(grpcError(code))).toBe(false);
     }
   });
+
+  it("does not reconnect a validated saturation code when its details contain transport text", () => {
+    expect(
+      isReconnectableError(
+        grpcError(RESOURCE_EXHAUSTED, "Channel has been shut down"),
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("withTemporalRetry reconnect gating", () => {

@@ -135,6 +135,10 @@ const RECONNECTABLE_TRANSPORT_RE =
  * ABORTED, or DEADLINE_EXCEEDED are all retryable but NOT reconnectable.
  */
 export function isReconnectableError(error: unknown): boolean {
+  // A validated saturation/availability status remains on the retry axis even
+  // when SDK-provided details happen to contain a transport-looking phrase.
+  // Never let descriptive text override the structural gRPC classification.
+  if (GRPC_RETRYABLE_CODES.has(extractGrpcStatus(error) ?? -1)) return false;
   return RECONNECTABLE_TRANSPORT_RE.test(collectErrorText(error));
 }
 
