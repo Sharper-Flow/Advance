@@ -3,6 +3,9 @@
  */
 
 import { describe, expect, test, vi, beforeEach } from "vitest";
+import { mkdtemp, mkdir, rm, writeFile } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
 import { gateTools } from "./gate";
 import type { Store } from "../storage/store";
 import type { Change, Gates, OpsFollowupLink } from "../types";
@@ -281,21 +284,49 @@ describe("release gate trunk-merge enforcement", () => {
       new Error("workflow execution already completed"),
     );
 
-    const result = await gateTools.adv_gate_complete.execute(
-      {
-        changeId: "example",
-        gateId: "release",
-        completedBy: "user:signoff",
-        compatibilityReason: "legacy completed workflow",
-        recoveryReason: "release gate recovery after completed workflow",
-        recoveryEvidence: "workflow execution already completed",
-      },
-      createMockStore(),
-    );
+    // Completed-workflow recovery is fail-closed on one coherent disk
+    // snapshot, so the release enforcement revalidation requires a real
+    // change.json on disk for loadChange to read.
+    const tmp = await mkdtemp(join(tmpdir(), "adv-release-recovery-"));
+    const changesDir = join(tmp, "changes");
+    const changeDir = join(changesDir, "example");
+    const store = createMockStore();
+    store.paths.changes = changesDir;
+    try {
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "change.json"),
+        JSON.stringify({
+          id: "example",
+          title: "Example",
+          status: "active",
+          created_at: "2026-01-01T00:00:00Z",
+          created_by: "test",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: releaseReadyGates(),
+        }),
+      );
 
-    const parsed = JSON.parse(result);
-    expect(parsed.error).toContain("RELEASE_REQUIRES_TRUNK_MERGE");
-    expect(parsed.unmergedCommits).toContain("abc123 task commit");
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "example",
+          gateId: "release",
+          completedBy: "user:signoff",
+          compatibilityReason: "legacy completed workflow",
+          recoveryReason: "release gate recovery after completed workflow",
+          recoveryEvidence: "workflow execution already completed",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("RELEASE_REQUIRES_TRUNK_MERGE");
+      expect(parsed.unmergedCommits).toContain("abc123 task commit");
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
   });
 
   test("rejects release completion when change branch is not pushed (pr mode)", async () => {

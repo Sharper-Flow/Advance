@@ -43,6 +43,7 @@ import {
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { changeSeedStateFromChange } from "../../temporal/change-state";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
+import type { ProjectionRecoveryReason } from "../../temporal/recovery-classification";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
@@ -54,7 +55,6 @@ import { createEpicOps } from "./epics";
 const logger = createLogger("store-temporal");
 
 type ProjectionSource = "disk" | "archive";
-type ProjectionRecoveryReason = "missing_workflow" | "poisoned_history";
 
 function withProjectionRecovery(
   change: Change,
@@ -604,7 +604,13 @@ export function createTemporalStoreBackend(
         err,
         deadline,
       );
-      if (failure.errorClass === "fallback") {
+      // query_failed never authorizes projection recovery: the post-reseed
+      // workflow state is unknown, so surface the original failure instead
+      // of masking it with a stale disk projection.
+      if (
+        failure.errorClass === "fallback" &&
+        failure.recoveryReason !== "query_failed"
+      ) {
         return withProjectionRecovery(
           change,
           "disk",
@@ -695,7 +701,13 @@ export function createTemporalStoreBackend(
         error,
         deadline,
       );
-      if (failure.errorClass === "fallback") {
+      // query_failed never authorizes mutation: re-seed may start a new
+      // workflow run, which is only safe when the workflow is known missing
+      // or its history is known poisoned.
+      if (
+        failure.errorClass === "fallback" &&
+        failure.recoveryReason !== "query_failed"
+      ) {
         const reseeded = await reseedChangeFromDisk(
           changeId,
           failure.recoveryReason ?? "missing_workflow",

@@ -105,6 +105,57 @@ const logger = createLogger("change");
 const STATUS_REPAIR_PHASE9_EVIDENCE_RE =
   /phase9_status\s*(?::|=|\.)\s*failed|phase9 status failed|phase9_status\.failed/i;
 
+// adv_change_workflow_terminate: shipped proof = acceptance AND release gates
+// done on the disk projection. Only a fully-shipped change may have its
+// wedged workflow terminated — the disk projection is authoritative for
+// everything the change still needs.
+const WORKFLOW_TERMINATE_SHIPPED_GATES = ["acceptance", "release"] as const;
+
+// Run statuses that are already terminal server-side: nothing left to
+// terminate, so the tool reports idempotent success (after eligibility).
+const TERMINAL_WORKFLOW_RUN_STATUSES: ReadonlySet<string> = new Set([
+  "COMPLETED",
+  "FAILED",
+  "CANCELLED",
+  "TERMINATED",
+  "CONTINUED_AS_NEW",
+  "TIMED_OUT",
+]);
+
+// Run statuses eligible for termination. Anything else (UNSPECIFIED,
+// UNKNOWN, absent) is refused — never act on an unclassifiable run.
+const TERMINABLE_WORKFLOW_RUN_STATUSES: ReadonlySet<string> = new Set([
+  "RUNNING",
+  "PAUSED",
+]);
+
+/**
+ * Structural narrowing of a `describe()` result into the exact run pin
+ * (runId + status name). Accepts both the SDK status object shape
+ * (`status.name`) and a plain string status; anything absent stays
+ * undefined so the caller can refuse instead of guessing.
+ */
+function workflowRunPinFromDescription(description: unknown): {
+  runId?: string;
+  statusName?: string;
+} {
+  if (typeof description !== "object" || description === null) return {};
+  const record = description as Record<string, unknown>;
+  const runId =
+    typeof record.runId === "string" && record.runId.length > 0
+      ? record.runId
+      : undefined;
+  let statusName: string | undefined;
+  const status = record.status;
+  if (typeof status === "object" && status !== null) {
+    const name = (status as Record<string, unknown>).name;
+    if (typeof name === "string" && name.length > 0) statusName = name;
+  } else if (typeof status === "string" && status.length > 0) {
+    statusName = status;
+  }
+  return { runId, statusName };
+}
+
 async function getChangeWorkflowHandleForStore(store: Store, changeId: string) {
   const { getService } = await import("../temporal/service");
   const service = getService();
@@ -3759,6 +3810,279 @@ export const changeTools = {
         bundleRemoved: removeDiskBundle,
         archivedPath,
         requirement: "rq-archivePurge01",
+      });
+    },
+  },
+  adv_change_workflow_terminate: {
+    description:
+      "Operator-only maintenance tool: terminate the EXACT wedged run of a shipped change's Temporal workflow, pinned by runId via describe() — NOT a Temporal Reset. Eligibility is strict and ordered: approval-first (approvedByUser + non-blank approvalEvidence before any read or mutation); the change must exist and NOT be archived (archived changes route to adv_archive_purge, the sole archived-change lever — rq-archivePurge01 semantics preserved); shipped proof required (acceptance AND release gates done on the disk projection). The workflow is then described once and the exact run pinned: a not-found/completed describe or an already-terminal run status is idempotent success ONLY after that eligibility has passed; a RUNNING/PAUSED run without poisoned-history describe evidence is refused (never terminate a healthy workflow); a run with no pin-able runId or an unclassifiable status is refused. dryRun returns the full structured pin assessment without terminating or touching the projection cache. Termination targets the pinned run via getHandle(workflowId, runId); a not-found terminate is idempotent success, and any other terminate failure returns a structured error BEFORE any projection-cache refresh (failure-before-projection-mutation). On success the projection cache is refreshed so subsequent reads fall through to the durable disk projection. Not a routine autonomous agent action — invoke only on explicit operator instruction.",
+    args: {
+      changeId: z
+        .string()
+        .describe("Change ID whose wedged workflow run should be terminated"),
+      approvedByUser: z
+        .literal(true)
+        .describe(
+          "Must be true — confirms the operator explicitly approved this workflow termination",
+        ),
+      approvalEvidence: z
+        .string()
+        .describe(
+          "Audited evidence of operator approval for this termination (e.g. operator instruction + wedged-state reason).",
+        ),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe(
+          "Preview the eligibility + pin assessment (describe is performed) without terminating the run or refreshing the projection cache.",
+        ),
+    },
+    execute: async (
+      {
+        changeId,
+        approvedByUser,
+        approvalEvidence,
+        dryRun,
+      }: {
+        changeId: string;
+        approvedByUser: true;
+        approvalEvidence: string;
+        dryRun?: boolean;
+      },
+      store: Store,
+    ) => {
+      // Approval gates first — refuse before any read/mutation work so a
+      // misconfigured call can never become a partial termination (purge C3).
+      if (approvedByUser !== true) {
+        return formatToolOutput({
+          success: false,
+          error: "approvedByUser must be true for change workflow termination",
+          changeId,
+          hint: "Workflow termination is operator-only and requires explicit operator approval.",
+        });
+      }
+      const evidence = approvalEvidence?.trim() ?? "";
+      if (evidence.length === 0) {
+        return formatToolOutput({
+          success: false,
+          error: "approvalEvidence is required for change workflow termination",
+          changeId,
+          hint: "Cite the operator approval and wedged-state reason for this termination.",
+        });
+      }
+
+      const result = await store.changes.get(changeId);
+      if (!result.success) {
+        return formatToolOutput({ success: false, error: result.error });
+      }
+      if (!result.data) {
+        return formatToolOutput({
+          success: false,
+          error: `Change not found: ${changeId}`,
+          changeId,
+        });
+      }
+      const change = result.data;
+
+      // Archived changes route to adv_archive_purge — the sole archived-change
+      // termination lever. This preserves rq-archivePurge01 semantics exactly.
+      if (change.status === "archived") {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: change ${changeId} is archived.`,
+          changeId,
+          currentStatus: change.status,
+          hint: "Use adv_archive_purge for archived changes — it is the sole archived-change workflow termination lever.",
+        });
+      }
+
+      // Shipped proof: acceptance AND release gates done. This must pass
+      // BEFORE any idempotent completed/not-found handling — a gone workflow
+      // never masks an ineligible change.
+      const gates = change.gates ?? createDefaultGates();
+      const incompleteGates = WORKFLOW_TERMINATE_SHIPPED_GATES.filter(
+        (gateId) => gates[gateId]?.status !== "done",
+      );
+      if (incompleteGates.length > 0) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: change ${changeId} has no shipped proof (gate(s) not done: ${incompleteGates.join(", ")}).`,
+          changeId,
+          incompleteGates,
+          hint: "Only shipped changes (acceptance AND release gates done) are eligible — their disk projection is fully authoritative. Complete the gates via the normal workflow.",
+        });
+      }
+
+      const { getService } = await import("../temporal/service");
+      const service = getService();
+      const projectId = service ? await getProjectId(store.paths.root) : null;
+      if (!service || !projectId) {
+        return formatToolOutput({
+          success: false,
+          error:
+            "Temporal service not available — cannot describe or terminate the change workflow",
+          changeId,
+          hint: "Restore the Temporal service (adv_temporal_diagnose) and retry the termination.",
+        });
+      }
+      const { getChangeHandle } = await import("./_adapters");
+      const handle = getChangeHandle(service.client, projectId, changeId);
+      if (typeof handle.describe !== "function") {
+        return formatToolOutput({
+          success: false,
+          error:
+            "Change workflow handle does not support describe() — cannot pin an exact run",
+          changeId,
+        });
+      }
+
+      // Idempotent completed/not-found handling — only reachable here, AFTER
+      // approval + existence + status + shipped-gate eligibility.
+      const refreshProjectionCache = async () => {
+        try {
+          await store.changes.refresh(changeId);
+        } catch (error) {
+          logger.debug(
+            `Post-termination cache refresh failed for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      };
+      const { isWorkflowCompletedError } =
+        await import("../temporal/recovery-classification");
+
+      let description: unknown;
+      try {
+        description = await handle.describe();
+      } catch (error) {
+        if (isWorkflowCompletedError(error)) {
+          await refreshProjectionCache();
+          return formatToolOutput({
+            success: true,
+            changeId,
+            workflowTerminated: true,
+            alreadyTerminated: true,
+            message: `Change ${changeId} workflow is already gone (completed/not-found); nothing to terminate.`,
+          });
+        }
+        return formatToolOutput({
+          success: false,
+          error: `Failed to describe change workflow: ${error instanceof Error ? error.message : String(error)}`,
+          changeId,
+          workflowTerminated: false,
+        });
+      }
+
+      const { runId, statusName } = workflowRunPinFromDescription(description);
+
+      // Already-terminal run → idempotent success (after eligibility).
+      if (statusName && TERMINAL_WORKFLOW_RUN_STATUSES.has(statusName)) {
+        await refreshProjectionCache();
+        return formatToolOutput({
+          success: true,
+          changeId,
+          workflowTerminated: true,
+          alreadyTerminated: true,
+          ...(runId ? { runId } : {}),
+          runStatus: statusName,
+          message: `Change ${changeId} workflow run is already ${statusName}; nothing to terminate.`,
+        });
+      }
+      if (!statusName || !TERMINABLE_WORKFLOW_RUN_STATUSES.has(statusName)) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: cannot classify run status${statusName ? ` "${statusName}"` : ""} for change ${changeId}.`,
+          changeId,
+          ...(runId ? { runId } : {}),
+          hint: "Only RUNNING/PAUSED runs are terminable; already-terminal runs are idempotent success. Refusing to act on an unclassifiable run.",
+        });
+      }
+
+      // Healthy guard: a live run must carry poisoned-history describe
+      // evidence. Never terminate a healthy workflow.
+      const { poisonedDescriptionEvidence } = await import("./recovery-probe");
+      const wedgedEvidence = poisonedDescriptionEvidence(description);
+      if (!wedgedEvidence) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: change ${changeId} run is ${statusName} but not wedged — no poisoned-history evidence in describe output.`,
+          changeId,
+          ...(runId ? { runId } : {}),
+          runStatus: statusName,
+          hint: "This tool only terminates wedged (poisoned-history) runs. Refusing to terminate a healthy workflow.",
+        });
+      }
+      if (!runId) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: describe output for change ${changeId} carries no runId — cannot pin an exact run.`,
+          changeId,
+          runStatus: statusName,
+          hint: "Exact run pinning is mandatory; refusing to terminate an unpinned run.",
+        });
+      }
+
+      if (dryRun) {
+        return formatToolOutput({
+          success: true,
+          dryRun: true,
+          wouldTerminate: true,
+          changeId,
+          runId,
+          runStatus: statusName,
+          wedgedEvidence,
+          shippedProof: { acceptance: "done", release: "done" },
+          message: `Would terminate pinned run ${runId} (${statusName}, poisoned-history wedged) of shipped change ${changeId}.`,
+        });
+      }
+
+      // Terminate the EXACT pinned run: a handle bound to (workflowId, runId)
+      // can never kill a different run of the same workflow.
+      const pinnedHandle = getChangeHandle(
+        service.client,
+        projectId,
+        changeId,
+        runId,
+      );
+      try {
+        await (
+          pinnedHandle as unknown as {
+            terminate: (reason?: string) => Promise<unknown>;
+          }
+        ).terminate(
+          `adv_change_workflow_terminate: operator-approved termination of wedged shipped change workflow ${changeId} (run ${runId})`,
+        );
+      } catch (error) {
+        if (isWorkflowCompletedError(error)) {
+          await refreshProjectionCache();
+          return formatToolOutput({
+            success: true,
+            changeId,
+            workflowTerminated: true,
+            alreadyTerminated: true,
+            runId,
+            message: `Change ${changeId} run ${runId} ended before termination landed (completed/not-found); treated as already terminated.`,
+          });
+        }
+        // failure-before-projection-mutation: no refresh, no disk write.
+        return formatToolOutput({
+          success: false,
+          error: `Failed to terminate change workflow: ${error instanceof Error ? error.message : String(error)}`,
+          changeId,
+          runId,
+          workflowTerminated: false,
+        });
+      }
+
+      await refreshProjectionCache();
+      return formatToolOutput({
+        success: true,
+        changeId,
+        workflowTerminated: true,
+        runId,
+        runStatus: statusName,
+        wedgedEvidence,
+        shippedProof: { acceptance: "done", release: "done" },
+        message: `Terminated pinned run ${runId} of shipped change ${changeId}. Disk projection remains authoritative; subsequent reads fall through to disk.`,
       });
     },
   },

@@ -530,23 +530,33 @@ async function completeGateViaRecovery(input: {
       ...(input.extraPayload ?? {}),
     });
   }
-  if (!canCompleteGate(input.gates, input.gateId)) {
+  let recoveryChange = input.change;
+  let recoveryGates = input.gates;
+  if (input.diskDirect) {
+    const disk = await loadChange(input.store.paths.changes, input.changeId);
+    if (!disk.success || !disk.data) {
+      return formatToolOutput({
+        error: `Cannot complete ${input.gateId}: durable recovery projection unavailable`,
+        changeId: input.changeId,
+        gateId: input.gateId,
+        ...(input.extraPayload ?? {}),
+      });
+    }
+    // Read change, gates, tasks, and artifact metadata from one coherent
+    // snapshot after termination; stale workflow state must not leak back in.
+    recoveryChange = disk.data;
+    recoveryGates = recoveryChange.gates ?? createDefaultGates();
+  }
+  if (!canCompleteGate(recoveryGates, input.gateId)) {
     const blockedBy = GATE_ORDER.slice(
       0,
       GATE_ORDER.indexOf(input.gateId),
-    ).filter((gate) => input.gates[gate].status !== "done");
+    ).filter((gate) => recoveryGates[gate].status !== "done");
     return formatToolOutput({
       error: `Cannot complete ${input.gateId}: prior gate(s) incomplete`,
       blockedBy,
       ...(input.extraPayload ?? {}),
     });
-  }
-  let recoveryChange = input.change;
-  if (input.diskDirect) {
-    const disk = await loadChange(input.store.paths.changes, input.changeId);
-    if (disk.success && disk.data) {
-      recoveryChange = disk.data;
-    }
   }
 
   // For acceptance: all tasks must be done/cancelled. Release runs after
@@ -578,7 +588,7 @@ async function completeGateViaRecovery(input: {
 
   const recoveryState = buildRecoveryReadinessState({
     change: recoveryChange,
-    gates: input.gates,
+    gates: recoveryGates,
     projectionChangesDir: input.store.paths.changes,
   });
   const readiness = evaluateGateReadiness(recoveryState, input.gateId, {
@@ -620,7 +630,7 @@ async function completeGateViaRecovery(input: {
     artifact_evidence: artifactEvidence,
   } as Gates[GateId];
   const updatedGates: Gates = {
-    ...input.gates,
+    ...recoveryGates,
     [input.gateId]: completion,
   } as Gates;
   if (input.diskDirect) {

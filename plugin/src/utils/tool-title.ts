@@ -92,6 +92,8 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     operator(`Purge archived change${suffix(args, "changeId")}`),
   adv_change_status_repair: (args) =>
     operator(`Repair change status${suffix(args, "changeId")}`),
+  adv_change_workflow_terminate: (args) =>
+    operator(`Terminate change workflow${suffix(args, "changeId")}`),
   adv_change_update_issues: (args) =>
     write(`Update change issues${suffix(args, "changeId")}`),
   adv_change_repair_origin: (args) =>

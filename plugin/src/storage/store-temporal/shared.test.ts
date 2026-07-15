@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Store } from "../store-types";
 import {
   AdvProjectContextMismatchError,
+  classifyTemporalReadFailure,
   getGuardedChangeHandle,
   mapTemporalChangeStateToChange,
   runTemporalQuery,
@@ -325,5 +326,117 @@ describe("runTemporalQuery aggregate deadline", () => {
 
     expect(op).toHaveBeenCalledTimes(2);
     expect(reinitStsl).not.toHaveBeenCalled();
+  });
+});
+
+describe("classifyTemporalReadFailure", () => {
+  function createClassifyInput(args: {
+    describe?: () => Promise<unknown>;
+  }): TemporalStoreBackendInput {
+    const handle: WorkflowHandleLike = {
+      query: vi.fn(),
+      executeUpdate: vi.fn(),
+      signal: vi.fn(),
+      ...(args.describe ? { describe: args.describe } : {}),
+    };
+    return {
+      projectId: "project-a",
+      legacy: {
+        changes: { get: vi.fn() },
+      } as unknown as Store,
+      temporal: {
+        client: {
+          workflow: {
+            getHandle: () => handle,
+          },
+        },
+      },
+    };
+  }
+
+  test("not-found query failure → fallback + missing_workflow", async () => {
+    const input = createClassifyInput({});
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error("Workflow execution not found for workflowId: change-p-a"),
+    );
+    expect(failure).toEqual({
+      errorClass: "fallback",
+      recoveryReason: "missing_workflow",
+    });
+  });
+
+  test("poisoned query failure → fallback + poisoned_history", async () => {
+    const input = createClassifyInput({});
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error(
+        "[TMPRL1100] Nondeterminism error: No command scheduled for event X",
+      ),
+    );
+    expect(failure).toEqual({
+      errorClass: "fallback",
+      recoveryReason: "poisoned_history",
+    });
+  });
+
+  test("fatal generic query failure + poisoned describe → fallback + poisoned_history", async () => {
+    const input = createClassifyInput({
+      describe: async () => ({
+        searchAttributes: {
+          TemporalReportedProblems: [
+            "category=WorkflowTaskFailed cause=WorkflowTaskFailedCauseNonDeterministicError",
+          ],
+        },
+      }),
+    });
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error("Failed to query Workflow"),
+    );
+    expect(failure).toEqual({
+      errorClass: "fallback",
+      recoveryReason: "poisoned_history",
+    });
+  });
+
+  test("fatal generic query failure without poisoned evidence → fatal + query_failed", async () => {
+    const input = createClassifyInput({
+      describe: async () => ({ searchAttributes: {} }),
+    });
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error("Failed to query Workflow"),
+    );
+    expect(failure.errorClass).toBe("fatal");
+    expect(failure.recoveryReason).toBe("query_failed");
+  });
+
+  test("fatal non-generic query failure → fatal + query_failed", async () => {
+    const input = createClassifyInput({});
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error("permission denied"),
+    );
+    expect(failure.errorClass).toBe("fatal");
+    expect(failure.recoveryReason).toBe("query_failed");
+  });
+
+  test("fallback-class but neither poisoned nor missing → query_failed (never mutation-authorizing)", async () => {
+    // "not registered" matches the retry-wrapper fallback family, but the
+    // workflow exists and cannot answer the query — re-seed mutation must
+    // NOT be authorized for it.
+    const input = createClassifyInput({});
+    const failure = await classifyTemporalReadFailure(
+      input,
+      "change-a",
+      new Error("Query type 'changeStateQuery' not registered"),
+    );
+    expect(failure.recoveryReason).toBe("query_failed");
   });
 });

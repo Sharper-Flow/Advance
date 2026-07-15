@@ -70,6 +70,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Single-change wedged-status flip gated on precise workflow evidence; approval + recovery evidence required.",
   },
+  adv_change_workflow_terminate: {
+    class: "operator-only",
+    rationale:
+      "Terminates the exact describe-pinned wedged run of a shipped change's workflow (not a Temporal Reset); approvedByUser + approvalEvidence + shipped acceptance/release gate proof + poisoned-history describe evidence required.",
+  },
   adv_store_cleanup: {
     class: "operator-only",
     rationale:
@@ -494,6 +499,7 @@ export const AGENT_TOOL_POLICY: readonly AgentToolPolicy[] = [
       "adv_change_update",
       "adv_change_update_issues",
       "adv_change_validate",
+      "adv_change_workflow_terminate",
       "adv_conformance",
       "adv_contract_mint",
       "adv_contract_review_matrix_set",

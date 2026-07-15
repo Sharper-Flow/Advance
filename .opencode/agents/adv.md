@@ -61,6 +61,7 @@ tools:
   adv_archive_repair: true
   adv_archive_purge: true
   adv_change_status_repair: true
+  adv_change_workflow_terminate: true
   adv_change_forget: true
   adv_design_concern_disposition: true
   # Tasks

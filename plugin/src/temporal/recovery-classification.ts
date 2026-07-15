@@ -17,6 +17,32 @@ const COMPLETED_WORKFLOW_EVIDENCE_RE =
 export const RECOVERY_RECONCILIATION_WARNING =
   "Poisoned-history recovery wrote the disk projection only; the Temporal workflow is not healed and stale workflow state may diverge if it becomes queryable later. Complete recovery in this session and archive or close promptly.";
 
+/**
+ * Structural taxonomy for reachable Temporal query failures.
+ *
+ * - `poisoned_history` — workflow history is nondeterministic/poisoned.
+ * - `missing_workflow` — workflow completed or is absent (not-found).
+ * - `query_failed` — any other reachable query failure. The workflow state
+ *   is UNKNOWN, so this reason NEVER authorizes mutation (re-seed,
+ *   projection recovery writes). Only the projection-safe subset may gate
+ *   mutation paths.
+ */
+export const RECOVERY_REASONS = [
+  "poisoned_history",
+  "missing_workflow",
+  "query_failed",
+] as const;
+
+export type RecoveryReason = (typeof RECOVERY_REASONS)[number];
+
+/**
+ * Subset of recovery reasons that authorize projection recovery / re-seed
+ * mutation. `query_failed` is deliberately excluded: an unclassified query
+ * failure says nothing about workflow state, so mutating on it can mask or
+ * clobber a live workflow.
+ */
+export type ProjectionRecoveryReason = Exclude<RecoveryReason, "query_failed">;
+
 export const FAILING_CONTRACT_REVIEW_STATUSES = [
   "fail",
   "violated",
@@ -49,6 +75,13 @@ const COMPLETED_WORKFLOW_MESSAGE_PATTERNS: readonly RegExp[] = [
   /cannot signal a completed/i,
 ];
 
+// gRPC/SDK not-found phrasings that signal an ABSENT workflow. Mirrors the
+// not-found family in `retry-wrapper.classifyTemporalError` minus the
+// start-path-only terms ("already started" / "already exists") and minus
+// "not registered" — an unregistered query/workflow type means the workflow
+// EXISTS but cannot answer, which is `query_failed`, never `missing_workflow`.
+const MISSING_WORKFLOW_TEXT_RE = /not[_ ]found|NOT_FOUND/i;
+
 export function isWorkflowCompletedError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   const name = err.name?.toLowerCase() ?? "";
@@ -74,10 +107,13 @@ export function isFailingContractReviewStatus(
   );
 }
 
-export function recoveryReasonFromError(
-  error: unknown,
-): "poisoned_history" | "missing_workflow" {
-  return isPoisonedHistoryError(error)
-    ? "poisoned_history"
-    : "missing_workflow";
+export function recoveryReasonFromError(error: unknown): RecoveryReason {
+  if (isPoisonedHistoryError(error)) return "poisoned_history";
+  if (isWorkflowCompletedError(error)) return "missing_workflow";
+  if (MISSING_WORKFLOW_TEXT_RE.test(collectErrorText(error))) {
+    return "missing_workflow";
+  }
+  // Any other reachable query failure: workflow state unknown. Typed so
+  // callers can classify it, but it never authorizes mutation.
+  return "query_failed";
 }
