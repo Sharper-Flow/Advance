@@ -127,7 +127,7 @@ You may not begin analysis until scope is locked AND path preflight is complete.
 
 Every tool call you make MUST target the working directory specified in the Context Packet. This ensures your reads, edits, and test runs land in the correct worktree (typically a per-change worktree, NOT the default project root).
 
-**Directive:** Extract `WORKING DIRECTORY` from the Context Packet. Pass it as the `workdir` parameter to **every** call to: `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test`.
+**Directive:** Extract `WORKING DIRECTORY` from the Context Packet. Pass it as `workdir` to `bash`, `read`, `write`, `edit`, and `adv_run_test`. For `morph_edit`, pass both `workdir: WORKING DIRECTORY` and `taskId: TASK`; ADV authorizes this pair before Morph can use the external root.
 
 **If WORKING DIRECTORY is missing or empty:** Refuse to begin. Return a structured packet-defect failure to the orchestrator with `packet_defect: missing WORKING DIRECTORY`. Do NOT call `question` and do NOT ask the user for packet identity values.
 

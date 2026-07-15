@@ -122,7 +122,7 @@ If the Designer Apply or remediation Context Packet omits `TASK` or `ATTEMPT`, r
 
 Every tool call you make MUST target the working directory specified in the Designer Apply Context Packet. This is how the orchestrator ensures your file operations land in the correct location (typically a per-change worktree, NOT the default project root).
 
-**Directive:** Extract `WORKING DIRECTORY` from the Designer Apply Context Packet. Pass it as the `workdir` parameter to **every** call to: `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test`.
+**Directive:** Extract `WORKING DIRECTORY` from the Designer Apply Context Packet. Pass it as `workdir` to `bash`, `read`, `write`, `edit`, and `adv_run_test`. For `morph_edit`, pass both `workdir: WORKING DIRECTORY` and `taskId: TASK`; ADV authorizes this pair before Morph can use the external root.
 
 **If WORKING DIRECTORY is missing or empty:** Refuse to begin work. Return a structured packet-defect failure to the orchestrator with `packet_defect: missing WORKING DIRECTORY`. Do NOT call `question` and do NOT ask the user for packet identity values.
 

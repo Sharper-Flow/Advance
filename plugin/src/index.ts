@@ -13,6 +13,7 @@
 
 import { type Plugin } from "@opencode-ai/plugin";
 import { isAbsolute, join, resolve } from "node:path";
+import { realpathSync } from "node:fs";
 import {
   initializeStatus,
   cleanup as cleanupTerminal,
@@ -76,6 +77,8 @@ import {
   type TodoWriteTaskState,
 } from "./utils/todowrite-guard";
 import { buildAdvWorktreeAdapter } from "./utils/workspace-adapter";
+import { authorizeMorphWorktree } from "./utils/morph-worktree-authorization";
+import { worktreeExistsForChange } from "./tools/worktree/state";
 
 export { resolveGitSessionContext } from "./utils/git-session";
 
@@ -592,6 +595,21 @@ const advancePluginImpl: Plugin = async (input) => {
     args: Record<string, unknown>,
     input: Record<string, unknown>,
   ) => {
+    if (toolName === "morph_edit") {
+      const sessionID = typeof input.sessionID === "string" ? input.sessionID : "";
+      if (!store || !worktreeStateAccess || !resolvedProjectId || !sessionID) {
+        if (args.workdir !== undefined || args.taskId !== undefined) {
+          throw new Error("Morph ADV workdir authorization is unavailable");
+        }
+      } else {
+        await authorizeMorphWorktree(args, sessionID, {
+          getTaskChangeId: async (taskId) => (await store.tasks.show(taskId))?.changeId ?? null,
+          getExpectedRoot: (changeId) => join(getWorktreeBase(resolvedProjectId), "change", changeId),
+          canonicalize: (path) => realpathSync(path),
+          isSetupReady: (changeId) => worktreeExistsForChange(worktreeStateAccess, changeId),
+        });
+      }
+    }
     // rq-activeChangePointer01.6: adv_change_forget early-return (KD6)
     // Also validates mismatch (refuse-with-hint per AC1/AD2)
     if (toolName === "adv_change_forget") {
